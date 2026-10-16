@@ -50,6 +50,8 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests and e2e 
 
 - **Cache Components:** with `cacheComponents: true`, any client component that reads search params (`useSearchParams`) or the pathname on a dynamic-param route must render inside `<Suspense>`.
 - **Dexie:** never query it during render, only in effects or `useLiveQuery`. The db module is safe during server rendering only as long as nothing opens it there.
+- **Hidden pages stay mounted:** Next 16 keeps a page you navigate away from mounted but hidden (Activity): its effects clean up and re-run on return, and its state survives. Re-read data in effects before redirecting, and don't rely on unmount to reset state.
+- **Dexie schema:** a schema change adds a new `db.version(n)`; never edit a version that has shipped.
 
 ## Global Constraints
 
