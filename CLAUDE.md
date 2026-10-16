@@ -20,13 +20,14 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | cn | 0.4.0 |
 | lucide-react | 1.58.0 |
 | tw-animate-css | 1.4.0 |
+| date-fns | 4.4.0 |
 | eslint, eslint-config-next | 9.39.5, 16.4.2 |
 | vitest | 5.0.5 |
 | fake-indexeddb | 6.2.5 |
 | @playwright/test | 1.64.1 |
 | @types/node | 24.19.2 |
 
-Dexie, dexie-react-hooks, Zod, date-fns and the chart components arrive with later tasks. Pin them and add them to this table when they land.
+Dexie, dexie-react-hooks, Zod and the chart components arrive with later tasks. Pin them and add them to this table when they land.
 
 ## Commands
 
