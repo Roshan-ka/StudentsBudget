@@ -615,7 +615,7 @@ What the screen shows:
 **Files:**
 - Create: `src/features/charts/aggregate.ts`, `src/features/charts/aggregate.test.ts`, `src/features/charts/charts-view.tsx`, `src/app/charts/page.tsx`
 - Modify: `bottom-nav.tsx` (add Charts)
-- Install: `npx shadcn@latest add chart`
+- Install: `npx shadcn add chart`
 
 **Interfaces (Produces):**
 ```ts
