@@ -11,17 +11,11 @@ import { loadRates, refreshRates } from '@/db/rates';
 import { AccountInUseError, deleteAccount } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
 import { todayIso } from '@/lib/dates';
-import { CURRENCIES, formatMoney, parseAmount, type CurrencyCode, type Minor } from '@/lib/money';
+import { CURRENCIES, formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { accountBalance, sortAccounts, totalInEur } from './balances';
+import { parseOpeningBalance } from './opening-balance';
 
 const KIND_LABELS: Record<Account['kind'], string> = { bank: 'Bank', cash: 'Cash' };
-
-/** Empty or zero means 0, so a new cash wallet is valid; anything else must be a positive amount. */
-function parseOpeningBalance(text: string): Minor | null {
-  const trimmed = text.trim();
-  if (trimmed === '' || /^0+(?:[.,]0{1,2})?$/.test(trimmed)) return 0;
-  return parseAmount(trimmed);
-}
 
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
