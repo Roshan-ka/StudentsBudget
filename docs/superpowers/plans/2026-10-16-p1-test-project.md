@@ -91,7 +91,7 @@ winget install --id GitHub.cli -e
 | 1 | `feat/p1-day1-foundation` | Learning (4 h: TS for Java programmers, async/await, React Quick Start), 1–3 | The empty app installs from a Vercel preview; helpers and database are tested |
 | 2 | `feat/p1-day2-plan` | 4–7 | Setup saves a plan with Regensburg ranges; INR rate works, including offline |
 | 3 | `feat/p1-day3-logging` | 8–10 | "döner 6" updates "Safe to spend this week" in desktop Chrome |
-| 4 | `feat/p1-day4-insights` | 11–15 | Charts, reveal, check-in and backup work; installed and used on the iPhone |
+| 4 | `feat/p1-day4-insights` | 11–14, 14b, 15 | Charts, reveal, check-in and backup work; the installed app opens offline; installed and used on the iPhone |
 
 **If it runs over**, cut in this order (from the spec):
 1. Task 13's calendar file
@@ -120,6 +120,7 @@ The guesses are already stored, so nothing is lost.
 | `src/app/<route>/page.tsx` | Thin route files: `/`, `/setup`, `/entries`, `/entries/new`, `/charts`, `/check-in`, `/reveal`, `/settings` |
 | `e2e/*.spec.ts`, `e2e/helpers/setup.ts` | Playwright flows; `completeSetup()` fixture |
 | `public/weekly-check-in.ics` | Static weekly calendar reminder |
+| `public/sw.js`, `src/lib/sw-register.ts` | Service worker for offline start (Task 14b) |
 
 Commands:
 
@@ -291,7 +292,7 @@ export async function deleteAccount(id: string): Promise<void>;   // throws Acco
 
 **Files:**
 - Create: `src/lib/fx.ts`, `src/lib/fx.test.ts`, `src/db/rates.ts`, `src/db/rates.test.ts`
-- Modify: `src/components/app-init.tsx`
+- Modify: `src/components/app-init.tsx`, `src/db/db.ts`, `src/db/repo.test.ts` (or a new `src/db/db.test.ts` for the upgrade test)
 
 **Interfaces:**
 - Consumes: `Rate`, `db` (Task 3); `Minor`, `CurrencyCode`, `IsoDate` (Task 2)
@@ -310,6 +311,11 @@ export async function loadRates(): Promise<RateMap>;
   - It fetches only the non-EUR currencies used by accounts (`none-needed` if there are none).
   - At most once a day: if every ECB row has `fetchedOn === today`, it returns `fresh`.
   - It never overwrites `source: 'manual'` rows.
+- **Storage:** a manual and an ECB rate for the same currency live side by side, so "Use ECB rate again" still has a rate offline (Review Focus 3).
+  - Dexie `version(2)`: `rates: null` (drops the version-1 table) and `fxRates: '[currency+source], currency'`. A primary key can't change in place, and version-1 databases already exist in local browsers. The `Rate` type stays.
+  - `loadRates` returns one rate per currency and prefers the manual row.
+  - `setManualRate` writes only the manual row. `clearManualRate` deletes only the manual row, so the ECB row is left.
+- **AppInit:** calls `refreshRates(todayIso())` after seeding, in its own try. It calls it again whenever the document becomes visible (`visibilitychange`), because an installed iPhone app can stay suspended for days without remounting.
 
 - [ ] **Step 1: Write failing tests.**
 
@@ -324,8 +330,12 @@ expect(await fetchEcbRates(['INR'], fake)).toEqual({ rateDate: '2026-10-16', per
     - `returns fresh without fetching when fetched today`
     - `keeps the old rate when the fetch fails`: expect `'failed'`, and the stored INR rate is unchanged
     - `never overwrites a manual rate`
+  - Storage tests:
+    - `loadRates prefers the manual rate`: ECB 95 and manual 97 for INR → `loadRates().INR.perEur` is 97
+    - `clearManualRate keeps the ECB rate`: after clearing, `loadRates().INR.perEur` is 95 with no fetch
+    - `upgrades a version-1 database`: open a version-1 `studentsbudget` database with seeded categories, then the app's `db` opens it; the 18 categories are still there and `fxRates` is empty
 - [ ] **Step 2: Run `npm test`.** Expected: FAIL.
-- [ ] **Step 3: Implement.** `AppInit` calls `refreshRates(todayIso())` after seeding.
+- [ ] **Step 3: Implement** `fx.ts`, `rates.ts`, the `version(2)` schema and the AppInit calls described above.
 - [ ] **Step 4: Run `npm test`.** Expected: PASS.
 - [ ] **Step 5: Commit:** `feat(fx): add daily ECB rates with manual override`.
 
@@ -451,7 +461,7 @@ expect(s.envelopes[0]).toEqual({ categoryId: 'food', weekShareMinor: 7000, spent
 ```ts
 export type SetupDraft = { rentMinor: Minor; accounts: Pick<Account, 'name' | 'kind' | 'currency' | 'openingMinor'>[];
   incomes: Amount[]; fixed: Amount[]; oneOffs: Pick<OneOff, 'name' | 'amountMinor' | 'dueMonth'>[]; guesses: Amount[]; envelopes: Amount[] };
-export function draftToRecords(d: SetupDraft, today: IsoDate): { plan: Plan; guesses: Guess[]; accounts: Account[] };
+export function draftToRecords(d: SetupDraft, today: IsoDate, existing?: Plan): { plan: Plan; guesses: Guess[]; accounts: Account[] };
 export type StepId = 'city-rent' | 'accounts' | 'income' | 'fixed' | 'one-offs' | 'guesses' | 'envelopes';
 export function validateStep(step: StepId, d: SetupDraft): string[];
 export function shouldShowInstallHint(env: { isIos: boolean; standalone: boolean }): boolean;
@@ -471,8 +481,10 @@ export async function completeSetup(page: Page, overrides?: Partial<SetupFixture
 | 7 | Envelopes | Per envelope: "Students here: €200–260", and below the range "Below what students here typically need." |
 
 - The footer reads "Available €440 · Planned €465 · Over by €25".
-- **Save plan** is disabled while `overByMinor > 0`. It writes accounts, plan and guesses in one Dexie transaction, then goes to `/`.
+- **Save plan** is disabled while `overByMinor > 0`. It writes accounts, plan and guesses in one Dexie transaction over `db.accounts`, `db.plan` and `db.guesses`, then goes to `/`. `validateStep('guesses')` guarantees all 6 guesses, so `saveGuesses` never receives an empty list.
 - **Edit mode** (`?edit=1`): prefilled from the saved plan, and skips steps 2 and 6. Accounts are edited in Settings, and guesses are locked.
+  - Saving passes the stored plan as `existing`: `plan.createdOn` and each kept one-off's `id` and `createdMonth` stay. Otherwise "Adjust my plan" would relock the reveal for 21 days and restart the set-asides.
+  - The component that reads `?edit=1` (`useSearchParams`) renders inside `<Suspense>`, because `cacheComponents` is on.
 - **Install hint** (on iOS Safari when not standalone): "Install first: tap Share → Add to Home Screen, then set up there. Data entered in Safari stays in Safari."
 
 - [ ] **Step 1: Write failing unit tests.**
@@ -481,6 +493,7 @@ export async function completeSetup(page: Page, overrides?: Partial<SetupFixture
     - each one-off gets `createdMonth: '2026-10'` for today `2026-10-16`
     - guesses get `guessedOn: '2026-10-16'`
     - `plan.createdOn` is `'2026-10-16'`
+    - with `existing` created on `'2026-10-01'` and a kept one-off created in `'2026-09'`, editing on `'2026-10-16'` keeps `createdOn: '2026-10-01'` and that one-off's `createdMonth: '2026-09'`; a new one-off gets `'2026-10'`
   - `validateStep('guesses')` with no eating-out guess → `['Add a guess for Eating out']`. A guess of 0 is valid.
   - `validateStep('accounts')` with no accounts → `['Add at least one account']`.
   - `shouldShowInstallHint`: `{isIos:true, standalone:false}` → true; standalone → false; not iOS → false.
@@ -497,7 +510,7 @@ export async function completeSetup(page: Page, overrides?: Partial<SetupFixture
     - Frankfurter mocked at INR 95
   - `setup.spec.ts`:
     - `blocks saving while over budget`: eating-out 155 → "Over by €25" is visible and Save is disabled.
-    - `saves and lands on home`: after `completeSetup`, the URL is `/`, and after a reload the plan is still there (home shows "Safe to spend this week").
+    - `saves and lands on home`: after `completeSetup`, the URL is `/`, and after a reload it stays `/` (no redirect back to `/setup`, so the plan persisted). The home screen's "Safe to spend this week" content arrives in Task 10.
 - [ ] **Step 5: Run `npm test` and `npm run test:e2e`.** Expected: PASS in both projects.
 - [ ] **Step 6: Commit:** `feat(setup): add step-by-step plan setup with city ranges`.
 
@@ -568,7 +581,7 @@ What the screens do:
   - Toast: "Saved €6.00 · Eating out", with an **Undo** button that deletes the entry.
 - **Entry form:** tabs Expense / Income / Transfer, the last reusing `TransferForm`.
 - **Entries list:**
-  - Grouped by date, newest first. It reads `?category=` and `?month=`.
+  - Grouped by date, newest first. It reads `?category=` and `?month=`; the component reading them renders inside `<Suspense>` (`cacheComponents`).
   - Tapping an entry opens the edit form. Delete asks for confirmation first.
 
 - [ ] **Step 1: Write failing tests.**
@@ -720,8 +733,11 @@ export function serializeBackup(d: BackupData, now: Date): string;   // { app: '
 export function parseBackup(text: string): { ok: true; data: BackupData; exportedAt: string } | { ok: false; error: string }; // Zod
 export async function exportAll(): Promise<BackupData>;
 export async function replaceAll(d: BackupData): Promise<void>;      // one transaction across all tables
-export async function deleteEverything(): Promise<void>;             // db.delete(), then reopen
+export async function deleteEverything(): Promise<void>;             // db.delete(), then db.open(), then ensureSeeded()
 ```
+
+- **Delete and reseed:** Dexie 4 doesn't reopen a deleted database by itself, and categories are otherwise seeded only when AppInit mounts. So `deleteEverything` runs `db.delete()`, then `db.open()`, then `ensureSeeded()`. `/setup` then works without a reload.
+- **Zod:** `npm i zod` (exact pin, added to the `CLAUDE.md` stack table). Today it's only present as a transitive dependency. The schema regex-checks every `IsoDate` (`^\d{4}-\d{2}-\d{2}$`) and `IsoMonth` (`^\d{4}-\d{2}$`), because the import is the only untrusted input.
 
 What the panel does:
 - **Export:**
@@ -739,7 +755,8 @@ What the panel does:
   - Version 2 → `"This backup is from a newer version of the app."`
   - Missing `data.entries` → `"This backup file is incomplete."`
   - `replaceAll` replaces existing rows: the old entry is gone and the new one is present.
-  - `deleteEverything` leaves 0 rows in every table.
+  - `deleteEverything` leaves 0 rows in every table except the 18 reseeded categories, and the database is open afterwards.
+  - A backup whose entry date is `'16/10/2026'` → `"This backup file is incomplete."`
 - [ ] **Step 2: Run `npm test`.** Expected: FAIL.
 - [ ] **Step 3: Implement** `backup.ts`, `bulk.ts` and the panel.
 - [ ] **Step 4: Write the e2e test** (desktop-chrome project):
@@ -751,11 +768,45 @@ What the panel does:
 - [ ] **Step 5: Run `npm test` and `npm run test:e2e`.** Expected: PASS.
 - [ ] **Step 6: Commit:** `feat(backup): add backup export, restore and delete everything`.
 
+### Task 14b: Offline start (service worker)
+
+Without a service worker, the installed app can't open offline: iPhone shows Safari's "not connected" page. Task 15's airplane-mode check needs this task.
+
+**Files:**
+- Create: `public/sw.js`, `src/lib/sw-register.ts`, `playwright.offline.config.ts`, `e2e/offline.spec.ts`
+- Modify: `src/components/app-init.tsx`, `next.config.ts`, `package.json` (script `test:offline`), `.github/workflows/ci.yml`
+
+**Interfaces (Produces):**
+```ts
+export function registerServiceWorker(env: { production: boolean; supported: boolean }): Promise<'registered' | 'skipped' | 'failed'>;
+```
+
+What it does:
+- `public/sw.js` is hand-written, with no library:
+  - navigations: network first, falling back to the cached page
+  - `/_next/static/*` and the icons: cache first
+  - never cache `api.frankfurter.dev`
+  - a versioned cache name; old caches are deleted on activate
+- AppInit calls `registerServiceWorker` in production builds only, in its own try. A dev server must never get a service worker.
+- `next.config.ts` serves `/sw.js` with `Cache-Control: no-cache` via `headers()`, so updates reach installed apps.
+
+- [ ] **Step 1: Write failing tests.**
+  - `registerServiceWorker({ production: false, supported: true })` → `'skipped'`; `{ production: true, supported: false }` → `'skipped'`.
+  - `e2e/offline.spec.ts` (run by `playwright.offline.config.ts` against `npm run build && npm run start` on port 3100, desktop-chrome project only):
+    1. Load `/` and wait until the service worker controls the page.
+    2. `context.setOffline(true)`, then reload.
+    3. The h1 "StudentsBudget" is visible.
+  - The `/sw.js` response has `cache-control: no-cache`.
+- [ ] **Step 2: Run `npm test` and `npm run test:offline`.** Expected: FAIL.
+- [ ] **Step 3: Implement** `sw.js`, `sw-register.ts`, the AppInit call and the header.
+- [ ] **Step 4: Run `npm test`, `npm run test:e2e` and `npm run test:offline`.** Expected: PASS. Add a `npm run test:offline` step to CI after the e2e step.
+- [ ] **Step 5: Commit:** `feat(app): open offline with a service worker`.
+
 ### Task 15: Phone check and README
 
 **Files:** Modify `README.md` (what it is, install on iPhone, commands, privacy) and `CLAUDE.md` (anything learned)
 
-- [ ] **Step 1: Run the full suite.** `npm run lint && npm run typecheck && npm test && npm run test:e2e`. Expected: all green.
+- [ ] **Step 1: Run the full suite.** `npm run lint && npm run typecheck && npm test && npm run test:e2e && npm run test:offline`. Expected: all green.
 - [ ] **Step 2: Check desktop Chrome** on the Vercel preview, or on a local `npm run build && npm run start` if Vercel isn't connected yet: install, set up, quick add, charts, check-in, export, delete, import.
 - [ ] **Step 3: iPhone (Roshan), after `main` is deployed to production:**
   1. Safari → the install hint shows.
