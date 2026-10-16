@@ -55,7 +55,7 @@ const CHECKED: IsoDate = '2026-10-16';
 const DSW_URL = 'https://www.studierendenwerke.de/fileadmin/user_upload/22._Soz_Hauptbericht_barrierefrei.pdf';
 const UR_HOUSING_URL = 'https://www.uni-regensburg.de/studieren/rund-ums-studium/wohnen-in-regensburg';
 const STWNO_TICKET_URL = 'https://stwno.de/en/home-en2/semester-contribution-and-tickets/semesterticket-regensburg';
-const MENSA_PLAN_URL = 'https://www.stwno.de/infomax/daten-extern/pdf/UNI-R/speiseplan_nw_de.pdf?t=1778420113';
+const MENSA_PLAN_URL = 'https://www.stwno.de/infomax/daten-extern/pdf/UNI-R/speiseplan_nw_de.pdf';
 const NUMBEO_URL = 'https://www.numbeo.com/cost-of-living/in/Regensburg';
 
 const regensburg: City = {
@@ -123,7 +123,7 @@ const regensburg: City = {
     {
       label: 'Mensa main meal (student price)',
       minor: 380,
-      source: 'Studierendenwerk Niederbayern/Oberpfalz, Mensa Uni Regensburg menu 19–23 Oct 2026, median student price of 19 main dishes',
+      source: 'Studierendenwerk Niederbayern/Oberpfalz, Mensa Uni Regensburg: median student price of the 19 main dishes on the menu, a snapshot of the week 19–23 Oct 2026 (the PDF is replaced every week)',
       url: MENSA_PLAN_URL,
       checked: CHECKED,
     },
