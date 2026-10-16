@@ -17,6 +17,8 @@
     "class-variance-authority": "0.7.1",
     "cn": "0.4.0",
     "date-fns": "4.4.0",
+    "dexie": "4.4.6",
+    "dexie-react-hooks": "4.4.0",
     "lucide-react": "1.58.0",
     "next": "16.4.2",
     "react": "19.3.0",
