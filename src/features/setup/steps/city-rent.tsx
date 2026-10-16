@@ -7,6 +7,7 @@ import { CITIES } from '@/data/cities';
 import { formatRange } from '@/lib/money';
 import type { DraftUpdate, SetupDraft } from '../draft';
 import { AmountField } from './amount-field';
+import { RangeSource } from './range-source';
 
 const rentRange = CITIES.regensburg.ranges.find((r) => r.categoryId === 'rent');
 
@@ -22,12 +23,15 @@ export function CityRentStep({ draft, update }: { draft: SetupDraft; update: Dra
         </NativeSelect>
         <p className="text-sm text-muted-foreground">Regensburg is the only city for now.</p>
       </div>
-      <AmountField
-        label="Rent per month"
-        value={draft.rentMinor}
-        onChange={(minor) => update((d) => ({ ...d, rentMinor: minor ?? 0 }))}
-        hint={rentRange && `Rooms here: ${formatRange(rentRange.minMinor, rentRange.maxMinor)}`}
-      />
+      <div className="grid gap-1.5">
+        <AmountField
+          label="Rent per month"
+          value={draft.rentMinor}
+          onChange={(minor) => update((d) => ({ ...d, rentMinor: minor ?? 0 }))}
+          hint={rentRange && `Rooms here: ${formatRange(rentRange.minMinor, rentRange.maxMinor)}`}
+        />
+        {rentRange && <RangeSource range={rentRange} />}
+      </div>
     </div>
   );
 }

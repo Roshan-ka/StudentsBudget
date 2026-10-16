@@ -16,6 +16,7 @@ import {
   type SetupDraft,
 } from '../draft';
 import { AmountField } from './amount-field';
+import { RangeSource } from './range-source';
 
 export function EnvelopesStep({
   draft,
@@ -39,20 +40,22 @@ export function EnvelopesStep({
       {FLEXIBLE_CATEGORIES.map((c) => {
         const range = CITIES.regensburg.ranges.find((r) => r.categoryId === c.id);
         return (
-          <AmountField
-            key={c.id}
-            label={c.name}
-            value={amountOf(draft.envelopes, c.id) ?? 0}
-            onChange={(minor) => update((d) => ({ ...d, envelopes: withAmount(d.envelopes, c.id, minor ?? 0) }))}
-            hint={
-              range && (
-                <>
-                  <p>{rangeLine('Students here', range)}</p>
-                  {below.has(c.id) && <p>Below what students here typically need.</p>}
-                </>
-              )
-            }
-          />
+          <div key={c.id} className="grid gap-1.5">
+            <AmountField
+              label={c.name}
+              value={amountOf(draft.envelopes, c.id) ?? 0}
+              onChange={(minor) => update((d) => ({ ...d, envelopes: withAmount(d.envelopes, c.id, minor ?? 0) }))}
+              hint={
+                range && (
+                  <>
+                    <p>{rangeLine('Students here', range)}</p>
+                    {below.has(c.id) && <p>Below what students here typically need.</p>}
+                  </>
+                )
+              }
+            />
+            {range && <RangeSource range={range} />}
+          </div>
         );
       })}
       <p aria-live="polite" className="rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
