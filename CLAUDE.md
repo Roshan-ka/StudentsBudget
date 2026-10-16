@@ -28,6 +28,8 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | fake-indexeddb | 6.2.5 |
 | @playwright/test | 1.64.1 |
 | @types/node | 24.19.2 |
+| @types/react | 19.3.0 |
+| @types/react-dom | 19.3.0 |
 
 Zod and the chart components arrive with later tasks. Pin them and add them to this table when they land.
 
@@ -38,10 +40,16 @@ Zod and the chart components arrive with later tasks. Pin them and add them to t
 | `npm run dev` | Start the dev server on http://localhost:3000 |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `next typegen`, then `tsc --noEmit` |
+| `npm run build` | Production build (`next build`); catches Cache Components errors that dev mode hides |
 | `npm test` | Vitest unit tests (`src/**/*.test.ts`) |
 | `npm run test:e2e` | Playwright on `desktop-chrome` and `iphone` (WebKit); starts the dev server if none is running |
 
-CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and e2e on every pull request.
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests and e2e on every pull request.
+
+## Framework rules
+
+- **Cache Components:** with `cacheComponents: true`, any client component that reads search params (`useSearchParams`) or the pathname on a dynamic-param route must render inside `<Suspense>`.
+- **Dexie:** never query it during render, only in effects or `useLiveQuery`. The db module is safe during server rendering only as long as nothing opens it there.
 
 ## Global Constraints
 
