@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { City } from '@/data/cities';
 import type { Entry, OneOff, Plan } from '@/db/types';
 import { monthStatus, planSummary, rangeWarnings, safeToSpend, setAsideMonthly } from './budget';
+import { addDays, firstOfMonth, monthOf } from './dates';
 
 const fee: OneOff = {
   id: 'fee',
@@ -21,6 +22,7 @@ const plan: Plan = {
     { categoryId: 'food', monthlyMinor: 31000 },
     { categoryId: 'going-out', monthlyMinor: 15500 },
   ],
+  // The 1st, so October is a full month for this plan. The setup-month cases below set their own date.
   createdOn: '2026-10-01',
 };
 
@@ -169,6 +171,95 @@ describe('safeToSpend', () => {
     const s = safeToSpend(foodOnly, [...entries, expense('food', '2026-10-19', 4000)], '2026-10-16');
     expect(s.totalMinor).toBe(11000);
   });
+
+  describe('in the month the plan was set up', () => {
+    const setUpOn16th: Plan = {
+      ...plan,
+      envelopes: [
+        { categoryId: 'food', monthlyMinor: 31000 },
+        { categoryId: 'eating-out', monthlyMinor: 12400 },
+      ],
+      createdOn: '2026-10-16',
+    };
+
+    it('accrues from the setup day, so the first partial week holds only its own days', () => {
+      const s = safeToSpend(setUpOn16th, [], '2026-10-16');
+      expect(s.weekStart).toBe('2026-10-12');
+      expect(s.weekEnd).toBe('2026-10-18');
+      // food: 31000 × 3 / 31 = 3000, eating-out: 12400 × 3 / 31 = 1200. Nothing accrued before the 16th.
+      expect(s.envelopes).toEqual([
+        { categoryId: 'food', weekShareMinor: 3000, spentThisWeekMinor: 0, safeMinor: 3000 },
+        { categoryId: 'eating-out', weekShareMinor: 1200, spentThisWeekMinor: 0, safeMinor: 1200 },
+      ]);
+      expect(s.totalMinor).toBe(4200);
+    });
+
+    it('ignores entries dated before the setup day', () => {
+      const earlier = [expense('food', '2026-10-10', 9000), expense('food', '2026-10-14', 500)];
+      const s = safeToSpend(setUpOn16th, earlier, '2026-10-16');
+      expect(s.envelopes[0]).toEqual({
+        categoryId: 'food',
+        weekShareMinor: 3000,
+        spentThisWeekMinor: 0,
+        safeMinor: 3000,
+      });
+      expect(s.totalMinor).toBe(4200);
+    });
+
+    it('counts entries from the setup day on', () => {
+      const s = safeToSpend(setUpOn16th, [expense('food', '2026-10-16', 1000)], '2026-10-16');
+      expect(s.envelopes[0]).toEqual({
+        categoryId: 'food',
+        weekShareMinor: 3000,
+        spentThisWeekMinor: 1000,
+        safeMinor: 2000,
+      });
+    });
+
+    it('is zero for a week that ended before the setup day', () => {
+      const s = safeToSpend(setUpOn16th, [], '2026-10-08');
+      expect(s.envelopes.map((e) => [e.weekShareMinor, e.safeMinor])).toEqual([
+        [0, 0],
+        [0, 0],
+      ]);
+      expect(s.totalMinor).toBe(0);
+    });
+
+    it('gives later weeks their full share, counted from the setup day', () => {
+      const s = safeToSpend(setUpOn16th, [], '2026-10-20');
+      expect(s.weekStart).toBe('2026-10-19');
+      expect(s.weekEnd).toBe('2026-10-25');
+      // food through the 25th: 31000 × 10 / 31 = 10000, before the 19th: 31000 × 3 / 31 = 3000.
+      expect(s.envelopes[0]).toMatchObject({ categoryId: 'food', weekShareMinor: 7000, safeMinor: 10000 });
+    });
+
+    it('leaves the next month untouched', () => {
+      const november: Plan = { ...setUpOn16th, envelopes: [{ categoryId: 'food', monthlyMinor: 30000 }] };
+      const s = safeToSpend(november, [], '2026-11-02');
+      // The 1st is a Sunday, so the week of the 2nd runs 2026-11-02 to 2026-11-08: 30000 × 8 / 30 = 8000.
+      expect(s.weekStart).toBe('2026-11-02');
+      expect(s.weekEnd).toBe('2026-11-08');
+      expect(s.totalMinor).toBe(8000);
+    });
+  });
+
+  it('adds the weeks of a month up to exactly the monthly amount, without drift', () => {
+    const earlier: Plan = {
+      ...plan,
+      envelopes: [{ categoryId: 'food', monthlyMinor: 10000 }],
+      createdOn: '2026-09-15',
+    };
+    let total = 0;
+    let weeks = 0;
+    for (let day = firstOfMonth('2026-10'); monthOf(day) === '2026-10'; ) {
+      const week = safeToSpend(earlier, [], day);
+      total += week.envelopes[0].weekShareMinor;
+      weeks += 1;
+      day = addDays(week.weekEnd, 1);
+    }
+    expect(weeks).toBe(5);
+    expect(total).toBe(10000);
+  });
 });
 
 describe('monthStatus', () => {
@@ -185,6 +276,34 @@ describe('monthStatus', () => {
       { categoryId: 'food', plannedMinor: 31000, spentMinor: 7000 },
       { categoryId: 'going-out', plannedMinor: 15500, spentMinor: 3000 },
     ]);
+  });
+
+  describe('in the month the plan was set up', () => {
+    const setUpOn16th: Plan = { ...foodOnly, createdOn: '2026-10-16' };
+
+    it('plans only the days from the setup day to the end of the month', () => {
+      // 31000 × 16 / 31 = 16000
+      expect(monthStatus(setUpOn16th, [], '2026-10')).toEqual([
+        { categoryId: 'food', plannedMinor: 16000, spentMinor: 0 },
+      ]);
+    });
+
+    it('counts spending from the setup day on', () => {
+      const entries = [
+        expense('food', '2026-10-10', 9000),
+        expense('food', '2026-10-16', 700),
+        expense('food', '2026-10-20', 300),
+      ];
+      expect(monthStatus(setUpOn16th, entries, '2026-10')).toEqual([
+        { categoryId: 'food', plannedMinor: 16000, spentMinor: 1000 },
+      ]);
+    });
+
+    it('leaves the next month untouched', () => {
+      expect(monthStatus(setUpOn16th, [expense('food', '2026-11-03', 400)], '2026-11')).toEqual([
+        { categoryId: 'food', plannedMinor: 31000, spentMinor: 400 },
+      ]);
+    });
   });
 });
 
