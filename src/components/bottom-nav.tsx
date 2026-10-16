@@ -3,8 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-// Later tasks add Settings (5), Entries (9) and Charts (11).
-export const NAV_ITEMS: { href: string; label: string }[] = [{ href: '/', label: 'Home' }];
+// Later tasks add Entries (9) and Charts (11).
+export const NAV_ITEMS: { href: string; label: string }[] = [
+  { href: '/', label: 'Home' },
+  { href: '/settings', label: 'Settings' },
+];
 
 function isActive(pathname: string, href: string): boolean {
   return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
