@@ -39,6 +39,8 @@ async function addAccount(
 test('a new INR account shows its balance and the ECB rate', async ({ page }) => {
   await mockFrankfurter(page);
   await page.goto('/');
+  // Home sends a visitor without a plan to setup. Wait for that, so the redirect cannot land after the click.
+  await expect(page).toHaveURL('/setup');
   await page.getByRole('link', { name: 'Settings' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Settings' })).toBeVisible();
   await expect(page.getByText('No accounts yet')).toBeVisible();
