@@ -7,7 +7,8 @@ export type StudentsBudgetDb = Dexie & {
   entries: Table<Entry, string>;
   plan: Table<Plan, Plan['id']>;
   guesses: Table<Guess, string>;
-  rates: Table<Rate, Rate['currency']>;
+  /** At most one ECB and one manual rate per currency, side by side. */
+  fxRates: Table<Rate, [Rate['currency'], Rate['source']]>;
 };
 
 // Constructing Dexie opens nothing, so importing this module is safe during SSR and `next build`.
@@ -21,6 +22,14 @@ db.version(1).stores({
   plan: 'id',
   guesses: 'categoryId',
   rates: 'currency',
+});
+
+// A primary key cannot change in place, so the version-1 `rates` table (key: currency) is dropped and
+// `fxRates` takes over with a compound key. Keeping both sources lets "Use ECB rate again" work offline.
+// Dexie carries the unchanged tables over from version 1.
+db.version(2).stores({
+  rates: null,
+  fxRates: '[currency+source], currency',
 });
 
 /** Asks the browser not to evict the data. Resolves false when unsupported, denied or failing; never throws. */
