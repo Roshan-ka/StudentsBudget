@@ -1,0 +1,5 @@
+# Obsidian: the vault is docs/; a vault opened at the repo root stays local
+/.obsidian/
+
+# Claude Code: personal permission overrides stay on this machine
+.claude/settings.local.json
