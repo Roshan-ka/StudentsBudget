@@ -42,9 +42,12 @@ const ENVELOPE_LABEL: Record<FlexibleId, string> = {
 
 const FLEXIBLE_IDS = Object.keys(GUESS_TOPIC) as FlexibleId[];
 
+/** Matches every request to the Frankfurter API; for tests that need the request to fail. */
+export const FRANKFURTER = '**/api.frankfurter.dev/**';
+
 /** Answers like Frankfurter does, with INR at 95. The CORS header is what the real API sends. */
 export async function mockFrankfurter(page: Page) {
-  await page.route('**/api.frankfurter.dev/**', (route) =>
+  await page.route(FRANKFURTER, (route) =>
     route.fulfill({
       json: { amount: 1, base: 'EUR', date: '2026-10-16', rates: { INR: 95 } },
       headers: { 'access-control-allow-origin': '*' },
@@ -52,29 +55,76 @@ export async function mockFrankfurter(page: Page) {
   );
 }
 
+/** Reads every row of one IndexedDB store, straight from the browser. */
+export async function readStore<T>(page: Page, store: string): Promise<T[]> {
+  return page.evaluate(
+    (name) =>
+      new Promise<unknown[]>((resolve, reject) => {
+        const open = indexedDB.open('studentsbudget');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          const request = db.transaction(name).objectStore(name).getAll();
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => {
+            db.close();
+            resolve(request.result);
+          };
+        };
+      }),
+    store,
+  ) as Promise<T[]>;
+}
+
+/** The day the fixture's numbers assume: the 300 fee is spread from October to March, and plans are created on it. */
+export const SETUP_DAY = new Date('2026-10-16T12:00:00');
+
+/**
+ * Pins the browser's date to `SETUP_DAY`, unless the caller has already set a clock. Playwright cannot say
+ * whether a clock is installed, but an installed one puts the page's date away from the real time, so a page
+ * that still tells the real time has none. (A clock set to within a minute of now would be replaced by
+ * `SETUP_DAY`; nothing does that.)
+ */
+async function ensureClock(page: Page) {
+  const pageNow = await page.evaluate(() => Date.now());
+  if (Math.abs(pageNow - Date.now()) < 60_000) await page.clock.setFixedTime(SETUP_DAY);
+}
+
 async function nextStep(page: Page, heading: string) {
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.getByRole('heading', { level: 3, name: heading })).toBeVisible();
 }
 
+/** How the wizard starts out. */
+export type SetupOptions = {
+  /** Accounts were added in Settings first, so the wizard skips its Accounts step and `openingBalances` is unused. */
+  accountsExist?: boolean;
+};
+
 /**
  * Walks through every step of a new setup and stops on the envelopes step, before saving.
- * Mocks Frankfurter first. Callers may set `page.clock` before calling it.
+ * Mocks Frankfurter first, and pins the date to `SETUP_DAY` unless the caller set `page.clock` before calling it.
  */
-export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {}) {
+export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {}, options: SetupOptions = {}) {
   const f: SetupFixture = { ...DEFAULT_SETUP, ...overrides };
   await mockFrankfurter(page);
+  await ensureClock(page);
 
   await page.goto('/setup');
   // The wizard renders once it has read the database, so the first heading proves the page is live.
   await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
   await page.getByLabel('Rent per month').fill(f.rent);
-  await nextStep(page, 'Accounts');
 
-  for (const [i, opening] of f.openingBalances.entries()) {
-    await page.getByRole('group', { name: `Account ${i + 1}` }).getByLabel('Opening balance').fill(opening);
+  if (options.accountsExist) {
+    await nextStep(page, 'Income');
+    await expect(page.getByText('Your accounts are already set up in Settings.')).toBeVisible();
+  } else {
+    await nextStep(page, 'Accounts');
+    for (const [i, opening] of f.openingBalances.entries()) {
+      await page.getByRole('group', { name: `Account ${i + 1}` }).getByLabel('Opening balance').fill(opening);
+    }
+    await nextStep(page, 'Income');
   }
-  await nextStep(page, 'Income');
 
   await page.getByLabel('Parents', { exact: true }).fill(f.incomes.parents);
   await page.getByLabel('Job', { exact: true }).fill(f.incomes.job);
@@ -100,10 +150,11 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   }
 }
 
-/** Sets up a plan from `DEFAULT_SETUP` (or the overrides) and waits until home is showing. */
-export async function completeSetup(page: Page, overrides: Partial<SetupFixture> = {}) {
-  await fillSetup(page, overrides);
+/** Sets up a plan from `DEFAULT_SETUP` (or the overrides) and waits until the wizard has handed over to home. */
+export async function completeSetup(page: Page, overrides: Partial<SetupFixture> = {}, options: SetupOptions = {}) {
+  await fillSetup(page, overrides, options);
   await page.getByRole('button', { name: 'Save plan' }).click();
+  // Not tied to what home shows: the URL moved on and the wizard is gone.
   await expect(page).toHaveURL('/');
-  await expect(page.getByRole('heading', { level: 2, name: 'Home' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save plan' })).toHaveCount(0);
 }

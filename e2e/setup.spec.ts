@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Guess, Plan } from '../src/db/types';
-import { DEFAULT_SETUP, completeSetup, fillSetup, mockFrankfurter } from './helpers/setup';
+import { DEFAULT_SETUP, completeSetup, fillSetup, mockFrankfurter, readStore } from './helpers/setup';
 
 // The fixture's numbers depend on the month (the 300 fee is spread from the current month to March).
 test.beforeEach(async ({ page }) => {
@@ -10,27 +10,6 @@ test.beforeEach(async ({ page }) => {
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
 function inlineAlert(page: Page) {
   return page.getByRole('main').getByRole('alert');
-}
-
-/** Reads every row of one IndexedDB store, straight from the browser. */
-async function readStore<T>(page: Page, store: string): Promise<T[]> {
-  return page.evaluate(
-    (name) =>
-      new Promise<unknown[]>((resolve, reject) => {
-        const open = indexedDB.open('studentsbudget');
-        open.onerror = () => reject(open.error);
-        open.onsuccess = () => {
-          const db = open.result;
-          const request = db.transaction(name).objectStore(name).getAll();
-          request.onerror = () => reject(request.error);
-          request.onsuccess = () => {
-            db.close();
-            resolve(request.result);
-          };
-        };
-      }),
-    store,
-  ) as Promise<T[]>;
 }
 
 async function overflow(page: Page) {
@@ -52,6 +31,52 @@ test('blocks saving while over budget', async ({ page }) => {
   await page.getByLabel('Eating out', { exact: true }).fill('124');
   await expect(page.getByText('Available €440 · Planned €434', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save plan' })).toBeEnabled();
+});
+
+test('the rent range shows where it comes from, collapsed until asked for', async ({ page }) => {
+  await mockFrankfurter(page);
+  await page.goto('/setup');
+  await expect(page.getByLabel('Rent per month')).toBeVisible();
+
+  await expect(page.getByText('Rooms here: €215–561', { exact: true })).toBeVisible();
+  await expect(page.getByText('Source', { exact: true })).toHaveCount(1);
+  await expect(page.locator('details[open]')).toHaveCount(0);
+
+  await page.getByText('Source', { exact: true }).click();
+  await expect(page.getByText('Universität Regensburg: cheapest Studierendenwerk room')).toBeVisible();
+  await expect(page.getByText('checked 16 Oct 2026', { exact: true })).toBeVisible();
+  const link = page.getByRole('link', { name: 'uni-regensburg.de' });
+  await expect(link).toHaveAttribute(
+    'href',
+    'https://www.uni-regensburg.de/studieren/rund-ums-studium/wohnen-in-regensburg',
+  );
+  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
+test('every envelope range shows its source, and an estimate says so', async ({ page }) => {
+  await fillSetup(page);
+
+  await expect(page.getByText('Source', { exact: true })).toHaveCount(6);
+  await expect(page.locator('details[open]')).toHaveCount(0);
+
+  // Food has the longest source text; it has to wrap on a phone.
+  const food = page.locator('details').nth(0);
+  await food.getByText('Source', { exact: true }).click();
+  await expect(food.getByText('DSW 22nd Sozialerhebung 2021, national mean €194')).toBeVisible();
+  await expect(food.getByText('checked 16 Oct 2026', { exact: true })).toBeVisible();
+  await expect(food.getByRole('link', { name: 'studierendenwerke.de' })).toHaveAttribute('target', '_blank');
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  // Eating out is an estimate: its source says so and links to a price it was built from, without a cache-buster.
+  const eatingOut = page.locator('details').nth(1);
+  await eatingOut.getByText('Source', { exact: true }).click();
+  await expect(eatingOut.getByText('Estimate', { exact: true })).toBeVisible();
+  await expect(eatingOut.getByRole('link', { name: 'stwno.de' })).toHaveAttribute(
+    'href',
+    'https://www.stwno.de/infomax/daten-extern/pdf/UNI-R/speiseplan_nw_de.pdf',
+  );
 });
 
 test('saves and lands on home', async ({ page }) => {

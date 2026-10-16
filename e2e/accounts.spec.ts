@@ -1,16 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-
-const FRANKFURTER = '**/api.frankfurter.dev/**';
-
-/** Answers like Frankfurter does, with INR at 95. The CORS header is what the real API sends. */
-async function mockFrankfurter(page: Page) {
-  await page.route(FRANKFURTER, (route) =>
-    route.fulfill({
-      json: { amount: 1, base: 'EUR', date: '2026-10-16', rates: { INR: 95 } },
-      headers: { 'access-control-allow-origin': '*' },
-    }),
-  );
-}
+import type { Account } from '../src/db/types';
+import { FRANKFURTER, completeSetup, mockFrankfurter, readStore } from './helpers/setup';
 
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
 function inlineAlert(page: Page) {
@@ -38,12 +28,8 @@ async function addAccount(
 
 test('a new INR account shows its balance and the ECB rate', async ({ page }) => {
   await mockFrankfurter(page);
-  await page.goto('/');
-  // Home sends a visitor without a plan to setup. Wait for that, so the redirect cannot land after the click.
-  await expect(page).toHaveURL('/setup');
-  await page.getByRole('link', { name: 'Settings' }).click();
+  await openSettings(page);
   await expect(page.getByRole('heading', { level: 2, name: 'Settings' })).toBeVisible();
-  await expect(page.getByText('No accounts yet')).toBeVisible();
 
   await addAccount(page, { name: 'Home bank', currency: 'INR', opening: '50000' });
 
@@ -62,6 +48,9 @@ test('without a rate the panel asks for one', async ({ page }) => {
   await expect(page.getByText('50,000.00')).toBeVisible();
   await expect(page.getByText('No rate yet. Enter one to log INR spending.')).toBeVisible();
   await expect(page.getByText('Without INR: no exchange rate yet.')).toBeVisible();
+  // Nothing could be converted, so there is no total to show; €0.00 would look like one.
+  await expect(page.getByText('€0.00')).toHaveCount(0);
+  await expect(page.getByText('—', { exact: true })).toBeVisible();
 });
 
 test('a manual rate replaces the ECB rate until the person switches back', async ({ page }) => {
@@ -100,6 +89,23 @@ test('moving money updates both balances', async ({ page }) => {
   await expect(page.getByText('54,750.00')).toBeVisible();
 });
 
+test('the transfer form starts with two different accounts and keeps them different', async ({ page }) => {
+  await mockFrankfurter(page);
+  await openSettings(page);
+  await addAccount(page, { name: 'Bank', currency: 'EUR', opening: '200' });
+  await addAccount(page, { name: 'Home bank', currency: 'INR', opening: '50000' });
+  await page.getByRole('button', { name: 'Move money between accounts' }).click();
+
+  const from = page.getByLabel('From', { exact: true });
+  const to = page.getByLabel('To', { exact: true });
+  await expect(from.locator('option:checked')).toHaveText('Bank (EUR)');
+  await expect(to.locator('option:checked')).toHaveText('Home bank (INR)');
+
+  // Picking the account that To shows moves To to the first other account, instead of leaving both the same.
+  await from.selectOption({ label: 'Home bank (INR)' });
+  await expect(to.locator('option:checked')).toHaveText('Bank (EUR)');
+});
+
 test('an account with entries cannot be deleted, an empty one can', async ({ page }) => {
   await mockFrankfurter(page);
   await openSettings(page);
@@ -134,4 +140,22 @@ test('the settings page fits a phone without sideways scrolling', async ({ page 
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('accounts made in Settings before setup are kept, and setup adds none of its own', async ({ page }) => {
+  await mockFrankfurter(page);
+  await openSettings(page);
+  await addAccount(page, { name: 'Wallet', currency: 'EUR', opening: '25', kind: 'cash' });
+  await expect(page.getByText('Wallet', { exact: true })).toBeVisible();
+  // Without a plan there is nothing to edit and nowhere to go yet: no Edit plan link, no bottom navigation.
+  await expect(page.getByRole('link', { name: 'Edit plan' })).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
+
+  await completeSetup(page, {}, { accountsExist: true });
+
+  const accounts = await readStore<Account>(page, 'accounts');
+  expect(accounts.map((a) => [a.name, a.currency, a.openingMinor])).toEqual([['Wallet', 'EUR', 2500]]);
+  // With the plan saved, the navigation and the Edit plan link appear.
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await expect(page.getByRole('link', { name: 'Edit plan' })).toBeVisible();
 });
