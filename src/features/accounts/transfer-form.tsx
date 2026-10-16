@@ -17,7 +17,7 @@ import { buildTransfer } from './transfer';
 export function TransferForm({ onSaved }: { onSaved?: () => void }) {
   const id = useId();
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
-  // null until the person picks: the first account sends, the second receives.
+  // null until the person picks: the first account sends, the first other account receives.
   const [fromChoice, setFromChoice] = useState<string | null>(null);
   const [toChoice, setToChoice] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
@@ -35,7 +35,7 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
 
   // An account deleted while the form is open falls back to the default.
   const from = accounts.find((account) => account.id === fromChoice) ?? accounts[0];
-  const to = accounts.find((account) => account.id === toChoice) ?? accounts[1];
+  const to = accounts.find((account) => account.id === toChoice) ?? accounts.filter((a) => a.id !== from.id)[0];
   const received = receivedChoice ?? (from.currency === to.currency ? amount : '');
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -85,7 +85,11 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
           id={`${id}-from`}
           className="w-full"
           value={from.id}
-          onChange={(event) => setFromChoice(event.target.value)}
+          onChange={(event) => {
+            setFromChoice(event.target.value);
+            // To would now equal From: let it fall back to the first other account.
+            if (to.id === event.target.value) setToChoice(null);
+          }}
         >
           {accounts.map((account) => (
             <NativeSelectOption key={account.id} value={account.id}>

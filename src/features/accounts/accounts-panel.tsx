@@ -175,6 +175,8 @@ export function AccountsPanel() {
 
   const loaded = accounts !== undefined && entries !== undefined && rates !== undefined;
   const total = loaded && accounts.length > 0 ? totalInEur(accounts, entries, rates) : null;
+  // Without a rate for any account's currency nothing was converted, and a total of €0.00 would read as real.
+  const nothingConverted = loaded && total !== null && accounts.every((a) => total.missingRates.includes(a.currency));
 
   return (
     <section aria-labelledby="accounts-heading" className="flex flex-col gap-3">
@@ -262,7 +264,7 @@ export function AccountsPanel() {
         <div className="flex flex-col gap-1 rounded-lg bg-muted px-4 py-3">
           <div className="flex items-baseline justify-between gap-3">
             <p className="font-medium">Total</p>
-            <p className="font-medium tabular-nums">{formatMoney(total.totalMinor, 'EUR')}</p>
+            <p className="font-medium tabular-nums">{nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR')}</p>
           </div>
           {total.missingRates.length > 0 && (
             <p className="text-sm text-muted-foreground">
