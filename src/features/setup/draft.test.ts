@@ -310,6 +310,18 @@ describe('validateStep', () => {
   });
 });
 
+describe('initialDraft', () => {
+  it('prefills three accounts', () => {
+    expect(initialDraft().accounts.map((a) => a.name)).toEqual(['Local bank', 'Home bank', 'Cash']);
+  });
+
+  it('leaves the accounts out when some already exist, so saving adds none', () => {
+    const fresh = initialDraft(true);
+    expect(fresh.accounts).toEqual([]);
+    expect(draftToRecords(fresh, TODAY).accounts).toEqual([]);
+  });
+});
+
 describe('withAmount', () => {
   it('adds, replaces and removes a row, keeping the category order', () => {
     let list = withAmount([], 'income-parents', 50000);

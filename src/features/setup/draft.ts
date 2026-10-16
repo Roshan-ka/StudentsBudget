@@ -12,6 +12,7 @@ import { formatMoney, formatRange, type Minor } from '@/lib/money';
  * message, so the draft alone decides whether a step may be left.
  *
  * `accounts` and `guesses` stay empty in edit mode: accounts are edited in Settings, guesses are locked.
+ * `accounts` is empty in a new setup too when accounts already exist (added in Settings first), so Save adds none.
  * A one-off that carries an `id` came from the saved plan and keeps its `createdMonth` when saved again.
  */
 export type SetupDraft = {
@@ -54,14 +55,17 @@ export function withAmount(list: Amount[], categoryId: string, minor: Minor | un
   );
 }
 
-export function initialDraft(): SetupDraft {
+/** The draft for a new setup. With `accountsExist` the prefilled accounts are left out: the ones in Settings stay. */
+export function initialDraft(accountsExist = false): SetupDraft {
   return {
     rentMinor: 0,
-    accounts: [
-      { name: 'Local bank', kind: 'bank', currency: 'EUR', openingMinor: 0 },
-      { name: 'Home bank', kind: 'bank', currency: 'INR', openingMinor: 0 },
-      { name: 'Cash', kind: 'cash', currency: 'EUR', openingMinor: 0 },
-    ],
+    accounts: accountsExist
+      ? []
+      : [
+          { name: 'Local bank', kind: 'bank', currency: 'EUR', openingMinor: 0 },
+          { name: 'Home bank', kind: 'bank', currency: 'INR', openingMinor: 0 },
+          { name: 'Cash', kind: 'cash', currency: 'EUR', openingMinor: 0 },
+        ],
     incomes: [],
     fixed: [],
     oneOffs: [],

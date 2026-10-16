@@ -30,6 +30,8 @@ import { OneOffsStep } from './steps/one-offs';
 const NEW_STEPS: StepId[] = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'envelopes'];
 // Accounts are edited in Settings and guesses are locked, so editing skips both.
 const EDIT_STEPS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts' && s !== 'guesses');
+// Accounts that already exist (added in Settings before setup) are kept, so a new setup skips that step.
+const NEW_STEPS_WITH_ACCOUNTS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts');
 
 const TITLES: Record<StepId, string> = {
   'city-rent': 'City and rent',
@@ -54,11 +56,13 @@ async function persist(records: ReturnType<typeof draftToRecords>, edit: boolean
   });
 }
 
-function Wizard({ edit, stored }: { edit: boolean; stored: Plan | null }) {
+function Wizard({ edit, stored, accountsExist }: { edit: boolean; stored: Plan | null; accountsExist: boolean }) {
   const router = useRouter();
-  const steps = edit ? EDIT_STEPS : NEW_STEPS;
+  const steps = edit ? EDIT_STEPS : accountsExist ? NEW_STEPS_WITH_ACCOUNTS : NEW_STEPS;
   const [today] = useState(() => todayIso());
-  const [draft, setDraft] = useState<SetupDraft>(() => (edit && stored ? draftFromPlan(stored) : initialDraft()));
+  const [draft, setDraft] = useState<SetupDraft>(() =>
+    edit && stored ? draftFromPlan(stored) : initialDraft(accountsExist),
+  );
   const [index, setIndex] = useState(0);
   // After the first failed Next the messages follow the draft, so they go away as the person fixes things.
   const [attempted, setAttempted] = useState(false);
@@ -137,6 +141,9 @@ function Wizard({ edit, stored }: { edit: boolean; stored: Plan | null }) {
 
       {step === 'city-rent' && <CityRentStep draft={draft} update={update} />}
       {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
+      {step === 'income' && !edit && accountsExist && (
+        <p className="text-sm text-muted-foreground">Your accounts are already set up in Settings.</p>
+      )}
       {step === 'income' && <IncomeStep draft={draft} update={update} />}
       {step === 'fixed' && <FixedStep draft={draft} update={update} />}
       {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
@@ -179,31 +186,33 @@ function Wizard({ edit, stored }: { edit: boolean; stored: Plan | null }) {
 }
 
 /**
- * Reads the saved plan once, then hands it to the wizard. The wizard keeps its own draft, so a live
- * query here would let the save itself rewrite what the person is looking at.
+ * Reads the saved plan and whether accounts exist once, then hands them to the wizard. The wizard keeps
+ * its own draft, so a live query here would let the save itself rewrite what the person is looking at.
  */
 export function SetupWizard() {
   const router = useRouter();
   const edit = useSearchParams().get('edit') === '1';
-  // undefined: still reading. null: no plan saved.
-  const [stored, setStored] = useState<Plan | null | undefined>(undefined);
+  // undefined: still reading. `plan` is null when no plan is saved.
+  const [loaded, setLoaded] = useState<{ plan: Plan | null; accountsExist: boolean } | undefined>(undefined);
+  const stored = loaded?.plan;
 
   useEffect(() => {
     let cancelled = false;
-    db.plan.get('current').then(
-      (plan) => {
-        if (!cancelled) setStored(plan ?? null);
+    Promise.all([db.plan.get('current'), db.accounts.count()]).then(
+      ([plan, accountCount]) => {
+        if (!cancelled) setLoaded({ plan: plan ?? null, accountsExist: accountCount > 0 });
       },
       (error: unknown) => {
         console.error('StudentsBudget: could not read the saved plan', error);
-        if (!cancelled) setStored(null);
+        if (!cancelled) setLoaded({ plan: null, accountsExist: false });
       },
     );
     return () => {
       cancelled = true;
       // The router keeps a page it has left mounted but hidden, with its state. Forget what was read
-      // (and with it the draft), or a later visit would start from the plan as it was before this one.
-      setStored(undefined);
+      // (and with it the draft), or a later visit would start from the plan and accounts as they were
+      // before this one.
+      setLoaded(undefined);
     };
   }, []);
 
@@ -213,6 +222,6 @@ export function SetupWizard() {
     if (redirectTo) router.replace(redirectTo);
   }, [redirectTo, router]);
 
-  if (stored === undefined || redirectTo) return null;
-  return <Wizard key={edit ? 'edit' : 'new'} edit={edit} stored={stored} />;
+  if (loaded === undefined || redirectTo) return null;
+  return <Wizard key={edit ? 'edit' : 'new'} edit={edit} stored={loaded.plan} accountsExist={loaded.accountsExist} />;
 }
