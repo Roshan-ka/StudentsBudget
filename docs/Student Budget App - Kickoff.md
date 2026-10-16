@@ -49,7 +49,7 @@ Rules:
 |---|---|---|
 | Start | Open the session in the repo folder. Days 2–4: send the first prompt below | Switches or creates the day branch, reads the ledger, extracts task briefs |
 | During | Day 1: 4 h of basics, then the Day 0 leftovers (GitHub CLI, Vercel, the [[Student Budget App - Repo Setup\|Repo Setup]] checklist). Days 2–4: read each finished task's report and ask "Explain this change to someone who knows Java and SQL" | Per task: implementer (test-first, commit) → reviewer → fix rounds → ledger line. One implementer at a time |
-| End | Connect Vercel (Day 1) or check the preview. Open the Draft PR, run the review flow, merge. Log the day | Whole-day review → one fix wave → push the day branch |
+| End | Connect Vercel (Day 1) or check the preview. Open the Draft PR, run the review flow, merge. Log the day | Whole-day review → one fix wave → push the day branch after my go |
 
 Claude stops and waits for me at:
 - every push and merge
