@@ -4,7 +4,9 @@ import {
   draftFromPlan,
   draftToRecords,
   dropUnparsed,
+  envelopesFooter,
   initialDraft,
+  rangeLine,
   shouldShowInstallHint,
   summarizeDraft,
   validateStep,
@@ -237,6 +239,45 @@ describe('validateStep', () => {
       ]);
     });
 
+    describe('in edit mode', () => {
+      // Saved in September, due in October: by the 16th of October the due month is no longer "after this one".
+      const saved: Plan = {
+        id: 'current',
+        cityId: 'regensburg',
+        incomes: draft.incomes,
+        fixed: [{ categoryId: 'rent', monthlyMinor: 40000 }],
+        oneOffs: [{ id: 'fee', name: 'Semester fee', amountMinor: 30000, createdMonth: '2026-09', dueMonth: '2026-10' }],
+        envelopes: draft.envelopes,
+        createdOn: '2026-09-01',
+      };
+      const kept = { id: 'fee', ...fee, dueMonth: '2026-10' };
+      const check = (oneOffs: SetupDraft['oneOffs']) =>
+        validateStep('one-offs', { ...draft, oneOffs }, TODAY, saved);
+
+      it('does not ask again about a kept one-off whose due month has passed', () => {
+        expect(check([kept])).toEqual([]);
+        // Without the saved plan the same row is a new one and is rejected.
+        expect(validateStep('one-offs', { ...draft, oneOffs: [kept] }, TODAY)).toEqual([
+          'Pick a month after this one.',
+        ]);
+      });
+
+      it('matches a row without an id by name, amount and due month', () => {
+        expect(check([{ ...fee, dueMonth: '2026-10' }])).toEqual([]);
+      });
+
+      it('still checks a kept one-off whose due month was changed to a past month', () => {
+        expect(check([{ ...kept, dueMonth: '2026-09' }])).toEqual(['Pick a month after this one.']);
+        expect(check([{ ...kept, dueMonth: '2026-11' }])).toEqual([]);
+      });
+
+      it('still checks a new one-off, and still checks a kept row for a name and an amount', () => {
+        const laptop = { name: 'Laptop', amountMinor: 80000, dueMonth: '2026-10' };
+        expect(check([kept, laptop])).toEqual(['Pick a month after this one.']);
+        expect(check([{ ...kept, amountMinor: 0 }])).toEqual(['Enter an amount above 0 for Semester fee.']);
+      });
+    });
+
     it('says it once when several rows share a problem', () => {
       const oneOffs = [
         { ...fee, dueMonth: '2026-01' },
@@ -326,6 +367,60 @@ describe('summarizeDraft', () => {
   it('counts an amount that did not parse as 0', () => {
     const bad = { ...draft, envelopes: withAmount(draft.envelopes, 'eating-out', Number.NaN) };
     expect(summarizeDraft(bad, TODAY).envelopesMinor).toBe(31000);
+  });
+});
+
+describe('envelopesFooter', () => {
+  const footer = (d: SetupDraft) => envelopesFooter(summarizeDraft(d, TODAY));
+
+  it('reads like the brief when over', () => {
+    const over = { ...draft, envelopes: withAmount(draft.envelopes, 'eating-out', 15500) };
+    expect(footer(over)).toBe('Available €440 · Planned €465 · Over by €25');
+  });
+
+  it('drops the over part when the plan fits', () => {
+    expect(footer(draft)).toBe('Available €440 · Planned €434');
+  });
+
+  describe('with a set-aside that is not a whole euro', () => {
+    // 100 over Oct, Nov, Dec is 33.34 a month: 900 - 400 - 33.34 = 466.66 available.
+    const course = { name: 'Course', amountMinor: 10000, dueMonth: '2027-01' };
+    const planned = (eatingOut: number): SetupDraft => ({
+      ...draft,
+      oneOffs: [course],
+      envelopes: withAmount(draft.envelopes, 'eating-out', eatingOut),
+    });
+
+    it('rounds Available down, so it is never more than there is', () => {
+      expect(summarizeDraft(planned(0), TODAY).availableMinor).toBe(46666);
+      expect(footer(planned(0))).toBe('Available €466 · Planned €310');
+    });
+
+    it('rounds the overage up, so it never reads Over by €0', () => {
+      // 310 + 157 = 467 against 466.66: over by 34 cents.
+      const d = planned(15700);
+      expect(summarizeDraft(d, TODAY).overByMinor).toBe(34);
+      expect(footer(d)).toBe('Available €466 · Planned €467 · Over by €1');
+    });
+
+    it('says Over by €25 for 24.01 over and Over by €24 for exactly 24 over', () => {
+      expect(footer(planned(15666 + 2401))).toContain('Over by €25');
+      expect(footer(planned(15666 + 2400))).toContain('Over by €24');
+    });
+  });
+});
+
+describe('rangeLine', () => {
+  const range = { minMinor: 3000, maxMinor: 13500 };
+
+  it('gives the range as it is when it has a source', () => {
+    expect(rangeLine('Students here', { ...range, source: 'DSW 22nd Sozialerhebung 2021' })).toBe(
+      'Students here: €30–135',
+    );
+  });
+
+  it('marks a range without a source as an estimate', () => {
+    expect(rangeLine('Students here', { ...range, source: 'Estimate' })).toBe('Students here: €30–135 (estimate)');
   });
 });
 

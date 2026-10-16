@@ -44,7 +44,9 @@ test('blocks saving while over budget', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Save plan' })).toBeDisabled();
 
   // The city range is information next to each envelope, and the hint appears only below it.
-  await expect(page.getByText('Students here: €30–135', { exact: true })).toBeVisible();
+  // A range with a source reads plainly; one nobody published is labelled as an estimate.
+  await expect(page.getByText('Students here: €180–335', { exact: true })).toBeVisible();
+  await expect(page.getByText('Students here: €30–135 (estimate)', { exact: true })).toBeVisible();
   await expect(page.getByText('Below what students here typically need.')).toHaveCount(4);
 
   await page.getByLabel('Eating out', { exact: true }).fill('124');
@@ -232,6 +234,26 @@ test('editing the plan skips accounts and guesses and keeps what setup stored', 
   const guesses = await readStore<Guess>(page, 'guesses');
   expect(guesses).toHaveLength(6);
   expect(guesses.every((g) => g.guessedOn === '2026-10-16')).toBe(true);
+});
+
+test('a one-off whose due month has passed does not block editing the plan', async ({ page }) => {
+  await completeSetup(page);
+
+  // April 2027: the semester fee was due in March and is still in the plan, untouched.
+  await page.clock.setFixedTime(new Date(2027, 3, 10, 12, 0, 0));
+  await page.goto('/settings');
+  await page.getByRole('link', { name: 'Edit plan' }).click();
+  for (const step of ['Income', 'Fixed costs', 'One-off costs']) {
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
+  }
+  await expect(page.getByRole('group', { name: 'One-off cost 1' }).getByLabel('Due month')).toHaveValue('2027-03');
+
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 3, name: 'Envelopes' })).toBeVisible();
+  await page.getByRole('button', { name: 'Save plan' }).click();
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('heading', { level: 2, name: 'Home' })).toBeVisible();
 });
 
 test('the wizard fits a phone without sideways scrolling', async ({ page }) => {

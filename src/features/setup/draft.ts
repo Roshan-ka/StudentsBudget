@@ -1,8 +1,9 @@
 import { CATEGORIES } from '@/data/categories';
+import type { CityRange } from '@/data/cities';
 import type { Account, Amount, Category, Guess, OneOff, Plan } from '@/db/types';
 import { planSummary, type PlanSummary } from '@/lib/budget';
 import { monthOf, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
-import type { Minor } from '@/lib/money';
+import { formatMoney, formatRange, type Minor } from '@/lib/money';
 
 /**
  * What the wizard holds while the person fills it in. Nothing is stored until Save.
@@ -166,6 +167,22 @@ export function isDueMonthValid(dueMonth: IsoMonth, today: IsoDate): boolean {
   return MONTH_PATTERN.test(dueMonth) && dueMonth > monthOf(today);
 }
 
+/**
+ * Whether a one-off's due month is a problem. A row the saved plan already has, with the due month
+ * it was saved with, is left alone even when that month has since come: the person did not pick it
+ * now, and a due month in the past only means the cost has been paid. Rows are matched like
+ * `draftToRecords` matches them: by `id`, else by name, amount and due month.
+ */
+export function isDueMonthProblem(row: SetupDraft['oneOffs'][number], today: IsoDate, existing?: Plan): boolean {
+  if (isDueMonthValid(row.dueMonth, today)) return false;
+  const unchanged = existing?.oneOffs.some((o) =>
+    row.id !== undefined
+      ? o.id === row.id && o.dueMonth === row.dueMonth
+      : o.name === row.name && o.amountMinor === row.amountMinor && o.dueMonth === row.dueMonth,
+  );
+  return !unchanged;
+}
+
 const isAmount = (m: Minor | undefined): boolean => m !== undefined && Number.isSafeInteger(m) && m >= 0;
 
 function amountProblems(list: Amount[], categories: Category[]): string[] {
@@ -175,8 +192,16 @@ function amountProblems(list: Amount[], categories: Category[]): string[] {
   });
 }
 
-/** Why the person cannot leave this step yet. Empty when they can. */
-export function validateStep(step: StepId, d: SetupDraft, today: IsoDate = todayIso()): string[] {
+/**
+ * Why the person cannot leave this step yet. Empty when they can. In edit mode pass the saved plan as
+ * `existing`, so one-offs that are already in it are not held to the due-month rule again.
+ */
+export function validateStep(
+  step: StepId,
+  d: SetupDraft,
+  today: IsoDate = todayIso(),
+  existing?: Plan,
+): string[] {
   switch (step) {
     case 'city-rent':
       return isAmount(d.rentMinor) ? [] : [`Check the amount for ${nameOf('rent')}.`];
@@ -207,7 +232,7 @@ export function validateStep(step: StepId, d: SetupDraft, today: IsoDate = today
         if (!(Number.isSafeInteger(o.amountMinor) && o.amountMinor > 0)) {
           problems.add(`Enter an amount above 0 for ${name || `one-off cost ${i + 1}`}.`);
         }
-        if (!isDueMonthValid(o.dueMonth, today)) problems.add('Pick a month after this one.');
+        if (isDueMonthProblem(o, today, existing)) problems.add('Pick a month after this one.');
       });
       return [...problems];
     }
@@ -226,6 +251,28 @@ export function validateStep(step: StepId, d: SetupDraft, today: IsoDate = today
         return isAmount(minor) ? [] : [`Check the amount for ${c.name}.`];
       });
   }
+}
+
+const wholeEuros = (minor: Minor): string => formatMoney(minor, 'EUR', { whole: true });
+
+/**
+ * The line under the envelopes: "Available €440 · Planned €465 · Over by €25". Whole euros, but a
+ * set-aside is rounded up to the cent, so Available can have cents. It is shown rounded down and the
+ * overage rounded up: the plan never reads as over by €0, and Available is never shown higher than it is.
+ */
+export function envelopesFooter(s: PlanSummary): string {
+  const parts = [
+    `Available ${wholeEuros(Math.floor(s.availableMinor / 100) * 100)}`,
+    `Planned ${wholeEuros(s.envelopesMinor)}`,
+  ];
+  if (s.overByMinor > 0) parts.push(`Over by ${wholeEuros(Math.ceil(s.overByMinor / 100) * 100)}`);
+  return parts.join(' · ');
+}
+
+/** "Students here: €200–260", with "(estimate)" added when no source gives the number. */
+export function rangeLine(prefix: string, range: Pick<CityRange, 'minMinor' | 'maxMinor' | 'source'>): string {
+  const line = `${prefix}: ${formatRange(range.minMinor, range.maxMinor)}`;
+  return range.source === 'Estimate' ? `${line} (estimate)` : line;
 }
 
 /** iOS Safari only lets a home-screen app keep its own storage, so setup should happen there. */

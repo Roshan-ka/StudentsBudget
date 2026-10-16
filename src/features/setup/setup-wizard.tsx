@@ -70,7 +70,7 @@ function Wizard({ edit, stored }: { edit: boolean; stored: Plan | null }) {
   const step = steps[index];
   const isLast = index === steps.length - 1;
   const existing = edit && stored ? stored : undefined;
-  const problems = validateStep(step, draft, today);
+  const problems = validateStep(step, draft, today, existing);
   const overBy = isLast ? summarizeDraft(draft, today, existing).overByMinor : 0;
 
   useEffect(() => {
@@ -96,7 +96,7 @@ function Wizard({ edit, stored }: { edit: boolean; stored: Plan | null }) {
   }
 
   async function save() {
-    const failing = steps.findIndex((s) => validateStep(s, draft, today).length > 0);
+    const failing = steps.findIndex((s) => validateStep(s, draft, today, existing).length > 0);
     if (failing !== -1) {
       setIndex(failing);
       setAttempted(true);
@@ -114,14 +114,13 @@ function Wizard({ edit, stored }: { edit: boolean; stored: Plan | null }) {
       return;
     }
     if (!edit) {
-      // The accounts only exist now, so this is the first moment the INR rate can be fetched.
-      try {
-        await refreshRates(todayIso());
-      } catch (error) {
-        console.error('StudentsBudget: could not refresh the exchange rates', error);
-      }
+      // The accounts only exist now, so this is the first moment the INR rate can be fetched. Not awaited:
+      // the plan is saved, and the rate shows up through the live queries once it arrives.
+      void refreshRates(todayIso()).catch((error: unknown) =>
+        console.error('StudentsBudget: could not refresh the exchange rates', error),
+      );
     }
-    router.push('/');
+    router.replace('/');
   }
 
   return (
@@ -140,7 +139,7 @@ function Wizard({ edit, stored }: { edit: boolean; stored: Plan | null }) {
       {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
       {step === 'income' && <IncomeStep draft={draft} update={update} />}
       {step === 'fixed' && <FixedStep draft={draft} update={update} />}
-      {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} />}
+      {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
       {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
       {step === 'envelopes' && <EnvelopesStep draft={draft} update={update} today={today} existing={existing} />}
 

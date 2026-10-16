@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { monthOf, type IsoDate, type IsoMonth } from '@/lib/dates';
-import { isDueMonthValid, type DraftUpdate, type SetupDraft } from '../draft';
+import type { Plan } from '@/db/types';
+import { isDueMonthProblem, type DraftUpdate, type SetupDraft } from '../draft';
 import { AmountField } from './amount-field';
 
 type OneOffDraft = SetupDraft['oneOffs'][number];
@@ -19,18 +20,20 @@ function OneOffRow({
   oneOff,
   index,
   today,
+  existing,
   onChange,
   onRemove,
 }: {
   oneOff: OneOffDraft;
   index: number;
   today: IsoDate;
+  existing?: Plan;
   onChange: (change: Partial<OneOffDraft>) => void;
   onRemove: () => void;
 }) {
   const id = useId();
   const [dueTouched, setDueTouched] = useState(false);
-  const dueProblem = dueTouched && oneOff.dueMonth !== '' && !isDueMonthValid(oneOff.dueMonth, today);
+  const dueProblem = dueTouched && oneOff.dueMonth !== '' && isDueMonthProblem(oneOff, today, existing);
 
   return (
     <div role="group" aria-label={`One-off cost ${index + 1}`} className="flex flex-col gap-4 rounded-lg border p-4">
@@ -81,10 +84,12 @@ export function OneOffsStep({
   draft,
   update,
   today,
+  existing,
 }: {
   draft: SetupDraft;
   update: DraftUpdate;
   today: IsoDate;
+  existing?: Plan;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -99,6 +104,7 @@ export function OneOffsStep({
           oneOff={oneOff}
           index={index}
           today={today}
+          existing={existing}
           onChange={(change) =>
             update((d) => ({ ...d, oneOffs: d.oneOffs.map((o, i) => (i === index ? { ...o, ...change } : o)) }))
           }
