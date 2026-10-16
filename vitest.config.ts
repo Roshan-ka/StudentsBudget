@@ -7,6 +7,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    env: { TZ: 'Europe/Berlin' },
     include: ['src/**/*.test.ts'],
   },
 });
