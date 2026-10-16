@@ -10,9 +10,13 @@ export function AppInit() {
     async function init() {
       try {
         await ensureSeeded();
+      } catch (error) {
+        console.error('StudentsBudget: could not seed the local database', error);
+      }
+      try {
         await requestPersistence();
       } catch (error) {
-        console.error('StudentsBudget: could not prepare the local database', error);
+        console.error('StudentsBudget: could not request persistent storage', error);
       }
     }
     void init();
