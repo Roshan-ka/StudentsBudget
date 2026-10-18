@@ -41,6 +41,72 @@ async function withoutShareSheet(page: Page) {
   });
 }
 
+type ShareMode = 'ok' | 'abort' | 'blocked';
+type ShareCall = { name: string; type: string; title: string; text: string; inDispatch: boolean };
+type ShareWindow = Window & { shareLog: ShareCall[]; shareMode: ShareMode };
+
+/**
+ * A share sheet that behaves like iOS: it opens only when `navigator.share` is called inside the tap itself.
+ * A capture-phase click listener raises a flag that a timer clears once the click's own task is over, so a
+ * share that waited for the database first (a task of its own) sees the flag down, is logged with
+ * `inDispatch: false` and is refused with NotAllowedError, as WebKit does. `shareMode` makes the stub
+ * refuse ('blocked') or be closed by the person ('abort') even inside the tap.
+ */
+async function withShareSheet(page: Page) {
+  await page.addInitScript(() => {
+    const shareWindow = window as unknown as ShareWindow;
+    shareWindow.shareLog = [];
+    shareWindow.shareMode = 'ok';
+    let inClick = false;
+    window.addEventListener(
+      'click',
+      () => {
+        inClick = true;
+        setTimeout(() => {
+          inClick = false;
+        }, 0);
+      },
+      true,
+    );
+    Object.defineProperty(navigator, 'canShare', {
+      value: (data: ShareData) => (data.files?.length ?? 0) > 0,
+      configurable: true,
+    });
+    Object.defineProperty(navigator, 'share', {
+      value: async (data: ShareData) => {
+        const inDispatch = inClick;
+        const file = data.files?.[0];
+        if (!file) throw new TypeError('no file');
+        const call: ShareCall = { name: file.name, type: file.type, title: data.title ?? '', text: '', inDispatch };
+        shareWindow.shareLog.push(call);
+        call.text = await file.text();
+        if (!inDispatch || shareWindow.shareMode === 'blocked') {
+          throw new DOMException('The share sheet could not be opened.', 'NotAllowedError');
+        }
+        if (shareWindow.shareMode === 'abort') throw new DOMException('The share sheet was closed.', 'AbortError');
+      },
+      configurable: true,
+    });
+  });
+}
+
+async function setShareMode(page: Page, mode: ShareMode) {
+  await page.evaluate((next) => {
+    (window as unknown as ShareWindow).shareMode = next;
+  }, mode);
+}
+
+async function shareCalls(page: Page) {
+  return page.evaluate(() => (window as unknown as ShareWindow).shareLog);
+}
+
+/** Counts the downloads a page starts. */
+function countDownloads(page: Page) {
+  const count = { value: 0 };
+  page.on('download', () => (count.value += 1));
+  return count;
+}
+
 async function everything(page: Page) {
   return {
     accounts: await readStore<Account>(page, 'accounts'),
@@ -58,6 +124,9 @@ test.describe('on a desktop browser', () => {
 
   test('exports a backup, deletes everything, and restores from the file on /setup', async ({ page }, testInfo) => {
     await withoutShareSheet(page);
+    // Settings has live queries open while the database is deleted and restored; none of them may crash the page.
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
     await completeSetup(page);
 
     // An entry, and a manual INR rate next to the ECB one.
@@ -79,7 +148,7 @@ test.describe('on a desktop browser', () => {
     expect(download.suggestedFilename()).toBe(FILE_NAME);
     const filePath = testInfo.outputPath(FILE_NAME);
     await download.saveAs(filePath);
-    await expect(page.getByRole('status')).toHaveText(`Exported ${FILE_NAME}.`);
+    await expect(page.getByRole('status')).toHaveText(`Download started: ${FILE_NAME}`);
     const file = JSON.parse(await readFile(filePath, 'utf8')) as {
       app: string;
       version: number;
@@ -133,6 +202,7 @@ test.describe('on a desktop browser', () => {
     // The manual rate came back next to the ECB one.
     await openSettings(page);
     await expect(page.getByText('1 € = 97 INR · set by you')).toBeVisible();
+    expect(pageErrors).toEqual([]);
   });
 
   test('refuses a file that is not a usable backup and changes nothing', async ({ page }) => {
@@ -174,39 +244,62 @@ test.describe('on a desktop browser', () => {
     expect(await everything(page)).toEqual(before);
   });
 
-  test('hands the file to the share sheet when there is one, and a closed sheet is not an error', async ({ page }) => {
-    await page.addInitScript(() => {
-      const shared: { name: string; type: string; title: string; text: string }[] = [];
-      Object.assign(window, { shared });
-      Object.defineProperty(navigator, 'canShare', {
-        value: (data: ShareData) => (data.files?.length ?? 0) > 0,
-        configurable: true,
-      });
-      Object.defineProperty(navigator, 'share', {
-        value: async (data: ShareData) => {
-          const file = data.files?.[0];
-          if (!file) throw new TypeError('no file');
-          if (shared.length >= 1) throw new DOMException('The share sheet was closed.', 'AbortError');
-          shared.push({ name: file.name, type: file.type, title: data.title ?? '', text: await file.text() });
-        },
-        configurable: true,
-      });
-    });
+  test('shares the file from inside the tap, and a closed share sheet is not an error', async ({ page }) => {
+    await withShareSheet(page);
+    const downloads = countDownloads(page);
     await completeSetup(page);
     await openSettings(page);
 
     await page.getByRole('button', { name: 'Export backup' }).click();
-    await expect(page.getByRole('status')).toHaveText(`Exported ${FILE_NAME}.`);
-    const shared = await page.evaluate(() => (window as unknown as { shared: unknown[] }).shared);
-    expect(shared).toEqual([
-      { name: FILE_NAME, type: 'application/json', title: 'StudentsBudget backup', text: expect.stringContaining('"app": "studentsbudget"') },
+    await expect(page.getByRole('status')).toHaveText('Backup shared.');
+    // inDispatch: the share was called while the click was still being handled, with no wait for the database.
+    expect(await shareCalls(page)).toEqual([
+      {
+        name: FILE_NAME,
+        type: 'application/json',
+        title: 'StudentsBudget backup',
+        inDispatch: true,
+        text: expect.stringContaining('"app": "studentsbudget"'),
+      },
     ]);
 
-    // The second time the stub throws AbortError, like a person closing the sheet.
+    // Closing the sheet says nothing, and starts no download behind the person's back.
+    await setShareMode(page, 'abort');
     await page.getByRole('button', { name: 'Export backup' }).click();
     await expect(page.getByRole('button', { name: 'Export backup' })).toBeEnabled();
     await expect(page.getByRole('status')).toHaveCount(0);
     await expect(inlineAlert(page)).toHaveCount(0);
+    expect((await shareCalls(page)).map((call) => call.inDispatch)).toEqual([true, true]);
+    expect(downloads.value).toBe(0);
+  });
+
+  test('offers a download by tap when the share sheet does not open, and claims nothing before it', async ({
+    page,
+  }, testInfo) => {
+    await withShareSheet(page);
+    const downloads = countDownloads(page);
+    await completeSetup(page);
+    await openSettings(page);
+    await setShareMode(page, 'blocked');
+
+    await page.getByRole('button', { name: 'Export backup' }).click();
+    await expect(inlineAlert(page)).toContainText("The share sheet didn't open. You can download the file instead.");
+    await expect(page.getByRole('status')).toHaveCount(0);
+    // No second, programmatic download without a tap, and no second share.
+    expect(downloads.value).toBe(0);
+    expect(await shareCalls(page)).toHaveLength(1);
+
+    const downloaded = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download instead' }).click();
+    const download = await downloaded;
+    expect(download.suggestedFilename()).toBe(FILE_NAME);
+    const filePath = testInfo.outputPath(FILE_NAME);
+    await download.saveAs(filePath);
+    expect(await readFile(filePath, 'utf8')).toContain('"app": "studentsbudget"');
+    await expect(page.getByRole('status')).toHaveText(`Download started: ${FILE_NAME}`);
+    await expect(inlineAlert(page)).toHaveCount(0);
+    expect(downloads.value).toBe(1);
+    expect(await shareCalls(page)).toHaveLength(1);
   });
 });
 

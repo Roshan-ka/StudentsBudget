@@ -1,14 +1,20 @@
 'use client';
 
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { deleteEverything, exportAll } from '@/db/bulk';
+import { deleteEverything, exportAll, type BackupData } from '@/db/bulk';
 import { backupFileName, serializeBackup } from './backup';
 import { RestoreFromBackup } from './restore-from-backup';
 
 const CONFIRM_WORD = 'DELETE';
+
+function buildFile(data: BackupData): File {
+  const now = new Date();
+  return new File([serializeBackup(data, now)], backupFileName(now), { type: 'application/json' });
+}
 
 function download(file: File) {
   const url = URL.createObjectURL(file);
@@ -22,42 +28,70 @@ function download(file: File) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** Hands the file to the share sheet where there is one (iPhone), else downloads it. False when the person closed the sheet. */
-async function saveFile(file: File): Promise<boolean> {
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: 'StudentsBudget backup' });
-      return true;
-    } catch (error) {
-      // Closing the share sheet is a choice, not a failure.
-      if (error instanceof DOMException && error.name === 'AbortError') return false;
-      // Sharing was refused for another reason: a download is still better than nothing.
-    }
-  }
-  download(file);
-  return true;
-}
+type Notice =
+  | { kind: 'shared' }
+  | { kind: 'downloaded'; name: string }
+  // The share sheet did not open: a fresh tap on "Download instead" is a real user gesture.
+  | { kind: 'share-failed' };
 
 function ExportBackup() {
-  const [busy, setBusy] = useState(false);
-  const [savedAs, setSavedAs] = useState<string | null>(null);
+  // Read before the tap, not in it. iOS opens the share sheet only from inside the tap itself, and waiting
+  // on the database first would let that moment pass. The live query also keeps the snapshot current.
+  const snapshot = useLiveQuery(() => exportAll(), []);
+  const [sharing, setSharing] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function onExport() {
-    setBusy(true);
-    setSavedAs(null);
+  function startDownload(file: File) {
+    download(file);
+    setNotice({ kind: 'downloaded', name: file.name });
+  }
+
+  function onShareFailed(shareError: unknown) {
+    // Closing the share sheet is a choice, not a failure.
+    if (shareError instanceof DOMException && shareError.name === 'AbortError') return;
+    // NotAllowedError is the expected way a browser says no, and the message below covers it; log anything else.
+    if (!(shareError instanceof DOMException && shareError.name === 'NotAllowedError')) {
+      console.error('StudentsBudget: the share sheet did not open', shareError);
+    }
+    setNotice({ kind: 'share-failed' });
+  }
+
+  // Nothing here waits before it shares or downloads: the browser only allows both from inside the tap.
+  function onExport() {
+    if (!snapshot) return;
+    setNotice(null);
+    setError(null);
+    let file: File;
+    try {
+      file = buildFile(snapshot);
+    } catch (exportError) {
+      console.error('StudentsBudget: could not export the backup', exportError);
+      return setError('Could not export your data.');
+    }
+
+    if (!navigator.canShare?.({ files: [file] })) return startDownload(file);
+
+    setSharing(true);
+    try {
+      navigator
+        .share({ files: [file], title: 'StudentsBudget backup' })
+        .then(() => setNotice({ kind: 'shared' }), onShareFailed)
+        .finally(() => setSharing(false));
+    } catch (shareError) {
+      setSharing(false);
+      onShareFailed(shareError);
+    }
+  }
+
+  function onDownloadInstead() {
+    if (!snapshot) return;
     setError(null);
     try {
-      const now = new Date();
-      const file = new File([serializeBackup(await exportAll(), now)], backupFileName(now), {
-        type: 'application/json',
-      });
-      if (await saveFile(file)) setSavedAs(file.name);
+      startDownload(buildFile(snapshot));
     } catch (exportError) {
       console.error('StudentsBudget: could not export the backup', exportError);
       setError('Could not export your data.');
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -67,13 +101,31 @@ function ExportBackup() {
       <p className="text-sm text-muted-foreground">
         Saves everything as one file. On an iPhone, choose Save to Files in the share sheet.
       </p>
-      <Button variant="outline" className="h-10 self-start px-4" onClick={() => void onExport()} disabled={busy}>
+      <Button
+        variant="outline"
+        className="h-10 self-start px-4"
+        onClick={onExport}
+        disabled={snapshot === undefined || sharing}
+      >
         Export backup
       </Button>
-      {savedAs && (
+      {notice?.kind === 'shared' && (
         <p role="status" className="text-sm">
-          Exported {savedAs}.
+          Backup shared.
         </p>
+      )}
+      {notice?.kind === 'downloaded' && (
+        <p role="status" className="text-sm">
+          Download started: {notice.name}
+        </p>
+      )}
+      {notice?.kind === 'share-failed' && (
+        <div role="alert" className="flex flex-col gap-2 text-sm">
+          <p>The share sheet didn&apos;t open. You can download the file instead.</p>
+          <Button variant="outline" className="h-10 self-start px-4" onClick={onDownloadInstead}>
+            Download instead
+          </Button>
+        </div>
       )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
