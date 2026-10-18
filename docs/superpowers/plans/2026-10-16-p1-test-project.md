@@ -581,12 +581,17 @@ What the screens do:
   - It sits at the top of `/entries` (and on Home from Task 10), so this task's e2e test has a page to run on.
   - Unparseable input shows "Add an amount, like “döner 6”".
   - When `suggestCategory` has no answer, it shows chips for the flexible categories.
-  - It saves to the first `cash` account (or the first account), dated today.
-  - Toast: "Saved €6.00 · Eating out", with an **Undo** button that deletes the entry.
+  - It saves to the account `pickQuickAddAccount` chooses: a EUR cash account, then any cash account, then a EUR account, then the first account. The entry is dated today.
+  - **Confirmation** (rulings R8 and R9): an inline `role="status"` line, not a toast, reading "Saved €6.00 · döner · Eating out" (amount · note · category; no note part when the note is empty), with an **Undo** button that deletes the entry.
+    - It clears when the page hides and after 10 s.
+    - A double tap saves once.
 - **Entry form:** tabs Expense / Income / Transfer, the last reusing `TransferForm`.
 - **Entries list:**
   - Grouped by date, newest first. It reads `?category=` and `?month=`; the component reading them renders inside `<Suspense>` (`cacheComponents`).
-  - Tapping an entry opens the edit form; a transfer opens `TransferForm` with that entry. Delete asks for confirmation first.
+  - Tapping an entry opens the edit form **in the page**; a transfer opens `TransferForm` with that entry. There is no `/entries/[id]` route (ruling R10): a dynamic segment would make `BottomNav`'s `usePathname` need `<Suspense>`.
+  - **Delete** is an inline two-step: "Delete", then "Delete this entry?" with Yes / Cancel. No `window.confirm` (ruling R11).
+  - **Editing** keeps the stored `eurMinor` when the account and amount are unchanged. A same-currency transfer stays balanced, and keeps a stored fee.
+  - **After a manual save**, `/entries?month=<saved month>` opens. The filter line has "‹ Previous" / "Next ›" month links.
 
 - [ ] **Step 1: Write failing tests.**
   - `converts INR at save time`: 95000 INR at 95 → `eurMinor` 1000.
@@ -700,16 +705,20 @@ Copy:
 
 **Files:**
 - Create: `src/features/check-in/week-line.ts`, `src/features/check-in/week-line.test.ts`, `src/features/check-in/check-in-view.tsx`, `src/app/check-in/page.tsx`, `public/weekly-check-in.ics`, `src/features/check-in/ics.test.ts`, `e2e/check-in.spec.ts`
+- Move first, with their tests: `useToday`, `weekLabel` and `formatWeekAmount` from `src/features/home/` to `src/lib/`, and update Home's imports. Check-in needs all three. Add unit tests for `weekLabel`'s clipped-week and one-day cases (`Mon 26 – Sat 31 Oct`, `Sun 1 Nov`).
+- **While moving `useToday`:**
+  - The entries list reads "this month" from `useToday` (its live query takes `[today]`), so an installed app resumed after a month end shows the new month.
+  - `TransferForm` treats a missing date choice as "today" (like the money form) instead of fixing it at mount, so a hidden-but-mounted form never keeps yesterday's date.
 - Modify: `src/features/home/home.tsx` (check-in card, highlighted on Sundays)
 
 **Interfaces:**
-- Consumes: `safeToSpend(...).envelopes` (6), `QuickAddField` (9)
-- Produces: `export function weekLine(e: EnvelopeWeek): string;`
+- Consumes: `safeToSpend(...).envelopes` (6), `QuickAddField` (9), `useToday`, `weekLabel` and `formatWeekAmount` (moved to `src/lib`)
+- Produces: `export function weekLine(e: EnvelopeWeek): string;`. Each amount goes through `formatWeekAmount`, so sub-euro amounts keep their cents (Task 10 ruling). The whole-euro examples below are unchanged.
 
 What the screen shows:
-- The week range, then one `weekLine` per envelope.
+- The week range from `weekLabel` (today from `useToday`), then one `weekLine` per envelope.
 - This week's entries.
-- "Forgot something? Add it here" with the `QuickAddField`.
+- "Forgot something? Add it here" with the `QuickAddField`, which dates entries today. Below it, a link "Add something from an earlier day" to `/entries/new`, whose date field covers last week's purchases.
 - A link "Add weekly reminder to calendar" pointing to `/weekly-check-in.ics`.
 - The `.ics` file:
   - `VCALENDAR`/`VEVENT` with `SUMMARY:StudentsBudget weekly check-in`
@@ -769,7 +778,7 @@ What the panel does:
 - [ ] **Step 2: Run `npm test`.** Expected: FAIL.
 - [ ] **Step 3: Implement** `backup.ts`, `bulk.ts` and the panel.
 - [ ] **Step 4: Write the e2e test** (desktop-chrome project):
-  1. `completeSetup` and quick add "döner 6".
+  1. `completeSetup` and quick add "döner 6", tapping the Eating out chip, since nothing is learned yet.
   2. Export: catch the `download` event and save the file.
   3. Delete everything → you land on `/setup`.
   4. Import the file → "döner" is back in Entries.
@@ -792,7 +801,7 @@ export function registerServiceWorker(env: { production: boolean; supported: boo
 
 What it does:
 - `public/sw.js` is hand-written, with no library:
-  - navigations: network first, falling back to the cached page
+  - navigations: network first, falling back to the cached page. The fallback matches **ignoring the query string**, so `/entries?month=…` and `/entries?category=…&month=…` open offline from the cached `/entries`.
   - `/_next/static/*` and the icons: cache first
   - never cache `api.frankfurter.dev`
   - a versioned cache name; old caches are deleted on activate
@@ -822,7 +831,9 @@ What it does:
   1. Safari → the install hint shows.
   2. Share → Add to Home Screen, then open the installed app.
   3. Set up.
-  4. Use the keyboard mic: say "Döner 6 Euro", then "coffee six euros". Both are saved with the right amounts.
+  4. Use the keyboard mic with iOS auto-punctuation on (the default):
+     - Say "Döner 6 Euro", then "coffee six euros". Both are saved with the right amounts.
+     - Say "coffee seven forty euros" and note what it saves. The parser reads it as €40 today; decide whether that should ask for the amount instead.
   5. Airplane mode → the app still opens, and the INR rate shows its date.
   6. Export → the share sheet → save to Files.
   7. Delete everything → import from Files → the data is back.

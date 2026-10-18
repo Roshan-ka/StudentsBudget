@@ -9,22 +9,32 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { saveEntry } from '@/db/repo';
+import type { Entry } from '@/db/types';
 import { todayIso } from '@/lib/dates';
-import { parseAmount } from '@/lib/money';
+import { parseAmount, type Minor } from '@/lib/money';
 import { sortAccounts } from './balances';
 import { buildTransfer } from './transfer';
 
-export function TransferForm({ onSaved }: { onSaved?: () => void }) {
+function minorToInput(minor: Minor): string {
+  return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
+}
+
+/**
+ * Moves money between two accounts. With `entry` (a transfer being edited) the form starts filled in
+ * and saving keeps that entry's id; any other entry type is ignored.
+ */
+export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (saved: Entry) => void }) {
   const id = useId();
+  const editing = entry?.type === 'transfer' ? entry : undefined;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
   // null until the person picks: the first account sends, the first other account receives.
-  const [fromChoice, setFromChoice] = useState<string | null>(null);
-  const [toChoice, setToChoice] = useState<string | null>(null);
-  const [amount, setAmount] = useState('');
-  // null until the person types: between accounts in the same currency the amount received is the amount sent.
+  const [fromChoice, setFromChoice] = useState<string | null>(editing?.accountId ?? null);
+  const [toChoice, setToChoice] = useState<string | null>(editing?.toAccountId ?? null);
+  const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
+  // null until the person types: see `received` below for what the field shows then.
   const [receivedChoice, setReceivedChoice] = useState<string | null>(null);
-  const [date, setDate] = useState(() => todayIso());
-  const [note, setNote] = useState('');
+  const [date, setDate] = useState(() => editing?.date ?? todayIso());
+  const [note, setNote] = useState(editing?.note ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -36,7 +46,18 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
   // An account deleted while the form is open falls back to the default.
   const from = accounts.find((account) => account.id === fromChoice) ?? accounts[0];
   const to = accounts.find((account) => account.id === toChoice) ?? accounts.filter((a) => a.id !== from.id)[0];
-  const received = receivedChoice ?? (from.currency === to.currency ? amount : '');
+  // What the amount received shows until the person types in it. Between accounts in one currency it is the
+  // amount sent, so editing only the amount keeps the two equal. An edit that keeps both accounts starts from
+  // the stored amount where that cannot be worked out: across currencies, or when the two amounts differ on
+  // purpose (a fee), so saving the note alone never changes it.
+  const keepsStoredReceived =
+    editing !== undefined &&
+    from.id === editing.accountId &&
+    to.id === editing.toAccountId &&
+    (from.currency !== to.currency || editing.toAmountMinor !== editing.amountMinor);
+  const received =
+    receivedChoice ??
+    (keepsStoredReceived ? minorToInput(editing.toAmountMinor) : from.currency === to.currency ? amount : '');
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,6 +65,7 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
 
     setSaving(true);
     setError(null);
+    let saved: Entry;
     try {
       const result = buildTransfer(
         {
@@ -58,12 +80,14 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
         from,
         await loadRates(),
         new Date(),
+        editing,
       );
       if (!result.ok) {
         setError(result.error);
         return;
       }
       await saveEntry(result.entry);
+      saved = result.entry;
     } catch (saveError) {
       console.error('StudentsBudget: could not save the transfer', saveError);
       setError('Could not save the transfer.');
@@ -71,10 +95,12 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
     } finally {
       setSaving(false);
     }
-    setAmount('');
-    setReceivedChoice(null);
-    setNote('');
-    onSaved?.();
+    if (!editing) {
+      setAmount('');
+      setReceivedChoice(null);
+      setNote('');
+    }
+    onSaved?.(saved);
   }
 
   return (
@@ -167,7 +193,7 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
         </p>
       )}
       <Button type="submit" className="h-10 px-4" disabled={saving}>
-        Move money
+        {editing ? 'Save changes' : 'Move money'}
       </Button>
     </form>
   );

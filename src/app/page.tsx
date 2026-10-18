@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { db } from '@/db/db';
+import { HomeScreen } from '@/features/home/home';
 
 export default function Home() {
   const router = useRouter();
@@ -28,10 +29,5 @@ export default function Home() {
 
   if (plan === 'loading' || plan === null) return null;
 
-  return (
-    <section>
-      <h2 className="text-lg font-semibold">Home</h2>
-      <p className="mt-2 text-muted-foreground">Your budget will show up here.</p>
-    </section>
-  );
+  return <HomeScreen plan={plan} />;
 }

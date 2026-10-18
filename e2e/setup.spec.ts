@@ -12,6 +12,13 @@ function inlineAlert(page: Page) {
   return page.getByRole('main').getByRole('alert');
 }
 
+/** On home, whatever it shows: the URL is '/', the wizard is gone, and Quick add is up (home renders it once it has found the plan). */
+async function expectOnHome(page: Page) {
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('button', { name: 'Save plan' })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Quick add' })).toBeVisible();
+}
+
 async function overflow(page: Page) {
   return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
@@ -83,9 +90,8 @@ test('saves and lands on home', async ({ page }) => {
   await completeSetup(page);
 
   await page.reload();
-  // Home only renders once the saved plan is found, so this also proves there was no redirect to /setup.
-  await expect(page.getByRole('heading', { level: 2, name: 'Home' })).toBeVisible();
-  await expect(page).toHaveURL('/');
+  // The nav only shows once the saved plan is found, so this also proves there was no redirect to /setup.
+  await expectOnHome(page);
 
   const [plan] = await readStore<Plan>(page, 'plan');
   expect(plan).toMatchObject({
@@ -130,8 +136,7 @@ test('home sends a first-time visitor to setup', async ({ page }) => {
 test('setup cannot run a second time', async ({ page }) => {
   await completeSetup(page);
   await page.goto('/setup');
-  await expect(page.getByRole('heading', { level: 2, name: 'Home' })).toBeVisible();
-  await expect(page).toHaveURL('/');
+  await expectOnHome(page);
 });
 
 test('explains what is missing before moving on and keeps what was typed', async ({ page }) => {
@@ -245,8 +250,7 @@ test('editing the plan skips accounts and guesses and keeps what setup stored', 
   await expect(page.getByText('Available €430 · Planned €430', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Save plan' }).click();
 
-  await expect(page).toHaveURL('/');
-  await expect(page.getByRole('heading', { level: 2, name: 'Home' })).toBeVisible();
+  await expectOnHome(page);
 
   const plans = await readStore<Plan>(page, 'plan');
   expect(plans).toHaveLength(1);
@@ -277,8 +281,7 @@ test('a one-off whose due month has passed does not block editing the plan', asy
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.getByRole('heading', { level: 3, name: 'Envelopes' })).toBeVisible();
   await page.getByRole('button', { name: 'Save plan' }).click();
-  await expect(page).toHaveURL('/');
-  await expect(page.getByRole('heading', { level: 2, name: 'Home' })).toBeVisible();
+  await expectOnHome(page);
 });
 
 test('the wizard fits a phone without sideways scrolling', async ({ page }) => {
