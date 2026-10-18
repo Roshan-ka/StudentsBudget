@@ -66,4 +66,4 @@ Claude stops and waits for me at:
 | 1 | 1–3 | Empty app installs from a Vercel preview; helpers and database tested |
 | 2 | 4–7 | Setup saves a plan with Regensburg ranges; INR rate works, also offline |
 | 3 | 8–10 | "döner 6" updates "Safe to spend this week" in desktop Chrome |
-| 4 | 11–15 | Charts, reveal, check-in, backup; installed and used on the iPhone |
+| 4 | 11–14, 14b, 15 | Charts, reveal, check-in, backup; opens offline; installed and used on the iPhone |

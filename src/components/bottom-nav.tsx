@@ -1,10 +1,15 @@
 'use client';
 
+import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { db } from '@/db/db';
 
-// Later tasks add Settings (5), Entries (9) and Charts (11).
-export const NAV_ITEMS: { href: string; label: string }[] = [{ href: '/', label: 'Home' }];
+// Later tasks add Entries (9) and Charts (11).
+export const NAV_ITEMS: { href: string; label: string }[] = [
+  { href: '/', label: 'Home' },
+  { href: '/settings', label: 'Settings' },
+];
 
 function isActive(pathname: string, href: string): boolean {
   return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
@@ -12,6 +17,10 @@ function isActive(pathname: string, href: string): boolean {
 
 export function BottomNav() {
   const pathname = usePathname();
+  // 'loading' (no answer yet) and null (no plan) both hide the nav: until setup is saved, there is
+  // nothing to navigate to, and a tap on Home or Settings would leave a half-finished setup behind.
+  const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
+  if (plan === 'loading' || plan === null) return null;
 
   return (
     <nav
