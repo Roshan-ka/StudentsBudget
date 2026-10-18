@@ -12,11 +12,11 @@ function inlineAlert(page: Page) {
   return page.getByRole('main').getByRole('alert');
 }
 
-/** On home, whatever it shows: the URL is '/', the wizard is gone, and the nav (which needs a saved plan) is up. */
+/** On home, whatever it shows: the URL is '/', the wizard is gone, and Quick add is up (home renders it once it has found the plan). */
 async function expectOnHome(page: Page) {
   await expect(page).toHaveURL('/');
   await expect(page.getByRole('button', { name: 'Save plan' })).toHaveCount(0);
-  await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Quick add' })).toBeVisible();
 }
 
 async function overflow(page: Page) {
