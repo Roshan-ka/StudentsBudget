@@ -7,10 +7,11 @@ import type { Plan } from '@/db/types';
 import { totalInEur } from '@/features/accounts/balances';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { monthStatus, safeToSpend } from '@/lib/budget';
-import { monthOf, todayIso } from '@/lib/dates';
+import { monthOf } from '@/lib/dates';
 import { formatMoney, type CurrencyCode } from '@/lib/money';
 import { EnvelopeList, type EnvelopeRow } from './envelope-list';
 import { SafeToSpendCard } from './safe-to-spend-card';
+import { useToday } from './use-today';
 
 const currencyList = new Intl.ListFormat('en-IE', { style: 'long', type: 'conjunction' });
 
@@ -24,15 +25,18 @@ function missingRatesNote(currencies: CurrencyCode[]): string {
  * what all the accounts add up to. It updates by itself when an entry is saved.
  */
 export function HomeScreen({ plan }: { plan: Plan }) {
-  // Today is read inside the query, never while rendering: the page is prerendered, and the date of the
-  // build is not the date of the person.
+  // The date follows the clock, so the week turns over on its own when the app comes back or midnight passes,
+  // with no entry saved in between. It is null until the browser runs this (never a date from the prerender).
+  const today = useToday();
   const data = useLiveQuery(async () => {
+    if (today === null) return null;
     const [entries, accounts, rates] = await Promise.all([db.entries.toArray(), db.accounts.toArray(), loadRates()]);
-    return { today: todayIso(), entries, accounts, rates };
-  }, []);
+    return { today, entries, accounts, rates };
+  }, [today]);
 
   let content = null;
-  if (data !== undefined) {
+  // Rendered from the date the data was read for, so a new day swaps in as one piece.
+  if (data) {
     const { today, entries, accounts, rates } = data;
     const week = safeToSpend(plan, entries, today);
     const month = new Map(monthStatus(plan, entries, monthOf(today)).map((status) => [status.categoryId, status]));

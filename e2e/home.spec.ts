@@ -98,6 +98,45 @@ test('an amount under 50 cents keeps its cents instead of reading as €0', asyn
   await expect(card.getByText('€0.40 over this week', { exact: true })).toBeVisible();
 });
 
+test('the week follows the date when the app is opened again on a later day', async ({ page }) => {
+  await completeSetup(page);
+  // Coming back also refreshes the exchange rates, and a stored rate would refresh home as a side effect.
+  // Let that fail, so only the date can move home on.
+  await page.route(FRANKFURTER, (route) => route.abort());
+  // Sunday 18 Oct: the last day of the week 12-18, three days after setup.
+  await page.clock.setFixedTime(new Date(2026, 9, 18, 12, 0, 0));
+  await page.reload();
+  const card = safeToSpend(page);
+  await expect(card.getByText('Mon 12 – Sun 18 Oct', { exact: true })).toBeVisible();
+  await expect(card.getByText('€42', { exact: true })).toBeVisible();
+
+  // Monday just after midnight. Nothing is written; the app only comes back from the background.
+  await page.clock.setFixedTime(new Date(2026, 9, 19, 0, 0, 5));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(card.getByText('Mon 19 – Sun 25 Oct', { exact: true })).toBeVisible();
+  // Ten days of the plan so far this month: food 310 * 10/31 + eating out 124 * 10/31.
+  await expect(card.getByText('€140', { exact: true })).toBeVisible();
+
+  // The next week is cut off at the end of October. This time the window gets focus.
+  await page.clock.setFixedTime(new Date(2026, 9, 26, 9, 0, 0));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(card.getByText('Mon 26 – Sat 31 Oct', { exact: true })).toBeVisible();
+  await expect(card.getByText('€224', { exact: true })).toBeVisible();
+});
+
+test('the week turns over at midnight while the app stays open', async ({ page }) => {
+  // Sunday 11 Oct, ten minutes before midnight; the clock runs from here. Far from the real date, so
+  // completeSetup does not mistake it for a real clock and pin it.
+  await page.clock.install({ time: new Date(2026, 9, 11, 23, 50, 0) });
+  await completeSetup(page);
+  const card = safeToSpend(page);
+  await expect(card.getByText('Mon 5 – Sun 11 Oct', { exact: true })).toBeVisible();
+
+  // Nobody touches the app, and no entry is saved: the timer for midnight does it.
+  await page.clock.fastForward('15:00');
+  await expect(card.getByText('Mon 12 – Sun 18 Oct', { exact: true })).toBeVisible();
+});
+
 test('coming back from another page shows what was added there', async ({ page }) => {
   await completeSetup(page);
   await expect(safeToSpend(page).getByText('€42', { exact: true })).toBeVisible();
