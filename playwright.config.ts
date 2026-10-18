@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  // Needs a production build, which has the service worker; playwright.offline.config.ts runs it.
+  testIgnore: '**/offline.spec.ts',
   forbidOnly: !!process.env.CI,
   use: { baseURL: 'http://localhost:3000' },
   projects: [

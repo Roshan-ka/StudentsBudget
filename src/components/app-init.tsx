@@ -5,6 +5,7 @@ import { requestPersistence } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import { ensureSeeded } from '@/db/repo';
 import { todayIso } from '@/lib/dates';
+import { registerServiceWorker } from '@/lib/sw-register';
 
 async function refreshExchangeRates() {
   try {
@@ -14,7 +15,21 @@ async function refreshExchangeRates() {
   }
 }
 
-/** Prepares the local database on mount and keeps the exchange rates current. Renders nothing. */
+async function startServiceWorker() {
+  try {
+    await registerServiceWorker({
+      production: process.env.NODE_ENV === 'production',
+      supported: 'serviceWorker' in navigator,
+    });
+  } catch (error) {
+    console.error('StudentsBudget: could not start the service worker', error);
+  }
+}
+
+/**
+ * Prepares the local database on mount, keeps the exchange rates current and starts the service worker
+ * that opens the app offline (production builds only). Renders nothing.
+ */
 export function AppInit() {
   useEffect(() => {
     // An installed iPhone app can stay suspended for days without remounting, so check again on return.
@@ -29,8 +44,9 @@ export function AppInit() {
       } catch (error) {
         console.error('StudentsBudget: could not seed the local database', error);
       }
-      // Before the persistence request: some browsers hold that promise open until the person answers a prompt.
-      await refreshExchangeRates();
+      // Neither waits for the other: a hung connection holds the rates for the 10 s fetch timeout, and some
+      // browsers hold the persistence promise open until the person answers a prompt.
+      void refreshExchangeRates();
       try {
         await requestPersistence();
       } catch (error) {
@@ -38,6 +54,7 @@ export function AppInit() {
       }
     }
     void init();
+    void startServiceWorker();
 
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
