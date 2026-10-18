@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Account, Rate } from '@/db/types';
+import type { Account, Entry, Rate } from '@/db/types';
 import type { RateMap } from '@/lib/fx';
 import type { CurrencyCode } from '@/lib/money';
 import { buildTransfer } from './transfer';
@@ -51,6 +51,35 @@ describe('buildTransfer', () => {
     const b = buildTransfer(input, account('inr', 'INR'), rates, NOW);
 
     expect(a.ok && b.ok && a.entry.id !== b.entry.id).toBe(true);
+  });
+
+  it('editing keeps id and createdAt of the entry it replaces', () => {
+    const existing: Entry = {
+      id: 'transfer-1',
+      type: 'transfer',
+      date: '2026-10-10',
+      accountId: 'inr',
+      amountMinor: 47500,
+      eurMinor: 500,
+      toAccountId: 'bank',
+      toAmountMinor: 500,
+      note: '',
+      createdAt: '2026-10-10T11:00:00.000Z',
+    };
+
+    const result = buildTransfer(input, account('inr', 'INR'), { INR: rate('INR', 95) }, NOW, existing);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.entry).toMatchObject({
+      id: 'transfer-1',
+      createdAt: '2026-10-10T11:00:00.000Z',
+      amountMinor: 95000,
+      eurMinor: 1000,
+      toAmountMinor: 1000,
+      date: '2026-10-16',
+      note: 'Rent top-up',
+    });
   });
 
   it('needs no rate when the sending account is in EUR', () => {

@@ -17,12 +17,14 @@ export type TransferInput = {
 /**
  * Builds the transfer entry, or says what is wrong with the input. `eurMinor` is the sending side
  * converted to EUR with the rate on file, so a missing rate for the sending currency is an error.
+ * With `existing` (an edit) the new entry keeps its `id` and `createdAt`.
  */
 export function buildTransfer(
   input: TransferInput,
   from: Account,
   rates: RateMap,
   now: Date,
+  existing?: Entry,
 ): { ok: true; entry: Entry } | { ok: false; error: string } {
   if (input.fromAccountId === input.toAccountId) return { ok: false, error: 'Pick two different accounts.' };
   if (input.amountMinor <= 0) return { ok: false, error: 'Enter an amount.' };
@@ -36,14 +38,14 @@ export function buildTransfer(
   return {
     ok: true,
     entry: {
-      id: crypto.randomUUID(),
+      id: existing?.id ?? crypto.randomUUID(),
       type: 'transfer',
       date: input.date,
       accountId: input.fromAccountId,
       amountMinor: input.amountMinor,
       eurMinor,
       note: input.note.trim(),
-      createdAt: now.toISOString(),
+      createdAt: existing?.createdAt ?? now.toISOString(),
       toAccountId: input.toAccountId,
       toAmountMinor: input.toAmountMinor,
     },

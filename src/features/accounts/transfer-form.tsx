@@ -9,22 +9,34 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { saveEntry } from '@/db/repo';
+import type { Entry } from '@/db/types';
 import { todayIso } from '@/lib/dates';
-import { parseAmount } from '@/lib/money';
+import { parseAmount, type Minor } from '@/lib/money';
 import { sortAccounts } from './balances';
 import { buildTransfer } from './transfer';
 
-export function TransferForm({ onSaved }: { onSaved?: () => void }) {
+function minorToInput(minor: Minor): string {
+  return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
+}
+
+/**
+ * Moves money between two accounts. With `entry` (a transfer being edited) the form starts filled in
+ * and saving keeps that entry's id; any other entry type is ignored.
+ */
+export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: () => void }) {
   const id = useId();
+  const editing = entry?.type === 'transfer' ? entry : undefined;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
   // null until the person picks: the first account sends, the first other account receives.
-  const [fromChoice, setFromChoice] = useState<string | null>(null);
-  const [toChoice, setToChoice] = useState<string | null>(null);
-  const [amount, setAmount] = useState('');
+  const [fromChoice, setFromChoice] = useState<string | null>(editing?.accountId ?? null);
+  const [toChoice, setToChoice] = useState<string | null>(editing?.toAccountId ?? null);
+  const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
   // null until the person types: between accounts in the same currency the amount received is the amount sent.
-  const [receivedChoice, setReceivedChoice] = useState<string | null>(null);
-  const [date, setDate] = useState(() => todayIso());
-  const [note, setNote] = useState('');
+  const [receivedChoice, setReceivedChoice] = useState<string | null>(
+    editing ? minorToInput(editing.toAmountMinor) : null,
+  );
+  const [date, setDate] = useState(() => editing?.date ?? todayIso());
+  const [note, setNote] = useState(editing?.note ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -58,6 +70,7 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
         from,
         await loadRates(),
         new Date(),
+        editing,
       );
       if (!result.ok) {
         setError(result.error);
@@ -71,9 +84,11 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
     } finally {
       setSaving(false);
     }
-    setAmount('');
-    setReceivedChoice(null);
-    setNote('');
+    if (!editing) {
+      setAmount('');
+      setReceivedChoice(null);
+      setNote('');
+    }
     onSaved?.();
   }
 
@@ -167,7 +182,7 @@ export function TransferForm({ onSaved }: { onSaved?: () => void }) {
         </p>
       )}
       <Button type="submit" className="h-10 px-4" disabled={saving}>
-        Move money
+        {editing ? 'Save changes' : 'Move money'}
       </Button>
     </form>
   );
