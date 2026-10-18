@@ -35,11 +35,17 @@ function spentByCategory(entries: Entry[], month: IsoMonth): Map<string, Minor> 
 
 /**
  * What each expense category cost in `month`, against what the plan set aside for it, most spent first.
- * One row per category that has spending or a planned amount. `plannedMinor` is the envelope for a flexible
- * category (the same prorated amount home shows, so the month of setup is only planned from the setup day on),
- * the plan's monthly amount for a fixed one, and null for a category the plan does not cover. A category
- * planned at €0 and never used is left out. Ties in spending go to the larger plan, then to the order of the
- * built-in categories.
+ * One row per category that has spending or a planned amount; a category planned at €0 and never used is left out.
+ *
+ * Spent and planned are like-for-like, and the same as home shows:
+ * - A flexible category with an envelope takes both from `monthStatus`. In the month of setup that is the envelope
+ *   from the setup day on and only the spending from the setup day on; before it nothing is planned or counted.
+ * - A fixed category is planned at the plan's monthly amount, not prorated, and counts the whole month's spending
+ *   (rent paid on the 1st is still rent).
+ * - Any other category has no plan (`plannedMinor` null) and counts the whole month.
+ * - A month before the setup month has no plan at all: `plannedMinor` is null for every category.
+ *
+ * Ties in spending go to the larger plan, then to the order of the built-in categories.
  */
 export function spendingByCategory(
   entries: Entry[],
@@ -47,19 +53,24 @@ export function spendingByCategory(
   month: IsoMonth,
 ): { categoryId: string; spentMinor: Minor; plannedMinor: Minor | null }[] {
   const spent = spentByCategory(entries, month);
-
   const planned = new Map<string, Minor>();
-  for (const f of plan.fixed) planned.set(f.categoryId, f.monthlyMinor);
-  // `monthStatus` only counts spending from the setup day on; its planned amount is the one home uses.
-  for (const status of monthStatus(plan, entries, month)) planned.set(status.categoryId, status.plannedMinor);
 
-  const ids = new Set<string>([...spent.keys(), ...[...planned].filter(([, minor]) => minor > 0).map(([id]) => id)]);
-  return [...ids]
+  // 'YYYY-MM' strings sort chronologically, so plain comparison is enough.
+  if (month >= monthOf(plan.createdOn)) {
+    for (const f of plan.fixed) planned.set(f.categoryId, f.monthlyMinor);
+    for (const status of monthStatus(plan, entries, month)) {
+      planned.set(status.categoryId, status.plannedMinor);
+      spent.set(status.categoryId, status.spentMinor);
+    }
+  }
+
+  return [...new Set([...spent.keys(), ...planned.keys()])]
     .map((categoryId) => ({
       categoryId,
       spentMinor: spent.get(categoryId) ?? 0,
       plannedMinor: planned.get(categoryId) ?? null,
     }))
+    .filter((row) => row.spentMinor > 0 || (row.plannedMinor ?? 0) > 0)
     .sort(
       (a, b) =>
         b.spentMinor - a.spentMinor ||

@@ -148,6 +148,43 @@ test('the month switcher moves between months, and a month with nothing in it sa
   await expect(page.getByText('Nothing logged in November yet.')).toBeVisible();
 });
 
+test('the setup month measures spending from the setup day on and says when the budget starts', async ({ page }) => {
+  await completeSetup(page);
+  await quickAdd(page, 'rewe 20', 'Food & groceries', 'Saved €20.00 · rewe · Food & groceries');
+  await seedEntries(page, [
+    // Backdated to before the setup day: in the entries list, but not counted against food's envelope.
+    { type: 'expense', categoryId: 'food', date: '2026-10-03', eurMinor: 18000 },
+    // Before the setup month there was no plan; after it, the envelope is whole.
+    { type: 'expense', categoryId: 'food', date: '2026-09-10', eurMinor: 3000 },
+    { type: 'expense', categoryId: 'food', date: '2026-11-05', eurMinor: 1000 },
+  ]);
+  await openCharts(page);
+  const spending = spendingSection(page);
+  const food = spending.getByRole('row', { name: /Food & groceries/ }).getByRole('cell');
+  const note = /Budget starts/;
+
+  // October: €20 of the €160 planned from the 16th, not €200 of it, and the line that explains the 160.
+  await expect(spending.getByText('Budget starts 16 Oct.', { exact: true })).toBeVisible();
+  await expect(spending.getByText('€20 of €160', { exact: true })).toBeVisible();
+  await expect(food).toHaveText(['€20', '€160']);
+  // The table carries the line too.
+  await expect(spending.getByRole('table')).toContainText('Budget starts 16 Oct.');
+
+  // September came before the plan: what was spent, with nothing to measure it against.
+  await monthSwitcher(page).getByRole('button', { name: 'Previous' }).click();
+  await expect(monthSwitcher(page)).toContainText('September 2026');
+  await expect(spending.getByRole('columnheader')).toHaveText(['Category', 'Spent']);
+  await expect(food).toHaveText(['€30']);
+  await expect(spending.getByText(note)).toHaveCount(0);
+
+  // November: the whole envelope again, and no line.
+  await monthSwitcher(page).getByRole('button', { name: 'Next' }).click();
+  await monthSwitcher(page).getByRole('button', { name: 'Next' }).click();
+  await expect(monthSwitcher(page)).toContainText('November 2026');
+  await expect(food).toHaveText(['€10', '€310']);
+  await expect(spending.getByText(note)).toHaveCount(0);
+});
+
 test('shows income by source, and the last six months of the category that was spent on most', async ({ page }) => {
   await completeSetup(page);
   await quickAdd(page, 'rewe 20', 'Food & groceries', 'Saved €20.00 · rewe · Food & groceries');

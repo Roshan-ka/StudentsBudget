@@ -39,6 +39,15 @@ const shortMonth = new Intl.DateTimeFormat('en-IE', { month: 'short' });
 
 const monthDate = (month: IsoMonth): Date => parseISO(firstOfMonth(month));
 
+const dayAndMonth = new Intl.DateTimeFormat('en-IE', { day: 'numeric', month: 'short' });
+
+/** "Budget starts 16 Oct.", for the month the plan was set up in, unless that was on the 1st; null otherwise. */
+function budgetStartNote(plan: Plan, month: IsoMonth): string | null {
+  const { createdOn } = plan;
+  if (monthOf(createdOn) !== month || createdOn === firstOfMonth(month)) return null;
+  return `Budget starts ${dayAndMonth.format(parseISO(createdOn))}.`;
+}
+
 /** "/entries?category=eating-out&month=2026-10": the entries behind one bar. */
 function entriesHref(categoryId: string, month: IsoMonth): string {
   return `/entries?${new URLSearchParams({ category: categoryId, month }).toString()}`;
@@ -423,26 +432,45 @@ function MonthSwitcher({ month, onChange }: { month: IsoMonth; onChange: (month:
   );
 }
 
-function SpendingSection({ rows, monthLabel, noneText }: { rows: BarRow[]; monthLabel: string; noneText: string }) {
+/**
+ * Spending by category. `note` is the line for the month the plan was set up in ("Budget starts 16 Oct."), which
+ * explains why the planned amounts there are smaller than a full month's and why earlier spending is left out.
+ * Where nothing is planned (a month before the setup month) it is spending alone: no legend, no Planned column.
+ */
+function SpendingSection({
+  rows,
+  monthLabel,
+  note,
+  noneText,
+}: {
+  rows: BarRow[];
+  monthLabel: string;
+  note: string | null;
+  noneText: string;
+}) {
+  const withPlanned = rows.some((row) => row.plannedMinor !== null);
   return (
     <ChartSection title="Spending by category">
       {rows.length === 0 ? (
         <p className="text-muted-foreground">{noneText}</p>
       ) : (
         <>
+          {note && <p className="text-sm text-muted-foreground">{note}</p>}
           <HorizontalBars
             rows={rows}
             seriesKey="spent"
-            withPlanned
-            summary={`Bar chart of what was spent in each category in ${monthLabel}, against what was planned. The same numbers are in the table.`}
+            withPlanned={withPlanned}
+            summary={`Bar chart of what was spent in each category in ${monthLabel}${withPlanned ? ', against what was planned' : ''}. ${note ? `${note} ` : ''}The same numbers are in the table.`}
           />
           <TextAlternative
-            caption={`Spending by category, ${monthLabel}. Each category links to its entries.`}
+            caption={`Spending by category, ${monthLabel}. ${note ? `${note} ` : ''}Each category links to its entries.`}
             firstColumn="Category"
-            columns={['Spent', 'Planned']}
+            columns={withPlanned ? ['Spent', 'Planned'] : ['Spent']}
             rows={rows.map((row) => ({
               row,
-              cells: [amountText(row.amountMinor), row.plannedMinor === null ? 'Not planned' : amountText(row.plannedMinor)],
+              cells: withPlanned
+                ? [amountText(row.amountMinor), row.plannedMinor === null ? 'Not planned' : amountText(row.plannedMinor)]
+                : [amountText(row.amountMinor)],
             }))}
           />
         </>
@@ -569,7 +597,12 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
         <p className="text-muted-foreground">{`Nothing logged in ${monthIn} yet.`}</p>
       ) : (
         <>
-          <SpendingSection rows={spendingRows} monthLabel={monthLabel} noneText={`No spending logged in ${monthIn} yet.`} />
+          <SpendingSection
+            rows={spendingRows}
+            monthLabel={monthLabel}
+            note={budgetStartNote(plan, month)}
+            noneText={`No spending logged in ${monthIn} yet.`}
+          />
           <IncomeSection rows={incomeRows} monthLabel={monthLabel} noneText={`No income logged in ${monthIn} yet.`} />
           <HistorySection
             categoryId={pickedCategory ?? defaultHistoryCategory(spending)}

@@ -106,6 +106,58 @@ describe('spendingByCategory', () => {
     expect(spendingByCategory([], setUpOn16th, '2026-11')[0]?.plannedMinor).toBe(31000);
   });
 
+  it('leaves spending before the setup day out of an envelope, as home does, but not out of a fixed or unplanned category', () => {
+    // Set up on the 16th: €180 of groceries backdated to the 3rd must not read as "€180 of €160".
+    const setUpOn16th: Plan = { ...plan, createdOn: '2026-10-16' };
+    const entries = [
+      expense('food', '2026-10-03', 18000),
+      expense('food', '2026-10-20', 2000),
+      expense('rent', '2026-10-01', 40000),
+      expense('transport', '2026-10-03', 500),
+    ];
+
+    const rows = spendingByCategory(entries, setUpOn16th, '2026-10');
+
+    const fromHome = monthStatus(setUpOn16th, entries, '2026-10').find((s) => s.categoryId === 'food');
+    expect(rows.find((r) => r.categoryId === 'food')).toEqual({ categoryId: 'food', spentMinor: 2000, plannedMinor: 16000 });
+    expect(rows.find((r) => r.categoryId === 'food')?.spentMinor).toBe(fromHome?.spentMinor);
+    // Rent paid on the 1st still counts against the whole month's amount.
+    expect(rows.find((r) => r.categoryId === 'rent')).toEqual({ categoryId: 'rent', spentMinor: 40000, plannedMinor: 40000 });
+    expect(rows.find((r) => r.categoryId === 'transport')).toEqual({
+      categoryId: 'transport',
+      spentMinor: 500,
+      plannedMinor: null,
+    });
+  });
+
+  it('keeps an envelope whose only spending was before the setup day, at nothing spent of its plan', () => {
+    const setUpOn16th: Plan = { ...foodOnly, createdOn: '2026-10-16' };
+
+    expect(spendingByCategory([expense('food', '2026-10-03', 18000)], setUpOn16th, '2026-10')).toEqual([
+      { categoryId: 'food', spentMinor: 0, plannedMinor: 16000 },
+    ]);
+  });
+
+  it('has no plan for any category in a month before the setup month, only what was spent', () => {
+    const setUpOn16th: Plan = { ...plan, createdOn: '2026-10-16' };
+    const entries = [expense('food', '2026-09-10', 3000), expense('rent', '2026-09-01', 40000)];
+
+    // Envelopes and fixed amounts would all be planned in full here if the plan reached back; it does not.
+    expect(spendingByCategory(entries, setUpOn16th, '2026-09')).toEqual([
+      { categoryId: 'rent', spentMinor: 40000, plannedMinor: null },
+      { categoryId: 'food', spentMinor: 3000, plannedMinor: null },
+    ]);
+    expect(spendingByCategory([], setUpOn16th, '2026-09')).toEqual([]);
+  });
+
+  it('plans every month from the setup month on, a full envelope after it', () => {
+    const setUpOn16th: Plan = { ...foodOnly, createdOn: '2026-10-16' };
+
+    expect(spendingByCategory([expense('food', '2026-11-05', 1000)], setUpOn16th, '2026-11')).toEqual([
+      { categoryId: 'food', spentMinor: 1000, plannedMinor: 31000 },
+    ]);
+  });
+
   it('plans a fixed category with its monthly amount, not prorated', () => {
     const setUpOn16th: Plan = { ...plan, createdOn: '2026-10-16' };
     const entries = [expense('rent', '2026-10-17', 40000)];
