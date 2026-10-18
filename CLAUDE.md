@@ -23,6 +23,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | date-fns | 4.4.0 |
 | dexie | 4.4.6 |
 | dexie-react-hooks | 4.4.0 |
+| recharts | 3.8.0 |
 | eslint, eslint-config-next | 9.39.5, 16.4.2 |
 | vitest | 5.0.5 |
 | fake-indexeddb | 6.2.5 |
@@ -31,7 +32,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | @types/react | 19.3.0 |
 | @types/react-dom | 19.3.0 |
 
-Zod and the chart components arrive with later tasks. Pin them and add them to this table when they land.
+Zod arrives with a later task. Pin it and add it to this table when it lands.
 
 ## Commands
 
