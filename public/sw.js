@@ -2,6 +2,9 @@
 // The page registers it as /sw.js?v=<commit of the build>. A new commit is a new script URL, so the browser
 // installs a new worker, which fills a cache of its own; once it is active it deletes the older ones. Nothing is
 // bumped by hand: the version follows the commit.
+// The documents are written to the cache once, on install, and never again. They are static within a build, and a
+// document from a later build names chunks this build's cache does not hold, so a copy saved at runtime could
+// leave the next offline open blank.
 const PREFIX = 'studentsbudget-';
 const CACHE = PREFIX + (new URL(self.location.href).searchParams.get('v') || 'unversioned');
 
@@ -119,7 +122,10 @@ async function lookup(request, options) {
   }
 }
 
-/** Keeps a copy of a response without making anyone wait for it, or fail because of it (a full disk, say). */
+/**
+ * Keeps a copy of a static file without making anyone wait for it, or fail because of it (a full disk, say).
+ * Only for files: documents are never saved here (see the top of this file).
+ */
 function save(event, key, response) {
   // Cloned now, before the page starts reading the original.
   const copy = response.clone();
@@ -138,16 +144,12 @@ function save(event, key, response) {
 /**
  * Network first, so an online visit gets the newest page, but not at any price: after NAVIGATION_TIMEOUT_MS the
  * cached page of that path is shown instead (whatever the query string), and without one the wait goes on.
- * A network failure, as in airplane mode, shows the cached page at once. An answer that arrives late is still saved.
+ * A network failure, as in airplane mode, shows the cached page at once. The answer is never saved: the cached
+ * page is the one this build's install stored, and an answer that arrives after the fallback may come from a
+ * newer build, whose chunks this cache does not hold.
  */
 async function openPage(event, url) {
-  const network = fetch(event.request).then((response) => {
-    // A page with a query is not stored: it would replace the plain one.
-    if (cacheable(response) && !url.search) save(event, url.pathname, response);
-    return response;
-  });
-  // Keeps the worker alive for a late answer and its save. The failure itself is dealt with below.
-  event.waitUntil(network.catch(() => undefined));
+  const network = fetch(event.request);
 
   const tooSlow = Symbol('too slow');
   let timer;
