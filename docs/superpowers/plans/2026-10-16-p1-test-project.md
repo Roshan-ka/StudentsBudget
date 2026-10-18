@@ -654,6 +654,13 @@ What the screen shows:
 - The selected category's last 6 months as bars.
 - Tapping a bar opens `/entries?category=<id>&month=<m>`.
 
+Decided while building (Day 4):
+- **Packages:** recharts comes in with `shadcn add chart`. It is pinned exactly and listed in `CLAUDE.md`, and there is no other chart library. `react-is` is pinned to the `react` version (19.3.0), as recharts requires.
+- **Month switcher:** local state that starts at the current month (`useToday`). There is no `?month` on `/charts`.
+- **Spent and planned per flexible category** both come from `monthStatus`, so they match Home. In the setup month the chart shows "Budget starts 16 Oct.". Months before setup have `plannedMinor: null`. Fixed categories plan their monthly amount.
+- **"Last 6 months"** counts all spending, including the setup month.
+- **Amounts** use `formatWeekAmount`'s cents rule, the same as Home.
+
 - [ ] **Step 1: Write failing tests.**
   - `excludes transfers and uses eurMinor`
   - `incomeBySource counts only income entries`
@@ -690,6 +697,7 @@ Copy:
 - Unlocked: an "Adjust my plan" button that opens `/setup?edit=1`.
 - Recaps for each completed month: "€15 left over → savings".
 - The home card shows the unlock date until the reveal unlocks.
+- The monthly recaps show while the reveal is still locked, because they use no guesses (Day 4).
 
 - [ ] **Step 1: Write failing tests.**
   - startedOn `2026-10-01`, today `2026-10-21` → `unlocked: false`, `unlockOn: '2026-10-22'`; today `2026-10-22` → `unlocked: true`.
@@ -724,6 +732,17 @@ What the screen shows:
   - `VCALENDAR`/`VEVENT` with `SUMMARY:StudentsBudget weekly check-in`
   - a floating `DTSTART:20261018T180000` (local 18:00), `DURATION:PT10M`
   - `RRULE:FREQ=WEEKLY;BYDAY=SU`
+
+Decided while building (Day 4):
+- **The `.ics` file:**
+  - It keeps CRLF line endings (`*.ics text eol=crlf` in `.gitattributes`).
+  - It carries `VERSION:2.0`, `PRODID`, `UID` and `DTSTAMP`.
+  - It is served as `text/calendar`.
+- **Shared helpers:** `shiftMonth` moves to `src/lib/dates.ts`, and charts and reveal share one category `orderOf`.
+- **`weekLine`** prints "on plan" when spent equals the week's share.
+- **First Sunday of a month:** when the calendar week starts in the previous month (e.g. Sun 1 Nov), the check-in also shows that month's part of the week (Mon 26 – Sat 31 Oct, from October's budget) above the current part.
+  - It is skipped when that part ends before `plan.createdOn`.
+- **Expenses dated before `plan.createdOn`** are listed with "Before your plan started, not counted".
 
 - [ ] **Step 1: Write failing tests.**
   - `weekLine({ weekShareMinor: 7000, spentThisWeekMinor: 2000, … })` → `'€70 planned · €20 spent · €50 under'`.
@@ -767,6 +786,15 @@ What the panel does:
   - Then `replaceAll` and a reload.
 - **Delete everything:** type `DELETE` to confirm, then `deleteEverything` and go to `/setup`.
 
+Decided while building (Day 4):
+- **Full reloads:** "Delete everything" ends with a full page load of `/setup` (`location.replace`), and import reloads the page. That way live queries and hidden-but-mounted pages never see a closed database.
+- **Restore without setup:** `/setup` offers "Restore from a backup" at the top, so a new or wiped phone can restore without setting up first.
+- **iPhone share:**
+  - The export data is loaded before the tap.
+  - `navigator.share` is called inside the tap with no await before it; iOS drops the share otherwise.
+  - If the share sheet fails to open, a "Download instead" button appears.
+- **Schema drift:** a compile-time check keeps the Zod schema and `BackupData` identical in both directions, so a new stored field can't vanish on restore.
+
 - [ ] **Step 1: Write failing tests** (Review Focus 4).
   - A serialize → parse round trip gives the same data.
   - `parseBackup('not json')` → error `"This isn't a StudentsBudget backup file."`
@@ -796,7 +824,7 @@ Without a service worker, the installed app can't open offline: iPhone shows Saf
 
 **Interfaces (Produces):**
 ```ts
-export function registerServiceWorker(env: { production: boolean; supported: boolean }): Promise<'registered' | 'skipped' | 'failed'>;
+export function registerServiceWorker(env: { production: boolean; supported: boolean; version: string }): Promise<'registered' | 'skipped' | 'failed'>; // version: Day 4 ruling
 ```
 
 What it does:
@@ -808,6 +836,20 @@ What it does:
 - AppInit calls `registerServiceWorker` in production builds only, in its own try. A dev server must never get a service worker.
 - While editing AppInit: start `requestPersistence` and the first `refreshRates` without one awaiting the other. A hung connection must not delay the persistence request by the 10 s fetch timeout.
 - `next.config.ts` serves `/sw.js` with `Cache-Control: no-cache` via `headers()`, so updates reach installed apps.
+
+Decided while building (Day 4):
+- **Precache:** the worker precaches the 8 route documents on install, plus the `/_next/static` chunks they name and the fonts their CSS names. A missing document fails the install; a missing asset doesn't.
+- **RSC requests** pass through untouched. When one fails offline, Next 16 falls back to a hard navigation, which the worker answers from the cache. So a tap between pages works offline. Don't enable `experimental.useOffline`.
+- **Versioning:**
+  - The cache is versioned by build. `registerServiceWorker`'s env gains `version: string`, and AppInit registers `/sw.js?v=<version>`.
+  - The version is the commit SHA: `VERCEL_GIT_COMMIT_SHA`, else `GITHUB_SHA`, else `git rev-parse HEAD`, else `'local'`. It is inlined as `NEXT_PUBLIC_BUILD_VERSION`.
+- **Navigations** wait 4 s for the network, then use the cached document if there is one.
+  - Navigation answers are never written to the cache: each build's precache is its only copy, so a late answer from a newer build can't mix with old chunks.
+  - A committed vm-loaded `sw.js` unit test covers the slow path.
+- **Test configs:**
+  - The main Playwright config ignores `offline.spec.ts`.
+  - The offline config never reuses a running server.
+  - The offline e2e proves the network is really off for the page and the worker, then taps from Home to an unvisited Entries.
 
 - [ ] **Step 1: Write failing tests.**
   - `registerServiceWorker({ production: false, supported: true })` → `'skipped'`; `{ production: true, supported: false }` → `'skipped'`.
@@ -838,6 +880,10 @@ What it does:
   6. Export → the share sheet → save to Files.
   7. Delete everything → import from Files → the data is back.
 - [ ] **Step 4: Record results in the PR body.** Write each manual check down, and turn any failure into a fix commit before merging.
+  - Open question (Day 4): Step 3 says "after `main` is deployed", which is after the merge. Roshan decides whether the checklist runs on PR #5's Vercel preview before merging or on production after it, with fixes then in a follow-up PR.
+- Decided while building (Day 4):
+  - Step 2 ran as a throwaway Playwright script against a production build on port 3100. No Vercel was needed. It covered installability errors, the full flow and 375 px screenshots.
+  - The controller writes the PR body and finishes the branch.
 - [ ] **Step 5: Commit:** `docs: add README with install steps and privacy notes`.
 - [ ] **Step 6: Finish the branch** with `superpowers:finishing-a-development-branch`, then the PR review flow from the Workflow section.
 
