@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import { categoryName } from '@/features/entries/categories';
 import { formatMoney, type Minor } from '@/lib/money';
+import { formatWeekAmount } from './week-amount';
 
 export type EnvelopeRow = {
   categoryId: string;
@@ -23,13 +24,14 @@ function EnvelopeItem({ row }: { row: EnvelopeRow }) {
   const name = categoryName(row.categoryId);
   const used = `${whole(row.spentMinor)} of ${whole(row.plannedMinor)}`;
   const percent = percentUsed(row.plannedMinor, row.spentMinor);
+  const week = formatWeekAmount(row.safeMinor);
 
   return (
     <li className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3">
         <p className="min-w-0 font-medium break-words">{name}</p>
         <p className="shrink-0 text-sm tabular-nums">
-          {row.safeMinor < 0 ? `${whole(-row.safeMinor)} over this week` : `${whole(row.safeMinor)} left this week`}
+          {`${week.text} ${week.over ? 'over' : 'left'} this week`}
         </p>
       </div>
       {/* The bar stops at full, so the real numbers are in its value text. */}

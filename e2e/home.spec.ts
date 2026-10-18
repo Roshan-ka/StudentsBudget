@@ -74,6 +74,30 @@ test('the envelopes show what is left this week and how much of the month is use
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
+test('an amount under 50 cents keeps its cents instead of reading as €0', async ({ page }) => {
+  await completeSetup(page);
+  const card = safeToSpend(page);
+  const row = (name: string) => envelopes(page).getByRole('listitem').filter({ hasText: name });
+  await expect(card.getByText('€42', { exact: true })).toBeVisible();
+
+  // €29.60 of food's €30 leaves €0.40.
+  await quickAdd(page, 'Rewe 29,60');
+  await page.getByRole('button', { name: 'Food & groceries' }).click();
+  await expect(row('Food & groceries').getByText('€0.40 left this week', { exact: true })).toBeVisible();
+  await expect(card.getByText('€12', { exact: true })).toBeVisible();
+
+  // Eating out used up exactly: a plain €0, and the whole week is down to the €0.40 in food.
+  await quickAdd(page, 'döner 12');
+  await page.getByRole('button', { name: 'Eating out' }).click();
+  await expect(row('Eating out').getByText('€0 left this week', { exact: true })).toBeVisible();
+  await expect(card.getByText('€0.40', { exact: true })).toBeVisible();
+
+  // 80 cents more is €0.40 over, in food and in total.
+  await quickAdd(page, 'Rewe 0,80');
+  await expect(row('Food & groceries').getByText('€0.40 over this week', { exact: true })).toBeVisible();
+  await expect(card.getByText('€0.40 over this week', { exact: true })).toBeVisible();
+});
+
 test('coming back from another page shows what was added there', async ({ page }) => {
   await completeSetup(page);
   await expect(safeToSpend(page).getByText('€42', { exact: true })).toBeVisible();
