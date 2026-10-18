@@ -126,12 +126,30 @@ describe('parseQuickAdd', () => {
   it('takes "cent" or "cents" after the cents part into the amount', () => {
     expect(parseQuickAdd('coffee 6 euros 50 cents')).toEqual({ amountMinor: 650, note: 'coffee' });
     expect(parseQuickAdd('coffee 6 EURO 50 CENT')).toEqual({ amountMinor: 650, note: 'coffee' });
-    expect(parseQuickAdd('coffee six euros fifty cents with Tom')).toEqual({ amountMinor: 650, note: 'coffee with Tom' });
+    expect(parseQuickAdd('Döner 6 Euro 50 Cents')).toEqual({ amountMinor: 650, note: 'Döner' });
   });
 
-  it('prefers a "N euro M" amount over an earlier or later plain number', () => {
+  it('prefers a "N euro M" amount at the end of the line over an earlier plain number', () => {
     expect(parseQuickAdd('2 coffees 3 euros 50')).toEqual({ amountMinor: 350, note: '2 coffees' });
-    expect(parseQuickAdd('3 euros 50 for 2')).toEqual({ amountMinor: 350, note: 'for 2' });
+    expect(parseQuickAdd('2 coffees 3 euros 50 cents')).toEqual({ amountMinor: 350, note: '2 coffees' });
+  });
+
+  it('returns null when anything follows the cents part, as it is then a quantity', () => {
+    for (const text of [
+      '6 euros 2 coffees',
+      'taxi 12 euros 30 minutes',
+      'rent 400 eur 2 months',
+      'coffee 6 € 2 Stück',
+      'lunch 12 euros two friends',
+      'coffee 2 euros 3 for 2',
+      '3 euros 50 for 2',
+      'coffee six euros fifty cents with Tom',
+      'coffee 6 euros 50 cents cash',
+      'coffee 6 euros 50 euros',
+      'coffee 6 euros 50 cents €',
+    ]) {
+      expect(parseQuickAdd(text), text).toBeNull();
+    }
   });
 
   it('returns null when a marker sits between two numbers that are not euros and cents', () => {

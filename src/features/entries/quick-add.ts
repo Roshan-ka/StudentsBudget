@@ -194,15 +194,17 @@ function findCandidates(tokens: string[]): Candidate[] | null {
 
     let { minor, end, marked } = amount;
 
-    // "6 Euro 50": euros, a marker of its own, then cents ("cent" or "cents" may follow). Any other
-    // number straight after the marker would be a second amount, so the line has no clear amount.
+    // "6 Euro 50": euros, a marker of its own, then cents ("cent" or "cents" may follow) and the end of
+    // the line. Any other number straight after the marker would be a second amount, and a word after
+    // the cents would make them a quantity ("6 euros 2 coffees"), so either way the line has no clear amount.
     const cents = isMarker(wordAt(words, end)) ? readAmount(tokens, words, end + 1) : null;
     if (cents === 'invalid') return null;
     if (cents !== null) {
-      if (!amount.integer || cents.cents === null) return null;
+      const afterCents = CENT_WORDS.has(wordAt(words, cents.end)) ? cents.end + 1 : cents.end;
+      if (!amount.integer || cents.cents === null || afterCents < words.length) return null;
       minor += cents.cents;
       marked = true;
-      end = CENT_WORDS.has(wordAt(words, cents.end)) ? cents.end + 1 : cents.end;
+      end = afterCents;
     }
 
     if (UNREAD_SCALES.has(wordAt(words, end))) return null;
@@ -217,7 +219,7 @@ function findCandidates(tokens: string[]): Candidate[] | null {
  *
  * The amount is a number next to a currency marker (€, eur, euro, euros), otherwise the last number.
  * A number is digits that `parseAmount` accepts, or English number words (whole euros only); "6 euro 50"
- * is 6 euros and 50 cents. The note is the rest of the line as typed, without that number and its marker.
+ * (and "6 euro 50 cents") at the end of the line is 6 euros and 50 cents. The note is the rest of the line as typed, without that number and its marker.
  * Returns null when there is no amount, and also when the line has something that looks like an amount
  * but cannot be read ("$7", "6,505", "fifty cents", "one million"): a silently wrong amount is worse.
  */
