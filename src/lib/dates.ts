@@ -88,3 +88,18 @@ export function weekInMonth(d: IsoDate): { start: IsoDate; end: IsoDate } {
     end: weekEnd > monthEnd ? monthEnd : weekEnd,
   };
 }
+
+/**
+ * On a Sunday whose Monday–Sunday week starts in the previous month, the part of that week in the previous
+ * month: Sun 1 Nov 2026 gives Mon 26 – Sat 31 Oct. `weekInMonth` cuts a week off at the month's edge, so a
+ * Sunday review of that week would never see these days. Null on any other day, and on a Sunday whose week
+ * starts in its own month.
+ */
+export function previousMonthTail(d: IsoDate): { start: IsoDate; end: IsoDate } | null {
+  if (!isSunday(d)) return null;
+  const weekStart = toIso(startOfWeek(toDate(d), WEEK));
+  const monthStart = firstOfMonth(monthOf(d));
+  // ISO date strings sort chronologically, so plain comparison is enough.
+  if (weekStart >= monthStart) return null;
+  return { start: weekStart, end: addDays(monthStart, -1) };
+}

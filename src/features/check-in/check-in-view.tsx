@@ -9,7 +9,7 @@ import type { Account, Entry, Plan } from '@/db/types';
 import { categoryName } from '@/features/entries/categories';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { safeToSpend } from '@/lib/budget';
-import type { IsoDate } from '@/lib/dates';
+import { previousMonthTail, type IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { weekLabel } from '@/lib/week-label';
@@ -55,21 +55,43 @@ function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Acc
   );
 }
 
-function CheckIn({
+/** What the two sections of one part of the week are called. */
+type Titles = { against: string; logged: string; empty: string };
+
+const THIS_WEEK: Titles = {
+  against: 'This week against your plan',
+  logged: 'This week',
+  empty: 'Nothing logged this week yet.',
+};
+
+// The days of the week that fall in the previous month, on the Sunday the new month starts.
+const EARLIER_THIS_WEEK: Titles = {
+  against: 'Earlier this week against your plan',
+  logged: 'Earlier this week',
+  empty: 'Nothing logged earlier this week.',
+};
+
+/**
+ * One part of a week, as `safeToSpend` cuts it at the month's edge: its range, each envelope against the
+ * part's share of the plan, and what was logged in it. `day` is any day of the part, which also picks the
+ * month whose budget it is measured against.
+ */
+function WeekPart({
   plan,
   entries,
   accounts,
-  today,
+  day,
+  titles,
 }: {
   plan: Plan;
   entries: Entry[];
   accounts: Account[];
-  today: IsoDate;
+  day: IsoDate;
+  titles: Titles;
 }) {
   const planId = useId();
   const weekId = useId();
-  const addId = useId();
-  const week = safeToSpend(plan, entries, today);
+  const week = safeToSpend(plan, entries, day);
   // Envelopes planned at €0 and not used this week would only add empty rows.
   const rows = week.envelopes.filter((e) => e.weekShareMinor > 0 || e.spentThisWeekMinor > 0);
   const thisWeek = entriesOfWeek(entries, week.weekStart, week.weekEnd);
@@ -80,7 +102,7 @@ function CheckIn({
 
       <section aria-labelledby={planId} className="flex flex-col gap-3">
         <h3 id={planId} className="text-lg font-semibold">
-          This week against your plan
+          {titles.against}
         </h3>
         {rows.length === 0 ? (
           <p className="text-muted-foreground">No envelopes are planned for this week.</p>
@@ -98,10 +120,10 @@ function CheckIn({
 
       <section aria-labelledby={weekId} className="flex flex-col gap-2">
         <h3 id={weekId} className="text-lg font-semibold">
-          This week
+          {titles.logged}
         </h3>
         {thisWeek.length === 0 ? (
-          <p className="text-muted-foreground">Nothing logged this week yet.</p>
+          <p className="text-muted-foreground">{titles.empty}</p>
         ) : (
           <ul aria-labelledby={weekId} className="flex flex-col divide-y">
             {thisWeek.map((entry) => (
@@ -110,6 +132,34 @@ function CheckIn({
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function CheckIn({
+  plan,
+  entries,
+  accounts,
+  today,
+}: {
+  plan: Plan;
+  entries: Entry[];
+  accounts: Account[];
+  today: IsoDate;
+}) {
+  const addId = useId();
+  // On the Sunday a month starts mid-week, the week's days in the previous month would otherwise never be
+  // reviewed. They come first, measured against that month's budget, with its last day standing in for today.
+  // A month before the plan was set up has no budget, so a tail that ends before the setup day is left out.
+  const tail = previousMonthTail(today);
+  const earlierDay = tail !== null && tail.end >= plan.createdOn ? tail.end : null;
+
+  return (
+    <div className="flex flex-col gap-6">
+      {earlierDay !== null && (
+        <WeekPart plan={plan} entries={entries} accounts={accounts} day={earlierDay} titles={EARLIER_THIS_WEEK} />
+      )}
+      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} titles={THIS_WEEK} />
 
       <section aria-labelledby={addId} className="flex flex-col gap-3">
         <h3 id={addId} className="text-lg font-semibold">
