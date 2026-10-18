@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { db } from '@/db/db';
 
-// Later tasks add Entries (9) and Charts (11).
+// Task 11 adds Charts.
 export const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/', label: 'Home' },
+  { href: '/entries', label: 'Entries' },
   { href: '/settings', label: 'Settings' },
 ];
 
