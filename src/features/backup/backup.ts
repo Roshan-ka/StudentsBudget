@@ -84,19 +84,45 @@ const rate = z.object({
   source: z.enum(['ecb', 'manual']),
 });
 
+const backupData = z.object({
+  accounts: z.array(account),
+  categories: z.array(category),
+  entries: z.array(entry),
+  plan: plan.nullable(),
+  guesses: z.array(guess),
+  fxRates: z.array(rate),
+});
+
 const backupFile = z.object({
   app: z.literal(APP),
   version: z.literal(BACKUP_VERSION),
   exportedAt: z.iso.datetime(),
-  data: z.object({
-    accounts: z.array(account),
-    categories: z.array(category),
-    entries: z.array(entry),
-    plan: plan.nullable(),
-    guesses: z.array(guess),
-    fxRates: z.array(rate),
-  }),
+  data: backupData,
 });
+
+// z.object drops the keys it does not know, and parseBackup hands its output on as a BackupData, which only
+// checks one direction: a field added to a type but not to the schema would be exported and then vanish on
+// restore, with no error anywhere. These types fail `npm run typecheck` instead, naming the table that differs.
+
+/** Whether two types are the same one. Strict: an optional field is not a required one, and an extra key counts. */
+type Identical<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+
+/** The same type with every intersection flattened into one object, so `A & B` and `{ ...A, ...B }` compare equal. */
+type Flat<T> = T extends readonly (infer Item)[] ? Flat<Item>[] : T extends object ? { [K in keyof T]: Flat<T[K]> } : T;
+
+type SchemaData = z.infer<typeof backupData>;
+
+/** Per table: true when the schema's type and BackupData's agree, false when they differ or only one has the table. */
+type TableAgreement = {
+  [Table in keyof BackupData | keyof SchemaData]: Table extends keyof BackupData & keyof SchemaData
+    ? Identical<Flat<BackupData[Table]>, Flat<SchemaData[Table]>>
+    : false;
+};
+
+type AllTrue<T extends Record<keyof T, true>> = T;
+
+/** Compiles only when every table agrees. Exported only so the lint rule for unused types leaves it alone. */
+export type BackupSchemaMatchesTypes = AllTrue<TableAgreement>;
 
 /** The text of a backup file: the data, wrapped in the app name, the file version and the time it was made. */
 export function serializeBackup(d: BackupData, now: Date): string {
