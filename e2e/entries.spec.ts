@@ -552,3 +552,16 @@ test('the month links keep the category and roll over the year', async ({ page }
   // Back in the current month there is nothing left to clear.
   await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);
 });
+
+test('the list moves on to the new month when the app is opened again after a month end', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await expect(page.getByText('Oct 2026')).toBeVisible();
+
+  // An installed app is resumed, not reloaded: nothing is read or written, only the date moves.
+  await page.clock.setFixedTime(new Date(2026, 10, 2, 12, 0, 0));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.getByText('Nov 2026')).toBeVisible();
+  await expect(page.getByText('Oct 2026')).toHaveCount(0);
+  // November is the current month again, so there is nothing to clear.
+  await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);
+});
