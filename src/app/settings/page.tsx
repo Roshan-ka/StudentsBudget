@@ -1,6 +1,7 @@
 import { AccountsPanel } from '@/features/accounts/accounts-panel';
 import { RatesPanel } from '@/features/accounts/rates-panel';
 import { TransferSection } from '@/features/accounts/transfer-form';
+import { BackupPanel } from '@/features/backup/backup-panel';
 import { EditPlanSection } from '@/features/setup/edit-plan-section';
 
 export default function SettingsPage() {
@@ -11,6 +12,7 @@ export default function SettingsPage() {
       <AccountsPanel />
       <TransferSection />
       <RatesPanel />
+      <BackupPanel />
     </div>
   );
 }
