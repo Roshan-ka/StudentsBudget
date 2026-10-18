@@ -39,7 +39,12 @@ test('before 21 days home and the reveal page say when the guesses unlock', asyn
   await expect(card.getByText('Your guesses unlock on 6 Nov.', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'See how your guesses compare' })).toHaveCount(0);
 
-  await card.getByRole('link', { name: "What's this?" }).click();
+  // A finger needs 44 px.
+  const whatsThis = card.getByRole('link', { name: "What's this?" });
+  const linkBox = await whatsThis.boundingBox();
+  expect(linkBox?.height).toBeGreaterThanOrEqual(44);
+
+  await whatsThis.click();
   await expect(page).toHaveURL('/reveal');
   await expect(page.getByRole('heading', { level: 2, name: 'Guess vs. reality' })).toBeVisible();
   await expect(page.getByText('Your guesses unlock on 6 Nov. Keep logging.', { exact: true })).toBeVisible();

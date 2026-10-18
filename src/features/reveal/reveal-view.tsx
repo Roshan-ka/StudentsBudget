@@ -59,9 +59,10 @@ export function RevealCard({ startedOn, today }: { startedOn: IsoDate; today: Is
   }
 
   return (
-    <section aria-label="Your guesses" className="flex flex-col items-start gap-1 rounded-lg border px-4 py-3">
+    // No bottom padding: the link is 44 px tall (a finger needs that), and its own height is the space below the text.
+    <section aria-label="Your guesses" className="flex flex-col items-start rounded-lg border px-4 pt-3">
       <p className="font-medium">{`Your guesses unlock on ${formatDay(unlockDate)}.`}</p>
-      <Link href="/reveal" className={`${LINK_CLASS} inline-flex min-h-8 items-center text-sm`}>
+      <Link href="/reveal" className={`${LINK_CLASS} inline-flex min-h-11 items-center text-sm`}>
         What&apos;s this?
       </Link>
     </section>
