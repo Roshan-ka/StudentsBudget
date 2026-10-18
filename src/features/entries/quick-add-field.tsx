@@ -1,20 +1,23 @@
 'use client';
 
-import { useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { deleteEntry, saveEntry } from '@/db/repo';
-import { sortAccounts } from '@/features/accounts/balances';
 import { todayIso } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
 import { buildEntry } from './build-entry';
 import { FLEXIBLE_CATEGORIES, categoryName } from './categories';
 import { parseQuickAdd, suggestCategory } from './quick-add';
+import { pickQuickAddAccount } from './quick-add-account';
 
 type Parsed = { amountMinor: Minor; note: string };
+
+/** How long the "Saved …" line, with its Undo, stays up. */
+const SAVED_LINE_MS = 10_000;
 
 /**
  * One line to log an expense: "döner 6", typed or dictated. It saves straight away when an earlier
@@ -29,14 +32,42 @@ export function QuickAddField() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  // True from the first tap until the save is over. A ref, because a second tap can arrive before React has
+  // rendered the disabled button, and `busy` would still read false in the handler it calls.
+  const inFlight = useRef(false);
 
-  /** Saves to the first cash account (else the first account), dated today. Says why in `error` when it cannot. */
-  async function save(parsed: Parsed, categoryId: string) {
+  // The line fades after a while: it says what happened some time ago, and Undo is for the moment after.
+  useEffect(() => {
+    if (saved === null) return;
+    const timer = setTimeout(() => setSaved(null), SAVED_LINE_MS);
+    return () => clearTimeout(timer);
+  }, [saved]);
+
+  // The router keeps a page it has left mounted but hidden and runs its effect cleanups, so this clears the
+  // line when the person leaves. Back on the page, an Undo that deletes an entry edited since would be a trap.
+  useEffect(() => () => setSaved(null), []);
+
+  /** Runs `task` unless one is running already. The flag is set before the first await. */
+  async function runOnce(task: () => Promise<void>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
+    try {
+      await task();
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Saves to the account `pickQuickAddAccount` chooses, dated today. Says why in `error` when it cannot.
+   * Callers go through `runOnce`.
+   */
+  async function save(parsed: Parsed, categoryId: string) {
     setError(null);
     try {
-      const accounts = sortAccounts(await db.accounts.toArray());
-      const account = accounts.find((a) => a.kind === 'cash') ?? accounts[0];
+      const account = pickQuickAddAccount(await db.accounts.toArray());
       if (account === undefined) {
         setError('Add an account in Settings first.');
         return;
@@ -68,39 +99,40 @@ export function QuickAddField() {
     } catch (saveError) {
       console.error('StudentsBudget: could not save the quick-add entry', saveError);
       setError('Could not save the entry.');
-    } finally {
-      setBusy(false);
     }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    // Nothing to add: a tap on the empty field right after a save must not take the Saved line away.
+    if (text.trim() === '') return;
 
-    setSaved(null);
-    setPending(null);
-    const parsed = parseQuickAdd(text);
-    if (parsed === null) {
-      setError('Add an amount, like “döner 6”');
-      return;
-    }
+    await runOnce(async () => {
+      setSaved(null);
+      setPending(null);
+      const parsed = parseQuickAdd(text);
+      if (parsed === null) {
+        setError('Add an amount, like “döner 6”');
+        return;
+      }
 
-    let suggestion: string | null;
-    try {
-      const history = await db.entries.where('type').equals('expense').toArray();
-      suggestion = suggestCategory(parsed.note, history);
-    } catch (readError) {
-      console.error('StudentsBudget: could not read the earlier entries', readError);
-      setError('Could not save the entry.');
-      return;
-    }
+      let suggestion: string | null;
+      try {
+        const history = await db.entries.where('type').equals('expense').toArray();
+        suggestion = suggestCategory(parsed.note, history);
+      } catch (readError) {
+        console.error('StudentsBudget: could not read the earlier entries', readError);
+        setError('Could not save the entry.');
+        return;
+      }
 
-    if (suggestion === null) {
-      setError(null);
-      setPending(parsed);
-      return;
-    }
-    await save(parsed, suggestion);
+      if (suggestion === null) {
+        setError(null);
+        setPending(parsed);
+        return;
+      }
+      await save(parsed, suggestion);
+    });
   }
 
   async function undo() {
@@ -150,7 +182,7 @@ export function QuickAddField() {
                 variant="outline"
                 className="h-10 px-3"
                 disabled={busy}
-                onClick={() => void save(pending, category.id)}
+                onClick={() => void runOnce(() => save(pending, category.id))}
               >
                 {category.name}
               </Button>

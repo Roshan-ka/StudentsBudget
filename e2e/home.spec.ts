@@ -153,6 +153,40 @@ test('coming back from another page shows what was added there', async ({ page }
   await expect(page).toHaveURL('/');
 });
 
+test('the Saved line is gone when the person comes back to the page', async ({ page }) => {
+  await completeSetup(page);
+  await quickAdd(page, 'döner 6');
+  await page.getByRole('button', { name: 'Eating out' }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+
+  // The router keeps home mounted but hidden, with its state: the line would still be there, and Undo
+  // would still delete the entry, however much has changed since.
+  await page.getByRole('link', { name: 'Entries' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Entries' })).toBeVisible();
+  await page.getByRole('link', { name: 'Home' }).click();
+  await expect(safeToSpend(page).getByText('€36', { exact: true })).toBeVisible();
+
+  await expect(page.getByRole('status')).toHaveText('');
+  await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0);
+});
+
+test('the Saved line goes away on its own after ten seconds', async ({ page }) => {
+  // A running clock far from the real date, so completeSetup does not pin it and the timers can be moved on.
+  await page.clock.install({ time: new Date(2026, 9, 16, 12, 0, 0) });
+  await completeSetup(page);
+  await quickAdd(page, 'döner 6');
+  await page.getByRole('button', { name: 'Eating out' }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
+
+  await page.clock.fastForward(5_000);
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
+
+  await page.clock.fastForward(6_000);
+  await expect(page.getByRole('status')).toHaveText('');
+  await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0);
+});
+
 test('shows the total across all accounts, in euros', async ({ page }) => {
   await completeSetup(page);
 

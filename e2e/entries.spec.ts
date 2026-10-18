@@ -88,6 +88,44 @@ test('quick add asks for the category once, then saves by itself, and Undo remov
   expect(entries.map((e) => [e.amountMinor, e.note])).toEqual([[600, 'döner']]);
 });
 
+test('a double tap on Add saves the entry once and leaves the Saved line alone', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const status = page.getByRole('status');
+  const list = entriesList(page);
+
+  // Learn the category, so the second line saves by itself.
+  await quickAdd(page, 'döner 6');
+  await page.getByRole('button', { name: 'Eating out' }).click();
+  await expect(status).toHaveText('Saved €6.00 · döner · Eating out');
+
+  await page.getByRole('textbox', { name: 'Quick add' }).fill('döner 4');
+  await page.getByRole('button', { name: 'Add', exact: true }).dblclick();
+
+  await expect(status).toHaveText('Saved €4.00 · döner · Eating out');
+  await expect(page.getByRole('textbox', { name: 'Quick add' })).toHaveValue('');
+  await expect(list.getByText('€4.00')).toHaveCount(1);
+  // The store is ordered by id, not by time, so sort the amounts before comparing.
+  const amounts = (await readStore<Entry>(page, 'entries')).map((e) => e.amountMinor);
+  expect(amounts.sort((a, b) => a - b)).toEqual([400, 600]);
+
+  // A tap on the now empty field is not a second save, and says nothing.
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(status).toHaveText('Saved €4.00 · döner · Eating out');
+  await expect(inlineAlert(page)).toHaveCount(0);
+  expect(await readStore<Entry>(page, 'entries')).toHaveLength(2);
+});
+
+test('a double tap on a category chip saves the entry once', async ({ page }) => {
+  await setupAndOpenEntries(page);
+
+  await quickAdd(page, 'bus 3');
+  await page.getByRole('button', { name: 'Transport' }).dblclick();
+
+  await expect(page.getByRole('status')).toHaveText('Saved €3.00 · bus · Transport');
+  await expect(entriesList(page).getByText('€3.00')).toHaveCount(1);
+  expect(await readStore<Entry>(page, 'entries')).toHaveLength(1);
+});
+
 test('quick add saves to the cash account, dated today, with the amount in euro cents', async ({ page }) => {
   await setupAndOpenEntries(page);
 
