@@ -12,6 +12,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 |---|---|
 | next | 16.4.2 |
 | react, react-dom | 19.3.0 |
+| react-is (matches react, for recharts) | 19.3.0 |
 | typescript | 5.9.3 |
 | tailwindcss, @tailwindcss/turbopack | 4.3.3 |
 | shadcn (style `base-nova`) | 4.21.5 |
@@ -23,6 +24,8 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | date-fns | 4.4.0 |
 | dexie | 4.4.6 |
 | dexie-react-hooks | 4.4.0 |
+| recharts | 3.8.0 |
+| zod | 4.6.7 |
 | eslint, eslint-config-next | 9.39.5, 16.4.2 |
 | vitest | 5.0.5 |
 | fake-indexeddb | 6.2.5 |
@@ -30,8 +33,6 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | @types/node | 24.19.2 |
 | @types/react | 19.3.0 |
 | @types/react-dom | 19.3.0 |
-
-Zod and the chart components arrive with later tasks. Pin them and add them to this table when they land.
 
 ## Commands
 
@@ -43,8 +44,9 @@ Zod and the chart components arrive with later tasks. Pin them and add them to t
 | `npm run build` | Production build (`next build`); catches Cache Components errors that dev mode hides |
 | `npm test` | Vitest unit tests (`src/**/*.test.ts`) |
 | `npm run test:e2e` | Playwright on `desktop-chrome` and `iphone` (WebKit); starts the dev server if none is running |
+| `npm run test:offline` | Production build, `next start` on :3100 (the port must be free: it never reuses a server), then the Playwright offline check (`desktop-chrome`) |
 
-CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests and e2e on every pull request.
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and the offline check on every pull request.
 
 ## Framework rules
 
@@ -53,6 +55,11 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests and e2e 
 - **Hidden pages stay mounted:** Next 16 keeps a page you navigate away from mounted but hidden (Activity): its effects clean up and re-run on return, and its state survives. Re-read data in effects before redirecting, and don't rely on unmount to reset state.
 - **Hidden pages in e2e:** a hidden-but-mounted page keeps its labels and text in the DOM, so `getByLabel` and `getByText` can match hidden elements and trip strict mode. Prefer `getByRole` (with `exact` names) for anything on a page that may be hidden.
 - **Dexie schema:** a schema change adds a new `db.version(n)`; never edit a version that has shipped.
+- **Service worker** (`public/sw.js`, registered by `AppInit`):
+  - Production only: `next dev` never registers it.
+  - Never run `next start` on port 3000, or a production worker sits in front of `next dev` there; `npm run test:offline` uses 3100.
+  - Its cache name follows the commit SHA (`NEXT_PUBLIC_BUILD_VERSION`), so commit before building for the phone, or an installed app keeps its old offline copy.
+  - Don't enable `experimental.useOffline`: offline taps rely on Next's hard-navigation fallback when an RSC fetch fails.
 
 ## Global Constraints
 
@@ -70,6 +77,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests and e2e 
 - UI language is English. Money is formatted with `Intl.NumberFormat('en-IE', …)`: `€6.50`, and `€63` for headlines.
 - Calm wording: overspending reads "€12 over", never "failed" or "warning!".
 - Phone first: works at 375 px width, 16 px side gutters, no horizontal page scroll, bottom navigation.
+- User-facing text states no platform storage-eviction rule without a source (the Concept's iOS 7-day line has none): say only that clearing site data or removing the app deletes the data.
 
 **Data rules**
 - City: Regensburg only. Every city number has a source, a URL and a checked date. A number without a source is labelled "Estimate".

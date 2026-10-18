@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { categoryName } from '@/features/entries/categories';
 import { formatMoney, type Minor } from '@/lib/money';
-import { formatWeekAmount } from './week-amount';
+import { formatWeekAmount } from '@/lib/week-amount';
 
 export type EnvelopeRow = {
   categoryId: string;

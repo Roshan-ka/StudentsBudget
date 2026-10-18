@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { Account } from '../src/db/types';
+import type { Account, Entry } from '../src/db/types';
 import { FRANKFURTER, completeSetup, mockFrankfurter, readStore } from './helpers/setup';
 
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
@@ -158,4 +158,41 @@ test('accounts made in Settings before setup are kept, and setup adds none of it
   // With the plan saved, the navigation and the Edit plan link appear.
   await page.getByRole('link', { name: 'Settings' }).click();
   await expect(page.getByRole('link', { name: 'Edit plan' })).toBeVisible();
+});
+
+/** The Transfer tab of /entries/new, set to move money between the two euro accounts (no amount received to fill in). */
+async function openEuroTransfer(page: Page) {
+  await page.goto('/entries/new');
+  await page.getByRole('tab', { name: 'Transfer' }).click();
+  await page.getByLabel('From', { exact: true }).selectOption({ label: 'Local bank (EUR)' });
+  await page.getByLabel('To', { exact: true }).selectOption({ label: 'Cash (EUR)' });
+}
+
+test('a new transfer is dated the day it is saved, unless a date was picked', async ({ page }) => {
+  await completeSetup(page);
+  await openEuroTransfer(page);
+  const date = page.getByLabel('Date', { exact: true });
+  await expect(date).toHaveValue('2026-10-16');
+
+  // The form stays open past midnight with no date picked: it is today's date that counts, not the one at mount.
+  await page.clock.setFixedTime(new Date(2026, 9, 17, 0, 5, 0));
+  await page.getByLabel('Amount', { exact: true }).fill('20');
+  await expect(date).toHaveValue('2026-10-17');
+  await page.getByRole('button', { name: 'Move money', exact: true }).click();
+  await expect(page).toHaveURL('/entries?month=2026-10');
+
+  // A date that was picked stays, whatever the clock does afterwards.
+  await openEuroTransfer(page);
+  await date.fill('2026-10-10');
+  await page.clock.setFixedTime(new Date(2026, 9, 18, 0, 5, 0));
+  await page.getByLabel('Amount', { exact: true }).fill('5');
+  await expect(date).toHaveValue('2026-10-10');
+  await page.getByRole('button', { name: 'Move money', exact: true }).click();
+  await expect(page).toHaveURL('/entries?month=2026-10');
+
+  const transfers = await readStore<Entry>(page, 'entries');
+  expect(transfers.map((t) => [t.type, t.amountMinor, t.date]).sort()).toEqual([
+    ['transfer', 2000, '2026-10-17'],
+    ['transfer', 500, '2026-10-10'],
+  ]);
 });

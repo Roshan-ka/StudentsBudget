@@ -1,6 +1,6 @@
 'use client';
 
-import { addMonths, format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -10,8 +10,9 @@ import { CATEGORIES } from '@/data/categories';
 import { db } from '@/db/db';
 import { deleteEntry, entriesInRange } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
-import { daysInMonth, firstOfMonth, monthOf, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
+import { daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
+import { useToday } from '@/lib/use-today';
 import { categoryName } from './categories';
 import { EntryForm } from './entry-form';
 
@@ -29,11 +30,6 @@ function headingOf(date: IsoDate): string {
 
 function labelOf(month: IsoMonth): string {
   return monthLabel.format(parseISO(firstOfMonth(month)));
-}
-
-/** The month `by` months after `month` (before, when negative): "2026-12" and 1 give "2027-01". */
-function shiftMonth(month: IsoMonth, by: number): IsoMonth {
-  return format(addMonths(parseISO(firstOfMonth(month)), by), 'yyyy-MM');
 }
 
 /** The list for one month, keeping the category filter when there is one. */
@@ -147,19 +143,22 @@ export function EntriesList() {
   const category = categoryParam !== null && CATEGORIES.some((c) => c.id === categoryParam) ? categoryParam : null;
 
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
-  // The current month is read inside the query, not while rendering.
+  // The date follows the clock, so an installed app that is resumed after a month end shows the new month.
+  // It is null until the browser runs this (never a date from the prerender).
+  const today = useToday();
   const loaded = useLiveQuery(async () => {
-    const thisMonth = monthOf(todayIso());
+    if (today === null) return null;
+    const thisMonth = monthOf(today);
     const shown = month ?? thisMonth;
     return {
       month: shown,
       thisMonth,
       entries: await entriesInRange(firstOfMonth(shown), `${shown}-${daysInMonth(shown)}`),
     };
-  }, [month]);
+  }, [month, today]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  if (accounts === undefined || loaded === undefined) return null;
+  if (accounts === undefined || !loaded) return null;
 
   const entries = loaded.entries.filter((e) => category === null || (e.type !== 'transfer' && e.categoryId === category));
   // Clear goes back to the current month with no category, so it is only worth showing when that is a change.

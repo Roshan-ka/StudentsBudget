@@ -33,7 +33,8 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
   const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
   // null until the person types: see `received` below for what the field shows then.
   const [receivedChoice, setReceivedChoice] = useState<string | null>(null);
-  const [date, setDate] = useState(() => editing?.date ?? todayIso());
+  // null means today, read when the form shows; a form left open (or kept hidden by the router) then follows the date.
+  const [dateChoice, setDateChoice] = useState<string | null>(editing?.date ?? null);
   const [note, setNote] = useState(editing?.note ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -58,6 +59,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
   const received =
     receivedChoice ??
     (keepsStoredReceived ? minorToInput(editing.toAmountMinor) : from.currency === to.currency ? amount : '');
+  const date = dateChoice ?? todayIso();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -98,6 +100,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
     if (!editing) {
       setAmount('');
       setReceivedChoice(null);
+      setDateChoice(null);
       setNote('');
     }
     onSaved?.(saved);
@@ -174,7 +177,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
           type="date"
           className="h-10"
           value={date}
-          onChange={(event) => setDate(event.target.value)}
+          onChange={(event) => setDateChoice(event.target.value)}
         />
       </div>
       <div className="grid gap-1.5">

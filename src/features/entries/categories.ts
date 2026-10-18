@@ -15,3 +15,10 @@ const NAMES = new Map(CATEGORIES.map((c) => [c.id, c.name]));
 export function categoryName(id: string): string {
   return NAMES.get(id) ?? id;
 }
+
+const ORDER = new Map(CATEGORIES.map((c) => [c.id, c.order]));
+
+/** Position in the built-in list; a category that is not built in goes last. */
+export function orderOf(categoryId: string): number {
+  return ORDER.get(categoryId) ?? Number.MAX_SAFE_INTEGER;
+}

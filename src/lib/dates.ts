@@ -5,6 +5,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  getDay,
   getDaysInMonth,
   parseISO,
   startOfMonth,
@@ -59,6 +60,21 @@ export function monthsBetween(a: IsoMonth, b: IsoMonth): number {
   return differenceInCalendarMonths(toDate(b), toDate(a));
 }
 
+/** The month `by` months after `month` (before, when negative): "2026-12" and 1 give "2027-01". */
+export function shiftMonth(month: IsoMonth, by: number): IsoMonth {
+  const [year, monthNumber] = month.split('-').map(Number);
+  // Counting months from year 0 keeps the arithmetic whole; Math.floor and the modulo handle negatives.
+  const index = year * 12 + (monthNumber - 1) + by;
+  const newYear = Math.floor(index / 12);
+  const newMonth = (index % 12) + 1;
+  return `${String(newYear).padStart(4, '0')}-${String(newMonth).padStart(2, '0')}`;
+}
+
+/** Whether d is a Sunday, the last day of the week and the day of the check-in. */
+export function isSunday(d: IsoDate): boolean {
+  return getDay(toDate(d)) === 0;
+}
+
 /** The Monday–Sunday week containing d, cut off at the first and last day of d's month. */
 export function weekInMonth(d: IsoDate): { start: IsoDate; end: IsoDate } {
   const date = toDate(d);
@@ -71,4 +87,19 @@ export function weekInMonth(d: IsoDate): { start: IsoDate; end: IsoDate } {
     start: weekStart < monthStart ? monthStart : weekStart,
     end: weekEnd > monthEnd ? monthEnd : weekEnd,
   };
+}
+
+/**
+ * On a Sunday whose Monday–Sunday week starts in the previous month, the part of that week in the previous
+ * month: Sun 1 Nov 2026 gives Mon 26 – Sat 31 Oct. `weekInMonth` cuts a week off at the month's edge, so a
+ * Sunday review of that week would never see these days. Null on any other day, and on a Sunday whose week
+ * starts in its own month.
+ */
+export function previousMonthTail(d: IsoDate): { start: IsoDate; end: IsoDate } | null {
+  if (!isSunday(d)) return null;
+  const weekStart = toIso(startOfWeek(toDate(d), WEEK));
+  const monthStart = firstOfMonth(monthOf(d));
+  // ISO date strings sort chronologically, so plain comparison is enough.
+  if (weekStart >= monthStart) return null;
+  return { start: weekStart, end: addDays(monthStart, -1) };
 }

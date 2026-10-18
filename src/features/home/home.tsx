@@ -5,13 +5,15 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import type { Plan } from '@/db/types';
 import { totalInEur } from '@/features/accounts/balances';
+import { CheckInCard } from '@/features/check-in/check-in-card';
 import { QuickAddField } from '@/features/entries/quick-add-field';
+import { RevealCard } from '@/features/reveal/reveal-view';
 import { monthStatus, safeToSpend } from '@/lib/budget';
 import { monthOf } from '@/lib/dates';
 import { formatMoney, type CurrencyCode } from '@/lib/money';
+import { useToday } from '@/lib/use-today';
 import { EnvelopeList, type EnvelopeRow } from './envelope-list';
 import { SafeToSpendCard } from './safe-to-spend-card';
-import { useToday } from './use-today';
 
 const currencyList = new Intl.ListFormat('en-IE', { style: 'long', type: 'conjunction' });
 
@@ -62,6 +64,8 @@ export function HomeScreen({ plan }: { plan: Plan }) {
       <>
         <SafeToSpendCard totalMinor={week.totalMinor} weekStart={week.weekStart} weekEnd={week.weekEnd} />
         <EnvelopeList rows={rows} />
+        <CheckInCard today={today} />
+        <RevealCard startedOn={plan.createdOn} today={today} />
         <div className="flex flex-col gap-1">
           <p className="font-medium">
             {`Across all accounts: ${nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { whole: true })}`}

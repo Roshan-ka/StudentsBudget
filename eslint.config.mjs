@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Scratch work of the review workflow (throwaway specs, screenshots): not part of the app.
+    ".superpowers/**",
   ]),
 ]);
 
