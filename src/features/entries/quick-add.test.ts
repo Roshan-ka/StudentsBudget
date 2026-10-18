@@ -109,6 +109,143 @@ describe('parseQuickAdd', () => {
     expect(parseQuickAdd('six euros')).toEqual({ amountMinor: 600, note: '' });
   });
 
+  it('reads "N euro M" as N euros and M cents, not as a second amount', () => {
+    expect(parseQuickAdd('coffee 3 euros 50')).toEqual({ amountMinor: 350, note: 'coffee' });
+    expect(parseQuickAdd('Döner 6 Euro 50')).toEqual({ amountMinor: 650, note: 'Döner' });
+    expect(parseQuickAdd('coffee six euros fifty')).toEqual({ amountMinor: 650, note: 'coffee' });
+    expect(parseQuickAdd('3 euros 5')).toEqual({ amountMinor: 305, note: '' });
+    expect(parseQuickAdd('coffee 6 euro 05')).toEqual({ amountMinor: 605, note: 'coffee' });
+    expect(parseQuickAdd('coffee 3 € 50')).toEqual({ amountMinor: 350, note: 'coffee' });
+    expect(parseQuickAdd('coffee 3 EUR 50')).toEqual({ amountMinor: 350, note: 'coffee' });
+    expect(parseQuickAdd('lunch twenty euros fifty five')).toEqual({ amountMinor: 2055, note: 'lunch' });
+    expect(parseQuickAdd('lunch twenty-five euros fifty')).toEqual({ amountMinor: 2550, note: 'lunch' });
+    expect(parseQuickAdd('lunch 12 euros six')).toEqual({ amountMinor: 1206, note: 'lunch' });
+    expect(parseQuickAdd('coffee 0 euro 50')).toEqual({ amountMinor: 50, note: 'coffee' });
+  });
+
+  it('takes "cent" or "cents" after the cents part into the amount', () => {
+    expect(parseQuickAdd('coffee 6 euros 50 cents')).toEqual({ amountMinor: 650, note: 'coffee' });
+    expect(parseQuickAdd('coffee 6 EURO 50 CENT')).toEqual({ amountMinor: 650, note: 'coffee' });
+    expect(parseQuickAdd('coffee six euros fifty cents with Tom')).toEqual({ amountMinor: 650, note: 'coffee with Tom' });
+  });
+
+  it('prefers a "N euro M" amount over an earlier or later plain number', () => {
+    expect(parseQuickAdd('2 coffees 3 euros 50')).toEqual({ amountMinor: 350, note: '2 coffees' });
+    expect(parseQuickAdd('3 euros 50 for 2')).toEqual({ amountMinor: 350, note: 'for 2' });
+  });
+
+  it('returns null when a marker sits between two numbers that are not euros and cents', () => {
+    for (const text of [
+      'coffee 3 euros 150',
+      'coffee 3 euros 123',
+      'coffee 3 euros 5,50',
+      'coffee 3 euros €5',
+      'coffee 3,50 euros 20',
+      'coffee €3 euro 20',
+      'coffee 3 euros one hundred',
+      'coffee six euros twelve hundred',
+      'coffee 3 euros 5€',
+      'coffee 3 euros 5eur',
+    ]) {
+      expect(parseQuickAdd(text), text).toBeNull();
+    }
+  });
+
+  it('reads "and" after hundred or thousand, "<n> hundred" and "<n> thousand"', () => {
+    const cases: [string, number][] = [
+      ['a hundred and twenty euros', 120],
+      ['one hundred and five euros', 105],
+      ['two hundred and fifty', 250],
+      ['twenty five hundred euros', 2500],
+      ['twelve hundred euros', 1200],
+      ['nineteen hundred', 1900],
+      ['one thousand euros', 1000],
+      ['two thousand euros', 2000],
+      ['a thousand', 1000],
+      ['thousand', 1000],
+      ['two thousand five hundred', 2500],
+      ['one thousand and five', 1005],
+      ['one thousand two hundred and thirty-four euros', 1234],
+      ['two hundred fifty thousand', 250000],
+    ];
+    for (const [words, euros] of cases) {
+      expect(parseQuickAdd(`laptop ${words}`), words).toEqual({ amountMinor: euros * 100, note: 'laptop' });
+    }
+  });
+
+  it('returns null for a number-word run it cannot read whole, instead of a partial amount', () => {
+    for (const text of [
+      'books one million euros',
+      'books two billion',
+      'books a hundred and euros',
+      'books one hundred and',
+      'books one hundred and coffee',
+      'books one thousand and',
+      'books one hundred hundred',
+      'books two thousand thousand',
+      'books zero hundred',
+      'books two and a half euros',
+      'books six and cake',
+    ]) {
+      expect(parseQuickAdd(text), text).toBeNull();
+    }
+  });
+
+  it('returns null for digits followed by a scale or cent word it does not read', () => {
+    for (const text of [
+      'coffee 2 thousand euros',
+      'coffee 2 hundred',
+      'coffee 5 million',
+      'coffee 50 cents',
+      'coffee 50 cent',
+      'coffee fifty cents',
+      'coffee 2 coffees 50 cents',
+    ]) {
+      expect(parseQuickAdd(text), text).toBeNull();
+    }
+  });
+
+  it('does not mind "and" that is not right after a number-word run', () => {
+    expect(parseQuickAdd('salt and pepper six euros')).toEqual({ amountMinor: 600, note: 'salt and pepper' });
+    expect(parseQuickAdd('bread and butter 6')).toEqual({ amountMinor: 600, note: 'bread and butter' });
+  });
+
+  it('reads a letter marker written onto the number', () => {
+    expect(parseQuickAdd('2 coffees 7eur')).toEqual({ amountMinor: 700, note: '2 coffees' });
+    expect(parseQuickAdd('2 coffees 7euro')).toEqual({ amountMinor: 700, note: '2 coffees' });
+    expect(parseQuickAdd('2 coffees 7EUROS')).toEqual({ amountMinor: 700, note: '2 coffees' });
+    expect(parseQuickAdd('coffee 6eur')).toEqual({ amountMinor: 600, note: 'coffee' });
+    expect(parseQuickAdd('coffee 6,50eur')).toEqual({ amountMinor: 650, note: 'coffee' });
+    expect(parseQuickAdd('2 coffees eur7,40')).toEqual({ amountMinor: 740, note: '2 coffees' });
+    expect(parseQuickAdd('2 coffees €7')).toEqual({ amountMinor: 700, note: '2 coffees' });
+  });
+
+  it('leaves words that merely start or end like a marker alone', () => {
+    expect(parseQuickAdd('Friseur 25')).toEqual({ amountMinor: 2500, note: 'Friseur' });
+    expect(parseQuickAdd('eurostar 12')).toEqual({ amountMinor: 1200, note: 'eurostar' });
+    expect(parseQuickAdd('Eurogruppe')).toBeNull();
+  });
+
+  it('returns null when a token looks like a number or a price but is not an amount', () => {
+    for (const text of [
+      '3 coffees $7',
+      '3 coffees £7',
+      '3 coffees ¥700',
+      '3 coffees €6,505',
+      'coffee 6,505 2',
+      '2 coffees 6,505',
+      '2 coffees 12abc 6',
+      '2 coffees 3pm 6',
+      'coffee 6€ 3pm',
+      'coffee 7$',
+      'coffee 6. 2',
+      'coffee €€6',
+      'coffee 6€€',
+    ]) {
+      expect(parseQuickAdd(text), text).toBeNull();
+    }
+  });
+
   it('is not confused by words that are property names of plain objects', () => {
     expect(parseQuickAdd('constructor toString 6')).toEqual({ amountMinor: 600, note: 'constructor toString' });
   });
