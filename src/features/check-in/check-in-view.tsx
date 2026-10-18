@@ -13,6 +13,7 @@ import type { IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { weekLabel } from '@/lib/week-label';
+import { notCountedNote } from './not-counted';
 import { weekLine } from './week-line';
 
 const LINK_CLASS = 'inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline';
@@ -33,16 +34,18 @@ function entriesOfWeek(entries: Entry[], start: IsoDate, end: IsoDate): Entry[] 
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 }
 
-function EntryItem({ entry, accounts }: { entry: Entry; accounts: Account[] }) {
+function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Account[]; planStart: IsoDate }) {
   const currency = accounts.find((a) => a.id === entry.accountId)?.currency ?? 'EUR';
   const label = entry.type === 'transfer' ? 'Transfer' : categoryName(entry.categoryId);
   const details = [entry.note ? label : null, dayLabel(entry.date)].filter((part) => part !== null);
+  const notCounted = notCountedNote(entry, planStart);
 
   return (
     <li className="flex items-center justify-between gap-3 py-2">
       <span className="min-w-0">
         <span className="block font-medium break-words">{entry.note || label}</span>
         <span className="block text-sm text-muted-foreground">{details.join(' · ')}</span>
+        {notCounted !== null && <span className="block text-sm text-muted-foreground">{notCounted}</span>}
       </span>
       <span className="shrink-0 font-medium tabular-nums">
         {entry.type === 'income' ? '+' : ''}
@@ -102,7 +105,7 @@ function CheckIn({
         ) : (
           <ul aria-labelledby={weekId} className="flex flex-col divide-y">
             {thisWeek.map((entry) => (
-              <EntryItem key={entry.id} entry={entry} accounts={accounts} />
+              <EntryItem key={entry.id} entry={entry} accounts={accounts} planStart={plan.createdOn} />
             ))}
           </ul>
         )}

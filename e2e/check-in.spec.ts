@@ -22,6 +22,23 @@ async function quickAdd(page: Page, text: string) {
   await page.getByRole('button', { name: 'Add', exact: true }).click();
 }
 
+/**
+ * Adds an expense the way a person does from the check-in: the link to the form for an earlier day. It opens
+ * the check-in itself, so the clock has to be set before it.
+ */
+async function addExpenseFromCheckIn(page: Page, expense: { amount: string; category: string; date: string }) {
+  await page.goto('/check-in');
+  // The heading only renders once the page has hydrated and read its data, so the link is live.
+  await expect(page.getByRole('heading', { level: 3, name: 'Forgot something? Add it here' })).toBeVisible();
+  await page.getByRole('link', { name: 'Add something from an earlier day' }).click();
+  await expect(page).toHaveURL('/entries/new');
+  await page.getByLabel('Amount', { exact: true }).fill(expense.amount);
+  await page.getByLabel('Category', { exact: true }).selectOption({ label: expense.category });
+  await page.getByLabel('Date', { exact: true }).fill(expense.date);
+  await page.getByRole('button', { name: 'Save expense' }).click();
+  await expect(page).toHaveURL(`/entries?month=${expense.date.slice(0, 7)}`);
+}
+
 async function overflow(page: Page) {
   return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
@@ -111,6 +128,26 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await expect(entries.nth(1)).toContainText('Eating out');
   await expect(entries.nth(1)).toContainText('Sat 17');
   await expect(entries.nth(1)).toContainText('€15.00');
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
+test('an expense dated before the plan started is listed with a note that it is not counted', async ({ page }) => {
+  await completeSetup(page);
+  await page.clock.setFixedTime(new Date(2026, 9, 18, 12, 0, 0));
+  // Tue 13 is in the week Mon 12 - Sun 18, but the plan only starts on Fri 16.
+  await addExpenseFromCheckIn(page, { amount: '20', category: 'Eating out', date: '2026-10-13' });
+  await addExpenseFromCheckIn(page, { amount: '5', category: 'Eating out', date: '2026-10-17' });
+
+  await page.goto('/check-in');
+  await expectWeekLine(page, 'Eating out', '€12 planned · €5 spent · €7 under');
+  const entries = section(page, 'This week').getByRole('listitem');
+  await expect(entries).toHaveCount(2);
+  await expect(entries.nth(0)).toContainText('Sat 17');
+  await expect(entries.nth(0)).not.toContainText('not counted');
+  await expect(entries.nth(1)).toContainText('Tue 13');
+  await expect(entries.nth(1)).toContainText('€20.00');
+  await expect(entries.nth(1).getByText('Before your plan started, not counted', { exact: true })).toBeVisible();
+  await expect(page.getByText('Before your plan started, not counted')).toHaveCount(1);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
