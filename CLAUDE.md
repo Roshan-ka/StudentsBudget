@@ -12,6 +12,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 |---|---|
 | next | 16.4.2 |
 | react, react-dom | 19.3.0 |
+| react-is (matches react, for recharts) | 19.3.0 |
 | typescript | 5.9.3 |
 | tailwindcss, @tailwindcss/turbopack | 4.3.3 |
 | shadcn (style `base-nova`) | 4.21.5 |
