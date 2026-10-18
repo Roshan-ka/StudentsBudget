@@ -41,7 +41,7 @@ function MoneyEntryForm({
 }: {
   type: 'expense' | 'income';
   entry?: Entry;
-  onSaved?: () => void;
+  onSaved?: (saved: Entry) => void;
 }) {
   const id = useId();
   const editing = entry?.type === 'transfer' ? undefined : entry;
@@ -73,6 +73,7 @@ function MoneyEntryForm({
 
     setSaving(true);
     setError(null);
+    let saved: Entry;
     try {
       const result = buildEntry(
         {
@@ -94,6 +95,7 @@ function MoneyEntryForm({
         return;
       }
       await saveEntry(result.entry);
+      saved = result.entry;
     } catch (saveError) {
       console.error('StudentsBudget: could not save the entry', saveError);
       setError('Could not save the entry.');
@@ -106,7 +108,7 @@ function MoneyEntryForm({
       setNote('');
       setDateChoice(null);
     }
-    onSaved?.();
+    onSaved?.(saved);
   }
 
   return (
@@ -189,9 +191,9 @@ function MoneyEntryForm({
 
 /**
  * The manual way to log money. Without `entry`: tabs for Expense, Income and Transfer. With `entry`
- * (an edit): only the form for that entry's type, filled in. `onSaved` runs after a save.
+ * (an edit): only the form for that entry's type, filled in. `onSaved` runs after a save, with the entry that was saved.
  */
-export function EntryForm({ entry, onSaved }: { entry?: Entry; onSaved?: () => void }) {
+export function EntryForm({ entry, onSaved }: { entry?: Entry; onSaved?: (saved: Entry) => void }) {
   const [tab, setTab] = useState<EntryType>('expense');
 
   if (entry?.type === 'transfer') return <TransferForm entry={entry} onSaved={onSaved} />;

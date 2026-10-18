@@ -1,6 +1,6 @@
 'use client';
 
-import { parseISO } from 'date-fns';
+import { addMonths, format, parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -17,6 +17,8 @@ import { EntryForm } from './entry-form';
 
 const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 
+const LINK_CLASS = 'inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline';
+
 const dayHeading = new Intl.DateTimeFormat('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
 const monthLabel = new Intl.DateTimeFormat('en-IE', { month: 'short', year: 'numeric' });
 
@@ -27,6 +29,18 @@ function headingOf(date: IsoDate): string {
 
 function labelOf(month: IsoMonth): string {
   return monthLabel.format(parseISO(firstOfMonth(month)));
+}
+
+/** The month `by` months after `month` (before, when negative): "2026-12" and 1 give "2027-01". */
+function shiftMonth(month: IsoMonth, by: number): IsoMonth {
+  return format(addMonths(parseISO(firstOfMonth(month)), by), 'yyyy-MM');
+}
+
+/** The list for one month, keeping the category filter when there is one. */
+function listHref(month: IsoMonth, category: string | null): string {
+  const query = new URLSearchParams({ month });
+  if (category !== null) query.set('category', category);
+  return `/entries?${query.toString()}`;
 }
 
 /** Newest day first; within a day the entry saved last comes first. */
@@ -135,30 +149,46 @@ export function EntriesList() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   // The current month is read inside the query, not while rendering.
   const loaded = useLiveQuery(async () => {
-    const shown = month ?? monthOf(todayIso());
-    return { month: shown, entries: await entriesInRange(firstOfMonth(shown), `${shown}-${daysInMonth(shown)}`) };
+    const thisMonth = monthOf(todayIso());
+    const shown = month ?? thisMonth;
+    return {
+      month: shown,
+      thisMonth,
+      entries: await entriesInRange(firstOfMonth(shown), `${shown}-${daysInMonth(shown)}`),
+    };
   }, [month]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   if (accounts === undefined || loaded === undefined) return null;
 
   const entries = loaded.entries.filter((e) => category === null || (e.type !== 'transfer' && e.categoryId === category));
-  const filtered = month !== null || category !== null;
+  // Clear goes back to the current month with no category, so it is only worth showing when that is a change.
+  const filtered = category !== null || loaded.month !== loaded.thisMonth;
   const summary = [category === null ? null : categoryName(category), labelOf(loaded.month)].filter((p) => p !== null);
 
   return (
     <section aria-label="Entries" className="flex flex-col gap-3">
-      <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-        <span>{summary.join(' · ')}</span>
-        {filtered && (
-          <>
-            <span aria-hidden="true">{' · '}</span>
-            <Link href="/entries" className="inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline">
-              Clear
-            </Link>
-          </>
-        )}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 text-sm text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-2">
+          <span>{summary.join(' · ')}</span>
+          {filtered && (
+            <>
+              <span aria-hidden="true">{' · '}</span>
+              <Link href="/entries" className={LINK_CLASS}>
+                Clear
+              </Link>
+            </>
+          )}
+        </p>
+        <nav aria-label="Month" className="flex items-center gap-4">
+          <Link href={listHref(shiftMonth(loaded.month, -1), category)} className={LINK_CLASS}>
+            ‹ Previous
+          </Link>
+          <Link href={listHref(shiftMonth(loaded.month, 1), category)} className={LINK_CLASS}>
+            Next ›
+          </Link>
+        </nav>
+      </div>
 
       {entries.length === 0 ? (
         <p className="text-muted-foreground">Nothing logged here yet.</p>

@@ -23,7 +23,7 @@ function minorToInput(minor: Minor): string {
  * Moves money between two accounts. With `entry` (a transfer being edited) the form starts filled in
  * and saving keeps that entry's id; any other entry type is ignored.
  */
-export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: () => void }) {
+export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (saved: Entry) => void }) {
   const id = useId();
   const editing = entry?.type === 'transfer' ? entry : undefined;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
@@ -31,10 +31,8 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: () =
   const [fromChoice, setFromChoice] = useState<string | null>(editing?.accountId ?? null);
   const [toChoice, setToChoice] = useState<string | null>(editing?.toAccountId ?? null);
   const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
-  // null until the person types: between accounts in the same currency the amount received is the amount sent.
-  const [receivedChoice, setReceivedChoice] = useState<string | null>(
-    editing ? minorToInput(editing.toAmountMinor) : null,
-  );
+  // null until the person types: see `received` below for what the field shows then.
+  const [receivedChoice, setReceivedChoice] = useState<string | null>(null);
   const [date, setDate] = useState(() => editing?.date ?? todayIso());
   const [note, setNote] = useState(editing?.note ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +46,18 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: () =
   // An account deleted while the form is open falls back to the default.
   const from = accounts.find((account) => account.id === fromChoice) ?? accounts[0];
   const to = accounts.find((account) => account.id === toChoice) ?? accounts.filter((a) => a.id !== from.id)[0];
-  const received = receivedChoice ?? (from.currency === to.currency ? amount : '');
+  // What the amount received shows until the person types in it. Between accounts in one currency it is the
+  // amount sent, so editing only the amount keeps the two equal. An edit that keeps both accounts starts from
+  // the stored amount where that cannot be worked out: across currencies, or when the two amounts differ on
+  // purpose (a fee), so saving the note alone never changes it.
+  const keepsStoredReceived =
+    editing !== undefined &&
+    from.id === editing.accountId &&
+    to.id === editing.toAccountId &&
+    (from.currency !== to.currency || editing.toAmountMinor !== editing.amountMinor);
+  const received =
+    receivedChoice ??
+    (keepsStoredReceived ? minorToInput(editing.toAmountMinor) : from.currency === to.currency ? amount : '');
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,6 +65,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: () =
 
     setSaving(true);
     setError(null);
+    let saved: Entry;
     try {
       const result = buildTransfer(
         {
@@ -77,6 +87,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: () =
         return;
       }
       await saveEntry(result.entry);
+      saved = result.entry;
     } catch (saveError) {
       console.error('StudentsBudget: could not save the transfer', saveError);
       setError('Could not save the transfer.');
@@ -89,7 +100,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: () =
       setReceivedChoice(null);
       setNote('');
     }
-    onSaved?.();
+    onSaved?.(saved);
   }
 
   return (

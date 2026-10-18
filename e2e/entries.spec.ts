@@ -228,7 +228,7 @@ test('the entry form saves an expense in a foreign currency, converted at save t
   await page.getByLabel('Note', { exact: true }).fill('Bus pass');
   await page.getByRole('button', { name: 'Save expense' }).click();
 
-  await expect(page).toHaveURL('/entries');
+  await expect(page).toHaveURL('/entries?month=2026-10');
   const list = entriesList(page);
   await expect(list.getByText('Bus pass')).toBeVisible();
   await expect(list.getByText('₹950.00')).toBeVisible();
@@ -261,7 +261,7 @@ test('the entry form takes income, and a transfer through the transfer form', as
   await page.getByLabel('Account', { exact: true }).selectOption({ label: 'Local bank (EUR)' });
   await page.getByLabel('Category', { exact: true }).selectOption({ label: 'Job' });
   await page.getByRole('button', { name: 'Save income' }).click();
-  await expect(page).toHaveURL('/entries');
+  await expect(page).toHaveURL('/entries?month=2026-10');
   await expect(entriesList(page).getByText('+€400.00')).toBeVisible();
 
   // Transfer: the same form as in Settings.
@@ -271,7 +271,7 @@ test('the entry form takes income, and a transfer through the transfer form', as
   await page.getByLabel('To', { exact: true }).selectOption({ label: 'Cash (EUR)' });
   await page.getByLabel('Amount', { exact: true }).fill('20');
   await page.getByRole('button', { name: 'Move money', exact: true }).click();
-  await expect(page).toHaveURL('/entries');
+  await expect(page).toHaveURL('/entries?month=2026-10');
   const list = entriesList(page);
   await expect(list.getByText('Local bank → Cash')).toBeVisible();
   await expect(list.getByText('€20.00')).toBeVisible();
@@ -283,15 +283,21 @@ test('the entry form takes income, and a transfer through the transfer form', as
   ]);
 });
 
-test('editing a transfer opens the transfer form and keeps the entry', async ({ page }) => {
-  await setupAndOpenEntries(page);
+/** Fills the Transfer tab of /entries/new and saves. Leave `received` out between accounts in one currency. */
+async function addTransfer(page: Page, transfer: { from: string; to: string; amount: string; received?: string }) {
   await page.getByRole('link', { name: 'Add entry' }).click();
   await page.getByRole('tab', { name: 'Transfer' }).click();
-  await page.getByLabel('From', { exact: true }).selectOption({ label: 'Local bank (EUR)' });
-  await page.getByLabel('To', { exact: true }).selectOption({ label: 'Cash (EUR)' });
-  await page.getByLabel('Amount', { exact: true }).fill('20');
+  await page.getByLabel('From', { exact: true }).selectOption({ label: transfer.from });
+  await page.getByLabel('To', { exact: true }).selectOption({ label: transfer.to });
+  await page.getByLabel('Amount', { exact: true }).fill(transfer.amount);
+  if (transfer.received !== undefined) await page.getByLabel('Amount received').fill(transfer.received);
   await page.getByRole('button', { name: 'Move money', exact: true }).click();
-  await expect(page).toHaveURL('/entries');
+  await expect(page).toHaveURL('/entries?month=2026-10');
+}
+
+test('editing a transfer opens the transfer form and keeps the entry', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await addTransfer(page, { from: 'Local bank (EUR)', to: 'Cash (EUR)', amount: '20' });
   const list = entriesList(page);
   await expect(list.getByText('€20.00')).toBeVisible();
   const [before] = await readStore<Entry>(page, 'entries');
@@ -300,14 +306,99 @@ test('editing a transfer opens the transfer form and keeps the entry', async ({ 
   const panel = page.getByRole('region', { name: 'Edit entry' });
   await expect(panel.getByLabel('Amount', { exact: true })).toHaveValue('20');
   await expect(panel.getByLabel('From', { exact: true }).locator('option:checked')).toHaveText('Local bank (EUR)');
+  // Only the amount sent changes: between accounts in one currency the amount received follows it.
   await panel.getByLabel('Amount', { exact: true }).fill('25');
-  await panel.getByLabel('Amount received').fill('25');
+  await expect(panel.getByLabel('Amount received')).toHaveValue('25');
   await panel.getByRole('button', { name: 'Save changes' }).click();
 
   await expect(list.getByText('€25.00').first()).toBeVisible();
   const after = await readStore<Entry>(page, 'entries');
   expect(after).toHaveLength(1);
   expect(after[0]).toMatchObject({ id: before.id, createdAt: before.createdAt, amountMinor: 2500, toAmountMinor: 2500 });
+});
+
+test('editing a transfer between currencies keeps the amount received', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await addTransfer(page, { from: 'Local bank (EUR)', to: 'Home bank (INR)', amount: '50', received: '4750' });
+  const list = entriesList(page);
+  await expect(list.getByText('€50.00')).toBeVisible();
+
+  await list.getByRole('button', { name: /Transfer/ }).click();
+  const panel = page.getByRole('region', { name: 'Edit entry' });
+  await expect(panel.getByLabel('Amount received')).toHaveValue('4750');
+  await panel.getByLabel('Note').fill('Rent top-up');
+  await panel.getByLabel('Amount', { exact: true }).fill('60');
+  await expect(panel.getByLabel('Amount received')).toHaveValue('4750');
+  await panel.getByRole('button', { name: 'Save changes' }).click();
+
+  await expect(list.getByText('Rent top-up')).toBeVisible();
+  const [after] = await readStore<Entry>(page, 'entries');
+  expect(after).toMatchObject({ amountMinor: 6000, eurMinor: 6000, toAmountMinor: 475000, note: 'Rent top-up' });
+});
+
+test('editing the note of a same-currency transfer with a fee keeps both amounts', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const accounts = await readStore<Account>(page, 'accounts');
+  const idOf = (name: string) => accounts.find((a) => a.name === name)?.id;
+  await writeStore(page, 'entries', {
+    put: [
+      {
+        id: 'fee',
+        type: 'transfer',
+        date: '2026-10-16',
+        accountId: idOf('Local bank'),
+        amountMinor: 2000,
+        eurMinor: 2000,
+        toAccountId: idOf('Cash'),
+        toAmountMinor: 1900,
+        note: '',
+        createdAt: '2026-10-16T10:00:00.000Z',
+      },
+    ],
+  });
+  await openEntries(page);
+
+  await entriesList(page).getByRole('button', { name: /Transfer/ }).click();
+  const panel = page.getByRole('region', { name: 'Edit entry' });
+  await expect(panel.getByLabel('Amount received')).toHaveValue('19');
+  await panel.getByLabel('Note').fill('ATM fee');
+  await panel.getByRole('button', { name: 'Save changes' }).click();
+
+  await expect(entriesList(page).getByText('ATM fee')).toBeVisible();
+  const [after] = await readStore<Entry>(page, 'entries');
+  expect(after).toMatchObject({ id: 'fee', amountMinor: 2000, toAmountMinor: 1900, note: 'ATM fee' });
+});
+
+test('editing an INR entry keeps its EUR value, though the rate has moved since', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  // The stored rate is 95 by now; this entry was entered at 90: 95000 INR was worth 1055.56, stored as 1056 cents.
+  await expect.poll(async () => (await readStore<Rate>(page, 'fxRates')).length).toBe(1);
+  const homeBank = (await readStore<Account>(page, 'accounts')).find((a) => a.name === 'Home bank');
+  await writeStore(page, 'entries', {
+    put: [
+      {
+        id: 'old',
+        type: 'expense',
+        date: '2026-10-10',
+        accountId: homeBank?.id,
+        amountMinor: 95000,
+        eurMinor: 1056,
+        categoryId: 'food',
+        note: 'Groceries',
+        createdAt: '2026-10-10T10:00:00.000Z',
+      },
+    ],
+  });
+  await openEntries(page);
+
+  await entriesList(page).getByRole('button', { name: /Groceries/ }).click();
+  const panel = page.getByRole('region', { name: 'Edit entry' });
+  await panel.getByLabel('Category', { exact: true }).selectOption({ label: 'Shopping' });
+  await panel.getByRole('button', { name: 'Save changes' }).click();
+  await expect(panel).toHaveCount(0);
+
+  const [after] = await readStore<Entry>(page, 'entries');
+  expect(after).toMatchObject({ id: 'old', categoryId: 'shopping', amountMinor: 95000, eurMinor: 1056 });
 });
 
 test('the list groups by day, newest first, and filters by category and month', async ({ page }) => {
@@ -365,4 +456,61 @@ test('the entries pages fit a phone without sideways scrolling', async ({ page }
   await page.goto('/entries/new');
   await expect(page.getByLabel('Amount', { exact: true })).toBeVisible();
   expect(await overflow()).toBeLessThanOrEqual(0);
+});
+
+test('a manual entry dated in another month opens that month, and the month links move on from it', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await page.getByRole('link', { name: 'Add entry' }).click();
+  await expect(page.getByLabel('Amount', { exact: true })).toBeVisible();
+  await page.getByLabel('Amount', { exact: true }).fill('9,50');
+  await page.getByLabel('Date', { exact: true }).fill('2026-09-30');
+  await page.getByLabel('Note', { exact: true }).fill('Mensa');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+
+  await expect(page).toHaveURL('/entries?month=2026-09');
+  const list = entriesList(page);
+  await expect(list.getByText('Mensa')).toBeVisible();
+  await expect(list.getByText('€9.50')).toBeVisible();
+  await expect(list.getByRole('heading', { level: 3 })).toHaveText(['Wednesday, 30 September']);
+
+  await page.getByRole('link', { name: 'Next ›' }).click();
+  await expect(page).toHaveURL('/entries?month=2026-10');
+  await expect(page.getByText('Oct 2026')).toBeVisible();
+  await expect(list.getByText('Mensa')).toHaveCount(0);
+
+  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await expect(list.getByText('Mensa')).toBeVisible();
+  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await expect(page).toHaveURL('/entries?month=2026-08');
+  await expect(list.getByText('Mensa')).toHaveCount(0);
+});
+
+test('the month links keep the category and roll over the year', async ({ page }) => {
+  await setupAndOpenEntries(page);
+
+  await page.goto('/entries?category=food&month=2026-12');
+  await expect(page.getByText('Food & groceries · Dec 2026 · Clear')).toBeVisible();
+  await page.getByRole('link', { name: 'Next ›' }).click();
+  await expect(page).toHaveURL(/month=2027-01/);
+  await expect(page).toHaveURL(/category=food/);
+  await expect(page.getByText('Food & groceries · Jan 2027 · Clear')).toBeVisible();
+
+  // Wait for each page before the next tap, or both taps hit the link of the page that was showing.
+  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await expect(page).toHaveURL(/month=2026-12/);
+  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await expect(page).toHaveURL(/month=2026-11/);
+  await expect(page).toHaveURL(/category=food/);
+
+  // Without a month in the address the links start from the current month, and Clear is not needed.
+  await page.goto('/entries');
+  await expect(page.getByText('Oct 2026')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);
+  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await expect(page).toHaveURL('/entries?month=2026-09');
+  await expect(page.getByRole('link', { name: 'Clear' })).toBeVisible();
+  await page.getByRole('link', { name: 'Next ›' }).click();
+  await expect(page).toHaveURL('/entries?month=2026-10');
+  // Back in the current month there is nothing left to clear.
+  await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);
 });
