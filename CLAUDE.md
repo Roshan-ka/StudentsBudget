@@ -77,8 +77,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - UI language is English. Money is formatted with `Intl.NumberFormat('en-IE', …)`: `€6.50`, and `€63` for headlines.
 - Calm wording: overspending reads "€12 over", never "failed" or "warning!".
 - Phone first: works at 375 px width, 16 px side gutters, no horizontal page scroll, bottom navigation.
-- User-facing text states no platform storage-eviction rules (the Concept's iOS 7-day line has no source): say only that clearing site data or removing the app deletes the data.
-- README's Privacy section lists the only outgoing request; change it in the same commit as any new request.
+- User-facing text states no platform storage-eviction rule without a source (the Concept's iOS 7-day line has none): say only that clearing site data or removing the app deletes the data.
 
 **Data rules**
 - City: Regensburg only. Every city number has a source, a URL and a checked date. A number without a source is labelled "Estimate".
@@ -89,7 +88,6 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - `.gitattributes` with `* text=auto eol=lf`.
 - Conventional Commits, ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - One branch and one Draft PR per day, from `main`. Nothing is pushed to `main` after the initial commit, and Roshan merges.
-- Scratch specs under the git-ignored `.superpowers/` are still linted and type-checked by `npm run lint` and `npm run typecheck`: keep them clean or delete them.
 
 ## Keeping this file honest
 
