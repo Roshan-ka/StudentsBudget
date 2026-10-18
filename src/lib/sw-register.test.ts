@@ -18,7 +18,7 @@ describe('registerServiceWorker', () => {
     const register = vi.fn();
     vi.stubGlobal('navigator', { serviceWorker: { register } });
 
-    expect(await registerServiceWorker({ production: false, supported: true })).toBe('skipped');
+    expect(await registerServiceWorker({ production: false, supported: true, version: 'abc123' })).toBe('skipped');
     expect(register).not.toHaveBeenCalled();
   });
 
@@ -26,22 +26,31 @@ describe('registerServiceWorker', () => {
     // Reading `navigator` at all would throw here.
     vi.stubGlobal('navigator', undefined);
 
-    expect(await registerServiceWorker({ production: true, supported: false })).toBe('skipped');
+    expect(await registerServiceWorker({ production: true, supported: false, version: 'abc123' })).toBe('skipped');
   });
 
-  it('registers /sw.js in production', async () => {
+  it('registers /sw.js named for the build version in production', async () => {
     const register = vi.fn().mockResolvedValue({});
     vi.stubGlobal('navigator', { serviceWorker: { register } });
 
-    expect(await registerServiceWorker({ production: true, supported: true })).toBe('registered');
-    expect(register).toHaveBeenCalledExactlyOnceWith('/sw.js');
+    expect(await registerServiceWorker({ production: true, supported: true, version: 'abc123' })).toBe('registered');
+    // A new version is a new script URL, which is what makes the browser install a new worker.
+    expect(register).toHaveBeenCalledExactlyOnceWith('/sw.js?v=abc123');
+  });
+
+  it('encodes the version in the URL', async () => {
+    const register = vi.fn().mockResolvedValue({});
+    vi.stubGlobal('navigator', { serviceWorker: { register } });
+
+    await registerServiceWorker({ production: true, supported: true, version: 'a b/c?d' });
+    expect(register).toHaveBeenCalledExactlyOnceWith('/sw.js?v=a%20b%2Fc%3Fd');
   });
 
   it('logs and returns failed when the registration throws', async () => {
     const error = new Error('SecurityError');
     vi.stubGlobal('navigator', { serviceWorker: { register: vi.fn().mockRejectedValue(error) } });
 
-    expect(await registerServiceWorker({ production: true, supported: true })).toBe('failed');
+    expect(await registerServiceWorker({ production: true, supported: true, version: 'abc123' })).toBe('failed');
     expect(consoleError).toHaveBeenCalledExactlyOnceWith(
       'StudentsBudget: could not register the service worker',
       error,

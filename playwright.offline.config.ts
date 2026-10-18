@@ -11,7 +11,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && npm run start -- -p 3100',
     url: 'http://localhost:3100',
-    reuseExistingServer: !process.env.CI,
+    // Always a fresh build: a server left on 3100 by an earlier run would be testing old code.
+    reuseExistingServer: false,
     // The build runs before the server starts.
     timeout: 300_000,
   },

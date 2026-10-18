@@ -20,6 +20,8 @@ async function startServiceWorker() {
     await registerServiceWorker({
       production: process.env.NODE_ENV === 'production',
       supported: 'serviceWorker' in navigator,
+      // Set in next.config.ts and inlined at build time.
+      version: process.env.NEXT_PUBLIC_BUILD_VERSION ?? 'local',
     });
   } catch (error) {
     console.error('StudentsBudget: could not start the service worker', error);

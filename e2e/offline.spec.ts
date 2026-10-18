@@ -96,8 +96,36 @@ test('every page the worker caches opens offline with its scripts', async ({ pag
   expect(failedAssets).toEqual([]);
 });
 
-test('/sw.js is never cached by the browser, so updates reach installed apps', async ({ request }) => {
-  const response = await request.get('/sw.js');
-  expect(response.ok()).toBe(true);
-  expect(response.headers()['cache-control']).toBe('no-cache');
+test('the worker is named for the build, replaces older caches, and its script is never cached', async ({
+  page,
+  context,
+  request,
+}) => {
+  test.setTimeout(60_000);
+  // Planted before the page's own scripts run, so long before the worker activates: a cache an older build
+  // left behind, and one that belongs to something else on this origin.
+  await context.addInitScript(async () => {
+    for (const name of ['studentsbudget-older-build', 'someone-elses-cache']) {
+      await (await caches.open(name)).put('/planted', new Response('planted'));
+    }
+  });
+
+  await completeSetup(page);
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+
+  const scriptUrl = await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.active?.scriptURL);
+  expect(scriptUrl).toMatch(/\/sw\.js\?v=.+/);
+  const version = new URL(String(scriptUrl)).searchParams.get('v');
+
+  // Exactly one cache of ours, named for that version: the older one was deleted, the stranger's was left.
+  const names = await page.evaluate(() => caches.keys());
+  expect(names.filter((name) => name.startsWith('studentsbudget-'))).toEqual([`studentsbudget-${version}`]);
+  expect(names).toContain('someone-elses-cache');
+
+  // The versioned URL the page registered, and the bare one, are both sent with no-cache.
+  for (const url of [String(scriptUrl), '/sw.js']) {
+    const response = await request.get(url);
+    expect(response.ok(), url).toBe(true);
+    expect(response.headers()['cache-control'], url).toBe('no-cache');
+  }
 });

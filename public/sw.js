@@ -1,7 +1,12 @@
 // StudentsBudget service worker: lets the installed app open with no network. Hand-written, no library.
-// Change CACHE whenever the list of pages or the strategies below change: a new name starts a fresh cache
-// and the old one is deleted on activate.
-const CACHE = 'studentsbudget-v1';
+// The page registers it as /sw.js?v=<commit of the build>. A new commit is a new script URL, so the browser
+// installs a new worker, which fills a cache of its own; once it is active it deletes the older ones. Nothing is
+// bumped by hand: the version follows the commit.
+const PREFIX = 'studentsbudget-';
+const CACHE = PREFIX + (new URL(self.location.href).searchParams.get('v') || 'unversioned');
+
+// How long a page waits for the network before the cached copy is shown instead.
+const NAVIGATION_TIMEOUT_MS = 4000;
 
 // Every route document. They are cached on install, so a page nobody has opened yet still opens offline.
 const PAGES = ['/', '/entries', '/entries/new', '/charts', '/check-in', '/reveal', '/settings', '/setup'];
@@ -26,7 +31,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const names = await caches.keys();
-      await Promise.all(names.filter((name) => name !== CACHE).map((name) => caches.delete(name)));
+      const older = names.filter((name) => name.startsWith(PREFIX) && name !== CACHE);
+      await Promise.all(older.map((name) => caches.delete(name)));
       await self.clients.claim();
     })(),
   );
@@ -50,9 +56,14 @@ self.addEventListener('fetch', (event) => {
   // fail, Next then opens the page as an ordinary navigation, and `openPage` answers that.
 });
 
+/** Only a plain answer is worth keeping: not an error page, not a redirect, not another origin's. */
+function cacheable(response) {
+  return response.ok && response.type === 'basic' && !response.redirected;
+}
+
 /**
- * Caches the pages (all required), then the files they name, and the fonts those stylesheets name. The files are
- * best effort: one failing must not fail the install.
+ * Caches the pages (all required: one failing fails the install), then the files they name and the fonts those
+ * stylesheets name (best effort: none of these may fail the install).
  */
 async function precache() {
   const cache = await caches.open(CACHE);
@@ -61,57 +72,108 @@ async function precache() {
   await Promise.all(
     PAGES.map(async (path) => {
       const response = await fetch(path, { cache: 'reload' });
-      if (!response.ok) throw new Error(`Could not cache ${path}: status ${response.status}`);
+      if (!cacheable(response)) throw new Error(`Could not cache ${path}: status ${response.status}`);
       await cache.put(path, response.clone());
       for (const [file] of (await response.text()).matchAll(STATIC_URL)) files.add(file);
     }),
   );
-  await Promise.all([...files].map((file) => cache.add(file).catch(() => undefined)));
 
   const fonts = new Set();
   await Promise.all(
-    [...files]
-      .filter((file) => file.endsWith('.css'))
-      .map(async (file) => {
-        const stylesheet = await cache.match(file);
-        if (!stylesheet) return;
-        for (const [, ref] of (await stylesheet.text()).matchAll(CSS_URL)) {
+    [...files].map(async (file) => {
+      const response = await addFile(cache, file);
+      if (!response || !file.endsWith('.css')) return;
+      try {
+        for (const [, ref] of (await response.text()).matchAll(CSS_URL)) {
           // A reference is relative to its stylesheet: ../media/<name>.woff2.
           const url = new URL(ref, new URL(file, self.location.origin));
           if (url.origin === self.location.origin && url.pathname.startsWith('/_next/static/')) fonts.add(url.href);
         }
-      }),
+      } catch {
+        // A stylesheet that cannot be read: the fonts it names are skipped.
+      }
+    }),
   );
-  await Promise.all([...fonts].map((font) => cache.add(font).catch(() => undefined)));
+  await Promise.all([...fonts].map((font) => addFile(cache, font)));
 }
 
-/** Saves a copy without making the response wait for it, or fail because of it (a full disk, say). */
-function save(event, cache, key, response) {
-  event.waitUntil(cache.put(key, response.clone()).catch(() => undefined));
-}
-
-/** Network first, so an online visit always gets the newest page. Offline: the cached page of that path, whatever the query. */
-async function openPage(event, url) {
-  const cache = await caches.open(CACHE);
-  let response;
+/** Best effort: fetches one file into the cache. Resolves the response, or null when anything went wrong. */
+async function addFile(cache, file) {
   try {
-    response = await fetch(event.request);
+    const response = await fetch(file);
+    if (!cacheable(response)) return null;
+    await cache.put(file, response.clone());
+    return response;
+  } catch {
+    return null;
+  }
+}
+
+/** What the cache holds for this request, or undefined. A cache that cannot be opened is a cache without it. */
+async function lookup(request, options) {
+  try {
+    const cache = await caches.open(CACHE);
+    return await cache.match(request, options);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Keeps a copy of a response without making anyone wait for it, or fail because of it (a full disk, say). */
+function save(event, key, response) {
+  // Cloned now, before the page starts reading the original.
+  const copy = response.clone();
+  event.waitUntil(
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE);
+        await cache.put(key, copy);
+      } catch {
+        // Not saved: the next online visit tries again.
+      }
+    })(),
+  );
+}
+
+/**
+ * Network first, so an online visit gets the newest page, but not at any price: after NAVIGATION_TIMEOUT_MS the
+ * cached page of that path is shown instead (whatever the query string), and without one the wait goes on.
+ * A network failure, as in airplane mode, shows the cached page at once. An answer that arrives late is still saved.
+ */
+async function openPage(event, url) {
+  const network = fetch(event.request).then((response) => {
+    // A page with a query is not stored: it would replace the plain one.
+    if (cacheable(response) && !url.search) save(event, url.pathname, response);
+    return response;
+  });
+  // Keeps the worker alive for a late answer and its save. The failure itself is dealt with below.
+  event.waitUntil(network.catch(() => undefined));
+
+  const tooSlow = Symbol('too slow');
+  let timer;
+  try {
+    const first = await Promise.race([
+      network,
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, NAVIGATION_TIMEOUT_MS, tooSlow);
+      }),
+    ]);
+    if (first !== tooSlow) return first;
   } catch (error) {
-    const cached = await cache.match(url.pathname, { ignoreVary: true });
+    const cached = await lookup(url.pathname, { ignoreVary: true });
     if (cached) return cached;
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
-  // Keeps the cached page current. A page with a query is not stored: it would replace the plain one.
-  if (response.ok && !url.search) save(event, cache, url.pathname, response);
-  return response;
+  return (await lookup(url.pathname, { ignoreVary: true })) ?? network;
 }
 
 /** Cache first: these files are named by a hash or never change. */
 async function cacheFirst(event, ignoreSearch) {
-  const cache = await caches.open(CACHE);
-  const cached = await cache.match(event.request, { ignoreSearch });
+  const cached = await lookup(event.request, { ignoreSearch });
   if (cached) return cached;
   const response = await fetch(event.request);
-  if (response.ok) save(event, cache, event.request, response);
+  if (cacheable(response)) save(event, event.request, response);
   return response;
 }
