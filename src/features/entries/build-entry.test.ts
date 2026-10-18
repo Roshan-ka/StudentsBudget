@@ -139,6 +139,86 @@ describe('buildEntry', () => {
     });
   });
 
+  describe('editing and the stored EUR value', () => {
+    // 95000 INR was worth 1000 cents when it was entered (rate 95).
+    const existing: Entry = {
+      id: 'entry-1',
+      type: 'expense',
+      date: '2026-10-10',
+      accountId: 'inr',
+      amountMinor: 95000,
+      eurMinor: 1000,
+      categoryId: 'food',
+      note: 'Groceries',
+      createdAt: '2026-10-10T11:00:00.000Z',
+    };
+    const edit: EntryInput = { ...expense, date: '2026-10-11', note: 'Groceries and snacks', categoryId: 'shopping' };
+
+    it('a note-only edit keeps eurMinor when the rate has moved', () => {
+      const result = buildEntry(edit, account('inr', 'INR'), { INR: rate('INR', 100) }, NOW, existing);
+
+      expect(result.ok && result.entry.eurMinor).toBe(1000);
+    });
+
+    it('a note-only edit keeps eurMinor and saves when there is no rate at all', () => {
+      const result = buildEntry(edit, account('inr', 'INR'), {}, NOW, existing);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.entry).toMatchObject({ id: 'entry-1', eurMinor: 1000, note: 'Groceries and snacks', categoryId: 'shopping' });
+    });
+
+    it('an amount edit converts again with the current rate', () => {
+      const result = buildEntry({ ...edit, amountMinor: 100000 }, account('inr', 'INR'), { INR: rate('INR', 100) }, NOW, existing);
+
+      expect(result.ok && result.entry.eurMinor).toBe(1000);
+      const other = buildEntry({ ...edit, amountMinor: 190000 }, account('inr', 'INR'), { INR: rate('INR', 95) }, NOW, existing);
+      expect(other.ok && other.entry.eurMinor).toBe(2000);
+    });
+
+    it('an amount edit without a rate is refused', () => {
+      const result = buildEntry({ ...edit, amountMinor: 190000 }, account('inr', 'INR'), {}, NOW, existing);
+
+      expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.' });
+    });
+
+    it('moving the entry to another account converts again', () => {
+      const result = buildEntry({ ...edit, accountId: 'bank' }, account('bank', 'EUR'), {}, NOW, existing);
+
+      expect(result.ok && result.entry.eurMinor).toBe(95000);
+    });
+
+    it('a transfer edit that leaves the sending account and amount alone keeps eurMinor', () => {
+      const transfer: Entry = {
+        id: 'transfer-1',
+        type: 'transfer',
+        date: '2026-10-10',
+        accountId: 'inr',
+        amountMinor: 95000,
+        eurMinor: 1000,
+        toAccountId: 'bank',
+        toAmountMinor: 1000,
+        note: '',
+        createdAt: '2026-10-10T11:00:00.000Z',
+      };
+      const input: EntryInput = {
+        type: 'transfer',
+        date: '2026-10-12',
+        accountId: 'inr',
+        amountMinor: 95000,
+        toAccountId: 'bank',
+        toAmountMinor: 1100,
+        note: 'Fee taken',
+      };
+
+      const kept = buildEntry(input, account('inr', 'INR'), {}, NOW, transfer);
+      expect(kept.ok && kept.entry.eurMinor).toBe(1000);
+
+      const changed = buildEntry({ ...input, amountMinor: 190000 }, account('inr', 'INR'), { INR: rate('INR', 100) }, NOW, transfer);
+      expect(changed.ok && changed.entry.eurMinor).toBe(1900);
+    });
+  });
+
   it('editing a transfer keeps id and createdAt', () => {
     const existing: Entry = {
       id: 'transfer-1',

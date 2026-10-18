@@ -13,7 +13,8 @@ export type EntryInput =
  * booked on (the sending account of a transfer). `eurMinor` is converted with the rate on file, so a
  * currency without one is an error. Transfers go through `buildTransfer` and report its errors.
  * With `existing` (an edit) the entry keeps that entry's `id` and `createdAt`; otherwise it keeps
- * `input.id` when there is one and gets a new id.
+ * `input.id` when there is one and gets a new id. An edit that leaves the account and the amount alone also
+ * keeps `eurMinor` and needs no rate: the EUR value was fixed when the amount was entered.
  */
 export function buildEntry(
   input: EntryInput,
@@ -40,7 +41,9 @@ function build(
   }
 
   if (input.amountMinor <= 0) return { ok: false, error: 'Enter an amount.' };
-  const eurMinor = toEurMinor(input.amountMinor, account.currency, rates);
+  const unchanged =
+    existing !== undefined && existing.accountId === input.accountId && existing.amountMinor === input.amountMinor;
+  const eurMinor = unchanged ? existing.eurMinor : toEurMinor(input.amountMinor, account.currency, rates);
   if (eurMinor === null) {
     return { ok: false, error: `No exchange rate for ${account.currency} yet. Set one in Settings.` };
   }

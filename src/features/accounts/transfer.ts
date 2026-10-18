@@ -17,7 +17,9 @@ export type TransferInput = {
 /**
  * Builds the transfer entry, or says what is wrong with the input. `eurMinor` is the sending side
  * converted to EUR with the rate on file, so a missing rate for the sending currency is an error.
- * With `existing` (an edit) the new entry keeps its `id` and `createdAt`.
+ * With `existing` (an edit) the new entry keeps its `id` and `createdAt`. It also keeps its `eurMinor`
+ * (and needs no rate) while the sending account and the amount sent are unchanged: the EUR value was fixed
+ * when that amount was entered, so a later edit of the date or note must not move it.
  */
 export function buildTransfer(
   input: TransferInput,
@@ -30,7 +32,9 @@ export function buildTransfer(
   if (input.amountMinor <= 0) return { ok: false, error: 'Enter an amount.' };
   if (input.toAmountMinor <= 0) return { ok: false, error: 'Enter the amount received.' };
 
-  const eurMinor = toEurMinor(input.amountMinor, from.currency, rates);
+  const unchanged =
+    existing !== undefined && existing.accountId === input.fromAccountId && existing.amountMinor === input.amountMinor;
+  const eurMinor = unchanged ? existing.eurMinor : toEurMinor(input.amountMinor, from.currency, rates);
   if (eurMinor === null) {
     return { ok: false, error: `No exchange rate for ${from.currency} yet. Set one in Settings.` };
   }
