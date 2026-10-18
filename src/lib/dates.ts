@@ -59,6 +59,16 @@ export function monthsBetween(a: IsoMonth, b: IsoMonth): number {
   return differenceInCalendarMonths(toDate(b), toDate(a));
 }
 
+/** The month `by` months after `month` (before, when negative): "2026-12" and 1 give "2027-01". */
+export function shiftMonth(month: IsoMonth, by: number): IsoMonth {
+  const [year, monthNumber] = month.split('-').map(Number);
+  // Counting months from year 0 keeps the arithmetic whole; Math.floor and the modulo handle negatives.
+  const index = year * 12 + (monthNumber - 1) + by;
+  const newYear = Math.floor(index / 12);
+  const newMonth = (index % 12) + 1;
+  return `${String(newYear).padStart(4, '0')}-${String(newMonth).padStart(2, '0')}`;
+}
+
 /** The Monday–Sunday week containing d, cut off at the first and last day of d's month. */
 export function weekInMonth(d: IsoDate): { start: IsoDate; end: IsoDate } {
   const date = toDate(d);

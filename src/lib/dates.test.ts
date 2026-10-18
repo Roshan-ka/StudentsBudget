@@ -6,6 +6,7 @@ import {
   firstOfMonth,
   monthOf,
   monthsBetween,
+  shiftMonth,
   todayIso,
   weekInMonth,
 } from './dates';
@@ -38,6 +39,22 @@ describe('month helpers', () => {
     expect(monthsBetween('2026-10', '2027-03')).toBe(5);
     expect(monthsBetween('2027-03', '2026-10')).toBe(-5);
     expect(monthsBetween('2026-10', '2026-10')).toBe(0);
+  });
+});
+
+describe('shiftMonth', () => {
+  it('moves forward and back across year boundaries', () => {
+    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
+    expect(shiftMonth('2027-01', -1)).toBe('2026-12');
+    expect(shiftMonth('2026-10', -10)).toBe('2025-12');
+    expect(shiftMonth('2026-10', 0)).toBe('2026-10');
+  });
+
+  it('moves by more than a year, and keeps the month two digits wide', () => {
+    expect(shiftMonth('2026-10', 14)).toBe('2027-12');
+    expect(shiftMonth('2026-10', -13)).toBe('2025-09');
+    expect(shiftMonth('2026-10', 3)).toBe('2027-01');
+    expect(shiftMonth('2026-01', 8)).toBe('2026-09');
   });
 });
 

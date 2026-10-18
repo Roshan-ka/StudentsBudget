@@ -13,11 +13,11 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { db } from '@/db/db';
 import type { Entry, Plan } from '@/db/types';
 import { categoryName, EXPENSE_CATEGORIES } from '@/features/entries/categories';
-import { formatWeekAmount } from '@/features/home/week-amount';
-import { useToday } from '@/features/home/use-today';
-import { firstOfMonth, monthOf, type IsoDate, type IsoMonth } from '@/lib/dates';
+import { firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
-import { categoryHistory, incomeBySource, shiftMonth, spendingByCategory } from './aggregate';
+import { useToday } from '@/lib/use-today';
+import { formatWeekAmount } from '@/lib/week-amount';
+import { categoryHistory, incomeBySource, spendingByCategory } from './aggregate';
 
 // One hue for every amount (slot 1 of the dataviz palette) and a lighter step of it for what was planned.
 // The two steps were validated as an ordinal pair against the light and the dark surface.

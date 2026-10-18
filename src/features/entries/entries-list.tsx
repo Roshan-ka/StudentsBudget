@@ -1,6 +1,6 @@
 'use client';
 
-import { addMonths, format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -10,7 +10,7 @@ import { CATEGORIES } from '@/data/categories';
 import { db } from '@/db/db';
 import { deleteEntry, entriesInRange } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
-import { daysInMonth, firstOfMonth, monthOf, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
+import { daysInMonth, firstOfMonth, monthOf, shiftMonth, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { categoryName } from './categories';
 import { EntryForm } from './entry-form';
@@ -29,11 +29,6 @@ function headingOf(date: IsoDate): string {
 
 function labelOf(month: IsoMonth): string {
   return monthLabel.format(parseISO(firstOfMonth(month)));
-}
-
-/** The month `by` months after `month` (before, when negative): "2026-12" and 1 give "2027-01". */
-function shiftMonth(month: IsoMonth, by: number): IsoMonth {
-  return format(addMonths(parseISO(firstOfMonth(month)), by), 'yyyy-MM');
 }
 
 /** The list for one month, keeping the category filter when there is one. */

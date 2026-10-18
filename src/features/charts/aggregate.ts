@@ -1,23 +1,8 @@
-import { CATEGORIES } from '@/data/categories';
 import type { Entry, Plan } from '@/db/types';
+import { orderOf } from '@/features/entries/categories';
 import { monthStatus } from '@/lib/budget';
-import { monthOf, type IsoMonth } from '@/lib/dates';
+import { monthOf, shiftMonth, type IsoMonth } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
-
-const ORDER = new Map(CATEGORIES.map((c) => [c.id, c.order]));
-
-/** Position in the built-in list; a category that is not built in goes last. */
-const orderOf = (categoryId: string): number => ORDER.get(categoryId) ?? Number.MAX_SAFE_INTEGER;
-
-/** The month `by` months after `month` (before, when negative): "2026-12" and 1 give "2027-01". */
-export function shiftMonth(month: IsoMonth, by: number): IsoMonth {
-  const [year, monthNumber] = month.split('-').map(Number);
-  // Counting months from year 0 keeps the arithmetic whole; Math.floor and the modulo handle negatives.
-  const index = year * 12 + (monthNumber - 1) + by;
-  const newYear = Math.floor(index / 12);
-  const newMonth = (index % 12) + 1;
-  return `${String(newYear).padStart(4, '0')}-${String(newMonth).padStart(2, '0')}`;
-}
 
 /** Adds `amountMinor` to the total under `key`. */
 function addTo(totals: Map<string, Minor>, key: string, amountMinor: Minor) {

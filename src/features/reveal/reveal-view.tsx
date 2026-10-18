@@ -9,10 +9,10 @@ import { buttonVariants } from '@/components/ui/button';
 import { db } from '@/db/db';
 import type { Entry, Guess, Plan } from '@/db/types';
 import { categoryName } from '@/features/entries/categories';
-import { useToday } from '@/features/home/use-today';
-import { formatWeekAmount } from '@/features/home/week-amount';
 import type { IsoDate, IsoMonth } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
+import { useToday } from '@/lib/use-today';
+import { formatWeekAmount } from '@/lib/week-amount';
 import { REVEAL_MIN_DAYS, completedMonths, guessVsReality, monthRecap, unlockOn, type GuessRow } from './reveal';
 
 const LINK_CLASS = 'text-primary underline-offset-4 hover:underline';

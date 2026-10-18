@@ -10,9 +10,9 @@ import { RevealCard } from '@/features/reveal/reveal-view';
 import { monthStatus, safeToSpend } from '@/lib/budget';
 import { monthOf } from '@/lib/dates';
 import { formatMoney, type CurrencyCode } from '@/lib/money';
+import { useToday } from '@/lib/use-today';
 import { EnvelopeList, type EnvelopeRow } from './envelope-list';
 import { SafeToSpendCard } from './safe-to-spend-card';
-import { useToday } from './use-today';
 
 const currencyList = new Intl.ListFormat('en-IE', { style: 'long', type: 'conjunction' });
 

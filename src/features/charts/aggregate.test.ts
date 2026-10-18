@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry, Plan } from '@/db/types';
 import { monthStatus } from '@/lib/budget';
-import { categoryHistory, incomeBySource, shiftMonth, spendingByCategory } from './aggregate';
+import { categoryHistory, incomeBySource, spendingByCategory } from './aggregate';
 
 const plan: Plan = {
   id: 'current',
@@ -332,14 +332,5 @@ describe('categoryHistory', () => {
   it('takes the number of months from count', () => {
     expect(categoryHistory([], 'food', '2026-10', 3).map((m) => m.month)).toEqual(['2026-08', '2026-09', '2026-10']);
     expect(categoryHistory([], 'food', '2026-10', 1).map((m) => m.month)).toEqual(['2026-10']);
-  });
-});
-
-describe('shiftMonth', () => {
-  it('moves forward and back across year boundaries', () => {
-    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
-    expect(shiftMonth('2027-01', -1)).toBe('2026-12');
-    expect(shiftMonth('2026-10', -10)).toBe('2025-12');
-    expect(shiftMonth('2026-10', 0)).toBe('2026-10');
   });
 });

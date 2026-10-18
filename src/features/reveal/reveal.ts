@@ -1,8 +1,7 @@
-import { CATEGORIES } from '@/data/categories';
 import type { Entry, Guess, Plan } from '@/db/types';
-import { shiftMonth } from '@/features/charts/aggregate';
+import { orderOf } from '@/features/entries/categories';
 import { monthStatus } from '@/lib/budget';
-import { addDays, daysBetween, monthOf, monthsBetween, type IsoDate, type IsoMonth } from '@/lib/dates';
+import { addDays, daysBetween, monthOf, monthsBetween, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 
 /** Days of logging before the guesses are compared with what was spent. */
@@ -10,11 +9,6 @@ export const REVEAL_MIN_DAYS = 21;
 
 /** What spent so far is scaled to, so a 22-day window and a 40-day window read as the same kind of number. */
 const DAYS_PER_MONTH = 30;
-
-const ORDER = new Map(CATEGORIES.map((c) => [c.id, c.order]));
-
-/** Position in the built-in list; a category that is not built in goes last. */
-const orderOf = (categoryId: string): number => ORDER.get(categoryId) ?? Number.MAX_SAFE_INTEGER;
 
 const sum = (values: Minor[]): Minor => values.reduce((total, value) => total + value, 0);
 
