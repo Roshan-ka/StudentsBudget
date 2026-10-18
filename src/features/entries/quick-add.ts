@@ -35,6 +35,11 @@ const NUMBER_LIKE = new RegExp('^[\\p{Nd}\\p{Sc}]', 'u');
 const WHOLE_NUMBER = /^\d+$/;
 const ZERO = /^0+(?:[.,]0+)?$/;
 
+/** What dictation puts at the end of a phrase: "Döner 6 €." (full stop, !, ?, … and runs of them). */
+const SENTENCE_END = /[.!?…]+$/;
+/** What dictation puts after a word inside a phrase: "Coffee, 6 €". */
+const WORD_SEPARATOR_END = /[,;:]+$/;
+
 /** A number found in the line: tokens `start` to `end` (inclusive), in minor units. */
 type Candidate = { start: number; end: number; minor: Minor; marked: boolean };
 
@@ -64,6 +69,14 @@ function stripMarker(token: string): { core: string; attached: boolean } {
   const suffix = MARKER_SUFFIX.exec(token);
   if (suffix) return { core: token.slice(0, suffix.index), attached: true };
   return { core: token, attached: false };
+}
+
+/** The token without a comma, semicolon or colon after a word. A number keeps them: "6,50" is a decimal. */
+function withoutSeparator(token: string): string {
+  const stripped = token.replace(WORD_SEPARATOR_END, '');
+  if (isMarker(stripped)) return stripped;
+  const looksLikeNumber = NUMBER_LIKE.test(token) || NUMBER_LIKE.test(stripMarker(token).core);
+  return looksLikeNumber ? token : stripped;
 }
 
 /** Lower-cased words, one per token; a hyphen compound like "twenty-five" gives two. */
@@ -221,30 +234,45 @@ function findCandidates(tokens: string[]): Candidate[] | null {
  * A number is digits that `parseAmount` accepts, or English number words (whole euros only); "6 euro 50"
  * (and "6 euro 50 cents") at the end of the line is 6 euros and 50 cents. The note is the rest of the line as typed, without that number and its marker.
  * Returns null when there is no amount, and also when the line has something that looks like an amount
- * but cannot be read ("$7", "6,505", "fifty cents", "one million"): a silently wrong amount is worse.
+ * but cannot be read ("$7", "6,505", "fifty cents", "one million"), or when two bare numbers stand side by
+ * side ("coffee 7 40"): a silently wrong amount is worse.
+ *
+ * Dictation punctuation does not count: a full stop, !, ? or … at the end of the line is dropped, and so is
+ * a comma, semicolon or colon after a word ("Coffee, 6 €.") but not after a number ("6,50" is a decimal).
  */
 export function parseQuickAdd(text: string): { amountMinor: Minor; note: string } | null {
-  const trimmed = text.trim();
+  const trimmed = text.trim().replace(SENTENCE_END, '').trimEnd();
+  // `tokens` is the line as typed, for the note; `read` has the same tokens without a word's separator.
   const tokens = trimmed === '' ? [] : trimmed.split(/\s+/);
-  const candidates = findCandidates(tokens);
+  const read = tokens.map(withoutSeparator);
+  const candidates = findCandidates(read);
   if (candidates === null || candidates.length === 0) return null;
 
-  const nextToMarker = (c: Candidate) => c.marked || isMarker(tokens[c.start - 1]) || isMarker(tokens[c.end + 1]);
+  const nextToMarker = (c: Candidate) => c.marked || isMarker(read[c.start - 1]) || isMarker(read[c.end + 1]);
   const marked = candidates.filter(nextToMarker);
   const chosen = marked.length > 0 ? marked[marked.length - 1] : candidates[candidates.length - 1];
 
+  // Without a marker the last number wins. A bare number right before it ("coffee 7 40", "coffee seven forty")
+  // could as well be the euros of "7,40" said in two parts, so the line has no clear amount.
+  const before = candidates[candidates.length - 2];
+  if (marked.length === 0 && before !== undefined && before.end + 1 === chosen.start) return null;
+
   const drop = new Set<number>();
   for (let i = chosen.start; i <= chosen.end; i += 1) drop.add(i);
-  if (isMarker(tokens[chosen.start - 1])) drop.add(chosen.start - 1);
-  if (isMarker(tokens[chosen.end + 1])) drop.add(chosen.end + 1);
+  if (isMarker(read[chosen.start - 1])) drop.add(chosen.start - 1);
+  if (isMarker(read[chosen.end + 1])) drop.add(chosen.end + 1);
 
-  const note = tokens.filter((_, i) => !drop.has(i)).join(' ');
+  // A separator left dangling at the end ("Coffee," from "Coffee, 6 €") is not part of the note.
+  const note = tokens
+    .filter((_, i) => !drop.has(i))
+    .join(' ')
+    .replace(/[\s,;:]+$/, '');
   return { amountMinor: chosen.minor, note };
 }
 
-/** The first word of a note, trimmed and lower-cased, or null for a blank note. */
+/** The first word of a note, without a comma, semicolon or colon after it, lower-cased; null for a blank note. */
 export function keywordOf(note: string): string | null {
-  const first = note.trim().split(/\s+/)[0];
+  const first = note.trim().split(/\s+/)[0].replace(WORD_SEPARATOR_END, '');
   return first ? first.toLocaleLowerCase('de-DE') : null;
 }
 

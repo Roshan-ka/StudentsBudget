@@ -264,6 +264,62 @@ describe('parseQuickAdd', () => {
     }
   });
 
+  it('ignores the sentence-final punctuation that dictation adds at the end of the line', () => {
+    const cases: [string, number, string][] = [
+      ['Döner 6 €.', 600, 'Döner'],
+      ['Coffee €6.', 600, 'Coffee'],
+      ['Coffee 6€.', 600, 'Coffee'],
+      ['Döner 6,50 €.', 650, 'Döner'],
+      ['Döner 6 Euro 50.', 650, 'Döner'],
+      ['Coffee six euros fifty.', 650, 'Coffee'],
+      ['Coffee 6 euros.', 600, 'Coffee'],
+      ['Coffee 6!', 600, 'Coffee'],
+      ['Coffee 6?', 600, 'Coffee'],
+      ['Coffee 6…', 600, 'Coffee'],
+      ['Coffee 6 euros?!', 600, 'Coffee'],
+      ['Coffee 6 euros...', 600, 'Coffee'],
+      ['Coffee 6 .', 600, 'Coffee'],
+      ['Coffee 6,50.', 650, 'Coffee'],
+      ['Coffee 6.50.', 650, 'Coffee'],
+    ];
+    for (const [text, amountMinor, note] of cases) {
+      expect(parseQuickAdd(text), text).toEqual({ amountMinor, note });
+    }
+  });
+
+  it('still returns null for a full stop inside the line, and for punctuation with no amount', () => {
+    expect(parseQuickAdd('coffee 6. 2')).toBeNull();
+    expect(parseQuickAdd('coffee.')).toBeNull();
+    expect(parseQuickAdd('...')).toBeNull();
+    expect(parseQuickAdd('€.')).toBeNull();
+  });
+
+  it('ignores a trailing comma, semicolon or colon on a word, but not on a number', () => {
+    expect(parseQuickAdd('Coffee, 6 €')).toEqual({ amountMinor: 600, note: 'Coffee' });
+    expect(parseQuickAdd('Coffee: six euros')).toEqual({ amountMinor: 600, note: 'Coffee' });
+    expect(parseQuickAdd('Coffee; 6 euros, thanks')).toEqual({ amountMinor: 600, note: 'Coffee; thanks' });
+    expect(parseQuickAdd('Coffee six, euros')).toEqual({ amountMinor: 600, note: 'Coffee' });
+    expect(parseQuickAdd('Coffee six euros, fifty')).toEqual({ amountMinor: 650, note: 'Coffee' });
+    expect(parseQuickAdd('Coffee 6 €, thanks')).toEqual({ amountMinor: 600, note: 'Coffee thanks' });
+    expect(parseQuickAdd('Coffee, with Tom, 6')).toEqual({ amountMinor: 600, note: 'Coffee, with Tom' });
+    expect(parseQuickAdd('Coffee 6,50')).toEqual({ amountMinor: 650, note: 'Coffee' });
+    expect(parseQuickAdd('Coffee 6, 2')).toBeNull();
+  });
+
+  it('returns null when the chosen number has a bare number straight before it', () => {
+    for (const text of ['coffee 7 40', 'coffee seven forty', 'coffee 2 6', '7 40', 'coffee 7 forty']) {
+      expect(parseQuickAdd(text), text).toBeNull();
+    }
+  });
+
+  it('keeps an amount that has other words between it and the number before it, or a marker', () => {
+    expect(parseQuickAdd('2 coffees 7,40')).toEqual({ amountMinor: 740, note: '2 coffees' });
+    expect(parseQuickAdd('coffee 7 40 €')).toEqual({ amountMinor: 4000, note: 'coffee 7' });
+    expect(parseQuickAdd('coffee 7 €40')).toEqual({ amountMinor: 4000, note: 'coffee 7' });
+    expect(parseQuickAdd('coffee 0 40')).toEqual({ amountMinor: 4000, note: 'coffee 0' });
+    expect(parseQuickAdd('coffee twenty five')).toEqual({ amountMinor: 2500, note: 'coffee' });
+  });
+
   it('is not confused by words that are property names of plain objects', () => {
     expect(parseQuickAdd('constructor toString 6')).toEqual({ amountMinor: 600, note: 'constructor toString' });
   });
@@ -279,6 +335,12 @@ describe('keywordOf', () => {
     expect(keywordOf('Döner with Tom')).toBe('döner');
     expect(keywordOf('  Coffee  ')).toBe('coffee');
     expect(keywordOf('ÄPFEL')).toBe('äpfel');
+  });
+
+  it('leaves out a comma, semicolon or colon that dictation puts after the word', () => {
+    expect(keywordOf('Coffee, 6 €')).toBe('coffee');
+    expect(keywordOf('Döner: with Tom')).toBe('döner');
+    expect(keywordOf('Döner; with Tom')).toBe('döner');
   });
 
   it('returns null for a blank note', () => {
