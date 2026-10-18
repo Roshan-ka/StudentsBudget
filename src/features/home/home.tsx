@@ -5,6 +5,7 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import type { Plan } from '@/db/types';
 import { totalInEur } from '@/features/accounts/balances';
+import { CheckInCard } from '@/features/check-in/check-in-card';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RevealCard } from '@/features/reveal/reveal-view';
 import { monthStatus, safeToSpend } from '@/lib/budget';
@@ -63,6 +64,7 @@ export function HomeScreen({ plan }: { plan: Plan }) {
       <>
         <SafeToSpendCard totalMinor={week.totalMinor} weekStart={week.weekStart} weekEnd={week.weekEnd} />
         <EnvelopeList rows={rows} />
+        <CheckInCard today={today} />
         <RevealCard startedOn={plan.createdOn} today={today} />
         <div className="flex flex-col gap-1">
           <p className="font-medium">

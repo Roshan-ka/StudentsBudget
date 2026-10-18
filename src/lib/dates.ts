@@ -5,6 +5,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  getDay,
   getDaysInMonth,
   parseISO,
   startOfMonth,
@@ -67,6 +68,11 @@ export function shiftMonth(month: IsoMonth, by: number): IsoMonth {
   const newYear = Math.floor(index / 12);
   const newMonth = (index % 12) + 1;
   return `${String(newYear).padStart(4, '0')}-${String(newMonth).padStart(2, '0')}`;
+}
+
+/** Whether d is a Sunday, the last day of the week and the day of the check-in. */
+export function isSunday(d: IsoDate): boolean {
+  return getDay(toDate(d)) === 0;
 }
 
 /** The Monday–Sunday week containing d, cut off at the first and last day of d's month. */

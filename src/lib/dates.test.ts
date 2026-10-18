@@ -4,6 +4,7 @@ import {
   daysBetween,
   daysInMonth,
   firstOfMonth,
+  isSunday,
   monthOf,
   monthsBetween,
   shiftMonth,
@@ -78,6 +79,16 @@ describe('day arithmetic', () => {
     expect(daysBetween('2026-03-28', '2026-03-30')).toBe(2);
     expect(daysBetween('2026-10-24', '2026-10-26')).toBe(2);
     expect(daysBetween('2026-10-16', '2026-10-16')).toBe(0);
+  });
+});
+
+describe('isSunday', () => {
+  it('is true on a Sunday only', () => {
+    expect(isSunday('2026-10-18')).toBe(true);
+    expect(isSunday('2026-11-01')).toBe(true);
+    expect(isSunday('2026-10-17')).toBe(false);
+    expect(isSunday('2026-10-19')).toBe(false);
+    expect(isSunday('2026-10-16')).toBe(false);
   });
 });
 
