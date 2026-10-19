@@ -29,6 +29,19 @@ Exchange rates need a connection to refresh. Offline, the app shows the last rat
 - A backup file is a plain JSON file that you keep. The app never uploads it. Anyone who has the file can read your data, so keep it somewhere you trust.
 - Clearing the site's data in your browser, or removing the app, deletes your data. Export a backup regularly: Settings, then Backup, then Export backup. To get your data back, choose the file under Restore from a backup, in Settings or on the setup screen.
 
+## Try a demo backup
+
+Download [the demo backup](fixtures/studentsbudget-demo-2026-10.json) (use **Download raw file** on GitHub). It contains fictional data for September and October 2026: 3 accounts (EUR bank, INR bank and EUR cash), 47 entries, all 18 categories, a budget, initial spending guesses and a manual exchange rate of INR 95 per EUR.
+
+1. Export your existing data first if you want to keep it. Restoring replaces everything on this browser/device.
+2. On the setup screen, or in **Settings → Backup**, choose the JSON under **Restore from a backup → File to restore**.
+3. Confirm with **Yes**. The app returns to the home screen with the restored budget.
+4. Explore **Entries**, **Charts**, **Settings** (accounts and exchange rates), and the weekly check-in. October shopping is deliberately over budget. Try adding an expense, then exporting and restoring your own backup.
+
+Immediately after restore, account balances should be **EUR 1,680.22** (local bank), **INR 170,050.00** (home bank), and **EUR 143.00** (cash). At the saved manual rate, the combined balance is **EUR 3,613.22** (home rounds to EUR 3,613). Transfers affect account balances but do not count as spending or income in charts.
+
+The demo dates are fixed: October 2026 has current spending; select September or October in Charts if you try this later. Home and check-in always use your device's current date, so their figures change over time. The INR rate is fictional test data, not a current market quote.
+
 ## Project notes
 `docs/` is an Obsidian vault (open the folder as a vault). Read in this order:
 

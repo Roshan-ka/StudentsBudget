@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import { parseBackup, serializeBackup } from '@/features/backup/backup';
@@ -99,6 +100,31 @@ describe('exportAll', () => {
 });
 
 describe('replaceAll', () => {
+  it('restores the downloadable demo backup without losing any rows', async () => {
+    const text = readFileSync(new URL('../../fixtures/studentsbudget-demo-2026-10.json', import.meta.url), 'utf8');
+    const parsed = parseBackup(text);
+    if (!parsed.ok) throw new Error(parsed.error);
+    await fillWithOldData();
+
+    await replaceAll(parsed.data);
+
+    const restored = await exportAll();
+    // IndexedDB sorts rows by primary key; compare file contents independently of row order.
+    for (const table of ['accounts', 'categories', 'entries', 'guesses', 'fxRates'] as const) {
+      expect(restored[table]).toHaveLength(parsed.data[table].length);
+      expect(restored[table]).toEqual(expect.arrayContaining<unknown>(parsed.data[table]));
+    }
+    expect(restored.plan).toEqual(parsed.data.plan);
+    expect(restored.entries).toHaveLength(47);
+    const accountIds = new Set(restored.accounts.map((a) => a.id));
+    const categoryIds = new Set(restored.categories.map((c) => c.id));
+    for (const entry of restored.entries) {
+      expect(accountIds.has(entry.accountId)).toBe(true);
+      if (entry.type === 'transfer') expect(accountIds.has(entry.toAccountId)).toBe(true);
+      else expect(categoryIds.has(entry.categoryId)).toBe(true);
+    }
+  });
+
   it('replaces the existing rows of every table', async () => {
     await fillWithOldData();
 

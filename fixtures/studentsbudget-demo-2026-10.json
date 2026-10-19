@@ -1,0 +1,778 @@
+{
+  "app": "studentsbudget",
+  "version": 1,
+  "exportedAt": "2026-10-19T10:00:00.000Z",
+  "data": {
+    "accounts": [
+      {
+        "id": "demo-local",
+        "name": "Local bank (demo)",
+        "kind": "bank",
+        "currency": "EUR",
+        "openingMinor": 120000,
+        "createdAt": "2026-09-01T08:00:00.000Z"
+      },
+      {
+        "id": "demo-home",
+        "name": "Home bank (demo)",
+        "kind": "bank",
+        "currency": "INR",
+        "openingMinor": 19000000,
+        "createdAt": "2026-09-01T08:00:00.000Z"
+      },
+      {
+        "id": "demo-cash",
+        "name": "Cash (demo)",
+        "kind": "cash",
+        "currency": "EUR",
+        "openingMinor": 8000,
+        "createdAt": "2026-09-01T08:00:00.000Z"
+      }
+    ],
+    "categories": [
+      {
+        "id": "food",
+        "name": "Food & groceries",
+        "kind": "flexible",
+        "order": 0
+      },
+      {
+        "id": "eating-out",
+        "name": "Eating out",
+        "kind": "flexible",
+        "order": 1
+      },
+      {
+        "id": "going-out",
+        "name": "Going out",
+        "kind": "flexible",
+        "order": 2
+      },
+      {
+        "id": "transport",
+        "name": "Transport",
+        "kind": "flexible",
+        "order": 3
+      },
+      {
+        "id": "shopping",
+        "name": "Shopping",
+        "kind": "flexible",
+        "order": 4
+      },
+      {
+        "id": "other",
+        "name": "Other",
+        "kind": "flexible",
+        "order": 5
+      },
+      {
+        "id": "rent",
+        "name": "Rent",
+        "kind": "fixed",
+        "order": 6
+      },
+      {
+        "id": "phone",
+        "name": "Phone & internet",
+        "kind": "fixed",
+        "order": 7
+      },
+      {
+        "id": "insurance",
+        "name": "Insurance",
+        "kind": "fixed",
+        "order": 8
+      },
+      {
+        "id": "subscriptions",
+        "name": "Subscriptions",
+        "kind": "fixed",
+        "order": 9
+      },
+      {
+        "id": "transport-pass",
+        "name": "Deutschlandticket / semester ticket",
+        "kind": "fixed",
+        "order": 10
+      },
+      {
+        "id": "one-off",
+        "name": "One-off costs",
+        "kind": "oneoff",
+        "order": 11
+      },
+      {
+        "id": "income-job",
+        "name": "Job",
+        "kind": "income",
+        "order": 12
+      },
+      {
+        "id": "income-parents",
+        "name": "Parents",
+        "kind": "income",
+        "order": 13
+      },
+      {
+        "id": "income-bafoeg",
+        "name": "BAföG",
+        "kind": "income",
+        "order": 14
+      },
+      {
+        "id": "income-sperrkonto",
+        "name": "Blocked account",
+        "kind": "income",
+        "order": 15
+      },
+      {
+        "id": "income-scholarship",
+        "name": "Scholarship",
+        "kind": "income",
+        "order": 16
+      },
+      {
+        "id": "income-other",
+        "name": "Other income",
+        "kind": "income",
+        "order": 17
+      }
+    ],
+    "entries": [
+      {
+        "id": "demo-entry-001",
+        "type": "income",
+        "date": "2026-09-01",
+        "accountId": "demo-local",
+        "categoryId": "income-parents",
+        "amountMinor": 70000,
+        "eurMinor": 70000,
+        "note": "Family support (demo)",
+        "createdAt": "2026-09-01T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-002",
+        "type": "income",
+        "date": "2026-09-01",
+        "accountId": "demo-local",
+        "categoryId": "income-job",
+        "amountMinor": 52000,
+        "eurMinor": 52000,
+        "note": "Student job (demo)",
+        "createdAt": "2026-09-01T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-003",
+        "type": "expense",
+        "date": "2026-09-01",
+        "accountId": "demo-local",
+        "categoryId": "rent",
+        "amountMinor": 45000,
+        "eurMinor": 45000,
+        "note": "Student apartment",
+        "createdAt": "2026-09-01T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-004",
+        "type": "expense",
+        "date": "2026-09-02",
+        "accountId": "demo-local",
+        "categoryId": "insurance",
+        "amountMinor": 12500,
+        "eurMinor": 12500,
+        "note": "Health insurance",
+        "createdAt": "2026-09-02T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-008",
+        "type": "expense",
+        "date": "2026-09-02",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 2470,
+        "eurMinor": 2470,
+        "note": "Groceries",
+        "createdAt": "2026-09-02T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-009",
+        "type": "expense",
+        "date": "2026-09-02",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 850,
+        "eurMinor": 850,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-09-02T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-005",
+        "type": "expense",
+        "date": "2026-09-03",
+        "accountId": "demo-local",
+        "categoryId": "phone",
+        "amountMinor": 1500,
+        "eurMinor": 1500,
+        "note": "Mobile plan",
+        "createdAt": "2026-09-03T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-006",
+        "type": "expense",
+        "date": "2026-09-04",
+        "accountId": "demo-local",
+        "categoryId": "transport-pass",
+        "amountMinor": 4300,
+        "eurMinor": 4300,
+        "note": "Monthly transport pass",
+        "createdAt": "2026-09-04T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-007",
+        "type": "expense",
+        "date": "2026-09-05",
+        "accountId": "demo-local",
+        "categoryId": "subscriptions",
+        "amountMinor": 999,
+        "eurMinor": 999,
+        "note": "Music subscription",
+        "createdAt": "2026-09-05T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-022",
+        "type": "transfer",
+        "date": "2026-09-05",
+        "accountId": "demo-local",
+        "toAccountId": "demo-cash",
+        "amountMinor": 10000,
+        "toAmountMinor": 10000,
+        "eurMinor": 10000,
+        "note": "ATM withdrawal",
+        "createdAt": "2026-09-05T09:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-010",
+        "type": "expense",
+        "date": "2026-09-06",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 2510,
+        "eurMinor": 2510,
+        "note": "Groceries",
+        "createdAt": "2026-09-06T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-011",
+        "type": "expense",
+        "date": "2026-09-06",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 850,
+        "eurMinor": 850,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-09-06T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-045",
+        "type": "expense",
+        "date": "2026-09-07",
+        "accountId": "demo-local",
+        "categoryId": "one-off",
+        "amountMinor": 24000,
+        "eurMinor": 24000,
+        "note": "Bicycle for university",
+        "createdAt": "2026-09-07T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-018",
+        "type": "expense",
+        "date": "2026-09-08",
+        "accountId": "demo-local",
+        "categoryId": "shopping",
+        "amountMinor": 3200,
+        "eurMinor": 3200,
+        "note": "Books and study supplies",
+        "createdAt": "2026-09-08T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-012",
+        "type": "expense",
+        "date": "2026-09-10",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 2550,
+        "eurMinor": 2550,
+        "note": "Groceries",
+        "createdAt": "2026-09-10T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-013",
+        "type": "expense",
+        "date": "2026-09-10",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 850,
+        "eurMinor": 850,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-09-10T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-019",
+        "type": "expense",
+        "date": "2026-09-12",
+        "accountId": "demo-cash",
+        "categoryId": "going-out",
+        "amountMinor": 2200,
+        "eurMinor": 2200,
+        "note": "Cinema and drinks",
+        "createdAt": "2026-09-12T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-014",
+        "type": "expense",
+        "date": "2026-09-14",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 2590,
+        "eurMinor": 2590,
+        "note": "Groceries",
+        "createdAt": "2026-09-14T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-015",
+        "type": "expense",
+        "date": "2026-09-14",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 850,
+        "eurMinor": 850,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-09-14T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-020",
+        "type": "expense",
+        "date": "2026-09-15",
+        "accountId": "demo-local",
+        "categoryId": "transport",
+        "amountMinor": 650,
+        "eurMinor": 650,
+        "note": "Bus ticket",
+        "createdAt": "2026-09-15T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-021",
+        "type": "expense",
+        "date": "2026-09-16",
+        "accountId": "demo-local",
+        "categoryId": "other",
+        "amountMinor": 1200,
+        "eurMinor": 1200,
+        "note": "Laundry and household items",
+        "createdAt": "2026-09-16T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-016",
+        "type": "expense",
+        "date": "2026-09-18",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 3870,
+        "eurMinor": 3870,
+        "note": "Groceries",
+        "createdAt": "2026-09-18T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-017",
+        "type": "expense",
+        "date": "2026-09-18",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 1250,
+        "eurMinor": 1250,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-09-18T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-023",
+        "type": "income",
+        "date": "2026-10-01",
+        "accountId": "demo-local",
+        "categoryId": "income-parents",
+        "amountMinor": 70000,
+        "eurMinor": 70000,
+        "note": "Family support (demo)",
+        "createdAt": "2026-10-01T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-024",
+        "type": "income",
+        "date": "2026-10-01",
+        "accountId": "demo-local",
+        "categoryId": "income-job",
+        "amountMinor": 52000,
+        "eurMinor": 52000,
+        "note": "Student job (demo)",
+        "createdAt": "2026-10-01T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-025",
+        "type": "expense",
+        "date": "2026-10-01",
+        "accountId": "demo-local",
+        "categoryId": "rent",
+        "amountMinor": 45000,
+        "eurMinor": 45000,
+        "note": "Student apartment",
+        "createdAt": "2026-10-01T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-026",
+        "type": "expense",
+        "date": "2026-10-02",
+        "accountId": "demo-local",
+        "categoryId": "insurance",
+        "amountMinor": 12500,
+        "eurMinor": 12500,
+        "note": "Health insurance",
+        "createdAt": "2026-10-02T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-030",
+        "type": "expense",
+        "date": "2026-10-02",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 2470,
+        "eurMinor": 2470,
+        "note": "Groceries",
+        "createdAt": "2026-10-02T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-031",
+        "type": "expense",
+        "date": "2026-10-02",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 850,
+        "eurMinor": 850,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-10-02T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-027",
+        "type": "expense",
+        "date": "2026-10-03",
+        "accountId": "demo-local",
+        "categoryId": "phone",
+        "amountMinor": 1500,
+        "eurMinor": 1500,
+        "note": "Mobile plan",
+        "createdAt": "2026-10-03T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-028",
+        "type": "expense",
+        "date": "2026-10-04",
+        "accountId": "demo-local",
+        "categoryId": "transport-pass",
+        "amountMinor": 4300,
+        "eurMinor": 4300,
+        "note": "Monthly transport pass",
+        "createdAt": "2026-10-04T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-029",
+        "type": "expense",
+        "date": "2026-10-05",
+        "accountId": "demo-local",
+        "categoryId": "subscriptions",
+        "amountMinor": 999,
+        "eurMinor": 999,
+        "note": "Music subscription",
+        "createdAt": "2026-10-05T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-044",
+        "type": "transfer",
+        "date": "2026-10-05",
+        "accountId": "demo-local",
+        "toAccountId": "demo-cash",
+        "amountMinor": 10000,
+        "toAmountMinor": 10000,
+        "eurMinor": 10000,
+        "note": "ATM withdrawal",
+        "createdAt": "2026-10-05T09:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-032",
+        "type": "expense",
+        "date": "2026-10-06",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 2510,
+        "eurMinor": 2510,
+        "note": "Groceries",
+        "createdAt": "2026-10-06T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-033",
+        "type": "expense",
+        "date": "2026-10-06",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 850,
+        "eurMinor": 850,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-10-06T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-040",
+        "type": "expense",
+        "date": "2026-10-08",
+        "accountId": "demo-local",
+        "categoryId": "shopping",
+        "amountMinor": 8500,
+        "eurMinor": 8500,
+        "note": "Books and study supplies",
+        "createdAt": "2026-10-08T12:00:00.000Z"
+      },
+      {
+        "id": "demo-home-transfer",
+        "type": "transfer",
+        "date": "2026-10-09",
+        "accountId": "demo-home",
+        "toAccountId": "demo-local",
+        "amountMinor": 1900000,
+        "toAmountMinor": 20000,
+        "eurMinor": 20000,
+        "note": "Transfer from home bank at demo rate",
+        "createdAt": "2026-10-09T10:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-034",
+        "type": "expense",
+        "date": "2026-10-10",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 2550,
+        "eurMinor": 2550,
+        "note": "Groceries",
+        "createdAt": "2026-10-10T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-035",
+        "type": "expense",
+        "date": "2026-10-10",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 850,
+        "eurMinor": 850,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-10-10T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-041",
+        "type": "expense",
+        "date": "2026-10-12",
+        "accountId": "demo-cash",
+        "categoryId": "going-out",
+        "amountMinor": 2200,
+        "eurMinor": 2200,
+        "note": "Cinema and drinks",
+        "createdAt": "2026-10-12T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-036",
+        "type": "expense",
+        "date": "2026-10-14",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 2590,
+        "eurMinor": 2590,
+        "note": "Groceries",
+        "createdAt": "2026-10-14T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-037",
+        "type": "expense",
+        "date": "2026-10-14",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 850,
+        "eurMinor": 850,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-10-14T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-042",
+        "type": "expense",
+        "date": "2026-10-15",
+        "accountId": "demo-local",
+        "categoryId": "transport",
+        "amountMinor": 650,
+        "eurMinor": 650,
+        "note": "Bus ticket",
+        "createdAt": "2026-10-15T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-043",
+        "type": "expense",
+        "date": "2026-10-16",
+        "accountId": "demo-local",
+        "categoryId": "other",
+        "amountMinor": 1200,
+        "eurMinor": 1200,
+        "note": "Laundry and household items",
+        "createdAt": "2026-10-16T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-046",
+        "type": "expense",
+        "date": "2026-10-17",
+        "accountId": "demo-home",
+        "categoryId": "shopping",
+        "amountMinor": 95000,
+        "eurMinor": 1000,
+        "note": "University books paid from home bank",
+        "createdAt": "2026-10-17T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-038",
+        "type": "expense",
+        "date": "2026-10-18",
+        "accountId": "demo-local",
+        "categoryId": "food",
+        "amountMinor": 3870,
+        "eurMinor": 3870,
+        "note": "Groceries",
+        "createdAt": "2026-10-18T12:00:00.000Z"
+      },
+      {
+        "id": "demo-entry-039",
+        "type": "expense",
+        "date": "2026-10-18",
+        "accountId": "demo-cash",
+        "categoryId": "eating-out",
+        "amountMinor": 1250,
+        "eurMinor": 1250,
+        "note": "Lunch with classmates",
+        "createdAt": "2026-10-18T12:00:00.000Z"
+      }
+    ],
+    "plan": {
+      "id": "current",
+      "cityId": "regensburg",
+      "incomes": [
+        {
+          "categoryId": "income-parents",
+          "monthlyMinor": 70000
+        },
+        {
+          "categoryId": "income-job",
+          "monthlyMinor": 52000
+        }
+      ],
+      "fixed": [
+        {
+          "categoryId": "rent",
+          "monthlyMinor": 45000
+        },
+        {
+          "categoryId": "insurance",
+          "monthlyMinor": 12500
+        },
+        {
+          "categoryId": "phone",
+          "monthlyMinor": 1500
+        },
+        {
+          "categoryId": "transport-pass",
+          "monthlyMinor": 4300
+        },
+        {
+          "categoryId": "subscriptions",
+          "monthlyMinor": 999
+        }
+      ],
+      "oneOffs": [
+        {
+          "id": "demo-semester",
+          "name": "Next semester fee",
+          "amountMinor": 30000,
+          "createdMonth": "2026-09",
+          "dueMonth": "2027-03"
+        }
+      ],
+      "envelopes": [
+        {
+          "categoryId": "food",
+          "monthlyMinor": 22000
+        },
+        {
+          "categoryId": "eating-out",
+          "monthlyMinor": 8000
+        },
+        {
+          "categoryId": "going-out",
+          "monthlyMinor": 5000
+        },
+        {
+          "categoryId": "transport",
+          "monthlyMinor": 2000
+        },
+        {
+          "categoryId": "shopping",
+          "monthlyMinor": 6000
+        },
+        {
+          "categoryId": "other",
+          "monthlyMinor": 3000
+        }
+      ],
+      "createdOn": "2026-09-01"
+    },
+    "guesses": [
+      {
+        "categoryId": "food",
+        "monthlyMinor": 18000,
+        "guessedOn": "2026-09-01"
+      },
+      {
+        "categoryId": "eating-out",
+        "monthlyMinor": 5000,
+        "guessedOn": "2026-09-01"
+      },
+      {
+        "categoryId": "going-out",
+        "monthlyMinor": 4000,
+        "guessedOn": "2026-09-01"
+      },
+      {
+        "categoryId": "transport",
+        "monthlyMinor": 2000,
+        "guessedOn": "2026-09-01"
+      },
+      {
+        "categoryId": "shopping",
+        "monthlyMinor": 4000,
+        "guessedOn": "2026-09-01"
+      },
+      {
+        "categoryId": "other",
+        "monthlyMinor": 2000,
+        "guessedOn": "2026-09-01"
+      }
+    ],
+    "fxRates": [
+      {
+        "currency": "INR",
+        "perEur": 95,
+        "rateDate": "2026-10-16",
+        "fetchedOn": "2026-10-19",
+        "source": "manual"
+      }
+    ]
+  }
+}
