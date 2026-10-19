@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Account, Entry, Plan, PlanLine, Rate } from '../src/db/types';
 import { FRANKFURTER, completeSetup, readStore } from './helpers/setup';
 
@@ -229,4 +229,44 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   const [parents] = (await readStore<Entry>(page, 'entries')).filter((e) => e.type === 'income');
   expect(parents.eurMinor).toBe(50000);
   expect((await line(page, 'income-parents'))?.schedule?.postedThrough).toBe('2026-11-30');
+});
+
+/** Whether the text of the option a select shows fits between its padding, as a browser clips it when it does not. */
+async function selectTextFits(select: Locator) {
+  return select.evaluate(async (element) => {
+    await document.fonts.ready;
+    const field = element as HTMLSelectElement;
+    const style = getComputedStyle(field);
+    const context = document.createElement('canvas').getContext('2d');
+    if (!context) throw new Error('no canvas');
+    context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const shown = context.measureText(field.selectedOptions[0].text).width;
+    const room = field.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    return { fits: shown <= room, shown: Math.round(shown), room: Math.round(room) };
+  });
+}
+
+async function expectTextFits(select: Locator, text: string) {
+  const { fits, shown, room } = await selectTextFits(select);
+  expect(fits, `"${text}" needs ${shown}px of the ${room}px its select has`).toBe(true);
+}
+
+test('the repeat fields show their whole text at 375 px', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.clock.setFixedTime(on(2026, 10, 16));
+  await completeSetup(page, {}, { schedules: true });
+  await openSettings(page);
+  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
+  const form = page.getByRole('form', { name: 'Change Rent' });
+  const repeats = form.getByLabel('Repeats', { exact: true });
+  const day = form.getByLabel('Day', { exact: true });
+
+  // "Monthly on day" is the longest thing the first select says, and "Wednesday" the longest in the second.
+  await expect(repeats).toHaveValue('monthly');
+  await expectTextFits(repeats, 'Monthly on day');
+  await repeats.selectOption('weekly');
+  await day.selectOption({ label: 'Wednesday' });
+  await expectTextFits(repeats, 'Weekly on');
+  await expectTextFits(day, 'Wednesday');
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
