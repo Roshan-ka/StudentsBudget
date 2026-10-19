@@ -5,10 +5,11 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { draftAccountOf, isRepaired, type AccountOption, type DraftSchedule } from '@/features/setup/draft';
 import { AmountField } from '@/features/setup/steps/amount-field';
+import type { IsoDate } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
-import { ADDED_AGAIN, PICK_ACCOUNT } from './lines';
+import { ADDED_AGAIN, PICK_ACCOUNT, firstAddedLine } from './lines';
 import { RepeatFields } from './repeat-fields';
-import { perOccurrence } from './schedule';
+import { firstAddedOn, perOccurrence } from './schedule';
 
 /** Shown wherever a line is set to be added automatically. */
 export const AUTO_HINT = "It's added on its day — don't log it by hand.";
@@ -17,6 +18,7 @@ export const AUTO_HINT = "It's added on its day — don't log it by hand.";
  * "Add it automatically" for one line of the setup wizard, with when it repeats and the account it uses. The euro
  * amount above stays the plan figure; an account in another currency asks for its own amount, because setup has
  * no exchange rate to convert with. A stored schedule whose account is gone shows no account until one is picked.
+ * A line that has not started yet (new, turned on, resumed or added again) says when its first entry comes.
  * Labelled "<name> schedule", so the line's own amount field keeps its label.
  */
 export function DraftScheduleFields({
@@ -24,16 +26,21 @@ export function DraftScheduleFields({
   monthlyMinor,
   schedule,
   accounts,
+  today,
   onChange,
 }: {
   name: string;
   monthlyMinor: Minor;
   schedule: DraftSchedule;
   accounts: AccountOption[];
+  /** The wizard's day, which Save starts new schedules from. */
+  today: IsoDate;
   onChange: (next: DraftSchedule) => void;
 }) {
   const id = useId();
   const account = draftAccountOf(schedule, accounts);
+  // Saving starts a line without a stored schedule tomorrow, and one whose account was gone again from tomorrow.
+  const firstOn = account ? firstAddedOn(schedule, schedule.saved, today, isRepaired(schedule, accounts)) : null;
 
   return (
     <div role="group" aria-label={`${name} schedule`} className="flex flex-col gap-3 rounded-lg border p-3">
@@ -59,6 +66,7 @@ export function DraftScheduleFields({
                 </p>
               )}
               <RepeatFields timing={schedule} onChange={(timing) => onChange({ ...schedule, ...timing })} />
+              {firstOn && <p className="text-sm text-muted-foreground">{firstAddedLine(firstOn)}</p>}
               <div className="grid gap-1.5">
                 <Label htmlFor={`${id}-account`}>Account</Label>
                 <NativeSelect

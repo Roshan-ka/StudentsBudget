@@ -1,6 +1,7 @@
 'use client';
 
 import { DraftScheduleFields } from '@/features/recurring/draft-schedule-fields';
+import type { IsoDate } from '@/lib/dates';
 import {
   INCOME_CATEGORIES,
   setLineAmount,
@@ -15,10 +16,12 @@ export function IncomeStep({
   draft,
   update,
   accounts,
+  today,
 }: {
   draft: SetupDraft;
   update: DraftUpdate;
   accounts: AccountOption[];
+  today: IsoDate;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -40,6 +43,7 @@ export function IncomeStep({
                 monthlyMinor={line.monthlyMinor}
                 schedule={line.schedule}
                 accounts={accounts}
+                today={today}
                 onChange={(schedule) => update((d) => ({ ...d, incomes: setLineSchedule(d.incomes, c.id, schedule) }))}
               />
             )}

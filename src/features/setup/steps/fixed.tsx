@@ -1,6 +1,7 @@
 'use client';
 
 import { DraftScheduleFields } from '@/features/recurring/draft-schedule-fields';
+import type { IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import {
   FIXED_CATEGORIES,
@@ -17,10 +18,12 @@ export function FixedStep({
   draft,
   update,
   accounts,
+  today,
 }: {
   draft: SetupDraft;
   update: DraftUpdate;
   accounts: AccountOption[];
+  today: IsoDate;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -35,6 +38,7 @@ export function FixedStep({
             monthlyMinor={draft.rentMinor}
             schedule={draft.rentSchedule}
             accounts={accounts}
+            today={today}
             onChange={(schedule) => update((d) => ({ ...d, rentSchedule: schedule }))}
           />
         </div>
@@ -54,6 +58,7 @@ export function FixedStep({
                 monthlyMinor={line.monthlyMinor}
                 schedule={line.schedule}
                 accounts={accounts}
+                today={today}
                 onChange={(schedule) => update((d) => ({ ...d, fixed: setLineSchedule(d.fixed, c.id, schedule) }))}
               />
             )}

@@ -163,8 +163,8 @@ function Wizard({
       {step === 'income' && !edit && accountsExist && (
         <p className="text-sm text-muted-foreground">Your accounts are already set up in Settings.</p>
       )}
-      {step === 'income' && <IncomeStep draft={draft} update={update} accounts={accounts} />}
-      {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} />}
+      {step === 'income' && <IncomeStep draft={draft} update={update} accounts={accounts} today={today} />}
+      {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} />}
       {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
       {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
       {step === 'envelopes' && <EnvelopesStep draft={draft} update={update} today={today} existing={existing} />}

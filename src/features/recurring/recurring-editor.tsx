@@ -10,7 +10,7 @@ import { db } from '@/db/db';
 import type { Account, Category, Plan, PlanLine } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
 import { categoryName } from '@/features/entries/categories';
-import { monthOf, todayIso } from '@/lib/dates';
+import { monthOf, todayIso, type IsoDate } from '@/lib/dates';
 import { formatMoney, parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { AUTO_HINT } from './draft-schedule-fields';
@@ -20,13 +20,14 @@ import {
   addableCategories,
   applyLineChange,
   describeLine,
+  firstAddedLine,
   overBudgetLine,
   removeLine,
   setLinePaused,
   type LineChange,
 } from './lines';
 import { RepeatFields, type Timing } from './repeat-fields';
-import { monthlyEquivalent } from './schedule';
+import { firstAddedOn, monthlyEquivalent } from './schedule';
 import { updatePlan } from './update-plan';
 
 type Change = (mutate: (plan: Plan) => Plan) => Promise<boolean>;
@@ -47,12 +48,14 @@ function LineForm({
   line,
   addable,
   accounts,
+  today,
   change,
   onDone,
 }: {
   line?: PlanLine;
   addable: Category[];
   accounts: Account[];
+  today: IsoDate;
   change: Change;
   onDone: () => void;
 }) {
@@ -81,6 +84,9 @@ function LineForm({
       ? monthlyEquivalent({ frequency: timing.frequency, amountMinor: eachMinor })
       : null;
   const name = line ? categoryName(line.categoryId) : null;
+  // A new or turned-on line starts tomorrow, as does one whose account was gone once one is picked; a resumed one has
+  // not started either. Each says when its first entry comes.
+  const firstOn = auto && account ? firstAddedOn(timing, s, today, orphaned) : null;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -167,6 +173,7 @@ function LineForm({
         <>
           <p className="text-sm text-muted-foreground">{AUTO_HINT}</p>
           <RepeatFields timing={timing} onChange={setTiming} />
+          {firstOn && <p className="text-sm text-muted-foreground">{firstAddedLine(firstOn)}</p>}
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-account`}>Account</Label>
             <NativeSelect
@@ -344,7 +351,14 @@ export function RecurringEditor() {
   const render = (line: PlanLine) =>
     open === line.categoryId ? (
       <li key={line.categoryId} className="py-3">
-        <LineForm line={line} addable={addable} accounts={accounts} change={change} onDone={() => setOpen(null)} />
+        <LineForm
+          line={line}
+          addable={addable}
+          accounts={accounts}
+          today={today}
+          change={change}
+          onDone={() => setOpen(null)}
+        />
       </li>
     ) : (
       <LineRow
@@ -373,7 +387,7 @@ export function RecurringEditor() {
         </p>
       )}
       {open === 'new' ? (
-        <LineForm addable={addable} accounts={accounts} change={change} onDone={() => setOpen(null)} />
+        <LineForm addable={addable} accounts={accounts} today={today} change={change} onDone={() => setOpen(null)} />
       ) : (
         addable.length > 0 && (
           <Button variant="outline" className="h-10 self-start px-4" onClick={() => setOpen('new')}>

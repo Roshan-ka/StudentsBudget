@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Account, Entry, Plan, PlanLine, Rate } from '../src/db/types';
-import { FRANKFURTER, completeSetup, readStore } from './helpers/setup';
+import { DEFAULT_SETUP, FRANKFURTER, completeSetup, fillSetup, readStore } from './helpers/setup';
 
 /** Noon on a local calendar day; month is 1–12. */
 const on = (year: number, month: number, day: number) => new Date(year, month - 1, day, 12, 0, 0);
@@ -127,6 +127,47 @@ test('rent is added on its day, a changed day posts once, and a deleted one stay
     ['2026-11-01', 40000],
     ['2027-01-03', 42000],
   ]);
+});
+
+test('setup and the editor say when the first automatic entry comes', async ({ page }) => {
+  // Set up on 1 November: a new line starts tomorrow, so rent on day 1 first comes in December.
+  await page.clock.setFixedTime(on(2026, 11, 1));
+  // From November the €300 fee is set aside over four months, so food is planned lower to keep the plan in budget.
+  await fillSetup(page, { envelopes: { ...DEFAULT_SETUP.envelopes, food: '200' } }, { schedules: true });
+  for (const step of ['Guesses', 'One-off costs', 'Fixed costs']) {
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
+  }
+  const rent = page.getByRole('group', { name: 'Rent schedule', exact: true });
+  await expect(rent.getByText('First added on 01-12-2026.', { exact: true })).toBeVisible();
+  await rent.getByLabel('Day', { exact: true }).selectOption('15');
+  await expect(rent.getByText('First added on 15-11-2026.', { exact: true })).toBeVisible();
+  await rent.getByLabel('Day', { exact: true }).selectOption('1');
+  for (const step of ['One-off costs', 'Guesses', 'Envelopes']) {
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
+  }
+  await page.getByRole('button', { name: 'Save plan' }).click();
+  await expect(page).toHaveURL('/');
+
+  // The editor says it too while the line has not started, and for a line being added.
+  await openSettings(page);
+  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
+  const form = page.getByRole('form', { name: 'Change Rent' });
+  await expect(form.getByText('First added on 01-12-2026.', { exact: true })).toBeVisible();
+  await form.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('button', { name: 'Add a fixed cost or income', exact: true }).click();
+  const added = page.getByRole('form', { name: 'New fixed cost or income' });
+  await expect(added.getByText('First added on 01-12-2026.', { exact: true })).toBeVisible();
+  await added.getByRole('button', { name: 'Cancel', exact: true }).click();
+
+  // Once the rent has started, it is no longer the first.
+  await openOn(page, on(2026, 12, 2));
+  await expect.poll(() => posted(page, 'rent'), POSTING).toEqual([['2026-12-01', 40000]]);
+  await openSettings(page);
+  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
+  await expect(page.getByRole('form', { name: 'Change Rent' }).getByText("It's added on its day — don't log it by hand.")).toBeVisible();
+  await expect(page.getByRole('form', { name: 'Change Rent' }).getByText(/^First added on/)).toHaveCount(0);
 });
 
 test('in Settings a line can be added automatically, paused, resumed, added and deleted', async ({ page }) => {

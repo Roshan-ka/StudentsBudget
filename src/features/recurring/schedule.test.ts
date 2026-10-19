@@ -3,6 +3,8 @@ import type { Schedule } from '@/db/types';
 import {
   describeTiming,
   duePeriods,
+  firstAddedOn,
+  firstOccurrence,
   isUsableSchedule,
   monthlyEquivalent,
   newSchedule,
@@ -147,6 +149,61 @@ describe('newSchedule', () => {
     expect(s).toMatchObject({ startOn: '2026-10-17', postedThrough: '2026-10-16', accountId: 'a1' });
     expect(s.id).toEqual(expect.any(String));
     expect(s.paused).toBeUndefined();
+  });
+});
+
+describe('firstOccurrence', () => {
+  it('is next month for a monthly day 1 that starts after the 1st', () => {
+    expect(firstOccurrence({ frequency: 'monthly', day: 1 }, '2026-11-02')).toBe('2026-12-01');
+    expect(firstOccurrence({ frequency: 'monthly', day: 1 }, '2026-12-31')).toBe('2027-01-01');
+  });
+
+  it('is the start itself when an occurrence falls on it', () => {
+    expect(firstOccurrence({ frequency: 'monthly', day: 1 }, '2026-11-01')).toBe('2026-11-01');
+    expect(firstOccurrence({ frequency: 'monthly', day: 15 }, '2026-11-15')).toBe('2026-11-15');
+    expect(firstOccurrence({ frequency: 'weekly', day: 5 }, '2026-10-16')).toBe('2026-10-16');
+  });
+
+  it('clips day 31 to the last day of a shorter month, February included', () => {
+    expect(firstOccurrence({ frequency: 'monthly', day: 31 }, '2026-11-02')).toBe('2026-11-30');
+    expect(firstOccurrence({ frequency: 'monthly', day: 31 }, '2027-02-10')).toBe('2027-02-28');
+    expect(firstOccurrence({ frequency: 'monthly', day: 31 }, '2028-02-10')).toBe('2028-02-29');
+    expect(firstOccurrence({ frequency: 'monthly', day: 31 }, '2027-01-31')).toBe('2027-01-31');
+  });
+
+  it('is this week or next for a weekly day', () => {
+    // Saturday 17 October 2026: Friday has passed, Sunday has not.
+    expect(firstOccurrence({ frequency: 'weekly', day: 5 }, '2026-10-17')).toBe('2026-10-23');
+    expect(firstOccurrence({ frequency: 'weekly', day: 7 }, '2026-10-17')).toBe('2026-10-18');
+    expect(firstOccurrence({ frequency: 'weekly', day: 1 }, '2026-12-29')).toBe('2027-01-04');
+  });
+});
+
+describe('firstAddedOn', () => {
+  const rent = { frequency: 'monthly', day: 1 } as const;
+
+  it('starts a new or turned-on line tomorrow: set up on the 1st, the first rent comes next month', () => {
+    expect(firstAddedOn(rent, undefined, '2026-11-01')).toBe('2026-12-01');
+    expect(firstAddedOn(rent, undefined, '2026-10-31')).toBe('2026-11-01');
+  });
+
+  it('follows a stored schedule that has not started yet, such as one resumed today', () => {
+    const resumed = resumeSchedule(monthly({ postedThrough: '2026-10-31', paused: true }), '2026-11-02');
+    expect(firstAddedOn(rent, resumed, '2026-11-02')).toBe('2026-12-01');
+    // A later watermark stays: day 25 was posted for November before the pause.
+    const posted = resumeSchedule(monthly({ day: 25, postedThrough: '2026-11-30', paused: true }), '2026-11-12');
+    expect(firstAddedOn({ frequency: 'monthly', day: 25 }, posted, '2026-11-12')).toBe('2026-12-25');
+  });
+
+  it('starts a repaired line again from tomorrow', () => {
+    const orphan = monthly({ startOn: '2026-10-17', postedThrough: '2026-10-31' });
+    expect(firstAddedOn(rent, orphan, '2026-11-05', true)).toBe('2026-12-01');
+  });
+
+  it('is null once the stored schedule has started, and while it is paused', () => {
+    expect(firstAddedOn(rent, monthly(), '2026-10-17')).toBeNull();
+    expect(firstAddedOn(rent, monthly(), '2026-11-20')).toBeNull();
+    expect(firstAddedOn(rent, monthly({ startOn: '2026-11-03', paused: true }), '2026-11-02')).toBeNull();
   });
 });
 

@@ -44,6 +44,35 @@ export function occurrenceIn(s: Timing, periodStart: IsoDate): IsoDate {
   return `${month}-${String(Math.min(s.day, daysInMonth(month))).padStart(2, '0')}`;
 }
 
+/** The first day on or after `startOn` that an occurrence falls on. */
+export function firstOccurrence(timing: Timing, startOn: IsoDate): IsoDate {
+  const { start } = periodOf(timing, startOn);
+  const occurrence = occurrenceIn(timing, start);
+  return occurrence >= startOn ? occurrence : occurrenceIn(timing, nextPeriodStart(timing, start));
+}
+
+/**
+ * The day the first automatic entry comes, for a line whose schedule has not started yet. Without a `stored` schedule
+ * (a new line, or one turned on) it starts tomorrow, as `newSchedule` does; with `restart` a stored one is added again
+ * from tomorrow (`restartSchedule`). The first entry is the first occurrence from the start, or from the day after the
+ * watermark when that is later. Null once the schedule has started (its start is today or earlier) and while paused.
+ */
+export function firstAddedOn(
+  timing: Timing,
+  stored: Schedule | undefined,
+  today: IsoDate,
+  restart = false,
+): IsoDate | null {
+  const s =
+    stored === undefined
+      ? { startOn: addDays(today, 1), postedThrough: today }
+      : restart
+        ? restartSchedule(stored, today)
+        : stored;
+  if (stored?.paused || s.startOn <= today) return null;
+  return firstOccurrence(timing, laterOf(s.startOn, addDays(s.postedThrough, 1)));
+}
+
 /**
  * The periods whose occurrence is due by `today` and not handled yet, as period starts, oldest first. An occurrence
  * is due when it falls from `startOn` to `today`, in a period that ends after `postedThrough`, and itself after

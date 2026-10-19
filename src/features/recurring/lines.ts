@@ -2,7 +2,7 @@ import { CATEGORIES } from '@/data/categories';
 import type { Account, Category, Plan, PlanLine, Schedule } from '@/db/types';
 import { orderOf } from '@/features/entries/categories';
 import { planSummary } from '@/lib/budget';
-import type { IsoDate, IsoMonth } from '@/lib/dates';
+import { formatDate, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { describeTiming, monthlyEquivalent, newSchedule, restartSchedule, resumeSchedule } from './schedule';
 
@@ -11,6 +11,11 @@ export const PICK_ACCOUNT = 'Pick an account for this';
 
 /** Shown once an account is picked for a line whose account was gone. */
 export const ADDED_AGAIN = "It's added again from tomorrow.";
+
+/** Under the repeat fields of a line that has not started yet: "First added on 01-12-2026." */
+export function firstAddedLine(day: IsoDate): string {
+  return `First added on ${formatDate(day)}.`;
+}
 
 /** The categories a plan line can have: fixed costs and income, in category order. */
 const LINE_CATEGORIES: Category[] = CATEGORIES.filter((c) => c.kind === 'fixed' || c.kind === 'income');
