@@ -41,7 +41,23 @@ const SENTENCE_END = /[.!?…]+$/;
 const WORD_SEPARATOR_END = /[,;:]+$/;
 
 /** A number found in the line: tokens `start` to `end` (inclusive), in minor units. */
-type Candidate = { start: number; end: number; minor: Minor; marked: boolean };
+type Candidate = {
+  start: number;
+  end: number;
+  minor: Minor;
+  /** A currency marker is written onto the number, or it is a "6 euro 50" amount. */
+  marked: boolean;
+  /** Whole euros: digits with no marker or decimals, or number words. */
+  integer: boolean;
+  /** The value when it could be a cents part: 0 to 99, at most two digits. */
+  cents: number | null;
+};
+
+/** What a line parsed to: one amount and the note. */
+export type QuickAddAmount = { amountMinor: Minor; note: string };
+
+/** Two readings of "coffee 7 40 euros" to choose from: euros and cents (€7.40), or the second number alone (€40). */
+export type QuickAddChoice = { kind: 'choice'; note: string; options: [Minor, Minor] };
 
 type Word = { word: string; token: number };
 type Span = { value: number; end: number };
@@ -205,7 +221,7 @@ function findCandidates(tokens: string[]): Candidate[] | null {
       continue;
     }
 
-    let { minor, end, marked } = amount;
+    let { minor, end, marked, integer, cents: centsPart } = amount;
 
     // "6 Euro 50": euros, a marker of its own, then cents ("cent" or "cents" may follow) and the end of
     // the line. Any other number straight after the marker would be a second amount, and a word after
@@ -217,11 +233,15 @@ function findCandidates(tokens: string[]): Candidate[] | null {
       if (!amount.integer || cents.cents === null || afterCents < words.length) return null;
       minor += cents.cents;
       marked = true;
+      integer = false;
+      centsPart = null;
       end = afterCents;
     }
 
     if (UNREAD_SCALES.has(wordAt(words, end))) return null;
-    if (minor > 0) candidates.push({ start: words[w].token, end: words[end - 1].token, minor, marked });
+    if (minor > 0) {
+      candidates.push({ start: words[w].token, end: words[end - 1].token, minor, marked, integer, cents: centsPart });
+    }
     w = end;
   }
   return candidates;
@@ -234,13 +254,17 @@ function findCandidates(tokens: string[]): Candidate[] | null {
  * A number is digits that `parseAmount` accepts, or English number words (whole euros only); "6 euro 50"
  * (and "6 euro 50 cents") at the end of the line is 6 euros and 50 cents. The note is the rest of the line as typed, without that number and its marker.
  * Returns null when there is no amount, and also when the line has something that looks like an amount
- * but cannot be read ("$7", "6,505", "fifty cents", "one million"), or when two bare numbers stand side by
- * side ("coffee 7 40"): a silently wrong amount is worse.
+ * but cannot be read ("$7", "6,505", "fifty cents", "one million"): a silently wrong amount is worse.
+ *
+ * A whole number straight before the chosen one ("coffee 7 40", "coffee seven forty euros") could be the euros
+ * of "7,40" said in two parts, or a count. When the chosen number could be cents (1 to 99) and has at most a
+ * currency word after it, the result is a choice of both readings (€7.40 or €40) instead of an amount; when it
+ * cannot ("coffee 7 140"), and nothing marks it, the result is null.
  *
  * Dictation punctuation does not count: a full stop, !, ? or … at the end of the line is dropped, and so is
  * a comma, semicolon or colon after a word ("Coffee, 6 €.") but not after a number ("6,50" is a decimal).
  */
-export function parseQuickAdd(text: string): { amountMinor: Minor; note: string } | null {
+export function parseQuickAdd(text: string): QuickAddAmount | QuickAddChoice | null {
   const trimmed = text.trim().replace(SENTENCE_END, '').trimEnd();
   // `tokens` is the line as typed, for the note; `read` has the same tokens without a word's separator.
   const tokens = trimmed === '' ? [] : trimmed.split(/\s+/);
@@ -252,22 +276,30 @@ export function parseQuickAdd(text: string): { amountMinor: Minor; note: string 
   const marked = candidates.filter(nextToMarker);
   const chosen = marked.length > 0 ? marked[marked.length - 1] : candidates[candidates.length - 1];
 
-  // Without a marker the last number wins. A bare number right before it ("coffee 7 40", "coffee seven forty")
-  // could as well be the euros of "7,40" said in two parts, so the line has no clear amount.
-  const before = candidates[candidates.length - 2];
-  if (marked.length === 0 && before !== undefined && before.end + 1 === chosen.start) return null;
+  // A bare whole number right before the chosen one ("coffee 7 40", "coffee seven forty euros") may be the euros
+  // of "7,40" said in two parts. A "€" sign, or a marker written onto the number, says the amount plainly.
+  const before = candidates[candidates.indexOf(chosen) - 1];
+  const adjacent = before !== undefined && before.end + 1 === chosen.start;
+  const wordAfter = read[chosen.end + 1];
+  const onlyWordAfter = !chosen.marked && !isMarker(read[chosen.start - 1]) && isMarker(wordAfter) && wordAfter !== '€';
+  const options: [Minor, Minor] | null =
+    adjacent && (marked.length === 0 || onlyWordAfter) && !nextToMarker(before) && before.integer && chosen.cents !== null
+      ? [before.minor + chosen.cents, chosen.minor]
+      : null;
+  if (marked.length === 0 && adjacent && options === null) return null;
 
   const drop = new Set<number>();
   for (let i = chosen.start; i <= chosen.end; i += 1) drop.add(i);
   if (isMarker(read[chosen.start - 1])) drop.add(chosen.start - 1);
   if (isMarker(read[chosen.end + 1])) drop.add(chosen.end + 1);
+  if (options !== null) for (let i = before.start; i <= before.end; i += 1) drop.add(i);
 
   // A separator left dangling at the end ("Coffee," from "Coffee, 6 €") is not part of the note.
   const note = tokens
     .filter((_, i) => !drop.has(i))
     .join(' ')
     .replace(/[\s,;:]+$/, '');
-  return { amountMinor: chosen.minor, note };
+  return options === null ? { amountMinor: chosen.minor, note } : { kind: 'choice', note, options };
 }
 
 /** The first word of a note, without a comma, semicolon or colon after it, lower-cased; null for a blank note. */

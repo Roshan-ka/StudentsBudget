@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { Account, Amount, Plan } from '../src/db/types';
+import type { Account, Amount, Entry, Plan } from '../src/db/types';
 import { FRANKFURTER, completeSetup, fillSetup, readStore } from './helpers/setup';
 
 // `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day: food 310 and eating out 124 are
@@ -98,6 +98,32 @@ test('leads with what is left to spend this month, and under it what is safe thi
   await expect(page.getByRole('status')).toHaveText('Saved €300.00 · döner · Eating out');
   await expect(card.getByText('€82 over this month', { exact: true })).toBeVisible();
   await expect(card.getByText('This week: €264 over', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
+test('two numbers side by side before "euros" ask which amount, and one tap saves it', async ({ page }) => {
+  await completeSetup(page);
+  const amounts = page.getByRole('group', { name: 'Amount', exact: true });
+
+  // "seven forty euros" could be €7.40 or €40: nothing is saved until the person says which.
+  await quickAdd(page, 'coffee seven forty euros.');
+  await expect(amounts.getByRole('button', { name: '€7.40', exact: true })).toBeVisible();
+  await expect(amounts.getByRole('button', { name: '€40', exact: true })).toBeVisible();
+  expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
+
+  // A changed line has to be added again.
+  await page.getByRole('textbox', { name: 'Quick add' }).fill('coffee seven forty euros');
+  await expect(amounts).toHaveCount(0);
+
+  await quickAdd(page, 'coffee seven forty euros.');
+  await amounts.getByRole('button', { name: '€7.40', exact: true }).click();
+  await expect(amounts).toHaveCount(0);
+  // "coffee" has no learned category yet, so the chips follow, as for any line.
+  await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Eating out', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €7.40 · coffee · Eating out');
+  const entries = await readStore<Entry>(page, 'entries');
+  expect(entries).toHaveLength(1);
+  expect(entries[0]).toMatchObject({ type: 'expense', amountMinor: 740, note: 'coffee', categoryId: 'eating-out' });
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
