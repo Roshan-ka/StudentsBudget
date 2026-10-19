@@ -276,14 +276,17 @@ export function keywordOf(note: string): string | null {
   return first ? first.toLocaleLowerCase('de-DE') : null;
 }
 
-/** The category of the most recent expense whose note starts with the same word, or null. */
+/**
+ * The category of the most recent expense whose note starts with the same word, or null. Entries a schedule
+ * posted do not count: their note is the category name ("Phone & internet"), not something the person typed.
+ */
 export function suggestCategory(note: string, history: Entry[]): string | null {
   const keyword = keywordOf(note);
   if (keyword === null) return null;
 
   let latest: { categoryId: string; createdAt: string } | null = null;
   for (const entry of history) {
-    if (entry.type !== 'expense' || keywordOf(entry.note) !== keyword) continue;
+    if (entry.type !== 'expense' || entry.recurring !== undefined || keywordOf(entry.note) !== keyword) continue;
     // createdAt is always written with toISOString(), so comparing the strings compares the times.
     if (latest === null || entry.createdAt > latest.createdAt) latest = entry;
   }

@@ -412,4 +412,27 @@ describe('suggestCategory', () => {
     expect(suggestCategory('döner', history)).toBe('food');
     expect(suggestCategory('döner', history.slice(0, 2))).toBeNull();
   });
+
+  it('ignores entries a schedule posted, whose note is the category name', () => {
+    const posted: Entry = {
+      id: 'posted',
+      type: 'expense',
+      date: '2026-10-01',
+      accountId: 'bank',
+      amountMinor: 3000,
+      eurMinor: 3000,
+      categoryId: 'phone',
+      note: 'Phone & internet',
+      createdAt: '2026-10-16T12:00:00.000Z',
+      recurring: { scheduleId: 's1' },
+    };
+    const parsed = parseQuickAdd('phone charger 12');
+
+    // No suggestion, so quick add asks with the chips instead of filing it under Phone & internet.
+    expect(parsed).toEqual({ amountMinor: 1200, note: 'phone charger' });
+    expect(suggestCategory('phone charger', [posted])).toBeNull();
+    // A note the person typed still teaches the category, even next to a posted one.
+    const typed = entry('expense', 'phone case', 'shopping', '2026-10-10T12:00:00.000Z');
+    expect(suggestCategory('phone charger', [posted, typed])).toBe('shopping');
+  });
 });
