@@ -51,7 +51,7 @@ test('the rent range shows where it comes from, collapsed until asked for', asyn
 
   await page.getByText('Source', { exact: true }).click();
   await expect(page.getByText('Universität Regensburg: cheapest Studierendenwerk room')).toBeVisible();
-  await expect(page.getByText('checked 16 Oct 2026', { exact: true })).toBeVisible();
+  await expect(page.getByText('checked 16-10-2026', { exact: true })).toBeVisible();
   const link = page.getByRole('link', { name: 'uni-regensburg.de' });
   await expect(link).toHaveAttribute(
     'href',
@@ -72,7 +72,7 @@ test('every envelope range shows its source, and an estimate says so', async ({ 
   const food = page.locator('details').nth(0);
   await food.getByText('Source', { exact: true }).click();
   await expect(food.getByText('DSW 22nd Sozialerhebung 2021, national mean €194')).toBeVisible();
-  await expect(food.getByText('checked 16 Oct 2026', { exact: true })).toBeVisible();
+  await expect(food.getByText('checked 16-10-2026', { exact: true })).toBeVisible();
   await expect(food.getByRole('link', { name: 'studierendenwerke.de' })).toHaveAttribute('target', '_blank');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
