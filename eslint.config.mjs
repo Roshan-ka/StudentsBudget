@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Scratch work of the review workflow (throwaway specs, screenshots): not part of the app.
     ".superpowers/**",
+    // Agent worktrees are full checkouts with their own node_modules: not part of this one.
+    ".claude/worktrees/**",
   ]),
 ]);
 
