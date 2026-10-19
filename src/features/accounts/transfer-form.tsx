@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useState, type FormEvent } from 'react';
+import { DateField } from '@/components/date-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,8 +11,9 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { saveEntry } from '@/db/repo';
 import type { Entry } from '@/db/types';
-import { todayIso } from '@/lib/dates';
+import type { IsoDate } from '@/lib/dates';
 import { parseAmount, type Minor } from '@/lib/money';
+import { useToday } from '@/lib/use-today';
 import { sortAccounts } from './balances';
 import { buildTransfer } from './transfer';
 
@@ -27,19 +29,21 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
   const id = useId();
   const editing = entry?.type === 'transfer' ? entry : undefined;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
+  // Today's date, kept current: null until the browser runs this (never the date of the prerender).
+  const today = useToday();
   // null until the person picks: the first account sends, the first other account receives.
   const [fromChoice, setFromChoice] = useState<string | null>(editing?.accountId ?? null);
   const [toChoice, setToChoice] = useState<string | null>(editing?.toAccountId ?? null);
   const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
   // null until the person types: see `received` below for what the field shows then.
   const [receivedChoice, setReceivedChoice] = useState<string | null>(null);
-  // null means today, read when the form shows; a form left open (or kept hidden by the router) then follows the date.
-  const [dateChoice, setDateChoice] = useState<string | null>(editing?.date ?? null);
+  // null means today, so a form left open (or kept hidden by the router) follows the date; a date that was picked stays.
+  const [dateChoice, setDateChoice] = useState<IsoDate | null>(editing?.date ?? null);
   const [note, setNote] = useState(editing?.note ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  if (accounts === undefined) return null;
+  if (accounts === undefined || today === null) return null;
   if (accounts.length < 2) {
     return <p className="text-muted-foreground">Add a second account to move money between your accounts.</p>;
   }
@@ -59,7 +63,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
   const received =
     receivedChoice ??
     (keepsStoredReceived ? minorToInput(editing.toAmountMinor) : from.currency === to.currency ? amount : '');
-  const date = dateChoice ?? todayIso();
+  const date = dateChoice ?? today;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -170,16 +174,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
           <span className="w-10 text-sm text-muted-foreground">{to.currency}</span>
         </div>
       </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-date`}>Date</Label>
-        <Input
-          id={`${id}-date`}
-          type="date"
-          className="h-10"
-          value={date}
-          onChange={(event) => setDateChoice(event.target.value)}
-        />
-      </div>
+      <DateField value={date} onChange={setDateChoice} />
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-note`}>Note</Label>
         <Input
