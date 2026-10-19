@@ -2,7 +2,7 @@ import { CATEGORIES } from '@/data/categories';
 import type { CityRange } from '@/data/cities';
 import type { Account, Amount, Category, Guess, OneOff, Plan, PlanLine, Schedule } from '@/db/types';
 import { GUESS_CATEGORIES } from '@/features/entries/categories';
-import { newSchedule, perOccurrence } from '@/features/recurring/schedule';
+import { newSchedule, perOccurrence, restartSchedule } from '@/features/recurring/schedule';
 import { planSummary, type PlanSummary } from '@/lib/budget';
 import { monthOf, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, formatRange, type Minor } from '@/lib/money';
@@ -137,9 +137,26 @@ export function accountOptions(d: SetupDraft, stored: AccountOption[]): AccountO
   );
 }
 
-/** The account a line uses: the one it picked, or the first when that one is gone (or none was picked). */
-export function resolveAccount(accountId: string, options: AccountOption[]): AccountOption | undefined {
-  return options.find((o) => o.id === accountId) ?? options[0];
+/**
+ * The account a line's schedule uses in the wizard: the one it picked, else the first (a new line, or a draft account
+ * that was removed). A stored schedule whose account is gone has none until the person picks one: it is never
+ * quietly moved to the first account.
+ */
+export function draftAccountOf(schedule: DraftSchedule | undefined, options: AccountOption[]): AccountOption | undefined {
+  if (!schedule) return undefined;
+  const picked = options.find((o) => o.id === schedule.accountId);
+  if (schedule.saved && !picked) return undefined;
+  return picked ?? options[0];
+}
+
+/** Whether a stored schedule's account is gone and the person has just picked another: it is added again from tomorrow. */
+export function isRepaired(schedule: DraftSchedule, options: AccountOption[]): boolean {
+  const { saved } = schedule;
+  return (
+    saved !== undefined &&
+    !options.some((o) => o.id === saved.accountId) &&
+    options.some((o) => o.id === schedule.accountId)
+  );
 }
 
 /** The draft for a new setup. With `accountsExist` the prefilled accounts are left out: the ones in Settings stay. */
@@ -243,8 +260,9 @@ export function draftToRecords(
 
   const scheduleOf = (monthlyMinor: Minor, draft: DraftSchedule | undefined): Schedule | undefined => {
     if (!draft?.on || !(monthlyMinor > 0)) return undefined;
-    const account = resolveAccount(draft.accountId, options);
-    // No account to pick from (a preview without the stored accounts): a stored schedule stays as it is.
+    const account = draftAccountOf(draft, options);
+    // Its account is gone and none was picked, or there is none to pick from (a preview without the stored
+    // accounts): a stored schedule stays exactly as it is.
     if (!account) return draft.saved;
     const amountMinor = account.currency === 'EUR' ? perOccurrence(monthlyMinor, draft.frequency) : draft.foreignMinor;
     if (!(Number.isSafeInteger(amountMinor) && amountMinor > 0)) return undefined;
@@ -254,7 +272,11 @@ export function draftToRecords(
       accountId: idOfKey.get(account.id) ?? account.id,
       amountMinor,
     };
-    return draft.saved ? { ...draft.saved, ...fields } : newSchedule(fields, today);
+    if (!draft.saved) return newSchedule(fields, today);
+    // A line whose account was gone is added again from tomorrow, so the periods it missed are not back-posted.
+    return isRepaired(draft, options)
+      ? { ...restartSchedule(draft.saved, today), ...fields }
+      : { ...draft.saved, ...fields };
   };
   const toLine = (categoryId: string, monthlyMinor: Minor, draft: DraftSchedule | undefined): PlanLine => {
     const schedule = scheduleOf(monthlyMinor, draft);
@@ -350,7 +372,7 @@ function scheduleProblems(
 ): string[] {
   return lines.flatMap(({ name, monthlyMinor, schedule }) => {
     if (!schedule?.on || !(monthlyMinor > 0)) return [];
-    const account = resolveAccount(schedule.accountId, options);
+    const account = draftAccountOf(schedule, options);
     if (!account || account.currency === 'EUR') return [];
     const { foreignMinor } = schedule;
     return Number.isSafeInteger(foreignMinor) && foreignMinor > 0

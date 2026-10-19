@@ -186,6 +186,66 @@ describe('postDueRecurring', () => {
     expect(await scheduleOf('rent')).toMatchObject({ postedThrough: '2026-12-31' });
   });
 
+  describe('a line whose schedule was replaced (deleted and added again, or turned off and on)', () => {
+    async function replaceRent(next: Schedule) {
+      const p = await storedPlan();
+      await db.plan.put({ ...p, fixed: [{ categoryId: 'rent', monthlyMinor: 40000, schedule: next }] });
+    }
+
+    it('does not post a month the old schedule already posted', async () => {
+      await db.plan.put(plan());
+      expect(await postDueRecurring('2026-11-01')).toEqual({ posted: 1 });
+
+      // On 10 November rent becomes a new schedule on the 15th: it starts tomorrow, its watermark is today.
+      await replaceRent(schedule({ id: 'rent-b', day: 15, startOn: '2026-11-11', postedThrough: '2026-11-10' }));
+      expect(await postDueRecurring('2026-11-15')).toEqual({ posted: 0 });
+      expect(await scheduleOf('rent')).toMatchObject({ id: 'rent-b', postedThrough: '2026-11-30' });
+
+      expect(await postDueRecurring('2026-12-15')).toEqual({ posted: 1 });
+      expect((await entries()).map((e) => [e.id, e.date])).toEqual([
+        ['rec:rent-s:2026-11-01', '2026-11-01'],
+        ['rec:rent-b:2026-12-01', '2026-12-15'],
+      ]);
+    });
+
+    it('does not post a week the old schedule already posted', async () => {
+      const mondays = schedule({ id: 'gym-a', frequency: 'weekly', day: 1, amountMinor: 700 });
+      await db.plan.put(plan({ fixed: [{ categoryId: 'gym', monthlyMinor: 3033, schedule: mondays }] }));
+      // Mondays 19 and 26 October, 2, 9 and 16 November.
+      expect(await postDueRecurring('2026-11-16')).toEqual({ posted: 5 });
+
+      // On Tuesday 17 November the gym moves to Fridays as a new schedule.
+      const fridays = schedule({ id: 'gym-b', frequency: 'weekly', day: 5, amountMinor: 700, startOn: '2026-11-18', postedThrough: '2026-11-17' });
+      await db.plan.put(plan({ fixed: [{ categoryId: 'gym', monthlyMinor: 3033, schedule: fridays }] }));
+      expect(await postDueRecurring('2026-11-20')).toEqual({ posted: 0 });
+      expect(await scheduleOf('gym')).toMatchObject({ postedThrough: '2026-11-22' });
+
+      expect(await postDueRecurring('2026-11-27')).toEqual({ posted: 1 });
+      expect((await entries()).at(-1)).toMatchObject({ id: 'rec:gym-b:2026-11-23', date: '2026-11-27' });
+    });
+
+    it('still posts beside an entry logged by hand, or one of another category or type', async () => {
+      await db.plan.put(plan());
+      const byHand: Entry = {
+        id: 'manual-rent',
+        type: 'expense',
+        date: '2026-11-01',
+        accountId: 'local',
+        categoryId: 'rent',
+        amountMinor: 40000,
+        eurMinor: 40000,
+        note: 'Rent',
+        createdAt: CREATED_AT,
+      };
+      const otherLine: Entry = { ...byHand, id: 'rec:x:2026-11-01', categoryId: 'phone', recurring: { scheduleId: 'x' } };
+      const anIncome: Entry = { ...byHand, id: 'rec:y:2026-11-01', type: 'income', recurring: { scheduleId: 'y' } };
+      await db.entries.bulkAdd([byHand, otherLine, anIncome]);
+
+      expect(await postDueRecurring('2026-11-01')).toEqual({ posted: 1 });
+      expect(await db.entries.get('rec:rent-s:2026-11-01')).toBeDefined();
+    });
+  });
+
   it('converts a foreign amount with the rate in use, a manual one first', async () => {
     await db.plan.put(
       plan({

@@ -4,7 +4,13 @@ import { orderOf } from '@/features/entries/categories';
 import { planSummary } from '@/lib/budget';
 import type { IsoDate, IsoMonth } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
-import { describeTiming, monthlyEquivalent, newSchedule, resumeSchedule } from './schedule';
+import { describeTiming, monthlyEquivalent, newSchedule, restartSchedule, resumeSchedule } from './schedule';
+
+/** Shown when a line's account is gone, in the editor's rows and in the wizard. */
+export const PICK_ACCOUNT = 'Pick an account for this';
+
+/** Shown once an account is picked for a line whose account was gone. */
+export const ADDED_AGAIN = "It's added again from tomorrow.";
 
 /** The categories a plan line can have: fixed costs and income, in category order. */
 const LINE_CATEGORIES: Category[] = CATEGORIES.filter((c) => c.kind === 'fixed' || c.kind === 'income');
@@ -36,16 +42,26 @@ function mapLine(plan: Plan, categoryId: string, change: (line: PlanLine) => Pla
 
 /**
  * The plan with one line changed, or added in category order. An existing schedule keeps its id, start, watermark and
- * pause, so a new amount, day, frequency or account applies from the next occurrence. Turning auto-adding on makes a
- * new schedule that starts tomorrow; turning it off drops the schedule.
+ * pause, so a new amount, day, frequency or account applies from the next occurrence. A schedule whose account is not
+ * among `accounts` any more is added again from tomorrow once one is picked, so the periods it missed are not
+ * back-posted. Turning auto-adding on makes a new schedule that starts tomorrow; turning it off drops the schedule.
  */
-export function applyLineChange(plan: Plan, change: LineChange, today: IsoDate): Plan {
+export function applyLineChange(
+  plan: Plan,
+  change: LineChange,
+  today: IsoDate,
+  accounts: Pick<Account, 'id'>[],
+): Plan {
   return mapList(plan, change.categoryId, (lines) => {
     const current = lines.find((l) => l.categoryId === change.categoryId);
     let next: PlanLine;
     if (change.auto) {
       const { currency, ...fields } = change.auto;
-      const schedule = current?.schedule ? { ...current.schedule, ...fields } : newSchedule(fields, today);
+      const stored = current?.schedule;
+      const repaired = stored !== undefined && !accounts.some((a) => a.id === stored.accountId);
+      const schedule = stored
+        ? { ...(repaired ? restartSchedule(stored, today) : stored), ...fields }
+        : newSchedule(fields, today);
       const monthlyMinor = currency === 'EUR' ? monthlyEquivalent(fields) : change.monthlyMinor;
       next = { categoryId: change.categoryId, monthlyMinor, schedule };
     } else {
@@ -81,7 +97,7 @@ export function describeLine(line: PlanLine, accounts: Pick<Account, 'id' | 'nam
   const account = accounts.find((a) => a.id === s.accountId);
   const parts = account
     ? [formatMoney(s.amountMinor, account.currency), describeTiming(s), account.name]
-    : [describeTiming(s), 'Pick an account for this'];
+    : [describeTiming(s), PICK_ACCOUNT];
   if (s.paused) parts.push('Paused');
   return parts.join(' · ');
 }

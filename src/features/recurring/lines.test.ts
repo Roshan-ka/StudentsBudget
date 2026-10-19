@@ -55,6 +55,7 @@ describe('applyLineChange', () => {
         monthlyMinor: 0,
       },
       TODAY,
+      ACCOUNTS,
     );
     expect(next.fixed[0]).toEqual({
       categoryId: 'rent',
@@ -74,6 +75,7 @@ describe('applyLineChange', () => {
         monthlyMinor: 0,
       },
       TODAY,
+      ACCOUNTS,
     );
     expect(next.incomes[0]).toMatchObject({
       categoryId: 'income-job',
@@ -91,6 +93,7 @@ describe('applyLineChange', () => {
         monthlyMinor: 55000,
       },
       TODAY,
+      ACCOUNTS,
     );
     expect(next.incomes[1]).toEqual({
       categoryId: 'income-parents',
@@ -105,21 +108,49 @@ describe('applyLineChange', () => {
       paused,
       { categoryId: 'rent', auto: { frequency: 'monthly', day: 2, accountId: 'local', amountMinor: 40000, currency: 'EUR' }, monthlyMinor: 0 },
       TODAY,
+      ACCOUNTS,
     );
     expect(next.fixed[0].schedule).toMatchObject({ paused: true, day: 2 });
   });
 
+  describe('a line whose account is gone', () => {
+    const orphaned: Plan = {
+      ...PLAN,
+      fixed: [{ categoryId: 'rent', monthlyMinor: 40000, schedule: schedule({ accountId: 'gone', postedThrough: '2026-09-30', paused: true }) }],
+    };
+    const local = { frequency: 'monthly' as const, day: 1, accountId: 'local', amountMinor: 40000, currency: 'EUR' as const };
+
+    it('is added again from tomorrow once an account is picked, so the months it missed are not posted', () => {
+      const next = applyLineChange(orphaned, { categoryId: 'rent', auto: local, monthlyMinor: 0 }, TODAY, ACCOUNTS);
+      expect(next.fixed[0].schedule).toEqual(
+        schedule({ accountId: 'local', startOn: '2026-11-11', postedThrough: TODAY, paused: true }),
+      );
+    });
+
+    it('keeps a watermark that is later than today', () => {
+      const ahead = { ...orphaned, fixed: [{ ...orphaned.fixed[0], schedule: schedule({ accountId: 'gone' }) }] };
+      const next = applyLineChange(ahead, { categoryId: 'rent', auto: local, monthlyMinor: 0 }, TODAY, ACCOUNTS);
+      expect(next.fixed[0].schedule).toMatchObject({ startOn: '2026-11-11', postedThrough: '2026-11-30' });
+    });
+
+    it('is not restarted by an edit that keeps a known account', () => {
+      const next = applyLineChange(PLAN, { categoryId: 'rent', auto: local, monthlyMinor: 0 }, TODAY, ACCOUNTS);
+      expect(next.fixed[0].schedule).toEqual(schedule());
+    });
+  });
+
   it('turns auto-adding off by dropping the schedule and keeping the amount typed', () => {
-    const next = applyLineChange(PLAN, { categoryId: 'rent', auto: null, monthlyMinor: 41000 }, TODAY);
+    const next = applyLineChange(PLAN, { categoryId: 'rent', auto: null, monthlyMinor: 41000 }, TODAY, ACCOUNTS);
     expect(next.fixed[0]).toEqual({ categoryId: 'rent', monthlyMinor: 41000 });
   });
 
   it('turns it on again as a new schedule that starts tomorrow', () => {
-    const off = applyLineChange(PLAN, { categoryId: 'rent', auto: null, monthlyMinor: 40000 }, TODAY);
+    const off = applyLineChange(PLAN, { categoryId: 'rent', auto: null, monthlyMinor: 40000 }, TODAY, ACCOUNTS);
     const on = applyLineChange(
       off,
       { categoryId: 'rent', auto: { frequency: 'monthly', day: 1, accountId: 'local', amountMinor: 40000, currency: 'EUR' }, monthlyMinor: 0 },
       TODAY,
+      ACCOUNTS,
     );
     expect(on.fixed[0].schedule).toMatchObject({ startOn: '2026-11-11', postedThrough: TODAY });
     expect(on.fixed[0].schedule?.id).not.toBe('rent-s');
@@ -130,11 +161,12 @@ describe('applyLineChange', () => {
       PLAN,
       { categoryId: 'insurance', auto: { frequency: 'monthly', day: 15, accountId: 'local', amountMinor: 11000, currency: 'EUR' }, monthlyMinor: 0 },
       TODAY,
+      ACCOUNTS,
     );
     expect(next.fixed.map((l) => l.categoryId)).toEqual(['rent', 'phone', 'insurance']);
     expect(next.fixed[2].schedule).toMatchObject({ day: 15, startOn: '2026-11-11', postedThrough: TODAY });
 
-    const withBafoeg = applyLineChange(PLAN, { categoryId: 'income-bafoeg', auto: null, monthlyMinor: 30000 }, TODAY);
+    const withBafoeg = applyLineChange(PLAN, { categoryId: 'income-bafoeg', auto: null, monthlyMinor: 30000 }, TODAY, ACCOUNTS);
     expect(withBafoeg.incomes.map((l) => l.categoryId)).toEqual(['income-job', 'income-parents', 'income-bafoeg']);
   });
 });

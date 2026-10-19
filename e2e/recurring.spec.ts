@@ -18,6 +18,9 @@ async function line(page: Page, categoryId: string): Promise<PlanLine | undefine
   return [...plan.incomes, ...plan.fixed].find((l) => l.categoryId === categoryId);
 }
 
+/** Posting waits for the rate refresh, which a slow network holds for up to its 10 s timeout. */
+const POSTING = { timeout: 15_000 };
+
 /** Moves the clock and reloads: the app adds what is due when it starts. */
 async function openOn(page: Page, date: Date) {
   await page.clock.setFixedTime(date);
@@ -86,7 +89,7 @@ test('rent is added on its day, a changed day posts once, and a deleted one stay
 
   // 1 November: the rent is there, from Local bank.
   await openOn(page, on(2026, 11, 1));
-  await expect.poll(() => posted(page, 'rent')).toEqual([['2026-11-01', 40000]]);
+  await expect.poll(() => posted(page, 'rent'), POSTING).toEqual([['2026-11-01', 40000]]);
   const [november] = (await readStore<Entry>(page, 'entries')).filter((e) => e.date === '2026-11-01' && e.type === 'expense');
   expect(november).toMatchObject({ accountId: local?.id, eurMinor: 40000, note: 'Rent', recurring: { scheduleId: expect.any(String) } });
 
@@ -108,7 +111,7 @@ test('rent is added on its day, a changed day posts once, and a deleted one stay
 
   // 3 December: the new amount, once; November is not posted again on its new day.
   await openOn(page, on(2026, 12, 3));
-  await expect.poll(() => posted(page, 'rent')).toEqual([
+  await expect.poll(() => posted(page, 'rent'), POSTING).toEqual([
     ['2026-11-01', 40000],
     ['2026-12-03', 42000],
   ]);
@@ -120,7 +123,7 @@ test('rent is added on its day, a changed day posts once, and a deleted one stay
   await deleteEntry(page, december?.id ?? '');
   await page.reload();
   await openOn(page, on(2027, 1, 3));
-  await expect.poll(() => posted(page, 'rent')).toEqual([
+  await expect.poll(() => posted(page, 'rent'), POSTING).toEqual([
     ['2026-11-01', 40000],
     ['2027-01-03', 42000],
   ]);
@@ -147,14 +150,14 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
   await page.getByRole('button', { name: 'Pause Rent', exact: true }).click();
   await expect(page.getByText('€400.00 · Monthly on day 1 · Local bank · Paused', { exact: true })).toBeVisible();
   await openOn(page, on(2026, 11, 2));
-  await expect.poll(() => posted(page, 'income-job')).toEqual([['2026-11-01', 40000]]);
+  await expect.poll(() => posted(page, 'income-job'), POSTING).toEqual([['2026-11-01', 40000]]);
   expect(await posted(page, 'rent')).toEqual([]);
 
   // Resumed on 2 November: November stays skipped, December comes.
   await page.getByRole('button', { name: 'Resume Rent', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause Rent', exact: true })).toBeVisible();
   await openOn(page, on(2026, 12, 1));
-  await expect.poll(() => posted(page, 'income-job')).toEqual([
+  await expect.poll(() => posted(page, 'income-job'), POSTING).toEqual([
     ['2026-11-01', 40000],
     ['2026-12-01', 40000],
   ]);
@@ -198,6 +201,16 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   await form.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('₹50,000.00 · Monthly on day 1 · Home bank', { exact: true })).toBeVisible();
 
+  // An account a line is added to cannot be deleted, though it has no entries yet.
+  await page.getByRole('button', { name: 'Delete Home bank', exact: true }).click();
+  await expect(
+    page.getByText(
+      'This account pays or receives a fixed cost or income. Change that first in Fixed costs and income.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  expect((await readStore<Account>(page, 'accounts')).map((a) => a.name)).toContain('Home bank');
+
   // 1 November without a rate: the euro rent from Local bank comes, the INR income waits with its watermark.
   await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
   const rent = page.getByRole('form', { name: 'Change Rent' });
@@ -205,14 +218,14 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   await rent.getByLabel('Account', { exact: true }).selectOption({ label: 'Local bank (EUR)' });
   await rent.getByRole('button', { name: 'Save', exact: true }).click();
   await openOn(page, on(2026, 11, 1));
-  await expect.poll(() => posted(page, 'rent')).toEqual([['2026-11-01', 40000]]);
+  await expect.poll(() => posted(page, 'rent'), POSTING).toEqual([['2026-11-01', 40000]]);
   expect(await posted(page, 'income-parents')).toEqual([]);
   expect((await line(page, 'income-parents'))?.schedule?.postedThrough).toBe('2026-10-16');
 
   // Once a rate is set, the next start adds it, converted with that rate.
   await putRate(page, { currency: 'INR', perEur: 100, rateDate: '2026-11-01', fetchedOn: '2026-11-01', source: 'manual' });
   await page.reload();
-  await expect.poll(() => posted(page, 'income-parents')).toEqual([['2026-11-01', 5_000_000]]);
+  await expect.poll(() => posted(page, 'income-parents'), POSTING).toEqual([['2026-11-01', 5_000_000]]);
   const [parents] = (await readStore<Entry>(page, 'entries')).filter((e) => e.type === 'income');
   expect(parents.eurMinor).toBe(50000);
   expect((await line(page, 'income-parents'))?.schedule?.postedThrough).toBe('2026-11-30');

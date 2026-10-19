@@ -3,9 +3,10 @@
 import { useId } from 'react';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
-import { resolveAccount, type AccountOption, type DraftSchedule } from '@/features/setup/draft';
+import { draftAccountOf, isRepaired, type AccountOption, type DraftSchedule } from '@/features/setup/draft';
 import { AmountField } from '@/features/setup/steps/amount-field';
 import { formatMoney, type Minor } from '@/lib/money';
+import { ADDED_AGAIN, PICK_ACCOUNT } from './lines';
 import { RepeatFields } from './repeat-fields';
 import { perOccurrence } from './schedule';
 
@@ -15,7 +16,8 @@ export const AUTO_HINT = "It's added on its day — don't log it by hand.";
 /**
  * "Add it automatically" for one line of the setup wizard, with when it repeats and the account it uses. The euro
  * amount above stays the plan figure; an account in another currency asks for its own amount, because setup has
- * no exchange rate to convert with. Labelled "<name> schedule", so the line's own amount field keeps its label.
+ * no exchange rate to convert with. A stored schedule whose account is gone shows no account until one is picked.
+ * Labelled "<name> schedule", so the line's own amount field keeps its label.
  */
 export function DraftScheduleFields({
   name,
@@ -31,11 +33,11 @@ export function DraftScheduleFields({
   onChange: (next: DraftSchedule) => void;
 }) {
   const id = useId();
-  const account = resolveAccount(schedule.accountId, accounts);
+  const account = draftAccountOf(schedule, accounts);
 
   return (
     <div role="group" aria-label={`${name} schedule`} className="flex flex-col gap-3 rounded-lg border p-3">
-      {account === undefined ? (
+      {accounts.length === 0 ? (
         <p className="text-sm text-muted-foreground">Add an account in Settings to have this added automatically.</p>
       ) : (
         <>
@@ -62,18 +64,21 @@ export function DraftScheduleFields({
                 <NativeSelect
                   id={`${id}-account`}
                   className="w-full"
-                  value={account.id}
+                  value={account?.id ?? ''}
                   // An amount typed for one currency means nothing in another.
                   onChange={(event) => onChange({ ...schedule, accountId: event.target.value, foreignMinor: 0 })}
                 >
+                  {account === undefined && <NativeSelectOption value="">Pick an account</NativeSelectOption>}
                   {accounts.map((a) => (
                     <NativeSelectOption key={a.id} value={a.id}>
                       {a.name} ({a.currency})
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
+                {account === undefined && <p className="text-sm text-muted-foreground">{PICK_ACCOUNT}</p>}
+                {isRepaired(schedule, accounts) && <p className="text-sm text-muted-foreground">{ADDED_AGAIN}</p>}
               </div>
-              {account.currency !== 'EUR' ? (
+              {account && account.currency !== 'EUR' ? (
                 <AmountField
                   label={`Amount in ${account.currency}`}
                   unit={account.currency}
@@ -83,6 +88,7 @@ export function DraftScheduleFields({
                   hint="Each time it's added. The euro amount stays your plan."
                 />
               ) : (
+                account &&
                 schedule.frequency === 'weekly' && (
                   <p className="text-sm text-muted-foreground">
                     That&apos;s {formatMoney(perOccurrence(monthlyMinor, 'weekly'), 'EUR')} each week.

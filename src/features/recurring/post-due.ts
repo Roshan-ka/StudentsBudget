@@ -23,6 +23,23 @@ type Context = {
 };
 
 /**
+ * Whether a schedule already posted an entry of this type and category in the period: any schedule, so one that
+ * replaced another for the same line finds what the old one posted. An entry logged by hand does not count.
+ */
+async function postedIn(
+  period: { start: IsoDate; end: IsoDate },
+  type: 'income' | 'expense',
+  categoryId: string,
+): Promise<boolean> {
+  const found = await db.entries
+    .where('date')
+    .between(period.start, period.end, true, true)
+    .filter((e) => e.type !== 'transfer' && e.type === type && e.categoryId === categoryId && e.recurring !== undefined)
+    .first();
+  return found !== undefined;
+}
+
+/**
  * Posts one line's due periods and returns the line with its watermark moved past them, or the line as it was.
  * Runs inside the caller's transaction.
  */
@@ -39,8 +56,16 @@ async function postLine(
 
   // Never before the plan existed, whatever a damaged or hand-edited schedule says.
   const periods = duePeriods({ ...s, startOn: laterOf(s.startOn, ctx.createdOn) }, ctx.today);
-  const handled: { start: IsoDate; entry: Entry }[] = [];
+  // Every period handled, oldest first, and the entries to add for them (none for a period already posted).
+  const handled: IsoDate[] = [];
+  const toAdd: Entry[] = [];
   for (const start of periods) {
+    // This line was posted in this period already, under the schedule it had before it was deleted and added again
+    // or turned off and on: the new schedule's id would not find that entry, so the period itself is searched.
+    if (await postedIn(periodOf(s, start), type, line.categoryId)) {
+      handled.push(start);
+      continue;
+    }
     // The same path as a manual entry: the amount in the account's currency, converted with the rate in use.
     const result = buildEntry(
       {
@@ -58,19 +83,18 @@ async function postLine(
     );
     // No rate for the account's currency: stop before this period and leave the watermark, so the next run retries.
     if (!result.ok || result.entry.type === 'transfer') break;
-    handled.push({ start, entry: { ...result.entry, recurring: { scheduleId: s.id } } });
+    handled.push(start);
+    toAdd.push({ ...result.entry, recurring: { scheduleId: s.id } });
   }
   if (handled.length === 0) return { line, posted: 0 };
 
-  // A period whose entry exists (restored from a backup, say) counts as handled and is not added again.
-  const existing = await db.entries.bulkGet(handled.map((h) => h.entry.id));
-  const fresh = handled.flatMap(({ entry }, i) =>
-    existing[i] === undefined && !ctx.added.has(entry.id) ? [entry] : [],
-  );
+  // An entry whose id exists (restored from a backup, say, or moved to another day) is not added again.
+  const existing = await db.entries.bulkGet(toAdd.map((e) => e.id));
+  const fresh = toAdd.filter((entry, i) => existing[i] === undefined && !ctx.added.has(entry.id));
   if (fresh.length > 0) await db.entries.bulkAdd(fresh);
   for (const entry of fresh) ctx.added.add(entry.id);
 
-  const through = periodOf(s, handled[handled.length - 1].start).end;
+  const through = periodOf(s, handled[handled.length - 1]).end;
   return {
     line: { ...line, schedule: { ...s, postedThrough: laterOf(s.postedThrough, through) } },
     posted: fresh.length,

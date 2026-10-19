@@ -81,9 +81,17 @@ export function newSchedule(
   return { id, ...fields, startOn: addDays(today, 1), postedThrough: today };
 }
 
+/**
+ * Adds a schedule again from tomorrow: nothing up to today posts, and a later watermark stays. For a line whose
+ * account was gone and has been picked again, so the periods it missed are not back-posted. A pause stays.
+ */
+export function restartSchedule(s: Schedule, today: IsoDate): Schedule {
+  return { ...s, startOn: addDays(today, 1), postedThrough: laterOf(s.postedThrough, today) };
+}
+
 /** Resumes from tomorrow: the periods it was paused for are skipped, and a later watermark stays. */
 export function resumeSchedule(s: Schedule, today: IsoDate): Schedule {
-  const resumed: Schedule = { ...s, startOn: addDays(today, 1), postedThrough: laterOf(s.postedThrough, today) };
+  const resumed = restartSchedule(s, today);
   delete resumed.paused;
   return resumed;
 }

@@ -375,7 +375,8 @@ test('editing the plan keeps each schedule and how far it has posted', async ({ 
   // 1 November: rent and both incomes are added when the app opens.
   await page.clock.setFixedTime(new Date(2026, 10, 1, 12, 0, 0));
   await page.reload();
-  await expect.poll(async () => (await readStore<Entry>(page, 'entries')).length).toBe(3);
+  // Posting waits for the rate refresh, which a slow network holds for up to its 10 s timeout.
+  await expect.poll(async () => (await readStore<Entry>(page, 'entries')).length, { timeout: 15_000 }).toBe(3);
   const [before] = await readStore<Plan>(page, 'plan');
   expect(before.fixed[0].schedule?.postedThrough).toBe('2026-11-30');
 

@@ -23,6 +23,27 @@ function keepWatermarks(stored: Plan, next: Plan): Plan {
 }
 
 /**
+ * For a whole plan saved from a copy read earlier (the edit wizard): each schedule `stored` has by id keeps its pause
+ * as stored and the later of the two starts. The wizard has no pause or resume of its own, so a wizard left open in
+ * another tab cannot undo one made since; a later start it set itself (a repaired line) stays.
+ */
+export function keepScheduleState(stored: Plan, next: Plan): Plan {
+  const byId = new Map(
+    [...stored.incomes, ...stored.fixed].flatMap((l) => (l.schedule ? [[l.schedule.id, l.schedule] as const] : [])),
+  );
+  const keep = (line: PlanLine): PlanLine => {
+    const s = line.schedule;
+    const was = s && byId.get(s.id);
+    if (!s || !was) return line;
+    const schedule = { ...s, startOn: laterOf(was.startOn, s.startOn) };
+    if (was.paused) schedule.paused = true;
+    else delete schedule.paused;
+    return { ...line, schedule };
+  };
+  return { ...next, incomes: next.incomes.map(keep), fixed: next.fixed.map(keep) };
+}
+
+/**
  * Changes the plan: reads it and writes `mutate`'s result in one read-write transaction, so the change applies to the
  * plan as stored, and no schedule's watermark moves back. Rejects when there is no plan.
  */

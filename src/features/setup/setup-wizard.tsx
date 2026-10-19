@@ -8,7 +8,7 @@ import { refreshRates } from '@/db/rates';
 import { saveGuesses } from '@/db/repo';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
-import { updatePlan } from '@/features/recurring/update-plan';
+import { keepScheduleState, updatePlan } from '@/features/recurring/update-plan';
 import { todayIso } from '@/lib/dates';
 import {
   accountOptions,
@@ -51,8 +51,9 @@ const TITLES: Record<StepId, string> = {
 async function persist(records: ReturnType<typeof draftToRecords>, edit: boolean): Promise<void> {
   if (edit) {
     // Accounts and guesses are not part of editing; only the plan changes. `updatePlan` keeps each schedule's
-    // watermark where the poster left it, even if it moved while the wizard was open.
-    await updatePlan(() => records.plan);
+    // watermark where the poster left it, even if it moved while the wizard was open, and `keepScheduleState` keeps
+    // a pause or resume made meanwhile in another tab.
+    await updatePlan((current) => keepScheduleState(current, records.plan));
     return;
   }
   await db.transaction('rw', db.accounts, db.plan, db.guesses, async () => {

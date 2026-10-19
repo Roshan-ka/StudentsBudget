@@ -15,6 +15,8 @@ import { formatMoney, parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { AUTO_HINT } from './draft-schedule-fields';
 import {
+  ADDED_AGAIN,
+  PICK_ACCOUNT,
   addableCategories,
   applyLineChange,
   describeLine,
@@ -34,6 +36,7 @@ function minorToInput(minor: Minor): string {
 }
 
 const AMOUNT_ERROR = 'Enter an amount above 0, like 250 or 12.50.';
+const NO_ACCOUNT = 'Add an account below to have this added automatically.';
 
 /**
  * The form for one line: whether it is added automatically, when, from or into which account and how much. With
@@ -68,8 +71,9 @@ function LineForm({
   const [saving, setSaving] = useState(false);
 
   const account = accounts.find((a) => a.id === accountId);
-  const autoOn = auto && accounts.length > 0;
-  const askMonthly = !autoOn || (account !== undefined && account.currency !== 'EUR');
+  // The account this line's schedule used is gone; picking one adds it again from tomorrow.
+  const orphaned = s !== undefined && !accounts.some((a) => a.id === s.accountId);
+  const askMonthly = !auto || (account !== undefined && account.currency !== 'EUR');
   const eachMinor = parseAmount(amount);
   // A euro line's plan figure follows from its amount; a foreign one has its own field.
   const planMinor =
@@ -81,8 +85,10 @@ function LineForm({
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     let lineChange: LineChange;
-    if (autoOn) {
-      if (!account) return setError('Pick an account for this.');
+    if (auto) {
+      // Without an account nothing can be added automatically, and a schedule the line has must not be dropped.
+      if (accounts.length === 0) return setError(NO_ACCOUNT);
+      if (!account) return setError(`${PICK_ACCOUNT}.`);
       if (eachMinor === null) return setError(AMOUNT_ERROR);
       const monthlyMinor = account.currency === 'EUR' ? 0 : parseAmount(monthly);
       if (monthlyMinor === null) return setError('Enter what it comes to in euros a month, like 400.');
@@ -99,7 +105,7 @@ function LineForm({
 
     setSaving(true);
     setError(null);
-    const saved = await change((plan) => applyLineChange(plan, lineChange, todayIso()));
+    const saved = await change((plan) => applyLineChange(plan, lineChange, todayIso(), accounts));
     setSaving(false);
     if (saved) onDone();
   }
@@ -145,21 +151,19 @@ function LineForm({
         </div>
       )}
 
-      {accounts.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Add an account below to have this added automatically.</p>
-      ) : (
-        <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-          <input
-            type="checkbox"
-            className="size-5 accent-primary"
-            checked={auto}
-            onChange={(event) => setAuto(event.target.checked)}
-          />
-          Add it automatically
-        </label>
-      )}
+      <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+        <input
+          type="checkbox"
+          className="size-5 accent-primary"
+          checked={auto}
+          onChange={(event) => setAuto(event.target.checked)}
+        />
+        Add it automatically
+      </label>
 
-      {autoOn && (
+      {auto && accounts.length === 0 && <p className="text-sm text-muted-foreground">{NO_ACCOUNT}</p>}
+
+      {auto && accounts.length > 0 && (
         <>
           <p className="text-sm text-muted-foreground">{AUTO_HINT}</p>
           <RepeatFields timing={timing} onChange={setTiming} />
@@ -178,6 +182,8 @@ function LineForm({
                 </NativeSelectOption>
               ))}
             </NativeSelect>
+            {account === undefined && <p className="text-sm text-muted-foreground">{PICK_ACCOUNT}</p>}
+            {orphaned && account && <p className="text-sm text-muted-foreground">{ADDED_AGAIN}</p>}
           </div>
           {account && (
             <div className="grid gap-1.5">
@@ -295,7 +301,8 @@ function LineList({
         {title}
       </h4>
       {lines.length === 0 ? (
-        <p className="text-sm text-muted-foreground">None yet.</p>
+        // Specific, not "None yet": Settings stays in the page while hidden, and its text with it.
+        <p className="text-sm text-muted-foreground">No {title.toLowerCase()} yet.</p>
       ) : (
         <ul aria-labelledby={id}>{lines.map(render)}</ul>
       )}

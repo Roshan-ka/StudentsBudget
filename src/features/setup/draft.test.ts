@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Plan, Schedule } from '@/db/types';
 import {
   accountOptions,
+  draftAccountOf,
   draftFromPlan,
   draftToRecords,
   dropUnparsed,
@@ -658,6 +659,39 @@ describe('adding lines automatically', () => {
       expect(draftToRecords({ ...d, incomes }, TODAY, saved, stored).plan.incomes[1]).toEqual({
         categoryId: 'income-parents',
         monthlyMinor: 55000,
+      });
+    });
+
+    describe('when the account a schedule uses is gone', () => {
+      // Rent's account was deleted; Home bank (INR) comes first, so no fallback may quietly take its place.
+      const orphaned: Plan = {
+        ...saved,
+        fixed: [{ ...saved.fixed[0], schedule: { ...rentSchedule, accountId: 'gone', paused: true } }, saved.fixed[1]],
+      };
+      const accounts = [stored[1], stored[0]];
+
+      it('saves the schedule untouched until an account is picked', () => {
+        const d = draftFromPlan(orphaned);
+        expect(draftAccountOf(d.rentSchedule, accountOptions(d, accounts))).toBeUndefined();
+        expect(validateStep('fixed', d, TODAY, orphaned, accounts)).toEqual([]);
+        const { plan } = draftToRecords(setRentAmount(d, 43000), TODAY, orphaned, accounts);
+        expect(plan.fixed[0]).toEqual({ categoryId: 'rent', monthlyMinor: 43000, schedule: orphaned.fixed[0].schedule });
+      });
+
+      it('adds it again from tomorrow once an account is picked, without back-posting', () => {
+        const d = draftFromPlan(orphaned);
+        const picked = d.rentSchedule && { ...d.rentSchedule, accountId: 'local' };
+        const { plan } = draftToRecords({ ...d, rentSchedule: picked }, TODAY, orphaned, accounts);
+        expect(plan.fixed[0].schedule).toEqual({
+          ...rentSchedule,
+          accountId: 'local',
+          paused: true,
+          startOn: '2026-10-17',
+          // The later of the old watermark (30 November) and today.
+          postedThrough: '2026-11-30',
+        });
+        const later = draftToRecords({ ...d, rentSchedule: picked }, '2026-12-05', orphaned, accounts).plan;
+        expect(later.fixed[0].schedule).toMatchObject({ startOn: '2026-12-06', postedThrough: '2026-12-05' });
       });
     });
 

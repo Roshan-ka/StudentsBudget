@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/db';
 import type { Plan, Schedule } from '@/db/types';
 import { postDueRecurring } from './post-due';
-import { updatePlan } from './update-plan';
+import { keepScheduleState, updatePlan } from './update-plan';
 
 function schedule(overrides: Partial<Schedule> = {}): Schedule {
   return {
@@ -104,5 +104,33 @@ describe('updatePlan', () => {
   it('rejects when there is no plan to change', async () => {
     await db.plan.clear();
     await expect(updatePlan((p) => p)).rejects.toThrow();
+  });
+});
+
+describe('keepScheduleState', () => {
+  // The wizard opened in a second tab before the line was paused there, or before it was resumed.
+  const withRent = (s: Schedule): Plan => ({ ...PLAN, fixed: [{ ...PLAN.fixed[0], schedule: s }] });
+
+  it('keeps a pause made elsewhere', () => {
+    const stored = withRent(schedule({ paused: true }));
+    const stale = withRent(schedule({ day: 3 }));
+    expect(keepScheduleState(stored, stale).fixed[0].schedule).toEqual(schedule({ day: 3, paused: true }));
+  });
+
+  it('keeps a resume made elsewhere, with its later start', () => {
+    const stored = withRent(schedule({ startOn: '2027-01-16', postedThrough: '2027-01-15' }));
+    const stale = withRent(schedule({ paused: true }));
+    expect(keepScheduleState(stored, stale).fixed[0].schedule).toEqual(schedule({ startOn: '2027-01-16' }));
+  });
+
+  it('keeps the later start the wizard set when it repaired a line', () => {
+    const stored = withRent(schedule());
+    const repaired = withRent(schedule({ startOn: '2026-12-06', postedThrough: '2026-12-05' }));
+    expect(keepScheduleState(stored, repaired).fixed[0].schedule).toMatchObject({ startOn: '2026-12-06' });
+  });
+
+  it('leaves new schedules and the rest of the plan alone', () => {
+    const next = { ...PLAN, envelopes: [], incomes: [{ ...PLAN.incomes[0], schedule: schedule({ id: 'new' }) }] };
+    expect(keepScheduleState(PLAN, next)).toEqual(next);
   });
 });
