@@ -70,6 +70,15 @@ async function everyRow() {
   };
 }
 
+/** IndexedDB sorts rows by primary key, so the tables are compared without regard to row order. */
+function expectSameData(actual: BackupData, expected: BackupData) {
+  for (const table of ['accounts', 'categories', 'entries', 'guesses', 'fxRates'] as const) {
+    expect(actual[table]).toHaveLength(expected[table].length);
+    expect(actual[table]).toEqual(expect.arrayContaining<unknown>(expected[table]));
+  }
+  expect(actual.plan).toEqual(expected.plan);
+}
+
 beforeEach(async () => {
   await db.open();
   await Promise.all(db.tables.map((table) => table.clear()));
@@ -109,13 +118,10 @@ describe('replaceAll', () => {
     await replaceAll(parsed.data);
 
     const restored = await exportAll();
-    // IndexedDB sorts rows by primary key; compare file contents independently of row order.
-    for (const table of ['accounts', 'categories', 'entries', 'guesses', 'fxRates'] as const) {
-      expect(restored[table]).toHaveLength(parsed.data[table].length);
-      expect(restored[table]).toEqual(expect.arrayContaining<unknown>(parsed.data[table]));
-    }
-    expect(restored.plan).toEqual(parsed.data.plan);
+    expectSameData(restored, parsed.data);
     expect(restored.entries).toHaveLength(47);
+    // The demo file is from before the new categories: it lists 18, and the restore adds the rest.
+    expect(restored.categories).toHaveLength(26);
     const accountIds = new Set(restored.accounts.map((a) => a.id));
     const categoryIds = new Set(restored.categories.map((c) => c.id));
     for (const entry of restored.entries) {
@@ -123,6 +129,20 @@ describe('replaceAll', () => {
       if (entry.type === 'transfer') expect(accountIds.has(entry.toAccountId)).toBe(true);
       else expect(categoryIds.has(entry.categoryId)).toBe(true);
     }
+  });
+
+  it('puts all 26 built-in categories on the device when the file lists only some of them', async () => {
+    await fillWithOldData();
+    const text = serializeBackup(backup({ categories: CATEGORIES.slice(0, 5) }), new Date('2026-10-16T10:00:00.000Z'));
+    const parsed = parseBackup(text);
+    if (!parsed.ok) throw new Error(parsed.error);
+
+    await replaceAll(parsed.data);
+
+    const stored = await db.categories.toArray();
+    expect(stored).toHaveLength(26);
+    expect(stored).toEqual(expect.arrayContaining<unknown>(CATEGORIES));
+    expect(await db.categories.get('old-category')).toBeUndefined();
   });
 
   it('replaces the existing rows of every table', async () => {
@@ -177,7 +197,9 @@ describe('replaceAll', () => {
 
     await replaceAll(parsed.data);
 
-    expect(await exportAll()).toEqual(parsed.data);
+    // The one category the device had, and the 25 built-in ones the file did not list.
+    expectSameData(await exportAll(), parsed.data);
+    expect((await db.categories.toArray()).length).toBe(27);
     expect((await db.fxRates.toArray()).map((r) => r.source).sort()).toEqual(['ecb', 'manual']);
   });
 });
