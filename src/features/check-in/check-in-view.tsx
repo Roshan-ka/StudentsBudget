@@ -8,6 +8,7 @@ import { db } from '@/db/db';
 import type { Account, Entry, Plan } from '@/db/types';
 import { categoryName } from '@/features/entries/categories';
 import { QuickAddField } from '@/features/entries/quick-add-field';
+import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
 import { safeToSpend } from '@/lib/budget';
 import { previousMonthTail, type IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
@@ -43,7 +44,10 @@ function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Acc
   return (
     <li className="flex items-center justify-between gap-3 py-2">
       <span className="min-w-0">
-        <span className="block font-medium break-words">{entry.note || label}</span>
+        <span className="block">
+          <span className="font-medium break-words">{entry.note || label}</span>
+          {isRecurring(entry) && <RecurringTag className="ml-2 align-middle" />}
+        </span>
         <span className="block text-sm text-muted-foreground">{details.join(' · ')}</span>
         {notCounted !== null && <span className="block text-sm text-muted-foreground">{notCounted}</span>}
       </span>

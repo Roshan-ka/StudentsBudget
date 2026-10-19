@@ -10,7 +10,7 @@ import { deleteEntry, saveEntry } from '@/db/repo';
 import { todayIso } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
 import { buildEntry } from './build-entry';
-import { FLEXIBLE_CATEGORIES, categoryName } from './categories';
+import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES, categoryName } from './categories';
 import { parseQuickAdd, suggestCategory } from './quick-add';
 import { pickQuickAddAccount } from './quick-add-account';
 
@@ -19,10 +19,52 @@ type Parsed = { amountMinor: Minor; note: string };
 /** How long the "Saved …" line, with its Undo, stays up. */
 const SAVED_LINE_MS = 10_000;
 
+/** The flexible categories added after the original six: they sit behind the More chip. */
+const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !GUESS_CATEGORIES.some((g) => g.id === c.id));
+
+/**
+ * One chip per flexible category: the original six, then a More chip that shows the rest. It is only on screen
+ * while the line waits for a category, so every new line starts with the six again.
+ */
+function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: string) => void }) {
+  const [showMore, setShowMore] = useState(false);
+  const chip = (category: { id: string; name: string }) => (
+    <Button
+      key={category.id}
+      type="button"
+      variant="outline"
+      className="h-10 px-3"
+      disabled={busy}
+      onClick={() => onPick(category.id)}
+    >
+      {category.name}
+    </Button>
+  );
+
+  return (
+    <div role="group" aria-label="Category" className="flex flex-col gap-2">
+      <p className="text-sm text-muted-foreground">Which category?</p>
+      <div className="flex flex-wrap gap-2">
+        {GUESS_CATEGORIES.map(chip)}
+        <Button
+          type="button"
+          variant="secondary"
+          className="h-10 px-3"
+          aria-expanded={showMore}
+          onClick={() => setShowMore((open) => !open)}
+        >
+          More
+        </Button>
+        {showMore && MORE_CATEGORIES.map(chip)}
+      </div>
+    </div>
+  );
+}
+
 /**
  * One line to log an expense: "döner 6", typed or dictated. It saves straight away when an earlier
  * expense with the same first word gives the category; otherwise it asks with one chip per flexible
- * category. A line that says what was saved comes with an Undo button.
+ * category (the original six, and the rest behind More). A line that says what was saved comes with an Undo button.
  */
 export function QuickAddField() {
   const id = useId();
@@ -172,23 +214,7 @@ export function QuickAddField() {
       </form>
 
       {pending !== null && (
-        <div role="group" aria-label="Category" className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">Which category?</p>
-          <div className="flex flex-wrap gap-2">
-            {FLEXIBLE_CATEGORIES.map((category) => (
-              <Button
-                key={category.id}
-                type="button"
-                variant="outline"
-                className="h-10 px-3"
-                disabled={busy}
-                onClick={() => void runOnce(() => save(pending, category.id))}
-              >
-                {category.name}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <CategoryChips busy={busy} onPick={(categoryId) => void runOnce(() => save(pending, categoryId))} />
       )}
 
       {error && (
