@@ -99,11 +99,27 @@ async function nextStep(page: Page, heading: string) {
 export type SetupOptions = {
   /** Accounts were added in Settings first, so the wizard skips its Accounts step and `openingBalances` is unused. */
   accountsExist?: boolean;
+  /**
+   * Leaves "Add it automatically" on for rent and the incomes (monthly on the 1st, from the first account). Off by
+   * default, so a spec that moves its clock past the 1st finds no entries it did not make.
+   */
+  schedules?: boolean;
 };
+
+const isPositive = (amount: string): boolean => Number(amount.trim().replace(',', '.')) > 0;
+
+/** Turns "Add it automatically" off for a line the wizard shows with an amount. */
+async function addByHand(page: Page, name: string) {
+  await page
+    .getByRole('group', { name: `${name} schedule`, exact: true })
+    .getByRole('checkbox', { name: 'Add it automatically', exact: true })
+    .uncheck();
+}
 
 /**
  * Walks through every step of a new setup and stops on the envelopes step, before saving.
  * Mocks Frankfurter first, and pins the date to `SETUP_DAY` unless the caller set `page.clock` before calling it.
+ * Rent and the incomes are added by hand (no schedules) unless `options.schedules` is set.
  */
 export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {}, options: SetupOptions = {}) {
   const f: SetupFixture = { ...DEFAULT_SETUP, ...overrides };
@@ -128,8 +144,14 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
 
   await page.getByLabel('Parents', { exact: true }).fill(f.incomes.parents);
   await page.getByLabel('Job', { exact: true }).fill(f.incomes.job);
+  if (!options.schedules) {
+    if (isPositive(f.incomes.parents)) await addByHand(page, 'Parents');
+    if (isPositive(f.incomes.job)) await addByHand(page, 'Job');
+  }
   await nextStep(page, 'Fixed costs');
 
+  // Rent's "Add it automatically" sits here, once the accounts are known.
+  if (!options.schedules && isPositive(f.rent)) await addByHand(page, 'Rent');
   // Every other fixed cost stays blank, which means 0.
   await nextStep(page, 'One-off costs');
 

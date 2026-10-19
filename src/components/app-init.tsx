@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { requestPersistence } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import { ensureSeeded } from '@/db/repo';
+import { postDueRecurring } from '@/features/recurring/post-due';
 import { todayIso } from '@/lib/dates';
 import { registerServiceWorker } from '@/lib/sw-register';
 
@@ -13,6 +14,23 @@ async function refreshExchangeRates() {
   } catch (error) {
     console.error('StudentsBudget: could not refresh the exchange rates', error);
   }
+}
+
+async function postRecurring() {
+  try {
+    await postDueRecurring(todayIso());
+  } catch (error) {
+    console.error('StudentsBudget: could not add the fixed costs and income that are due', error);
+  }
+}
+
+/**
+ * Fixed costs and income that are due are added once the rate refresh has settled, whether it worked or not, so a
+ * foreign-currency line converts with today's rate when there is one. A line still without a rate waits for the next run.
+ */
+async function refreshThenPost() {
+  await refreshExchangeRates();
+  await postRecurring();
 }
 
 async function startServiceWorker() {
@@ -29,14 +47,14 @@ async function startServiceWorker() {
 }
 
 /**
- * Prepares the local database on mount, keeps the exchange rates current and starts the service worker
- * that opens the app offline (production builds only). Renders nothing.
+ * Prepares the local database on mount, keeps the exchange rates current, adds the fixed costs and income that are
+ * due, and starts the service worker that opens the app offline (production builds only). Renders nothing.
  */
 export function AppInit() {
   useEffect(() => {
     // An installed iPhone app can stay suspended for days without remounting, so check again on return.
     function onVisibilityChange() {
-      if (document.visibilityState === 'visible') void refreshExchangeRates();
+      if (document.visibilityState === 'visible') void refreshThenPost();
     }
     document.addEventListener('visibilitychange', onVisibilityChange);
 
@@ -46,9 +64,9 @@ export function AppInit() {
       } catch (error) {
         console.error('StudentsBudget: could not seed the local database', error);
       }
-      // Neither waits for the other: a hung connection holds the rates for the 10 s fetch timeout, and some
-      // browsers hold the persistence promise open until the person answers a prompt.
-      void refreshExchangeRates();
+      // Neither waits for the other: a hung connection holds the rates (and the posting after them) for the 10 s
+      // fetch timeout, and some browsers hold the persistence promise open until the person answers a prompt.
+      void refreshThenPost();
       try {
         await requestPersistence();
       } catch (error) {

@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import type { Plan } from '@/db/types';
+import type { Plan, Schedule } from '@/db/types';
 import {
+  accountOptions,
   draftFromPlan,
   draftToRecords,
   dropUnparsed,
   envelopesFooter,
   initialDraft,
   rangeLine,
+  setLineAmount,
+  setLineSchedule,
+  setRentAmount,
   shouldShowInstallHint,
   summarizeDraft,
   validateStep,
+  withAccountKeys,
   withAmount,
   type SetupDraft,
 } from './draft';
@@ -167,7 +172,11 @@ describe('draftFromPlan', () => {
     };
     const d = draftFromPlan(plan);
     expect(d.rentMinor).toBe(40000);
-    expect(d.fixed).toEqual([{ categoryId: 'phone', monthlyMinor: 2500 }]);
+    expect(d.fixed).toMatchObject([{ categoryId: 'phone', monthlyMinor: 2500 }]);
+    expect(d.fixed).toHaveLength(1);
+    // Lines saved without a schedule open with "Add it automatically" off.
+    expect(d.fixed[0].schedule?.on).toBe(false);
+    expect(d.rentSchedule?.on).toBe(false);
     expect(d.accounts).toEqual([]);
     expect(d.guesses).toEqual([]);
     expect(d.envelopes).toHaveLength(12);
@@ -266,7 +275,7 @@ describe('validateStep', () => {
       const saved: Plan = {
         id: 'current',
         cityId: 'regensburg',
-        incomes: draft.incomes,
+        incomes: draft.incomes.map(({ categoryId, monthlyMinor }) => ({ categoryId, monthlyMinor })),
         fixed: [{ categoryId: 'rent', monthlyMinor: 40000 }],
         oneOffs: [{ id: 'fee', name: 'Semester fee', amountMinor: 30000, createdMonth: '2026-09', dueMonth: '2026-10' }],
         envelopes: draft.envelopes,
@@ -470,5 +479,191 @@ describe('shouldShowInstallHint', () => {
   it('hides everywhere else', () => {
     expect(shouldShowInstallHint({ isIos: false, standalone: false })).toBe(false);
     expect(shouldShowInstallHint({ isIos: false, standalone: true })).toBe(false);
+  });
+});
+
+describe('adding lines automatically', () => {
+  // A new setup: the prefilled accounts have draft keys, and Local bank is the first.
+  const fresh = initialDraft();
+  const withLines = (d: SetupDraft): SetupDraft => ({
+    ...setRentAmount(d, 40000),
+    incomes: setLineAmount(setLineAmount([], 'income-parents', 50000), 'income-job', 40000),
+    fixed: setLineAmount([], 'phone', 2500),
+  });
+
+  it('gives every draft account a key of its own, and keeps the keys it has', () => {
+    expect(new Set(fresh.accounts.map((a) => a.key)).size).toBe(3);
+    const blank = { name: '', kind: 'bank' as const, currency: 'EUR' as const, openingMinor: 0 };
+    const added = withAccountKeys({ ...fresh, accounts: [...fresh.accounts, blank] });
+    expect(added.accounts.slice(0, 3)).toEqual(fresh.accounts);
+    expect(added.accounts[3].key).toEqual(expect.any(String));
+    expect(new Set(added.accounts.map((a) => a.key)).size).toBe(4);
+    expect(withAccountKeys(added)).toBe(added);
+  });
+
+  it('offers the draft accounts in a new setup, and the stored ones otherwise', () => {
+    const stored = [{ id: 'a1', name: 'Sparkasse', currency: 'EUR' as const }];
+    expect(accountOptions(fresh, stored).map((a) => [a.name, a.currency])).toEqual([
+      ['Local bank', 'EUR'],
+      ['Home bank', 'INR'],
+      ['Cash', 'EUR'],
+    ]);
+    expect(accountOptions(initialDraft(true), stored)).toEqual(stored);
+  });
+
+  it('turns it on for a line that gets an amount, monthly on the 1st from the first account', () => {
+    const d = withLines(fresh);
+    expect(d.rentSchedule).toEqual({ on: true, frequency: 'monthly', day: 1, accountId: '', foreignMinor: 0 });
+    expect(d.incomes.every((l) => l.schedule?.on)).toBe(true);
+
+    const { plan, accounts } = draftToRecords(d, TODAY);
+    const local = accounts.find((a) => a.name === 'Local bank');
+    expect(plan.fixed[0]).toEqual({
+      categoryId: 'rent',
+      monthlyMinor: 40000,
+      schedule: {
+        id: expect.any(String),
+        frequency: 'monthly',
+        day: 1,
+        accountId: local?.id,
+        amountMinor: 40000,
+        startOn: '2026-10-17',
+        postedThrough: TODAY,
+      },
+    });
+    expect(plan.incomes.map((l) => l.schedule?.amountMinor)).toEqual([40000, 50000]);
+    expect(plan.fixed[1].schedule).toMatchObject({ accountId: local?.id, amountMinor: 2500 });
+    expect(new Set([...plan.incomes, ...plan.fixed].map((l) => l.schedule?.id)).size).toBe(4);
+    // The draft keys never reach the database.
+    expect(accounts.every((a) => !('key' in a))).toBe(true);
+  });
+
+  it('saves the picked account, day and weekday', () => {
+    const d = withLines(fresh);
+    const cash = d.accounts[2].key ?? '';
+    const job = { on: true, frequency: 'weekly' as const, day: 5, accountId: cash, foreignMinor: 0 };
+    const { plan, accounts } = draftToRecords({ ...d, incomes: setLineSchedule(d.incomes, 'income-job', job) }, TODAY);
+    expect(plan.incomes[0].schedule).toMatchObject({
+      frequency: 'weekly',
+      day: 5,
+      accountId: accounts.find((a) => a.name === 'Cash')?.id,
+      // €400 a month is €92.31 a week; the plan keeps the €400.
+      amountMinor: 9231,
+    });
+    expect(plan.incomes[0].monthlyMinor).toBe(40000);
+  });
+
+  it('posts the amount typed in the currency of a foreign account and keeps the euro figure for the plan', () => {
+    const d = withLines(fresh);
+    const home = d.accounts[1].key ?? '';
+    const parents = { on: true, frequency: 'monthly' as const, day: 1, accountId: home, foreignMinor: 5_000_000 };
+    const { plan } = draftToRecords({ ...d, incomes: setLineSchedule(d.incomes, 'income-parents', parents) }, TODAY);
+    expect(plan.incomes[1]).toMatchObject({ monthlyMinor: 50000, schedule: { amountMinor: 5_000_000 } });
+  });
+
+  it('asks for that amount before the step can be left', () => {
+    const d = withLines(fresh);
+    const home = d.accounts[1].key ?? '';
+    const inr = { on: true, frequency: 'monthly' as const, day: 1, accountId: home, foreignMinor: 0 };
+    const incomes = setLineSchedule(d.incomes, 'income-job', inr);
+    const check = (job: typeof inr) =>
+      validateStep('income', { ...d, incomes: setLineSchedule(incomes, 'income-job', job) }, TODAY);
+    expect(check(inr)).toEqual(['Enter the amount in INR for Job.']);
+    expect(check({ ...inr, foreignMinor: Number.NaN })).toEqual(['Enter the amount in INR for Job.']);
+    expect(check({ ...inr, foreignMinor: 100 })).toEqual([]);
+    expect(check({ ...inr, on: false })).toEqual([]);
+    // Rent's choices sit in the fixed costs step.
+    expect(validateStep('fixed', { ...d, rentSchedule: inr }, TODAY)).toEqual(['Enter the amount in INR for Rent.']);
+    expect(validateStep('city-rent', { ...d, rentSchedule: inr }, TODAY)).toEqual([]);
+  });
+
+  it('saves no schedule for a line that is off, or that has no amount', () => {
+    const d = withLines(fresh);
+    const off = { ...d, rentSchedule: d.rentSchedule && { ...d.rentSchedule, on: false } };
+    expect(draftToRecords(off, TODAY).plan.fixed[0]).toEqual({ categoryId: 'rent', monthlyMinor: 40000 });
+    expect(draftToRecords(setRentAmount(d, 0), TODAY).plan.fixed[0]).toEqual({ categoryId: 'rent', monthlyMinor: 0 });
+  });
+
+  it('keeps the choices of a line that is cleared, and leaves it out of the plan until it has an amount again', () => {
+    const d = withLines(fresh);
+    const weekly = { on: true, frequency: 'weekly' as const, day: 3, accountId: '', foreignMinor: 0 };
+    const cleared = setLineAmount(setLineSchedule(d.incomes, 'income-job', weekly), 'income-job', 0);
+    expect(draftToRecords({ ...d, incomes: cleared }, TODAY).plan.incomes.map((l) => l.categoryId)).toEqual([
+      'income-parents',
+    ]);
+    const typedAgain = setLineAmount(cleared, 'income-job', 30000);
+    expect(typedAgain.find((l) => l.categoryId === 'income-job')?.schedule).toEqual(weekly);
+    // A row without choices is simply removed.
+    expect(setLineAmount([{ categoryId: 'phone', monthlyMinor: 2500 }], 'phone', 0)).toEqual([]);
+  });
+
+  describe('in edit mode', () => {
+    const rentSchedule: Schedule = {
+      id: 'rent-s',
+      frequency: 'monthly',
+      day: 3,
+      accountId: 'local',
+      amountMinor: 42000,
+      startOn: '2026-10-17',
+      postedThrough: '2026-11-30',
+    };
+    const jobSchedule: Schedule = {
+      id: 'job-s',
+      frequency: 'weekly',
+      day: 5,
+      accountId: 'home',
+      amountMinor: 1_000_000,
+      startOn: '2026-10-17',
+      postedThrough: '2026-11-08',
+      paused: true,
+    };
+    const saved: Plan = {
+      id: 'current',
+      cityId: 'regensburg',
+      incomes: [
+        { categoryId: 'income-job', monthlyMinor: 40000, schedule: jobSchedule },
+        { categoryId: 'income-parents', monthlyMinor: 50000 },
+      ],
+      fixed: [
+        { categoryId: 'rent', monthlyMinor: 42000, schedule: rentSchedule },
+        { categoryId: 'phone', monthlyMinor: 2500 },
+      ],
+      oneOffs: [],
+      envelopes: draft.envelopes,
+      createdOn: '2026-10-16',
+    };
+    const stored = [
+      { id: 'local', name: 'Local bank', currency: 'EUR' as const },
+      { id: 'home', name: 'Home bank', currency: 'INR' as const },
+    ];
+
+    it('carries every schedule through unchanged, rent included', () => {
+      expect(draftToRecords(draftFromPlan(saved), TODAY, saved, stored).plan).toEqual(saved);
+    });
+
+    it('keeps the id, start, watermark and pause of a schedule whose day or amount changes', () => {
+      const d = draftFromPlan(saved);
+      const moved = d.rentSchedule && { ...d.rentSchedule, day: 5 };
+      const { plan } = draftToRecords({ ...d, rentSchedule: moved }, TODAY, saved, stored);
+      expect(plan.fixed[0].schedule).toEqual({ ...rentSchedule, day: 5 });
+      const rent = draftToRecords(setRentAmount(d, 43000), TODAY, saved, stored).plan.fixed[0];
+      expect(rent).toEqual({ categoryId: 'rent', monthlyMinor: 43000, schedule: { ...rentSchedule, amountMinor: 43000 } });
+      const job = draftToRecords(d, TODAY, saved, stored).plan.incomes[0].schedule;
+      expect(job).toEqual(jobSchedule);
+    });
+
+    it('leaves a line of an older plan off, even when its amount changes', () => {
+      const d = draftFromPlan(saved);
+      const incomes = setLineAmount(d.incomes, 'income-parents', 55000);
+      expect(draftToRecords({ ...d, incomes }, TODAY, saved, stored).plan.incomes[1]).toEqual({
+        categoryId: 'income-parents',
+        monthlyMinor: 55000,
+      });
+    });
+
+    it('keeps a paused line out of the preview of the plan', () => {
+      // Without the stored accounts (as the envelopes step previews it) the saved schedule still carries the pause.
+      expect(summarizeDraft(draftFromPlan(saved), TODAY, saved).incomeMinor).toBe(50000);
+    });
   });
 });
