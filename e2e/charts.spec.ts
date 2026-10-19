@@ -376,15 +376,22 @@ test('the savings chart says what was saved in calm words, and leaves transfers 
   await openCharts(page);
   const savings = savingsSection(page);
 
-  await expect(savings.getByText('€120 saved', { exact: true })).toBeVisible();
+  // On "This month" one column would say little: the savings look back 6 months, to May. Spending stays on October.
+  await expect(savings.getByText('Last 6 months', { exact: true })).toBeVisible();
+  // May to August nothing, September 60 - 100, October 120: €80 saved in all.
+  await expect(savings.getByText('€80 saved', { exact: true })).toBeVisible();
   await expect(savings.getByText(/failed|warning|loss/i)).toHaveCount(0);
-  // One column, labelled, and it opens the month's entries.
-  await expect(savings.getByRole('img', { name: /Column chart of income minus spending in each month of October 2026/ })).toBeVisible();
+  await expect(marks(savings)).toHaveCount(6);
+  await expect(
+    savings.getByRole('img', { name: /Column chart of income minus spending in each month of May 2026 to October 2026/ }),
+  ).toBeVisible();
   await expect(savings.locator('svg').getByText('€120', { exact: true })).toBeVisible();
+  await expect(spendingSection(page).getByRole('table', { name: /^Spending by category, October 2026\./ })).toHaveCount(1);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   await pickPeriod(page, '3 months');
   // August nothing, September 60 - 100, October 120: €80 saved in all.
+  await expect(savings.getByText('Last 6 months', { exact: true })).toHaveCount(0);
   await expect(savings.getByText('€80 saved', { exact: true })).toBeVisible();
   await expect(marks(savings)).toHaveCount(3);
   await marks(savings).nth(1).hover();
@@ -421,8 +428,13 @@ test('the category chart follows the period: columns, a line or a table, and a t
     { type: 'expense', categoryId: 'food', date: '2026-08-15', eurMinor: 4500 },
   ]);
   await openCharts(page);
-  await pickPeriod(page, '6 months');
   const over = page.getByRole('region', { name: 'Food & groceries over time' });
+  // On "This month" the chart looks back 6 months, to May, and says so.
+  await expect(over.getByText('Last 6 months', { exact: true })).toBeVisible();
+  await expect(marks(over)).toHaveCount(6);
+  await expect(over.getByRole('img', { name: /in each month of May 2026 to October 2026/ })).toBeVisible();
+  await pickPeriod(page, '6 months');
+  await expect(over.getByText('Last 6 months', { exact: true })).toHaveCount(0);
   // The heading names the category, so the picker is found on the page, not in a section.
   const category = page.getByRole('combobox', { name: 'Category' });
 
@@ -477,7 +489,8 @@ test('a period of 12 months fits a phone: twelve columns, and no label wider tha
   // With 12 columns the amounts are in the tooltip and the table, not over every column: the only text in the
   // chart is the 12 month names.
   await expect(savings.locator('svg text')).toHaveCount(12);
-  await expect(page.getByRole('region', { name: 'Rent over time' }).locator('g.cursor-pointer')).toHaveCount(12);
+  // Only rent was spent, but a fixed cost is a flat line: the chart starts on the flexible category planned most.
+  await expect(page.getByRole('region', { name: 'Food & groceries over time' }).locator('g.cursor-pointer')).toHaveCount(12);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 

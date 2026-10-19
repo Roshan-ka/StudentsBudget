@@ -4,6 +4,7 @@ import { monthStatus } from '@/lib/budget';
 import {
   BUCKET_ID,
   categoryOverPeriod,
+  defaultOverTimeCategory,
   incomeBySource,
   incomeBySourceOver,
   monthsOf,
@@ -255,6 +256,31 @@ describe('spendingByCategory', () => {
     const nothing: Plan = { ...plan, fixed: [], envelopes: [] };
 
     expect(spendingByCategory([income('income-job', '2026-10-01', 40000)], nothing, '2026-10')).toEqual([]);
+  });
+});
+
+describe('defaultOverTimeCategory', () => {
+  const row = (categoryId: string, spentMinor: number, plannedMinor: number | null = null) => ({
+    categoryId,
+    spentMinor,
+    plannedMinor,
+  });
+
+  it('starts on the top flexible spender, not on rent that was added automatically', () => {
+    const spending = [row('rent', 40000, 40000), row('phone', 3000, 3000), row('eating-out', 600, 6400), row('food', 400, 16000)];
+
+    expect(defaultOverTimeCategory(spending)).toBe('eating-out');
+  });
+
+  it('with no flexible spending, starts on the flexible row with the largest plan', () => {
+    const spending = [row('rent', 40000, 40000), row('food', 0, 16000), row('eating-out', 0, 6400)];
+
+    expect(defaultOverTimeCategory(spending)).toBe('food');
+  });
+
+  it('starts on the first flexible category when no flexible row is there', () => {
+    expect(defaultOverTimeCategory([row('rent', 40000, 40000)])).toBe('food');
+    expect(defaultOverTimeCategory([])).toBe('food');
   });
 });
 
@@ -704,6 +730,13 @@ describe('topWithBucket', () => {
     expect(result[6]?.plannedMinor).toBe(2000);
     const noPlans = rowsOf(9).map((r) => ({ ...r, plannedMinor: null }));
     expect(topWithBucket(noPlans, spent)[6]?.plannedMinor).toBeNull();
+  });
+
+  it('shows a seventh row as itself: a bucket of one category would only hide its name', () => {
+    const result = topWithBucket(rowsOf(7), spent);
+
+    expect(result).toEqual(rowsOf(7));
+    expect(result.map((r) => r.categoryId)).not.toContain(BUCKET_ID);
   });
 
   it('has no bucket when there are 6 rows or fewer, and gives them back as they are', () => {

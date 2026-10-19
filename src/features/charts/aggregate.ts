@@ -1,5 +1,5 @@
 import type { Entry, Plan } from '@/db/types';
-import { orderOf } from '@/features/entries/categories';
+import { FLEXIBLE_CATEGORIES, orderOf } from '@/features/entries/categories';
 import { monthStatus } from '@/lib/budget';
 import { monthOf, shiftMonth, type IsoMonth } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
@@ -100,6 +100,17 @@ export function spendingByCategoryOver(entries: Entry[], plan: Plan, p: Period):
     );
 }
 
+const FLEXIBLE_IDS = new Set(FLEXIBLE_CATEGORIES.map((c) => c.id));
+
+/**
+ * The category the "over time" chart starts on, from `spending` ranked as `spendingByCategoryOver` ranks it: the top
+ * flexible spender, or with nothing flexible spent the flexible row with the largest plan, or the first flexible
+ * category. A fixed cost such as rent comes in at the same amount every month, so its chart is a flat line.
+ */
+export function defaultOverTimeCategory(spending: SpendingRow[]): string {
+  return spending.find((row) => FLEXIBLE_IDS.has(row.categoryId))?.categoryId ?? FLEXIBLE_CATEGORIES[0].id;
+}
+
 /** `spendingByCategoryOver` for a single month; `spendingRowsOf` has the rules for spent and planned. */
 export function spendingByCategory(entries: Entry[], plan: Plan, month: IsoMonth): SpendingRow[] {
   return spendingByCategoryOver(entries, plan, { endMonth: month, months: 1 });
@@ -165,9 +176,10 @@ export const BUCKET_ID = 'everything-else';
 
 /**
  * The `top` rows with the largest value (6 by default), largest first, then one more row, `BUCKET_ID`, that adds up
- * all the others: what a donut can carry. With `top` rows or fewer there is no bucket and the rows come back
- * ranked. The rows must hold numbers (or null, for a number that is missing) next to their `categoryId`; the bucket
- * has the sum of every one of them, with a missing number left missing only when all of the folded rows lack it.
+ * all the others: what a donut can carry. A bucket folds at least two rows: with `top + 1` rows or fewer there is no
+ * bucket and the rows come back ranked, since a bucket of one row would only hide its name. The rows must hold
+ * numbers (or null, for a number that is missing) next to their `categoryId`; the bucket has the sum of every one of
+ * them, with a missing number left missing only when all of the folded rows lack it.
  */
 export function topWithBucket<T extends { categoryId: string }>(
   rows: T[],
@@ -176,7 +188,7 @@ export function topWithBucket<T extends { categoryId: string }>(
 ): T[] {
   // Array.sort is stable, so rows of equal value stay in the order they came in.
   const ranked = [...rows].sort((a, b) => valueOf(b) - valueOf(a));
-  if (ranked.length <= top) return ranked;
+  if (ranked.length <= top + 1) return ranked;
 
   const rest = ranked.slice(top);
   const bucket: Record<string, unknown> = { ...rest[0] };

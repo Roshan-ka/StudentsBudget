@@ -7,10 +7,15 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import type { Entry, Plan } from '@/db/types';
-import { EXPENSE_CATEGORIES } from '@/features/entries/categories';
 import { firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
-import { incomeBySourceOver, monthsOf, spendingByCategoryOver, type Period, type SpendingRow } from './aggregate';
+import {
+  defaultOverTimeCategory,
+  incomeBySourceOver,
+  monthsOf,
+  spendingByCategoryOver,
+  type Period,
+} from './aggregate';
 import {
   LINK_CLASS,
   monthAndYear,
@@ -76,11 +81,6 @@ function MonthSwitcher({
   );
 }
 
-/** The category the "over time" chart starts on: the top spender, or with nothing spent the first row, or the first category. */
-function defaultCategory(spending: SpendingRow[]): string {
-  return (spending.find((row) => row.spentMinor > 0) ?? spending[0])?.categoryId ?? EXPENSE_CATEGORIES[0].id;
-}
-
 function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today: IsoDate }) {
   // Null follows the clock to the current month; Previous and Next pin the month that was picked.
   const [pickedMonth, setPickedMonth] = useState<IsoMonth | null>(null);
@@ -102,6 +102,11 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
 
   const spending = spendingByCategoryOver(entries, plan, period);
   const income = incomeBySourceOver(entries, period);
+  // One month is a single column over time, so on "This month" the two over-time charts look back 6 months to it.
+  const lookBack = months === 1;
+  const overTime: Period = lookBack ? { endMonth, months: 6 } : period;
+  const overTimeText = lookBack ? periodText(monthsOf(overTime)) : text;
+  const overTimeSubtitle = lookBack ? 'Last 6 months' : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -126,13 +131,14 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
             periodText={text}
             noneText={`No income logged in ${monthIn} yet.`}
           />
-          <SavingsSection entries={entries} period={period} periodText={text} />
+          <SavingsSection entries={entries} period={overTime} periodText={overTimeText} subtitle={overTimeSubtitle} />
           <OverTimeSection
-            categoryId={pickedCategory ?? defaultCategory(spending)}
+            categoryId={pickedCategory ?? defaultOverTimeCategory(spending)}
             onCategoryChange={setPickedCategory}
             entries={entries}
-            period={period}
-            periodText={text}
+            period={overTime}
+            periodText={overTimeText}
+            subtitle={overTimeSubtitle}
           />
         </>
       )}
@@ -142,7 +148,8 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
 
 /**
  * Where the money went over one period (this month, or the last 3, 6 or 12): spending by category against the plan,
- * income by source, what was saved each month, and one category month by month. Each chart has its own style
+ * income by source, what was saved each month, and one category month by month. On "This month" the last two look
+ * back 6 months, since one month is a single column, and say "Last 6 months". Each chart has its own style
  * (donut, bars or table; columns, line or table). Every slice, bar and column opens the entries behind it. It reads
  * the whole database and updates by itself when an entry is saved.
  */

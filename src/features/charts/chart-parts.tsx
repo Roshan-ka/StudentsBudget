@@ -196,13 +196,25 @@ export function DataTable({
 }
 
 /** A heading and what is under it; the section is named by the heading. */
-export function ChartSection({ title, children }: { title: string; children: ReactNode }) {
+export function ChartSection({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  /** A short line under the title, for a chart whose months differ from the period's: "Last 6 months". */
+  subtitle?: string | null;
+  children: ReactNode;
+}) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h3 id={headingId} className="text-lg font-semibold">
-        {title}
-      </h3>
+      <div>
+        <h3 id={headingId} className="text-lg font-semibold">
+          {title}
+        </h3>
+        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+      </div>
       {children}
     </section>
   );

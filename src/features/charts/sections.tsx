@@ -66,7 +66,7 @@ function categoryRow(
   };
 }
 
-/** The slices of a donut: the rows with something in them, the top 6 of those, and a bucket for the rest. */
+/** A donut's slices: the rows with something in them, the top 6, and a bucket when it folds 2 or more. */
 function slicesOf<T extends { categoryId: string }>(
   rows: T[],
   amountOf: (row: T) => Minor,
@@ -216,15 +216,18 @@ export function IncomeSection({
 /**
  * What was saved in each month of the period: income minus expenses, with a total for the period. A month that
  * spent more than it earned says so in words, not as a warning. Tapping a column opens that month's entries.
+ * `subtitle` goes under the title when the months are not the period the other charts show.
  */
 export function SavingsSection({
   entries,
   period,
   periodText,
+  subtitle,
 }: {
   entries: Entry[];
   period: Period;
   periodText: string;
+  subtitle?: string | null;
 }) {
   const [style, setStyle] = useState<SeriesChoice>('columns');
   const months = savingsByMonth(entries, period);
@@ -247,7 +250,7 @@ export function SavingsSection({
   const caption = `Income minus spending by month, ${periodText}. Each month links to its entries.`;
 
   return (
-    <ChartSection title="Saved each month">
+    <ChartSection title="Saved each month" subtitle={subtitle}>
       <div>
         <p className="text-2xl font-semibold">{headline}</p>
         <p className="text-sm text-muted-foreground">
@@ -295,19 +298,24 @@ function savingsCells(rows: ChartRow[], months: ReturnType<typeof savingsByMonth
   }));
 }
 
-/** One category month by month over the period: a picker for the category, then columns, a line or a table. */
+/**
+ * One category month by month over the period: a picker for the category, then columns, a line or a table.
+ * `subtitle` goes under the title when the months are not the period the other charts show.
+ */
 export function OverTimeSection({
   categoryId,
   onCategoryChange,
   entries,
   period,
   periodText,
+  subtitle,
 }: {
   categoryId: string;
   onCategoryChange: (categoryId: string) => void;
   entries: Entry[];
   period: Period;
   periodText: string;
+  subtitle?: string | null;
 }) {
   const selectId = useId();
   const [style, setStyle] = useState<SeriesChoice>('columns');
@@ -326,7 +334,7 @@ export function OverTimeSection({
   const tableRows = rows.map((row) => ({ row, cells: [amountText(row.amountMinor)] }));
 
   return (
-    <ChartSection title={`${name} over time`}>
+    <ChartSection title={`${name} over time`} subtitle={subtitle}>
       <div className="grid gap-1.5">
         <Label htmlFor={selectId}>Category</Label>
         <NativeSelect
