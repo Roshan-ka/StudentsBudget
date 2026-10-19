@@ -128,3 +128,73 @@
     @apply font-sans;
   }
 }
+
+/*
+ * Category colours for the charts: one stable colour per category, read by src/features/charts/colors.ts.
+ * A category keeps its colour whatever else is on the chart. The hues are the eight of the dataviz palette in
+ * their validated order; the seven categories most likely to be big (rent, food, eating out, insurance, shopping,
+ * the transport pass, going out) wear the first seven of them as they are, and the other expense categories wear
+ * a deeper or a softer step of a hue, picked so the pairs most likely to sit side by side differ the most.
+ * Income has a chart of its own and takes the first six hues. "Everything else" is neutral grey.
+ * Twenty expense categories cannot all be told apart by colour alone, so a chart always names its slices
+ * (legend, bar labels, table); colour is the second channel. In dark the steps flip: deeper is lighter.
+ */
+:root {
+  --cat-rent: #2a78d6;
+  --cat-food: #eb6834;
+  --cat-eating-out: #1baf7a;
+  --cat-insurance: #eda100;
+  --cat-shopping: #e87ba4;
+  --cat-transport-pass: #008300;
+  --cat-going-out: #6250d6;
+  --cat-phone: #4223aa;
+  --cat-one-off: #5ea2f9;
+  --cat-utilities: #0452a2;
+  --cat-transport: #bb537d;
+  --cat-other: #867ef8;
+  --cat-subscriptions: #b51221;
+  --cat-household: #fea483;
+  --cat-gym: #b94206;
+  --cat-study: #038359;
+  --cat-health: #005800;
+  --cat-personal-care: #b87d09;
+  --cat-travel: #e34948;
+  --cat-gifts: #fe877f;
+  --cat-income-parents: #2a78d6;
+  --cat-income-job: #eb6834;
+  --cat-income-bafoeg: #1baf7a;
+  --cat-income-scholarship: #eda100;
+  --cat-income-sperrkonto: #e87ba4;
+  --cat-income-other: #008300;
+  --cat-everything-else: #8a8a8a;
+}
+
+.dark {
+  --cat-rent: #3987e5;
+  --cat-food: #d95926;
+  --cat-eating-out: #199e70;
+  --cat-insurance: #c98500;
+  --cat-shopping: #d55181;
+  --cat-transport-pass: #008300;
+  --cat-going-out: #9085e9;
+  --cat-phone: #b8b4fe;
+  --cat-one-off: #025fb9;
+  --cat-utilities: #75b1fe;
+  --cat-transport: #fc81a9;
+  --cat-other: #6b5dbd;
+  --cat-subscriptions: #ff9f9c;
+  --cat-household: #a53802;
+  --cat-gym: #fe8a60;
+  --cat-study: #60c599;
+  --cat-health: #4daa48;
+  --cat-personal-care: #efb058;
+  --cat-travel: #e66767;
+  --cat-gifts: #b93e42;
+  --cat-income-parents: #3987e5;
+  --cat-income-job: #d95926;
+  --cat-income-bafoeg: #199e70;
+  --cat-income-scholarship: #c98500;
+  --cat-income-sperrkonto: #d55181;
+  --cat-income-other: #008300;
+  --cat-everything-else: #7d7d7d;
+}
