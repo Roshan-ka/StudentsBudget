@@ -785,6 +785,9 @@ test('an entry a schedule posted shows a Recurring tag in the list', async ({ pa
   await expect(list.getByRole('listitem').filter({ hasText: 'Rent' }).getByText('Recurring', { exact: true })).toBeVisible();
   await expect(list.getByRole('listitem').filter({ hasText: 'Rewe' }).getByText('Recurring')).toHaveCount(0);
   await expect(list.getByText('Recurring', { exact: true })).toHaveCount(1);
+  // The note is the category name, so the row says "Rent" once, not "Rent" over "Rent". Rewe keeps its category.
+  await expect(list.getByRole('listitem').filter({ hasText: 'Rent' }).getByText('Rent', { exact: true })).toHaveCount(1);
+  await expect(list.getByRole('listitem').filter({ hasText: 'Rewe' }).getByText('Food & groceries', { exact: true })).toBeVisible();
 
   // Editing the entry keeps its tag.
   await list.getByRole('button', { name: /Rent/ }).click();
@@ -794,5 +797,7 @@ test('an entry a schedule posted shows a Recurring tag in the list', async ({ pa
   await expect(panel).toHaveCount(0);
   const renamed = list.getByRole('listitem').filter({ hasText: 'October rent' });
   await expect(renamed.getByText('Recurring', { exact: true })).toBeVisible();
+  // A note of its own brings the category back under it.
+  await expect(renamed.getByText('Rent', { exact: true })).toBeVisible();
   expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
 });

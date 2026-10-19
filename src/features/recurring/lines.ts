@@ -95,7 +95,10 @@ export function addableCategories(plan: Plan): Category[] {
   return LINE_CATEGORIES.filter((c) => !used.has(c.id));
 }
 
-/** "€400.00 · Monthly on day 1 · Local bank", or "€25.00 a month · Not added automatically". */
+/**
+ * "€400.00 · Monthly on day 1 · Local bank", with "· Paused · not in your plan for now" while paused, or
+ * "€25.00 a month · Not added automatically".
+ */
 export function describeLine(line: PlanLine, accounts: Pick<Account, 'id' | 'name' | 'currency'>[]): string {
   const s = line.schedule;
   if (!s) return `${formatMoney(line.monthlyMinor, 'EUR')} a month · Not added automatically`;
@@ -103,7 +106,8 @@ export function describeLine(line: PlanLine, accounts: Pick<Account, 'id' | 'nam
   const parts = account
     ? [formatMoney(s.amountMinor, account.currency), describeTiming(s), account.name]
     : [describeTiming(s), PICK_ACCOUNT];
-  if (s.paused) parts.push('Paused');
+  // A paused line leaves the plan too (`planSummary`), not only the posting.
+  if (s.paused) parts.push('Paused', 'not in your plan for now');
   return parts.join(' · ');
 }
 

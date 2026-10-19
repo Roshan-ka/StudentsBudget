@@ -108,7 +108,7 @@ export function RestoreFromBackup() {
         <div role="group" aria-label="Confirm restore" className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
           <div className="flex flex-col gap-1">
             <p ref={questionRef} tabIndex={-1} className="text-sm outline-none">
-              Replace all data with <strong className="break-all font-semibold">{chosen.fileName}</strong>?
+              Replace all data with <strong className="font-semibold break-words">{chosen.fileName}</strong>?
             </p>
             <p className="text-sm text-muted-foreground">{backupSummary(chosen.data, chosen.exportedAt)}</p>
           </div>

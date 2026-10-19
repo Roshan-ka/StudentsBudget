@@ -9,8 +9,9 @@ import { formatMoney, formatRange, type Minor } from '@/lib/money';
 
 /**
  * "Add it automatically" for one line, as the wizard holds it. The choices stay while it is off or the line's amount
- * is cleared, so they come back. `accountId` is a draft account's key in a new setup, else a stored account's id;
- * one that matches no account (or '') means the first account. `foreignMinor` is the amount each time, in the
+ * is cleared, so they come back. `accountId` is a draft account's key in a new setup, else a stored account's id.
+ * For a new line, one that matches no account (or '') means the first account; a stored schedule whose account is
+ * missing stays untouched until one is picked (`draftAccountOf`). `foreignMinor` is the amount each time, in the
  * account's currency, for an account that is not in EUR: setup has no rate to convert the euro figure with. `saved`
  * is the stored schedule in edit mode, so its id, start, watermark and pause carry over.
  */

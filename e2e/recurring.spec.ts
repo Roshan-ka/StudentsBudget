@@ -100,6 +100,13 @@ test('rent is added on its day, a changed day posts once, and a deleted one stay
   await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
   const form = page.getByRole('form', { name: 'Change Rent' });
   await expect(form.getByText("It's added on its day — don't log it by hand.", { exact: true })).toBeVisible();
+  // A new frequency says when it starts; going back to monthly takes the note away again.
+  const frequencyNote = form.getByText('A new frequency starts with the next period.', { exact: true });
+  await expect(frequencyNote).toHaveCount(0);
+  await form.getByLabel('Repeats', { exact: true }).selectOption({ label: 'Weekly on' });
+  await expect(frequencyNote).toBeVisible();
+  await form.getByLabel('Repeats', { exact: true }).selectOption({ label: 'Monthly on day' });
+  await expect(frequencyNote).toHaveCount(0);
   await form.getByLabel('Day', { exact: true }).selectOption('3');
   await form.getByLabel('Amount in EUR', { exact: true }).fill('420');
   await form.getByRole('button', { name: 'Save', exact: true }).click();
@@ -189,7 +196,9 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
 
   // Paused before the 1st: the job income still comes, the rent does not.
   await page.getByRole('button', { name: 'Pause Rent', exact: true }).click();
-  await expect(page.getByText('€400.00 · Monthly on day 1 · Local bank · Paused', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('€400.00 · Monthly on day 1 · Local bank · Paused · not in your plan for now', { exact: true }),
+  ).toBeVisible();
   await openOn(page, on(2026, 11, 2));
   await expect.poll(() => posted(page, 'income-job'), POSTING).toEqual([['2026-11-01', 40000]]);
   expect(await posted(page, 'rent')).toEqual([]);
@@ -218,7 +227,16 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
   await expect(page.getByText('€200.00 a month · Not added automatically', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
+  // Delete asks first; Cancel keeps the line.
   await page.getByRole('button', { name: 'Delete Gym & sports', exact: true }).click();
+  const confirm = page.getByRole('group', { name: 'Delete Gym & sports?', exact: true });
+  await expect(confirm.getByText('Delete Gym & sports? Entries already added stay.', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+  await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(confirm).toHaveCount(0);
+  expect(await line(page, 'gym')).toBeDefined();
+  await page.getByRole('button', { name: 'Delete Gym & sports', exact: true }).click();
+  await confirm.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit Gym & sports', exact: true })).toHaveCount(0);
   await expect(page.getByText('Your plan is', { exact: false })).toHaveCount(0);
   expect(await line(page, 'gym')).toBeUndefined();

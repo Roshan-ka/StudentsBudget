@@ -59,7 +59,8 @@ function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account
   const label = entry.type === 'transfer' ? 'Transfer' : categoryName(entry.categoryId);
   const title = entry.note || label;
   const details = [
-    entry.note ? label : null,
+    // A posted entry's note is its category name: "Rent" over "Rent" would say it twice.
+    entry.note && entry.note !== label ? label : null,
     entry.type === 'transfer' ? `${accountName(entry.accountId)} → ${accountName(entry.toAccountId)}` : null,
   ].filter((part) => part !== null);
 

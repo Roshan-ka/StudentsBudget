@@ -108,7 +108,9 @@ test('an entry a schedule posted shows a Recurring tag on the check-in', async (
       date: '2026-10-16',
       amountMinor: 900,
       eurMinor: 900,
-      note: 'Phone plan',
+      // A posted entry's note is its category name.
+      categoryId: 'phone',
+      note: 'Phone & internet',
       recurring: { scheduleId: 's-phone' },
     },
     { ...base, id: 'once', date: '2026-10-16', amountMinor: 650, eurMinor: 650, note: 'Rewe' },
@@ -118,9 +120,13 @@ test('an entry a schedule posted shows a Recurring tag on the check-in', async (
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
   const entries = section(page, 'This week').getByRole('listitem');
   await expect(entries).toHaveCount(2);
-  await expect(entries.filter({ hasText: 'Phone plan' }).getByText('Recurring', { exact: true })).toBeVisible();
+  const posted = entries.filter({ hasText: 'Phone & internet' });
+  await expect(posted.getByText('Recurring', { exact: true })).toBeVisible();
   await expect(entries.filter({ hasText: 'Rewe' }).getByText('Recurring')).toHaveCount(0);
   await expect(page.getByText('Recurring', { exact: true })).toHaveCount(1);
+  // The name is not said twice: under it is only the day. Rewe keeps its category.
+  await expect(posted.getByText('Fri 16', { exact: true })).toBeVisible();
+  await expect(entries.filter({ hasText: 'Rewe' }).getByText('Food & groceries · Fri 16', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 

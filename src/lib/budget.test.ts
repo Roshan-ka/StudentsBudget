@@ -177,11 +177,11 @@ describe('safeToSpend', () => {
     expect(s.totalMinor).toBe(11000);
   });
 
-  it('sums the envelopes and keeps the plan order', () => {
+  it('sums the envelopes, in category order', () => {
     const s = safeToSpend(plan, [...entries, expense('going-out', '2026-10-15', 1500)], '2026-10-16');
     expect(ownRows(plan, s.envelopes).map((e) => e.categoryId)).toEqual(['food', 'going-out']);
     // going-out: through = round(15500 × 18 / 31) = 9000, spent 1500
-    expect(s.envelopes[1]).toEqual({
+    expect(s.envelopes.find((e) => e.categoryId === 'going-out')).toEqual({
       categoryId: 'going-out',
       weekShareMinor: 3500,
       spentThisWeekMinor: 1500,
@@ -194,7 +194,7 @@ describe('safeToSpend', () => {
     const health = expense('health', '2026-10-14', 1500);
     const s = safeToSpend(foodOnly, [...entries, health], '2026-10-16');
 
-    // The plan's own rows first, then the missing flexible categories in category order.
+    // Every flexible category, in category order: food is the first of them.
     expect(s.envelopes.map((e) => e.categoryId)).toEqual(['food', ...MISSING_FROM_FOOD_ONLY]);
     expect(s.envelopes.find((e) => e.categoryId === 'health')).toEqual({
       categoryId: 'health',
@@ -375,6 +375,32 @@ describe('monthStatus', () => {
     });
     // A fixed category is no envelope.
     expect(rows.map((r) => r.categoryId)).not.toContain('gym');
+  });
+
+  it('keeps category order for a plan saved with the original six envelopes: the new €0 rows come before Other', () => {
+    const sixEnvelopes: Plan = {
+      ...plan,
+      envelopes: ['food', 'eating-out', 'going-out', 'transport', 'shopping', 'other'].map((categoryId) => ({
+        categoryId,
+        monthlyMinor: 5000,
+      })),
+    };
+
+    expect(monthStatus(sixEnvelopes, [], '2026-10').map((r) => r.categoryId)).toEqual([
+      'food',
+      'eating-out',
+      'going-out',
+      'transport',
+      'shopping',
+      'health',
+      'personal-care',
+      'study',
+      'household',
+      'travel',
+      'gifts',
+      'other',
+    ]);
+    expect(safeToSpend(sixEnvelopes, [], '2026-10-16').envelopes.at(-1)?.categoryId).toBe('other');
   });
 
   describe('in the month the plan was set up', () => {

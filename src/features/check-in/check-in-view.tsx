@@ -38,7 +38,10 @@ function entriesOfWeek(entries: Entry[], start: IsoDate, end: IsoDate): Entry[] 
 function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Account[]; planStart: IsoDate }) {
   const currency = accounts.find((a) => a.id === entry.accountId)?.currency ?? 'EUR';
   const label = entry.type === 'transfer' ? 'Transfer' : categoryName(entry.categoryId);
-  const details = [entry.note ? label : null, dayLabel(entry.date)].filter((part) => part !== null);
+  // A posted entry's note is its category name: "Rent" over "Rent" would say it twice.
+  const details = [entry.note && entry.note !== label ? label : null, dayLabel(entry.date)].filter(
+    (part) => part !== null,
+  );
   const notCounted = notCountedNote(entry, planStart);
 
   return (

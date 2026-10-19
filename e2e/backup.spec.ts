@@ -252,6 +252,7 @@ test.describe('on a desktop browser', () => {
 
     // A new setup: nothing left but the built-in categories.
     await expect(page).toHaveURL('/setup');
+    await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: 'Have a backup? Restore it' })).toBeVisible();
     const wiped = await everything(page);
     expect(wiped.accounts).toEqual([]);

@@ -62,16 +62,20 @@ function expensesIn(entries: Entry[], categoryId: string): { date: IsoDate; eurM
 
 const FLEXIBLE = CATEGORIES.filter((c) => c.kind === 'flexible');
 
+const ORDER = new Map(CATEGORIES.map((c) => [c.id, c.order]));
+const orderOf = (categoryId: string): number => ORDER.get(categoryId) ?? Number.MAX_SAFE_INTEGER;
+
 /**
- * The plan's envelopes, then a €0 row for each flexible category it has none for, in category order. Spending in
- * a category the plan does not know (one added after it was saved) still counts, against nothing.
+ * The plan's envelopes and a €0 row for each flexible category it has none for, all in category order, so a plan
+ * saved with the original six does not list Other before the categories added later. Spending in a category the
+ * plan does not know (one added after it was saved) still counts, against nothing.
  */
 function envelopesOf(plan: Plan): Amount[] {
   const planned = new Set(plan.envelopes.map((e) => e.categoryId));
   const missing = FLEXIBLE.filter((c) => !planned.has(c.id)).map(
     (c): Amount => ({ categoryId: c.id, monthlyMinor: 0 }),
   );
-  return [...plan.envelopes, ...missing];
+  return [...plan.envelopes, ...missing].sort((a, b) => orderOf(a.categoryId) - orderOf(b.categoryId));
 }
 
 /**

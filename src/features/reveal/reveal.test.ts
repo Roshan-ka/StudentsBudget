@@ -210,7 +210,8 @@ describe('monthRecap', () => {
 
   it('uses a guess of 0 for an envelope that was not guessed', () => {
     const plan = planOf('2026-09-01', [{ categoryId: 'transport', monthlyMinor: 5000 }]);
-    expect(monthRecap(guesses, plan, [], '2026-10').rows[0].guessMinor).toBe(0);
+    const rows = monthRecap(guesses, plan, [], '2026-10').rows;
+    expect(rows.find((r) => r.categoryId === 'transport')?.guessMinor).toBe(0);
   });
 
   it('counts spending in a category the plan has no envelope for, against nothing', () => {

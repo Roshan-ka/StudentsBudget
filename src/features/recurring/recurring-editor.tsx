@@ -173,6 +173,10 @@ function LineForm({
         <>
           <p className="text-sm text-muted-foreground">{AUTO_HINT}</p>
           <RepeatFields timing={timing} onChange={setTiming} />
+          {/* The watermark stays, so the change applies from the first period not handled yet. */}
+          {s && timing.frequency !== s.frequency && (
+            <p className="text-sm text-muted-foreground">A new frequency starts with the next period.</p>
+          )}
           {firstOn && <p className="text-sm text-muted-foreground">{firstAddedLine(firstOn)}</p>}
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-account`}>Account</Label>
@@ -258,6 +262,8 @@ function LineRow({
 }) {
   const name = categoryName(line.categoryId);
   const s = line.schedule;
+  // Delete asks first, as deleting an entry does.
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <li className="flex flex-col gap-2 border-b py-3 last:border-b-0">
@@ -265,29 +271,42 @@ function LineRow({
         <p className="font-medium">{name}</p>
         <p className="text-sm text-muted-foreground">{describeLine(line, accounts)}</p>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" className="h-10 px-4" aria-label={`Edit ${name}`} onClick={onEdit}>
-          Edit
-        </Button>
-        {s && (
-          <Button
-            variant="outline"
-            className="h-10 px-4"
-            aria-label={`${s.paused ? 'Resume' : 'Pause'} ${name}`}
-            onClick={() => void change((plan) => setLinePaused(plan, line.categoryId, !s.paused, todayIso()))}
-          >
-            {s.paused ? 'Resume' : 'Pause'}
+      {confirming ? (
+        <div role="group" aria-label={`Delete ${name}?`} className="flex flex-col gap-2">
+          <p className="text-sm font-medium">{`Delete ${name}? Entries already added stay.`}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="destructive"
+              className="h-10 px-4"
+              onClick={() => void change((plan) => removeLine(plan, line.categoryId))}
+            >
+              Delete
+            </Button>
+            <Button variant="outline" className="h-10 px-4" onClick={() => setConfirming(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="h-10 px-4" aria-label={`Edit ${name}`} onClick={onEdit}>
+            Edit
           </Button>
-        )}
-        <Button
-          variant="ghost"
-          className="h-10 px-4"
-          aria-label={`Delete ${name}`}
-          onClick={() => void change((plan) => removeLine(plan, line.categoryId))}
-        >
-          Delete
-        </Button>
-      </div>
+          {s && (
+            <Button
+              variant="outline"
+              className="h-10 px-4"
+              aria-label={`${s.paused ? 'Resume' : 'Pause'} ${name}`}
+              onClick={() => void change((plan) => setLinePaused(plan, line.categoryId, !s.paused, todayIso()))}
+            >
+              {s.paused ? 'Resume' : 'Pause'}
+            </Button>
+          )}
+          <Button variant="ghost" className="h-10 px-4" aria-label={`Delete ${name}`} onClick={() => setConfirming(true)}>
+            Delete
+          </Button>
+        </div>
+      )}
     </li>
   );
 }

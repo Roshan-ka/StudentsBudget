@@ -222,9 +222,9 @@ describe('describeLine', () => {
     expect(describeLine(PLAN.incomes[1], ACCOUNTS)).toBe('₹50,000.00 · Monthly on day 1 · Home bank');
   });
 
-  it('says when a line is paused', () => {
+  it('says when a line is paused, and that it is out of the plan meanwhile', () => {
     expect(describeLine(setLinePaused(PLAN, 'rent', true, TODAY).fixed[0], ACCOUNTS)).toBe(
-      '€400.00 · Monthly on day 1 · Local bank · Paused',
+      '€400.00 · Monthly on day 1 · Local bank · Paused · not in your plan for now',
     );
   });
 
