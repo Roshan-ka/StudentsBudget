@@ -7,14 +7,19 @@ import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import { saveGuesses } from '@/db/repo';
 import type { Plan } from '@/db/types';
+import { sortAccounts } from '@/features/accounts/balances';
+import { keepScheduleState, updatePlan } from '@/features/recurring/update-plan';
 import { todayIso } from '@/lib/dates';
 import {
+  accountOptions,
   draftFromPlan,
   draftToRecords,
   dropUnparsed,
   initialDraft,
   summarizeDraft,
   validateStep,
+  withAccountKeys,
+  type AccountOption,
   type DraftUpdate,
   type SetupDraft,
   type StepId,
@@ -45,8 +50,10 @@ const TITLES: Record<StepId, string> = {
 
 async function persist(records: ReturnType<typeof draftToRecords>, edit: boolean): Promise<void> {
   if (edit) {
-    // Accounts and guesses are not part of editing; only the plan changes.
-    await db.plan.put(records.plan);
+    // Accounts and guesses are not part of editing; only the plan changes. `updatePlan` keeps each schedule's
+    // watermark where the poster left it, even if it moved while the wizard was open, and `keepScheduleState` keeps
+    // a pause or resume made meanwhile in another tab.
+    await updatePlan((current) => keepScheduleState(current, records.plan));
     return;
   }
   await db.transaction('rw', db.accounts, db.plan, db.guesses, async () => {
@@ -56,8 +63,18 @@ async function persist(records: ReturnType<typeof draftToRecords>, edit: boolean
   });
 }
 
-function Wizard({ edit, stored, accountsExist }: { edit: boolean; stored: Plan | null; accountsExist: boolean }) {
+function Wizard({
+  edit,
+  stored,
+  storedAccounts,
+}: {
+  edit: boolean;
+  stored: Plan | null;
+  /** The accounts already saved: what a line can be added to when the wizard has no draft accounts. */
+  storedAccounts: AccountOption[];
+}) {
   const router = useRouter();
+  const accountsExist = storedAccounts.length > 0;
   const steps = edit ? EDIT_STEPS : accountsExist ? NEW_STEPS_WITH_ACCOUNTS : NEW_STEPS;
   const [today] = useState(() => todayIso());
   const [draft, setDraft] = useState<SetupDraft>(() =>
@@ -74,8 +91,9 @@ function Wizard({ edit, stored, accountsExist }: { edit: boolean; stored: Plan |
   const step = steps[index];
   const isLast = index === steps.length - 1;
   const existing = edit && stored ? stored : undefined;
-  const problems = validateStep(step, draft, today, existing);
+  const problems = validateStep(step, draft, today, existing, storedAccounts);
   const overBy = isLast ? summarizeDraft(draft, today, existing).overByMinor : 0;
+  const accounts = accountOptions(draft, storedAccounts);
 
   useEffect(() => {
     // Not on first render: the page just loaded and nothing moved.
@@ -84,7 +102,8 @@ function Wizard({ edit, stored, accountsExist }: { edit: boolean; stored: Plan |
     headingRef.current?.focus();
   }, [index]);
 
-  const update: DraftUpdate = setDraft;
+  // An account added in the accounts step gets its draft key here, so a line can pick it.
+  const update: DraftUpdate = (change) => setDraft((d) => withAccountKeys(change(d)));
 
   function next() {
     if (problems.length > 0) return setAttempted(true);
@@ -100,7 +119,7 @@ function Wizard({ edit, stored, accountsExist }: { edit: boolean; stored: Plan |
   }
 
   async function save() {
-    const failing = steps.findIndex((s) => validateStep(s, draft, today, existing).length > 0);
+    const failing = steps.findIndex((s) => validateStep(s, draft, today, existing, storedAccounts).length > 0);
     if (failing !== -1) {
       setIndex(failing);
       setAttempted(true);
@@ -110,7 +129,7 @@ function Wizard({ edit, stored, accountsExist }: { edit: boolean; stored: Plan |
     setSaving(true);
     setSaveError(null);
     try {
-      await persist(draftToRecords(draft, today, existing), edit);
+      await persist(draftToRecords(draft, today, existing, storedAccounts), edit);
     } catch (error) {
       console.error('StudentsBudget: could not save the plan', error);
       setSaveError('Could not save your plan. Try again.');
@@ -144,8 +163,8 @@ function Wizard({ edit, stored, accountsExist }: { edit: boolean; stored: Plan |
       {step === 'income' && !edit && accountsExist && (
         <p className="text-sm text-muted-foreground">Your accounts are already set up in Settings.</p>
       )}
-      {step === 'income' && <IncomeStep draft={draft} update={update} />}
-      {step === 'fixed' && <FixedStep draft={draft} update={update} />}
+      {step === 'income' && <IncomeStep draft={draft} update={update} accounts={accounts} />}
+      {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} />}
       {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
       {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
       {step === 'envelopes' && <EnvelopesStep draft={draft} update={update} today={today} existing={existing} />}
@@ -186,25 +205,26 @@ function Wizard({ edit, stored, accountsExist }: { edit: boolean; stored: Plan |
 }
 
 /**
- * Reads the saved plan and whether accounts exist once, then hands them to the wizard. The wizard keeps
+ * Reads the saved plan and the saved accounts once, then hands them to the wizard. The wizard keeps
  * its own draft, so a live query here would let the save itself rewrite what the person is looking at.
  */
 export function SetupWizard() {
   const router = useRouter();
   const edit = useSearchParams().get('edit') === '1';
   // undefined: still reading. `plan` is null when no plan is saved.
-  const [loaded, setLoaded] = useState<{ plan: Plan | null; accountsExist: boolean } | undefined>(undefined);
+  const [loaded, setLoaded] = useState<{ plan: Plan | null; accounts: AccountOption[] } | undefined>(undefined);
   const stored = loaded?.plan;
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([db.plan.get('current'), db.accounts.count()]).then(
-      ([plan, accountCount]) => {
-        if (!cancelled) setLoaded({ plan: plan ?? null, accountsExist: accountCount > 0 });
+    Promise.all([db.plan.get('current'), db.accounts.toArray()]).then(
+      ([plan, accounts]) => {
+        const options = sortAccounts(accounts).map(({ id, name, currency }) => ({ id, name, currency }));
+        if (!cancelled) setLoaded({ plan: plan ?? null, accounts: options });
       },
       (error: unknown) => {
         console.error('StudentsBudget: could not read the saved plan', error);
-        if (!cancelled) setLoaded({ plan: null, accountsExist: false });
+        if (!cancelled) setLoaded({ plan: null, accounts: [] });
       },
     );
     return () => {
@@ -223,5 +243,5 @@ export function SetupWizard() {
   }, [redirectTo, router]);
 
   if (loaded === undefined || redirectTo) return null;
-  return <Wizard key={edit ? 'edit' : 'new'} edit={edit} stored={loaded.plan} accountsExist={loaded.accountsExist} />;
+  return <Wizard key={edit ? 'edit' : 'new'} edit={edit} stored={loaded.plan} storedAccounts={loaded.accounts} />;
 }

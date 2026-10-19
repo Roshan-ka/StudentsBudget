@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import { db, requestPersistence } from './db';
 import {
+  AccountHasScheduleError,
   AccountInUseError,
   GuessesLockedError,
   deleteAccount,
@@ -12,7 +13,7 @@ import {
   saveEntry,
   saveGuesses,
 } from './repo';
-import type { Account, Entry, Guess } from './types';
+import type { Account, Entry, Guess, Plan, PlanLine, Schedule } from './types';
 
 const FLEXIBLE_IDS = [
   'food',
@@ -217,6 +218,53 @@ describe('deleteAccount', () => {
 
     expect(await db.accounts.get('a2')).toBeUndefined();
     expect(await db.accounts.get('a1')).toBeDefined();
+  });
+
+  describe('with fixed costs and income added automatically', () => {
+    const schedule = (id: string, accountId: string, paused?: true): Schedule => ({
+      id,
+      frequency: 'monthly',
+      day: 1,
+      accountId,
+      amountMinor: 40000,
+      startOn: '2026-10-17',
+      postedThrough: '2026-10-16',
+      ...(paused && { paused }),
+    });
+    const plan = (incomes: PlanLine[], fixed: PlanLine[]): Plan => ({
+      id: 'current',
+      cityId: 'regensburg',
+      incomes,
+      fixed,
+      oneOffs: [],
+      envelopes: [],
+      createdOn: '2026-10-16',
+    });
+
+    it('refuses an account that a fixed cost or an income uses, even a paused one', async () => {
+      await db.accounts.bulkAdd([account('a1'), account('a2'), account('a3')]);
+      await db.plan.put(
+        plan(
+          [{ categoryId: 'income-job', monthlyMinor: 40000, schedule: schedule('job', 'a2', true) }],
+          [{ categoryId: 'rent', monthlyMinor: 40000, schedule: schedule('rent', 'a1') }],
+        ),
+      );
+
+      await expect(deleteAccount('a1')).rejects.toBeInstanceOf(AccountHasScheduleError);
+      await expect(deleteAccount('a2')).rejects.toBeInstanceOf(AccountHasScheduleError);
+      expect(await db.accounts.count()).toBe(3);
+
+      await deleteAccount('a3');
+      expect(await db.accounts.get('a3')).toBeUndefined();
+    });
+
+    it('deletes an account that only a line added by hand once named', async () => {
+      await db.accounts.add(account('a1'));
+      await db.plan.put(plan([], [{ categoryId: 'rent', monthlyMinor: 40000 }]));
+
+      await deleteAccount('a1');
+      expect(await db.accounts.get('a1')).toBeUndefined();
+    });
   });
 });
 

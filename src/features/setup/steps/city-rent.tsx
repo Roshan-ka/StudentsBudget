@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { CITIES } from '@/data/cities';
 import { formatRange } from '@/lib/money';
-import type { DraftUpdate, SetupDraft } from '../draft';
+import { setRentAmount, type DraftUpdate, type SetupDraft } from '../draft';
 import { AmountField } from './amount-field';
 import { RangeSource } from './range-source';
 
@@ -27,7 +27,8 @@ export function CityRentStep({ draft, update }: { draft: SetupDraft; update: Dra
         <AmountField
           label="Rent per month"
           value={draft.rentMinor}
-          onChange={(minor) => update((d) => ({ ...d, rentMinor: minor ?? 0 }))}
+          // Whether rent is added automatically is asked with the fixed costs, once the accounts are known.
+          onChange={(minor) => update((d) => setRentAmount(d, minor ?? 0))}
           hint={rentRange && `Rooms here: ${formatRange(rentRange.minMinor, rentRange.maxMinor)}`}
         />
         {rentRange && <RangeSource range={rentRange} />}
