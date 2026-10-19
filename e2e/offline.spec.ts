@@ -55,7 +55,7 @@ test('opens and navigates with no network after one online visit', async ({ page
   // has hydrated and read its plan from IndexedDB, so it proves the scripts came from the cache too.
   await page.reload();
   await expect(page.getByRole('heading', { level: 1, name: 'StudentsBudget', exact: true })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Safe to spend this week' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Left to spend this month' })).toBeVisible();
 
   // Entries was never opened online. Next's own request for it fails offline, the browser then opens the
   // page as a plain navigation, and the worker answers that from the cache.

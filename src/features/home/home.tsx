@@ -13,7 +13,8 @@ import { monthOf } from '@/lib/dates';
 import { formatMoney, type CurrencyCode } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { EnvelopeList, type EnvelopeRow } from './envelope-list';
-import { SafeToSpendCard } from './safe-to-spend-card';
+import { LeftThisMonthCard } from './left-this-month-card';
+import { SuggestedBudget } from './suggested-budget';
 
 const currencyList = new Intl.ListFormat('en-IE', { style: 'long', type: 'conjunction' });
 
@@ -23,8 +24,8 @@ function missingRatesNote(currencies: CurrencyCode[]): string {
 }
 
 /**
- * The main screen: log a spending, see what is safe to spend this week, how the envelopes are filling and
- * what all the accounts add up to. It updates by itself when an entry is saved.
+ * The main screen: log a spending, see what is left to spend this month (and this week), how the envelopes are
+ * filling, a suggested budget and what all the accounts add up to. It updates by itself when an entry is saved.
  */
 export function HomeScreen({ plan }: { plan: Plan }) {
   // The date follows the clock, so the week turns over on its own when the app comes back or midnight passes,
@@ -41,20 +42,11 @@ export function HomeScreen({ plan }: { plan: Plan }) {
   if (data) {
     const { today, entries, accounts, rates } = data;
     const week = safeToSpend(plan, entries, today);
-    const month = new Map(monthStatus(plan, entries, monthOf(today)).map((status) => [status.categoryId, status]));
-    const rows = week.envelopes.flatMap((envelope): EnvelopeRow[] => {
-      const status = month.get(envelope.categoryId);
-      // Envelopes planned at €0 and never used would only add empty rows.
-      if (!status || (status.plannedMinor <= 0 && status.spentMinor <= 0)) return [];
-      return [
-        {
-          categoryId: envelope.categoryId,
-          plannedMinor: status.plannedMinor,
-          spentMinor: status.spentMinor,
-          safeMinor: envelope.safeMinor,
-        },
-      ];
-    });
+    const month = monthStatus(plan, entries, monthOf(today));
+    // Negative once more has been spent than the envelopes planned, which the card says as "over".
+    const leftMinor = month.reduce((total, status) => total + status.plannedMinor - status.spentMinor, 0);
+    // Envelopes planned at €0 and never used would only add empty rows.
+    const rows: EnvelopeRow[] = month.filter((status) => status.plannedMinor > 0 || status.spentMinor > 0);
 
     const total = totalInEur(accounts, entries, rates);
     // Without a rate for any account's currency nothing was converted, and €0 would read as a real total.
@@ -62,8 +54,9 @@ export function HomeScreen({ plan }: { plan: Plan }) {
 
     content = (
       <>
-        <SafeToSpendCard totalMinor={week.totalMinor} weekStart={week.weekStart} weekEnd={week.weekEnd} />
+        <LeftThisMonthCard leftMinor={leftMinor} weekMinor={week.totalMinor} />
         <EnvelopeList rows={rows} />
+        <SuggestedBudget plan={plan} entries={entries} today={today} />
         <CheckInCard today={today} />
         <RevealCard startedOn={plan.createdOn} today={today} />
         <div className="flex flex-col gap-1">
