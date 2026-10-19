@@ -47,6 +47,8 @@ type Candidate = {
   minor: Minor;
   /** A currency marker is written onto the number, or it is a "6 euro 50" amount. */
   marked: boolean;
+  /** The marker is written onto the end of the number: "40€", "40eur". */
+  markedAfter: boolean;
   /** Whole euros: digits with no marker or decimals, or number words. */
   integer: boolean;
   /** The value when it could be a cents part: 0 to 99, at most two digits. */
@@ -69,9 +71,11 @@ type Amount = {
   end: number;
   /** The currency marker is written onto the number. */
   marked: boolean;
+  /** The marker is written onto the end of the number: "40€". */
+  markedAfter: boolean;
   /** Digits only (no marker, no decimals) or number words. */
   integer: boolean;
-  /** The value when it could be a cents part: 0 to 99, at most two digits. */
+  /** The value when it could be a cents part: 0 to 99, at most two digits, with no marker in front of it. */
   cents: number | null;
 };
 
@@ -79,12 +83,13 @@ function isMarker(token: string | undefined): boolean {
   return token !== undefined && MARKERS.has(token.toLowerCase());
 }
 
-function stripMarker(token: string): { core: string; attached: boolean } {
+/** The token without a marker written onto it; `after` when the marker was at its end ("6€"), not its front ("€6"). */
+function stripMarker(token: string): { core: string; attached: boolean; after: boolean } {
   const prefix = MARKER_PREFIX.exec(token);
-  if (prefix) return { core: token.slice(prefix[0].length), attached: true };
+  if (prefix) return { core: token.slice(prefix[0].length), attached: true, after: false };
   const suffix = MARKER_SUFFIX.exec(token);
-  if (suffix) return { core: token.slice(0, suffix.index), attached: true };
-  return { core: token, attached: false };
+  if (suffix) return { core: token.slice(0, suffix.index), attached: true, after: true };
+  return { core: token, attached: false, after: false };
 }
 
 /** The token without a comma, semicolon or colon after a word. A number keeps them: "6,50" is a decimal. */
@@ -193,18 +198,22 @@ function readAmount(tokens: string[], words: Word[], w: number): Amount | Invali
   const token = tokens[words[w].token];
   if (isMarker(token)) return null;
 
-  const { core, attached } = stripMarker(token);
+  const { core, attached, after } = stripMarker(token);
   if (NUMBER_LIKE.test(token) || NUMBER_LIKE.test(core)) {
     // Zero is a number but not an amount (same rule as parseAmount): it can still be a cents part.
     const minor = parseAmount(core) ?? (ZERO.test(core) ? 0 : null);
     if (minor === null) return 'invalid';
-    const integer = !attached && WHOLE_NUMBER.test(core);
-    return { minor, end: w + 1, marked: attached, integer, cents: integer && core.length <= 2 ? Number(core) : null };
+    const whole = WHOLE_NUMBER.test(core);
+    const integer = !attached && whole;
+    // A marker at the end ("40€") leaves a number that could still be cents; one in front ("€40") does not.
+    const cents = whole && (!attached || after) && core.length <= 2 ? Number(core) : null;
+    return { minor, end: w + 1, marked: attached, markedAfter: after, integer, cents };
   }
 
   const run = readNumber(words, w);
   if (run === null || run === 'invalid') return run;
-  return { minor: run.value * 100, end: run.end, marked: false, integer: true, cents: run.value < 100 ? run.value : null };
+  const cents = run.value < 100 ? run.value : null;
+  return { minor: run.value * 100, end: run.end, marked: false, markedAfter: false, integer: true, cents };
 }
 
 /** Every amount in the line, or null when something that looks like an amount cannot be read. */
@@ -221,7 +230,7 @@ function findCandidates(tokens: string[]): Candidate[] | null {
       continue;
     }
 
-    let { minor, end, marked, integer, cents: centsPart } = amount;
+    let { minor, end, marked, markedAfter, integer, cents: centsPart } = amount;
 
     // "6 Euro 50": euros, a marker of its own, then cents ("cent" or "cents" may follow) and the end of
     // the line. Any other number straight after the marker would be a second amount, and a word after
@@ -230,9 +239,11 @@ function findCandidates(tokens: string[]): Candidate[] | null {
     if (cents === 'invalid') return null;
     if (cents !== null) {
       const afterCents = CENT_WORDS.has(wordAt(words, cents.end)) ? cents.end + 1 : cents.end;
-      if (!amount.integer || cents.cents === null || afterCents < words.length) return null;
+      // The cents part is bare: "3 euros 5€" is not 3.05.
+      if (!amount.integer || !cents.integer || cents.cents === null || afterCents < words.length) return null;
       minor += cents.cents;
       marked = true;
+      markedAfter = false;
       integer = false;
       centsPart = null;
       end = afterCents;
@@ -240,7 +251,8 @@ function findCandidates(tokens: string[]): Candidate[] | null {
 
     if (UNREAD_SCALES.has(wordAt(words, end))) return null;
     if (minor > 0) {
-      candidates.push({ start: words[w].token, end: words[end - 1].token, minor, marked, integer, cents: centsPart });
+      const [start, last] = [words[w].token, words[end - 1].token];
+      candidates.push({ start, end: last, minor, marked, markedAfter, integer, cents: centsPart });
     }
     w = end;
   }
@@ -257,9 +269,10 @@ function findCandidates(tokens: string[]): Candidate[] | null {
  * but cannot be read ("$7", "6,505", "fifty cents", "one million"): a silently wrong amount is worse.
  *
  * A whole number straight before the chosen one ("coffee 7 40", "coffee seven forty euros") could be the euros
- * of "7,40" said in two parts, or a count. When the chosen number could be cents (1 to 99) and has at most a
- * currency word after it, the result is a choice of both readings (€7.40 or €40) instead of an amount; when it
- * cannot ("coffee 7 140"), and nothing marks it, the result is null.
+ * of "7,40" said in two parts, or a count. When the chosen number could be cents (1 to 99) and has no marker or only
+ * one after it ("40 euros", "40 €", "40€"), the result is a choice of both readings (€7.40 or €40) instead of an
+ * amount; when it cannot ("coffee 7 140"), and nothing marks it, the result is null. A marker in front ("7 €40")
+ * makes it one amount.
  *
  * Dictation punctuation does not count: a full stop, !, ? or … at the end of the line is dropped, and so is
  * a comma, semicolon or colon after a word ("Coffee, 6 €.") but not after a number ("6,50" is a decimal).
@@ -276,14 +289,15 @@ export function parseQuickAdd(text: string): QuickAddAmount | QuickAddChoice | n
   const marked = candidates.filter(nextToMarker);
   const chosen = marked.length > 0 ? marked[marked.length - 1] : candidates[candidates.length - 1];
 
-  // A bare whole number right before the chosen one ("coffee 7 40", "coffee seven forty euros") may be the euros
-  // of "7,40" said in two parts. A "€" sign, or a marker written onto the number, says the amount plainly.
+  // A bare whole number right before the chosen one ("coffee 7 40", "coffee seven forty euros", "coffee 7 40€") may
+  // be the euros of "7,40" said in two parts. A marker in front of the chosen number ("€40") says the amount plainly.
   const before = candidates[candidates.indexOf(chosen) - 1];
   const adjacent = before !== undefined && before.end + 1 === chosen.start;
-  const wordAfter = read[chosen.end + 1];
-  const onlyWordAfter = !chosen.marked && !isMarker(read[chosen.start - 1]) && isMarker(wordAfter) && wordAfter !== '€';
+  // The chosen number's only marker comes after it: "40 euros", "40 €" or "40€".
+  const onlyMarkerAfter =
+    !isMarker(read[chosen.start - 1]) && (chosen.marked ? chosen.markedAfter : isMarker(read[chosen.end + 1]));
   const options: [Minor, Minor] | null =
-    adjacent && (marked.length === 0 || onlyWordAfter) && !nextToMarker(before) && before.integer && chosen.cents !== null
+    adjacent && (marked.length === 0 || onlyMarkerAfter) && !nextToMarker(before) && before.integer && chosen.cents !== null
       ? [before.minor + chosen.cents, chosen.minor]
       : null;
   if (marked.length === 0 && adjacent && options === null) return null;

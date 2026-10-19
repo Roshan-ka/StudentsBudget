@@ -316,6 +316,12 @@ describe('parseQuickAdd', () => {
       ['Coffee 7 40 Euro', [740, 4000], 'Coffee'],
       ['coffee 7 05 euros', [705, 500], 'coffee'],
       ['coffee 7 40 euros for 2', [740, 4000], 'coffee for 2'],
+      // The € sign after it is a marker like the word: on its own or written onto the number.
+      ['coffee 7 40 €', [740, 4000], 'coffee'],
+      ['coffee 7 40€', [740, 4000], 'coffee'],
+      ['Coffee 7 40 €.', [740, 4000], 'Coffee'],
+      ['coffee seven forty €', [740, 4000], 'coffee'],
+      ['coffee 7 40euros', [740, 4000], 'coffee'],
       // With no marker at all.
       ['coffee 7 40', [740, 4000], 'coffee'],
       ['coffee seven forty', [740, 4000], 'coffee'],
@@ -328,12 +334,15 @@ describe('parseQuickAdd', () => {
     }
   });
 
-  it('still reads one amount when the numbers are apart, or the marker is written onto one of them', () => {
+  it('still reads one amount when the numbers are apart, or there is only one', () => {
     expect(parseQuickAdd('two coffees six euros')).toEqual({ amountMinor: 600, note: 'two coffees' });
     expect(parseQuickAdd('six coffees 7,40')).toEqual({ amountMinor: 740, note: 'six coffees' });
     expect(parseQuickAdd('2 coffees 7 euros')).toEqual({ amountMinor: 700, note: '2 coffees' });
     expect(parseQuickAdd('döner 6')).toEqual({ amountMinor: 600, note: 'döner' });
-    expect(parseQuickAdd('coffee 7 40€')).toEqual({ amountMinor: 4000, note: 'coffee 7' });
+    expect(parseQuickAdd('döner 6 €')).toEqual({ amountMinor: 600, note: 'döner' });
+    expect(parseQuickAdd('€6')).toEqual({ amountMinor: 600, note: '' });
+    expect(parseQuickAdd('6€')).toEqual({ amountMinor: 600, note: '' });
+    expect(parseQuickAdd('6,50 €')).toEqual({ amountMinor: 650, note: '' });
   });
 
   it('returns null when a bare number sits straight before the chosen one and they cannot be euros and cents', () => {
@@ -342,9 +351,9 @@ describe('parseQuickAdd', () => {
     }
   });
 
-  it('keeps an amount that has other words between it and the number before it, or a marker', () => {
+  it('keeps an amount that has other words between it and the number before it, or a marker in front of it', () => {
     expect(parseQuickAdd('2 coffees 7,40')).toEqual({ amountMinor: 740, note: '2 coffees' });
-    expect(parseQuickAdd('coffee 7 40 €')).toEqual({ amountMinor: 4000, note: 'coffee 7' });
+    // "€40" says the amount plainly: 7 is a count.
     expect(parseQuickAdd('coffee 7 €40')).toEqual({ amountMinor: 4000, note: 'coffee 7' });
     expect(parseQuickAdd('coffee 0 40')).toEqual({ amountMinor: 4000, note: 'coffee 0' });
     expect(parseQuickAdd('coffee twenty five')).toEqual({ amountMinor: 2500, note: 'coffee' });
