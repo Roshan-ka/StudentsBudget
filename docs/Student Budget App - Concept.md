@@ -79,7 +79,8 @@ Each part is tagged with its phase.
 - A step-by-step form:
   - city and rent
   - income per source: job, parents, BAföG, blocked-account (Sperrkonto) payout, scholarship
-  - fixed costs: rent, phone, insurance, subscriptions, the semester ticket
+  - fixed costs: rent, phone, insurance, subscriptions, the semester ticket, gym, utilities and Rundfunkbeitrag
+  - **P1.1:** each income source and fixed cost can repeat on its day, monthly on a day of the month or weekly on a weekday, into or out of a chosen account. The app adds it as an entry on that day, so rent and income no longer need logging by hand. Settings has a "Fixed costs and income" list to edit, pause or remove them.
   - big one-off costs: semester fee, insurance, flight home, winter jacket. Each gets a weekly set-aside, so no single month blows up.
   - **your guess per category**, asked before any envelope amounts ("What do you think you spend on eating out a month?"). Saved from day one, even if the guess vs. reality screen comes later.
   - envelope amounts
@@ -98,15 +99,19 @@ Each part is tagged with its phase.
 - **AI phase:** natural sentences like "12 for pizza with Tom yesterday, paid cash", plus receipt scan for big grocery shops. A scanned receipt attaches to its matching entry instead of counting twice.
 - **Later:** CSV statement import, then bank or card connection.
 
-### 5. Home screen (P1)
-- One number: **"Safe to spend this week: €63"**.
-- Below it: the envelopes filling up, and what's left across all accounts.
+### 5. Home screen (P1, monthly since P1.1)
+- **P1:** one number: **"Safe to spend this week: €63"**.
+- **P1.1, after first use:** Home leads with the month:
+  - **"Left to spend this month: €310"**, with one small line underneath: "This week: €63 safe to spend".
+  - Envelopes read "€X left of €Y this month".
+  - Below them: what's left across all accounts.
+- **P1.1: suggested budget.** Home proposes envelope amounts from income minus fixed costs and set-asides. It starts from Regensburg's typical ranges, with their sources, or from last month's spending, and scales down when the money doesn't stretch. You edit the amounts and accept them. It's prominent in the first week of a month or when the plan is over budget. Guesses never change.
 
 How the envelopes work:
 1. The plan is monthly, because income arrives monthly.
 2. Fixed costs come off first. They never count toward "safe to spend".
 3. The set-asides for big one-off costs come off next.
-4. The rest is split into flexible envelopes: food, eating out, going out, transport, shopping, other. Each envelope's monthly amount is spread evenly over the month's weeks.
+4. The rest is split into flexible envelopes: food, eating out, going out, transport, shopping, other. P1.1 adds health and pharmacy, personal care, study materials, household, travel and gifts. Each envelope's monthly amount is spread evenly over the month's weeks.
 5. Safe to spend this week = this week's share of the flexible envelopes + whatever was left from earlier weeks this month − what you've spent this week. Overspending lowers the coming weeks.
 6. At month end, the leftover goes to savings or a goal, and the next month starts fresh.
 7. The plan can't add up to more than income. The app warns and shows by how much.
@@ -117,6 +122,11 @@ How the envelopes work:
 - Income by source for the month.
 - Each category over the past months, to show whether a habit is changing.
 - Tapping a category lists its entries.
+- **P1.1:**
+  - Spending and income open as a donut (the top 6 plus "Everything else"), with Bars (spent vs planned) and Table as alternatives.
+  - One period applies to every chart: this month, 3, 6 or 12 months.
+  - A "Saved each month" chart shows income minus expenses.
+  - Full dates everywhere read DD-MM-YYYY. Date fields have Today and Yesterday shortcuts.
 
 ### 7. Weekly check-in (P1, Sunday, a few minutes)
 - Confirm cash, catch anything you forgot, and see the week against the plan, with each envelope's over or under amount.
