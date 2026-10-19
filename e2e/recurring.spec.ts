@@ -258,6 +258,8 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   await rent.getByRole('checkbox', { name: 'Add it automatically', exact: true }).check();
   await rent.getByLabel('Account', { exact: true }).selectOption({ label: 'Local bank (EUR)' });
   await rent.getByRole('button', { name: 'Save', exact: true }).click();
+  // Saved before the clock moves: a reload while the save is in flight would start the app without the schedule.
+  await expect(list(page, 'Fixed costs').getByText('€400.00 · Monthly on day 1 · Local bank', { exact: true })).toBeVisible();
   await openOn(page, on(2026, 11, 1));
   await expect.poll(() => posted(page, 'rent'), POSTING).toEqual([['2026-11-01', 40000]]);
   expect(await posted(page, 'income-parents')).toEqual([]);
