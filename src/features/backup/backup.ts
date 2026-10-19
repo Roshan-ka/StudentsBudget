@@ -6,8 +6,13 @@ import { CURRENCIES } from '@/lib/money';
 
 export type { BackupData };
 
-/** Bumped when the file's shape changes. A file with a higher number than this came from a newer app. */
-export const BACKUP_VERSION = 1;
+/**
+ * Bumped when the file's shape changes. A file with a higher number than this came from a newer app.
+ * Version 2 adds the plan's schedules and the entries' `recurring` marker, both optional, so version 1 files read.
+ */
+export const BACKUP_VERSION = 2;
+
+const READABLE_VERSIONS = [1, BACKUP_VERSION] as const;
 
 const APP = 'studentsbudget';
 
@@ -56,17 +61,35 @@ const entryBase = {
 };
 
 const entry = z.discriminatedUnion('type', [
-  z.object({ ...entryBase, type: z.enum(['expense', 'income']), categoryId: id }),
+  z.object({
+    ...entryBase,
+    type: z.enum(['expense', 'income']),
+    categoryId: id,
+    recurring: z.object({ scheduleId: id }).optional(),
+  }),
   z.object({ ...entryBase, type: z.literal('transfer'), toAccountId: id, toAmountMinor: minor }),
 ]);
 
 const amount = z.object({ categoryId: id, monthlyMinor: minor });
 
+const schedule = z.object({
+  id,
+  frequency: z.enum(['monthly', 'weekly']),
+  day: z.int(),
+  accountId: id,
+  amountMinor: minor,
+  startOn: isoDate,
+  postedThrough: isoDate,
+  paused: z.boolean().optional(),
+});
+
+const planLine = z.object({ categoryId: id, monthlyMinor: minor, schedule: schedule.optional() });
+
 const plan = z.object({
   id: z.literal('current'),
   cityId: z.literal('regensburg'),
-  incomes: z.array(amount),
-  fixed: z.array(amount),
+  incomes: z.array(planLine),
+  fixed: z.array(planLine),
   oneOffs: z.array(
     z.object({ id, name: text, amountMinor: minor, createdMonth: isoMonth, dueMonth: isoMonth }),
   ),
@@ -95,7 +118,7 @@ const backupData = z.object({
 
 const backupFile = z.object({
   app: z.literal(APP),
-  version: z.literal(BACKUP_VERSION),
+  version: z.literal(READABLE_VERSIONS),
   exportedAt: z.iso.datetime(),
   data: backupData,
 });

@@ -4,6 +4,8 @@ import {
   daysBetween,
   daysInMonth,
   firstOfMonth,
+  formatDate,
+  formatDateTime,
   isSunday,
   monthOf,
   monthsBetween,
@@ -21,6 +23,28 @@ describe('todayIso', () => {
 
   it('defaults to the current date', () => {
     expect(todayIso()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('formatDate', () => {
+  it('shows an ISO date as DD-MM-YYYY', () => {
+    expect(formatDate('2026-10-19')).toBe('19-10-2026');
+    expect(formatDate('2026-01-05')).toBe('05-01-2026');
+    expect(formatDate('2027-12-31')).toBe('31-12-2027');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('shows an ISO timestamp as DD-MM-YYYY, HH:mm in local time', () => {
+    expect(formatDateTime('2026-10-19T12:05:00+02:00')).toBe('19-10-2026, 12:05');
+    // TZ is Europe/Berlin, UTC+2 until 25 Oct: 23:30 UTC is already the next day.
+    expect(formatDateTime('2026-10-19T23:30:00.000Z')).toBe('20-10-2026, 01:30');
+    // And UTC+1 after the clocks go back.
+    expect(formatDateTime('2026-11-02T09:07:00.000Z')).toBe('02-11-2026, 10:07');
+  });
+
+  it('gives back text that is not a timestamp', () => {
+    expect(formatDateTime('yesterday')).toBe('yesterday');
   });
 });
 

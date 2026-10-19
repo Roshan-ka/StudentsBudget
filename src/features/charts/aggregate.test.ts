@@ -113,7 +113,7 @@ describe('spendingByCategory', () => {
       expense('food', '2026-10-03', 18000),
       expense('food', '2026-10-20', 2000),
       expense('rent', '2026-10-01', 40000),
-      expense('transport', '2026-10-03', 500),
+      expense('one-off', '2026-10-03', 500),
     ];
 
     const rows = spendingByCategory(entries, setUpOn16th, '2026-10');
@@ -123,8 +123,8 @@ describe('spendingByCategory', () => {
     expect(rows.find((r) => r.categoryId === 'food')?.spentMinor).toBe(fromHome?.spentMinor);
     // Rent paid on the 1st still counts against the whole month's amount.
     expect(rows.find((r) => r.categoryId === 'rent')).toEqual({ categoryId: 'rent', spentMinor: 40000, plannedMinor: 40000 });
-    expect(rows.find((r) => r.categoryId === 'transport')).toEqual({
-      categoryId: 'transport',
+    expect(rows.find((r) => r.categoryId === 'one-off')).toEqual({
+      categoryId: 'one-off',
       spentMinor: 500,
       plannedMinor: null,
     });
@@ -167,13 +167,23 @@ describe('spendingByCategory', () => {
     expect(rent).toEqual({ categoryId: 'rent', spentMinor: 40000, plannedMinor: 40000 });
   });
 
-  it('has a null plan for a category with neither an envelope nor a fixed amount', () => {
-    const entries = [expense('transport', '2026-10-03', 250), expense('one-off', '2026-10-04', 3000)];
+  it('has a null plan for a category that is neither flexible nor has a fixed amount', () => {
+    const entries = [expense('gym', '2026-10-03', 250), expense('one-off', '2026-10-04', 3000)];
 
     const rows = spendingByCategory(entries, foodOnly, '2026-10');
 
-    expect(rows.find((r) => r.categoryId === 'transport')?.plannedMinor).toBeNull();
+    expect(rows.find((r) => r.categoryId === 'gym')?.plannedMinor).toBeNull();
     expect(rows.find((r) => r.categoryId === 'one-off')?.plannedMinor).toBeNull();
+  });
+
+  it('plans a flexible category without an envelope at €0, as home does', () => {
+    const rows = spendingByCategory([expense('transport', '2026-10-03', 250)], foodOnly, '2026-10');
+
+    expect(rows.find((r) => r.categoryId === 'transport')).toEqual({
+      categoryId: 'transport',
+      spentMinor: 250,
+      plannedMinor: 0,
+    });
   });
 
   it('lists one row per category that has spending or a planned amount, and no empty ones', () => {

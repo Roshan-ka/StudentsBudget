@@ -87,7 +87,7 @@ describe('exportAll', () => {
     const data = await exportAll();
 
     expect(data.accounts.map((a) => a.id)).toEqual(['a1']);
-    expect(data.categories).toHaveLength(18);
+    expect(data.categories).toHaveLength(26);
     expect(data.entries.map((e) => e.id)).toEqual(['e1']);
     expect(data.plan).toEqual(PLAN);
     expect(data.guesses).toHaveLength(1);
@@ -132,7 +132,7 @@ describe('replaceAll', () => {
 
     const rows = await everyRow();
     expect(rows.accounts.map((a) => a.id).sort()).toEqual(['b1', 'b2']);
-    expect(rows.categories).toHaveLength(18);
+    expect(rows.categories).toHaveLength(26);
     expect(rows.entries.map((e) => e.id)).toEqual(['new']);
     expect(await db.entries.get('old')).toBeUndefined();
     expect(rows.plan).toEqual([PLAN]);
@@ -183,7 +183,7 @@ describe('replaceAll', () => {
 });
 
 describe('deleteEverything', () => {
-  it('leaves nothing but the 18 reseeded categories, in a database that is open', async () => {
+  it('leaves nothing but the 26 reseeded categories, in a database that is open', async () => {
     await fillWithOldData();
 
     await deleteEverything();
@@ -195,7 +195,7 @@ describe('deleteEverything', () => {
     expect(rows.plan).toEqual([]);
     expect(rows.guesses).toEqual([]);
     expect(rows.fxRates).toEqual([]);
-    expect(rows.categories).toHaveLength(18);
+    expect(rows.categories).toHaveLength(26);
     expect(await db.categories.get('old-category')).toBeUndefined();
     expect(await db.categories.get('food')).toBeDefined();
   });
@@ -204,6 +204,6 @@ describe('deleteEverything', () => {
     await deleteEverything();
 
     expect(db.isOpen()).toBe(true);
-    expect(await db.categories.count()).toBe(18);
+    expect(await db.categories.count()).toBe(26);
   });
 });

@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CATEGORIES } from '@/data/categories';
 import { db, requestPersistence } from './db';
 import {
   AccountInUseError,
@@ -13,7 +14,27 @@ import {
 } from './repo';
 import type { Account, Entry, Guess } from './types';
 
-const EXPENSE_IDS = ['food', 'eating-out', 'going-out', 'transport', 'shopping', 'other'];
+const FLEXIBLE_IDS = [
+  'food',
+  'eating-out',
+  'going-out',
+  'transport',
+  'shopping',
+  'health',
+  'personal-care',
+  'study',
+  'household',
+  'travel',
+  'gifts',
+  'other',
+];
+
+const NEW_IDS = ['health', 'personal-care', 'study', 'household', 'travel', 'gifts', 'gym', 'utilities'];
+
+/** The 18 built-in rows a database held before the new categories: their ids, kinds and positions in the old list. */
+function oldRows() {
+  return CATEGORIES.filter((c) => !NEW_IDS.includes(c.id)).map((c, order) => ({ ...c, order }));
+}
 
 function account(id: string): Account {
   return { id, name: id, kind: 'bank', currency: 'EUR', openingMinor: 0, createdAt: '2026-10-01T08:00:00.000Z' };
@@ -57,17 +78,17 @@ beforeEach(async () => {
 });
 
 describe('ensureSeeded', () => {
-  it('seeds the 18 categories once', async () => {
+  it('seeds the 26 categories once', async () => {
     await ensureSeeded();
     await ensureSeeded();
 
-    expect(await db.categories.count()).toBe(18);
+    expect(await db.categories.count()).toBe(26);
   });
 
   it('seeds once even when called concurrently', async () => {
     await Promise.all([ensureSeeded(), ensureSeeded()]);
 
-    expect(await db.categories.count()).toBe(18);
+    expect(await db.categories.count()).toBe(26);
   });
 
   it('seeds the categories in the specified order', async () => {
@@ -76,12 +97,14 @@ describe('ensureSeeded', () => {
     // `order` is not an index in the schema, so sort in memory.
     const categories = (await db.categories.toArray()).sort((a, b) => a.order - b.order);
     expect(categories.map((c) => c.id)).toEqual([
-      ...EXPENSE_IDS,
+      ...FLEXIBLE_IDS,
       'rent',
       'phone',
       'insurance',
       'subscriptions',
       'transport-pass',
+      'gym',
+      'utilities',
       'one-off',
       'income-job',
       'income-parents',
@@ -90,19 +113,40 @@ describe('ensureSeeded', () => {
       'income-scholarship',
       'income-other',
     ]);
-    expect(categories.filter((c) => c.kind === 'flexible').map((c) => c.id)).toEqual(EXPENSE_IDS);
-    expect(categories.filter((c) => c.kind === 'fixed')).toHaveLength(5);
+    expect(categories.map((c) => c.order)).toEqual(Array.from({ length: 26 }, (_, i) => i));
+    expect(categories.filter((c) => c.kind === 'flexible').map((c) => c.id)).toEqual(FLEXIBLE_IDS);
+    expect(categories.filter((c) => c.kind === 'fixed')).toHaveLength(7);
     expect(categories.filter((c) => c.kind === 'oneoff')).toHaveLength(1);
     expect(categories.filter((c) => c.kind === 'income')).toHaveLength(6);
   });
 
-  it('never overwrites existing categories', async () => {
-    await db.categories.put({ id: 'food', name: 'Custom', kind: 'flexible', order: 99 });
+  it('adds the new categories to a database that holds the 18 old ones, and corrects the orders', async () => {
+    await db.categories.bulkAdd(oldRows());
 
     await ensureSeeded();
 
-    expect(await db.categories.count()).toBe(1);
-    expect((await db.categories.get('food'))?.name).toBe('Custom');
+    expect(await db.categories.count()).toBe(26);
+    // Every built-in row now equals the constant, so `other` and the rows after it moved up.
+    expect((await db.categories.toArray()).sort((a, b) => a.order - b.order)).toEqual(CATEGORIES);
+  });
+
+  it('leaves a row that is not built in alone', async () => {
+    const mine = { id: 'my-own', name: 'My own', kind: 'flexible' as const, order: 99 };
+    await db.categories.bulkAdd([...oldRows(), mine]);
+
+    await ensureSeeded();
+
+    expect(await db.categories.count()).toBe(27);
+    expect(await db.categories.get('my-own')).toEqual(mine);
+  });
+
+  it('puts a built-in row back to the name, kind and order of the constant', async () => {
+    await db.categories.put({ id: 'food', name: 'Custom', kind: 'fixed', order: 99 });
+
+    await ensureSeeded();
+
+    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.get('food')).toEqual(CATEGORIES[0]);
   });
 });
 

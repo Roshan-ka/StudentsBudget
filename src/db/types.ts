@@ -27,7 +27,12 @@ type EntryBase = {
 };
 
 export type Entry =
-  | (EntryBase & { type: 'expense' | 'income'; categoryId: string })
+  | (EntryBase & {
+      type: 'expense' | 'income';
+      categoryId: string;
+      /** Set on an entry a schedule posted. It stays when the entry is edited. */
+      recurring?: { scheduleId: string };
+    })
   | (EntryBase & { type: 'transfer'; toAccountId: string; toAmountMinor: Minor });
 
 export type OneOff = {
@@ -41,11 +46,31 @@ export type OneOff = {
 /** Plan, envelope and city amounts are always EUR. */
 export type Amount = { categoryId: string; monthlyMinor: Minor };
 
+/**
+ * When an income or fixed line posts itself as entries. `amountMinor` is per occurrence, in the account's currency.
+ * `postedThrough` is a watermark: every period that ends on or before it has been handled, so nothing posts twice.
+ */
+export type Schedule = {
+  id: string;
+  frequency: 'monthly' | 'weekly';
+  /** Monthly: 1–31, clipped to the month's last day. Weekly: 1 = Monday … 7 = Sunday. */
+  day: number;
+  accountId: string;
+  amountMinor: Minor;
+  /** The first day an occurrence may fall on. */
+  startOn: IsoDate;
+  postedThrough: IsoDate;
+  paused?: boolean;
+};
+
+/** An income or fixed line: the monthly amount, and optionally the schedule that posts it. */
+export type PlanLine = Amount & { schedule?: Schedule };
+
 export type Plan = {
   id: 'current';
   cityId: 'regensburg';
-  incomes: Amount[];
-  fixed: Amount[];
+  incomes: PlanLine[];
+  fixed: PlanLine[];
   oneOffs: OneOff[];
   envelopes: Amount[];
   createdOn: IsoDate;

@@ -1,9 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
 import { BACKUP_VERSION, backupFileName, parseBackup, restoreQuestion, serializeBackup } from './backup';
 
 const NOW = new Date('2026-10-16T10:00:00.000Z');
+
+const DEMO = readFileSync(new URL('../../../fixtures/studentsbudget-demo-2026-10.json', import.meta.url), 'utf8');
 
 const NOT_A_BACKUP = "This isn't a StudentsBudget backup file.";
 const NEWER = 'This backup is from a newer version of the app.';
@@ -69,9 +72,51 @@ function sample(): BackupData {
   };
 }
 
+/** What version 2 adds: schedules on the plan's lines and the entries a schedule posted. `sample()` has none of it, like a version 1 file. */
+function sampleV2(): BackupData {
+  const data = sample();
+  data.plan = {
+    ...data.plan!,
+    incomes: [
+      {
+        categoryId: 'income-parents',
+        monthlyMinor: 50_000,
+        schedule: { id: 's-income', frequency: 'weekly', day: 7, accountId: 'a2', amountMinor: 1_000_000, startOn: '2026-10-01', postedThrough: '2026-10-11' },
+      },
+    ],
+    fixed: [
+      {
+        categoryId: 'rent',
+        monthlyMinor: 40_000,
+        schedule: { id: 's-rent', frequency: 'monthly', day: 31, accountId: 'a1', amountMinor: 40_000, startOn: '2026-10-01', postedThrough: '2026-09-30', paused: true },
+      },
+      { categoryId: 'phone', monthlyMinor: 2_500 },
+    ],
+  };
+  data.entries = [
+    ...data.entries,
+    {
+      id: 'e4',
+      type: 'expense',
+      date: '2026-10-31',
+      accountId: 'a1',
+      categoryId: 'rent',
+      amountMinor: 40_000,
+      eurMinor: 40_000,
+      note: '',
+      createdAt: '2026-10-31T05:00:00.000Z',
+      recurring: { scheduleId: 's-rent' },
+    },
+  ];
+  return data;
+}
+
 /** The backup as the file holds it, for tests that break one part of it. */
-function fileOf(change: (file: Record<string, unknown> & { data: Record<string, unknown> }) => void): string {
-  const file = JSON.parse(serializeBackup(sample(), NOW)) as Record<string, unknown> & { data: Record<string, unknown> };
+function fileOf(
+  change: (file: Record<string, unknown> & { data: Record<string, unknown> }) => void,
+  data: BackupData = sample(),
+): string {
+  const file = JSON.parse(serializeBackup(data, NOW)) as Record<string, unknown> & { data: Record<string, unknown> };
   change(file);
   return JSON.stringify(file);
 }
@@ -81,13 +126,36 @@ describe('serializeBackup and parseBackup', () => {
     const file: unknown = JSON.parse(serializeBackup(sample(), NOW));
 
     expect(file).toEqual({ app: 'studentsbudget', version: BACKUP_VERSION, exportedAt: NOW.toISOString(), data: sample() });
-    expect(BACKUP_VERSION).toBe(1);
+    expect(BACKUP_VERSION).toBe(2);
   });
 
   it('round-trips every table, the ECB and the manual rate included', () => {
     const result = parseBackup(serializeBackup(sample(), NOW));
 
     expect(result).toEqual({ ok: true, data: sample(), exportedAt: NOW.toISOString() });
+  });
+
+  it('round-trips schedules and the entries a schedule posted, whether or not a schedule is paused', () => {
+    const data = sampleV2();
+
+    expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(data.plan?.incomes[0].schedule).not.toHaveProperty('paused');
+    expect(data.plan?.fixed[0].schedule?.paused).toBe(true);
+  });
+
+  it('still reads a version 1 file, which has none of the new keys', () => {
+    const text = fileOf((file) => (file.version = 1));
+
+    expect(parseBackup(text)).toEqual({ ok: true, data: sample(), exportedAt: NOW.toISOString() });
+  });
+
+  it('reads the demo backup, a version 1 file with 47 entries', () => {
+    const result = parseBackup(DEMO);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.entries).toHaveLength(47);
+    expect(result.data.accounts).toHaveLength(3);
   });
 
   it('round-trips a backup without a plan', () => {
@@ -112,8 +180,8 @@ describe('serializeBackup and parseBackup', () => {
   });
 
   it('rejects a newer version, whatever else the file holds', () => {
-    expect(parseBackup(fileOf((file) => (file.version = 2)))).toEqual({ ok: false, error: NEWER });
-    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 2, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
+    expect(parseBackup(fileOf((file) => (file.version = 3)))).toEqual({ ok: false, error: NEWER });
+    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 3, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
     expect(parseBackup(shapeUnknown)).toEqual({ ok: false, error: NEWER });
   });
 
@@ -171,6 +239,31 @@ describe('serializeBackup and parseBackup', () => {
     ['an unknown city', (file: { data: Record<string, unknown> }) => ((file.data.plan as { cityId: string }).cityId = 'berlin')],
   ])('says it is incomplete for %s', (_name, change) => {
     expect(parseBackup(fileOf(change))).toEqual({ ok: false, error: INCOMPLETE });
+  });
+
+  it.each([
+    ['a schedule with an unknown frequency', (schedule: Record<string, unknown>) => (schedule.frequency = 'daily')],
+    ['a schedule without an account', (schedule: Record<string, unknown>) => delete schedule.accountId],
+    ['a schedule amount with decimals', (schedule: Record<string, unknown>) => (schedule.amountMinor = 4.5)],
+    ['a schedule that starts on no date', (schedule: Record<string, unknown>) => (schedule.startOn = '1st')],
+    ['a watermark that is not a date', (schedule: Record<string, unknown>) => (schedule.postedThrough = '2026-02-30')],
+    ['a pause flag that is text', (schedule: Record<string, unknown>) => (schedule.paused = 'yes')],
+  ])('says it is incomplete for %s', (_name, change) => {
+    const text = fileOf((file) => {
+      const plan = file.data.plan as { fixed: { schedule: Record<string, unknown> }[] };
+      change(plan.fixed[0].schedule);
+    }, sampleV2());
+
+    expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
+  });
+
+  it('says it is incomplete for a recurring marker without its schedule', () => {
+    const text = fileOf((file) => {
+      const posted = (file.data.entries as { recurring?: Record<string, unknown> }[]).at(-1);
+      delete posted!.recurring!.scheduleId;
+    }, sampleV2());
+
+    expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
   });
 
   it('ignores fields it does not know', () => {

@@ -43,6 +43,12 @@ const draft: SetupDraft = {
     { categoryId: 'going-out', monthlyMinor: 0 },
     { categoryId: 'transport', monthlyMinor: 0 },
     { categoryId: 'shopping', monthlyMinor: 0 },
+    { categoryId: 'health', monthlyMinor: 0 },
+    { categoryId: 'personal-care', monthlyMinor: 0 },
+    { categoryId: 'study', monthlyMinor: 0 },
+    { categoryId: 'household', monthlyMinor: 0 },
+    { categoryId: 'travel', monthlyMinor: 0 },
+    { categoryId: 'gifts', monthlyMinor: 0 },
     { categoryId: 'other', monthlyMinor: 0 },
   ],
 };
@@ -164,14 +170,30 @@ describe('draftFromPlan', () => {
     expect(d.fixed).toEqual([{ categoryId: 'phone', monthlyMinor: 2500 }]);
     expect(d.accounts).toEqual([]);
     expect(d.guesses).toEqual([]);
-    expect(d.envelopes).toHaveLength(6);
+    expect(d.envelopes).toHaveLength(12);
     expect(d.envelopes[0]).toEqual({ categoryId: 'food', monthlyMinor: 31000 });
     expect(d.envelopes[1]).toEqual({ categoryId: 'eating-out', monthlyMinor: 0 });
+    // A plan saved before the new categories has no row for them: they start at €0.
+    expect(d.envelopes.find((e) => e.categoryId === 'health')).toEqual({ categoryId: 'health', monthlyMinor: 0 });
   });
 });
 
 describe('validateStep', () => {
-  it('asks for a guess on every flexible category', () => {
+  it('asks for a guess on the six categories people guess, and on no other', () => {
+    expect(validateStep('guesses', draft, TODAY)).toEqual([]);
+    const fresh = initialDraft();
+    expect(fresh.envelopes).toHaveLength(12);
+    expect(validateStep('guesses', fresh, TODAY)).toEqual([
+      'Add a guess for Food & groceries',
+      'Add a guess for Eating out',
+      'Add a guess for Going out',
+      'Add a guess for Transport',
+      'Add a guess for Shopping',
+      'Add a guess for Other',
+    ]);
+  });
+
+  it('names the guess that is missing', () => {
     const noEatingOut = { ...draft, guesses: draft.guesses.filter((g) => g.categoryId !== 'eating-out') };
     expect(validateStep('guesses', noEatingOut, TODAY)).toEqual(['Add a guess for Eating out']);
   });

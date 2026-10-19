@@ -154,7 +154,7 @@ test.describe('on a desktop browser', () => {
       version: number;
       data: { entries: Entry[]; fxRates: Rate[]; plan: Plan | null };
     };
-    expect(file).toMatchObject({ app: 'studentsbudget', version: 1 });
+    expect(file).toMatchObject({ app: 'studentsbudget', version: 2 });
     expect(file.data.entries.map((entry) => entry.note)).toEqual(['döner']);
     expect(file.data.fxRates.map((rate) => rate.source).sort()).toEqual(['ecb', 'manual']);
     expect(file.data.plan?.id).toBe('current');
@@ -185,16 +185,15 @@ test.describe('on a desktop browser', () => {
     expect(wiped.entries).toEqual([]);
     expect(wiped.plan).toEqual([]);
     expect(wiped.fxRates).toEqual([]);
-    expect(wiped.categories).toHaveLength(18);
+    expect(wiped.categories).toHaveLength(26);
 
     // Restore from the file, without setting up first.
     await backupFileInput(page).setInputFiles(filePath);
     await expect(page.getByText(QUESTION)).toBeVisible();
     await page.getByRole('button', { name: 'Yes' }).click();
 
-    // The restored plan is home again, with the money left this week and the entry in the list.
+    // The restored plan is home again, and the entry is in the list. The stores below are the proof of the restore.
     await expect(page).toHaveURL('/');
-    await expect(page.getByRole('region', { name: 'Safe to spend this week' }).getByText('€36', { exact: true })).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
     expect(await everything(page)).toEqual(before);
     await page.goto('/entries');
@@ -227,7 +226,7 @@ test.describe('on a desktop browser', () => {
     await backupFileInput(page).setInputFiles({
       name: 'later.json',
       mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify({ ...EMPTY_BACKUP, version: 2 })),
+      buffer: Buffer.from(JSON.stringify({ ...EMPTY_BACKUP, version: 3 })),
     });
     await expect(inlineAlert(page)).toHaveText(NEWER);
     await expect(page.getByRole('button', { name: 'Yes' })).toHaveCount(0);

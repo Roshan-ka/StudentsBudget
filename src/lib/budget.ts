@@ -1,6 +1,6 @@
 import type { City } from '@/data/cities';
 import { CATEGORIES } from '@/data/categories';
-import type { Entry, OneOff, Plan } from '@/db/types';
+import type { Amount, Entry, OneOff, Plan, PlanLine } from '@/db/types';
 import type { IsoDate, IsoMonth } from './dates';
 import { addDays, daysBetween, daysInMonth, firstOfMonth, monthOf, monthsBetween, weekInMonth } from './dates';
 import type { Minor } from './money';
@@ -27,9 +27,12 @@ export type PlanSummary = {
   overByMinor: Minor;
 };
 
+/** A line whose schedule is paused is not part of the plan for now. */
+const unpaused = (lines: PlanLine[]): PlanLine[] => lines.filter((line) => !line.schedule?.paused);
+
 export function planSummary(plan: Plan, month: IsoMonth): PlanSummary {
-  const incomeMinor = sum(plan.incomes.map((a) => a.monthlyMinor));
-  const fixedMinor = sum(plan.fixed.map((a) => a.monthlyMinor));
+  const incomeMinor = sum(unpaused(plan.incomes).map((a) => a.monthlyMinor));
+  const fixedMinor = sum(unpaused(plan.fixed).map((a) => a.monthlyMinor));
   const setAsideMinor = sum(plan.oneOffs.map((o) => setAsideMonthly(o, month)));
   const availableMinor = incomeMinor - fixedMinor - setAsideMinor;
   const envelopesMinor = sum(plan.envelopes.map((a) => a.monthlyMinor));
@@ -55,6 +58,20 @@ function expensesIn(entries: Entry[], categoryId: string): { date: IsoDate; eurM
   return entries.flatMap((e) =>
     e.type === 'expense' && e.categoryId === categoryId ? [{ date: e.date, eurMinor: e.eurMinor }] : [],
   );
+}
+
+const FLEXIBLE = CATEGORIES.filter((c) => c.kind === 'flexible');
+
+/**
+ * The plan's envelopes, then a €0 row for each flexible category it has none for, in category order. Spending in
+ * a category the plan does not know (one added after it was saved) still counts, against nothing.
+ */
+function envelopesOf(plan: Plan): Amount[] {
+  const planned = new Set(plan.envelopes.map((e) => e.categoryId));
+  const missing = FLEXIBLE.filter((c) => !planned.has(c.id)).map(
+    (c): Amount => ({ categoryId: c.id, monthlyMinor: 0 }),
+  );
+  return [...plan.envelopes, ...missing];
 }
 
 /**
@@ -87,7 +104,7 @@ export function safeToSpend(
   const spentBetween = (expenses: { date: IsoDate; eurMinor: Minor }[], from: IsoDate, to: IsoDate) =>
     sum(expenses.filter((x) => x.date >= from && x.date <= to).map((x) => x.eurMinor));
 
-  const envelopes = plan.envelopes.map((e): EnvelopeWeek => {
+  const envelopes = envelopesOf(plan).map((e): EnvelopeWeek => {
     const expenses = expensesIn(entries, e.categoryId);
     const through = weekEnd < start ? 0 : Math.round((e.monthlyMinor * (daysBetween(start, weekEnd) + 1)) / days);
     const before = weekStart > start ? Math.round((e.monthlyMinor * daysBetween(start, weekStart)) / days) : 0;
@@ -108,8 +125,8 @@ export function safeToSpend(
 }
 
 /**
- * Planned and spent per envelope for one calendar month, in the order of `plan.envelopes`. In the
- * month of setup only the days from the setup day on are planned and counted.
+ * Planned and spent per envelope for one calendar month: the plan's envelopes in their order, then a €0 row for
+ * each other flexible category. In the month of setup only the days from the setup day on are planned and counted.
  */
 export function monthStatus(
   plan: Plan,
@@ -119,7 +136,7 @@ export function monthStatus(
   const days = daysInMonth(month);
   const start = accrualStart(plan, month);
   const lastDay = addDays(firstOfMonth(month), days - 1);
-  return plan.envelopes.map((e) => ({
+  return envelopesOf(plan).map((e) => ({
     categoryId: e.categoryId,
     // A full month is exactly the monthly amount: days / days.
     plannedMinor: Math.round((e.monthlyMinor * (daysBetween(start, lastDay) + 1)) / days),
@@ -133,7 +150,7 @@ export function monthStatus(
 
 export type RangeWarning = { categoryId: string; typicalMinMinor: Minor; typicalMaxMinor: Minor };
 
-const FLEXIBLE_IDS = new Set(CATEGORIES.filter((c) => c.kind === 'flexible').map((c) => c.id));
+const FLEXIBLE_IDS = new Set(FLEXIBLE.map((c) => c.id));
 
 /**
  * Flexible envelopes planned below what the city's students typically spend.

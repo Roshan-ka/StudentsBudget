@@ -1,6 +1,7 @@
 import { CATEGORIES } from '@/data/categories';
 import type { CityRange } from '@/data/cities';
 import type { Account, Amount, Category, Guess, OneOff, Plan } from '@/db/types';
+import { GUESS_CATEGORIES } from '@/features/entries/categories';
 import { planSummary, type PlanSummary } from '@/lib/budget';
 import { monthOf, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, formatRange, type Minor } from '@/lib/money';
@@ -242,7 +243,7 @@ export function validateStep(
     }
 
     case 'guesses':
-      return FLEXIBLE_CATEGORIES.flatMap((c) => {
+      return GUESS_CATEGORIES.flatMap((c) => {
         const minor = amountOf(d.guesses, c.id);
         if (minor === undefined) return [`Add a guess for ${c.name}`];
         return isAmount(minor) ? [] : [`Check the guess for ${c.name}.`];
