@@ -66,10 +66,16 @@ describe('suggestBudget', () => {
     expect(result.unallocatedMinor).toBe(100000 - 33500);
   });
 
-  it('rounds a middle that falls between two cents to a whole cent', () => {
-    const odd: City = { ...city, ranges: [range('food', 18000, 18001)] };
-    const { rows } = suggestBudget(planWithAvailable(100000), odd, [], '2026-11');
-    expect(rows.find((r) => r.categoryId === 'food')?.amountMinor).toBe(18001);
+  it('rounds the middle of a range to the nearest €5, and exactly halfway goes up', () => {
+    const odd: City = {
+      ...city,
+      // Middles: €183.50 (nearer €185 than €180), €82.50 (exactly halfway, up to €85) and €77 (nearer €75).
+      ranges: [range('food', 18000, 18700), range('eating-out', 3000, 13500), range('going-out', 3000, 12400)],
+    };
+    const byId = amounts(suggestBudget(planWithAvailable(100000), odd, [], '2026-11').rows);
+    expect(byId.food).toBe(18500);
+    expect(byId['eating-out']).toBe(8500);
+    expect(byId['going-out']).toBe(7500);
   });
 
   it('uses last month for a category without a range, rounded to €5', () => {
@@ -110,6 +116,20 @@ describe('suggestBudget', () => {
       amountMinor: 2000,
       basis: 'last-month',
     });
+  });
+
+  it('keeps last month as the basis when the spending rounds to €0', () => {
+    const entries = [
+      expense('health', '2026-10-05', 200), // €2: under half of €5
+      expense('study', '2026-10-05', 249),
+      expense('household', '2026-10-05', 250), // exactly halfway, up to €5
+    ];
+    const { rows } = suggestBudget(planWithAvailable(100000), city, entries, '2026-11');
+    const byId = Object.fromEntries(rows.map((r) => [r.categoryId, r]));
+
+    expect(byId.health).toEqual({ categoryId: 'health', amountMinor: 0, basis: 'last-month' });
+    expect(byId.study).toEqual({ categoryId: 'study', amountMinor: 0, basis: 'last-month' });
+    expect(byId.household).toEqual({ categoryId: 'household', amountMinor: 500, basis: 'last-month' });
   });
 
   it('has no basis for a category with neither a range nor spending last month', () => {

@@ -123,7 +123,8 @@ test('the envelopes show what is left of the month and how much of it is used', 
 
   // Over the plan: the real numbers show, the bar stops at full.
   await quickAdd(page, 'döner 100');
-  await expect(eatingOut.getByText('€42 over of €64', { exact: true })).toBeVisible();
+  await expect(eatingOut.getByText('€42 over the €64 planned this month', { exact: true })).toBeVisible();
+  await expect(bar).toHaveAttribute('aria-valuetext', '€42 over the €64 planned this month');
   await expect(bar).toHaveAttribute('aria-valuenow', '100');
   await expect(bar).toHaveAttribute('aria-valuemax', '100');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
@@ -150,7 +151,9 @@ test('an amount under 50 cents keeps its cents instead of reading as €0', asyn
 
   // 80 cents more is €0.40 over, in food and in total.
   await quickAdd(page, 'Rewe 0,80');
-  await expect(row('Food & groceries').getByText('€0.40 over of €160', { exact: true })).toBeVisible();
+  await expect(
+    row('Food & groceries').getByText('€0.40 over the €160 planned this month', { exact: true }),
+  ).toBeVisible();
   await expect(card.getByText('€0.40 over this month', { exact: true })).toBeVisible();
 });
 
@@ -319,10 +322,70 @@ test('says calmly that nothing is available, and suggests €0', async ({ page }
   await page.reload();
 
   const panel = suggestion(page);
+  const useBudget = panel.getByRole('button', { name: 'Use this budget', exact: true });
+  const food = panel.getByRole('textbox', { name: 'Food & groceries per month', exact: true });
   await expect(panel).toBeVisible();
   await expect(panel.getByText('Nothing is available to budget yet', { exact: false })).toBeVisible();
-  await expect(panel.getByRole('textbox', { name: 'Food & groceries per month', exact: true })).toHaveValue('');
+  await expect(panel.getByText('You can change your plan in Settings.', { exact: false })).toBeVisible();
+  await expect(food).toHaveValue('');
   await expect(panel.getByText('left for savings', { exact: false })).toHaveCount(0);
+
+  // Using €0 everywhere would empty every envelope in one tap, so the button waits for an amount.
+  await expect(useBudget).toBeDisabled();
+  await food.fill('50');
+  await expect(useBudget).toBeEnabled();
+  await food.fill('');
+  await expect(useBudget).toBeDisabled();
+
+  // Nothing was written.
+  const [after] = await readStore<Plan>(page, 'plan');
+  expect(after.envelopes).toEqual(plan.envelopes);
+});
+
+test('when the plan fits, each ranged category starts at the middle of its range, to the nearest €5', async ({
+  page,
+}) => {
+  // Income of €1,900: €1,440 is available after the rent and the €60 set-aside, more than the middles add up to.
+  await completeSetup(page, { incomes: { parents: '1500', job: '400' } });
+  await suggestionLink(page).click();
+  const panel = suggestion(page);
+  const field = (name: string) => panel.getByRole('textbox', { name: `${name} per month`, exact: true });
+
+  await expect(panel.getByText('€1,440 a month is available after your fixed costs and set-asides.')).toBeVisible();
+  // Food's middle is €257.50 and eating out's €82.50, so both round up.
+  await expect(field('Food & groceries')).toHaveValue('260');
+  await expect(field('Eating out')).toHaveValue('85');
+  await expect(field('Going out')).toHaveValue('75');
+  await expect(field('Transport')).toHaveValue('35');
+  await expect(field('Shopping')).toHaveValue('50');
+  await expect(field('Other')).toHaveValue('135');
+  // €640 of €1,440.
+  await expect(panel.getByText('€800 left for savings', { exact: true })).toBeVisible();
+});
+
+test('Not now and the saved note last until the month turns', async ({ page }) => {
+  await completeSetup(page);
+  // Tuesday 3 Nov: the first week, so the suggestion leads.
+  await reopenOn(page, new Date(2026, 10, 3, 12, 0, 0));
+  await expect(suggestion(page)).toBeVisible();
+  await suggestion(page).getByRole('button', { name: 'Not now', exact: true }).click();
+  await expect(suggestion(page)).toHaveCount(0);
+  await expect(suggestionLink(page)).toBeVisible();
+
+  // Tuesday 1 Dec, with the app still open: a new month, so it leads again.
+  await page.clock.setFixedTime(new Date(2026, 11, 1, 9, 0, 0));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(suggestion(page)).toBeVisible();
+
+  // Using it leaves a note, and that goes with the month too.
+  await suggestion(page).getByRole('button', { name: 'Use this budget', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Envelopes updated.' })).toBeVisible();
+  await expect(suggestion(page)).toHaveCount(0);
+
+  await page.clock.setFixedTime(new Date(2027, 0, 1, 9, 0, 0));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(suggestion(page)).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Envelopes updated.' })).toHaveCount(0);
 });
 
 test('in the first week of the month the suggested budget leads, and using it changes only the envelopes', async ({
@@ -331,6 +394,7 @@ test('in the first week of the month the suggested budget leads, and using it ch
   await completeSetup(page);
   // October spending in a category the city has no range for: November's suggestion starts from it.
   await seedExpense(page, 'health', '2026-10-20', 1200);
+  await seedExpense(page, 'study', '2026-10-21', 200);
   const guessesBefore = await readStore(page, 'guesses');
   const [planBefore] = await readStore<Plan>(page, 'plan');
   expect(guessesBefore).toHaveLength(6);
@@ -347,8 +411,8 @@ test('in the first week of the month the suggested budget leads, and using it ch
   await expect(card.getByText('This week: €116 safe to spend', { exact: true })).toBeVisible();
   await expect(envelopes(page).getByRole('listitem')).toHaveCount(2);
 
-  // The middles of the ranges (€635 with health's €10) are more than the €440 available, so every ranged
-  // category is at the bottom of its range.
+  // The middles of the ranges, rounded to €5, add up to €640, and €650 with health's €10: more than the €440
+  // available, so every ranged category is at the bottom of its range.
   await expect(panel.getByText('€440 a month is available after your fixed costs and set-asides.')).toBeVisible();
   const field = (name: string) => panel.getByRole('textbox', { name: `${name} per month`, exact: true });
   await expect(field('Food & groceries')).toHaveValue('180');
@@ -357,15 +421,19 @@ test('in the first week of the month the suggested budget leads, and using it ch
   await expect(field('Transport')).toHaveValue('10');
   await expect(field('Shopping')).toHaveValue('35');
   await expect(field('Other')).toHaveValue('95');
-  // Last month's €12 is rounded to €5; a category with neither a range nor spending starts at €0.
+  // Last month's €12 is rounded to €5. €2 rounds to €0 but is still spending, so its row keeps that basis (below);
+  // a category with neither a range nor spending starts at €0.
   await expect(field('Health & pharmacy')).toHaveValue('10');
+  await expect(field('Study materials')).toHaveValue('');
   await expect(field('Gifts')).toHaveValue('');
   await expect(panel.getByText('€50 left for savings', { exact: true })).toBeVisible();
 
   // Where each amount comes from. Six categories have a range, and each shows its source.
   await expect(panel.getByText('Students here: €180–335', { exact: true })).toBeVisible();
   await expect(panel.getByText('Students here: €30–135 (estimate)', { exact: true })).toBeVisible();
-  await expect(panel.getByText('Your spending in October', { exact: true })).toBeVisible();
+  // Health and study materials both had spending in October; Gifts did not.
+  await expect(panel.getByText('Your spending in October', { exact: true })).toHaveCount(2);
+  await expect(panel.getByText('Nothing to go on yet', { exact: true })).toHaveCount(4);
   await expect(panel.locator('summary', { hasText: 'Source' })).toHaveCount(6);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 

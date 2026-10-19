@@ -16,11 +16,11 @@ function percentUsed(plannedMinor: Minor, spentMinor: Minor): number {
   return Math.min(100, Math.round((spentMinor / plannedMinor) * 100));
 }
 
-/** "€58 left of €64 this month", or "€42 over of €64" once more has gone out than was planned. */
+/** "€58 left of €64 this month", or "€42 over the €64 planned this month" once more has gone out than was planned. */
 function monthLine(plannedMinor: Minor, spentMinor: Minor): string {
   const { text, over } = formatWeekAmount(plannedMinor - spentMinor);
   const planned = formatMoney(plannedMinor, 'EUR', { whole: true });
-  return over ? `${text} over of ${planned}` : `${text} left of ${planned} this month`;
+  return over ? `${text} over the ${planned} planned this month` : `${text} left of ${planned} this month`;
 }
 
 function EnvelopeItem({ row }: { row: EnvelopeRow }) {

@@ -13,8 +13,11 @@ export type Suggestion = {
   range?: CityRange;
 }[];
 
-/** Amounts from last month, and every amount a scaled-down suggestion ends on, are whole €5. */
+/** Every suggested amount is a whole €5: starting amounts round to the nearest, scaled-down ones round down. */
 const STEP: Minor = 500;
+
+/** To the nearest €5; exactly halfway goes up. */
+const roundToStep = (minor: Minor): Minor => Math.round(minor / STEP) * STEP;
 
 const sum = (rows: Suggestion): Minor => rows.reduce((total, row) => total + row.amountMinor, 0);
 
@@ -31,10 +34,10 @@ function spentIn(entries: Entry[], month: IsoMonth): Map<string, Minor> {
 /**
  * A suggested amount for every flexible category, to start the month from.
  *
- * A category with a city range starts at the middle of it. One without starts at what was spent on it the month
- * before, to the nearest €5, or at €0 when that gave nothing. When that is more than the plan has available, the
- * ranged categories drop to the bottom of their ranges, and when that is still too much every amount is scaled
- * down in proportion and rounded down to €5. With nothing available every amount is €0.
+ * A category with a city range starts at the middle of it, to the nearest €5. One without starts at what was spent
+ * on it the month before, to the nearest €5, or at €0 when nothing was spent. When that is more than the plan has
+ * available, the ranged categories drop to the bottom of their ranges, and when that is still too much every amount
+ * is scaled down in proportion and rounded down to €5. With nothing available every amount is €0.
  *
  * `unallocatedMinor` is what stays free for savings. `availableMinor` can be zero or negative.
  */
@@ -52,14 +55,15 @@ export function suggestBudget(
     if (range) {
       return {
         categoryId: category.id,
-        amountMinor: Math.round((range.minMinor + range.maxMinor) / 2),
+        amountMinor: roundToStep((range.minMinor + range.maxMinor) / 2),
         basis: 'city',
         range,
       };
     }
-    const fromLastMonth = Math.round((lastMonth.get(category.id) ?? 0) / STEP) * STEP;
-    return fromLastMonth > 0
-      ? { categoryId: category.id, amountMinor: fromLastMonth, basis: 'last-month' }
+    const spent = lastMonth.get(category.id) ?? 0;
+    // Any spending keeps the basis, even when it rounds to €0: the row still says where its amount comes from.
+    return spent > 0
+      ? { categoryId: category.id, amountMinor: roundToStep(spent), basis: 'last-month' }
       : { categoryId: category.id, amountMinor: 0, basis: 'none' };
   });
 

@@ -56,7 +56,9 @@ export function HomeScreen({ plan }: { plan: Plan }) {
       <>
         <LeftThisMonthCard leftMinor={leftMinor} weekMinor={week.totalMinor} />
         <EnvelopeList rows={rows} />
-        <SuggestedBudget plan={plan} entries={entries} today={today} />
+        {/* Keyed by month: an installed app stays mounted for days, and "Not now", typed amounts and the saved note
+            should not carry into the next month. */}
+        <SuggestedBudget key={monthOf(today)} plan={plan} entries={entries} today={today} />
         <CheckInCard today={today} />
         <RevealCard startedOn={plan.createdOn} today={today} />
         <div className="flex flex-col gap-1">

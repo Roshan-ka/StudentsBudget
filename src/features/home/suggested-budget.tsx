@@ -59,10 +59,12 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   const shown = expanded ?? suggestionIsProminent(plan, today);
 
   async function applyBudget() {
-    setSaving(true);
-    setOutcome(null);
     // Every flexible category, in category order. Only the envelopes: the plan's other fields are not touched.
     const envelopes: Amount[] = rows.map((row) => ({ categoryId: row.categoryId, monthlyMinor: amountOf(row) }));
+    // The button is disabled for this too; a budget of €0 everywhere would empty every envelope.
+    if (envelopes.every((envelope) => envelope.monthlyMinor === 0)) return;
+    setSaving(true);
+    setOutcome(null);
     try {
       await db.plan.update('current', { envelopes });
       setEdits({});
@@ -134,7 +136,13 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
 
       <div className="flex flex-col gap-2">
         <div className="flex gap-3">
-          <Button type="button" className="h-10 px-4" disabled={saving || invalid} onClick={() => void applyBudget()}>
+          {/* Never with €0 everywhere: one tap would empty every envelope. */}
+          <Button
+            type="button"
+            className="h-10 px-4"
+            disabled={saving || invalid || total === 0}
+            onClick={() => void applyBudget()}
+          >
             Use this budget
           </Button>
           <Button type="button" variant="outline" className="h-10 px-4" onClick={() => setExpanded(false)}>
@@ -143,6 +151,9 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
         </div>
         <p className="text-sm text-muted-foreground">Using it replaces the amounts in your envelopes.</p>
         {invalid && <p className="text-sm text-muted-foreground">Fix the amounts marked above to use this budget.</p>}
+        {!invalid && total === 0 && availableMinor > 0 && (
+          <p className="text-sm text-muted-foreground">Enter at least one amount to use this budget.</p>
+        )}
         {outcome === 'failed' && (
           <p role="status" className="text-sm text-muted-foreground">
             That did not save. Try again.
