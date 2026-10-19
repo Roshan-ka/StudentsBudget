@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
-import { BACKUP_VERSION, backupFileName, parseBackup, restoreQuestion, serializeBackup } from './backup';
+import { BACKUP_VERSION, backupFileName, backupSummary, parseBackup, serializeBackup } from './backup';
 
 const NOW = new Date('2026-10-16T10:00:00.000Z');
 
@@ -77,6 +77,7 @@ function sampleV2(): BackupData {
   const data = sample();
   data.plan = {
     ...data.plan!,
+    createdOn: '2026-10-01',
     incomes: [
       {
         categoryId: 'income-parents',
@@ -276,6 +277,287 @@ describe('serializeBackup and parseBackup', () => {
   });
 });
 
+/** Rewrites the sample (or another base) in memory, writes it as a file and reads it back. */
+function parseChanged(change: (data: BackupData) => void, base: () => BackupData = sample) {
+  const data = base();
+  change(data);
+  return parseBackup(serializeBackup(data, NOW));
+}
+
+function damaged(reason: string): { ok: false; error: string } {
+  return { ok: false, error: `This backup file is damaged: ${reason}.` };
+}
+
+function expenseRow(data: BackupData) {
+  const row = data.entries[0];
+  if (row.type === 'transfer') throw new Error('the first sample entry is an expense');
+  return row;
+}
+
+function transferRow(data: BackupData) {
+  const row = data.entries[2];
+  if (row.type !== 'transfer') throw new Error('the third sample entry is a transfer');
+  return row;
+}
+
+function rentSchedule(data: BackupData) {
+  const found = data.plan?.fixed[0].schedule;
+  if (!found) throw new Error('the version 2 sample has a rent schedule');
+  return found;
+}
+
+function incomeSchedule(data: BackupData) {
+  const found = data.plan?.incomes[0].schedule;
+  if (!found) throw new Error('the version 2 sample has an income schedule');
+  return found;
+}
+
+describe('parseBackup checks what the rows say about each other', () => {
+  it('passes the sample, the version 2 sample and the demo backup', () => {
+    expect(parseChanged(() => undefined).ok).toBe(true);
+    expect(parseChanged(() => undefined, sampleV2).ok).toBe(true);
+    expect(parseBackup(DEMO).ok).toBe(true);
+  });
+
+  describe('accounts', () => {
+    it('refuses an entry that uses an account that is not in the file', () => {
+      const result = parseChanged((data) => (data.entries[0].accountId = 'ghost'));
+
+      expect(result).toEqual(damaged("an entry uses an account that isn't in the file"));
+    });
+
+    it('refuses a transfer that goes to an account that is not in the file', () => {
+      const result = parseChanged((data) => (transferRow(data).toAccountId = 'ghost'));
+
+      expect(result).toEqual(damaged("a transfer goes to an account that isn't in the file"));
+    });
+
+    it.each([
+      ['a fixed cost', (data: BackupData) => (rentSchedule(data).accountId = 'ghost')],
+      ['an income', (data: BackupData) => (incomeSchedule(data).accountId = 'ghost')],
+    ])('refuses the schedule of %s that posts to an account that is not in the file', (_name, change) => {
+      expect(parseChanged(change, sampleV2)).toEqual(damaged("a fixed cost or income uses an account that isn't in the file"));
+    });
+
+    it('passes a file with no accounts, no entries and no plan', () => {
+      const result = parseChanged((data) => Object.assign(data, { accounts: [], entries: [], plan: null }));
+
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe('categories', () => {
+    it("refuses an entry in a category that is neither built in nor in the file's categories", () => {
+      const result = parseChanged((data) => (expenseRow(data).categoryId = 'ghost'));
+
+      expect(result).toEqual(damaged("an entry uses a category that isn't in the file"));
+    });
+
+    it('passes an entry in a built-in category the file does not list', () => {
+      const result = parseChanged((data) => (data.categories = data.categories.filter((c) => c.id !== 'eating-out')));
+
+      expect(result.ok).toBe(true);
+    });
+
+    it('passes an entry in a category of the file that is not built in', () => {
+      const result = parseChanged((data) => {
+        data.categories = [...data.categories, { id: 'pets', name: 'Pets', kind: 'flexible', order: 99 }];
+        expenseRow(data).categoryId = 'pets';
+      });
+
+      expect(result.ok && result.data.categories).toHaveLength(27);
+    });
+
+    it.each([
+      ['an income line', (data: BackupData) => (data.plan!.incomes[0].categoryId = 'ghost')],
+      ['a fixed line', (data: BackupData) => (data.plan!.fixed[0].categoryId = 'ghost')],
+      ['an envelope', (data: BackupData) => (data.plan!.envelopes[0].categoryId = 'ghost')],
+      ['a guess', (data: BackupData) => (data.guesses[0].categoryId = 'ghost')],
+    ])('refuses %s in an unknown category', (_name, change) => {
+      expect(parseChanged(change)).toEqual(damaged('the plan or the guesses use an unknown category'));
+    });
+
+    it('passes a plan and guesses in built-in categories when the file lists no categories at all', () => {
+      expect(parseChanged((data) => (data.categories = [])).ok).toBe(true);
+    });
+  });
+
+  describe('ids that must be unique', () => {
+    it.each([
+      ['two accounts', (data: BackupData) => data.accounts.push({ ...data.accounts[0], name: 'Copy' })],
+      ['two categories', (data: BackupData) => (data.categories = [...data.categories, { ...data.categories[0] }])],
+      ['two entries', (data: BackupData) => (data.entries[1].id = data.entries[0].id)],
+      ['two one-offs', (data: BackupData) => data.plan!.oneOffs.push({ ...data.plan!.oneOffs[0] })],
+      ['two guesses for one category', (data: BackupData) => data.guesses.push({ ...data.guesses[0], monthlyMinor: 1 })],
+      ['two rates of one currency and source', (data: BackupData) => data.fxRates.push({ ...data.fxRates[0], perEur: 96 })],
+    ])('refuses %s that share a key', (_name, change) => {
+      expect(parseChanged(change)).toEqual(damaged('two rows share the same id'));
+    });
+
+    it('refuses two schedules with one id, across income and fixed or both on fixed', () => {
+      const across = parseChanged((data) => (incomeSchedule(data).id = rentSchedule(data).id), sampleV2);
+      const bothFixed = parseChanged((data) => {
+        data.plan!.fixed[1].schedule = { ...rentSchedule(data) };
+      }, sampleV2);
+
+      expect(across).toEqual(damaged('two rows share the same id'));
+      expect(bothFixed).toEqual(damaged('two rows share the same id'));
+    });
+
+    it('passes an ECB and a manual rate of one currency, which are two keys', () => {
+      const data = sample();
+
+      expect(data.fxRates.map((rate) => `${rate.currency}:${rate.source}`)).toEqual(['INR:ecb', 'INR:manual']);
+      expect(parseBackup(serializeBackup(data, NOW)).ok).toBe(true);
+    });
+
+    it('passes a plan whose lines share a category, because the plan is one row', () => {
+      const result = parseChanged((data) => data.plan!.fixed.push({ categoryId: 'rent', monthlyMinor: 1_000 }));
+
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe('amounts that must be above zero', () => {
+    it.each([
+      ['an entry of zero', (data: BackupData) => (data.entries[0].amountMinor = 0)],
+      ['an entry below zero', (data: BackupData) => (data.entries[0].amountMinor = -600)],
+      ['a transfer that arrives as zero', (data: BackupData) => (transferRow(data).toAmountMinor = 0)],
+      ['a transfer that arrives below zero', (data: BackupData) => (transferRow(data).toAmountMinor = -1)],
+      ['a one-off of zero', (data: BackupData) => (data.plan!.oneOffs[0].amountMinor = 0)],
+      ['a one-off below zero', (data: BackupData) => (data.plan!.oneOffs[0].amountMinor = -30_000)],
+    ])('refuses %s', (_name, change) => {
+      expect(parseChanged(change)).toEqual(damaged('an amount is zero or negative'));
+    });
+
+    it.each([
+      ['zero', 0],
+      ['below zero', -40_000],
+    ])('refuses a schedule amount of %s', (_name, amountMinor) => {
+      const result = parseChanged((data) => (rentSchedule(data).amountMinor = amountMinor), sampleV2);
+
+      expect(result).toEqual(damaged('an amount is zero or negative'));
+    });
+  });
+
+  describe('amounts that may be zero but not negative', () => {
+    it.each([
+      ['an entry in EUR', (data: BackupData) => (data.entries[0].eurMinor = -1)],
+      ['a transfer in EUR', (data: BackupData) => (transferRow(data).eurMinor = -1)],
+      ['an income line', (data: BackupData) => (data.plan!.incomes[0].monthlyMinor = -1)],
+      ['a fixed line', (data: BackupData) => (data.plan!.fixed[0].monthlyMinor = -1)],
+      ['an envelope', (data: BackupData) => (data.plan!.envelopes[0].monthlyMinor = -1)],
+      ['a guess', (data: BackupData) => (data.guesses[0].monthlyMinor = -1)],
+    ])('refuses %s below zero', (_name, change) => {
+      expect(parseChanged(change)).toEqual(damaged('an amount is negative'));
+    });
+
+    it('passes zero envelopes, zero guesses, zero rent, zero income and a zero EUR value', () => {
+      const result = parseChanged((data) => {
+        data.plan!.envelopes = data.plan!.envelopes.map((line) => ({ ...line, monthlyMinor: 0 }));
+        data.plan!.fixed = data.plan!.fixed.map((line) => ({ ...line, monthlyMinor: 0 }));
+        data.plan!.incomes = data.plan!.incomes.map((line) => ({ ...line, monthlyMinor: 0 }));
+        data.guesses = data.guesses.map((guess) => ({ ...guess, monthlyMinor: 0 }));
+        data.entries[0].eurMinor = 0;
+      });
+
+      expect(result.ok).toBe(true);
+    });
+
+    it('passes a negative opening balance, because an account can be overdrawn', () => {
+      const result = parseChanged((data) => (data.accounts[0].openingMinor = -25_000));
+
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe('schedules the app could not have made', () => {
+    const IMPOSSIBLE = damaged('a fixed cost or income has an impossible schedule');
+
+    it.each([
+      ['a monthly day of 0', (data: BackupData) => (rentSchedule(data).day = 0)],
+      ['a monthly day of 32', (data: BackupData) => (rentSchedule(data).day = 32)],
+      ['a weekly day of 0', (data: BackupData) => (incomeSchedule(data).day = 0)],
+      ['a weekly day of 8', (data: BackupData) => (incomeSchedule(data).day = 8)],
+      ['a start before the plan was created', (data: BackupData) => (rentSchedule(data).startOn = '2026-09-30')],
+      ['a watermark two days before the start', (data: BackupData) => (rentSchedule(data).postedThrough = '2026-09-29')],
+      ['a watermark long before the start', (data: BackupData) => (incomeSchedule(data).postedThrough = '1999-01-01')],
+    ])('refuses %s', (_name, change) => {
+      expect(parseChanged(change, sampleV2)).toEqual(IMPOSSIBLE);
+    });
+
+    it('passes the edges: a start on the creation day, a watermark the day before the start, monthly day 31, weekly day 7', () => {
+      const data = sampleV2();
+
+      expect(data.plan?.createdOn).toBe('2026-10-01');
+      expect(rentSchedule(data)).toMatchObject({ frequency: 'monthly', day: 31, startOn: '2026-10-01', postedThrough: '2026-09-30' });
+      expect(incomeSchedule(data)).toMatchObject({ frequency: 'weekly', day: 7 });
+      expect(parseBackup(serializeBackup(data, NOW)).ok).toBe(true);
+    });
+
+    it('passes day 1 of both kinds, and a watermark that has moved on', () => {
+      const result = parseChanged((data) => {
+        incomeSchedule(data).day = 1;
+        rentSchedule(data).day = 1;
+        rentSchedule(data).postedThrough = '2026-12-31';
+      }, sampleV2);
+
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  it('names the first problem when a file has several', () => {
+    const result = parseChanged((data) => {
+      data.entries[0].amountMinor = 0;
+      data.entries[0].accountId = 'ghost';
+    });
+
+    expect(result).toEqual(damaged("an entry uses an account that isn't in the file"));
+  });
+
+  it('keeps the shape message for a file of the wrong shape: that is incomplete, not damaged', () => {
+    expect(parseBackup(fileOf((file) => delete file.data.guesses))).toEqual({ ok: false, error: INCOMPLETE });
+  });
+});
+
+describe('parseBackup fills in the built-in categories', () => {
+  it('adds every built-in category a file does not have, so all 26 rows are there at once', () => {
+    const result = parseChanged((data) => (data.categories = data.categories.filter((c) => c.kind !== 'income')));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.categories).toHaveLength(26);
+    expect(result.data.categories.map((c) => c.id).sort()).toEqual(CATEGORIES.map((c) => c.id).sort());
+    expect(result.data.categories.find((c) => c.id === 'income-job')).toEqual(CATEGORIES.find((c) => c.id === 'income-job'));
+  });
+
+  it('fills an empty list up to the 26', () => {
+    const result = parseChanged((data) => (data.categories = []));
+
+    expect(result.ok && result.data.categories).toEqual(CATEGORIES);
+  });
+
+  it("keeps the file's rows and their order when it lists every built-in category", () => {
+    const reversed = [...CATEGORIES].reverse();
+    const result = parseChanged((data) => (data.categories = reversed));
+
+    expect(result.ok && result.data.categories).toEqual(reversed);
+  });
+
+  it('does not change a row the file has, even when its name differs from the built-in one', () => {
+    const renamed = CATEGORIES.map((c) => (c.id === 'food' ? { ...c, name: 'Groceries' } : c));
+    const result = parseChanged((data) => (data.categories = renamed));
+
+    expect(result.ok && result.data.categories.find((c) => c.id === 'food')?.name).toBe('Groceries');
+  });
+
+  it('gives the demo backup, which lists 18 categories, all 26', () => {
+    const result = parseBackup(DEMO);
+
+    expect(result.ok && result.data.categories).toHaveLength(26);
+  });
+});
+
 describe('backupFileName', () => {
   it('names the file after the local day', () => {
     expect(backupFileName(new Date(2026, 9, 16, 23, 59))).toBe('studentsbudget-backup-2026-10-16.json');
@@ -283,9 +565,20 @@ describe('backupFileName', () => {
   });
 });
 
-describe('restoreQuestion', () => {
-  it('names the day the backup was made', () => {
-    expect(restoreQuestion('2026-10-16T10:00:00.000Z')).toBe('Replace all data on this device with the backup from 16 Oct?');
-    expect(restoreQuestion('2026-03-02T09:30:00.000Z')).toBe('Replace all data on this device with the backup from 2 Mar?');
+describe('backupSummary', () => {
+  it('gives the local date and time the backup was saved, and the counts of accounts and entries', () => {
+    // Built from local parts, so the expectation holds in any time zone.
+    const exportedAt = new Date(2026, 9, 19, 12, 0).toISOString();
+
+    expect(backupSummary(sample(), exportedAt)).toBe('Saved 19-10-2026, 12:00 · 2 accounts · 3 entries');
+  });
+
+  it('says "1 account" and "1 entry" in the singular, and 0 as a plural', () => {
+    const exportedAt = new Date(2026, 2, 2, 9, 5).toISOString();
+    const one = { ...sample(), accounts: sample().accounts.slice(0, 1), entries: sample().entries.slice(0, 1) };
+    const none = { ...sample(), accounts: [], entries: [] };
+
+    expect(backupSummary(one, exportedAt)).toBe('Saved 02-03-2026, 09:05 · 1 account · 1 entry');
+    expect(backupSummary(none, exportedAt)).toBe('Saved 02-03-2026, 09:05 · 0 accounts · 0 entries');
   });
 });
