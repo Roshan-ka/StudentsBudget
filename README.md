@@ -27,7 +27,7 @@ Exchange rates need a connection to refresh. Offline, the app shows the last rat
 
 **Home.** The big number is what is left to spend this month across your envelopes, with a "This week" line under it. Going over reads as "€12 over". A suggested budget (an amount per category, from last month's spending or from typical Regensburg costs) leads in the first week of the month, or when your envelopes add up to more than what is available. Otherwise it waits behind "See a suggested budget". "Use this budget" changes your envelopes only.
 
-**Charts.** Spending by category and income by source open as a donut. Switch each chart to Bars or Table. "Saved each month" and a category over time show Columns, Line or Table. One period selector (This month, 3, 6 or 12 months) applies to all of them, and the month switcher moves where the period ends. A tap on a slice, bar or column opens those entries.
+**Charts.** Spending by category and income by source open as a donut. Switch each chart to Bars or Table. "Saved each month" and a category over time show Columns, Line or Table. One period selector (This month, 3, 6 or 12 months) applies to all of them, and the month switcher moves where the period ends. A tap on a slice, bar or column opens those entries (except "Everything else").
 
 **Dates.** Full dates read DD-MM-YYYY. When you add or edit an entry, Today and Yesterday are one tap away.
 
@@ -67,7 +67,7 @@ Needs Node 24 and npm. Run `npm install` once, then:
 - `npm run dev`: start the app on http://localhost:3000
 - `npm run build`: production build
 - `npm test`: unit tests (Vitest)
-- `npm run test:e2e`: end-to-end tests (Playwright, desktop Chrome and iPhone WebKit); starts the dev server if none is running. `E2E_PORT=3001 npm run test:e2e` uses another port, for a second checkout.
+- `npm run test:e2e`: end-to-end tests (Playwright, desktop Chrome and iPhone WebKit); starts the dev server if none is running. `E2E_PORT=3001 npm run test:e2e` (PowerShell: `$env:E2E_PORT=3001; npm run test:e2e`) uses another port, for a second checkout.
 - `npm run test:offline`: production build, then the offline check on http://localhost:3100 (Playwright, desktop Chrome)
 - `npm run typecheck`: TypeScript check
 - `npm run lint`: ESLint
