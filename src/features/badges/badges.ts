@@ -158,8 +158,8 @@ function loggingStreak(weeks: WeekResult[], awayNotRecorded: boolean): Badge {
   // A streak that was earned and has ended reads as a new one starting, not as if nothing had happened.
   const noRun =
     earnedOn === null
-      ? 'A streak starts with a week of spending you log yourself'
-      : 'A new streak starts with a week of spending you log yourself';
+      ? 'A streak starts with a week of envelope spending you log yourself'
+      : 'A new streak starts with a week of envelope spending you log yourself';
   let progress: string;
   if (run === 0) progress = noRun;
   else if (paused) progress = `Your streak is paused at ${weeksText(run)}`;

@@ -105,7 +105,7 @@ describe('badgesFrom with no data', () => {
         id: 'logging-streak',
         title: 'Logging Streak',
         tier: null,
-        progress: 'A streak starts with a week of spending you log yourself',
+        progress: 'A streak starts with a week of envelope spending you log yourself',
         earnedOn: null,
       },
       {
@@ -262,7 +262,7 @@ describe('Logging Streak', () => {
     const results = weeks(6, (i) => (i === 4 ? logged(0) : {}));
     // The run ended after it was earned: the next one is a new streak, not a first one.
     expect(streak(results.slice(0, 5))).toMatchObject({
-      progress: 'A new streak starts with a week of spending you log yourself',
+      progress: 'A new streak starts with a week of envelope spending you log yourself',
       earnedOn: results[3].weekEnd,
     });
     expect(streak(results)).toMatchObject({ progress: '1 week in a row', earnedOn: results[3].weekEnd });
@@ -272,7 +272,7 @@ describe('Logging Streak', () => {
       earnedOn: null,
     });
     expect(streak(weeks(1, () => logged(0)))).toMatchObject({
-      progress: 'A streak starts with a week of spending you log yourself',
+      progress: 'A streak starts with a week of envelope spending you log yourself',
     });
   });
 
