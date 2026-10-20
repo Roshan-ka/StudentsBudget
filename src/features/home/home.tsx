@@ -3,9 +3,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
-import type { Plan } from '@/db/types';
+import type { Plan, Profile } from '@/db/types';
 import { totalInEur } from '@/features/accounts/balances';
-import { DEFAULT_SEMESTER_WEEKS, badgeHistory, badgesFrom } from '@/features/badges/badges';
+import { badgeHistory, badgesFrom, semesterWeeksFor } from '@/features/badges/badges';
 import { BadgesCard } from '@/features/badges/badges-card';
 import { CheckInCard } from '@/features/check-in/check-in-card';
 import { QuickAddField } from '@/features/entries/quick-add-field';
@@ -30,7 +30,15 @@ function missingRatesNote(currencies: CurrencyCode[]): string {
  * filling, a suggested budget, the badges and what all the accounts add up to. It updates by itself when an entry is
  * saved or a week is recorded.
  */
-export function HomeScreen({ plan }: { plan: Plan }) {
+export function HomeScreen({
+  plan,
+  profile,
+}: {
+  plan: Plan;
+  /** Read with the plan: its name is the greeting, and its semester sets gold Under-Budget Week. */
+  profile: Profile | null;
+}) {
+  const name = profile?.name.trim() ?? '';
   // The date follows the clock, so the week turns over on its own when the app comes back or midnight passes,
   // with no entry saved in between. It is null until the browser runs this (never a date from the prerender).
   const today = useToday();
@@ -55,7 +63,7 @@ export function HomeScreen({ plan }: { plan: Plan }) {
     const leftMinor = month.reduce((total, status) => total + status.plannedMinor - status.spentMinor, 0);
     // Envelopes planned at €0 and never used would only add empty rows.
     const rows: EnvelopeRow[] = month.filter((status) => status.plannedMinor > 0 || status.spentMinor > 0);
-    const badges = badgesFrom(weekResults, DEFAULT_SEMESTER_WEEKS, badgeHistory(plan, entries, weekResults, today));
+    const badges = badgesFrom(weekResults, semesterWeeksFor(profile), badgeHistory(plan, entries, weekResults, today));
 
     const total = totalInEur(accounts, entries, rates);
     // Without a rate for any account's currency nothing was converted, and €0 would read as a real total.
@@ -85,6 +93,7 @@ export function HomeScreen({ plan }: { plan: Plan }) {
 
   return (
     <div className="flex flex-col gap-6">
+      {name !== '' && <p className="text-lg font-semibold break-words">{`Hi ${name}`}</p>}
       <QuickAddField />
       {content}
     </div>

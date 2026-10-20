@@ -27,12 +27,27 @@ Exchange rates need a connection to refresh. Offline, the app shows the last rat
 
 **Home.** The big number is what is left to spend this month across your envelopes, with a "This week" line under it. Going over reads as "€12 over". A suggested budget (an amount per category, from last month's spending or from typical Regensburg costs) leads in the first week of the month, or when your envelopes add up to more than what is available. Otherwise it waits behind "See a suggested budget". "Use this budget" changes your envelopes only.
 
+**Try this.** When an envelope has run over this month, or more than 90% of it is gone before the last 7 days, Home can show one line under it, such as "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal". Tap it to see how the swap works and where each price comes from, with the date it was checked. A saving that rests on an assumption, such as how often you travel, says "Estimate". The Sunday check-in shows the same line under a category that is over its share for the week. Nothing shows while an envelope is on track.
+
+**Badges.** Four badges reward steady habits, never spending. They count only weeks and months in which you log an expense yourself, by the date it is for. Entries added automatically, income and transfers don't count.
+- **Under-Budget Week:** such a week in which you spend no more than its share of your envelopes. Bronze at 4 weeks, silver at 12, gold at a whole semester: the weeks of the semester in your profile (at least 13), or 26 without one.
+- **Logging Streak:** 4 weeks in a row in which you log an expense yourself.
+- **Ramen Royalty:** a full week that costs less in groceries than every week before it.
+- **Latte Survivor:** a month with at most half the eating out of your first full month that had some.
+
+Each week (Monday to Sunday) is saved from the Wednesday after it ends, the next time you open the app, so expenses you log on Monday or Tuesday still count for it. After that it stays as it was, even if you change your plan later. Away for a week? Switch on "I was away this week" in the check-in, or "I was away last week" on Monday and Tuesday. Your streak keeps its count, and that week doesn't count towards Under-Budget Week or Ramen Royalty. Home shows how many badges you have and which one is next; "See all badges" opens all four with their full rules.
+
+**Discounts.** The Tips tab has a second view, Discounts: student discounts in Regensburg, with no alcohol deals. Each shows the place, what you get, the conditions, the address and the page it comes from, with the date it was checked. Tried one? Tap "Still works" or "Doesn't work anymore". Your answer is saved on your phone, and tapping again changes it. "Last confirmed" is the later of the check date and your last "Still works". A discount last confirmed 8 or more weeks ago reads "May be outdated" and moves down the list; one you marked as not working goes to the end.
+
+**Profile.** Settings starts with your profile, all optional: your name (Home then says "Hi" with it), your university (Universität Regensburg, OTH Regensburg or Other) and your semester dates. For the two Regensburg universities the dates fill in from the university's published semester dates, with the source shown, and you can still change them. Your semester sets gold for Under-Budget Week. With semester dates saved, the one-off costs step (in setup, or Settings, then Edit plan) offers the next semester fee in one tap. Where the Studierendenwerk has published that semester's fee, the amount is filled in with its sources; otherwise you fill it in. The fee is due in the month re-registration opens where your university has published it, else in the month before the semester starts.
+
 **Charts.** Spending by category and income by source open as a donut. Switch each chart to Bars or Table. "Saved each month" and a category over time show Columns, Line or Table. One period selector (This month, 3, 6 or 12 months) applies to all of them, and the month switcher moves where the period ends. On This month, the two over-time charts show the last 6 months up to that month instead. A tap on a slice, bar or column opens those entries (except "Everything else"). For a 3, 6 or 12-month period, a slice or bar opens the entries of the period's end month, and a column opens its own month.
 
 **Dates.** Full dates read DD-MM-YYYY. When you add or edit an entry, Today and Yesterday are one tap away.
 
 ## Privacy
 - Your data stays in this browser's IndexedDB, on this device. There is no server copy.
+- Your profile (name, university and semester dates, all optional), the weekly records behind your badges and your discount answers are stored only on this device and go into any backup you export. The app never sends them anywhere.
 - There is no login, no analytics and no third-party scripts. The fonts come from the app itself.
 - The only outgoing request is to `api.frankfurter.dev`, for exchange rates. It names the foreign currencies your accounts use. It carries none of your entries or amounts. Like any web request, it shows your IP address to that service.
 - A backup file is a plain JSON file that you keep. The app never uploads it. Anyone who has the file can read your data, so keep it somewhere you trust.

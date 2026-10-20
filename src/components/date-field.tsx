@@ -23,18 +23,27 @@ function openPickerOnMouseClick(event: MouseEvent<HTMLInputElement>) {
 }
 
 /**
- * A date as DD-MM-YYYY on a button-sized field, with Today and Yesterday next to it. The native date input
- * lies over the field, transparent: a tap anywhere on the field opens the picker, and the input carries the
- * label and the ISO value. The text under it is for the eye only. Today follows the clock (`useToday`).
+ * A date as DD-MM-YYYY on a button-sized field, with Today and Yesterday next to it unless `chips` is false (a date
+ * that is rarely today, like a semester's). The native date input lies over the field, transparent: a tap anywhere on
+ * the field opens the picker, and the input carries the label and the ISO value. The text under it is for the eye
+ * only. Today follows the clock (`useToday`). `invalid` and `describedBy` mark the field and point at its error.
  */
 export function DateField({
   value,
   onChange,
   label = 'Date',
+  chips = true,
+  min,
+  invalid = false,
+  describedBy,
 }: {
   value: IsoDate;
   onChange: (value: IsoDate) => void;
   label?: string;
+  chips?: boolean;
+  min?: IsoDate;
+  invalid?: boolean;
+  describedBy?: string;
 }) {
   const id = useId();
   const today = useToday();
@@ -45,7 +54,7 @@ export function DateField({
       <Label htmlFor={id}>{label}</Label>
       <div
         data-slot="date-field"
-        className="relative flex h-10 items-center justify-between gap-2 rounded-lg border border-input px-2.5 text-base transition-colors has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 md:text-sm dark:bg-input/30"
+        className="relative flex h-10 items-center justify-between gap-2 rounded-lg border border-input px-2.5 text-base transition-colors has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 has-[[aria-invalid]]:border-destructive md:text-sm dark:bg-input/30"
       >
         <span aria-hidden="true" className={cn('tabular-nums', value === '' && 'text-muted-foreground')}>
           {dateText(value)}
@@ -56,28 +65,33 @@ export function DateField({
           id={id}
           type="date"
           value={value}
+          min={min}
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           onChange={(event) => onChange(event.target.value)}
           onClick={openPickerOnMouseClick}
           className="absolute -inset-px h-[calc(100%+2px)] w-[calc(100%+2px)] min-w-0 cursor-pointer appearance-none text-base opacity-0"
         />
       </div>
-      <div role="group" aria-label="Pick a day" className="flex flex-wrap gap-2">
-        {DATE_CHIPS.map((chip) => (
-          <Button
-            key={chip.id}
-            type="button"
-            variant={selected === chip.id ? 'default' : 'outline'}
-            aria-pressed={selected === chip.id}
-            className="h-10 px-3"
-            disabled={today === null}
-            onClick={() => {
-              if (today !== null) onChange(chipDate(chip.id, today));
-            }}
-          >
-            {chip.label}
-          </Button>
-        ))}
-      </div>
+      {chips && (
+        <div role="group" aria-label="Pick a day" className="flex flex-wrap gap-2">
+          {DATE_CHIPS.map((chip) => (
+            <Button
+              key={chip.id}
+              type="button"
+              variant={selected === chip.id ? 'default' : 'outline'}
+              aria-pressed={selected === chip.id}
+              className="h-10 px-3"
+              disabled={today === null}
+              onClick={() => {
+                if (today !== null) onChange(chipDate(chip.id, today));
+              }}
+            >
+              {chip.label}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

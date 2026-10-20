@@ -4,7 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Entry, Plan, WeekResult } from '@/db/types';
 import { addDays, type IsoDate, type IsoMonth } from '@/lib/dates';
-import { badgeHistory, badgesFrom, goldWeeks, type Badge, type BadgeHistory, type MonthSpend } from './badges';
+import {
+  badgeHistory,
+  badgesFrom,
+  goldWeeks,
+  semesterWeeksFor,
+  type Badge,
+  type BadgeHistory,
+  type MonthSpend,
+} from './badges';
 
 const SRC = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -164,6 +172,29 @@ describe('Under-Budget Week', () => {
     expect(goldWeeks(26)).toBe(26);
     expect(goldWeeks(8)).toBe(13);
     expect(underBudget(weeks(12), 8)).toMatchObject({ tier: 'silver', progress: '12 of 13 weeks' });
+  });
+
+  it("takes the semester from the profile's dates, and 26 weeks without a semester", () => {
+    const dates = (semesterStart: string, semesterEnd: string) => ({ semesterStart, semesterEnd });
+    // OTH winter 2026/27, 1 Oct – 14 Mar: 165 days, 24 weeks.
+    const oth = semesterWeeksFor(dates('2026-10-01', '2027-03-14'));
+    expect(oth).toBe(24);
+    const all = weeks(26);
+    expect(underBudget(all.slice(0, 23), oth)).toMatchObject({ tier: 'silver', progress: '23 of 24 weeks' });
+    expect(underBudget(all.slice(0, 24), oth)).toMatchObject({ tier: 'gold', earnedOn: all[23].weekEnd });
+    // The same 24 weeks are silver against the 26 of a semester the profile doesn't give.
+    for (const none of [undefined, null, dates('', ''), dates('2026-10-01', ''), dates('2027-03-31', '2026-10-01')]) {
+      expect(semesterWeeksFor(none)).toBe(26);
+      expect(underBudget(all.slice(0, 24), semesterWeeksFor(none))).toMatchObject({ tier: 'silver' });
+    }
+  });
+
+  it('keeps gold above silver when the profile gives a short semester', () => {
+    // 1 Oct – 11 Nov: 42 days, 6 weeks; gold needs 13 all the same.
+    const short = semesterWeeksFor({ semesterStart: '2026-10-01', semesterEnd: '2026-11-11' });
+    expect(short).toBe(6);
+    expect(underBudget(weeks(12), short)).toMatchObject({ tier: 'silver', progress: '12 of 13 weeks' });
+    expect(underBudget(weeks(13), short)).toMatchObject({ tier: 'gold' });
   });
 
   it('counts a logged week spent exactly to plan, but not one over it, unplanned, away or with nothing logged', () => {
