@@ -1,13 +1,28 @@
 'use client';
 
 import { useId, useState } from 'react';
+import type { Swap } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
 import { RangeSource } from '@/features/setup/steps/range-source';
-import { swapLineText, type Suggestion } from './suggest';
+import { amountText, swapLineText, type Suggestion } from './suggest';
+
+/** One source block per amount: a swap whose cheaper amount sits on another page says where each one comes from. */
+function sourceBlocks(swap: Swap): { label: string; range: Pick<Swap, 'source' | 'url' | 'checked'> }[] {
+  if (swap.toSource === undefined || swap.toUrl === undefined) {
+    return [{ label: 'Where these numbers come from', range: swap }];
+  }
+  return [
+    { label: `Where ${amountText(swap.fromMinor)} comes from`, range: swap },
+    {
+      label: `Where ${amountText(swap.toMinor)} comes from`,
+      range: { source: swap.toSource, url: swap.toUrl, checked: swap.checked },
+    },
+  ];
+}
 
 /**
  * One calm line under an envelope row: "Try this: … · save about €X per …". Tapping it opens the swap's body, where
- * its prices come from and the tip it is linked to, which carries its own source: every number shown has one.
+ * each of its prices comes from and the tip it is linked to, which carries its own source: every number shown has one.
  */
 export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
   const panelId = useId();
@@ -34,7 +49,9 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
           className="flex flex-col gap-3 rounded-lg bg-muted px-3 py-3 text-sm"
         >
           <p>{swap.body}</p>
-          <RangeSource range={swap} />
+          {sourceBlocks(swap).map(({ label, range }) => (
+            <RangeSource key={label} range={range} label={label} />
+          ))}
           {tip !== undefined && (
             <div className="flex flex-col gap-1 border-t pt-3">
               <p className="text-xs text-muted-foreground">Related tip</p>

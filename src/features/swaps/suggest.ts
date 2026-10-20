@@ -57,12 +57,20 @@ export function createSuggestionProvider(swaps: readonly Swap[]): SuggestionProv
 /** The rule-based provider over the seeded swaps. */
 export const localSuggestions: SuggestionProvider = createSuggestionProvider(SWAPS);
 
-/** "€10.70" for a saving with cents, "€12" for a whole-euro one: an amount that is not whole is never rounded. */
-function savingText(minor: Minor): string {
+/** "€14.50" for an amount with cents, "€34" for a whole-euro one: an amount that is not whole is never rounded. */
+export function amountText(minor: Minor): string {
   return formatMoney(minor, 'EUR', minor % 100 === 0 ? { whole: true } : undefined);
 }
 
-/** "Try this: Eat at the Mensa instead of a restaurant · save about €10.70 per meal". */
+/**
+ * The saving in the words of the line: whole euros, rounded down so it is never flattering ("about €10" for €10.70),
+ * except that a saving under €1 keeps its cents rather than read as €0.
+ */
+function savingText(minor: Minor): string {
+  return minor < 100 ? amountText(minor) : amountText(Math.floor(minor / 100) * 100);
+}
+
+/** "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal". */
 export function swapLineText({ swap, savingPerUseMinor }: Suggestion): string {
   return `Try this: ${swap.title} · save about ${savingText(savingPerUseMinor)} per ${swap.per}`;
 }

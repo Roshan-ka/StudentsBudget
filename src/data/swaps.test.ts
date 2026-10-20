@@ -33,6 +33,28 @@ describe('swaps', () => {
     }
   });
 
+  it('gives each of the two amounts a source it can be checked on', () => {
+    for (const s of SWAPS) {
+      // The dearer amount is behind `url`; the cheaper one behind `toUrl`, or behind `url` too when one page states both.
+      for (const [which, url] of [['fromMinor', s.url], ['toMinor', s.toUrl ?? s.url]] as const) {
+        expect(url, `${s.id} ${which} url`).toMatch(/^https:\/\/\S+$/);
+      }
+      // The two come as a pair, and a second page is a different page.
+      expect(s.toSource === undefined, `${s.id} toSource and toUrl come together`).toBe(s.toUrl === undefined);
+      if (s.toSource !== undefined && s.toUrl !== undefined) {
+        expect(s.toSource.trim(), `${s.id} toSource`).not.toBe('');
+        expect(s.toUrl, `${s.id} toUrl`).toMatch(/^https:\/\/\S+$/);
+        expect(s.toUrl, `${s.id} toUrl is another page`).not.toBe(s.url);
+      }
+    }
+  });
+
+  it('an estimate says so in its body and in its source', () => {
+    for (const s of SWAPS) {
+      expect(s.body.startsWith('Estimate'), `${s.id} body`).toBe(s.source.startsWith('Estimate'));
+    }
+  });
+
   it('has unique ids', () => {
     const ids = SWAPS.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -51,11 +73,12 @@ describe('swaps', () => {
     }
   });
 
-  it('uses the Mensa price that cities.ts already sources', () => {
+  it('uses the Mensa price that cities.ts already sources, from the same page', () => {
     const mensa = CITIES.regensburg.prices.find((p) => p.label.startsWith('Mensa main meal'));
     const swap = SWAPS.find((s) => s.id === 'mensa-instead-of-restaurant');
     expect(mensa, 'cities.ts Mensa price').toBeDefined();
     expect(swap, 'Mensa swap').toBeDefined();
     expect(swap?.toMinor).toBe(mensa?.minor);
+    expect(swap?.toUrl).toBe(mensa?.url);
   });
 });

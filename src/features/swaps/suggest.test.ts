@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SWAPS, type Swap } from '@/data/swaps';
-import { createSuggestionProvider, localSuggestions, swapLineText, type SuggestionRow } from './suggest';
+import { amountText, createSuggestionProvider, localSuggestions, swapLineText, type SuggestionRow } from './suggest';
 
 const swap = (id: string, categoryId: string, fromMinor: number, toMinor: number, per = 'meal'): Swap => ({
   id,
@@ -57,6 +57,14 @@ describe('suggestions: when a row qualifies', () => {
     const rows = [row('eating-out', 10000, 9200)];
     expect(provider.suggest({ rows, today: '2026-11-23' })).toHaveLength(1);
     expect(provider.suggest({ rows, today: '2026-11-24' })).toEqual([]);
+  });
+
+  it('the last 7 days of February start on the 22nd in 2027 (28 days) and on the 23rd in 2028 (29 days)', () => {
+    const rows = [row('eating-out', 10000, 9200)];
+    expect(provider.suggest({ rows, today: '2027-02-21' })).toHaveLength(1);
+    expect(provider.suggest({ rows, today: '2027-02-22' })).toEqual([]);
+    expect(provider.suggest({ rows, today: '2028-02-22' })).toHaveLength(1);
+    expect(provider.suggest({ rows, today: '2028-02-23' })).toEqual([]);
   });
 
   it('exactly 90% has not passed 90%', () => {
@@ -142,15 +150,26 @@ describe('swapLineText', () => {
   const line = (fromMinor: number, toMinor: number, per: string, title = 'Do it') =>
     swapLineText({ categoryId: 'eating-out', swap: { ...swap('x', 'eating-out', fromMinor, toMinor, per), title }, savingPerUseMinor: fromMinor - toMinor });
 
-  it('says the title and the saving per use', () => {
-    expect(line(1450, 380, 'meal', 'Eat at the Mensa')).toBe('Try this: Eat at the Mensa · save about €10.70 per meal');
+  it('says the title and the saving per use, in whole euros rounded down', () => {
+    expect(line(1450, 380, 'meal', 'Eat at the Mensa')).toBe('Try this: Eat at the Mensa · save about €10 per meal');
+    expect(line(1000, 350, 'meal')).toBe('Try this: Do it · save about €6 per meal');
   });
 
-  it('drops the cents of a whole-euro saving', () => {
+  it('says a whole-euro saving as it is', () => {
     expect(line(3400, 2200, 'month', 'Book the ticket')).toBe('Try this: Book the ticket · save about €12 per month');
+    expect(line(900, 800, 'ticket', 'See a film')).toBe('Try this: See a film · save about €1 per ticket');
   });
 
   it('keeps the cents of a saving under €1', () => {
     expect(line(900, 850, 'ticket', 'See a film')).toBe('Try this: See a film · save about €0.50 per ticket');
+  });
+});
+
+describe('amountText', () => {
+  it('keeps the cents of an amount that has them and drops them from a whole-euro one', () => {
+    expect(amountText(1450)).toBe('€14.50');
+    expect(amountText(380)).toBe('€3.80');
+    expect(amountText(3400)).toBe('€34');
+    expect(amountText(2200)).toBe('€22');
   });
 });

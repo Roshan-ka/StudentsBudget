@@ -142,7 +142,7 @@ const regensburg: City = {
     {
       label: 'Beer in a bar (0.5 l)',
       minor: 375,
-      source: 'Numbeo, domestic draught beer, Regensburg (crowd-sourced, 15 contributors, updated 15 Oct 2026)',
+      source: 'Numbeo, domestic draught beer, Regensburg (crowd-sourced, 15 contributors city-wide, updated 15 Oct 2026)',
       url: NUMBEO_URL,
       checked: CHECKED,
     },
