@@ -205,6 +205,25 @@ describe('serializeBackup and parseBackup', () => {
     expect(data.discountVotes.map((vote) => vote.vote)).toEqual(['works', 'outdated']);
   });
 
+  it('round-trips the "I was away" marks of weeks not recorded yet: no amounts and an empty time', () => {
+    const data = sample();
+    const mark = (weekStart: string, weekEnd: string) => ({
+      weekStart,
+      weekEnd,
+      plannedMinor: 0,
+      spentMinor: 0,
+      foodSpentMinor: 0,
+      eatingOutSpentMinor: 0,
+      handLoggedCount: 0,
+      paused: true,
+      recordedAt: '',
+    });
+    // Last week, waiting to be recorded, and the week still running.
+    data.weekResults.push(mark('2026-10-19', '2026-10-25'), mark('2026-10-26', '2026-11-01'));
+
+    expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+  });
+
   it('round-trips a profile that is still empty, and no week results or votes', () => {
     const data: BackupData = {
       ...sample(),
@@ -543,6 +562,40 @@ describe('parseBackup checks what the rows say about each other', () => {
       const result = parseChanged((data) => data.plan!.fixed.push({ categoryId: 'rent', monthlyMinor: 1_000 }));
 
       expect(result.ok).toBe(true);
+    });
+  });
+
+  describe('saved weeks that are not a Monday-Sunday week', () => {
+    const OUT_OF_SHAPE = damaged("a saved week doesn't run from Monday to Sunday");
+
+    it.each([
+      // Tuesday 6 to Monday 12 October: six days on, but not from a Monday.
+      ['a week that starts on a Tuesday', (data: BackupData) => Object.assign(data.weekResults[0], { weekStart: '2026-10-06', weekEnd: '2026-10-12' })],
+      // Sunday 11 to Saturday 17 October: the Sunday before the week of 12 October, which the app would save too.
+      ['a week keyed by its Sunday', (data: BackupData) => Object.assign(data.weekResults[1], { weekStart: '2026-10-11', weekEnd: '2026-10-17' })],
+      ['a week that ends a day early', (data: BackupData) => (data.weekResults[0].weekEnd = '2026-10-10')],
+      ['a week that ends a day late', (data: BackupData) => (data.weekResults[0].weekEnd = '2026-10-12')],
+      ['a week that ends before it starts', (data: BackupData) => (data.weekResults[1].weekEnd = '2026-10-05')],
+    ])('refuses %s', (_name, change) => {
+      expect(parseChanged(change)).toEqual(OUT_OF_SHAPE);
+    });
+
+    it('passes weeks across a month end, the end of summer time and a year end', () => {
+      const result = parseChanged((data) => {
+        data.weekResults.push(
+          { ...data.weekResults[0], weekStart: '2026-10-19', weekEnd: '2026-10-25' },
+          { ...data.weekResults[0], weekStart: '2026-10-26', weekEnd: '2026-11-01' },
+          { ...data.weekResults[0], weekStart: '2026-12-28', weekEnd: '2027-01-03' },
+        );
+      });
+
+      expect(result.ok && result.data.weekResults.length).toBe(5);
+    });
+
+    it('reports two rows of one week as a shared key, before their shape', () => {
+      expect(parseChanged((data) => (data.weekResults[1].weekStart = data.weekResults[0].weekStart))).toEqual(
+        damaged('two rows share the same id'),
+      );
     });
   });
 

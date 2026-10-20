@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import { parseBackup, serializeBackup } from '@/features/backup/backup';
+import { recordCompletedWeeks, setAway, weekAwaitingRecord, weekResultOf } from '@/features/badges/week-results';
 import { addDays } from '@/lib/dates';
 import { deleteEverything, exportAll, replaceAll, type BackupData } from './bulk';
 import { db } from './db';
@@ -306,6 +307,117 @@ describe('replaceAll', () => {
     expect((await db.weekResults.toArray()).map((w) => w.weekStart).sort()).toEqual(['2026-09-07', '2026-09-14']);
     expect(await db.discountVotes.toArray()).toEqual([vote('old-discount')]);
     expect(await db.profile.toArray()).toEqual([{ ...PROFILE, name: 'Old name' }]);
+  });
+});
+
+describe('restoring and the saved weeks', () => {
+  const NOW = new Date('2026-11-02T10:00:00.000Z');
+
+  /** Spending typed in by hand on the day it is for. */
+  function spent(id: string, date: string, eurMinor: number): Entry {
+    return { ...expense(id), date, amountMinor: eurMinor, eurMinor, createdAt: `${date}T12:00:00.000Z` };
+  }
+
+  // Set up on Friday 16 October, with groceries logged in each week up to the week of 2 November.
+  const ENTRIES = [
+    spent('w1', '2026-10-17', 1000),
+    spent('w2', '2026-10-20', 2000),
+    spent('w3', '2026-10-28', 1500),
+    spent('w4', '2026-11-02', 1200),
+  ];
+
+  async function deviceWithPlan() {
+    await db.accounts.bulkAdd([account('a1')]);
+    await db.categories.bulkAdd(CATEGORIES);
+    await db.plan.put(PLAN);
+    await db.entries.bulkAdd(ENTRIES);
+  }
+
+  /** Writes the device to a file, wipes it, and restores the file, as Restore does after Delete everything. */
+  async function throughAFile(): Promise<BackupData> {
+    const parsed = parseBackup(serializeBackup(await exportAll(), NOW));
+    if (!parsed.ok) throw new Error(parsed.error);
+    await Promise.all(db.tables.map((table) => table.clear()));
+    await replaceAll(parsed.data);
+    return parsed.data;
+  }
+
+  it("restores the app's own export, recorded weeks and away marks included, and the marks become weeks away", async () => {
+    await deviceWithPlan();
+    // Monday 2 November: two weeks are recorded, last week waits, and both last week and this week are marked away.
+    expect(await recordCompletedWeeks('2026-11-02')).toEqual({ recorded: 2 });
+    const lastWeek = weekAwaitingRecord(PLAN, '2026-11-02');
+    if (lastWeek === null) throw new Error('last week waits on a Monday');
+    await setAway(lastWeek.start, true);
+    await setAway('2026-11-02', true);
+    const before = await exportAll();
+    expect(before.weekResults.map((w) => [w.weekStart, w.paused, w.recordedAt === ''])).toEqual([
+      ['2026-10-12', false, false],
+      ['2026-10-19', false, false],
+      ['2026-10-26', true, true],
+      ['2026-11-02', true, true],
+    ]);
+
+    // The file passes every check, the week checks included, and every row comes back as it was.
+    const restored = await throughAFile();
+    expectSameData(restored, before);
+    expectSameData(await exportAll(), before);
+
+    // The next open on Wednesday records last week as a week away, with what was spent in it; this week waits.
+    expect(await recordCompletedWeeks('2026-11-04')).toEqual({ recorded: 1 });
+    expect(await db.weekResults.get('2026-10-26')).toMatchObject({
+      ...weekResultOf(PLAN, ENTRIES, { start: '2026-10-26', end: '2026-11-01' }),
+      foodSpentMinor: 1500,
+      paused: true,
+    });
+    expect((await db.weekResults.get('2026-11-02'))?.recordedAt).toBe('');
+    // The weeks recorded before the backup were not written again.
+    for (const weekStart of ['2026-10-12', '2026-10-19']) {
+      expect(await db.weekResults.get(weekStart)).toEqual(before.weekResults.find((w) => w.weekStart === weekStart));
+    }
+  });
+
+  it('records a mark restored long after its week as a week away, on the next open', async () => {
+    await deviceWithPlan();
+    await setAway('2026-11-02', true);
+    await throughAFile();
+
+    // Restored and opened on Wednesday 25 November: every week since setup is recorded, the marked one as a week away.
+    expect(await recordCompletedWeeks('2026-11-25')).toEqual({ recorded: 6 });
+    const weeks = await db.weekResults.orderBy('weekStart').toArray();
+    expect(weeks.map((w) => [w.weekStart, w.paused])).toEqual([
+      ['2026-10-12', false],
+      ['2026-10-19', false],
+      ['2026-10-26', false],
+      ['2026-11-02', true],
+      ['2026-11-09', false],
+      ['2026-11-16', false],
+    ]);
+    expect(weeks[3]).toMatchObject({ foodSpentMinor: 1200, handLoggedCount: 1 });
+    expect(weeks.every((w) => w.recordedAt !== '')).toBe(true);
+  });
+
+  it('backfills every week since setup on the next open after restoring an old file without saved weeks', async () => {
+    await deviceWithPlan();
+    // A version 2 file, from before weeks were saved.
+    const file = JSON.parse(serializeBackup(await exportAll(), NOW)) as { version: number; data: Record<string, unknown> };
+    file.version = 2;
+    for (const key of ['weekResults', 'discountVotes', 'profile']) delete file.data[key];
+    const parsed = parseBackup(JSON.stringify(file));
+    if (!parsed.ok) throw new Error(parsed.error);
+    // Another device's data, saved weeks included, which the restore replaces.
+    await Promise.all(db.tables.map((table) => table.clear()));
+    await fillWithOldData();
+
+    await replaceAll(parsed.data);
+    expect(await db.weekResults.count()).toBe(0);
+
+    expect(await recordCompletedWeeks('2026-11-04')).toEqual({ recorded: 3 });
+    const weeks = await db.weekResults.orderBy('weekStart').toArray();
+    expect(weeks.map((w) => w.weekStart)).toEqual(['2026-10-12', '2026-10-19', '2026-10-26']);
+    for (const w of weeks) {
+      expect(w).toMatchObject({ ...weekResultOf(PLAN, ENTRIES, { start: w.weekStart, end: w.weekEnd }), paused: false });
+    }
   });
 });
 

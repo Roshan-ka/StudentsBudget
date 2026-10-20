@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
 import type { Category, Plan, Schedule } from '@/db/types';
-import { addDays, formatDateTime, todayIso } from '@/lib/dates';
+import { addDays, formatDateTime, todayIso, weekOf } from '@/lib/dates';
 import { CURRENCIES } from '@/lib/money';
 
 export type { BackupData };
@@ -208,8 +208,9 @@ function isPossibleSchedule(schedule: Schedule, planCreatedOn: string): boolean 
 
 /**
  * What the rows of a file that has the right shape say about each other, as the first thing that cannot be
- * true: a row that points at one the file does not have, two rows with a key that must be unique, an amount
- * that cannot happen. Null when nothing is wrong. `openingMinor` is free: an account can be overdrawn.
+ * true: a row that points at one the file does not have, two rows with a key that must be unique, a saved week
+ * that is not a Monday–Sunday week, an amount that cannot happen. Null when nothing is wrong. `openingMinor` is
+ * free: an account can be overdrawn.
  */
 function findProblem(d: BackupData): string | null {
   const accountIds = new Set(d.accounts.map((a) => a.id));
@@ -245,6 +246,13 @@ function findProblem(d: BackupData): string | null {
     d.discountVotes.map((v) => v.discountId),
   ];
   if (keyLists.some(hasDuplicates)) return 'two rows share the same id';
+
+  // A saved week runs Monday to Sunday and is keyed by its Monday. A row keyed by another day would not stop the
+  // app from saving the real Monday as well, and that week would count twice.
+  const weekOutOfShape = d.weekResults.some(
+    (w) => weekOf(w.weekStart).start !== w.weekStart || w.weekEnd !== addDays(w.weekStart, 6),
+  );
+  if (weekOutOfShape) return "a saved week doesn't run from Monday to Sunday";
 
   const moneyOut =
     d.entries.some((e) => e.amountMinor <= 0 || (e.type === 'transfer' && e.toAmountMinor <= 0)) ||
