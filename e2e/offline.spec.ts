@@ -3,7 +3,7 @@ import { completeSetup } from './helpers/setup';
 
 // Run by playwright.offline.config.ts against a production build: the service worker only exists there.
 
-const PRECACHED_PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/check-in', '/reveal', '/settings', '/setup'];
+const PRECACHED_PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/badges', '/check-in', '/reveal', '/settings', '/setup'];
 
 /** A same-origin URL that no cache holds and no page serves: offline, a fetch of it must fail at the network. */
 const PROBE_URL = '/sw-offline-probe';

@@ -13,6 +13,7 @@ import {
   shiftMonth,
   todayIso,
   weekInMonth,
+  weekOf,
 } from './dates';
 
 describe('todayIso', () => {
@@ -134,6 +135,20 @@ describe('weekInMonth', () => {
   it('treats Monday as the first and Sunday as the last day of the week', () => {
     expect(weekInMonth('2026-10-12')).toEqual({ start: '2026-10-12', end: '2026-10-18' });
     expect(weekInMonth('2026-10-18')).toEqual({ start: '2026-10-12', end: '2026-10-18' });
+  });
+});
+
+describe('weekOf', () => {
+  it('is the whole Monday-Sunday week, not cut off at the month or the year', () => {
+    expect(weekOf('2026-10-16')).toEqual({ start: '2026-10-12', end: '2026-10-18' });
+    expect(weekOf('2026-10-30')).toEqual({ start: '2026-10-26', end: '2026-11-01' });
+    expect(weekOf('2026-11-01')).toEqual({ start: '2026-10-26', end: '2026-11-01' });
+    expect(weekOf('2027-01-01')).toEqual({ start: '2026-12-28', end: '2027-01-03' });
+  });
+
+  it('treats Monday as the first and Sunday as the last day of the week', () => {
+    expect(weekOf('2026-10-12')).toEqual({ start: '2026-10-12', end: '2026-10-18' });
+    expect(weekOf('2026-10-18')).toEqual({ start: '2026-10-12', end: '2026-10-18' });
   });
 });
 

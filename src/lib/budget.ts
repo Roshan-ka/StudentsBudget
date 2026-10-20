@@ -79,6 +79,14 @@ function envelopesOf(plan: Plan): Amount[] {
 }
 
 /**
+ * The categories `safeToSpend` and `monthStatus` measure: the plan's envelopes and every other flexible category.
+ * Rent and the other fixed costs are not among them.
+ */
+export function envelopeCategoryIds(plan: Plan): Set<string> {
+  return new Set(envelopesOf(plan).map((e) => e.categoryId));
+}
+
+/**
  * The first day the envelopes accrue in `month`: the 1st, except in the month the plan was set up,
  * which starts on the setup day. Days before it have no budget, and spending before it does not count.
  */

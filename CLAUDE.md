@@ -58,8 +58,12 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Hidden pages in e2e:** a hidden-but-mounted page keeps its labels and text in the DOM, so `getByLabel` and `getByText` can match hidden elements and trip strict mode. Prefer `getByRole` (with `exact` names) for anything on a page that may be hidden.
 - **Recurring entries:** one schedule per plan line. Posting is idempotent by period; a new, resumed or repaired line starts tomorrow (nothing before that), and periods missed while the app was closed are caught up on the next open. Don't log a scheduled item by hand, it would count twice.
 - **Agent worktrees:** worktrees in `.claude/worktrees/` (each with its own `node_modules`) make the main checkout's `next dev` hang on "Compiling /". Remove them before running e2e in the main checkout, and clear `.next/dev` if Turbopack then reports a stale task.
+- **Worktree installs:** run `npm ci` in one worktree at a time, or `npm ci --prefer-offline` from a warm cache; parallel installs stall for 20 minutes or more.
 - **Secure origins:** browser APIs such as `crypto.randomUUID` and service workers exist only on secure origins (HTTPS or localhost). Use `newId()` from `@/lib/new-id`, and test the phone via `npm run start:https`, never a plain-HTTP LAN address.
 - **Dexie schema:** a schema change adds a new `db.version(n)`; never edit a version that has shipped.
+- **Backup v3:** it reads v1–v3 files (`READABLE_VERSIONS`). A table added to the backup needs a zod default in `backup.ts` (`[]` or `null`), so older files and the demo fixture still restore.
+- **Week results:** each Monday–Sunday week is recorded once, keyed by its Monday, from the Wednesday after it ends (`GRACE_DAYS`), and never rewritten, so a plan edit never changes a past week. The three weekly badges read only these rows; Latte Survivor reads the entries, so editing an old month can change it.
+- **Quick add:** `QuickAddField` reads every line through a `QuickAddProvider` (default `localQuickAddProvider`), and every reading passes `checkReading` before it is saved. Don't call `parseQuickAdd` or `suggestCategory` from the field.
 - **Service worker** (`public/sw.js`, registered by `AppInit`):
   - Production only: `next dev` never registers it.
   - Never run `next start` on port 3000, or a production worker sits in front of `next dev` there; `npm run test:offline` uses 3100.
@@ -86,6 +90,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 
 **Data rules**
 - City: Regensburg only. Every city number has a source, a URL and a checked date. A number without a source is labelled "Estimate".
+- Swaps, discounts, semester dates and semester fees: every amount, offer or date has its own source, URL and checked date, and a swap whose cheaper price is on another page also carries `toSource` and `toUrl`. No alcohol deals or drinking tips.
 - Guesses are saved once in setup and never edited afterwards. They cover the original 6 flexible categories only (`GUESS_CATEGORIES`).
 
 **Repo**

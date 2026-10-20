@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Account, Category, Entry, Guess, Plan, Rate } from './types';
+import type { Account, Category, DiscountVote, Entry, Guess, Plan, Profile, Rate, WeekResult } from './types';
 
 export type StudentsBudgetDb = Dexie & {
   accounts: Table<Account, string>;
@@ -9,6 +9,12 @@ export type StudentsBudgetDb = Dexie & {
   guesses: Table<Guess, string>;
   /** At most one ECB and one manual rate per currency, side by side. */
   fxRates: Table<Rate, [Rate['currency'], Rate['source']]>;
+  /** One row per finished week, keyed by the Monday it started on. */
+  weekResults: Table<WeekResult, WeekResult['weekStart']>;
+  /** One vote per discount. */
+  discountVotes: Table<DiscountVote, DiscountVote['discountId']>;
+  /** At most one row, like the plan. */
+  profile: Table<Profile, Profile['id']>;
 };
 
 // Constructing Dexie opens nothing, so importing this module is safe during SSR and `next build`.
@@ -30,6 +36,14 @@ db.version(1).stores({
 db.version(2).stores({
   rates: null,
   fxRates: '[currency+source], currency',
+});
+
+// Three new tables for the weekly results behind the badges, the discount votes and the profile. Only they are
+// listed: Dexie carries every other table over from version 2, and a shipped version is never edited.
+db.version(3).stores({
+  weekResults: 'weekStart',
+  discountVotes: 'discountId',
+  profile: 'id',
 });
 
 /** Asks the browser not to evict the data. Resolves false when unsupported, denied or failing; never throws. */

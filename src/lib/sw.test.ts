@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const SOURCE = readFileSync(fileURLToPath(new URL('../../public/sw.js', import.meta.url)), 'utf8');
 const ORIGIN = 'https://studentsbudget.test';
 const CACHE_NAME = 'studentsbudget-build-a';
-const PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/check-in', '/reveal', '/settings', '/setup'];
+const PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/badges', '/check-in', '/reveal', '/settings', '/setup'];
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -297,7 +297,7 @@ describe('static files', () => {
 });
 
 describe('install and activate', () => {
-  it('precaches the eight documents and the files they name, with waitUntil called during dispatch', async () => {
+  it('precaches every document and the files they name, with waitUntil called during dispatch', async () => {
     const worker = loadWorker((input) => {
       const path = new URL(typeof input === 'string' ? input : input.url, ORIGIN).pathname;
       if (path.startsWith('/_next/static/')) return Promise.resolve(basic('asset'));

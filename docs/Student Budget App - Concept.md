@@ -96,6 +96,7 @@ Each part is tagged with its phase.
   - One text field: "döner 6". The number is the amount, the rest the note. The category comes from earlier entries with the same word; otherwise you pick one.
   - **Voice works from day one** through the mic on the phone keyboard. Quick add understands what dictation produces: "Döner 6 €", "€6", "6,50", "döner six euros".
 - **P2:** a mic button in the app (the browser's built-in speech recognition) for one-tap entry. Support varies by browser, and Chrome sends the audio to Google for recognition, so the app says so the first time it's used.
+- **P1.2:** quick add reads through a provider interface; today's parser is the local provider, so an AI provider can plug in later with the parser as offline fallback.
 - **AI phase:** natural sentences like "12 for pizza with Tom yesterday, paid cash", plus receipt scan for big grocery shops. A scanned receipt attaches to its matching entry instead of counting twice.
 - **Later:** CSV statement import, then bank or card connection.
 
@@ -148,13 +149,14 @@ How the envelopes work:
   - Never reward spending.
   - Trust criteria are published.
   - Streaks are weekly and can be paused; no punishment or manipulative design.
-- **P1 already stores everything the personal badges need** (entries, weekly results), so they can be awarded backwards when P2 arrives.
+- **P1.2 (local):** each finished week is recorded once on the phone (planned vs spent, hand-logged entries, "I was away"), and four personal badges come from those records: Under-Budget Week (bronze 4, silver 12, gold a semester), Logging Streak, Ramen Royalty and Latte Survivor. The same functions can run on a server in P2.
 
 ### 10. Verified student badge (P2)
 - Confirm a university email once. The badge shows next to your posts and discount confirmations.
 - It expires after 12 months, so it marks *current* students.
 - The domain is checked against a public list of university domains, then a confirmation link goes to that address. Afterwards only the domain and date are stored, not the address.
 - The badge never restricts reading or posting.
+- **P1.2 (local):** a profile in Settings (name, university, semester dates) stays on the phone; it becomes the account profile in P2.
 
 ### 11. Discounts in my city (P2)
 - Local places only: cafés, restaurants, arcades, bowling, karting, clubs, group deals.
@@ -163,6 +165,7 @@ How the envelopes work:
 - Sorted by freshness: "Last confirmed 3 days ago by a verified student · 14 confirmations this semester". Entries unconfirmed for 8 weeks sink and get flagged.
 - Facts only, no star ratings.
 - A list first. The map view comes later.
+- **P1.2 (local):** a sourced list I seed, inside the Tips tab; "still works" and "doesn't work anymore" are saved on the phone and sort the list by freshness. In P2 the same list and confirmations move to the server.
 
 ### 12. Hacks feed (P2, AI parts later)
 - **P1.1:** a Tips tab between Charts and Settings with Regensburg tips I seed, read-only. Each tip has a category, a source, a link and a checked date; a number no page states is labelled "Estimate". No venue deals that change weekly (those wait for the discount list) and no drinking tips. The P2 feed moves into this tab.
@@ -179,6 +182,7 @@ How the envelopes work:
   - habits: cook two more nights, eat at the Mensa instead of the café, get the Deutschlandticket instead of single tickets
   - cheaper versions of the same night out: student nights, free entry before 23:00, splitting a taxi
   - a discount from the city list or a hack from the feed, linked
+- **P1.2 (no AI):** where an envelope runs over, a rule picks one sourced swap ("Try this: …") from a seeded list. The AI phase fills the same interface later and must keep citing sources.
 - Ask: "Can I afford karting on Saturday?" It answers from your plan, your spending, the city numbers, the discounts and the hacks.
 - Rules:
   - Every suggestion that rests on a price or a tip names its source.

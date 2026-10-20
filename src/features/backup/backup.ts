@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
 import type { Category, Plan, Schedule } from '@/db/types';
-import { addDays, formatDateTime, todayIso } from '@/lib/dates';
+import { hasSemesterYear } from '@/features/profile/profile';
+import { addDays, formatDateTime, todayIso, weekOf } from '@/lib/dates';
 import { CURRENCIES } from '@/lib/money';
 
 export type { BackupData };
@@ -11,10 +12,11 @@ export type { BackupData };
 /**
  * Bumped when the file's shape changes. A file with a higher number than this came from a newer app.
  * Version 2 adds the plan's schedules and the entries' `recurring` marker, both optional, so version 1 files read.
+ * Version 3 adds `weekResults`, `discountVotes` and `profile`; a file without them reads with those empty.
  */
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
-const READABLE_VERSIONS = [1, BACKUP_VERSION] as const;
+const READABLE_VERSIONS = [1, 2, BACKUP_VERSION] as const;
 
 const APP = 'studentsbudget';
 
@@ -30,6 +32,8 @@ const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .refine((value) => isValid(parseISO(value)));
+// A semester date also needs a year of four digits from 1000 on, which `semesterOn` builds its dates from.
+const semesterDate = isoDate.refine(hasSemesterYear);
 const isoMonth = z
   .string()
   .regex(/^\d{4}-\d{2}$/)
@@ -109,6 +113,30 @@ const rate = z.object({
   source: z.enum(['ecb', 'manual']),
 });
 
+const weekResult = z.object({
+  weekStart: isoDate,
+  weekEnd: isoDate,
+  plannedMinor: minor,
+  spentMinor: minor,
+  foodSpentMinor: minor,
+  eatingOutSpentMinor: minor,
+  handLoggedCount: z.int().nonnegative(),
+  paused: z.boolean(),
+  recordedAt: text,
+});
+
+const discountVote = z.object({ discountId: id, vote: z.enum(['works', 'outdated']), on: isoDate });
+
+// A field the user has not chosen yet is the empty string, not a missing key.
+const profile = z.object({
+  id: z.literal('current'),
+  name: text,
+  university: z.enum(['ur', 'oth', 'other', '']),
+  semesterStart: z.union([semesterDate, z.literal('')]),
+  semesterEnd: z.union([semesterDate, z.literal('')]),
+  updatedAt: text,
+});
+
 const backupData = z.object({
   accounts: z.array(account),
   categories: z.array(category),
@@ -116,6 +144,10 @@ const backupData = z.object({
   plan: plan.nullable(),
   guesses: z.array(guess),
   fxRates: z.array(rate),
+  // Version 3. The defaults let a version 1 or 2 file, which has none of these keys, read as "nothing saved yet".
+  weekResults: z.array(weekResult).default([]),
+  discountVotes: z.array(discountVote).default([]),
+  profile: profile.nullable().default(null),
 });
 
 const backupFile = z.object({
@@ -179,8 +211,9 @@ function isPossibleSchedule(schedule: Schedule, planCreatedOn: string): boolean 
 
 /**
  * What the rows of a file that has the right shape say about each other, as the first thing that cannot be
- * true: a row that points at one the file does not have, two rows with a key that must be unique, an amount
- * that cannot happen. Null when nothing is wrong. `openingMinor` is free: an account can be overdrawn.
+ * true: a row that points at one the file does not have, two rows with a key that must be unique, a saved week
+ * that is not a Monday–Sunday week, an amount that cannot happen. Null when nothing is wrong. `openingMinor` is
+ * free: an account can be overdrawn.
  */
 function findProblem(d: BackupData): string | null {
   const accountIds = new Set(d.accounts.map((a) => a.id));
@@ -212,8 +245,17 @@ function findProblem(d: BackupData): string | null {
     schedules.map((s) => s.id),
     d.guesses.map((g) => g.categoryId),
     d.fxRates.map((r) => `${r.currency}+${r.source}`),
+    d.weekResults.map((w) => w.weekStart),
+    d.discountVotes.map((v) => v.discountId),
   ];
   if (keyLists.some(hasDuplicates)) return 'two rows share the same id';
+
+  // A saved week runs Monday to Sunday and is keyed by its Monday. A row keyed by another day would not stop the
+  // app from saving the real Monday as well, and that week would count twice.
+  const weekOutOfShape = d.weekResults.some(
+    (w) => weekOf(w.weekStart).start !== w.weekStart || w.weekEnd !== addDays(w.weekStart, 6),
+  );
+  if (weekOutOfShape) return "a saved week doesn't run from Monday to Sunday";
 
   const moneyOut =
     d.entries.some((e) => e.amountMinor <= 0 || (e.type === 'transfer' && e.toAmountMinor <= 0)) ||
@@ -224,6 +266,9 @@ function findProblem(d: BackupData): string | null {
   if (d.entries.some((e) => e.eurMinor < 0) || [...planLines, ...d.guesses].some((line) => line.monthlyMinor < 0)) {
     return 'an amount is negative';
   }
+  // A paused or empty week is all zeros, and a plan can be €0, so zero is fine here too.
+  const weekAmounts = d.weekResults.flatMap((w) => [w.plannedMinor, w.spentMinor, w.foodSpentMinor, w.eatingOutSpentMinor]);
+  if (weekAmounts.some((amount) => amount < 0)) return 'an amount is negative';
 
   // There are schedules only when there is a plan.
   const createdOn = d.plan?.createdOn ?? '';
