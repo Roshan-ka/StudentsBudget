@@ -219,11 +219,12 @@ function latteSurvivor(months: MonthSpend[]): Badge {
 
 /**
  * The four personal badges, from the recorded weeks and `badgeHistory`. Badges are earned, never bought, and never
- * reward spending. The three weekly badges come from recorded weeks, which are never rewritten, so they stay earned
+ * reward spending. The three weekly badges come from recorded weeks, which are never rewritten, so their counts stay
  * (only a restore replaces the recorded weeks, with the file's). Latte Survivor is worked out from the entries each
  * time, so editing, adding or deleting an expense of a finished month can change it. Rows that only hold the away
  * mark of a week not recorded yet are left out (the history says whether such a week is marked). `semesterWeeks`
- * sets gold for Under-Budget Week (`DEFAULT_SEMESTER_WEEKS` until the profile says).
+ * (from `semesterWeeksFor`) sets gold for Under-Budget Week and is checked each time, so a longer semester in the
+ * profile can take gold back to silver.
  */
 export function badgesFrom(results: WeekResult[], semesterWeeks: number, history: BadgeHistory): Badge[] {
   const weeks = results.filter(isRecorded).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
