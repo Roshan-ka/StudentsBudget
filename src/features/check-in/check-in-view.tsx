@@ -9,6 +9,8 @@ import type { Account, Entry, Plan } from '@/db/types';
 import { categoryName } from '@/features/entries/categories';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
+import { localSuggestions } from '@/features/swaps/suggest';
+import { SwapLine } from '@/features/swaps/swap-line';
 import { safeToSpend } from '@/lib/budget';
 import { previousMonthTail, type IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
@@ -101,6 +103,20 @@ function WeekPart({
   const week = safeToSpend(plan, entries, day);
   // Envelopes planned at €0 and not used this week would only add empty rows.
   const rows = week.envelopes.filter((e) => e.weekShareMinor > 0 || e.spentThisWeekMinor > 0);
+  // A swap is judged by the check-in's own measure, this week against its share of the plan (over is "€12 over"),
+  // not by the month, which Home speaks for.
+  const suggestions = new Map(
+    localSuggestions
+      .suggest({
+        rows: rows.map((e) => ({
+          categoryId: e.categoryId,
+          plannedMinor: e.weekShareMinor,
+          spentMinor: e.spentThisWeekMinor,
+        })),
+        today: day,
+      })
+      .map((s) => [s.categoryId, s]),
+  );
   const thisWeek = entriesOfWeek(entries, week.weekStart, week.weekEnd);
 
   return (
@@ -115,12 +131,16 @@ function WeekPart({
           <p className="text-muted-foreground">No envelopes are planned for this week.</p>
         ) : (
           <ul aria-labelledby={planId} className="flex flex-col gap-3">
-            {rows.map((row) => (
-              <li key={row.categoryId} className="flex flex-col gap-0.5">
-                <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
-                <p className="text-sm tabular-nums">{weekLine(row)}</p>
-              </li>
-            ))}
+            {rows.map((row) => {
+              const suggestion = suggestions.get(row.categoryId);
+              return (
+                <li key={row.categoryId} className="flex flex-col gap-0.5">
+                  <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
+                  <p className="text-sm tabular-nums">{weekLine(row)}</p>
+                  {suggestion !== undefined && <SwapLine suggestion={suggestion} />}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

@@ -1,5 +1,8 @@
 import { useId } from 'react';
 import { categoryName } from '@/features/entries/categories';
+import { localSuggestions, type Suggestion } from '@/features/swaps/suggest';
+import { SwapLine } from '@/features/swaps/swap-line';
+import type { IsoDate } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
 import { formatWeekAmount } from '@/lib/week-amount';
 
@@ -23,7 +26,7 @@ function monthLine(plannedMinor: Minor, spentMinor: Minor): string {
   return over ? `${text} over the ${planned} planned this month` : `${text} left of ${planned} this month`;
 }
 
-function EnvelopeItem({ row }: { row: EnvelopeRow }) {
+function EnvelopeItem({ row, suggestion }: { row: EnvelopeRow; suggestion: Suggestion | undefined }) {
   const name = categoryName(row.categoryId);
   const line = monthLine(row.plannedMinor, row.spentMinor);
   const percent = percentUsed(row.plannedMinor, row.spentMinor);
@@ -48,14 +51,19 @@ function EnvelopeItem({ row }: { row: EnvelopeRow }) {
       <p aria-hidden="true" className="text-sm text-muted-foreground tabular-nums">
         {line}
       </p>
+      {suggestion !== undefined && <SwapLine suggestion={suggestion} />}
     </li>
   );
 }
 
-/** One row per envelope: what is left of this month's plan, with a bar for how much of it is used. */
-export function EnvelopeList({ rows }: { rows: EnvelopeRow[] }) {
+/**
+ * One row per envelope: what is left of this month's plan, with a bar for how much of it is used. A row that runs over,
+ * or is close to it early in the month, gets one sourced swap to try under it.
+ */
+export function EnvelopeList({ rows, today }: { rows: EnvelopeRow[]; today: IsoDate }) {
   const headingId = useId();
   if (rows.length === 0) return null;
+  const suggestions = new Map(localSuggestions.suggest({ rows, today }).map((s) => [s.categoryId, s]));
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
@@ -64,7 +72,7 @@ export function EnvelopeList({ rows }: { rows: EnvelopeRow[] }) {
       </h2>
       <ul aria-labelledby={headingId} className="flex flex-col gap-4">
         {rows.map((row) => (
-          <EnvelopeItem key={row.categoryId} row={row} />
+          <EnvelopeItem key={row.categoryId} row={row} suggestion={suggestions.get(row.categoryId)} />
         ))}
       </ul>
     </section>

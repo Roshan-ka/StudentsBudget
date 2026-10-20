@@ -55,7 +55,7 @@ export function HomeScreen({ plan }: { plan: Plan }) {
     content = (
       <>
         <LeftThisMonthCard leftMinor={leftMinor} weekMinor={week.totalMinor} />
-        <EnvelopeList rows={rows} />
+        <EnvelopeList rows={rows} today={today} />
         {/* Keyed by month: an installed app stays mounted for days, and "Not now", typed amounts and the saved note
             should not carry into the next month. */}
         <SuggestedBudget key={monthOf(today)} plan={plan} entries={entries} today={today} />

@@ -1,0 +1,157 @@
+import { expect, test, type Page } from '@playwright/test';
+import { SWAPS, type Swap } from '../src/data/swaps';
+import { TIPS } from '../src/data/tips';
+import { completeSetup } from './helpers/setup';
+
+// 375 px, the narrowest phone the app is made for. `completeSetup` pins the clock to Friday 2026-10-16 and creates the
+// plan that day: eating out 124 is planned from the 16th (16 of 31 days, so €64 this month), and the week Mon 12 -
+// Sun 18 Oct has three days of it (€12). Transport is planned at €0.
+test.use({ viewport: { width: 375, height: 812 } });
+
+const MENSA_LINE = 'Try this: Eat at the Mensa instead of a restaurant · save about €10.70 per meal';
+const TICKET_LINE = 'Try this: Book the Deutschlandticket for a month you travel · save about €12 per month';
+
+function swapById(id: string): Swap {
+  const found = SWAPS.find((s) => s.id === id);
+  if (!found) throw new Error(`no swap ${id}`);
+  return found;
+}
+
+function envelopes(page: Page) {
+  return page.getByRole('list', { name: 'Envelopes' });
+}
+
+/** A row of the Home envelope list, by its category name. */
+function homeRow(page: Page, name: string) {
+  return envelopes(page).getByRole('listitem').filter({ hasText: name });
+}
+
+/** By exact name: "This week" is also part of the name of the headline card on a home page the router keeps hidden. */
+function weekAgainstPlan(page: Page) {
+  return page.getByRole('region', { name: 'This week against your plan', exact: true });
+}
+
+/** Any "Try this" line that is visible: a page the router has left stays mounted, but hidden. */
+function anyTryThis(page: Page) {
+  return page.getByRole('button', { name: /^Try this:/ });
+}
+
+async function quickAdd(page: Page, text: string, category: string) {
+  // By role, not label: a page the router has left stays mounted but hidden, with a field of the same name.
+  await page.getByRole('textbox', { name: 'Quick add' }).fill(text);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  // The first entry of a note has no learned category, so quick add asks.
+  await page.getByRole('button', { name: category, exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(`· ${category}`);
+}
+
+async function overflow(page: Page) {
+  return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+}
+
+async function openCheckInFromHome(page: Page) {
+  await page.getByRole('link', { name: /^Weekly check-in/ }).click();
+  await expect(page).toHaveURL('/check-in');
+  await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
+}
+
+test('an eating-out envelope that runs over shows a sourced swap on Home and in the check-in', async ({ page }) => {
+  await completeSetup(page);
+  await quickAdd(page, 'döner 100', 'Eating out');
+
+  const mensa = swapById('mensa-instead-of-restaurant');
+  const row = homeRow(page, 'Eating out');
+  await expect(row.getByText('€36 over the €64 planned this month', { exact: true })).toBeVisible();
+
+  // One calm line under the row; nothing else asks for attention until it is tapped.
+  const line = row.getByRole('button', { name: MENSA_LINE, exact: true });
+  await expect(line).toBeVisible();
+  await expect(line).toHaveAttribute('aria-expanded', 'false');
+  await expect(anyTryThis(page)).toHaveCount(1);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  // Tapping it shows the body, the source with its checked date, and the tip it comes from.
+  await line.click();
+  await expect(line).toHaveAttribute('aria-expanded', 'true');
+  const details = row.getByRole('group', { name: `${mensa.title} details`, exact: true });
+  await expect(details.getByText(mensa.body, { exact: true })).toBeVisible();
+
+  const tip = TIPS.find((t) => t.id === mensa.tipId);
+  if (!tip) throw new Error('the Mensa swap names no tip');
+  await expect(details.getByText(tip.title, { exact: true })).toBeVisible();
+  await expect(details.getByText(tip.body, { exact: true })).toBeVisible();
+
+  await details.getByText('Source', { exact: true }).first().click();
+  await expect(details.getByText(mensa.source, { exact: true })).toBeVisible();
+  await expect(details.getByText('checked 20-10-2026', { exact: true }).first()).toBeVisible();
+  const link = details.getByRole('link', { name: 'numbeo.com', exact: true });
+  await expect(link).toHaveAttribute('href', mensa.url);
+  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  // The check-in judges the row by this week's share: €100 against €12.
+  await openCheckInFromHome(page);
+  const checkInRow = weekAgainstPlan(page).getByRole('listitem').filter({ hasText: 'Eating out' });
+  await expect(checkInRow.getByText('€12 planned · €100 spent · €88 over', { exact: true })).toBeVisible();
+  const checkInLine = checkInRow.getByRole('button', { name: MENSA_LINE, exact: true });
+  await expect(checkInLine).toBeVisible();
+  await expect(anyTryThis(page)).toHaveCount(1);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  await checkInLine.click();
+  await expect(checkInRow.getByText(mensa.body, { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
+test('nothing shows while every envelope is on track, or when the envelope over has no swap', async ({ page }) => {
+  await completeSetup(page);
+  await quickAdd(page, 'döner 6', 'Eating out');
+  await expect(homeRow(page, 'Eating out').getByText('€58 left of €64 this month', { exact: true })).toBeVisible();
+  await expect(anyTryThis(page)).toHaveCount(0);
+
+  // Food has no swap: over plan, it still gets no line.
+  await quickAdd(page, 'Rewe 200', 'Food & groceries');
+  await expect(homeRow(page, 'Food & groceries').getByText('€40 over the €160 planned this month', { exact: true })).toBeVisible();
+  await expect(anyTryThis(page)).toHaveCount(0);
+
+  await openCheckInFromHome(page);
+  await expect(
+    weekAgainstPlan(page).getByRole('listitem').filter({ hasText: 'Food & groceries' }).getByText('€30 planned · €200 spent · €170 over', { exact: true }),
+  ).toBeVisible();
+  await expect(anyTryThis(page)).toHaveCount(0);
+});
+
+test('past 90% of the plan early in the month counts, and the last 7 days of the month do not', async ({ page }) => {
+  await completeSetup(page);
+  // €60 of the €64 is 94%.
+  await quickAdd(page, 'döner 60', 'Eating out');
+  const row = homeRow(page, 'Eating out');
+  await expect(row.getByText('€4 left of €64 this month', { exact: true })).toBeVisible();
+  await expect(row.getByRole('button', { name: MENSA_LINE, exact: true })).toBeVisible();
+
+  // Mon 26 Oct is one of the last 7 days: too late in the month for a suggestion on spending that is still on plan.
+  await page.clock.setFixedTime(new Date(2026, 9, 26, 12, 0, 0));
+  await page.reload();
+  await expect(homeRow(page, 'Eating out').getByText('€4 left of €64 this month', { exact: true })).toBeVisible();
+  await expect(anyTryThis(page)).toHaveCount(0);
+});
+
+test('an envelope planned at €0 that has spending gets its swap, and an estimate says so', async ({ page }) => {
+  await completeSetup(page);
+  await quickAdd(page, 'bus 15', 'Transport');
+
+  const swap = swapById('deutschlandticket-for-travel-months');
+  const row = homeRow(page, 'Transport');
+  await expect(row.getByText('€15 over the €0 planned this month', { exact: true })).toBeVisible();
+  const line = row.getByRole('button', { name: TICKET_LINE, exact: true });
+  await expect(line).toBeVisible();
+
+  await line.click();
+  const details = row.getByRole('group', { name: `${swap.title} details`, exact: true });
+  await expect(details.getByText(swap.body, { exact: true })).toBeVisible();
+  await details.getByText('Source', { exact: true }).first().click();
+  await expect(details.getByText('Estimate', { exact: true })).toBeVisible();
+  await expect(details.getByRole('link', { name: 'bahn.de', exact: true })).toHaveAttribute('href', swap.url);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
