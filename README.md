@@ -33,6 +33,7 @@ Exchange rates need a connection to refresh. Offline, the app shows the last rat
 
 ## Privacy
 - Your data stays in this browser's IndexedDB, on this device. There is no server copy.
+- Your profile (name, university and semester dates, all optional, set in Settings) is stored only on this device and goes into any backup you export. The app never sends it anywhere.
 - There is no login, no analytics and no third-party scripts. The fonts come from the app itself.
 - The only outgoing request is to `api.frankfurter.dev`, for exchange rates. It names the foreign currencies your accounts use. It carries none of your entries or amounts. Like any web request, it shows your IP address to that service.
 - A backup file is a plain JSON file that you keep. The app never uploads it. Anyone who has the file can read your data, so keep it somewhere you trust.

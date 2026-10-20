@@ -34,6 +34,8 @@ export function HomeScreen({ plan }: { plan: Plan }) {
   // The date follows the clock, so the week turns over on its own when the app comes back or midnight passes,
   // with no entry saved in between. It is null until the browser runs this (never a date from the prerender).
   const today = useToday();
+  // The greeting: the profile's name, or '' when none is set.
+  const name = useLiveQuery(() => db.profile.get('current').then((p) => p?.name.trim() ?? ''), [], '');
   const data = useLiveQuery(async () => {
     if (today === null) return null;
     const [entries, accounts, rates, weekResults] = await Promise.all([
@@ -84,6 +86,7 @@ export function HomeScreen({ plan }: { plan: Plan }) {
 
   return (
     <div className="flex flex-col gap-6">
+      {name !== '' && <p className="text-lg font-semibold break-words">{`Hi ${name}`}</p>}
       <QuickAddField />
       {content}
     </div>
