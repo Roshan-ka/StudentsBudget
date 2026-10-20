@@ -5,7 +5,7 @@ created: 2026-10-16
 
 # Student Budget App: Concept
 
-See also: [[Student Budget App]] · [[Student Budget App - Tech Stack]] · [[2026-10-16-p1-test-project|P1 plan]] · [[Student Budget App - Kickoff]] · Newcomer City Guide (Personal Project Ideas vault)
+See also: [[Student Budget App]] · [[Student Budget App - Tech Stack]] · [[2026-10-16-p1-test-project|P1 plan]] · [[Student Budget App - Kickoff]] · [[Student Budget App - P1 follow-ups|P1 follow-ups]] · Newcomer City Guide (Personal Project Ideas vault)
 
 Working name: **StudentsBudget** (not final).
 
