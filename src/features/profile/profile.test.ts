@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { CITIES } from '@/data/cities';
 import type { Profile } from '@/db/types';
+import { isIsoDate } from '@/features/recurring/schedule';
 import {
   SEMESTER_FEE_NAME,
+  hasSemesterYear,
   monthLabel,
   periodLabel,
   profileProblems,
@@ -65,6 +67,17 @@ describe('semesterWeeksOf', () => {
   });
 });
 
+describe('hasSemesterYear', () => {
+  it('is the years 1000 to 9999', () => {
+    expect(hasSemesterYear('1000-01-01')).toBe(true);
+    expect(hasSemesterYear('2026-10-01')).toBe(true);
+    expect(hasSemesterYear('9999-12-31')).toBe(true);
+    expect(hasSemesterYear('0999-12-31')).toBe(false);
+    expect(hasSemesterYear('0001-01-01')).toBe(false);
+    expect(hasSemesterYear('0000-01-01')).toBe(false);
+  });
+});
+
 describe('semesterOn', () => {
   it('finds the Universität Regensburg semester a day falls in', () => {
     const winter = { term: 'winter', start: '2026-10-01', end: '2027-03-31' };
@@ -80,6 +93,18 @@ describe('semesterOn', () => {
     expect(semesterOn('oth', '2026-10-20')).toMatchObject({ term: 'winter', start: '2026-10-01', end: '2027-03-14' });
     expect(semesterOn('oth', '2027-03-14')).toMatchObject({ term: 'winter', start: '2026-10-01', end: '2027-03-14' });
     expect(semesterOn('oth', '2027-03-15')).toMatchObject({ term: 'summer', start: '2027-03-15', end: '2027-09-30' });
+  });
+
+  it('builds real dates in the first year the profile form allows', () => {
+    // Early in 1000 the winter semester began in 999: that year is padded to four digits, not written as 999.
+    for (const university of ['ur', 'oth'] as const) {
+      for (const day of ['1000-01-01', '1000-02-01', '1000-10-20']) {
+        const { start, end } = semesterOn(university, day);
+        expect(isIsoDate(start), `${university} ${day} start ${start}`).toBe(true);
+        expect(isIsoDate(end), `${university} ${day} end ${end}`).toBe(true);
+      }
+    }
+    expect(semesterOn('ur', '1000-02-01')).toMatchObject({ term: 'winter', start: '0999-10-01', end: '1000-03-31' });
   });
 
   it('carries the source of the period it used', () => {
@@ -128,6 +153,23 @@ describe('profileProblems', () => {
     expect(profileProblems(draft({ semesterStart: '2026-10-01', semesterEnd: '2027-02-30' }))).toEqual([
       { field: 'semesterEnd', message },
     ]);
+  });
+
+  it('asks for a year of four digits from 1000 on, at the field that has none', () => {
+    // A desktop date field keeps the zeros of a year typed half-way: "26" is 0026, a real day but not a year to save.
+    const message = 'Enter the year of each semester date with four digits, like 2026.';
+    expect(profileProblems(draft({ semesterStart: '0026-10-01', semesterEnd: '2027-03-31' }))).toEqual([
+      { field: 'semesterStart', message },
+    ]);
+    expect(profileProblems(draft({ semesterStart: '0999-10-01', semesterEnd: '1000-03-31' }))).toEqual([
+      { field: 'semesterStart', message },
+    ]);
+    expect(profileProblems(draft({ semesterStart: '2026-10-01', semesterEnd: '0999-12-31' }))).toEqual([
+      { field: 'semesterEnd', message },
+    ]);
+    // The first and the last year are fine.
+    expect(profileProblems(draft({ semesterStart: '1000-01-01', semesterEnd: '1000-03-31' }))).toEqual([]);
+    expect(profileProblems(draft({ semesterStart: '9999-10-01', semesterEnd: '9999-12-31' }))).toEqual([]);
   });
 
   it('takes a semester of up to a year', () => {
@@ -230,6 +272,26 @@ describe('semesterFeeDue', () => {
   it('is null for dates the form would not save', () => {
     const typo = profile({ university: 'other', semesterStart: '202620-10-01', semesterEnd: '2027-03-31' });
     expect(semesterFeeDue(typo, TODAY)).toBeNull();
+  });
+});
+
+describe('a semester year below 1000', () => {
+  // Used to throw "Invalid time value" in the one-off costs step: the dates are refused, so no fee is worked out.
+  const profile = (semesterStart: string, semesterEnd: string): Profile => ({
+    id: 'current',
+    name: '',
+    university: 'ur',
+    semesterStart,
+    semesterEnd,
+    updatedAt: '2026-10-20T08:00:00.000Z',
+  });
+
+  it('gives no fee due month and no offer, and does not throw', () => {
+    const saved = profile('0999-10-01', '1000-03-31');
+    expect(semesterWeeksOf(saved)).toBeNull();
+    expect(semesterFeeDue(saved, '2026-10-20')).toBeNull();
+    expect(semesterFeeOffer(saved, '2026-10-20', [])).toBeNull();
+    expect(semesterFeeOffer(profile('0001-10-01', '0002-03-31'), '2026-10-20', [])).toBeNull();
   });
 });
 

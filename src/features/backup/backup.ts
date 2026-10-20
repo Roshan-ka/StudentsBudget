@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
 import type { Category, Plan, Schedule } from '@/db/types';
+import { hasSemesterYear } from '@/features/profile/profile';
 import { addDays, formatDateTime, todayIso, weekOf } from '@/lib/dates';
 import { CURRENCIES } from '@/lib/money';
 
@@ -31,6 +32,8 @@ const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .refine((value) => isValid(parseISO(value)));
+// A semester date also needs a year of four digits from 1000 on, which `semesterOn` builds its dates from.
+const semesterDate = isoDate.refine(hasSemesterYear);
 const isoMonth = z
   .string()
   .regex(/^\d{4}-\d{2}$/)
@@ -129,8 +132,8 @@ const profile = z.object({
   id: z.literal('current'),
   name: text,
   university: z.enum(['ur', 'oth', 'other', '']),
-  semesterStart: z.union([isoDate, z.literal('')]),
-  semesterEnd: z.union([isoDate, z.literal('')]),
+  semesterStart: z.union([semesterDate, z.literal('')]),
+  semesterEnd: z.union([semesterDate, z.literal('')]),
   updatedAt: text,
 });
 

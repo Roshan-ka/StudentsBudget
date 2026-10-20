@@ -224,6 +224,20 @@ describe('serializeBackup and parseBackup', () => {
     expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
   });
 
+  it('takes a semester in the first and the last year the profile form allows', () => {
+    for (const [semesterStart, semesterEnd] of [
+      ['1000-01-01', '1000-03-31'],
+      ['9999-10-01', '9999-12-31'],
+    ]) {
+      const data: BackupData = {
+        ...sample(),
+        profile: { id: 'current', name: '', university: 'ur', semesterStart, semesterEnd, updatedAt: '2026-10-20T08:00:00.000Z' },
+      };
+
+      expect(parseBackup(serializeBackup(data, NOW)), semesterStart).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    }
+  });
+
   it('round-trips a profile that is still empty, and no week results or votes', () => {
     const data: BackupData = {
       ...sample(),
@@ -385,6 +399,8 @@ describe('serializeBackup and parseBackup', () => {
     ['an unknown university', (file: V3File) => (file.data.profile.university = 'mit')],
     ['a semester that starts on no date', (file: V3File) => (file.data.profile.semesterStart = '2026-13-01')],
     ['a semester that ends on no date', (file: V3File) => (file.data.profile.semesterEnd = 'March')],
+    ['a semester that starts in a year below 1000', (file: V3File) => (file.data.profile.semesterStart = '0999-10-01')],
+    ['a semester that ends in a year below 1000', (file: V3File) => (file.data.profile.semesterEnd = '0999-12-31')],
     ['a profile that is not an object', (file: V3File) => (file.data.profile = 'Roshan' as never)],
     ['week results that are not a list', (file: V3File) => (file.data.weekResults = {} as never)],
   ])('says it is incomplete for %s', (_name, change) => {

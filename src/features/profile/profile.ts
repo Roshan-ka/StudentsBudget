@@ -24,16 +24,29 @@ export type ProfileProblem = { field: keyof SemesterDates; message: string };
 /** The longest semester the form takes: a year, so a whole degree's dates are not taken for one semester. */
 const MAX_SEMESTER_DAYS = 366;
 
+/**
+ * Whether the year of a date written as `YYYY-MM-DD` is one a semester can have: 1000 to 9999, so it is four digits
+ * and `semesterOn` builds real dates from it. The date itself is checked elsewhere (`isIsoDate`); the backup file's
+ * schema uses this too.
+ */
+export function hasSemesterYear(date: string): boolean {
+  const year = Number(date.slice(0, 4));
+  return year >= 1000 && year <= 9999;
+}
+
 /** Why the profile cannot be saved yet. Empty when it can: every field is optional, but a semester needs both dates. */
 export function profileProblems({ semesterStart, semesterEnd }: SemesterDates): ProfileProblem[] {
   if (semesterStart === '' && semesterEnd === '') return [];
   const both = 'Add both semester dates, or leave both empty.';
   if (semesterStart === '') return [{ field: 'semesterStart', message: both }];
   if (semesterEnd === '') return [{ field: 'semesterEnd', message: both }];
-  // A desktop date field takes a year of up to six digits.
+  // A desktop date field takes a year of up to six digits, and keeps the zeros of a year typed half-way ("0026").
   const full = 'Enter each semester date as a full date.';
+  const year = 'Enter the year of each semester date with four digits, like 2026.';
   if (!isIsoDate(semesterStart)) return [{ field: 'semesterStart', message: full }];
+  if (!hasSemesterYear(semesterStart)) return [{ field: 'semesterStart', message: year }];
   if (!isIsoDate(semesterEnd)) return [{ field: 'semesterEnd', message: full }];
+  if (!hasSemesterYear(semesterEnd)) return [{ field: 'semesterEnd', message: year }];
   // ISO date strings sort chronologically, so plain comparison is enough.
   if (semesterEnd <= semesterStart) return [{ field: 'semesterEnd', message: 'Pick an end date after the start date.' }];
   if (daysBetween(semesterStart, semesterEnd) + 1 > MAX_SEMESTER_DAYS) {
@@ -59,7 +72,7 @@ export function toProfile(draft: ProfileDraft, now: Date): Profile {
  * at least 1. A 1 Oct – 31 Mar winter semester (182 days) and a 1 Apr – 30 Sep summer semester (183) are both 26, the
  * badges' default. That can be one more than the whole Monday–Sunday weeks inside it (25 for winter 2026/27).
  * Null without a profile or without semester dates, and for dates the form would not save (`profileProblems`): a date
- * that is not a real day, an end that is not after the start, or more than a year.
+ * that is not a real day or has a year outside 1000–9999, an end that is not after the start, or more than a year.
  */
 export function semesterWeeksOf(profile: SemesterDates | null | undefined): number | null {
   if (!profile || profile.semesterStart === '' || profileProblems(profile).length > 0) return null;
@@ -76,12 +89,15 @@ function periodOf(university: SemesterPeriod['university'], term: SemesterPeriod
 /** One semester with its dates, and the sourced period they come from. */
 export type Semester = { term: SemesterPeriod['term']; start: IsoDate; end: IsoDate; period: SemesterPeriod };
 
+/** A year as four digits, so a year below 1000 still builds a real date. */
+const yearText = (year: number): string => String(year).padStart(4, '0');
+
 /** The semester of `university` that `date` falls in. */
 export function semesterOn(university: SemesterPeriod['university'], date: IsoDate): Semester {
   const year = Number(date.slice(0, 4));
   const summer = periodOf(university, 'summer');
-  const summerStart = `${year}-${summer.starts}`;
-  const summerEnd = `${year}-${summer.ends}`;
+  const summerStart = `${yearText(year)}-${summer.starts}`;
+  const summerEnd = `${yearText(year)}-${summer.ends}`;
   if (date >= summerStart && date <= summerEnd) {
     return { term: 'summer', start: summerStart, end: summerEnd, period: summer };
   }
@@ -89,7 +105,12 @@ export function semesterOn(university: SemesterPeriod['university'], date: IsoDa
   // autumn, after it the one that begins this autumn.
   const winter = periodOf(university, 'winter');
   const startYear = date < summerStart ? year - 1 : year;
-  return { term: 'winter', start: `${startYear}-${winter.starts}`, end: `${startYear + 1}-${winter.ends}`, period: winter };
+  return {
+    term: 'winter',
+    start: `${yearText(startYear)}-${winter.starts}`,
+    end: `${yearText(startYear + 1)}-${winter.ends}`,
+    period: winter,
+  };
 }
 
 /** The semester of `university` that starts right after `semester`. */
