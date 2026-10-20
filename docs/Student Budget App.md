@@ -55,6 +55,7 @@ No app has the whole package. Most pieces exist separately, often with millions 
 - Core moment (2026-10-16): "Where did my money go?", with guess vs. reality as the hook.
 - P1 (2026-10-16): a 3–4 day test project (8–9 h a day) without AI, with data only on the phone. Then friends (5–20) for feedback.
 - Community (2026-10-16): tips open to everyone; a verified-student badge, not a gate; discounts judged by "last confirmed".
+- Tips (2026-10-20): P1.1 gets a Tips tab with Regensburg tips I seed, each with a source; read-only. The P2 hacks feed moves into this tab.
 
 ## First version
 Phases, features and the P1 build order: [[Student Budget App - Concept]]. Build plan: [[2026-10-16-p1-test-project|P1 plan]].
