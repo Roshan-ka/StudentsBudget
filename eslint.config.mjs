@@ -30,6 +30,17 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // The scripts run in Node, not in the browser.
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        URL: "readonly",
+      },
+    },
+  },
 ]);
 
 export default eslintConfig;
