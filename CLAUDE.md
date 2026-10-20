@@ -90,7 +90,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 
 **Data rules**
 - City: Regensburg only. Every city number has a source, a URL and a checked date. A number without a source is labelled "Estimate".
-- Swaps and discounts: every amount or offer has its own source, URL and checked date, and a swap whose cheaper price is on another page also carries `toSource` and `toUrl`. No alcohol deals or drinking tips.
+- Swaps, discounts, semester dates and semester fees: every amount, offer or date has its own source, URL and checked date, and a swap whose cheaper price is on another page also carries `toSource` and `toUrl`. No alcohol deals or drinking tips.
 - Guesses are saved once in setup and never edited afterwards. They cover the original 6 flexible categories only (`GUESS_CATEGORIES`).
 
 **Repo**

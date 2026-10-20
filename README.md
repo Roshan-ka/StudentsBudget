@@ -27,11 +27,11 @@ Exchange rates need a connection to refresh. Offline, the app shows the last rat
 
 **Home.** The big number is what is left to spend this month across your envelopes, with a "This week" line under it. Going over reads as "€12 over". A suggested budget (an amount per category, from last month's spending or from typical Regensburg costs) leads in the first week of the month, or when your envelopes add up to more than what is available. Otherwise it waits behind "See a suggested budget". "Use this budget" changes your envelopes only.
 
-**Try this.** When an envelope has run over this month, or more than 90% of it is gone before the last 7 days, Home can show one line under it, such as "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal". Tap it to see how the swap works and where each price comes from, with the date it was checked. A saving that rests on an assumption, such as how often you travel, says "Estimate". The Sunday check-in shows the same line under a category that is over its share for the week. Nothing shows while an envelope is on track.
+**Try this.** When an envelope has run over this month, or more than 90% of it is gone before the last 7 days, Home can show one line under it, such as "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal". Tap it to see how the swap works and where each price comes from, with the date it was checked. A saving that rests on an assumption, such as how often you travel, is marked "(estimate)" on the line and explained when you open it. The Sunday check-in shows the same line under a category that is over its share for the week. Nothing shows while an envelope is on track.
 
-**Badges.** Four badges reward steady habits, never spending. They count only weeks and months in which you log an expense yourself, by the date it is for. Entries added automatically, income and transfers don't count.
+**Badges.** Four badges reward steady habits, never spending. They count only weeks and months in which you log spending on your envelopes yourself, by the date it is for. Fixed costs, entries added automatically, income and transfers don't count.
 - **Under-Budget Week:** such a week in which you spend no more than its share of your envelopes. Bronze at 4 weeks, silver at 12, gold at a whole semester: the weeks of the semester in your profile (at least 13), or 26 without one.
-- **Logging Streak:** 4 weeks in a row in which you log an expense yourself.
+- **Logging Streak:** 4 weeks in a row in which you log envelope spending yourself.
 - **Ramen Royalty:** a full week that costs less in groceries than every week before it.
 - **Latte Survivor:** a month with at most half the eating out of your first full month that had some.
 
