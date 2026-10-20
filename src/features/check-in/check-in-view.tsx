@@ -10,7 +10,6 @@ import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
 import { categoryName } from '@/features/entries/categories';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
-import { localSuggestions } from '@/features/swaps/suggest';
 import { SwapLine } from '@/features/swaps/swap-line';
 import { safeToSpend } from '@/lib/budget';
 import { previousMonthTail, weekOf, type IsoDate } from '@/lib/dates';
@@ -20,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { weekLabel } from '@/lib/week-label';
 import { notCountedNote } from './not-counted';
 import { weekLine } from './week-line';
+import { weekSwaps } from './week-swaps';
 
 const LINK_CLASS = 'inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline';
 
@@ -105,20 +105,9 @@ function WeekPart({
   const week = safeToSpend(plan, entries, day);
   // Envelopes planned at €0 and not used this week would only add empty rows.
   const rows = week.envelopes.filter((e) => e.weekShareMinor > 0 || e.spentThisWeekMinor > 0);
-  // A swap is judged by the check-in's own measure, this week against its share of the plan (over is "€12 over"),
-  // not by the month, which Home speaks for.
-  const suggestions = new Map(
-    localSuggestions
-      .suggest({
-        rows: rows.map((e) => ({
-          categoryId: e.categoryId,
-          plannedMinor: e.weekShareMinor,
-          spentMinor: e.spentThisWeekMinor,
-        })),
-        today: day,
-      })
-      .map((s) => [s.categoryId, s]),
-  );
+  // A swap is judged by the check-in's own measure: only a row over this week's share of the plan ("€12 over") gets
+  // one. The month's early warning is Home's.
+  const suggestions = weekSwaps(rows, day);
   const thisWeek = entriesOfWeek(entries, week.weekStart, week.weekEnd);
 
   return (
