@@ -12,6 +12,7 @@ import { AccountHasScheduleError, AccountInUseError, deleteAccount } from '@/db/
 import type { Account, Entry } from '@/db/types';
 import { todayIso } from '@/lib/dates';
 import { CURRENCIES, formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
+import { newId } from '@/lib/new-id';
 import { accountBalance, sortAccounts, totalInEur } from './balances';
 import { parseOpeningBalance } from './opening-balance';
 
@@ -61,7 +62,7 @@ function AccountForm({
     setError(null);
     try {
       await db.accounts.put({
-        id: account?.id ?? crypto.randomUUID(),
+        id: account?.id ?? newId(),
         name: trimmedName,
         kind,
         currency,
