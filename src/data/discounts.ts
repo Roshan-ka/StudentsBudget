@@ -21,9 +21,9 @@ const CHECKED: IsoDate = '2026-10-20';
 
 const STADTWERK = 'das Stadtwerk Regensburg';
 const STWNO = 'Studierendenwerk Niederbayern/Oberpfalz';
-/** The das Stadtwerk pools and the ice rink all set the student rate this way. */
+/** The das Stadtwerk pools and the ice rink all set the student rate this way, and all three pages say so. */
 const STADTWERK_STUDENTS =
-  'Students aged 15 until their 25th birthday, with valid proof such as a student ID (and an official photo ID if asked) shown at the entrance.';
+  'Students aged 15 until their 25th birthday, with valid proof such as a student ID (and an official photo ID if asked) shown at the entrance. Proof brought later is not accepted.';
 
 /**
  * Regensburg student discounts, seeded by hand. Every one is stated on the place's own page, or on a
@@ -110,9 +110,9 @@ export const DISCOUNTS: readonly Discount[] = [
     place: 'document Kepler',
     address: 'Keplerstraße 5, 93047 Regensburg',
     offer: 'Free entry instead of €5',
-    conditions: 'Students under 30. Public guided tours are priced separately.',
+    conditions: 'Students under 30, on showing an ID. Public guided tours are priced separately.',
     categoryId: 'going-out',
-    source: 'Museen der Stadt Regensburg, document Kepler: adults €5; free for students under 30; public guided tours €8, reduced €5',
+    source: 'Museen der Stadt Regensburg, document Kepler: adults €5; free for students under 30 on showing an ID; public guided tours €8, reduced €5',
     url: 'https://www.regensburg.de/museen/die-museen/documente/document-kepler',
     checked: CHECKED,
   },
@@ -121,10 +121,10 @@ export const DISCOUNTS: readonly Discount[] = [
     place: 'Schloss Thurn und Taxis',
     address: 'Emmeramsplatz 5, 93047 Regensburg',
     offer:
-      '€14 instead of €17 for the guided tour of the state rooms; €4 instead of €6 for the Treasury and the Marstall (carriage museum)',
+      '€14 instead of €17 for the guided tour of the state rooms and cloister; €4 instead of €6 for the Treasury and the Marstall (carriage museum)',
     conditions: 'Students, on showing a student ID. The state rooms are open only on a guided tour.',
     categoryId: 'going-out',
-    source: 'Fürst Thurn und Taxis, visiting Schloss St. Emmeram: guided tour €17, reduced €14; Treasury and Marstall €6, reduced €4; reduced for pupils and students on showing their ID',
+    source: 'Fürst Thurn und Taxis, visiting Schloss St. Emmeram: guided tour of the state rooms and cloister (Prunkräume & Kreuzgang) €17, reduced €14; Treasury and Marstall €6, reduced €4; reduced for pupils and students on showing their ID',
     url: 'https://www.thurnundtaxis.de/entdecken/besuch-schloss-st-emmeram',
     checked: CHECKED,
   },
@@ -133,9 +133,9 @@ export const DISCOUNTS: readonly Discount[] = [
     place: 'Westbad',
     address: 'Messerschmittstraße 4, 93049 Regensburg',
     offer: '€4.60 instead of €7.20 for 3 hours; €6.50 instead of €10 for the day',
-    conditions: `${STADTWERK_STUDENTS} Proof brought later is not accepted.`,
+    conditions: STADTWERK_STUDENTS,
     categoryId: 'going-out',
-    source: `${STADTWERK}, Westbad prices: 3 hours €7.20, day €10.00; reduced €4.60 and €6.50 for pupils, students and trainees from 15 until their 25th birthday`,
+    source: `${STADTWERK}, Westbad prices: 3 hours €7.20, day €10.00; reduced €4.60 and €6.50 for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later`,
     url: 'https://das-stadtwerk-regensburg.de/westbad/preise-oeffnungszeiten',
     checked: CHECKED,
   },
@@ -146,7 +146,7 @@ export const DISCOUNTS: readonly Discount[] = [
     offer: '€2.90 instead of €5 per visit',
     conditions: STADTWERK_STUDENTS,
     categoryId: 'going-out',
-    source: `${STADTWERK}, Sportpark Ost pool prices: single entry €5.00, reduced €2.90 for pupils, students and trainees from 15 until their 25th birthday`,
+    source: `${STADTWERK}, Sportpark Ost pool prices: single entry €5.00, reduced €2.90 for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later`,
     url: 'https://das-stadtwerk-regensburg.de/sportpark-ost-bad/preise-oeffnungszeiten',
     checked: CHECKED,
   },
@@ -157,7 +157,7 @@ export const DISCOUNTS: readonly Discount[] = [
     offer: '€5 instead of €6 for public ice skating; €6 instead of €7 for disco skating (Discolauf)',
     conditions: `${STADTWERK_STUDENTS} In the skating season only.`,
     categoryId: 'going-out',
-    source: `${STADTWERK}, Donau-Arena public skating prices: single entry €6, reduced €5; Discolauf €7, reduced €6; reduced for pupils, students and trainees from 15 until their 25th birthday`,
+    source: `${STADTWERK}, Donau-Arena public skating prices: single entry €6, reduced €5; Discolauf €7, reduced €6; reduced for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later`,
     url: 'https://www.das-stadtwerk-regensburg.de/donau-arena/eislauf/preise-oeffnungszeiten',
     checked: CHECKED,
   },
@@ -189,9 +189,9 @@ export const DISCOUNTS: readonly Discount[] = [
     address: 'Dr.-Martin-Luther-Straße 2, 93047 Regensburg',
     offer: '8% off your whole purchase on Tuesdays',
     conditions:
-      'Students with a valid student ID, in every Alnatura store (in Regensburg also Donaustaufer Straße 128 and Joseph-Dahlem-Straße 3). Not on bottle deposits (Pfand), gift cards, books or infant formula, and not with other discounts.',
+      'Students with a valid student or pupil ID shown at the till, in every Alnatura store (in Regensburg also Donaustaufer Straße 128 and Joseph-Dahlem-Straße 3). Not on bottle deposits (Pfand), gift cards, books or infant formula, and not with other discounts.',
     categoryId: 'food',
-    source: "Alnatura, student discount: every Tuesday 8% off the whole purchase for students, trainees and pupils with a valid ID, in all Alnatura stores; not on deposits, gift cards, books or infant formula, and not combined with other discounts. Alnatura's store finder lists the Regensburg stores at Dr.-Martin-Luther-Straße 2, Donaustaufer Straße 128 and Joseph-Dahlem-Straße 3",
+    source: "Alnatura, student discount: every Tuesday 8% off the whole purchase for students, trainees and pupils with a valid student or pupil ID, in all Alnatura stores; not on deposits, gift cards, books or infant formula, and not combined with other discounts. Alnatura's store finder lists the Regensburg stores at Dr.-Martin-Luther-Straße 2, Donaustaufer Straße 128 and Joseph-Dahlem-Straße 3",
     url: 'https://www.alnatura.de/de-de/maerkte/studirabatt/',
     checked: CHECKED,
   },
@@ -214,8 +214,8 @@ export const DISCOUNTS: readonly Discount[] = [
     offer: "€10 instead of €17 for a year's library card",
     conditions: 'Students, on showing a student ID when the card is made or renewed.',
     categoryId: 'study',
-    source: "Stadt Regensburg, Stadtbücherei rules of use and fees: a year's card €17 for adults, €10 reduced for students, trainees and pupils; proof such as a student ID when the card is made or renewed",
-    url: 'https://www.regensburg.de/stadtrecht/233972/benutzungsordnung-und-entgeltregelung-fuer-die-stadtbuecherei-regensburg-benutzungsordnung-stadtbuecherei-buebo-vom-24-juli-2008.html',
+    source: "Stadt Regensburg, Stadtbücherei fees: a year's card €17 for adults, €10 reduced; the rules of use it points to give the reduced card to students, trainees and pupils, on proof such as a student ID when the card is made or renewed",
+    url: 'https://www.regensburg.de/stadtbuecherei/mitgliedschaft/benutzungsordnung/gebuehren',
     checked: CHECKED,
   },
   {
@@ -224,9 +224,9 @@ export const DISCOUNTS: readonly Discount[] = [
     address: 'Haidplatz 8, 93047 Regensburg',
     offer: '10% off course fees at the adult education centre',
     conditions:
-      'Enrolled students, on request: show proof in person, or send a copy with the course number, at least one week before the course starts. Not combined with other reductions, not for courses the VHS only co-organises, and the VHS can exclude a course from reductions.',
+      'Regularly enrolled students, on request: show proof in person, or send a copy with the course number, at least one week before the course starts. Not combined with other reductions, not for courses the VHS only co-organises, and the VHS may exclude reductions.',
     categoryId: 'other',
-    source: 'Volkshochschule Regensburg, terms and conditions: 10% off for enrolled students on application, with proof at least one week before the course starts; reductions are not combined; not for events the VHS only co-organises, and the VHS can exclude reductions',
+    source: 'Volkshochschule Regensburg, terms and conditions: 10% off for regularly enrolled students (ordentlich Studierende) on application, with proof at least one week before the course starts; reductions are not combined; not for events the VHS only co-organises, and the VHS may exclude reductions',
     url: 'https://www.vhs-regensburg.de/agb',
     checked: CHECKED,
   },

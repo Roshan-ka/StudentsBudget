@@ -85,7 +85,8 @@ function TipList() {
               <h3 className="font-medium">{tip.title}</h3>
               <p className="text-sm text-muted-foreground">{tip.body}</p>
             </div>
-            <span className="w-fit rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {/* An outline, not the muted fill: muted text on the muted fill is about 4.3:1, on the page about 4.7:1. */}
+            <span className="w-fit rounded-md border px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
               {tipTag(tip)}
             </span>
             <RangeSource range={tip} />

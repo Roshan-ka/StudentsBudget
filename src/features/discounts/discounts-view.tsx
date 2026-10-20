@@ -10,18 +10,17 @@ import { categoryName } from '@/features/entries/categories';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { formatDate, todayIso } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
-import { bundledDiscounts, discountCategoryIds, sortByFreshness, type DiscountSource } from './discounts';
+import { bundledDiscounts, discountCategoryIds, sortByFreshness, voteMove, type DiscountSource } from './discounts';
 
 const VOTES: { vote: DiscountVote['vote']; label: string }[] = [
   { vote: 'works', label: 'Still works' },
   { vote: 'outdated', label: "Doesn't work anymore" },
 ];
 
-/** What a screen reader hears after a vote: the list re-sorts, so it also says which way the discount went. */
-function announcement(d: Discount, vote: DiscountVote['vote']): string {
-  return vote === 'works'
-    ? `${d.place}: saved as still working. It moves up the list.`
-    : `${d.place}: saved as not working. It moves down the list.`;
+/** What a screen reader hears after a vote, and which way the discount went when the list re-sorted. */
+function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'down' | null): string {
+  const saved = vote === 'works' ? `${d.place}: saved as still working.` : `${d.place}: saved as not working.`;
+  return move === null ? saved : `${saved} It moves ${move} the list.`;
 }
 
 /**
@@ -91,10 +90,19 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
   function choose(d: Discount, vote: DiscountVote['vote']) {
     follow.current = d.id;
     // Today at the moment of the tap, not of the last render.
-    db.discountVotes.put({ discountId: d.id, vote, on: todayIso() }).then(
+    const row: DiscountVote = { discountId: d.id, vote, on: todayIso() };
+    // Judged on the list as it is on screen, before the vote re-sorts it.
+    // `votes` is loaded by now (the list renders only then); the fallback is for the type checker.
+    const move = voteMove(
+      shown.map((r) => r.discount),
+      votes ?? [],
+      row,
+      row.on,
+    );
+    db.discountVotes.put(row).then(
       () => {
         setNotice({ discountId: d.id, text: 'Saved on this phone.' });
-        setHeard(announcement(d, vote));
+        setHeard(announcement(d, vote, move));
       },
       (error: unknown) => {
         follow.current = null;
@@ -155,7 +163,8 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
                 <p className="text-sm break-words text-muted-foreground">{d.conditions}</p>
                 <p className="text-sm break-words text-muted-foreground">{d.address}</p>
               </div>
-              <span className="w-fit rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+              {/* An outline, not the muted fill: muted text on the muted fill is about 4.3:1, on the page about 4.7:1. */}
+              <span className="w-fit rounded-md border px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
                 {categoryName(d.categoryId)}
               </span>
               <div className="flex flex-col gap-0.5 text-sm">

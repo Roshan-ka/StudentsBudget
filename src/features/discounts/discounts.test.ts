@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Discount } from '@/data/discounts';
 import { DISCOUNTS } from '@/data/discounts';
 import type { DiscountVote } from '@/db/types';
-import { bundledDiscounts, discountCategoryIds, freshness, sortByFreshness } from './discounts';
+import { bundledDiscounts, discountCategoryIds, freshness, sortByFreshness, voteMove } from './discounts';
 
 function discount(id: string, overrides: Partial<Discount> = {}): Discount {
   return {
@@ -142,6 +142,36 @@ describe('sortByFreshness', () => {
     const list = [discount('b', { categoryId: 'going-out' }), discount('a', { categoryId: 'eating-out' })];
     sortByFreshness(list, [], today);
     expect(list.map((d) => d.id)).toEqual(['b', 'a']);
+  });
+});
+
+describe('voteMove', () => {
+  const list = [discount('a'), discount('b'), discount('c')];
+
+  it('a "still works" vote on the day the list was checked moves nothing', () => {
+    expect(voteMove(list, [], vote('c', 'works', '2026-10-20'), '2026-10-20')).toBeNull();
+  });
+
+  it('a "still works" vote for the discount already at the top moves nothing', () => {
+    expect(voteMove(list, [], vote('a', 'works', '2026-11-02'), '2026-11-02')).toBeNull();
+  });
+
+  it('a "still works" vote after the check moves a lower discount up', () => {
+    expect(voteMove(list, [], vote('c', 'works', '2026-11-02'), '2026-11-02')).toBe('up');
+  });
+
+  it('a "doesn\'t work anymore" vote moves a discount down, unless it is already last', () => {
+    expect(voteMove(list, [], vote('a', 'outdated', '2026-11-02'), '2026-11-02')).toBe('down');
+    expect(voteMove(list, [], vote('c', 'outdated', '2026-11-02'), '2026-11-02')).toBeNull();
+  });
+
+  it('replaces the earlier vote: "still works" after "doesn\'t work anymore" moves it up, even on the checked day', () => {
+    const before = [vote('a', 'outdated', '2026-10-20')];
+    expect(voteMove(list, before, vote('a', 'works', '2026-10-20'), '2026-10-20')).toBe('up');
+  });
+
+  it('judges the list as shown: with one discount in view nothing moves', () => {
+    expect(voteMove([discount('c')], [], vote('c', 'outdated', '2026-11-02'), '2026-11-02')).toBeNull();
   });
 });
 

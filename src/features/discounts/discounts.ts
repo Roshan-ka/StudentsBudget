@@ -67,6 +67,23 @@ export function sortByFreshness(
     );
 }
 
+/**
+ * Which way `vote` moves its discount in `shown`, the list as it is on screen: 'up', 'down', or null when it stays
+ * where it is (a confirmation on the day the list was checked, or a discount already at the top or the bottom).
+ */
+export function voteMove(
+  shown: readonly Discount[],
+  votes: readonly DiscountVote[],
+  vote: DiscountVote,
+  today: IsoDate,
+): 'up' | 'down' | null {
+  const indexIn = (rows: DiscountRow[]) => rows.findIndex((row) => row.discount.id === vote.discountId);
+  const before = indexIn(sortByFreshness(shown, votes, today));
+  const after = indexIn(sortByFreshness(shown, [...votes.filter((v) => v.discountId !== vote.discountId), vote], today));
+  if (after === before) return null;
+  return after < before ? 'up' : 'down';
+}
+
 /** The categories that have at least one discount, in the app's category order: the chips. */
 export function discountCategoryIds(discounts: readonly Discount[]): string[] {
   return [...new Set(discounts.map((d) => d.categoryId))].sort((a, b) => orderOf(a) - orderOf(b));

@@ -24,6 +24,11 @@ function switcher(page: Page) {
   return page.getByRole('tablist', { name: 'Tips or discounts', exact: true });
 }
 
+/** What a screen reader hears after a vote: the one status region inside the Discounts panel. */
+function announced(page: Page) {
+  return page.getByRole('tabpanel', { name: 'Discounts', exact: true }).getByRole('status');
+}
+
 function discountList(page: Page) {
   return page.getByRole('list', { name: 'Discounts', exact: true });
 }
@@ -128,7 +133,7 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await expect(item(page, LAST).getByText('Last confirmed 02-11-2026', { exact: true })).toBeVisible();
   // Focus moves with the discount, and a screen reader hears where it went.
   await expect(voteButton(page, LAST, 'Still works')).toBeFocused();
-  await expect(page.getByRole('status')).toHaveText(`${LAST.place}: saved as still working. It moves up the list.`);
+  await expect(announced(page)).toHaveText(`${LAST.place}: saved as still working. It moves up the list.`);
 
   await voteButton(page, FIRST, "Doesn't work anymore").click();
   await expect(voteButton(page, FIRST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
@@ -136,7 +141,7 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await expect(item(page, FIRST).getByText('You marked this as not working on 02-11-2026', { exact: true })).toBeVisible();
   await expect(item(page, FIRST).getByText('Saved on this phone.', { exact: true })).toBeVisible();
   await expect(voteButton(page, FIRST, "Doesn't work anymore")).toBeFocused();
-  await expect(page.getByRole('status')).toHaveText(`${FIRST.place}: saved as not working. It moves down the list.`);
+  await expect(announced(page)).toHaveText(`${FIRST.place}: saved as not working. It moves down the list.`);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   const expected: DiscountVote[] = [
@@ -170,6 +175,12 @@ test('after eight weeks without a confirmation every discount may be outdated, a
   await expect(item(page, LAST).getByText('Last confirmed 15-12-2026', { exact: true })).toBeVisible();
   await expect(item(page, LAST).getByText('May be outdated', { exact: true })).toHaveCount(0);
   await expect(discountList(page).getByText('May be outdated', { exact: true })).toHaveCount(DISCOUNTS.length - 1);
+  await expect(announced(page)).toHaveText(`${LAST.place}: saved as still working. It moves up the list.`);
+
+  // Confirming it again, now that it is at the top, moves nothing, and says nothing about moving.
+  await voteButton(page, LAST, 'Still works').click();
+  await expect(announced(page)).toHaveText(`${LAST.place}: saved as still working.`);
+  await expect(places(page).first()).toHaveText(LAST.place);
 
   // Changing your mind replaces the vote: it sinks below the ones that may be outdated.
   await voteButton(page, LAST, "Doesn't work anymore").click();
