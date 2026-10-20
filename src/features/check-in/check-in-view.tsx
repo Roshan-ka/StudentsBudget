@@ -6,15 +6,17 @@ import Link from 'next/link';
 import { useId } from 'react';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan } from '@/db/types';
+import { setAway } from '@/features/badges/week-results';
 import { categoryName } from '@/features/entries/categories';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
 import { localSuggestions } from '@/features/swaps/suggest';
 import { SwapLine } from '@/features/swaps/swap-line';
 import { safeToSpend } from '@/lib/budget';
-import { previousMonthTail, type IsoDate } from '@/lib/dates';
+import { previousMonthTail, weekOf, type IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
+import { cn } from '@/lib/utils';
 import { weekLabel } from '@/lib/week-label';
 import { notCountedNote } from './not-counted';
 import { weekLine } from './week-line';
@@ -163,6 +165,58 @@ function WeekPart({
   );
 }
 
+/**
+ * "I was away this week" for the whole Monday–Sunday week of `today`. It is read from and saved to the database, so
+ * it survives a reload and the page coming back from hidden; the week keeps it when it is recorded. A switch, not a
+ * checkbox: a checkbox would flick back for a moment before the database answers.
+ */
+function AwayToggle({ today }: { today: IsoDate }) {
+  const hintId = useId();
+  const { start } = weekOf(today);
+  // null until read; a week with no row yet is not away.
+  const away = useLiveQuery(() => db.weekResults.get(start).then((row) => row?.paused === true), [start], null);
+
+  const toggle = () => {
+    if (away === null) return;
+    setAway(today, !away).catch((error: unknown) =>
+      console.error('StudentsBudget: could not save "I was away this week"', error),
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={away === true}
+        aria-describedby={hintId}
+        disabled={away === null}
+        onClick={toggle}
+        className="flex min-h-11 items-center gap-3 self-start rounded-md text-left font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            'relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors',
+            away ? 'bg-primary' : 'bg-muted-foreground/30',
+          )}
+        >
+          <span
+            className={cn(
+              'absolute top-0.5 left-0.5 size-5 rounded-full bg-background shadow-sm transition-transform',
+              away && 'translate-x-4',
+            )}
+          />
+        </span>
+        I was away this week
+      </button>
+      <p id={hintId} className="text-sm text-muted-foreground">
+        A week away keeps your logging streak as it is and counts towards no other badge.
+      </p>
+    </div>
+  );
+}
+
 function CheckIn({
   plan,
   entries,
@@ -187,6 +241,7 @@ function CheckIn({
         <WeekPart plan={plan} entries={entries} accounts={accounts} day={earlierDay} titles={EARLIER_THIS_WEEK} />
       )}
       <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} titles={THIS_WEEK} />
+      <AwayToggle today={today} />
 
       <section aria-labelledby={addId} className="flex flex-col gap-3">
         <h3 id={addId} className="text-lg font-semibold">

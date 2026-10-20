@@ -90,6 +90,8 @@ export type Rate = {
 /**
  * What one finished week came to, saved once so badges can read it without the plan of that day.
  * The week runs Monday to Sunday and `weekStart` is its key. Amounts are EUR; `paused` marks a week the user was away.
+ * While a week still runs, a row with an empty `recordedAt` and no amounts only keeps its "I was away" mark; the week
+ * fills it in when it is recorded.
  */
 export type WeekResult = {
   weekStart: IsoDate;

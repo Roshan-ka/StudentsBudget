@@ -101,6 +101,12 @@ export function weekInMonth(d: IsoDate): { start: IsoDate; end: IsoDate } {
   };
 }
 
+/** The whole Monday–Sunday week containing d. Unlike `weekInMonth`, it is not cut off at the month's edges. */
+export function weekOf(d: IsoDate): { start: IsoDate; end: IsoDate } {
+  const date = toDate(d);
+  return { start: toIso(startOfWeek(date, WEEK)), end: toIso(endOfWeek(date, WEEK)) };
+}
+
 /**
  * On a Sunday whose Monday–Sunday week starts in the previous month, the part of that week in the previous
  * month: Sun 1 Nov 2026 gives Mon 26 – Sat 31 Oct. `weekInMonth` cuts a week off at the month's edge, so a
