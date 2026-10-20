@@ -11,10 +11,11 @@ export type { BackupData };
 /**
  * Bumped when the file's shape changes. A file with a higher number than this came from a newer app.
  * Version 2 adds the plan's schedules and the entries' `recurring` marker, both optional, so version 1 files read.
+ * Version 3 adds `weekResults`, `discountVotes` and `profile`; a file without them reads with those empty.
  */
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
-const READABLE_VERSIONS = [1, BACKUP_VERSION] as const;
+const READABLE_VERSIONS = [1, 2, BACKUP_VERSION] as const;
 
 const APP = 'studentsbudget';
 
@@ -109,6 +110,30 @@ const rate = z.object({
   source: z.enum(['ecb', 'manual']),
 });
 
+const weekResult = z.object({
+  weekStart: isoDate,
+  weekEnd: isoDate,
+  plannedMinor: minor,
+  spentMinor: minor,
+  foodSpentMinor: minor,
+  eatingOutSpentMinor: minor,
+  handLoggedCount: z.int().nonnegative(),
+  paused: z.boolean(),
+  recordedAt: text,
+});
+
+const discountVote = z.object({ discountId: id, vote: z.enum(['works', 'outdated']), on: isoDate });
+
+// A field the user has not chosen yet is the empty string, not a missing key.
+const profile = z.object({
+  id: z.literal('current'),
+  name: text,
+  university: z.enum(['ur', 'oth', 'other', '']),
+  semesterStart: z.union([isoDate, z.literal('')]),
+  semesterEnd: z.union([isoDate, z.literal('')]),
+  updatedAt: text,
+});
+
 const backupData = z.object({
   accounts: z.array(account),
   categories: z.array(category),
@@ -116,6 +141,10 @@ const backupData = z.object({
   plan: plan.nullable(),
   guesses: z.array(guess),
   fxRates: z.array(rate),
+  // Version 3. The defaults let a version 1 or 2 file, which has none of these keys, read as "nothing saved yet".
+  weekResults: z.array(weekResult).default([]),
+  discountVotes: z.array(discountVote).default([]),
+  profile: profile.nullable().default(null),
 });
 
 const backupFile = z.object({
@@ -212,6 +241,8 @@ function findProblem(d: BackupData): string | null {
     schedules.map((s) => s.id),
     d.guesses.map((g) => g.categoryId),
     d.fxRates.map((r) => `${r.currency}+${r.source}`),
+    d.weekResults.map((w) => w.weekStart),
+    d.discountVotes.map((v) => v.discountId),
   ];
   if (keyLists.some(hasDuplicates)) return 'two rows share the same id';
 
@@ -224,6 +255,9 @@ function findProblem(d: BackupData): string | null {
   if (d.entries.some((e) => e.eurMinor < 0) || [...planLines, ...d.guesses].some((line) => line.monthlyMinor < 0)) {
     return 'an amount is negative';
   }
+  // A paused or empty week is all zeros, and a plan can be €0, so zero is fine here too.
+  const weekAmounts = d.weekResults.flatMap((w) => [w.plannedMinor, w.spentMinor, w.foodSpentMinor, w.eatingOutSpentMinor]);
+  if (weekAmounts.some((amount) => amount < 0)) return 'an amount is negative';
 
   // There are schedules only when there is a plan.
   const createdOn = d.plan?.createdOn ?? '';

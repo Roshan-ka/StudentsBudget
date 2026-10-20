@@ -86,3 +86,33 @@ export type Rate = {
   fetchedOn: IsoDate;
   source: 'ecb' | 'manual';
 };
+
+/**
+ * What one finished week came to, saved once so badges can read it without the plan of that day.
+ * The week runs Monday to Sunday and `weekStart` is its key. Amounts are EUR; `paused` marks a week the user was away.
+ */
+export type WeekResult = {
+  weekStart: IsoDate;
+  weekEnd: IsoDate;
+  plannedMinor: Minor;
+  spentMinor: Minor;
+  foodSpentMinor: Minor;
+  eatingOutSpentMinor: Minor;
+  /** Entries the user typed in, as opposed to ones a schedule posted. */
+  handLoggedCount: number;
+  paused: boolean;
+  recordedAt: string;
+};
+
+/** The user's verdict on one discount. One vote per discount: voting again replaces it. */
+export type DiscountVote = { discountId: string; vote: 'works' | 'outdated'; on: IsoDate };
+
+/** One row, like the plan. A field the user has not chosen yet is the empty string. */
+export type Profile = {
+  id: 'current';
+  name: string;
+  university: 'ur' | 'oth' | 'other' | '';
+  semesterStart: IsoDate | '';
+  semesterEnd: IsoDate | '';
+  updatedAt: string;
+};
