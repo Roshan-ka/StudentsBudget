@@ -42,9 +42,11 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `next typegen`, then `tsc --noEmit` |
 | `npm run build` | Production build (`next build`); catches Cache Components errors that dev mode hides |
-| `npm test` | Vitest unit tests (`src/**/*.test.ts`) |
+| `npm test` | Vitest unit tests (`src/**/*.test.ts`, `scripts/**/*.test.mjs`) |
 | `npm run test:e2e` | Playwright on `desktop-chrome` and `iphone` (WebKit); starts the dev server if none is running. `E2E_PORT=3001 npm run test:e2e` (PowerShell: `$env:E2E_PORT=3001; npm run test:e2e`) moves it off port 3000, for a second checkout |
 | `npm run test:offline` | Production build, `next start` on :3100 (the port must be free: it never reuses a server), then the Playwright offline check (`desktop-chrome`) |
+| `npm run cert:https` | mkcert makes the HTTPS certificate for phone testing into `certs/` (git-ignored); it never runs `mkcert -install` |
+| `npm run start:https` | Production build, then serves it over HTTPS on :3443 (`HTTPS_PORT`, `HTTPS_CERT`, `HTTPS_KEY` override); needs the certificate |
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and the offline check on every pull request.
 
@@ -56,6 +58,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Hidden pages in e2e:** a hidden-but-mounted page keeps its labels and text in the DOM, so `getByLabel` and `getByText` can match hidden elements and trip strict mode. Prefer `getByRole` (with `exact` names) for anything on a page that may be hidden.
 - **Recurring entries:** one schedule per plan line. Posting is idempotent by period; a new, resumed or repaired line starts tomorrow (nothing before that), and periods missed while the app was closed are caught up on the next open. Don't log a scheduled item by hand, it would count twice.
 - **Agent worktrees:** worktrees in `.claude/worktrees/` (each with its own `node_modules`) make the main checkout's `next dev` hang on "Compiling /". Remove them before running e2e in the main checkout, and clear `.next/dev` if Turbopack then reports a stale task.
+- **Secure origins:** browser APIs such as `crypto.randomUUID` and service workers exist only on secure origins (HTTPS or localhost). Use `newId()` from `@/lib/new-id`, and test the phone via `npm run start:https`, never a plain-HTTP LAN address.
 - **Dexie schema:** a schema change adds a new `db.version(n)`; never edit a version that has shipped.
 - **Service worker** (`public/sw.js`, registered by `AppInit`):
   - Production only: `next dev` never registers it.
