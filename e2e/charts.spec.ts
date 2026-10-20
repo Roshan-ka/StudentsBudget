@@ -613,10 +613,10 @@ test('coming back from another page shows what was added there', async ({ page }
   await expect(page.getByText('Nothing logged in October yet.')).toHaveCount(0);
 });
 
-test('the bottom navigation has Charts between Entries and Settings and opens it', async ({ page }) => {
+test('the bottom navigation has Charts between Entries and Tips and opens it', async ({ page }) => {
   await completeSetup(page);
   const nav = page.getByRole('navigation', { name: 'Main' });
-  await expect(nav.getByRole('link')).toHaveText(['Home', 'Entries', 'Charts', 'Settings']);
+  await expect(nav.getByRole('link')).toHaveText(['Home', 'Entries', 'Charts', 'Tips', 'Settings']);
 
   await nav.getByRole('link', { name: 'Charts' }).click();
   await expect(page).toHaveURL('/charts');
