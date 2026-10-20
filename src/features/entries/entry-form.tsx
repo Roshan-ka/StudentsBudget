@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useState, type FormEvent } from 'react';
+import { DateField } from '@/components/date-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,8 +14,9 @@ import { saveEntry } from '@/db/repo';
 import type { Entry } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
 import { TransferForm } from '@/features/accounts/transfer-form';
-import { todayIso } from '@/lib/dates';
+import type { IsoDate } from '@/lib/dates';
 import { parseAmount, type Minor } from '@/lib/money';
+import { useToday } from '@/lib/use-today';
 import { buildEntry } from './build-entry';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './categories';
 
@@ -46,17 +48,19 @@ function MoneyEntryForm({
   const id = useId();
   const editing = entry?.type === 'transfer' ? undefined : entry;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
+  // Today's date, kept current: null until the browser runs this (never the date of the prerender).
+  const today = useToday();
   const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
   // null until the person picks: the first account and the first category.
   const [accountChoice, setAccountChoice] = useState<string | null>(editing?.accountId ?? null);
   const [categoryChoice, setCategoryChoice] = useState<string | null>(editing?.categoryId ?? null);
-  // null means today, read when the form shows; a form left open over midnight then follows the date.
-  const [dateChoice, setDateChoice] = useState<string | null>(editing?.date ?? null);
+  // null means today, so a form left open over midnight follows the date; a date that was picked stays.
+  const [dateChoice, setDateChoice] = useState<IsoDate | null>(editing?.date ?? null);
   const [note, setNote] = useState(editing?.note ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  if (accounts === undefined) return null;
+  if (accounts === undefined || today === null) return null;
   if (accounts.length === 0) {
     return <p className="text-muted-foreground">Add an account in Settings first.</p>;
   }
@@ -65,7 +69,7 @@ function MoneyEntryForm({
   // Switching between Expense and Income leaves the other kind's category unknown, which falls back to the first.
   const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const category = categories.find((c) => c.id === categoryChoice) ?? categories[0];
-  const date = dateChoice ?? todayIso();
+  const date = dateChoice ?? today;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -157,16 +161,7 @@ function MoneyEntryForm({
           ))}
         </NativeSelect>
       </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-date`}>Date</Label>
-        <Input
-          id={`${id}-date`}
-          type="date"
-          className="h-10"
-          value={date}
-          onChange={(event) => setDateChoice(event.target.value)}
-        />
-      </div>
+      <DateField value={date} onChange={setDateChoice} />
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-note`}>Note</Label>
         <Input

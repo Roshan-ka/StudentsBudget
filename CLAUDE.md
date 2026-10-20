@@ -43,7 +43,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | `npm run typecheck` | `next typegen`, then `tsc --noEmit` |
 | `npm run build` | Production build (`next build`); catches Cache Components errors that dev mode hides |
 | `npm test` | Vitest unit tests (`src/**/*.test.ts`) |
-| `npm run test:e2e` | Playwright on `desktop-chrome` and `iphone` (WebKit); starts the dev server if none is running |
+| `npm run test:e2e` | Playwright on `desktop-chrome` and `iphone` (WebKit); starts the dev server if none is running. `E2E_PORT=3001 npm run test:e2e` (PowerShell: `$env:E2E_PORT=3001; npm run test:e2e`) moves it off port 3000, for a second checkout |
 | `npm run test:offline` | Production build, `next start` on :3100 (the port must be free: it never reuses a server), then the Playwright offline check (`desktop-chrome`) |
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and the offline check on every pull request.
@@ -54,6 +54,8 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Dexie:** never query it during render, only in effects or `useLiveQuery`. The db module is safe during server rendering only as long as nothing opens it there.
 - **Hidden pages stay mounted:** Next 16 keeps a page you navigate away from mounted but hidden (Activity): its effects clean up and re-run on return, and its state survives. Re-read data in effects before redirecting, and don't rely on unmount to reset state.
 - **Hidden pages in e2e:** a hidden-but-mounted page keeps its labels and text in the DOM, so `getByLabel` and `getByText` can match hidden elements and trip strict mode. Prefer `getByRole` (with `exact` names) for anything on a page that may be hidden.
+- **Recurring entries:** one schedule per plan line. Posting is idempotent by period; a new, resumed or repaired line starts tomorrow (nothing before that), and periods missed while the app was closed are caught up on the next open. Don't log a scheduled item by hand, it would count twice.
+- **Agent worktrees:** worktrees in `.claude/worktrees/` (each with its own `node_modules`) make the main checkout's `next dev` hang on "Compiling /". Remove them before running e2e in the main checkout, and clear `.next/dev` if Turbopack then reports a stale task.
 - **Dexie schema:** a schema change adds a new `db.version(n)`; never edit a version that has shipped.
 - **Service worker** (`public/sw.js`, registered by `AppInit`):
   - Production only: `next dev` never registers it.
@@ -66,7 +68,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 **Code**
 - TypeScript `strict`; no `any`.
 - **Money:** integer minor units (`Minor`), never floats. Plan, envelope and city amounts are in EUR. Each entry keeps its account's currency in `amountMinor`, plus `eurMinor` converted at save time.
-- **Dates:** local `IsoDate` strings (`YYYY-MM-DD`) and `IsoMonth` strings (`YYYY-MM`). Weeks run Monday–Sunday. The check-in is on Sunday.
+- **Dates:** local `IsoDate` strings (`YYYY-MM-DD`) and `IsoMonth` strings (`YYYY-MM`). Shown as `DD-MM-YYYY` with `formatDate` wherever a full date appears; short labels like "Mon 26 Oct" stay. Weeks run Monday–Sunday. The check-in is on Sunday.
 - **Data:** everything lives in the IndexedDB database `studentsbudget`.
 
 **What P1 leaves out**
@@ -81,7 +83,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 
 **Data rules**
 - City: Regensburg only. Every city number has a source, a URL and a checked date. A number without a source is labelled "Estimate".
-- Guesses are saved once in setup and never edited afterwards.
+- Guesses are saved once in setup and never edited afterwards. They cover the original 6 flexible categories only (`GUESS_CATEGORIES`).
 
 **Repo**
 - A project `.npmrc` with `save-exact=true` (never the global npm config); versions listed in this file.

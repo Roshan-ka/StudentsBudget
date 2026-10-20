@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORIES } from './categories';
+import { GUESS_CATEGORY_IDS } from './categories';
 import { CITIES } from './cities';
 
 const { regensburg } = CITIES;
@@ -37,11 +37,10 @@ describe('Regensburg', () => {
     }
   });
 
-  it('covers rent and the six flexible categories', () => {
-    const flexible = CATEGORIES.filter((c) => c.kind === 'flexible').map((c) => c.id);
-    expect(flexible).toHaveLength(6);
+  it('covers rent and the six categories people guess', () => {
+    expect(GUESS_CATEGORY_IDS).toHaveLength(6);
     const covered = regensburg.ranges.map((r) => r.categoryId);
-    for (const id of ['rent', ...flexible]) {
+    for (const id of ['rent', ...GUESS_CATEGORY_IDS]) {
       expect(covered, `range for ${id}`).toContain(id);
     }
   });

@@ -7,11 +7,12 @@ export default function SetupPage() {
   return (
     <div className="flex flex-col gap-4">
       <InstallHint />
-      <SetupRestoreSection />
       {/* The wizard reads ?edit=1 with useSearchParams, which needs a Suspense boundary under cacheComponents. */}
       <Suspense fallback={null}>
         <SetupWizard />
       </Suspense>
+      {/* Below the wizard: someone setting up for the first time meets the wizard first. */}
+      <SetupRestoreSection />
     </div>
   );
 }

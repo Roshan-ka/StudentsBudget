@@ -1,6 +1,7 @@
 'use client';
 
-import { FLEXIBLE_CATEGORIES, amountOf, withAmount, type DraftUpdate, type SetupDraft } from '../draft';
+import { GUESS_CATEGORIES } from '@/features/entries/categories';
+import { amountOf, withAmount, type DraftUpdate, type SetupDraft } from '../draft';
 import { AmountField } from './amount-field';
 
 // "other" reads badly in the question, so it gets a few more words.
@@ -13,7 +14,7 @@ export function GuessesStep({ draft, update }: { draft: SetupDraft; update: Draf
         Go with your gut, in euros. Enter 0 if you spend nothing on it. Guesses are saved once and can&apos;t be
         changed later.
       </p>
-      {FLEXIBLE_CATEGORIES.map((c) => (
+      {GUESS_CATEGORIES.map((c) => (
         <AmountField
           key={c.id}
           label={`What do you think you spend on ${TOPIC[c.id] ?? c.name.toLowerCase()} a month?`}

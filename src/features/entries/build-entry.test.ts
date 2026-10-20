@@ -139,6 +139,38 @@ describe('buildEntry', () => {
     });
   });
 
+  it('editing keeps the recurring marker, and a new entry has none', () => {
+    const existing: Entry = {
+      id: 'entry-1',
+      type: 'expense',
+      date: '2026-10-01',
+      accountId: 'bank',
+      amountMinor: 40000,
+      eurMinor: 40000,
+      categoryId: 'rent',
+      note: 'Rent',
+      createdAt: '2026-10-01T05:00:00.000Z',
+      recurring: { scheduleId: 'schedule-1' },
+    };
+
+    const edited = buildEntry(
+      { type: 'expense', date: '2026-10-02', accountId: 'bank', amountMinor: 40000, categoryId: 'rent', note: 'October rent' },
+      account('bank', 'EUR'),
+      {},
+      NOW,
+      existing,
+    );
+    const fresh = buildEntry(
+      { type: 'expense', date: '2026-10-02', accountId: 'bank', amountMinor: 40000, categoryId: 'rent', note: '' },
+      account('bank', 'EUR'),
+      {},
+      NOW,
+    );
+
+    expect(edited.ok && edited.entry).toMatchObject({ id: 'entry-1', note: 'October rent', recurring: { scheduleId: 'schedule-1' } });
+    expect(fresh.ok && 'recurring' in fresh.entry).toBe(false);
+  });
+
   describe('editing and the stored EUR value', () => {
     // 95000 INR was worth 1000 cents when it was entered (rate 95).
     const existing: Entry = {

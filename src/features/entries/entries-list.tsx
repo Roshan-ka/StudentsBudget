@@ -15,6 +15,7 @@ import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { categoryName } from './categories';
 import { EntryForm } from './entry-form';
+import { RecurringTag, isRecurring } from './recurring-tag';
 
 const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 
@@ -58,7 +59,8 @@ function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account
   const label = entry.type === 'transfer' ? 'Transfer' : categoryName(entry.categoryId);
   const title = entry.note || label;
   const details = [
-    entry.note ? label : null,
+    // A posted entry's note is its category name: "Rent" over "Rent" would say it twice.
+    entry.note && entry.note !== label ? label : null,
     entry.type === 'transfer' ? `${accountName(entry.accountId)} → ${accountName(entry.toAccountId)}` : null,
   ].filter((part) => part !== null);
 
@@ -69,7 +71,10 @@ function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account
       className="flex min-h-12 w-full items-center justify-between gap-3 py-2 text-left"
     >
       <span className="min-w-0">
-        <span className="block font-medium break-words">{title}</span>
+        <span className="block">
+          <span className="font-medium break-words">{title}</span>
+          {isRecurring(entry) && <RecurringTag className="ml-2 align-middle" />}
+        </span>
         {details.length > 0 && <span className="block text-sm text-muted-foreground">{details.join(' · ')}</span>}
       </span>
       <span className="shrink-0 font-medium tabular-nums">

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { DEFAULT_SETUP, completeSetup } from './helpers/setup';
+import { DEFAULT_SETUP, completeSetup, readStore } from './helpers/setup';
 
 // `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day, so the week Mon 12 - Sun 18 Oct
 // has three days of budget (the 16th, 17th and 18th, of October's 31): food 31000 * 3/31 = 3000, so €30, and
@@ -74,6 +74,62 @@ test('shows each envelope against this week and what was logged', async ({ page 
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
+/** Puts entries straight into IndexedDB, as a posted recurring entry would be there. */
+async function putEntries(page: Page, entries: unknown[]) {
+  await page.evaluate(
+    (rows) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('studentsbudget');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const database = open.result;
+          const transaction = database.transaction('entries', 'readwrite');
+          for (const row of rows) transaction.objectStore('entries').put(row);
+          transaction.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+    entries,
+  );
+}
+
+test('an entry a schedule posted shows a Recurring tag on the check-in', async ({ page }) => {
+  await completeSetup(page);
+  const accounts = await readStore<{ id: string; name: string }>(page, 'accounts');
+  const accountId = accounts.find((a) => a.name === 'Cash')?.id;
+  const base = { type: 'expense', accountId, categoryId: 'food', createdAt: '2026-10-16T10:00:00.000Z' };
+  await putEntries(page, [
+    {
+      ...base,
+      id: 'posted',
+      date: '2026-10-16',
+      amountMinor: 900,
+      eurMinor: 900,
+      // A posted entry's note is its category name.
+      categoryId: 'phone',
+      note: 'Phone & internet',
+      recurring: { scheduleId: 's-phone' },
+    },
+    { ...base, id: 'once', date: '2026-10-16', amountMinor: 650, eurMinor: 650, note: 'Rewe' },
+  ]);
+
+  await page.goto('/check-in');
+  await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
+  const entries = section(page, 'This week').getByRole('listitem');
+  await expect(entries).toHaveCount(2);
+  const posted = entries.filter({ hasText: 'Phone & internet' });
+  await expect(posted.getByText('Recurring', { exact: true })).toBeVisible();
+  await expect(entries.filter({ hasText: 'Rewe' }).getByText('Recurring')).toHaveCount(0);
+  await expect(page.getByText('Recurring', { exact: true })).toHaveCount(1);
+  // The name is not said twice: under it is only the day. Rewe keeps its category.
+  await expect(posted.getByText('Fri 16', { exact: true })).toBeVisible();
+  await expect(entries.filter({ hasText: 'Rewe' }).getByText('Food & groceries · Fri 16', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
 test('the reminder link points at a calendar file that is served as a calendar', async ({ page }) => {
   await completeSetup(page);
   await page.goto('/check-in');
@@ -112,7 +168,10 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await expect(page).toHaveURL('/entries/new');
   await page.getByLabel('Amount', { exact: true }).fill('15');
   await page.getByLabel('Category', { exact: true }).selectOption({ label: 'Eating out' });
-  await page.getByLabel('Date', { exact: true }).fill('2026-10-17');
+  // Saturday is one tap away: Yesterday, shown as DD-MM-YYYY, over the native input's ISO value.
+  await page.getByRole('button', { name: 'Yesterday', exact: true }).click();
+  await expect(page.getByLabel('Date', { exact: true })).toHaveValue('2026-10-17');
+  await expect(page.getByText('17-10-2026', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Save expense' }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
 

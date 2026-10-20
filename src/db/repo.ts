@@ -17,10 +17,27 @@ export class AccountInUseError extends Error {
   }
 }
 
-/** Inserts the built-in categories when the table is empty. The check and the insert share one transaction, so concurrent calls seed once. */
+export class AccountHasScheduleError extends Error {
+  constructor() {
+    super('A fixed cost or income is added to this account automatically, so it cannot be deleted.');
+    this.name = 'AccountHasScheduleError';
+  }
+}
+
+/**
+ * Brings the built-in categories up to date: adds each one that is missing and rewrites each whose name, kind or
+ * order differs from the constant (the orders shift when a category is added). Rows that are not built in are left
+ * alone. That repairs a database from an older version and a restored version 1 backup. The read and the writes
+ * share one transaction, so concurrent calls seed once.
+ */
 export async function ensureSeeded(): Promise<void> {
   await db.transaction('rw', db.categories, async () => {
-    if ((await db.categories.count()) === 0) await db.categories.bulkAdd(CATEGORIES);
+    const stored = new Map((await db.categories.toArray()).map((c) => [c.id, c]));
+    const outdated = CATEGORIES.filter((c) => {
+      const row = stored.get(c.id);
+      return row === undefined || row.name !== c.name || row.kind !== c.kind || row.order !== c.order;
+    });
+    if (outdated.length > 0) await db.categories.bulkPut(outdated);
   });
 }
 
@@ -46,13 +63,20 @@ export async function saveGuesses(gs: Guess[]): Promise<void> {
   });
 }
 
-/** Rejects with `AccountInUseError` when an entry is booked on the account or transfers into it. */
+/**
+ * Rejects with `AccountInUseError` when an entry is booked on the account or transfers into it, and with
+ * `AccountHasScheduleError` when an income or fixed cost of the plan is added to it automatically (paused or not).
+ */
 export async function deleteAccount(id: string): Promise<void> {
-  await db.transaction('rw', db.accounts, db.entries, async () => {
+  await db.transaction('rw', db.accounts, db.entries, db.plan, async () => {
     const booked = await db.entries.where('accountId').equals(id).count();
     // No index on toAccountId; a scan is fine at this data size.
     const received = await db.entries.filter((e) => e.type === 'transfer' && e.toAccountId === id).count();
     if (booked + received > 0) throw new AccountInUseError();
+    const plan = await db.plan.get('current');
+    if (plan && [...plan.incomes, ...plan.fixed].some((line) => line.schedule?.accountId === id)) {
+      throw new AccountHasScheduleError();
+    }
     await db.accounts.delete(id);
   });
 }

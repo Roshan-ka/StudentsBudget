@@ -1,13 +1,20 @@
 import { isValid, parseISO } from 'date-fns';
 import { z } from 'zod';
+import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
-import { todayIso } from '@/lib/dates';
+import type { Category, Plan, Schedule } from '@/db/types';
+import { addDays, formatDateTime, todayIso } from '@/lib/dates';
 import { CURRENCIES } from '@/lib/money';
 
 export type { BackupData };
 
-/** Bumped when the file's shape changes. A file with a higher number than this came from a newer app. */
-export const BACKUP_VERSION = 1;
+/**
+ * Bumped when the file's shape changes. A file with a higher number than this came from a newer app.
+ * Version 2 adds the plan's schedules and the entries' `recurring` marker, both optional, so version 1 files read.
+ */
+export const BACKUP_VERSION = 2;
+
+const READABLE_VERSIONS = [1, BACKUP_VERSION] as const;
 
 const APP = 'studentsbudget';
 
@@ -56,17 +63,35 @@ const entryBase = {
 };
 
 const entry = z.discriminatedUnion('type', [
-  z.object({ ...entryBase, type: z.enum(['expense', 'income']), categoryId: id }),
+  z.object({
+    ...entryBase,
+    type: z.enum(['expense', 'income']),
+    categoryId: id,
+    recurring: z.object({ scheduleId: id }).optional(),
+  }),
   z.object({ ...entryBase, type: z.literal('transfer'), toAccountId: id, toAmountMinor: minor }),
 ]);
 
 const amount = z.object({ categoryId: id, monthlyMinor: minor });
 
+const schedule = z.object({
+  id,
+  frequency: z.enum(['monthly', 'weekly']),
+  day: z.int(),
+  accountId: id,
+  amountMinor: minor,
+  startOn: isoDate,
+  postedThrough: isoDate,
+  paused: z.boolean().optional(),
+});
+
+const planLine = z.object({ categoryId: id, monthlyMinor: minor, schedule: schedule.optional() });
+
 const plan = z.object({
   id: z.literal('current'),
   cityId: z.literal('regensburg'),
-  incomes: z.array(amount),
-  fixed: z.array(amount),
+  incomes: z.array(planLine),
+  fixed: z.array(planLine),
   oneOffs: z.array(
     z.object({ id, name: text, amountMinor: minor, createdMonth: isoMonth, dueMonth: isoMonth }),
   ),
@@ -95,7 +120,7 @@ const backupData = z.object({
 
 const backupFile = z.object({
   app: z.literal(APP),
-  version: z.literal(BACKUP_VERSION),
+  version: z.literal(READABLE_VERSIONS),
   exportedAt: z.iso.datetime(),
   data: backupData,
 });
@@ -124,6 +149,97 @@ type AllTrue<T extends Record<keyof T, true>> = T;
 /** Compiles only when every table agrees. Exported only so the lint rule for unused types leaves it alone. */
 export type BackupSchemaMatchesTypes = AllTrue<TableAgreement>;
 
+const BUILT_IN_CATEGORY_IDS: ReadonlySet<string> = new Set(CATEGORIES.map((c) => c.id));
+
+/** Every schedule of the plan's income and fixed lines. */
+function schedulesOf(plan: Plan | null): Schedule[] {
+  if (!plan) return [];
+  return [...plan.incomes, ...plan.fixed].flatMap((line) => (line.schedule ? [line.schedule] : []));
+}
+
+function hasDuplicates(keys: readonly string[]): boolean {
+  return new Set(keys).size !== keys.length;
+}
+
+/**
+ * Whether a schedule is one the app could have made. A damaged one could post thousands of entries on the
+ * next start (a watermark far behind its start) or on days that do not exist (day 40).
+ */
+function isPossibleSchedule(schedule: Schedule, planCreatedOn: string): boolean {
+  const lastDay = schedule.frequency === 'monthly' ? 31 : 7;
+  return (
+    schedule.day >= 1 &&
+    schedule.day <= lastDay &&
+    schedule.amountMinor > 0 &&
+    // ISO dates sort the way the days do, so plain comparison is enough.
+    schedule.startOn >= planCreatedOn &&
+    schedule.postedThrough >= addDays(schedule.startOn, -1)
+  );
+}
+
+/**
+ * What the rows of a file that has the right shape say about each other, as the first thing that cannot be
+ * true: a row that points at one the file does not have, two rows with a key that must be unique, an amount
+ * that cannot happen. Null when nothing is wrong. `openingMinor` is free: an account can be overdrawn.
+ */
+function findProblem(d: BackupData): string | null {
+  const accountIds = new Set(d.accounts.map((a) => a.id));
+  // A built-in category does not have to be in the file: parseBackup adds the ones that are missing.
+  const categoryIds = new Set([...BUILT_IN_CATEGORY_IDS, ...d.categories.map((c) => c.id)]);
+  const schedules = schedulesOf(d.plan);
+  const planLines = d.plan ? [...d.plan.incomes, ...d.plan.fixed, ...d.plan.envelopes] : [];
+
+  if (d.entries.some((e) => !accountIds.has(e.accountId))) return "an entry uses an account that isn't in the file";
+  if (d.entries.some((e) => e.type === 'transfer' && !accountIds.has(e.toAccountId))) {
+    return "a transfer goes to an account that isn't in the file";
+  }
+  if (schedules.some((s) => !accountIds.has(s.accountId))) {
+    return "a fixed cost or income uses an account that isn't in the file";
+  }
+  if (d.entries.some((e) => e.type !== 'transfer' && !categoryIds.has(e.categoryId))) {
+    return "an entry uses a category that isn't in the file";
+  }
+  if ([...planLines, ...d.guesses].some((line) => !categoryIds.has(line.categoryId))) {
+    return 'the plan or the guesses use an unknown category';
+  }
+
+  // The keys of the tables. Without this check, restoring would fail on the second row that has the same key.
+  const keyLists = [
+    d.accounts.map((a) => a.id),
+    d.categories.map((c) => c.id),
+    d.entries.map((e) => e.id),
+    (d.plan?.oneOffs ?? []).map((o) => o.id),
+    schedules.map((s) => s.id),
+    d.guesses.map((g) => g.categoryId),
+    d.fxRates.map((r) => `${r.currency}+${r.source}`),
+  ];
+  if (keyLists.some(hasDuplicates)) return 'two rows share the same id';
+
+  const moneyOut =
+    d.entries.some((e) => e.amountMinor <= 0 || (e.type === 'transfer' && e.toAmountMinor <= 0)) ||
+    (d.plan?.oneOffs ?? []).some((o) => o.amountMinor <= 0) ||
+    schedules.some((s) => s.amountMinor <= 0);
+  if (moneyOut) return 'an amount is zero or negative';
+  // Zero is fine for these: an envelope, a guess or the rent can be 0, and a small amount can convert to €0.00.
+  if (d.entries.some((e) => e.eurMinor < 0) || [...planLines, ...d.guesses].some((line) => line.monthlyMinor < 0)) {
+    return 'an amount is negative';
+  }
+
+  // There are schedules only when there is a plan.
+  const createdOn = d.plan?.createdOn ?? '';
+  if (schedules.some((s) => !isPossibleSchedule(s, createdOn))) {
+    return 'a fixed cost or income has an impossible schedule';
+  }
+  return null;
+}
+
+/** The file's categories and every built-in one it lacks, so a file from before a category existed still restores all 26. */
+function withBuiltInCategories(categories: Category[]): Category[] {
+  const present = new Set(categories.map((c) => c.id));
+  const missing = CATEGORIES.filter((c) => !present.has(c.id)).map((c) => ({ ...c }));
+  return missing.length === 0 ? categories : [...categories, ...missing];
+}
+
 /** The text of a backup file: the data, wrapped in the app name, the file version and the time it was made. */
 export function serializeBackup(d: BackupData, now: Date): string {
   return JSON.stringify({ app: APP, version: BACKUP_VERSION, exportedAt: now.toISOString(), data: d }, null, 2);
@@ -132,6 +248,8 @@ export function serializeBackup(d: BackupData, now: Date): string {
 /**
  * Checks a file's text and gives back its data, or a message that says what is wrong with it.
  * The version is looked at before the rest, because a newer file may well have a shape this app does not know.
+ * A file of the right shape is then checked for what its rows say about each other (see `findProblem`), and
+ * the built-in categories it lacks are added to the data it gives back.
  */
 export function parseBackup(
   fileText: string,
@@ -150,7 +268,14 @@ export function parseBackup(
   }
   const parsed = backupFile.safeParse(raw);
   if (!parsed.success) return { ok: false, error: INCOMPLETE };
-  return { ok: true, data: parsed.data.data, exportedAt: parsed.data.exportedAt };
+  const data = parsed.data.data;
+  const problem = findProblem(data);
+  if (problem) return { ok: false, error: `This backup file is damaged: ${problem}.` };
+  return {
+    ok: true,
+    data: { ...data, categories: withBuiltInCategories(data.categories) },
+    exportedAt: parsed.data.exportedAt,
+  };
 }
 
 /** `studentsbudget-backup-2026-10-16.json`: the local day it was made. */
@@ -158,9 +283,13 @@ export function backupFileName(now: Date): string {
   return `${APP}-backup-${todayIso(now)}.json`;
 }
 
-const dayFormatter = new Intl.DateTimeFormat('en-IE', { day: 'numeric', month: 'short' });
-
-/** The question asked before a backup replaces what is on the device: "…the backup from 16 Oct?" */
-export function restoreQuestion(exportedAt: string): string {
-  return `Replace all data on this device with the backup from ${dayFormatter.format(new Date(exportedAt))}?`;
+/** What the confirmation says under the file name: "Saved 19-10-2026, 12:00 · 3 accounts · 47 entries". */
+export function backupSummary(d: BackupData, exportedAt: string): string {
+  const accounts = d.accounts.length;
+  const entries = d.entries.length;
+  return [
+    `Saved ${formatDateTime(exportedAt)}`,
+    `${accounts} ${accounts === 1 ? 'account' : 'accounts'}`,
+    `${entries} ${entries === 1 ? 'entry' : 'entries'}`,
+  ].join(' · ');
 }

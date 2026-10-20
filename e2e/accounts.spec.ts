@@ -106,6 +106,37 @@ test('the transfer form starts with two different accounts and keeps them differ
   await expect(to.locator('option:checked')).toHaveText('Bank (EUR)');
 });
 
+test('the transfer form shows its date as DD-MM-YYYY, and Yesterday dates the transfer the day before', async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date(2026, 9, 16, 12, 0, 0));
+  await mockFrankfurter(page);
+  await openSettings(page);
+  await addAccount(page, { name: 'Bank', currency: 'EUR', opening: '200' });
+  await addAccount(page, { name: 'Wallet', currency: 'EUR', opening: '', kind: 'cash' });
+  await page.getByRole('button', { name: 'Move money between accounts' }).click();
+
+  const date = page.getByLabel('Date', { exact: true });
+  const today = page.getByRole('button', { name: 'Today', exact: true });
+  const yesterday = page.getByRole('button', { name: 'Yesterday', exact: true });
+  await expect(date).toHaveValue('2026-10-16');
+  await expect(page.getByText('16-10-2026', { exact: true })).toBeVisible();
+  await expect(today).toHaveAttribute('aria-pressed', 'true');
+  await expect(yesterday).toHaveAttribute('aria-pressed', 'false');
+
+  await yesterday.click();
+  await expect(date).toHaveValue('2026-10-15');
+  await expect(page.getByText('15-10-2026', { exact: true })).toBeVisible();
+  await expect(yesterday).toHaveAttribute('aria-pressed', 'true');
+  await expect(today).toHaveAttribute('aria-pressed', 'false');
+
+  await page.getByLabel('Amount', { exact: true }).fill('20');
+  await page.getByRole('button', { name: 'Move money', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Transfer saved.');
+  const [transfer] = await readStore<Entry>(page, 'entries');
+  expect(transfer).toMatchObject({ type: 'transfer', amountMinor: 2000, date: '2026-10-15' });
+});
+
 test('an account with entries cannot be deleted, an empty one can', async ({ page }) => {
   await mockFrankfurter(page);
   await openSettings(page);
@@ -175,9 +206,13 @@ test('a new transfer is dated the day it is saved, unless a date was picked', as
   await expect(date).toHaveValue('2026-10-16');
 
   // The form stays open past midnight with no date picked: it is today's date that counts, not the one at mount.
+  // Nothing is typed: the app only comes back to the front, which is when it looks at the date again.
   await page.clock.setFixedTime(new Date(2026, 9, 17, 0, 5, 0));
-  await page.getByLabel('Amount', { exact: true }).fill('20');
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect(date).toHaveValue('2026-10-17');
+  await expect(page.getByText('17-10-2026', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Today', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel('Amount', { exact: true }).fill('20');
   await page.getByRole('button', { name: 'Move money', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
 
@@ -185,8 +220,10 @@ test('a new transfer is dated the day it is saved, unless a date was picked', as
   await openEuroTransfer(page);
   await date.fill('2026-10-10');
   await page.clock.setFixedTime(new Date(2026, 9, 18, 0, 5, 0));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await page.getByLabel('Amount', { exact: true }).fill('5');
   await expect(date).toHaveValue('2026-10-10');
+  await expect(page.getByText('10-10-2026', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Move money', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
 

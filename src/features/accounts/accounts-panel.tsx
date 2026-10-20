@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { db } from '@/db/db';
 import { loadRates, refreshRates } from '@/db/rates';
-import { AccountInUseError, deleteAccount } from '@/db/repo';
+import { AccountHasScheduleError, AccountInUseError, deleteAccount } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
 import { todayIso } from '@/lib/dates';
 import { CURRENCIES, formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
@@ -166,6 +166,12 @@ export function AccountsPanel() {
     } catch (error) {
       if (error instanceof AccountInUseError) {
         setRowError({ id: account.id, message: 'This account has entries. Delete them first.' });
+      } else if (error instanceof AccountHasScheduleError) {
+        setRowError({
+          id: account.id,
+          message:
+            'This account pays or receives a fixed cost or income. Change that first in Fixed costs and income.',
+        });
       } else {
         console.error('StudentsBudget: could not delete the account', error);
         setRowError({ id: account.id, message: 'Could not delete the account.' });

@@ -31,7 +31,7 @@ describe('schema upgrade', () => {
 
     await db.open();
 
-    expect(await db.categories.count()).toBe(18);
+    expect(await db.categories.count()).toBe(26);
     expect(await db.fxRates.count()).toBe(0);
     expect(db.verno).toBe(2);
     // The version-1 table is gone from the real database, not only from the schema.

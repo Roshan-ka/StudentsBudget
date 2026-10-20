@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { Account, Guess, Plan } from '../src/db/types';
+import type { Account, Entry, Guess, Plan } from '../src/db/types';
 import { DEFAULT_SETUP, completeSetup, fillSetup, mockFrankfurter, readStore } from './helpers/setup';
 
 // The fixture's numbers depend on the month (the 300 fee is spread from the current month to March).
@@ -51,7 +51,7 @@ test('the rent range shows where it comes from, collapsed until asked for', asyn
 
   await page.getByText('Source', { exact: true }).click();
   await expect(page.getByText('Universität Regensburg: cheapest Studierendenwerk room')).toBeVisible();
-  await expect(page.getByText('checked 16 Oct 2026', { exact: true })).toBeVisible();
+  await expect(page.getByText('checked 16-10-2026', { exact: true })).toBeVisible();
   const link = page.getByRole('link', { name: 'uni-regensburg.de' });
   await expect(link).toHaveAttribute(
     'href',
@@ -72,7 +72,7 @@ test('every envelope range shows its source, and an estimate says so', async ({ 
   const food = page.locator('details').nth(0);
   await food.getByText('Source', { exact: true }).click();
   await expect(food.getByText('DSW 22nd Sozialerhebung 2021, national mean €194')).toBeVisible();
-  await expect(food.getByText('checked 16 Oct 2026', { exact: true })).toBeVisible();
+  await expect(food.getByText('checked 16-10-2026', { exact: true })).toBeVisible();
   await expect(food.getByRole('link', { name: 'studierendenwerke.de' })).toHaveAttribute('target', '_blank');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
@@ -104,6 +104,8 @@ test('saves and lands on home', async ({ page }) => {
     ],
     fixed: [{ categoryId: 'rent', monthlyMinor: 40000 }],
   });
+  // The helper adds rent and income by hand unless a test asks for schedules.
+  expect([...plan.incomes, ...plan.fixed].some((line) => line.schedule)).toBe(false);
   expect(plan.oneOffs).toMatchObject([
     { name: 'Semester fee', amountMinor: 30000, createdMonth: '2026-10', dueMonth: '2027-03' },
   ]);
@@ -301,4 +303,106 @@ test('the wizard fits a phone without sideways scrolling', async ({ page }) => {
   await page.getByRole('button', { name: 'Add a one-off cost' }).click();
   await expect(page.getByLabel('Due month')).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
+test('rent and income can be added on their day, from any account', async ({ page }) => {
+  await fillSetup(page, {}, { schedules: true });
+  await page.setViewportSize({ width: 375, height: 812 });
+  for (const step of ['Guesses', 'One-off costs', 'Fixed costs', 'Income']) {
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
+  }
+
+  // Parents pay into the Indian account: setup has no rate, so it asks for the rupee amount.
+  const parents = page.getByRole('group', { name: 'Parents schedule', exact: true });
+  await expect(parents.getByRole('checkbox', { name: 'Add it automatically', exact: true })).toBeChecked();
+  await expect(parents.getByText("It's added on its day — don't log it by hand.", { exact: true })).toBeVisible();
+  await parents.getByLabel('Account', { exact: true }).selectOption({ label: 'Home bank (INR)' });
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(inlineAlert(page)).toHaveText('Enter the amount in INR for Parents.');
+  await parents.getByLabel('Amount in INR', { exact: true }).fill('50000');
+
+  // The job pays weekly on Fridays; the plan keeps the €400 a month.
+  const job = page.getByRole('group', { name: 'Job schedule', exact: true });
+  await job.getByLabel('Repeats', { exact: true }).selectOption({ label: 'Weekly on' });
+  await job.getByLabel('Day', { exact: true }).selectOption({ label: 'Friday' });
+  await expect(job.getByText("That's €92.31 each week.", { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+
+  // Rent's choice sits with the fixed costs, once the accounts are known.
+  await expect(page.getByRole('heading', { level: 3, name: 'Fixed costs' })).toBeVisible();
+  const rent = page.getByRole('group', { name: 'Rent schedule', exact: true });
+  await expect(rent.getByLabel('Account', { exact: true }).locator('option:checked')).toHaveText('Local bank (EUR)');
+  await rent.getByLabel('Day', { exact: true }).selectOption('31');
+  await expect(rent.getByText("In a shorter month it's added on the last day.", { exact: true })).toBeVisible();
+  // A cost without an amount asks nothing.
+  await expect(page.getByRole('group', { name: 'Phone & internet schedule', exact: true })).toHaveCount(0);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  for (const step of ['One-off costs', 'Guesses', 'Envelopes']) {
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
+  }
+  await page.getByRole('button', { name: 'Save plan' }).click();
+  await expectOnHome(page);
+
+  const [plan] = await readStore<Plan>(page, 'plan');
+  const accounts = await readStore<Account>(page, 'accounts');
+  const idOf = (name: string) => accounts.find((a) => a.name === name)?.id;
+  const from = { startOn: '2026-10-17', postedThrough: '2026-10-16' };
+  expect(plan.fixed[0]).toMatchObject({
+    categoryId: 'rent',
+    monthlyMinor: 40000,
+    schedule: { frequency: 'monthly', day: 31, accountId: idOf('Local bank'), amountMinor: 40000, ...from },
+  });
+  expect(plan.incomes).toMatchObject([
+    {
+      categoryId: 'income-job',
+      monthlyMinor: 40000,
+      schedule: { frequency: 'weekly', day: 5, accountId: idOf('Local bank'), amountMinor: 9231, ...from },
+    },
+    {
+      categoryId: 'income-parents',
+      monthlyMinor: 50000,
+      schedule: { frequency: 'monthly', day: 1, accountId: idOf('Home bank'), amountMinor: 5_000_000, ...from },
+    },
+  ]);
+});
+
+test('editing the plan keeps each schedule and how far it has posted', async ({ page }) => {
+  await completeSetup(page, {}, { schedules: true });
+  // 1 November: rent and both incomes are added when the app opens.
+  await page.clock.setFixedTime(new Date(2026, 10, 1, 12, 0, 0));
+  await page.reload();
+  // Posting waits for the rate refresh, which a slow network holds for up to its 10 s timeout.
+  await expect.poll(async () => (await readStore<Entry>(page, 'entries')).length, { timeout: 15_000 }).toBe(3);
+  const [before] = await readStore<Plan>(page, 'plan');
+  expect(before.fixed[0].schedule?.postedThrough).toBe('2026-11-30');
+
+  await page.goto('/settings');
+  await page.getByRole('link', { name: 'Edit plan' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Adjust your plan' })).toBeVisible();
+  await page.getByLabel('Rent per month').fill('390');
+  for (const step of ['Income', 'Fixed costs']) {
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
+  }
+  const rent = page.getByRole('group', { name: 'Rent schedule', exact: true });
+  await expect(rent.getByRole('checkbox', { name: 'Add it automatically', exact: true })).toBeChecked();
+  await expect(rent.getByLabel('Account', { exact: true }).locator('option:checked')).toHaveText('Local bank (EUR)');
+  for (const step of ['One-off costs', 'Envelopes']) {
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
+  }
+  await page.getByRole('button', { name: 'Save plan' }).click();
+  await expectOnHome(page);
+
+  const [after] = await readStore<Plan>(page, 'plan');
+  expect(after.fixed[0]).toEqual({
+    categoryId: 'rent',
+    monthlyMinor: 39000,
+    schedule: { ...before.fixed[0].schedule, amountMinor: 39000 },
+  });
+  expect(after.incomes).toEqual(before.incomes);
 });

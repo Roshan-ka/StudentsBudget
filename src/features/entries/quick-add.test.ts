@@ -306,15 +306,54 @@ describe('parseQuickAdd', () => {
     expect(parseQuickAdd('Coffee 6, 2')).toBeNull();
   });
 
-  it('returns null when the chosen number has a bare number straight before it', () => {
-    for (const text of ['coffee 7 40', 'coffee seven forty', 'coffee 2 6', '7 40', 'coffee 7 forty']) {
+  it('offers both readings when a whole number sits straight before a number that could be cents', () => {
+    const cases: [string, [number, number], string][] = [
+      // Before a currency word: "seven forty euros" could be €7.40 or a count of 7 and €40.
+      ['coffee seven forty euros.', [740, 4000], 'coffee'],
+      ['coffee 7 40 euros', [740, 4000], 'coffee'],
+      ['coffee seven forty five euros', [745, 4500], 'coffee'],
+      ['coffee 7 40 EUR', [740, 4000], 'coffee'],
+      ['Coffee 7 40 Euro', [740, 4000], 'Coffee'],
+      ['coffee 7 05 euros', [705, 500], 'coffee'],
+      ['coffee 7 40 euros for 2', [740, 4000], 'coffee for 2'],
+      // The € sign after it is a marker like the word: on its own or written onto the number.
+      ['coffee 7 40 €', [740, 4000], 'coffee'],
+      ['coffee 7 40€', [740, 4000], 'coffee'],
+      ['Coffee 7 40 €.', [740, 4000], 'Coffee'],
+      ['coffee seven forty €', [740, 4000], 'coffee'],
+      ['coffee 7 40euros', [740, 4000], 'coffee'],
+      // With no marker at all.
+      ['coffee 7 40', [740, 4000], 'coffee'],
+      ['coffee seven forty', [740, 4000], 'coffee'],
+      ['coffee 7 forty', [740, 4000], 'coffee'],
+      ['coffee 2 6', [206, 600], 'coffee'],
+      ['7 40', [740, 4000], ''],
+    ];
+    for (const [text, options, note] of cases) {
+      expect(parseQuickAdd(text), text).toEqual({ kind: 'choice', note, options });
+    }
+  });
+
+  it('still reads one amount when the numbers are apart, or there is only one', () => {
+    expect(parseQuickAdd('two coffees six euros')).toEqual({ amountMinor: 600, note: 'two coffees' });
+    expect(parseQuickAdd('six coffees 7,40')).toEqual({ amountMinor: 740, note: 'six coffees' });
+    expect(parseQuickAdd('2 coffees 7 euros')).toEqual({ amountMinor: 700, note: '2 coffees' });
+    expect(parseQuickAdd('döner 6')).toEqual({ amountMinor: 600, note: 'döner' });
+    expect(parseQuickAdd('döner 6 €')).toEqual({ amountMinor: 600, note: 'döner' });
+    expect(parseQuickAdd('€6')).toEqual({ amountMinor: 600, note: '' });
+    expect(parseQuickAdd('6€')).toEqual({ amountMinor: 600, note: '' });
+    expect(parseQuickAdd('6,50 €')).toEqual({ amountMinor: 650, note: '' });
+  });
+
+  it('returns null when a bare number sits straight before the chosen one and they cannot be euros and cents', () => {
+    for (const text of ['coffee 6,50 40', 'coffee 7 140', 'coffee 7 one hundred', 'coffee 7 6,50', 'coffee 7 040']) {
       expect(parseQuickAdd(text), text).toBeNull();
     }
   });
 
-  it('keeps an amount that has other words between it and the number before it, or a marker', () => {
+  it('keeps an amount that has other words between it and the number before it, or a marker in front of it', () => {
     expect(parseQuickAdd('2 coffees 7,40')).toEqual({ amountMinor: 740, note: '2 coffees' });
-    expect(parseQuickAdd('coffee 7 40 €')).toEqual({ amountMinor: 4000, note: 'coffee 7' });
+    // "€40" says the amount plainly: 7 is a count.
     expect(parseQuickAdd('coffee 7 €40')).toEqual({ amountMinor: 4000, note: 'coffee 7' });
     expect(parseQuickAdd('coffee 0 40')).toEqual({ amountMinor: 4000, note: 'coffee 0' });
     expect(parseQuickAdd('coffee twenty five')).toEqual({ amountMinor: 2500, note: 'coffee' });
@@ -411,5 +450,28 @@ describe('suggestCategory', () => {
 
     expect(suggestCategory('döner', history)).toBe('food');
     expect(suggestCategory('döner', history.slice(0, 2))).toBeNull();
+  });
+
+  it('ignores entries a schedule posted, whose note is the category name', () => {
+    const posted: Entry = {
+      id: 'posted',
+      type: 'expense',
+      date: '2026-10-01',
+      accountId: 'bank',
+      amountMinor: 3000,
+      eurMinor: 3000,
+      categoryId: 'phone',
+      note: 'Phone & internet',
+      createdAt: '2026-10-16T12:00:00.000Z',
+      recurring: { scheduleId: 's1' },
+    };
+    const parsed = parseQuickAdd('phone charger 12');
+
+    // No suggestion, so quick add asks with the chips instead of filing it under Phone & internet.
+    expect(parsed).toEqual({ amountMinor: 1200, note: 'phone charger' });
+    expect(suggestCategory('phone charger', [posted])).toBeNull();
+    // A note the person typed still teaches the category, even next to a posted one.
+    const typed = entry('expense', 'phone case', 'shopping', '2026-10-10T12:00:00.000Z');
+    expect(suggestCategory('phone charger', [posted, typed])).toBe('shopping');
   });
 });

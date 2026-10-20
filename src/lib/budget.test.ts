@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { City } from '@/data/cities';
-import type { Entry, OneOff, Plan } from '@/db/types';
+import type { Entry, OneOff, Plan, Schedule } from '@/db/types';
 import { monthStatus, planSummary, rangeWarnings, safeToSpend, setAsideMonthly } from './budget';
 import { addDays, firstOfMonth, monthOf } from './dates';
 
@@ -27,6 +27,39 @@ const plan: Plan = {
 };
 
 const foodOnly: Plan = { ...plan, envelopes: [{ categoryId: 'food', monthlyMinor: 31000 }] };
+
+/** The rows for the plan's own envelopes; `safeToSpend` and `monthStatus` add €0 rows for the other flexible categories. */
+function ownRows<T extends { categoryId: string }>(p: Plan, rows: T[]): T[] {
+  return rows.filter((r) => p.envelopes.some((e) => e.categoryId === r.categoryId));
+}
+
+/** The flexible categories `foodOnly` has no envelope for, in category order. */
+const MISSING_FROM_FOOD_ONLY = [
+  'eating-out',
+  'going-out',
+  'transport',
+  'shopping',
+  'health',
+  'personal-care',
+  'study',
+  'household',
+  'travel',
+  'gifts',
+  'other',
+];
+
+function schedule(paused?: boolean): Schedule {
+  return {
+    id: 's1',
+    frequency: 'monthly',
+    day: 1,
+    accountId: 'bank',
+    amountMinor: 40000,
+    startOn: '2026-10-01',
+    postedThrough: '2026-09-30',
+    ...(paused === undefined ? {} : { paused }),
+  };
+}
 
 let nextId = 0;
 function expense(categoryId: string, date: string, eurMinor: number, type: 'expense' | 'income' = 'expense'): Entry {
@@ -100,6 +133,27 @@ describe('planSummary', () => {
     expect(planSummary(roomy, '2026-10').overByMinor).toBe(0);
   });
 
+  it('leaves out an income or fixed line whose schedule is paused', () => {
+    const paused: Plan = {
+      ...plan,
+      incomes: [{ categoryId: 'income-parents', monthlyMinor: 90000, schedule: schedule(true) }],
+      fixed: [
+        { categoryId: 'rent', monthlyMinor: 40000, schedule: schedule(true) },
+        { categoryId: 'phone', monthlyMinor: 2500 },
+      ],
+    };
+    expect(planSummary(paused, '2026-10')).toMatchObject({ incomeMinor: 0, fixedMinor: 2500, availableMinor: -8500 });
+  });
+
+  it('counts a line whose schedule is running, or has no pause flag', () => {
+    const running: Plan = {
+      ...plan,
+      incomes: [{ categoryId: 'income-parents', monthlyMinor: 90000, schedule: schedule(false) }],
+      fixed: [{ categoryId: 'rent', monthlyMinor: 40000, schedule: schedule() }],
+    };
+    expect(planSummary(running, '2026-10')).toMatchObject({ incomeMinor: 90000, fixedMinor: 40000 });
+  });
+
   it('drops the set-aside once the one-off is due', () => {
     const summary = planSummary(plan, '2027-03');
     expect(summary.setAsideMinor).toBe(0);
@@ -123,17 +177,48 @@ describe('safeToSpend', () => {
     expect(s.totalMinor).toBe(11000);
   });
 
-  it('sums the envelopes and keeps the plan order', () => {
+  it('sums the envelopes, in category order', () => {
     const s = safeToSpend(plan, [...entries, expense('going-out', '2026-10-15', 1500)], '2026-10-16');
-    expect(s.envelopes.map((e) => e.categoryId)).toEqual(['food', 'going-out']);
+    expect(ownRows(plan, s.envelopes).map((e) => e.categoryId)).toEqual(['food', 'going-out']);
     // going-out: through = round(15500 × 18 / 31) = 9000, spent 1500
-    expect(s.envelopes[1]).toEqual({
+    expect(s.envelopes.find((e) => e.categoryId === 'going-out')).toEqual({
       categoryId: 'going-out',
       weekShareMinor: 3500,
       spentThisWeekMinor: 1500,
       safeMinor: 7500,
     });
     expect(s.totalMinor).toBe(11000 + 7500);
+  });
+
+  it('adds a €0 row for each flexible category the plan has no envelope for, so its spending still counts', () => {
+    const health = expense('health', '2026-10-14', 1500);
+    const s = safeToSpend(foodOnly, [...entries, health], '2026-10-16');
+
+    // Every flexible category, in category order: food is the first of them.
+    expect(s.envelopes.map((e) => e.categoryId)).toEqual(['food', ...MISSING_FROM_FOOD_ONLY]);
+    expect(s.envelopes.find((e) => e.categoryId === 'health')).toEqual({
+      categoryId: 'health',
+      weekShareMinor: 0,
+      spentThisWeekMinor: 1500,
+      safeMinor: -1500,
+    });
+    expect(s.envelopes.find((e) => e.categoryId === 'gifts')).toEqual({
+      categoryId: 'gifts',
+      weekShareMinor: 0,
+      spentThisWeekMinor: 0,
+      safeMinor: 0,
+    });
+    // 11000 without the health expense.
+    expect(s.totalMinor).toBe(11000 - 1500);
+  });
+
+  it('adds no row for a fixed category, and no second row for one the plan has at €0', () => {
+    const atZero: Plan = { ...foodOnly, envelopes: [...foodOnly.envelopes, { categoryId: 'health', monthlyMinor: 0 }] };
+    const s = safeToSpend(atZero, [...entries, expense('gym', '2026-10-14', 3000)], '2026-10-16');
+
+    expect(s.envelopes.map((e) => e.categoryId)).not.toContain('gym');
+    expect(s.envelopes.filter((e) => e.categoryId === 'health')).toHaveLength(1);
+    expect(s.totalMinor).toBe(11000);
   });
 
   it("counts only the current month's days in a split week", () => {
@@ -154,7 +239,7 @@ describe('safeToSpend', () => {
     const noise = [
       transfer('2026-10-14', 8000),
       expense('rent', '2026-10-01', 40000),
-      expense('shopping', '2026-10-13', 4000),
+      expense('gym', '2026-10-13', 4000),
     ];
     const s = safeToSpend(foodOnly, [...entries, ...noise], '2026-10-16');
     expect(s.envelopes[0].spentThisWeekMinor).toBe(2000);
@@ -187,7 +272,7 @@ describe('safeToSpend', () => {
       expect(s.weekStart).toBe('2026-10-12');
       expect(s.weekEnd).toBe('2026-10-18');
       // food: 31000 × 3 / 31 = 3000, eating-out: 12400 × 3 / 31 = 1200. Nothing accrued before the 16th.
-      expect(s.envelopes).toEqual([
+      expect(ownRows(setUpOn16th, s.envelopes)).toEqual([
         { categoryId: 'food', weekShareMinor: 3000, spentThisWeekMinor: 0, safeMinor: 3000 },
         { categoryId: 'eating-out', weekShareMinor: 1200, spentThisWeekMinor: 0, safeMinor: 1200 },
       ]);
@@ -218,7 +303,7 @@ describe('safeToSpend', () => {
 
     it('is zero for a week that ended before the setup day', () => {
       const s = safeToSpend(setUpOn16th, [], '2026-10-08');
-      expect(s.envelopes.map((e) => [e.weekShareMinor, e.safeMinor])).toEqual([
+      expect(ownRows(setUpOn16th, s.envelopes).map((e) => [e.weekShareMinor, e.safeMinor])).toEqual([
         [0, 0],
         [0, 0],
       ]);
@@ -272,10 +357,50 @@ describe('monthStatus', () => {
       expense('rent', '2026-10-01', 40000),
       transfer('2026-10-10', 8000),
     ];
-    expect(monthStatus(plan, entries, '2026-10')).toEqual([
+    expect(ownRows(plan, monthStatus(plan, entries, '2026-10'))).toEqual([
       { categoryId: 'food', plannedMinor: 31000, spentMinor: 7000 },
       { categoryId: 'going-out', plannedMinor: 15500, spentMinor: 3000 },
     ]);
+  });
+
+  it('adds a €0 row for each flexible category the plan has no envelope for, so its spending still counts', () => {
+    const entries = [expense('health', '2026-10-06', 1800), expense('gym', '2026-10-06', 2500)];
+    const rows = monthStatus(foodOnly, entries, '2026-10');
+
+    expect(rows.map((r) => r.categoryId)).toEqual(['food', ...MISSING_FROM_FOOD_ONLY]);
+    expect(rows.find((r) => r.categoryId === 'health')).toEqual({
+      categoryId: 'health',
+      plannedMinor: 0,
+      spentMinor: 1800,
+    });
+    // A fixed category is no envelope.
+    expect(rows.map((r) => r.categoryId)).not.toContain('gym');
+  });
+
+  it('keeps category order for a plan saved with the original six envelopes: the new €0 rows come before Other', () => {
+    const sixEnvelopes: Plan = {
+      ...plan,
+      envelopes: ['food', 'eating-out', 'going-out', 'transport', 'shopping', 'other'].map((categoryId) => ({
+        categoryId,
+        monthlyMinor: 5000,
+      })),
+    };
+
+    expect(monthStatus(sixEnvelopes, [], '2026-10').map((r) => r.categoryId)).toEqual([
+      'food',
+      'eating-out',
+      'going-out',
+      'transport',
+      'shopping',
+      'health',
+      'personal-care',
+      'study',
+      'household',
+      'travel',
+      'gifts',
+      'other',
+    ]);
+    expect(safeToSpend(sixEnvelopes, [], '2026-10-16').envelopes.at(-1)?.categoryId).toBe('other');
   });
 
   describe('in the month the plan was set up', () => {
@@ -283,7 +408,7 @@ describe('monthStatus', () => {
 
     it('plans only the days from the setup day to the end of the month', () => {
       // 31000 × 16 / 31 = 16000
-      expect(monthStatus(setUpOn16th, [], '2026-10')).toEqual([
+      expect(ownRows(setUpOn16th, monthStatus(setUpOn16th, [], '2026-10'))).toEqual([
         { categoryId: 'food', plannedMinor: 16000, spentMinor: 0 },
       ]);
     });
@@ -294,13 +419,13 @@ describe('monthStatus', () => {
         expense('food', '2026-10-16', 700),
         expense('food', '2026-10-20', 300),
       ];
-      expect(monthStatus(setUpOn16th, entries, '2026-10')).toEqual([
+      expect(ownRows(setUpOn16th, monthStatus(setUpOn16th, entries, '2026-10'))).toEqual([
         { categoryId: 'food', plannedMinor: 16000, spentMinor: 1000 },
       ]);
     });
 
     it('leaves the next month untouched', () => {
-      expect(monthStatus(setUpOn16th, [expense('food', '2026-11-03', 400)], '2026-11')).toEqual([
+      expect(ownRows(setUpOn16th, monthStatus(setUpOn16th, [expense('food', '2026-11-03', 400)], '2026-11'))).toEqual([
         { categoryId: 'food', plannedMinor: 31000, spentMinor: 400 },
       ]);
     });

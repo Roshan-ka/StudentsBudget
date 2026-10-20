@@ -242,7 +242,8 @@ test('delete asks first: Cancel keeps the entry, Yes removes it', async ({ page 
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(1);
 
   await panel.getByRole('button', { name: 'Delete', exact: true }).click();
-  await panel.getByRole('button', { name: 'Yes' }).click();
+  // Exact, since the edit form's Yesterday chip also starts with "Yes".
+  await panel.getByRole('button', { name: 'Yes', exact: true }).click();
 
   await expect(list.getByText('€6.00')).toHaveCount(0);
   await expect(list.getByText('Nothing logged here yet.')).toBeVisible();
@@ -564,4 +565,239 @@ test('the list moves on to the new month when the app is opened again after a mo
   await expect(page.getByText('Oct 2026')).toHaveCount(0);
   // November is the current month again, so there is nothing to clear.
   await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);
+});
+
+async function pageOverflow(page: Page) {
+  return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+}
+
+function dateChip(page: Page, name: 'Today' | 'Yesterday') {
+  return page.getByRole('button', { name, exact: true });
+}
+
+/** Opens the New entry page from /entries and waits until its form has rendered. */
+async function openNewEntry(page: Page) {
+  await page.getByRole('link', { name: 'Add entry' }).click();
+  await expect(page.getByLabel('Amount', { exact: true })).toBeVisible();
+}
+
+test('the date field shows DD-MM-YYYY and the native input keeps the ISO value and the label', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await openNewEntry(page);
+  const date = page.getByLabel('Date', { exact: true });
+
+  await expect(date).toHaveValue('2026-10-16');
+  await expect(date).toHaveAttribute('type', 'date');
+  const shown = page.getByText('16-10-2026', { exact: true });
+  await expect(shown).toBeVisible();
+  // The text is for the eye: the input says the date to a screen reader.
+  await expect(shown).toHaveAttribute('aria-hidden', 'true');
+
+  await date.fill('2026-10-09');
+  await expect(date).toHaveValue('2026-10-09');
+  await expect(page.getByText('09-10-2026', { exact: true })).toBeVisible();
+  await expect(page.getByText('16-10-2026', { exact: true })).toHaveCount(0);
+  // Neither chip stands for another date.
+  await expect(dateChip(page, 'Today')).toHaveAttribute('aria-pressed', 'false');
+  await expect(dateChip(page, 'Yesterday')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('Yesterday dates the entry the day before, and Today takes it back', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await openNewEntry(page);
+  const date = page.getByLabel('Date', { exact: true });
+  const today = dateChip(page, 'Today');
+  const yesterday = dateChip(page, 'Yesterday');
+
+  // The chip that matches is marked, from the start.
+  await expect(today).toHaveAttribute('aria-pressed', 'true');
+  await expect(yesterday).toHaveAttribute('aria-pressed', 'false');
+
+  await yesterday.click();
+  await expect(date).toHaveValue('2026-10-15');
+  await expect(page.getByText('15-10-2026', { exact: true })).toBeVisible();
+  await expect(yesterday).toHaveAttribute('aria-pressed', 'true');
+  await expect(today).toHaveAttribute('aria-pressed', 'false');
+
+  await today.click();
+  await expect(date).toHaveValue('2026-10-16');
+  await expect(today).toHaveAttribute('aria-pressed', 'true');
+
+  await yesterday.click();
+  await page.getByLabel('Amount', { exact: true }).fill('8,40');
+  await page.getByLabel('Note', { exact: true }).fill('Mensa');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+
+  await expect(page).toHaveURL('/entries?month=2026-10');
+  await expect(entriesList(page).getByRole('heading', { level: 3 })).toHaveText(['Thursday, 15 October']);
+  const [entry] = await readStore<Entry>(page, 'entries');
+  expect(entry).toMatchObject({ type: 'expense', note: 'Mensa', amountMinor: 840, date: '2026-10-15' });
+});
+
+test('Today and Yesterday follow the clock, and a picked date stays', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await openNewEntry(page);
+  const date = page.getByLabel('Date', { exact: true });
+
+  // The form stays open past midnight: "today" is the date now, not the one when it opened.
+  await page.clock.setFixedTime(new Date(2026, 9, 17, 0, 5, 0));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(date).toHaveValue('2026-10-17');
+  await expect(dateChip(page, 'Today')).toHaveAttribute('aria-pressed', 'true');
+  await dateChip(page, 'Yesterday').click();
+  await expect(date).toHaveValue('2026-10-16');
+
+  // A picked date stays where it was, and the chips now say it is neither of the two.
+  await page.clock.setFixedTime(new Date(2026, 9, 18, 0, 5, 0));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(date).toHaveValue('2026-10-16');
+  await expect(dateChip(page, 'Today')).toHaveAttribute('aria-pressed', 'false');
+  await expect(dateChip(page, 'Yesterday')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('editing an entry shows its date as DD-MM-YYYY, with the chip that matches', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const accountId = (await readStore<Account>(page, 'accounts')).find((a) => a.name === 'Cash')?.id;
+  await writeStore(page, 'entries', {
+    put: [
+      {
+        id: 'e',
+        type: 'expense',
+        date: '2026-10-15',
+        accountId,
+        amountMinor: 300,
+        eurMinor: 300,
+        categoryId: 'food',
+        note: 'Rewe',
+        createdAt: '2026-10-15T10:00:00.000Z',
+      },
+    ],
+  });
+  await openEntries(page);
+
+  await entriesList(page).getByRole('button', { name: /Rewe/ }).click();
+  const panel = page.getByRole('region', { name: 'Edit entry' });
+  await expect(panel.getByLabel('Date', { exact: true })).toHaveValue('2026-10-15');
+  await expect(panel.getByText('15-10-2026', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Yesterday', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+  // Today moves the entry to today's date and keeps it the same entry.
+  await panel.getByRole('button', { name: 'Today', exact: true }).click();
+  await panel.getByRole('button', { name: 'Save changes' }).click();
+  await expect(panel).toHaveCount(0);
+  const after = await readStore<Entry>(page, 'entries');
+  expect(after).toHaveLength(1);
+  expect(after[0]).toMatchObject({ id: 'e', date: '2026-10-16' });
+});
+
+test('a tap anywhere on the date field lands on the native date input', async ({ page, isMobile }) => {
+  await setupAndOpenEntries(page);
+  await openNewEntry(page);
+  const date = page.getByLabel('Date', { exact: true });
+  const shown = await page.getByText('16-10-2026', { exact: true }).boundingBox();
+  const input = await date.boundingBox();
+  const inputId = await date.getAttribute('id');
+  expect(shown && input && inputId).toBeTruthy();
+
+  // The input lies over the whole field: the text, the calendar icon and the padding around them.
+  expect(input!.width).toBeGreaterThan(shown!.width * 2);
+  expect(input!.x).toBeLessThanOrEqual(shown!.x);
+  const y = input!.y + input!.height / 2;
+  const xs = [input!.x + 3, shown!.x + shown!.width / 2, input!.x + input!.width - 3];
+  for (const x of xs) {
+    const topId = await page.evaluate(([px, py]) => document.elementFromPoint(px, py)?.id, [x, y] as const);
+    expect(topId).toBe(inputId);
+  }
+
+  // A tap at the far end, over the icon, reaches it. A mouse click also asks the browser for the picker.
+  await page.evaluate(() => {
+    const calls = { count: 0 };
+    Object.assign(window, { pickerCalls: calls });
+    HTMLInputElement.prototype.showPicker = () => {
+      calls.count += 1;
+    };
+  });
+  const tapX = xs[xs.length - 1];
+  if (isMobile) await page.touchscreen.tap(tapX, y);
+  else await page.mouse.click(tapX, y);
+  await expect(date).toBeFocused();
+  const pickerCalls = await page.evaluate(
+    () => (window as unknown as { pickerCalls: { count: number } }).pickerCalls.count,
+  );
+  // A touch tap is left to the browser, which opens the picker by itself.
+  expect(pickerCalls).toBe(isMobile ? 0 : 1);
+});
+
+test('quick add shows the original six categories first, and More shows the other six', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  // 375 px, the narrowest phone the app is made for.
+  await page.setViewportSize({ width: 375, height: 812 });
+
+  await quickAdd(page, 'pharmacy 7');
+  const group = page.getByRole('group', { name: 'Category' });
+  const moreChip = group.getByRole('button', { name: 'More', exact: true });
+  const names = () => group.getByRole('button').allTextContents();
+  const original = ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other'];
+  const more = ['Health & pharmacy', 'Personal care', 'Study materials', 'Household', 'Travel', 'Gifts'];
+
+  await expect(moreChip).toHaveAttribute('aria-expanded', 'false');
+  expect(await names()).toEqual([...original, 'More']);
+  expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
+
+  await moreChip.click();
+  await expect(moreChip).toHaveAttribute('aria-expanded', 'true');
+  expect(await names()).toEqual([...original, 'More', ...more]);
+  expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
+
+  await group.getByRole('button', { name: 'Health & pharmacy', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €7.00 · pharmacy · Health & pharmacy');
+  const [entry] = await readStore<Entry>(page, 'entries');
+  expect(entry).toMatchObject({ type: 'expense', categoryId: 'health', note: 'pharmacy', amountMinor: 700 });
+
+  // The next line that has to ask starts with the six again.
+  await quickAdd(page, 'poster 3');
+  await expect(moreChip).toHaveAttribute('aria-expanded', 'false');
+  expect(await names()).toEqual([...original, 'More']);
+});
+
+test('an entry a schedule posted shows a Recurring tag in the list', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const accountId = (await readStore<Account>(page, 'accounts')).find((a) => a.name === 'Cash')?.id;
+  const base = { type: 'expense', accountId, createdAt: '2026-10-16T10:00:00.000Z' };
+  await writeStore(page, 'entries', {
+    put: [
+      {
+        ...base,
+        id: 'rent',
+        date: '2026-10-01',
+        amountMinor: 40000,
+        eurMinor: 40000,
+        categoryId: 'rent',
+        note: 'Rent',
+        recurring: { scheduleId: 's-rent' },
+      },
+      { ...base, id: 'once', date: '2026-10-02', amountMinor: 900, eurMinor: 900, categoryId: 'food', note: 'Rewe' },
+    ],
+  });
+
+  await openEntries(page);
+  const list = entriesList(page);
+  await expect(list.getByRole('listitem').filter({ hasText: 'Rent' }).getByText('Recurring', { exact: true })).toBeVisible();
+  await expect(list.getByRole('listitem').filter({ hasText: 'Rewe' }).getByText('Recurring')).toHaveCount(0);
+  await expect(list.getByText('Recurring', { exact: true })).toHaveCount(1);
+  // The note is the category name, so the row says "Rent" once, not "Rent" over "Rent". Rewe keeps its category.
+  await expect(list.getByRole('listitem').filter({ hasText: 'Rent' }).getByText('Rent', { exact: true })).toHaveCount(1);
+  await expect(list.getByRole('listitem').filter({ hasText: 'Rewe' }).getByText('Food & groceries', { exact: true })).toBeVisible();
+
+  // Editing the entry keeps its tag.
+  await list.getByRole('button', { name: /Rent/ }).click();
+  const panel = page.getByRole('region', { name: 'Edit entry' });
+  await panel.getByLabel('Note').fill('October rent');
+  await panel.getByRole('button', { name: 'Save changes' }).click();
+  await expect(panel).toHaveCount(0);
+  const renamed = list.getByRole('listitem').filter({ hasText: 'October rent' });
+  await expect(renamed.getByText('Recurring', { exact: true })).toBeVisible();
+  // A note of its own brings the category back under it.
+  await expect(renamed.getByText('Rent', { exact: true })).toBeVisible();
+  expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
 });

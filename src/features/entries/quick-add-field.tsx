@@ -8,27 +8,104 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { deleteEntry, saveEntry } from '@/db/repo';
 import { todayIso } from '@/lib/dates';
-import { formatMoney, type Minor } from '@/lib/money';
+import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { buildEntry } from './build-entry';
-import { FLEXIBLE_CATEGORIES, categoryName } from './categories';
-import { parseQuickAdd, suggestCategory } from './quick-add';
+import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES, categoryName } from './categories';
+import { parseQuickAdd, suggestCategory, type QuickAddAmount, type QuickAddChoice } from './quick-add';
 import { pickQuickAddAccount } from './quick-add-account';
 
-type Parsed = { amountMinor: Minor; note: string };
+/** The two readings of a line like "coffee 7 40 euros", shown in the currency quick add saves in. */
+type Choice = QuickAddChoice & { currency: CurrencyCode };
 
 /** How long the "Saved …" line, with its Undo, stays up. */
 const SAVED_LINE_MS = 10_000;
 
+/** The flexible categories added after the original six: they sit behind the More chip. */
+const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !GUESS_CATEGORIES.some((g) => g.id === c.id));
+
+/**
+ * One chip per flexible category: the original six, then a More chip that shows the rest. It is only on screen
+ * while the line waits for a category, so every new line starts with the six again.
+ */
+function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: string) => void }) {
+  const [showMore, setShowMore] = useState(false);
+  const chip = (category: { id: string; name: string }) => (
+    <Button
+      key={category.id}
+      type="button"
+      variant="outline"
+      className="h-10 px-3"
+      disabled={busy}
+      onClick={() => onPick(category.id)}
+    >
+      {category.name}
+    </Button>
+  );
+
+  return (
+    <div role="group" aria-label="Category" className="flex flex-col gap-2">
+      <p className="text-sm text-muted-foreground">Which category?</p>
+      <div className="flex flex-wrap gap-2">
+        {GUESS_CATEGORIES.map(chip)}
+        <Button
+          type="button"
+          variant="secondary"
+          className="h-10 px-3"
+          aria-expanded={showMore}
+          onClick={() => setShowMore((open) => !open)}
+        >
+          More
+        </Button>
+        {showMore && MORE_CATEGORIES.map(chip)}
+      </div>
+    </div>
+  );
+}
+
+/** One button per reading of the line: "€7.40" and "€40". Whole amounts print without cents. */
+function AmountChoice({
+  choice,
+  busy,
+  onPick,
+}: {
+  choice: Choice;
+  busy: boolean;
+  onPick: (amountMinor: Minor) => void;
+}) {
+  return (
+    <div role="group" aria-label="Amount" className="flex flex-col gap-2">
+      <p className="text-sm text-muted-foreground">Which amount?</p>
+      <div className="flex flex-wrap gap-2">
+        {choice.options.map((option) => (
+          <Button
+            key={option}
+            type="button"
+            variant="outline"
+            className="h-10 px-3"
+            disabled={busy}
+            onClick={() => onPick(option)}
+          >
+            {formatMoney(option, choice.currency, { whole: option % 100 === 0 })}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * One line to log an expense: "döner 6", typed or dictated. It saves straight away when an earlier
  * expense with the same first word gives the category; otherwise it asks with one chip per flexible
- * category. A line that says what was saved comes with an Undo button.
+ * category (the original six, and the rest behind More). A line with two readings ("coffee 7 40 euros") first
+ * asks which amount. A line that says what was saved comes with an Undo button.
  */
 export function QuickAddField() {
   const id = useId();
   const [text, setText] = useState('');
+  // Set while the amount buttons are shown: the two readings of the typed line, waiting for a tap.
+  const [choice, setChoice] = useState<Choice | null>(null);
   // Set while the chips are shown: what the typed line parsed to, waiting for a category.
-  const [pending, setPending] = useState<Parsed | null>(null);
+  const [pending, setPending] = useState<QuickAddAmount | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,7 +141,7 @@ export function QuickAddField() {
    * Saves to the account `pickQuickAddAccount` chooses, dated today. Says why in `error` when it cannot.
    * Callers go through `runOnce`.
    */
-  async function save(parsed: Parsed, categoryId: string) {
+  async function save(parsed: QuickAddAmount, categoryId: string) {
     setError(null);
     try {
       const account = pickQuickAddAccount(await db.accounts.toArray());
@@ -95,11 +172,50 @@ export function QuickAddField() {
       const parts = [formatMoney(result.entry.amountMinor, account.currency), result.entry.note, categoryName(categoryId)];
       setSaved({ id: result.entry.id, message: `Saved ${parts.filter((part) => part !== '').join(' · ')}` });
       setText('');
+      setChoice(null);
       setPending(null);
     } catch (saveError) {
       console.error('StudentsBudget: could not save the quick-add entry', saveError);
       setError('Could not save the entry.');
     }
+  }
+
+  /**
+   * Saves under the category of an earlier expense with the same first word, or shows the chips when there is none.
+   * Callers go through `runOnce`.
+   */
+  async function saveOrAsk(parsed: QuickAddAmount) {
+    let suggestion: string | null;
+    try {
+      const history = await db.entries.where('type').equals('expense').toArray();
+      suggestion = suggestCategory(parsed.note, history);
+    } catch (readError) {
+      console.error('StudentsBudget: could not read the earlier entries', readError);
+      setError('Could not save the entry.');
+      return;
+    }
+
+    if (suggestion === null) {
+      setError(null);
+      setChoice(null);
+      setPending(parsed);
+      return;
+    }
+    await save(parsed, suggestion);
+  }
+
+  /** Shows the two amount buttons, in the currency of the account quick add saves to. Callers go through `runOnce`. */
+  async function ask(readings: QuickAddChoice) {
+    let currency: CurrencyCode;
+    try {
+      currency = pickQuickAddAccount(await db.accounts.toArray())?.currency ?? 'EUR';
+    } catch (readError) {
+      console.error('StudentsBudget: could not read the accounts', readError);
+      setError('Could not save the entry.');
+      return;
+    }
+    setError(null);
+    setChoice({ ...readings, currency });
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -109,29 +225,18 @@ export function QuickAddField() {
 
     await runOnce(async () => {
       setSaved(null);
+      setChoice(null);
       setPending(null);
       const parsed = parseQuickAdd(text);
       if (parsed === null) {
         setError('Add an amount, like “döner 6”');
         return;
       }
-
-      let suggestion: string | null;
-      try {
-        const history = await db.entries.where('type').equals('expense').toArray();
-        suggestion = suggestCategory(parsed.note, history);
-      } catch (readError) {
-        console.error('StudentsBudget: could not read the earlier entries', readError);
-        setError('Could not save the entry.');
+      if ('kind' in parsed) {
+        await ask(parsed);
         return;
       }
-
-      if (suggestion === null) {
-        setError(null);
-        setPending(parsed);
-        return;
-      }
-      await save(parsed, suggestion);
+      await saveOrAsk(parsed);
     });
   }
 
@@ -157,7 +262,8 @@ export function QuickAddField() {
             value={text}
             onChange={(event) => {
               setText(event.target.value);
-              // The chips belong to the line that was typed; a changed line has to be added again.
+              // The amount buttons and the chips belong to the line that was typed; a changed line has to be added again.
+              setChoice(null);
               setPending(null);
               setError(null);
             }}
@@ -171,24 +277,16 @@ export function QuickAddField() {
         </div>
       </form>
 
+      {choice !== null && (
+        <AmountChoice
+          choice={choice}
+          busy={busy}
+          onPick={(amountMinor) => void runOnce(() => saveOrAsk({ amountMinor, note: choice.note }))}
+        />
+      )}
+
       {pending !== null && (
-        <div role="group" aria-label="Category" className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">Which category?</p>
-          <div className="flex flex-wrap gap-2">
-            {FLEXIBLE_CATEGORIES.map((category) => (
-              <Button
-                key={category.id}
-                type="button"
-                variant="outline"
-                className="h-10 px-3"
-                disabled={busy}
-                onClick={() => void runOnce(() => save(pending, category.id))}
-              >
-                {category.name}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <CategoryChips busy={busy} onPick={(categoryId) => void runOnce(() => save(pending, categoryId))} />
       )}
 
       {error && (

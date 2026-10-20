@@ -1,25 +1,55 @@
 'use client';
 
-import { INCOME_CATEGORIES, amountOf, withAmount, type DraftUpdate, type SetupDraft } from '../draft';
+import { DraftScheduleFields } from '@/features/recurring/draft-schedule-fields';
+import type { IsoDate } from '@/lib/dates';
+import {
+  INCOME_CATEGORIES,
+  setLineAmount,
+  setLineSchedule,
+  type AccountOption,
+  type DraftUpdate,
+  type SetupDraft,
+} from '../draft';
 import { AmountField } from './amount-field';
 
-export function IncomeStep({ draft, update }: { draft: SetupDraft; update: DraftUpdate }) {
+export function IncomeStep({
+  draft,
+  update,
+  accounts,
+  today,
+}: {
+  draft: SetupDraft;
+  update: DraftUpdate;
+  accounts: AccountOption[];
+  today: IsoDate;
+}) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground">
         How much comes in each month, in euros? Leave out what you do not get. If it varies, enter a low estimate.
       </p>
-      {INCOME_CATEGORIES.map((c) => (
-        <AmountField
-          key={c.id}
-          label={c.name}
-          value={amountOf(draft.incomes, c.id) ?? 0}
-          onChange={(minor) =>
-            // A source you do not have is no row, so a 0 removes it.
-            update((d) => ({ ...d, incomes: withAmount(d.incomes, c.id, minor === 0 ? undefined : minor) }))
-          }
-        />
-      ))}
+      {INCOME_CATEGORIES.map((c) => {
+        const line = draft.incomes.find((l) => l.categoryId === c.id);
+        return (
+          <div key={c.id} className="flex flex-col gap-2">
+            <AmountField
+              label={c.name}
+              value={line?.monthlyMinor ?? 0}
+              onChange={(minor) => update((d) => ({ ...d, incomes: setLineAmount(d.incomes, c.id, minor ?? 0) }))}
+            />
+            {line?.schedule && line.monthlyMinor > 0 && (
+              <DraftScheduleFields
+                name={c.name}
+                monthlyMinor={line.monthlyMinor}
+                schedule={line.schedule}
+                accounts={accounts}
+                today={today}
+                onChange={(schedule) => update((d) => ({ ...d, incomes: setLineSchedule(d.incomes, c.id, schedule) }))}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

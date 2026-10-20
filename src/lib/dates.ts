@@ -34,6 +34,18 @@ export function todayIso(now: Date = new Date()): IsoDate {
   return toIso(now);
 }
 
+/** How a full date is shown: "2026-10-19" gives "19-10-2026". */
+export function formatDate(d: IsoDate): string {
+  const [year, month, day] = d.split('-');
+  return `${day}-${month}-${year}`;
+}
+
+/** An ISO timestamp as local date and time: "19-10-2026, 14:05". Text that is not a timestamp comes back as it is. */
+export function formatDateTime(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : format(date, 'dd-MM-yyyy, HH:mm');
+}
+
 export function monthOf(d: IsoDate): IsoMonth {
   return d.slice(0, 7);
 }
