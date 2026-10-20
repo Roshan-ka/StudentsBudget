@@ -23,7 +23,8 @@ export function TipsView() {
 
   return (
     <Tabs value={view} onValueChange={(value) => setView(value === 'discounts' ? 'discounts' : 'tips')}>
-      <TabsList aria-label="Tips or discounts" className="w-full group-data-horizontal/tabs:h-10">
+      {/* h-13: the tabs are 45 px high inside the list's padding, so they are easy to hit with a thumb. */}
+      <TabsList aria-label="Tips or discounts" className="w-full group-data-horizontal/tabs:h-13">
         <TabsTrigger value="tips">Tips</TabsTrigger>
         <TabsTrigger value="discounts">Discounts</TabsTrigger>
       </TabsList>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { DateField } from '@/components/date-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,6 +64,8 @@ function ProfileForm({
   const [problems, setProblems] = useState<ProfileProblem[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Save profile stays mounted, so focus can move to it when "Clear semester dates" unmounts under the person.
+  const saveRef = useRef<HTMLButtonElement>(null);
 
   function change(update: Partial<ProfileDraft>) {
     setDraft((d) => ({ ...d, ...update }));
@@ -171,14 +173,16 @@ function ProfileForm({
         </div>
       )}
       <PeriodSource draft={draft} today={today} />
-      {weeks !== null && <p className="text-sm text-muted-foreground">{`Your semester: ${weeks} weeks.`}</p>}
+      {weeks !== null && (
+        <p className="text-sm text-muted-foreground">{`Your semester: ${weeks} ${weeks === 1 ? 'week' : 'weeks'}.`}</p>
+      )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" className="h-10 px-4" aria-disabled={saving || undefined}>
+        <Button ref={saveRef} type="submit" className="h-10 px-4" aria-disabled={saving || undefined}>
           Save profile
         </Button>
         {/* A date picker has no reliable way to empty a field, and both dates are optional. */}
@@ -187,7 +191,10 @@ function ProfileForm({
             type="button"
             variant="ghost"
             className="h-10 px-4"
-            onClick={() => change({ semesterStart: '', semesterEnd: '' })}
+            onClick={() => {
+              change({ semesterStart: '', semesterEnd: '' });
+              saveRef.current?.focus();
+            }}
           >
             Clear semester dates
           </Button>

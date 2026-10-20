@@ -80,7 +80,7 @@ export const SWAPS: Swap[] = [
     id: 'deutschlandticket-for-travel-months',
     categoryId: 'transport',
     title: 'Book the Deutschlandticket for a month you travel',
-    body: 'Estimate: the saving assumes one Bayern-Ticket day in the month, and every further day adds to it. A Bayern-Ticket for one day costs €34. The student upgrade to the Deutschlandticket costs €22 a month in Regensburg and is valid all day on local and regional trains across Germany. It cancels monthly, so book it for the months you travel.',
+    body: 'Estimate: the saving assumes one Bayern-Ticket day in the month, and every further day adds to it. A Bayern-Ticket for one day costs €34. The student upgrade to the Deutschlandticket costs €22 a month in Regensburg and is valid all day on local and regional trains across Germany. It is a monthly subscription: cancel it by the 10th of a month and it ends with that month, so you can keep it only for the months you travel.',
     fromMinor: 3400,
     toMinor: 2200,
     per: 'month',

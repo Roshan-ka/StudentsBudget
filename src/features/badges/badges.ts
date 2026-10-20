@@ -155,8 +155,13 @@ function loggingStreak(weeks: WeekResult[], awayNotRecorded: boolean): Badge {
   }
   const paused = awayNotRecorded || (weeks.length > 0 && weeks[weeks.length - 1].paused);
 
+  // A streak that was earned and has ended reads as a new one starting, not as if nothing had happened.
+  const noRun =
+    earnedOn === null
+      ? 'A streak starts with a week of spending you log yourself'
+      : 'A new streak starts with a week of spending you log yourself';
   let progress: string;
-  if (run === 0) progress = 'A streak starts with a week of spending you log yourself';
+  if (run === 0) progress = noRun;
   else if (paused) progress = `Your streak is paused at ${weeksText(run)}`;
   else if (earnedOn === null) progress = `${run} of ${STREAK_WEEKS} weeks in a row`;
   else progress = `${weeksText(run)} in a row`;
@@ -180,7 +185,7 @@ function ramenRoyalty(weeks: WeekResult[], planStart: IsoDate): Badge {
 
   let progress = 'Your first full week of groceries sets the mark';
   if (best !== null) {
-    progress = `Cheapest food week so far: ${euros(best.foodSpentMinor)} (week of ${formatDate(best.weekStart)})`;
+    progress = `Cheapest grocery week so far: ${euros(best.foodSpentMinor)} (week of ${formatDate(best.weekStart)})`;
     if (earnedOn === null) progress += '. A cheaper week earns it';
   }
   return { id: 'ramen-royalty', title: 'Ramen Royalty', tier: null, progress, earnedOn };
@@ -209,7 +214,10 @@ function latteSurvivor(months: MonthSpend[]): Badge {
   const hit = logged.slice(markAt + 1).find((m) => m.eatingOutMinor * 2 <= mark.eatingOutMinor);
   if (hit === undefined) {
     const most = Math.floor(mark.eatingOutMinor / 2);
-    return badge(`A month with ${euros(most)} or less on eating out earns it (half of ${monthName(mark.month)})`);
+    return badge(
+      `A month with ${euros(most)} or less on eating out earns it ` +
+        `(half of what you spent in ${monthName(mark.month)})`,
+    );
   }
   return badge(
     `${monthName(hit.month)}: ${euros(hit.eatingOutMinor)} on eating out, down from ` +

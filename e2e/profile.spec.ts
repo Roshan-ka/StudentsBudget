@@ -136,6 +136,8 @@ test('one date alone is not saved, and both can be cleared again', async ({ page
   await profileSection(page).getByRole('button', { name: 'Clear semester dates', exact: true }).click();
   await expect(startField(page)).toHaveValue('');
   await expect(endField(page)).toHaveValue('');
+  // The clear button is gone now, so focus moves on to Save profile, on both projects (it is set in code, not by a click).
+  await expect(profileSection(page).getByRole('button', { name: 'Save profile', exact: true })).toBeFocused();
   await expect(profileSection(page).getByRole('alert')).toHaveCount(0);
   await saveProfile(page);
   // Focus stays on the button that saved. Only Chromium focuses a button on click; WebKit leaves it where it was.

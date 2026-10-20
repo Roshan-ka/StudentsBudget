@@ -180,8 +180,8 @@ function DeleteEverything() {
     <div className="flex flex-col gap-2">
       <h4 className="font-medium">Delete everything</h4>
       <p className="text-sm text-muted-foreground">
-        Removes your plan, accounts, entries, badges and saved weeks, discount confirmations, profile and exchange
-        rates from this phone.
+        Removes your plan, accounts, entries, saved weeks and badges, discount answers, profile and exchange rates
+        from this phone.
       </p>
       {open ? (
         <form

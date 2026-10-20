@@ -10,8 +10,8 @@ describe('DatedText', () => {
     expect(html('Bronze · earned 15-11-2026')).toBe(
       'Bronze · earned <span class="whitespace-nowrap">15-11-2026</span>',
     );
-    expect(html('Cheapest food week so far: €30 (week of 26-10-2026). A cheaper week earns it')).toBe(
-      'Cheapest food week so far: €30 (week of <span class="whitespace-nowrap">26-10-2026</span>). A cheaper week earns it',
+    expect(html('Cheapest grocery week so far: €30 (week of 26-10-2026). A cheaper week earns it')).toBe(
+      'Cheapest grocery week so far: €30 (week of <span class="whitespace-nowrap">26-10-2026</span>). A cheaper week earns it',
     );
     expect(html('From 02-11-2026 to 08-11-2026')).toBe(
       'From <span class="whitespace-nowrap">02-11-2026</span> to <span class="whitespace-nowrap">08-11-2026</span>',

@@ -260,8 +260,9 @@ describe('Logging Streak', () => {
 
   it('starts again after a week with nothing typed in, and keeps the badge once earned', () => {
     const results = weeks(6, (i) => (i === 4 ? logged(0) : {}));
+    // The run ended after it was earned: the next one is a new streak, not a first one.
     expect(streak(results.slice(0, 5))).toMatchObject({
-      progress: 'A streak starts with a week of spending you log yourself',
+      progress: 'A new streak starts with a week of spending you log yourself',
       earnedOn: results[3].weekEnd,
     });
     expect(streak(results)).toMatchObject({ progress: '1 week in a row', earnedOn: results[3].weekEnd });
@@ -289,30 +290,30 @@ describe('Ramen Royalty', () => {
     const results = food([3000, 4000, 2500, 2000]);
     expect(ramen(results)).toMatchObject({
       tier: null,
-      progress: 'Cheapest food week so far: €20 (week of 09-11-2026)',
+      progress: 'Cheapest grocery week so far: €20 (week of 09-11-2026)',
       earnedOn: results[2].weekEnd,
     });
   });
 
   it('shows the mark to beat until a cheaper week comes', () => {
     expect(ramen(food([3000, 3000, 4550]))).toMatchObject({
-      progress: 'Cheapest food week so far: €30 (week of 19-10-2026). A cheaper week earns it',
+      progress: 'Cheapest grocery week so far: €30 (week of 19-10-2026). A cheaper week earns it',
       earnedOn: null,
     });
     expect(ramen(food([3050]))).toMatchObject({
-      progress: 'Cheapest food week so far: €30.50 (week of 19-10-2026). A cheaper week earns it',
+      progress: 'Cheapest grocery week so far: €30.50 (week of 19-10-2026). A cheaper week earns it',
     });
   });
 
   it('leaves out weeks with no groceries, weeks away and the part week of setup', () => {
     // Nothing on food in the 2nd week, away in the 3rd: neither is the cheapest.
     expect(ramen(food([3000, 0, 1000, 4000], (i) => (i === 2 ? { paused: true } : {})))).toMatchObject({
-      progress: 'Cheapest food week so far: €30 (week of 19-10-2026). A cheaper week earns it',
+      progress: 'Cheapest grocery week so far: €30 (week of 19-10-2026). A cheaper week earns it',
       earnedOn: null,
     });
     // Set up on Wednesday 21 October: the week of 19 October had only five days of the plan.
     expect(ramen(food([500, 3000]), { ...HISTORY, planStart: '2026-10-21' })).toMatchObject({
-      progress: 'Cheapest food week so far: €30 (week of 26-10-2026). A cheaper week earns it',
+      progress: 'Cheapest grocery week so far: €30 (week of 26-10-2026). A cheaper week earns it',
       earnedOn: null,
     });
   });
@@ -333,11 +334,11 @@ describe('Latte Survivor', () => {
 
   it('says what a month has to come in under until then', () => {
     expect(latte([month('2026-11', 12400), month('2026-12', 6201)])).toMatchObject({
-      progress: 'A month with €62 or less on eating out earns it (half of November 2026)',
+      progress: 'A month with €62 or less on eating out earns it (half of what you spent in November 2026)',
       earnedOn: null,
     });
     expect(latte([month('2026-11', 12345)])).toMatchObject({
-      progress: 'A month with €61.72 or less on eating out earns it (half of November 2026)',
+      progress: 'A month with €61.72 or less on eating out earns it (half of what you spent in November 2026)',
       earnedOn: null,
     });
   });
@@ -345,7 +346,7 @@ describe('Latte Survivor', () => {
   it('counts only months with spending logged by hand, as the mark and as the month under it', () => {
     // December was not logged at all: its €0 is no month of eating less.
     expect(latte([month('2026-11', 12400), month('2026-12', 0, 0), month('2027-01', 9000)])).toMatchObject({
-      progress: 'A month with €62 or less on eating out earns it (half of November 2026)',
+      progress: 'A month with €62 or less on eating out earns it (half of what you spent in November 2026)',
       earnedOn: null,
     });
     // November was not logged: the mark is December, the first month that was.
@@ -366,7 +367,7 @@ describe('Latte Survivor', () => {
     });
     // November had none to halve, so December is the mark and November's €0 is not under it.
     expect(latte([month('2026-11', 0), month('2026-12', 6000), month('2027-01', 3500)])).toMatchObject({
-      progress: 'A month with €30 or less on eating out earns it (half of December 2026)',
+      progress: 'A month with €30 or less on eating out earns it (half of what you spent in December 2026)',
       earnedOn: null,
     });
   });
@@ -474,7 +475,7 @@ describe('badgeHistory', () => {
       );
     // November sets the mark (€80). December has only the rent typed in: it says nothing about eating out.
     expect(latteFor([entry('2026-11-10', 'eating-out', 8000), entry('2026-12-05', 'rent', 40000)])).toMatchObject({
-      progress: 'A month with €40 or less on eating out earns it (half of November 2026)',
+      progress: 'A month with €40 or less on eating out earns it (half of what you spent in November 2026)',
       earnedOn: null,
     });
     // A month with groceries logged and no eating out does count, as before.
