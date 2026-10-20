@@ -6,6 +6,7 @@ import { db } from '@/db/db';
 import { formatDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
 import { DEFAULT_SEMESTER_WEEKS, badgeHistory, badgesFrom, goldWeeks, type Badge } from './badges';
+import { DatedText } from './dated-text';
 
 const TIER: Record<NonNullable<Badge['tier']>, string> = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold' };
 
@@ -20,7 +21,7 @@ function rule(id: Badge['id'], semesterWeeks: number): string {
   switch (id) {
     case 'under-budget-week':
       return (
-        'A week counts when you spend no more than its share of your envelopes. ' +
+        'Counts a week in which you log something and spend no more than its share of your envelopes. ' +
         `Bronze at 4 weeks, silver at 12, gold at ${goldWeeks(semesterWeeks)}: a whole semester.`
       );
     case 'logging-streak':
@@ -28,7 +29,10 @@ function rule(id: Badge['id'], semesterWeeks: number): string {
     case 'ramen-royalty':
       return 'Earned by a full week that costs less in groceries than every week before it.';
     case 'latte-survivor':
-      return 'Earned by a month with at most half the eating out of your first full month.';
+      return (
+        'Earned by a month with at most half the eating out of your first full month that had some. ' +
+        'Only months in which you log something count.'
+      );
   }
 }
 
@@ -56,20 +60,25 @@ export function BadgesView() {
   }
 
   const semesterWeeks = DEFAULT_SEMESTER_WEEKS;
-  const badges = badgesFrom(results, semesterWeeks, badgeHistory(plan, entries, today));
+  const badges = badgesFrom(results, semesterWeeks, badgeHistory(plan, entries, results, today));
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Each week is saved once it is over, and your badges come from those weeks. A week you mark &ldquo;I was away
-        this week&rdquo; in the check-in keeps your streak as it is and counts towards nothing else.
+        Each week is saved once it is over, and your badges come from those weeks and your entries. A week you mark
+        &ldquo;I was away this week&rdquo; in the check-in keeps your streak as it is and doesn&apos;t count towards
+        Under-Budget Week or Ramen Royalty.
       </p>
       <ul aria-label="Your badges" className="flex flex-col gap-3">
         {badges.map((b) => (
           <li key={b.id} className="flex flex-col gap-1 rounded-lg border px-4 py-3">
             <h3 className="font-medium">{b.title}</h3>
-            <p className="text-sm font-medium">{status(b)}</p>
-            <p className="text-sm break-words">{b.progress}</p>
+            <p className="text-sm font-medium">
+              <DatedText text={status(b)} />
+            </p>
+            <p className="text-sm break-words">
+              <DatedText text={b.progress} />
+            </p>
             <p className="text-sm text-muted-foreground">{rule(b.id, semesterWeeks)}</p>
           </li>
         ))}

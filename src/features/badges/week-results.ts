@@ -2,20 +2,10 @@ import { db } from '@/db/db';
 import type { Entry, Plan, WeekResult } from '@/db/types';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { safeToSpend } from '@/lib/budget';
-import { addDays, firstOfMonth, monthOf, todayIso, weekOf, type IsoDate } from '@/lib/dates';
+import { addDays, firstOfMonth, monthOf, weekOf, type IsoDate } from '@/lib/dates';
+import { NOT_RECORDED, handLoggedOn, isRecorded } from './records';
 
 type Week = { start: IsoDate; end: IsoDate };
-
-/**
- * `recordedAt` of a row that only holds the "I was away this week" note for a week still running. Such a row is
- * not a result yet: the week fills it in when it is recorded, and badges leave it out until then.
- */
-const NOT_RECORDED = '';
-
-/** Whether a row is a finished week's result, not just the away note of a week still running. */
-export function isRecorded(row: WeekResult): boolean {
-  return row.recordedAt !== NOT_RECORDED;
-}
 
 /**
  * The Monday–Sunday weeks from the week of setup on that are over by `today`. The week that ends today (a Sunday)
@@ -27,12 +17,6 @@ export function completedWeeks(plan: Plan, today: IsoDate): Week[] {
   // ISO date strings sort chronologically, so plain comparison is enough.
   for (let week = weekOf(plan.createdOn); week.end < today; week = weekOf(addDays(week.end, 1))) weeks.push(week);
   return weeks;
-}
-
-/** The local day an ISO timestamp falls on, or null for text that is not one. */
-function localDay(timestamp: string): IsoDate | null {
-  const date = new Date(timestamp);
-  return Number.isNaN(date.getTime()) ? null : todayIso(date);
 }
 
 /**
@@ -62,8 +46,7 @@ export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<Wee
   }
 
   const handLoggedCount = entries.filter((e) => {
-    if (e.type !== 'transfer' && e.recurring !== undefined) return false;
-    const day = localDay(e.createdAt);
+    const day = handLoggedOn(e);
     return day !== null && day >= week.start && day <= week.end;
   }).length;
 
@@ -87,7 +70,7 @@ async function record(today: IsoDate): Promise<{ recorded: number }> {
 
     const stored = await db.weekResults.bulkGet(weeks.map((w) => w.start));
     // A recorded week is never written again, so a later plan edit or entry leaves it as it was. A week with only
-    // the away note is recorded now, and keeps the note.
+    // the away mark is recorded now, and keeps the mark.
     const open = weeks.flatMap((week, i) => {
       const row = stored[i];
       if (row !== undefined && isRecorded(row)) return [];

@@ -1,7 +1,49 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Entry, Plan, WeekResult } from '@/db/types';
-import { addDays, type IsoDate } from '@/lib/dates';
+import { addDays, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { badgeHistory, badgesFrom, goldWeeks, type Badge, type BadgeHistory, type MonthSpend } from './badges';
+
+const SRC = fileURLToPath(new URL('../../', import.meta.url));
+
+/** The source file an import names, or null for a package. */
+function resolveImport(from: string, specifier: string): string | null {
+  const base = specifier.startsWith('@/')
+    ? resolve(SRC, specifier.slice(2))
+    : specifier.startsWith('.')
+      ? resolve(dirname(from), specifier)
+      : null;
+  if (base === null) return null;
+  return ['.ts', '.tsx', '/index.ts'].map((ext) => base + ext).find((file) => existsSync(file)) ?? null;
+}
+
+/** Every source file `file` loads, itself included. `import type` loads no code, so it is not followed. */
+function loadedBy(file: string): string[] {
+  const seen = new Set<string>();
+  const stack = [file];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current === undefined || seen.has(current)) continue;
+    seen.add(current);
+    // `[^;]` crosses lines, so an import split over several lines is read whole.
+    for (const [, specifier] of readFileSync(current, 'utf8').matchAll(/^import\s+(?!type\s)[^;]*?from\s+'([^']+)'/gm)) {
+      const next = resolveImport(current, specifier);
+      if (next !== null) stack.push(next);
+    }
+  }
+  return [...seen].map((f) => relative(SRC, f).replaceAll('\\', '/'));
+}
+
+describe('badges.ts', () => {
+  it('never loads the database, not even through another module', () => {
+    const loaded = loadedBy(fileURLToPath(new URL('./badges.ts', import.meta.url)));
+    // The walk itself works: it reaches the modules badges.ts uses.
+    expect(loaded).toEqual(expect.arrayContaining(['features/badges/records.ts', 'lib/dates.ts']));
+    expect(loaded).not.toContain('db/db.ts');
+  });
+});
 
 /** A recorded week: under its plan, with groceries and something typed in, unless the overrides say otherwise. */
 function week(weekStart: IsoDate, overrides: Partial<WeekResult> = {}): WeekResult {
@@ -24,8 +66,15 @@ function weeks(n: number, shape: (i: number) => Partial<WeekResult> = () => ({})
   return Array.from({ length: n }, (_, i) => week(addDays('2026-10-19', 7 * i), shape(i)));
 }
 
+/** A finished month with something typed in, unless `handLoggedCount` says otherwise. */
+const month = (m: IsoMonth, eatingOutMinor: number, handLoggedCount = 5): MonthSpend => ({
+  month: m,
+  eatingOutMinor,
+  handLoggedCount,
+});
+
 /** Set up on Monday 19 October, so every week above is a whole week of the plan. No finished month yet. */
-const HISTORY: BadgeHistory = { planStart: '2026-10-19', months: [] };
+const HISTORY: BadgeHistory = { planStart: '2026-10-19', months: [], awayThisWeek: false };
 
 function badge(id: Badge['id'], results: WeekResult[], semesterWeeks = 26, history = HISTORY): Badge {
   const found = badgesFrom(results, semesterWeeks, history).find((b) => b.id === id);
@@ -35,19 +84,20 @@ function badge(id: Badge['id'], results: WeekResult[], semesterWeeks = 26, histo
 
 const underBudget = (results: WeekResult[], semesterWeeks?: number) =>
   badge('under-budget-week', results, semesterWeeks);
-const streak = (results: WeekResult[]) => badge('logging-streak', results);
+const streak = (results: WeekResult[], awayThisWeek = false) =>
+  badge('logging-streak', results, 26, { ...HISTORY, awayThisWeek });
 const ramen = (results: WeekResult[], history?: BadgeHistory) => badge('ramen-royalty', results, 26, history);
 const latte = (months: MonthSpend[]) => badge('latte-survivor', [], 26, { ...HISTORY, months });
 
 describe('badgesFrom with no data', () => {
   it('lists all four badges, none earned, each saying how to start', () => {
-    expect(badgesFrom([], 26, { planStart: '2026-10-16', months: [] })).toEqual([
+    expect(badgesFrom([], 26, { planStart: '2026-10-16', months: [], awayThisWeek: false })).toEqual([
       { id: 'under-budget-week', title: 'Under-Budget Week', tier: null, progress: '0 of 4 weeks', earnedOn: null },
       {
         id: 'logging-streak',
         title: 'Logging Streak',
         tier: null,
-        progress: 'Log something this week to start a streak',
+        progress: 'A streak starts with a week you log something yourself',
         earnedOn: null,
       },
       {
@@ -116,22 +166,28 @@ describe('Under-Budget Week', () => {
     expect(underBudget(weeks(12), 8)).toMatchObject({ tier: 'silver', progress: '12 of 13 weeks' });
   });
 
-  it('counts a week spent exactly to plan, but not one over it, one with nothing planned, or one away', () => {
-    const results = weeks(7, (i) =>
+  it('counts a logged week spent exactly to plan, but not one over it, unplanned, away or with nothing logged', () => {
+    const results = weeks(8, (i) =>
       [
         { spentMinor: 10000 },
         { spentMinor: 10001 },
         { plannedMinor: 0, spentMinor: 0 },
         { paused: true, spentMinor: 0 },
+        // Under its plan, but nobody typed anything in: it says nothing about the budget.
+        { handLoggedCount: 0, spentMinor: 0 },
         {},
         {},
         {},
       ][i],
     );
-    expect(underBudget(results)).toMatchObject({ tier: 'bronze', progress: '4 of 12 weeks', earnedOn: results[6].weekEnd });
+    expect(underBudget(results)).toMatchObject({ tier: 'bronze', progress: '4 of 12 weeks', earnedOn: results[7].weekEnd });
+    expect(underBudget(weeks(4, () => ({ handLoggedCount: 0, spentMinor: 2000 })))).toMatchObject({
+      tier: null,
+      progress: '0 of 4 weeks',
+    });
   });
 
-  it('reads the weeks in date order and leaves out a note for a week still running', () => {
+  it('reads the weeks in date order and leaves out a mark for a week still running', () => {
     const results = [...weeks(4)].reverse();
     expect(underBudget(results)).toMatchObject({ tier: 'bronze', earnedOn: results[0].weekEnd });
 
@@ -164,10 +220,17 @@ describe('Logging Streak', () => {
     });
   });
 
+  it('reads as paused while the week still running is marked away', () => {
+    const four = weeks(4);
+    expect(streak(four, true)).toMatchObject({ progress: 'Your streak is paused at 4 weeks', earnedOn: four[3].weekEnd });
+    expect(streak(weeks(2), true)).toMatchObject({ progress: 'Your streak is paused at 2 weeks', earnedOn: null });
+    expect(streak(four, false)).toMatchObject({ progress: '4 weeks in a row' });
+  });
+
   it('starts again after a week with nothing typed in, and keeps the badge once earned', () => {
     const results = weeks(6, (i) => (i === 4 ? logged(0) : {}));
     expect(streak(results.slice(0, 5))).toMatchObject({
-      progress: 'Log something this week to start a new streak',
+      progress: 'A streak starts with a week you log something yourself',
       earnedOn: results[3].weekEnd,
     });
     expect(streak(results)).toMatchObject({ progress: '1 week in a row', earnedOn: results[3].weekEnd });
@@ -177,11 +240,11 @@ describe('Logging Streak', () => {
       earnedOn: null,
     });
     expect(streak(weeks(1, () => logged(0)))).toMatchObject({
-      progress: 'Log something this week to start a streak',
+      progress: 'A streak starts with a week you log something yourself',
     });
   });
 
-  it('leaves out a note for a week still running', () => {
+  it('leaves out a mark for a week still running', () => {
     const running = week('2026-11-16', { handLoggedCount: 0, paused: true, recordedAt: '' });
     expect(streak([...weeks(2), running])).toMatchObject({ progress: '2 of 4 weeks in a row' });
   });
@@ -217,7 +280,7 @@ describe('Ramen Royalty', () => {
       earnedOn: null,
     });
     // Set up on Wednesday 21 October: the week of 19 October had only five days of the plan.
-    expect(ramen(food([500, 3000]), { planStart: '2026-10-21', months: [] })).toMatchObject({
+    expect(ramen(food([500, 3000]), { ...HISTORY, planStart: '2026-10-21' })).toMatchObject({
       progress: 'Cheapest food week so far: €30 (week of 26-10-2026). A cheaper week earns it',
       earnedOn: null,
     });
@@ -227,12 +290,7 @@ describe('Ramen Royalty', () => {
 describe('Latte Survivor', () => {
   it('is earned by a later month with at most half the eating out of the first full month', () => {
     expect(
-      latte([
-        { month: '2026-11', eatingOutMinor: 12400 },
-        { month: '2026-12', eatingOutMinor: 7000 },
-        { month: '2027-01', eatingOutMinor: 6200 },
-        { month: '2027-02', eatingOutMinor: 1000 },
-      ]),
+      latte([month('2026-11', 12400), month('2026-12', 7000), month('2027-01', 6200), month('2027-02', 1000)]),
     ).toEqual({
       id: 'latte-survivor',
       title: 'Latte Survivor',
@@ -243,25 +301,43 @@ describe('Latte Survivor', () => {
   });
 
   it('says what a month has to come in under until then', () => {
-    expect(
-      latte([
-        { month: '2026-11', eatingOutMinor: 12400 },
-        { month: '2026-12', eatingOutMinor: 6201 },
-      ]),
-    ).toMatchObject({ progress: 'A month with €62 or less on eating out earns it (half of November 2026)', earnedOn: null });
-    expect(latte([{ month: '2026-11', eatingOutMinor: 12345 }])).toMatchObject({
+    expect(latte([month('2026-11', 12400), month('2026-12', 6201)])).toMatchObject({
+      progress: 'A month with €62 or less on eating out earns it (half of November 2026)',
+      earnedOn: null,
+    });
+    expect(latte([month('2026-11', 12345)])).toMatchObject({
       progress: 'A month with €61.72 or less on eating out earns it (half of November 2026)',
       earnedOn: null,
     });
   });
 
-  it('needs eating out in the first full month to halve', () => {
-    expect(
-      latte([
-        { month: '2026-11', eatingOutMinor: 0 },
-        { month: '2026-12', eatingOutMinor: 0 },
-      ]),
-    ).toMatchObject({ progress: 'Your first full month, November 2026, had no eating out to halve', earnedOn: null });
+  it('counts only months with something typed in, as the mark and as the month under it', () => {
+    // December was not logged at all: its €0 is no month of eating less.
+    expect(latte([month('2026-11', 12400), month('2026-12', 0, 0), month('2027-01', 9000)])).toMatchObject({
+      progress: 'A month with €62 or less on eating out earns it (half of November 2026)',
+      earnedOn: null,
+    });
+    // November was not logged: the mark is December, the first month that was.
+    expect(latte([month('2026-11', 0, 0), month('2026-12', 8000), month('2027-01', 4000)])).toMatchObject({
+      progress: 'January 2027: €40 on eating out, down from €80 in December 2026',
+      earnedOn: '2027-01-31',
+    });
+    expect(latte([month('2026-11', 3000, 0)])).toMatchObject({
+      progress: 'Your first full month of logging sets the mark',
+      earnedOn: null,
+    });
+  });
+
+  it('takes the mark from the first logged month that had eating out', () => {
+    expect(latte([month('2026-11', 0), month('2026-12', 0)])).toMatchObject({
+      progress: 'Your first full month with eating out sets the mark',
+      earnedOn: null,
+    });
+    // November had none to halve, so December is the mark and November's €0 is not under it.
+    expect(latte([month('2026-11', 0), month('2026-12', 6000), month('2027-01', 3500)])).toMatchObject({
+      progress: 'A month with €30 or less on eating out earns it (half of December 2026)',
+      earnedOn: null,
+    });
   });
 });
 
@@ -276,45 +352,86 @@ describe('badgeHistory', () => {
     createdOn,
   });
 
-  const entry = (date: IsoDate, categoryId: string, eurMinor: number, type: 'expense' | 'income' = 'expense'): Entry => ({
-    id: `${date}-${categoryId}-${eurMinor}`,
-    type,
-    date,
-    accountId: 'cash',
-    amountMinor: eurMinor * 100,
-    eurMinor,
-    categoryId,
-    note: '',
-    createdAt: `${date}T12:00:00.000Z`,
-  });
+  const entry = (
+    date: IsoDate,
+    categoryId: string,
+    eurMinor: number,
+    overrides: Partial<Entry> = {},
+  ): Entry =>
+    ({
+      id: `${date}-${categoryId}-${eurMinor}`,
+      type: 'expense',
+      date,
+      accountId: 'cash',
+      // An INR account: the badge counts the EUR amount.
+      amountMinor: eurMinor * 95,
+      eurMinor,
+      categoryId,
+      note: '',
+      createdAt: `${date}T12:00:00.000Z`,
+      ...overrides,
+    }) as Entry;
 
   const ENTRIES = [
     entry('2026-10-20', 'eating-out', 900),
     entry('2026-11-02', 'eating-out', 1000),
     entry('2026-11-30', 'eating-out', 2000),
     entry('2026-11-10', 'going-out', 5000),
-    entry('2026-11-11', 'eating-out', 7000, 'income'),
+    entry('2026-11-11', 'eating-out', 7000, { type: 'income' }),
     entry('2026-12-24', 'eating-out', 1500),
     entry('2027-01-03', 'eating-out', 400),
   ];
 
-  it('totals eating out in EUR for each finished month from the first full month after setup', () => {
+  it('totals eating out in EUR and the entries typed in for each finished month from the first full month', () => {
     // Set up mid-October, so November is the first full month; January is still running.
-    expect(badgeHistory(plan('2026-10-16'), ENTRIES, '2027-01-05')).toEqual({
+    expect(badgeHistory(plan('2026-10-16'), ENTRIES, [], '2027-01-05')).toEqual({
       planStart: '2026-10-16',
       months: [
-        { month: '2026-11', eatingOutMinor: 3000 },
-        { month: '2026-12', eatingOutMinor: 1500 },
+        { month: '2026-11', eatingOutMinor: 3000, handLoggedCount: 4 },
+        { month: '2026-12', eatingOutMinor: 1500, handLoggedCount: 1 },
       ],
+      awayThisWeek: false,
     });
   });
 
-  it('starts with the month of setup when setup was on the 1st, and is empty while that month runs', () => {
-    expect(badgeHistory(plan('2026-11-01'), ENTRIES, '2026-12-15').months).toEqual([
-      { month: '2026-11', eatingOutMinor: 3000 },
+  it('counts an entry as typed in the month of its local createdAt, and leaves out what a schedule posted', () => {
+    const entries = [
+      // For December, typed in on 1 January in Regensburg (still 31 December in UTC).
+      entry('2026-12-20', 'eating-out', 1500, { createdAt: '2026-12-31T23:30:00.000Z' }),
+      // Posted by a schedule in December.
+      entry('2026-12-01', 'rent', 40000, { recurring: { scheduleId: 's' } }),
+      entry('2026-11-05', 'food', 800),
+    ];
+    expect(badgeHistory(plan('2026-10-16'), entries, [], '2027-02-01').months).toEqual([
+      { month: '2026-11', eatingOutMinor: 0, handLoggedCount: 1 },
+      { month: '2026-12', eatingOutMinor: 1500, handLoggedCount: 0 },
+      { month: '2027-01', eatingOutMinor: 0, handLoggedCount: 1 },
     ]);
-    expect(badgeHistory(plan('2026-10-16'), ENTRIES, '2026-11-30').months).toEqual([]);
-    expect(badgeHistory(plan('2026-10-16'), ENTRIES, 'not a date').months).toEqual([]);
+  });
+
+  it('starts with the month of setup when setup was on the 1st, and is empty while that month runs', () => {
+    expect(badgeHistory(plan('2026-11-01'), ENTRIES, [], '2026-12-15').months).toEqual([
+      { month: '2026-11', eatingOutMinor: 3000, handLoggedCount: 4 },
+    ]);
+    expect(badgeHistory(plan('2026-10-16'), ENTRIES, [], '2026-11-30').months).toEqual([]);
+    expect(badgeHistory(plan('2026-10-16'), ENTRIES, [], 'not a date').months).toEqual([]);
+  });
+
+  it('says whether the week still running is marked away', () => {
+    const mark = (weekStart: IsoDate, paused = true): WeekResult => ({
+      ...week(weekStart),
+      plannedMinor: 0,
+      spentMinor: 0,
+      paused,
+      recordedAt: '',
+    });
+    const away = (results: WeekResult[]) => badgeHistory(plan('2026-10-16'), [], results, '2026-11-18').awayThisWeek;
+
+    expect(away([mark('2026-11-16')])).toBe(true);
+    expect(away([])).toBe(false);
+    // A mark on another week, or a recorded week of this one, is not this week's mark.
+    expect(away([mark('2026-11-09')])).toBe(false);
+    expect(away([week('2026-11-16', { paused: true })])).toBe(false);
   });
 });
 
@@ -322,8 +439,10 @@ describe('copy', () => {
   it('never speaks of losing, breaking or failing', () => {
     const histories: BadgeHistory[] = [
       HISTORY,
-      { planStart: '2026-10-19', months: [{ month: '2026-11', eatingOutMinor: 0 }] },
-      { planStart: '2026-10-19', months: [{ month: '2026-11', eatingOutMinor: 9000 }, { month: '2026-12', eatingOutMinor: 8000 }] },
+      { ...HISTORY, awayThisWeek: true },
+      { ...HISTORY, months: [month('2026-11', 0)] },
+      { ...HISTORY, months: [month('2026-11', 9000), month('2026-12', 8000)] },
+      { ...HISTORY, months: [month('2026-11', 9000), month('2026-12', 0, 0)] },
     ];
     const cases = [
       weeks(0),

@@ -198,7 +198,7 @@ function AwayToggle({ today }: { today: IsoDate }) {
           aria-hidden="true"
           className={cn(
             'relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors',
-            away ? 'bg-primary' : 'bg-muted-foreground/30',
+            away ? 'bg-primary' : 'bg-muted-foreground/80',
           )}
         >
           <span
@@ -211,7 +211,8 @@ function AwayToggle({ today }: { today: IsoDate }) {
         I was away this week
       </button>
       <p id={hintId} className="text-sm text-muted-foreground">
-        A week away keeps your logging streak as it is and counts towards no other badge.
+        A week away keeps your logging streak as it is and doesn&apos;t count towards Under-Budget Week or Ramen
+        Royalty.
       </p>
     </div>
   );
