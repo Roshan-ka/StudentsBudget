@@ -70,7 +70,11 @@ function savingText(minor: Minor): string {
   return minor < 100 ? amountText(minor) : amountText(Math.floor(minor / 100) * 100);
 }
 
-/** "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal". */
+/**
+ * "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal". A saving that rests on an
+ * assumption says "(estimate)" on the line itself, where the number is shown, not only once the swap is opened.
+ */
 export function swapLineText({ swap, savingPerUseMinor }: Suggestion): string {
-  return `Try this: ${swap.title} · save about ${savingText(savingPerUseMinor)} per ${swap.per}`;
+  const line = `Try this: ${swap.title} · save about ${savingText(savingPerUseMinor)} per ${swap.per}`;
+  return swap.estimate === true ? `${line} (estimate)` : line;
 }

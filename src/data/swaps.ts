@@ -9,7 +9,8 @@ import type { Minor } from '@/lib/money';
  * Each amount has a source it can be checked on. When one page states both, `source` and `url` are that page.
  * When the cheaper amount comes from another page, `source` and `url` are the page behind `fromMinor` and
  * `toSource` and `toUrl` the page behind `toMinor`; the two always come as a pair. A swap built on an assumption
- * (uses per month) starts its body and its source with "Estimate", as `cities.ts` labels what no page states.
+ * (uses per month) sets `estimate` and starts its body and its source with "Estimate", as `cities.ts` labels what
+ * no page states, so its line says "(estimate)" before it is opened too.
  * A swap also shows its linked tip, whose own source covers the tip's own numbers.
  */
 export type Swap = {
@@ -28,6 +29,8 @@ export type Swap = {
   toUrl?: string;
   checked: IsoDate;
   tipId?: string;
+  /** The saving rests on an assumption no page states (how often per month). */
+  estimate?: true;
 };
 
 const CHECKED: IsoDate = '2026-10-20';
@@ -89,5 +92,6 @@ export const SWAPS: Swap[] = [
     toUrl: 'https://www.rvv.de/semesterticket',
     checked: CHECKED,
     tipId: 'upgrade-to-deutschlandticket',
+    estimate: true,
   },
 ];

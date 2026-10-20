@@ -49,10 +49,13 @@ describe('swaps', () => {
     }
   });
 
-  it('an estimate says so in its body and in its source', () => {
+  it('an estimate says so in its body and in its source, and is flagged so its line says so too', () => {
     for (const s of SWAPS) {
       expect(s.body.startsWith('Estimate'), `${s.id} body`).toBe(s.source.startsWith('Estimate'));
+      expect(s.estimate === true, `${s.id} estimate flag`).toBe(s.body.startsWith('Estimate'));
     }
+    // Not vacuous: the Deutschlandticket saving assumes one Bayern-Ticket day a month.
+    expect(SWAPS.find((s) => s.id === 'deutschlandticket-for-travel-months')?.estimate).toBe(true);
   });
 
   it('has unique ids', () => {

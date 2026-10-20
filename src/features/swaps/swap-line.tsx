@@ -23,6 +23,7 @@ function sourceBlocks(swap: Swap): { label: string; range: Pick<Swap, 'source' |
 /**
  * One calm line under an envelope row: "Try this: … · save about €X per …". Tapping it opens the swap's body, where
  * each of its prices comes from and the tip it is linked to, which carries its own source: every number shown has one.
+ * The panel is outlined, not filled: muted text on the muted fill was below 4.5:1, on the page background it is above.
  */
 export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
   const panelId = useId();
@@ -46,7 +47,7 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
           id={panelId}
           role="group"
           aria-label={`${swap.title} details`}
-          className="flex flex-col gap-3 rounded-lg bg-muted px-3 py-3 text-sm"
+          className="flex flex-col gap-3 rounded-lg border px-3 py-3 text-sm"
         >
           <p>{swap.body}</p>
           {sourceBlocks(swap).map(({ label, range }) => (

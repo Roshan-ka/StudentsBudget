@@ -19,7 +19,8 @@ export function RangeSource({
 }) {
   return (
     <details className="text-xs text-muted-foreground">
-      <summary className="w-fit cursor-pointer">{label}</summary>
+      {/* 16 px of text-xs line and 28 px of padding: a 44 px tap target, as everywhere else in the app. */}
+      <summary className="w-fit cursor-pointer py-3.5">{label}</summary>
       <div className="mt-1 flex flex-col gap-1">
         <p className="break-words">{range.source}</p>
         <p>checked {formatDate(range.checked)}</p>

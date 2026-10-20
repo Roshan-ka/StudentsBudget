@@ -9,7 +9,8 @@ import { completeSetup } from './helpers/setup';
 test.use({ viewport: { width: 375, height: 812 } });
 
 const MENSA_LINE = 'Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal';
-const TICKET_LINE = 'Try this: Book the Deutschlandticket for a month you travel · save about €12 per month';
+// The saving assumes one Bayern-Ticket day a month, so the line says it is an estimate before it is opened.
+const TICKET_LINE = 'Try this: Book the Deutschlandticket for a month you travel · save about €12 per month (estimate)';
 const FILM_LINE = 'Try this: See a film at the student price · save about €1 per ticket';
 
 function swapById(id: string): Swap {

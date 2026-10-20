@@ -163,6 +163,22 @@ describe('swapLineText', () => {
   it('keeps the cents of a saving under €1', () => {
     expect(line(900, 850, 'ticket', 'See a film')).toBe('Try this: See a film · save about €0.50 per ticket');
   });
+
+  it('says "(estimate)" on the line of a swap that rests on an assumption', () => {
+    const estimate: Swap = { ...swap('x', 'transport', 3400, 2200, 'month'), title: 'Book the ticket', estimate: true };
+    expect(swapLineText({ categoryId: 'transport', swap: estimate, savingPerUseMinor: 1200 })).toBe(
+      'Try this: Book the ticket · save about €12 per month (estimate)',
+    );
+  });
+
+  it('says it for the seeded Deutschlandticket swap, and for no other seeded swap', () => {
+    const lines = SWAPS.map((s) =>
+      swapLineText({ categoryId: s.categoryId, swap: s, savingPerUseMinor: s.fromMinor - s.toMinor }),
+    );
+    expect(lines.filter((l) => l.endsWith('(estimate)'))).toEqual([
+      'Try this: Book the Deutschlandticket for a month you travel · save about €12 per month (estimate)',
+    ]);
+  });
 });
 
 describe('amountText', () => {
