@@ -247,6 +247,21 @@ test('the one-off costs step offers nothing without semester dates, or when the 
   await expect(page.getByRole('button', { name: 'Add semester fee: €215, due March 2027', exact: true })).toBeVisible();
 });
 
+test('gold Under-Budget Week follows the saved semester', async ({ page }) => {
+  await completeSetup(page);
+  // Without semester dates: 26 weeks.
+  await page.goto('/badges');
+  await expect(page.getByText('gold at 26: a whole semester.', { exact: false })).toBeVisible();
+
+  // OTH's winter semester, 1 Oct 2026 – 14 Mar 2027, is 24 weeks.
+  await openSettings(page);
+  await universityField(page).selectOption({ label: 'OTH Regensburg' });
+  await saveProfile(page);
+  await page.goto('/badges');
+  await expect(page.getByText('gold at 24: a whole semester.', { exact: false })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
 test.describe('on a desktop browser', () => {
   test.beforeEach(({}, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-chrome', 'The backup download runs on desktop-chrome.');

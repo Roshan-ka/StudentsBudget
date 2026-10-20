@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { db } from '@/db/db';
 import { formatDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
-import { DEFAULT_SEMESTER_WEEKS, badgeHistory, badgesFrom, goldWeeks, type Badge } from './badges';
+import { badgeHistory, badgesFrom, goldWeeks, semesterWeeksFor, type Badge } from './badges';
 import { DatedText } from './dated-text';
 
 const TIER: Record<NonNullable<Badge['tier']>, string> = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold' };
@@ -46,8 +46,11 @@ export function BadgesView() {
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
   const entries = useLiveQuery(() => db.entries.toArray(), []);
   const results = useLiveQuery(() => db.weekResults.toArray(), []);
+  // The profile's semester sets gold Under-Budget Week; waited for, so gold never shows the default first.
+  const profile = useLiveQuery(() => db.profile.get('current').then((p) => p ?? null), [], 'loading' as const);
 
   if (today === null || plan === 'loading' || entries === undefined || results === undefined) return null;
+  if (profile === 'loading') return null;
   if (plan === null) {
     return (
       <p className="text-muted-foreground">
@@ -59,7 +62,7 @@ export function BadgesView() {
     );
   }
 
-  const semesterWeeks = DEFAULT_SEMESTER_WEEKS;
+  const semesterWeeks = semesterWeeksFor(profile);
   const badges = badgesFrom(results, semesterWeeks, badgeHistory(plan, entries, results, today));
 
   return (

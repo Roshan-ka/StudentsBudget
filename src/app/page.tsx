@@ -9,13 +9,13 @@ import { HomeScreen } from '@/features/home/home';
 export default function Home() {
   const router = useRouter();
   // 'loading' (no answer yet) must differ from null (no plan), or a saved plan would bounce to setup on every load.
-  // The profile's name is read with the plan, so the greeting is there in the first paint and does not push Quick
-  // add down a moment later.
+  // The profile is read with the plan, so the greeting is there in the first paint and does not push Quick add down
+  // a moment later, and the badges' gold never shows the default semester first.
   const loaded = useLiveQuery(
     () =>
       Promise.all([db.plan.get('current'), db.profile.get('current')]).then(([p, profile]) => ({
         plan: p ?? null,
-        name: profile?.name.trim() ?? '',
+        profile: profile ?? null,
       })),
     [],
     'loading' as const,
@@ -40,5 +40,5 @@ export default function Home() {
 
   if (loaded === 'loading' || loaded.plan === null) return null;
 
-  return <HomeScreen plan={loaded.plan} name={loaded.name} />;
+  return <HomeScreen plan={loaded.plan} profile={loaded.profile} />;
 }

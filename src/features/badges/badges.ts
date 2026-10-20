@@ -1,5 +1,6 @@
 import { parseISO } from 'date-fns';
-import type { Entry, Plan, WeekResult } from '@/db/types';
+import type { Entry, Plan, Profile, WeekResult } from '@/db/types';
+import { semesterWeeksOf } from '@/features/profile/profile';
 import { isIsoDate } from '@/features/recurring/schedule';
 import {
   addDays,
@@ -53,6 +54,14 @@ const monthName = (month: IsoMonth): string => monthAndYear.format(parseISO(firs
 const euros = (minor: Minor): string => formatMoney(minor, 'EUR', minor % 100 === 0 ? { whole: true } : undefined);
 
 const weeksText = (n: number): string => `${n} ${n === 1 ? 'week' : 'weeks'}`;
+
+/**
+ * The semester that sets gold Under-Budget Week: the weeks of the profile's semester (`semesterWeeksOf`), or
+ * `DEFAULT_SEMESTER_WEEKS` without one: no profile, no dates, or dates the profile form would not save.
+ */
+export function semesterWeeksFor(profile: Pick<Profile, 'semesterStart' | 'semesterEnd'> | null | undefined): number {
+  return semesterWeeksOf(profile) ?? DEFAULT_SEMESTER_WEEKS;
+}
 
 /** The weeks under budget that earn gold: a semester's weeks, but always more than silver needs. */
 export function goldWeeks(semesterWeeks: number): number {
