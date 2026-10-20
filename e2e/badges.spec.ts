@@ -82,6 +82,8 @@ test('five finished weeks show on Home and earn the bronze Under-Budget Week', a
 
   const card = page.getByRole('region', { name: 'Badges', exact: true });
   await expect(card.getByText('3 of 4 earned', { exact: true })).toBeVisible(RECORDING);
+  // The card is named by its own heading.
+  await expect(card.getByRole('heading', { level: 2, name: 'Badges', exact: true })).toBeVisible();
   await expect(card.getByText('Next: Latte Survivor', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
@@ -130,14 +132,16 @@ test('"I was away this week" is saved and keeps the logging streak waiting', asy
   await expect(away).toBeChecked();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  // The week is still running: only the note is saved.
-  const note = (await readStore<WeekResult>(page, 'weekResults')).find((w) => w.weekStart === '2026-11-16');
-  expect(note).toMatchObject({ weekEnd: '2026-11-22', paused: true, recordedAt: '' });
+  // The week is still running: only the mark is saved, and the streak already reads as paused.
+  const mark = (await readStore<WeekResult>(page, 'weekResults')).find((w) => w.weekStart === '2026-11-16');
+  expect(mark).toMatchObject({ weekEnd: '2026-11-22', paused: true, recordedAt: '' });
+  await page.goto('/badges');
+  const streak = badge(page, 'Logging Streak');
+  await expect(streak.getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible(RECORDING);
 
   // The next Monday the week is recorded as a week away, and the streak of five waits instead of starting over.
   await page.clock.setFixedTime(on(2026, 11, 23));
   await page.goto('/badges');
-  const streak = badge(page, 'Logging Streak');
   await expect(streak.getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible(RECORDING);
 
   const recorded = (await readStore<WeekResult>(page, 'weekResults')).find((w) => w.weekStart === '2026-11-16');

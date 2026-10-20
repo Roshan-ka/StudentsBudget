@@ -7,11 +7,12 @@ import {
   formatDate,
   monthOf,
   shiftMonth,
+  weekOf,
   type IsoDate,
   type IsoMonth,
 } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
-import { isRecorded } from './week-results';
+import { handLoggedOn, isRecorded } from './records';
 
 export type Badge = {
   id: 'under-budget-week' | 'logging-streak' | 'ramen-royalty' | 'latte-survivor';
@@ -23,15 +24,17 @@ export type Badge = {
   earnedOn: IsoDate | null;
 };
 
-/** One finished calendar month's eating out, in EUR. */
-export type MonthSpend = { month: IsoMonth; eatingOutMinor: Minor };
+/** One finished calendar month: its eating out in EUR, and how many entries were typed in during it. */
+export type MonthSpend = { month: IsoMonth; eatingOutMinor: Minor; handLoggedCount: number };
 
-/** What the badges need besides the weekly results. */
+/** What the badges need besides the recorded weeks. */
 export type BadgeHistory = {
   /** The setup day: the week it falls in is only partly planned, unless it is a Monday. */
   planStart: IsoDate;
   /** Each finished calendar month from the first full month after setup, oldest first. */
   months: MonthSpend[];
+  /** The week still running is marked "I was away this week". */
+  awayThisWeek: boolean;
 };
 
 /** Gold Under-Budget Week until the profile gives the semester's dates: a semester of 26 weeks. */
@@ -53,15 +56,18 @@ const weeksText = (n: number): string => `${n} ${n === 1 ? 'week' : 'weeks'}`;
 
 /** The weeks under budget that earn gold: a semester's weeks, but always more than silver needs. */
 export function goldWeeks(semesterWeeks: number): number {
+  // At least 13: a short or odd semester range must not make gold trivial, so gold always needs more than silver.
   return Math.max(semesterWeeks, SILVER_WEEKS + 1);
 }
 
 /**
- * Eating out per finished calendar month, the input for Latte Survivor. It is read from the entries, not the weekly
- * results, because a month's spending does not depend on the plan. The first full month is the month of setup when
- * setup was on the 1st, otherwise the month after; the month of `today` is still running and is left out.
+ * The rest of what the badges need, from the plan, the entries and the stored rows. Each finished calendar month
+ * gets its eating out (by the day each entry is for) and the entries typed in during it (by the day each was typed
+ * in, by local time). Months come from the entries, not the weekly results, because a month's spending does not
+ * depend on the plan. The first full month is the month of setup when setup was on the 1st, otherwise the month
+ * after; the month of `today` is still running and is left out.
  */
-export function badgeHistory(plan: Plan, entries: Entry[], today: IsoDate): BadgeHistory {
+export function badgeHistory(plan: Plan, entries: Entry[], results: WeekResult[], today: IsoDate): BadgeHistory {
   const months: IsoMonth[] = [];
   if (isIsoDate(plan.createdOn) && isIsoDate(today)) {
     const setupMonth = monthOf(plan.createdOn);
@@ -70,18 +76,29 @@ export function badgeHistory(plan: Plan, entries: Entry[], today: IsoDate): Badg
     for (let month = first; month < monthOf(today); month = shiftMonth(month, 1)) months.push(month);
   }
 
-  const totals = new Map<IsoMonth, Minor>(months.map((m) => [m, 0]));
+  const byMonth = new Map<IsoMonth, MonthSpend>(
+    months.map((month) => [month, { month, eatingOutMinor: 0, handLoggedCount: 0 }]),
+  );
   for (const e of entries) {
-    if (e.type !== 'expense' || e.categoryId !== 'eating-out') continue;
-    const total = totals.get(monthOf(e.date));
-    if (total !== undefined) totals.set(monthOf(e.date), total + e.eurMinor);
+    const spentIn = byMonth.get(monthOf(e.date));
+    if (spentIn && e.type === 'expense' && e.categoryId === 'eating-out') spentIn.eatingOutMinor += e.eurMinor;
+    const typedOn = handLoggedOn(e);
+    const typedIn = typedOn === null ? undefined : byMonth.get(monthOf(typedOn));
+    if (typedIn) typedIn.handLoggedCount += 1;
   }
-  return { planStart: plan.createdOn, months: months.map((month) => ({ month, eatingOutMinor: totals.get(month) ?? 0 })) };
+
+  const thisWeek = isIsoDate(today) ? weekOf(today).start : null;
+  return {
+    planStart: plan.createdOn,
+    months: [...byMonth.values()],
+    awayThisWeek: results.some((r) => !isRecorded(r) && r.paused && r.weekStart === thisWeek),
+  };
 }
 
 /**
- * Weeks that come in at or under their share of the envelopes. A week with nothing planned has nothing to be under,
- * and a week away does not count. Bronze at 4, silver at 12, gold at a semester.
+ * Weeks in which something was typed in and that came in at or under their share of the envelopes. A week with
+ * nothing logged says nothing about the budget, a week with nothing planned has nothing to be under, and a week
+ * away does not count. Bronze at 4, silver at 12, gold at a semester.
  */
 function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number): Badge {
   const gold = goldWeeks(semesterWeeks);
@@ -92,7 +109,7 @@ function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number): Badge {
   let tier: Badge['tier'] = null;
   let earnedOn: IsoDate | null = null;
   for (const w of weeks) {
-    if (w.paused || w.plannedMinor <= 0 || w.spentMinor > w.plannedMinor) continue;
+    if (w.paused || w.handLoggedCount <= 0 || w.plannedMinor <= 0 || w.spentMinor > w.plannedMinor) continue;
     count += 1;
     const reached = tierAt(count);
     if (reached !== tier) {
@@ -111,8 +128,11 @@ function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number): Badge {
   };
 }
 
-/** Weeks in a row with something typed in. A week away neither ends the run nor adds to it. Earned at 4. */
-function loggingStreak(weeks: WeekResult[]): Badge {
+/**
+ * Weeks in a row with something typed in. A week away neither ends the run nor adds to it, and while the latest
+ * week (recorded, or the one still running) is marked away the streak reads as paused. Earned at 4.
+ */
+function loggingStreak(weeks: WeekResult[], awayThisWeek: boolean): Badge {
   let run = 0;
   let earnedOn: IsoDate | null = null;
   for (const w of weeks) {
@@ -120,11 +140,11 @@ function loggingStreak(weeks: WeekResult[]): Badge {
     run = w.handLoggedCount > 0 ? run + 1 : 0;
     if (earnedOn === null && run >= STREAK_WEEKS) earnedOn = w.weekEnd;
   }
-  const paused = weeks.length > 0 && weeks[weeks.length - 1].paused;
+  const paused = awayThisWeek || (weeks.length > 0 && weeks[weeks.length - 1].paused);
 
   let progress: string;
-  if (run > 0 && paused) progress = `Your streak is paused at ${weeksText(run)}`;
-  else if (run === 0) progress = `Log something this week to start a ${earnedOn === null ? '' : 'new '}streak`;
+  if (run === 0) progress = 'A streak starts with a week you log something yourself';
+  else if (paused) progress = `Your streak is paused at ${weeksText(run)}`;
   else if (earnedOn === null) progress = `${run} of ${STREAK_WEEKS} weeks in a row`;
   else progress = `${weeksText(run)} in a row`;
 
@@ -153,7 +173,10 @@ function ramenRoyalty(weeks: WeekResult[], planStart: IsoDate): Badge {
   return { id: 'ramen-royalty', title: 'Ramen Royalty', tier: null, progress, earnedOn };
 }
 
-/** A month with at most half the eating out of the first full month. */
+/**
+ * A month with at most half the eating out of the first one that had some. Only months with something typed in
+ * count: a month nobody logged in says nothing about eating out, neither as the mark nor as a month under it.
+ */
 function latteSurvivor(months: MonthSpend[]): Badge {
   const badge = (progress: string, earnedOn: IsoDate | null = null): Badge => ({
     id: 'latte-survivor',
@@ -162,35 +185,36 @@ function latteSurvivor(months: MonthSpend[]): Badge {
     progress,
     earnedOn,
   });
-  const [first, ...later] = months;
-  if (first === undefined) return badge('Your first full month of logging sets the mark');
-  if (first.eatingOutMinor <= 0) {
-    return badge(`Your first full month, ${monthName(first.month)}, had no eating out to halve`);
-  }
+  const logged = months.filter((m) => m.handLoggedCount > 0);
+  if (logged.length === 0) return badge('Your first full month of logging sets the mark');
+  const markAt = logged.findIndex((m) => m.eatingOutMinor > 0);
+  if (markAt === -1) return badge('Your first full month with eating out sets the mark');
+  const mark = logged[markAt];
 
   // Doubling keeps it in whole cents: €123.45 halves to €61.725, and €61.72 is the most that is at most half.
-  const hit = later.find((m) => m.eatingOutMinor * 2 <= first.eatingOutMinor);
+  const hit = logged.slice(markAt + 1).find((m) => m.eatingOutMinor * 2 <= mark.eatingOutMinor);
   if (hit === undefined) {
-    const most = Math.floor(first.eatingOutMinor / 2);
-    return badge(`A month with ${euros(most)} or less on eating out earns it (half of ${monthName(first.month)})`);
+    const most = Math.floor(mark.eatingOutMinor / 2);
+    return badge(`A month with ${euros(most)} or less on eating out earns it (half of ${monthName(mark.month)})`);
   }
   return badge(
     `${monthName(hit.month)}: ${euros(hit.eatingOutMinor)} on eating out, down from ` +
-      `${euros(first.eatingOutMinor)} in ${monthName(first.month)}`,
+      `${euros(mark.eatingOutMinor)} in ${monthName(mark.month)}`,
     addDays(firstOfMonth(shiftMonth(hit.month, 1)), -1),
   );
 }
 
 /**
- * The four personal badges, from the recorded weeks and the eating out per month. Badges are earned, never bought,
- * never reward spending, and once earned stay earned. Rows that only hold the away note of a week still running are
- * left out. `semesterWeeks` sets gold for Under-Budget Week (`DEFAULT_SEMESTER_WEEKS` until the profile says).
+ * The four personal badges, from the recorded weeks and `badgeHistory`. Badges are earned, never bought, never
+ * reward spending, and once earned stay earned. Rows that only hold the away mark of a week still running are left
+ * out (the history says whether this week is marked). `semesterWeeks` sets gold for Under-Budget Week
+ * (`DEFAULT_SEMESTER_WEEKS` until the profile says).
  */
 export function badgesFrom(results: WeekResult[], semesterWeeks: number, history: BadgeHistory): Badge[] {
   const weeks = results.filter(isRecorded).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
   return [
     underBudgetWeek(weeks, semesterWeeks),
-    loggingStreak(weeks),
+    loggingStreak(weeks, history.awayThisWeek),
     ramenRoyalty(weeks, history.planStart),
     latteSurvivor(history.months),
   ];

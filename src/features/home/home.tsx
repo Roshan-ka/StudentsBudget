@@ -62,6 +62,7 @@ export function HomeScreen({
     const leftMinor = month.reduce((total, status) => total + status.plannedMinor - status.spentMinor, 0);
     // Envelopes planned at €0 and never used would only add empty rows.
     const rows: EnvelopeRow[] = month.filter((status) => status.plannedMinor > 0 || status.spentMinor > 0);
+    const badges = badgesFrom(weekResults, DEFAULT_SEMESTER_WEEKS, badgeHistory(plan, entries, weekResults, today));
 
     const total = totalInEur(accounts, entries, rates);
     // Without a rate for any account's currency nothing was converted, and €0 would read as a real total.
@@ -75,7 +76,7 @@ export function HomeScreen({
             should not carry into the next month. */}
         <SuggestedBudget key={monthOf(today)} plan={plan} entries={entries} today={today} />
         <CheckInCard today={today} />
-        <BadgesCard badges={badgesFrom(weekResults, DEFAULT_SEMESTER_WEEKS, badgeHistory(plan, entries, today))} />
+        <BadgesCard badges={badges} />
         <RevealCard startedOn={plan.createdOn} today={today} />
         <div className="flex flex-col gap-1">
           <p className="font-medium">
