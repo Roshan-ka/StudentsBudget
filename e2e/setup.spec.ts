@@ -82,7 +82,7 @@ test('every envelope range shows its source, and an estimate says so', async ({ 
   await expect(eatingOut.getByText('Estimate', { exact: true })).toBeVisible();
   await expect(eatingOut.getByRole('link', { name: 'stwno.de' })).toHaveAttribute(
     'href',
-    'https://www.stwno.de/infomax/daten-extern/pdf/UNI-R/speiseplan_nw_de.pdf',
+    'https://stwno.de/de/gastronomie/speiseplan/uni-regensburg/mensa-ur',
   );
 });
 
