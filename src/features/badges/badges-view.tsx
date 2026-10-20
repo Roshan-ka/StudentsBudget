@@ -21,17 +21,17 @@ function rule(id: Badge['id'], semesterWeeks: number): string {
   switch (id) {
     case 'under-budget-week':
       return (
-        'Counts a week in which you log something and spend no more than its share of your envelopes. ' +
+        'Counts a week with spending you log yourself that stays within its share of your envelopes. ' +
         `Bronze at 4 weeks, silver at 12, gold at ${goldWeeks(semesterWeeks)}: a whole semester.`
       );
     case 'logging-streak':
-      return 'Weeks in a row in which you log something yourself. Earned at 4 weeks.';
+      return 'Weeks in a row with spending you log yourself. Earned at 4 weeks.';
     case 'ramen-royalty':
       return 'Earned by a full week that costs less in groceries than every week before it.';
     case 'latte-survivor':
       return (
         'Earned by a month with at most half the eating out of your first full month that had some. ' +
-        'Only months in which you log something count.'
+        'Only months with spending you log yourself count.'
       );
   }
 }
@@ -65,9 +65,9 @@ export function BadgesView() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Each week is saved once it is over, and your badges come from those weeks and your entries. A week you mark
-        &ldquo;I was away this week&rdquo; in the check-in keeps your streak as it is and doesn&apos;t count towards
-        Under-Budget Week or Ramen Royalty.
+        Each week is saved on the Wednesday after it ends, so spending you log for it on Monday or Tuesday still
+        counts. Your badges come from those weeks and your entries. A week you mark as away in the check-in keeps your
+        streak as it is and doesn&apos;t count towards Under-Budget Week or Ramen Royalty.
       </p>
       <ul aria-label="Your badges" className="flex flex-col gap-3">
         {badges.map((b) => (

@@ -1,26 +1,25 @@
 import type { Entry, WeekResult } from '@/db/types';
-import { todayIso, type IsoDate } from '@/lib/dates';
 
 // What the week results and the badges both need to know about rows and entries. No database here: the badges are
 // worked out from what they are given.
 
 /**
- * `recordedAt` of a row that only holds the "I was away this week" mark for a week still running. Such a row is not a
- * result yet: the week fills it in when it is recorded, and badges leave it out until then.
+ * `recordedAt` of a row that only holds the "I was away" mark of a week not recorded yet: the one still running, or
+ * last week while it waits to be recorded. Such a row is not a result yet: the week fills it in when it is recorded,
+ * and badges leave it out until then.
  */
 export const NOT_RECORDED = '';
 
-/** Whether a row is a finished week's result, not just the away mark of a week still running. */
+/** Whether a row is a finished week's result, not just the away mark of a week not recorded yet. */
 export function isRecorded(row: WeekResult): boolean {
   return row.recordedAt !== NOT_RECORDED;
 }
 
 /**
- * The local day an entry was typed in, whatever day it is for. Null for an entry a schedule posted (nobody typed it)
- * and for a `createdAt` that is not a time.
+ * Whether an entry is spending the user logged by hand: an expense a schedule did not post. A transfer only moves
+ * money and income is not spending, so neither says anything about a budget. The badges count such an entry for
+ * the day it is for (`date`), whenever it was typed in.
  */
-export function handLoggedOn(entry: Entry): IsoDate | null {
-  if (entry.type !== 'transfer' && entry.recurring !== undefined) return null;
-  const created = new Date(entry.createdAt);
-  return Number.isNaN(created.getTime()) ? null : todayIso(created);
+export function isHandLoggedExpense(entry: Entry): boolean {
+  return entry.type === 'expense' && entry.recurring === undefined;
 }

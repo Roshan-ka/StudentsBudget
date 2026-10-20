@@ -74,7 +74,7 @@ const month = (m: IsoMonth, eatingOutMinor: number, handLoggedCount = 5): MonthS
 });
 
 /** Set up on Monday 19 October, so every week above is a whole week of the plan. No finished month yet. */
-const HISTORY: BadgeHistory = { planStart: '2026-10-19', months: [], awayThisWeek: false };
+const HISTORY: BadgeHistory = { planStart: '2026-10-19', months: [], awayNotRecorded: false };
 
 function badge(id: Badge['id'], results: WeekResult[], semesterWeeks = 26, history = HISTORY): Badge {
   const found = badgesFrom(results, semesterWeeks, history).find((b) => b.id === id);
@@ -84,20 +84,20 @@ function badge(id: Badge['id'], results: WeekResult[], semesterWeeks = 26, histo
 
 const underBudget = (results: WeekResult[], semesterWeeks?: number) =>
   badge('under-budget-week', results, semesterWeeks);
-const streak = (results: WeekResult[], awayThisWeek = false) =>
-  badge('logging-streak', results, 26, { ...HISTORY, awayThisWeek });
+const streak = (results: WeekResult[], awayNotRecorded = false) =>
+  badge('logging-streak', results, 26, { ...HISTORY, awayNotRecorded });
 const ramen = (results: WeekResult[], history?: BadgeHistory) => badge('ramen-royalty', results, 26, history);
 const latte = (months: MonthSpend[]) => badge('latte-survivor', [], 26, { ...HISTORY, months });
 
 describe('badgesFrom with no data', () => {
   it('lists all four badges, none earned, each saying how to start', () => {
-    expect(badgesFrom([], 26, { planStart: '2026-10-16', months: [], awayThisWeek: false })).toEqual([
+    expect(badgesFrom([], 26, { planStart: '2026-10-16', months: [], awayNotRecorded: false })).toEqual([
       { id: 'under-budget-week', title: 'Under-Budget Week', tier: null, progress: '0 of 4 weeks', earnedOn: null },
       {
         id: 'logging-streak',
         title: 'Logging Streak',
         tier: null,
-        progress: 'A streak starts with a week you log something yourself',
+        progress: 'A streak starts with a week of spending you log yourself',
         earnedOn: null,
       },
       {
@@ -220,7 +220,7 @@ describe('Logging Streak', () => {
     });
   });
 
-  it('reads as paused while the week still running is marked away', () => {
+  it('reads as paused while a week not recorded yet is marked away', () => {
     const four = weeks(4);
     expect(streak(four, true)).toMatchObject({ progress: 'Your streak is paused at 4 weeks', earnedOn: four[3].weekEnd });
     expect(streak(weeks(2), true)).toMatchObject({ progress: 'Your streak is paused at 2 weeks', earnedOn: null });
@@ -230,7 +230,7 @@ describe('Logging Streak', () => {
   it('starts again after a week with nothing typed in, and keeps the badge once earned', () => {
     const results = weeks(6, (i) => (i === 4 ? logged(0) : {}));
     expect(streak(results.slice(0, 5))).toMatchObject({
-      progress: 'A streak starts with a week you log something yourself',
+      progress: 'A streak starts with a week of spending you log yourself',
       earnedOn: results[3].weekEnd,
     });
     expect(streak(results)).toMatchObject({ progress: '1 week in a row', earnedOn: results[3].weekEnd });
@@ -240,7 +240,7 @@ describe('Logging Streak', () => {
       earnedOn: null,
     });
     expect(streak(weeks(1, () => logged(0)))).toMatchObject({
-      progress: 'A streak starts with a week you log something yourself',
+      progress: 'A streak starts with a week of spending you log yourself',
     });
   });
 
@@ -311,7 +311,7 @@ describe('Latte Survivor', () => {
     });
   });
 
-  it('counts only months with something typed in, as the mark and as the month under it', () => {
+  it('counts only months with spending logged by hand, as the mark and as the month under it', () => {
     // December was not logged at all: its €0 is no month of eating less.
     expect(latte([month('2026-11', 12400), month('2026-12', 0, 0), month('2027-01', 9000)])).toMatchObject({
       progress: 'A month with €62 or less on eating out earns it (half of November 2026)',
@@ -382,42 +382,57 @@ describe('badgeHistory', () => {
     entry('2027-01-03', 'eating-out', 400),
   ];
 
-  it('totals eating out in EUR and the entries typed in for each finished month from the first full month', () => {
-    // Set up mid-October, so November is the first full month; January is still running.
+  it('totals eating out in EUR and the expenses logged by hand for each finished month from the first full month', () => {
+    // Set up mid-October, so November is the first full month; January is still running. November's income is
+    // neither eating out nor spending logged.
     expect(badgeHistory(plan('2026-10-16'), ENTRIES, [], '2027-01-05')).toEqual({
       planStart: '2026-10-16',
       months: [
-        { month: '2026-11', eatingOutMinor: 3000, handLoggedCount: 4 },
+        { month: '2026-11', eatingOutMinor: 3000, handLoggedCount: 3 },
         { month: '2026-12', eatingOutMinor: 1500, handLoggedCount: 1 },
       ],
-      awayThisWeek: false,
+      awayNotRecorded: false,
     });
   });
 
-  it('counts an entry as typed in the month of its local createdAt, and leaves out what a schedule posted', () => {
-    const entries = [
-      // For December, typed in on 1 January in Regensburg (still 31 December in UTC).
-      entry('2026-12-20', 'eating-out', 1500, { createdAt: '2026-12-31T23:30:00.000Z' }),
+  it('counts an expense for the month it is dated in, whenever it was typed in, and only expenses logged by hand', () => {
+    const entries: Entry[] = [
+      // For December, typed in on 2 January: it is December's.
+      entry('2026-12-20', 'eating-out', 1500, { createdAt: '2027-01-02T09:00:00.000Z' }),
       // Posted by a schedule in December.
       entry('2026-12-01', 'rent', 40000, { recurring: { scheduleId: 's' } }),
       entry('2026-11-05', 'food', 800),
+      // January has only income and a transfer typed in: no spending logged.
+      entry('2027-01-07', 'income-job', 20000, { type: 'income' }),
+      {
+        id: 'move',
+        type: 'transfer',
+        date: '2027-01-08',
+        accountId: 'cash',
+        toAccountId: 'bank',
+        amountMinor: 5000,
+        eurMinor: 5000,
+        toAmountMinor: 5000,
+        note: '',
+        createdAt: '2027-01-08T12:00:00.000Z',
+      },
     ];
     expect(badgeHistory(plan('2026-10-16'), entries, [], '2027-02-01').months).toEqual([
       { month: '2026-11', eatingOutMinor: 0, handLoggedCount: 1 },
-      { month: '2026-12', eatingOutMinor: 1500, handLoggedCount: 0 },
-      { month: '2027-01', eatingOutMinor: 0, handLoggedCount: 1 },
+      { month: '2026-12', eatingOutMinor: 1500, handLoggedCount: 1 },
+      { month: '2027-01', eatingOutMinor: 0, handLoggedCount: 0 },
     ]);
   });
 
   it('starts with the month of setup when setup was on the 1st, and is empty while that month runs', () => {
     expect(badgeHistory(plan('2026-11-01'), ENTRIES, [], '2026-12-15').months).toEqual([
-      { month: '2026-11', eatingOutMinor: 3000, handLoggedCount: 4 },
+      { month: '2026-11', eatingOutMinor: 3000, handLoggedCount: 3 },
     ]);
     expect(badgeHistory(plan('2026-10-16'), ENTRIES, [], '2026-11-30').months).toEqual([]);
     expect(badgeHistory(plan('2026-10-16'), ENTRIES, [], 'not a date').months).toEqual([]);
   });
 
-  it('says whether the week still running is marked away', () => {
+  it('says whether the week still running, or last week while it waits to be recorded, is marked away', () => {
     const mark = (weekStart: IsoDate, paused = true): WeekResult => ({
       ...week(weekStart),
       plannedMinor: 0,
@@ -425,13 +440,16 @@ describe('badgeHistory', () => {
       paused,
       recordedAt: '',
     });
-    const away = (results: WeekResult[]) => badgeHistory(plan('2026-10-16'), [], results, '2026-11-18').awayThisWeek;
+    // Monday 16 November: this week starts on the 16th, last week on the 9th.
+    const away = (results: WeekResult[]) => badgeHistory(plan('2026-10-16'), [], results, '2026-11-16').awayNotRecorded;
 
     expect(away([mark('2026-11-16')])).toBe(true);
+    expect(away([mark('2026-11-09')])).toBe(true);
     expect(away([])).toBe(false);
-    // A mark on another week, or a recorded week of this one, is not this week's mark.
-    expect(away([mark('2026-11-09')])).toBe(false);
+    // A mark on an older week, or a recorded week, is not a mark waiting for its week.
+    expect(away([mark('2026-11-02')])).toBe(false);
     expect(away([week('2026-11-16', { paused: true })])).toBe(false);
+    expect(away([week('2026-11-09', { paused: true })])).toBe(false);
   });
 });
 
@@ -439,7 +457,7 @@ describe('copy', () => {
   it('never speaks of losing, breaking or failing', () => {
     const histories: BadgeHistory[] = [
       HISTORY,
-      { ...HISTORY, awayThisWeek: true },
+      { ...HISTORY, awayNotRecorded: true },
       { ...HISTORY, months: [month('2026-11', 0)] },
       { ...HISTORY, months: [month('2026-11', 9000), month('2026-12', 8000)] },
       { ...HISTORY, months: [month('2026-11', 9000), month('2026-12', 0, 0)] },

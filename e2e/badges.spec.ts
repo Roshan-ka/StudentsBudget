@@ -4,7 +4,11 @@ import { completeSetup, readStore } from './helpers/setup';
 
 // `completeSetup` creates the plan on Friday 16 October 2026: food €310 and eating out €124 a month. The seed
 // below logs groceries by hand in each of the five weeks after that. The third week (26 October - 1 November,
-// split by the month) plans €98.46 and gets €200 of groceries, so it is the only one over its plan.
+// split by the month) plans €98.46 and gets €200 of groceries, so it is the only one over its plan. A week is
+// recorded from the Wednesday after its Sunday.
+
+// 375 px, the narrowest phone the app is made for: the badge pages, their dates and the switches must fit it.
+test.use({ viewport: { width: 375, height: 812 } });
 
 /** Noon on a local calendar day; month is 1-12. */
 const on = (year: number, month: number, day: number) => new Date(year, month - 1, day, 12, 0, 0);
@@ -73,11 +77,18 @@ async function overflow(page: Page) {
   return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
 
+/** The saved row of the week of `weekStart`, once the app has recorded it (not just marked it away). */
+async function recordedWeek(page: Page, weekStart: string): Promise<WeekResult | undefined> {
+  const find = async () => (await readStore<WeekResult>(page, 'weekResults')).find((w) => w.weekStart === weekStart);
+  await expect.poll(async () => (await find())?.recordedAt ?? '', RECORDING).not.toBe('');
+  return find();
+}
+
 test('five finished weeks show on Home and earn the bronze Under-Budget Week', async ({ page }) => {
   await completeSetup(page);
   await seedFiveWeeks(page);
-  // Monday 16 November: five weeks are over, and the app records them when it opens.
-  await page.clock.setFixedTime(on(2026, 11, 16));
+  // Wednesday 18 November: five weeks are over and past their two days of grace; the app records them when it opens.
+  await page.clock.setFixedTime(on(2026, 11, 18));
   await page.reload();
 
   const card = page.getByRole('region', { name: 'Badges', exact: true });
@@ -119,6 +130,8 @@ test('"I was away this week" is saved and keeps the logging streak waiting', asy
 
   const away = page.getByRole('switch', { name: 'I was away this week', exact: true });
   await expect(away).not.toBeChecked();
+  // The week before is already recorded: there is nothing to mark for it any more.
+  await expect(page.getByRole('switch', { name: 'I was away last week', exact: true })).toHaveCount(0);
   await away.click();
   await expect(away).toBeChecked();
 
@@ -138,17 +151,56 @@ test('"I was away this week" is saved and keeps the logging streak waiting', asy
   await page.goto('/badges');
   const streak = badge(page, 'Logging Streak');
   await expect(streak.getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible(RECORDING);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  // The next Monday the week is recorded as a week away, and the streak of five waits instead of starting over.
+  // The next Monday the week waits to be recorded: the check-in shows it as last week, still marked, next to a new
+  // week without the mark.
   await page.clock.setFixedTime(on(2026, 11, 23));
+  await page.goto('/check-in');
+  await expect(page.getByRole('switch', { name: 'I was away last week', exact: true })).toBeChecked();
+  await expect(page.getByRole('switch', { name: 'I was away this week', exact: true })).not.toBeChecked();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
   await page.goto('/badges');
   await expect(streak.getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible(RECORDING);
 
-  const recorded = (await readStore<WeekResult>(page, 'weekResults')).find((w) => w.weekStart === '2026-11-16');
+  // On Wednesday the week is recorded as a week away, and the streak of five waits instead of starting over.
+  await page.clock.setFixedTime(on(2026, 11, 25));
+  await page.goto('/badges');
+  const recorded = await recordedWeek(page, '2026-11-16');
   expect(recorded).toMatchObject({ paused: true, handLoggedCount: 0 });
-  expect(recorded?.recordedAt).not.toBe('');
+  await expect(streak.getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible();
 
-  // The new week starts without the mark.
+  // The new week starts without the mark, and last week can no longer be changed.
   await page.goto('/check-in');
   await expect(page.getByRole('switch', { name: 'I was away this week', exact: true })).not.toBeChecked();
+  await expect(page.getByRole('switch', { name: 'I was away last week', exact: true })).toHaveCount(0);
+});
+
+test('a week away can still be marked on the Tuesday after it, before it is recorded', async ({ page }) => {
+  await completeSetup(page);
+  await seedFiveWeeks(page);
+  // Tuesday 24 November: the app was not opened in the week of 16 November, which waits to be recorded.
+  await page.clock.setFixedTime(on(2026, 11, 24));
+  await page.goto('/check-in');
+
+  const lastWeek = page.getByRole('switch', { name: 'I was away last week', exact: true });
+  const thisWeek = page.getByRole('switch', { name: 'I was away this week', exact: true });
+  await expect(lastWeek).not.toBeChecked();
+  await expect(thisWeek).not.toBeChecked();
+  await lastWeek.click();
+  await expect(lastWeek).toBeChecked();
+  // Only last week is marked.
+  await expect(thisWeek).not.toBeChecked();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  const marks = (await readStore<WeekResult>(page, 'weekResults')).filter((w) => w.recordedAt === '');
+  expect(marks).toEqual([expect.objectContaining({ weekStart: '2026-11-16', weekEnd: '2026-11-22', paused: true })]);
+
+  // Wednesday: the week is recorded as a week away, so the streak of five waits instead of starting over.
+  await page.clock.setFixedTime(on(2026, 11, 25));
+  await page.goto('/badges');
+  const recorded = await recordedWeek(page, '2026-11-16');
+  expect(recorded).toMatchObject({ paused: true, handLoggedCount: 0 });
+  await expect(badge(page, 'Logging Streak').getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
 });

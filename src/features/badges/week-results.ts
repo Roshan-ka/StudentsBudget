@@ -3,20 +3,44 @@ import type { Entry, Plan, WeekResult } from '@/db/types';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { safeToSpend } from '@/lib/budget';
 import { addDays, firstOfMonth, monthOf, weekOf, type IsoDate } from '@/lib/dates';
-import { NOT_RECORDED, handLoggedOn, isRecorded } from './records';
+import { NOT_RECORDED, isHandLoggedExpense, isRecorded } from './records';
 
 type Week = { start: IsoDate; end: IsoDate };
 
 /**
- * The Monday–Sunday weeks from the week of setup on that are over by `today`. The week that ends today (a Sunday)
- * is not over yet: something can still be logged in it. Empty for a plan or a day that is not a date.
+ * Days a week waits after its Sunday before it is recorded: what is logged for it on the Monday or the Tuesday after
+ * still counts for it. A week is recorded from the Wednesday on.
+ */
+export const GRACE_DAYS = 2;
+
+/** Whether `week` is ready to be recorded on `today`: more than `GRACE_DAYS` after its Sunday. */
+function isDue(week: Week, today: IsoDate): boolean {
+  // ISO date strings sort chronologically, so plain comparison is enough.
+  return today > addDays(week.end, GRACE_DAYS);
+}
+
+/**
+ * The Monday–Sunday weeks from the week of setup on that are ready to be recorded by `today`: each from the
+ * Wednesday after its Sunday (`GRACE_DAYS`), so spending typed in on Monday or Tuesday for the week before still
+ * counts for it. Empty for a plan or a day that is not a date.
  */
 export function completedWeeks(plan: Plan, today: IsoDate): Week[] {
   if (!isIsoDate(plan.createdOn) || !isIsoDate(today)) return [];
   const weeks: Week[] = [];
-  // ISO date strings sort chronologically, so plain comparison is enough.
-  for (let week = weekOf(plan.createdOn); week.end < today; week = weekOf(addDays(week.end, 1))) weeks.push(week);
+  for (let week = weekOf(plan.createdOn); isDue(week, today); week = weekOf(addDays(week.end, 1))) weeks.push(week);
   return weeks;
+}
+
+/**
+ * Last week while it waits to be recorded (on the Monday and the Tuesday after it), so it can still be marked as a
+ * week away. Null on any other day, when last week ended before setup, and for a plan or a day that is not a date.
+ */
+export function weekAwaitingRecord(plan: Plan, today: IsoDate): Week | null {
+  if (!isIsoDate(plan.createdOn) || !isIsoDate(today)) return null;
+  const lastWeek = weekOf(addDays(weekOf(today).start, -1));
+  // A week that ended before setup had no plan, so nothing is recorded for it.
+  if (isDue(lastWeek, today) || lastWeek.end < plan.createdOn) return null;
+  return lastWeek;
 }
 
 /**
@@ -24,8 +48,8 @@ export function completedWeeks(plan: Plan, today: IsoDate): Week[] {
  * the plan against what was spent on it. A week a month boundary splits is the sum of its two parts, each measured
  * against its own month (`safeToSpend` for the part's last day). A part that ends before setup had no budget and is
  * left out, as the check-in leaves it out; in the week of setup, `safeToSpend` counts from the setup day.
- * `handLoggedCount` is the entries typed in during the week (by local time), whatever day they are for; entries a
- * schedule posted are not counted.
+ * `handLoggedCount` is the expenses logged by hand that are dated in the week, whenever they were typed in (a Monday
+ * batch for the week before counts for that week); transfers, income and what a schedule posted are not counted.
  */
 export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<WeekResult, 'paused' | 'recordedAt'> {
   const split = monthOf(week.start) !== monthOf(week.end);
@@ -45,10 +69,9 @@ export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<Wee
     }
   }
 
-  const handLoggedCount = entries.filter((e) => {
-    const day = handLoggedOn(e);
-    return day !== null && day >= week.start && day <= week.end;
-  }).length;
+  const handLoggedCount = entries.filter(
+    (e) => isHandLoggedExpense(e) && e.date >= week.start && e.date <= week.end,
+  ).length;
 
   return {
     weekStart: week.start,
@@ -92,10 +115,10 @@ async function record(today: IsoDate): Promise<{ recorded: number }> {
 let queue: Promise<unknown> = Promise.resolve();
 
 /**
- * Saves each finished Monday–Sunday week since setup once, keyed by its Monday, with the plan of the day it is
- * recorded (the first run fills in every week since setup with the current plan). A week already recorded is never
- * written again. The plan, the entries and the results are read and written in one read-write transaction.
- * Resolves with how many weeks were recorded.
+ * Saves each Monday–Sunday week since setup once it is due (see `completedWeeks`), keyed by its Monday, with the plan
+ * of the day it is recorded (the first run fills in every week since setup with the current plan). A week already
+ * recorded is never written again. The plan, the entries and the results are read and written in one read-write
+ * transaction. Resolves with how many weeks were recorded.
  */
 export function recordCompletedWeeks(today: IsoDate): Promise<{ recorded: number }> {
   const run = queue.then(() => record(today));
@@ -104,12 +127,13 @@ export function recordCompletedWeeks(today: IsoDate): Promise<{ recorded: number
 }
 
 /**
- * "I was away this week", for the Monday–Sunday week containing `today`. While the week runs, the mark is kept as
- * a row that is not a result yet (no amounts, `recordedAt` empty), and recording the week keeps it. Switching it
- * off before then removes that row. On a week already recorded it changes `paused` and nothing else.
+ * "I was away", for the Monday–Sunday week containing `day`: the week still running, or last week while it waits to
+ * be recorded (`weekAwaitingRecord`). Until the week is recorded, the mark is kept as a row that is not a result yet
+ * (no amounts, `recordedAt` empty), and recording the week keeps it. Switching it off before then removes that row.
+ * On a week already recorded it changes `paused` and nothing else.
  */
-export async function setAway(today: IsoDate, away: boolean): Promise<void> {
-  const week = weekOf(today);
+export async function setAway(day: IsoDate, away: boolean): Promise<void> {
+  const week = weekOf(day);
   await db.transaction('rw', db.weekResults, async () => {
     const row = await db.weekResults.get(week.start);
     if (row === undefined) {

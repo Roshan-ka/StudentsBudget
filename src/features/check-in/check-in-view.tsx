@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useId } from 'react';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan } from '@/db/types';
-import { setAway } from '@/features/badges/week-results';
+import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
 import { categoryName } from '@/features/entries/categories';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
@@ -166,50 +166,62 @@ function WeekPart({
 }
 
 /**
- * "I was away this week" for the whole Monday–Sunday week of `today`. It is read from and saved to the database, so
+ * One "I was away" switch, for the whole Monday–Sunday week of `day`. It is read from and saved to the database, so
  * it survives a reload and the page coming back from hidden; the week keeps it when it is recorded. A switch, not a
  * checkbox: a checkbox would flick back for a moment before the database answers.
  */
-function AwayToggle({ today }: { today: IsoDate }) {
-  const hintId = useId();
-  const { start } = weekOf(today);
+function AwaySwitch({ day, label, hintId }: { day: IsoDate; label: string; hintId: string }) {
+  const { start } = weekOf(day);
   // null until read; a week with no row yet is not away.
   const away = useLiveQuery(() => db.weekResults.get(start).then((row) => row?.paused === true), [start], null);
 
   const toggle = () => {
     if (away === null) return;
-    setAway(today, !away).catch((error: unknown) =>
-      console.error('StudentsBudget: could not save "I was away this week"', error),
-    );
+    setAway(day, !away).catch((error: unknown) => console.error(`StudentsBudget: could not save "${label}"`, error));
   };
 
   return (
-    <div className="flex flex-col gap-1">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={away === true}
-        aria-describedby={hintId}
-        disabled={away === null}
-        onClick={toggle}
-        className="flex min-h-11 items-center gap-3 self-start rounded-md text-left font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+    <button
+      type="button"
+      role="switch"
+      aria-checked={away === true}
+      aria-describedby={hintId}
+      disabled={away === null}
+      onClick={toggle}
+      className="flex min-h-11 items-center gap-3 self-start rounded-md text-left font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          'relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors',
+          away ? 'bg-primary' : 'bg-muted-foreground/80',
+        )}
       >
         <span
-          aria-hidden="true"
           className={cn(
-            'relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors',
-            away ? 'bg-primary' : 'bg-muted-foreground/80',
+            'absolute top-0.5 left-0.5 size-5 rounded-full bg-background shadow-sm transition-transform',
+            away && 'translate-x-4',
           )}
-        >
-          <span
-            className={cn(
-              'absolute top-0.5 left-0.5 size-5 rounded-full bg-background shadow-sm transition-transform',
-              away && 'translate-x-4',
-            )}
-          />
-        </span>
-        I was away this week
-      </button>
+        />
+      </span>
+      {label}
+    </button>
+  );
+}
+
+/**
+ * "I was away this week", and on the Monday and the Tuesday also "I was away last week", for the week that waits to
+ * be recorded until the Wednesday: someone who was away all week often opens the app only after it. One hint
+ * describes both.
+ */
+function AwayToggle({ plan, today }: { plan: Plan; today: IsoDate }) {
+  const hintId = useId();
+  const lastWeek = weekAwaitingRecord(plan, today);
+
+  return (
+    <div className="flex flex-col gap-1">
+      {lastWeek !== null && <AwaySwitch day={lastWeek.start} label="I was away last week" hintId={hintId} />}
+      <AwaySwitch day={today} label="I was away this week" hintId={hintId} />
       <p id={hintId} className="text-sm text-muted-foreground">
         A week away keeps your logging streak as it is and doesn&apos;t count towards Under-Budget Week or Ramen
         Royalty.
@@ -242,7 +254,7 @@ function CheckIn({
         <WeekPart plan={plan} entries={entries} accounts={accounts} day={earlierDay} titles={EARLIER_THIS_WEEK} />
       )}
       <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} titles={THIS_WEEK} />
-      <AwayToggle today={today} />
+      <AwayToggle plan={plan} today={today} />
 
       <section aria-labelledby={addId} className="flex flex-col gap-3">
         <h3 id={addId} className="text-lg font-semibold">
