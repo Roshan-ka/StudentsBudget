@@ -455,6 +455,35 @@ describe('badgeHistory', () => {
     ]);
   });
 
+  it('does not count a fixed cost typed in by hand: a month with only rent typed in is not logged', () => {
+    const entries: Entry[] = [
+      entry('2026-11-05', 'rent', 40000),
+      entry('2026-12-05', 'rent', 40000),
+      entry('2026-12-10', 'food', 800),
+    ];
+    expect(badgeHistory(plan('2026-10-16'), entries, [], '2027-01-05').months).toEqual([
+      { month: '2026-11', eatingOutMinor: 0, handLoggedCount: 0 },
+      { month: '2026-12', eatingOutMinor: 0, handLoggedCount: 1 },
+    ]);
+  });
+
+  it('does not let a month with only rent typed in earn Latte Survivor', () => {
+    const latteFor = (entries: Entry[]) =>
+      badgesFrom([], 26, badgeHistory(plan('2026-10-16'), entries, [], '2027-01-05')).find(
+        (b) => b.id === 'latte-survivor',
+      );
+    // November sets the mark (€80). December has only the rent typed in: it says nothing about eating out.
+    expect(latteFor([entry('2026-11-10', 'eating-out', 8000), entry('2026-12-05', 'rent', 40000)])).toMatchObject({
+      progress: 'A month with €40 or less on eating out earns it (half of November 2026)',
+      earnedOn: null,
+    });
+    // A month with groceries logged and no eating out does count, as before.
+    expect(latteFor([entry('2026-11-10', 'eating-out', 8000), entry('2026-12-05', 'food', 900)])).toMatchObject({
+      progress: 'December 2026: €0 on eating out, down from €80 in November 2026',
+      earnedOn: '2026-12-31',
+    });
+  });
+
   it('starts with the month of setup when setup was on the 1st, and is empty while that month runs', () => {
     expect(badgeHistory(plan('2026-11-01'), ENTRIES, [], '2026-12-15').months).toEqual([
       { month: '2026-11', eatingOutMinor: 3000, handLoggedCount: 3 },

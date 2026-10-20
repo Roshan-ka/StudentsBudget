@@ -13,7 +13,7 @@ import {
   type IsoMonth,
 } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
-import { isHandLoggedExpense, isRecorded } from './records';
+import { isRecorded, loggedExpenseTest } from './records';
 
 export type Badge = {
   id: 'under-budget-week' | 'logging-streak' | 'ramen-royalty' | 'latte-survivor';
@@ -25,7 +25,7 @@ export type Badge = {
   earnedOn: IsoDate | null;
 };
 
-/** One finished calendar month: its eating out in EUR, and how many expenses dated in it were logged by hand. */
+/** One finished calendar month: its eating out in EUR, and how many expenses dated in it count as logged. */
 export type MonthSpend = { month: IsoMonth; eatingOutMinor: Minor; handLoggedCount: number };
 
 /** What the badges need besides the recorded weeks. */
@@ -71,10 +71,10 @@ export function goldWeeks(semesterWeeks: number): number {
 
 /**
  * The rest of what the badges need, from the plan, the entries and the stored rows. Each finished calendar month
- * gets its eating out and its expenses logged by hand, both by the day each entry is for, whenever it was typed in
- * (as the weeks count them). Months come from the entries, not the weekly results, because a month's spending does
- * not depend on the plan. The first full month is the month of setup when setup was on the 1st, otherwise the month
- * after; the month of `today` is still running and is left out.
+ * gets its eating out and its logged expenses (`loggedExpenseTest`, as the weeks count them), both by the day each
+ * entry is for, whenever it was typed in. Months come from the entries, not the weekly results, because a month's
+ * spending does not depend on the plan. The first full month is the month of setup when setup was on the 1st,
+ * otherwise the month after; the month of `today` is still running and is left out.
  */
 export function badgeHistory(plan: Plan, entries: Entry[], results: WeekResult[], today: IsoDate): BadgeHistory {
   const months: IsoMonth[] = [];
@@ -88,11 +88,12 @@ export function badgeHistory(plan: Plan, entries: Entry[], results: WeekResult[]
   const byMonth = new Map<IsoMonth, MonthSpend>(
     months.map((month) => [month, { month, eatingOutMinor: 0, handLoggedCount: 0 }]),
   );
+  const isLogged = loggedExpenseTest(plan);
   for (const e of entries) {
     const month = byMonth.get(monthOf(e.date));
     if (month === undefined || e.type !== 'expense') continue;
     if (e.categoryId === 'eating-out') month.eatingOutMinor += e.eurMinor;
-    if (isHandLoggedExpense(e)) month.handLoggedCount += 1;
+    if (isLogged(e)) month.handLoggedCount += 1;
   }
 
   // Last week waits a few days before it is recorded; its away mark counts as much as this week's.
@@ -108,9 +109,9 @@ export function badgeHistory(plan: Plan, entries: Entry[], results: WeekResult[]
 }
 
 /**
- * Weeks with an expense logged by hand and that came in at or under their share of the envelopes. A week with no
- * spending logged says nothing about the budget, a week with nothing planned has nothing to be under, and a week
- * away does not count. Bronze at 4, silver at 12, gold at a semester.
+ * Weeks with a logged expense (`loggedExpenseTest`) that came in at or under their share of the envelopes. A week
+ * with no spending logged says nothing about the budget, a week with nothing planned has nothing to be under, and a
+ * week away does not count. Bronze at 4, silver at 12, gold at a semester.
  */
 function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number): Badge {
   const gold = goldWeeks(semesterWeeks);
@@ -141,8 +142,8 @@ function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number): Badge {
 }
 
 /**
- * Weeks in a row with an expense logged by hand. A week away neither ends the run nor adds to it, and while the
- * latest week (recorded, or one not recorded yet) is marked away the streak reads as paused. Earned at 4.
+ * Weeks in a row with a logged expense (`loggedExpenseTest`). A week away neither ends the run nor adds to it, and
+ * while the latest week (recorded, or one not recorded yet) is marked away the streak reads as paused. Earned at 4.
  */
 function loggingStreak(weeks: WeekResult[], awayNotRecorded: boolean): Badge {
   let run = 0;

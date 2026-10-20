@@ -201,15 +201,15 @@ describe('weekResultOf', () => {
     });
   });
 
-  it('counts the expenses logged by hand that are dated in the week, whenever they were typed in', () => {
+  it('counts the logged expenses that are dated in the week, whenever they were typed in', () => {
     const entries: Entry[] = [
       // Monday and Sunday of the week, typed in on the day.
       expense('2026-10-19', 'food', 100),
       expense('2026-10-25', 'eating-out', 7000),
       // Typed in on the Monday after, for the Sunday before: a late entry or a Monday batch counts for its own week.
       expense('2026-10-24', 'food', 100, { createdAt: '2026-10-26T06:00:00.000Z' }),
-      // A fixed cost typed in by hand is spending too.
-      expense('2026-10-21', 'rent', 40000),
+      // A flexible category the plan has no envelope for is measured too.
+      expense('2026-10-21', 'going-out', 600),
       // When it was typed in no longer matters, so a `createdAt` that is not a time changes nothing.
       expense('2026-10-22', 'food', 100, { createdAt: 'not a time' }),
       // Typed in during the week, but for other weeks.
@@ -234,6 +234,42 @@ describe('weekResultOf', () => {
     ];
 
     expect(weekResultOf(PLAN, entries, WEEK).handLoggedCount).toBe(5);
+  });
+
+  it('does not count a fixed cost typed in by hand: only spending the envelopes measure makes a week logged', () => {
+    // Rent typed in by hand and nothing else: the week has no spending in `spentMinor`, so it is not logged.
+    const entries = [expense('2026-10-21', 'rent', 40000), expense('2026-10-22', 'phone', 2000)];
+
+    expect(weekResultOf(PLAN, entries, WEEK)).toMatchObject({ plannedMinor: 9800, spentMinor: 0, handLoggedCount: 0 });
+    // With an envelope expense next to it, the week is logged once, by that expense.
+    expect(weekResultOf(PLAN, [...entries, expense('2026-10-23', 'food', 800)], WEEK)).toMatchObject({
+      spentMinor: 800,
+      handLoggedCount: 1,
+    });
+  });
+
+  it('counts an envelope expense typed in by hand as logged, and its spending is in the week', () => {
+    const entries = [expense('2026-10-20', 'food', 1500), expense('2026-10-22', 'eating-out', 900)];
+
+    expect(weekResultOf(PLAN, entries, WEEK)).toMatchObject({ spentMinor: 2400, handLoggedCount: 2 });
+  });
+
+  it('does not count an expense dated before the setup day, so it cannot make the week of setup logged', () => {
+    // Set up on Friday 16 October: the Wednesday before has no plan, and `safeToSpend` leaves it out of the spending.
+    const setupWeek = { start: '2026-10-12', end: '2026-10-18' };
+    const before = [expense('2026-10-14', 'food', 800)];
+
+    expect(weekResultOf(PLAN, before, setupWeek)).toMatchObject({ spentMinor: 0, handLoggedCount: 0 });
+    // From the setup day on it counts, and so does an expense on the day itself.
+    expect(weekResultOf(PLAN, [...before, expense('2026-10-16', 'food', 500)], setupWeek)).toMatchObject({
+      spentMinor: 500,
+      handLoggedCount: 1,
+    });
+    // A split week whose first part ends before setup: nothing dated in that part counts either.
+    const plan = { ...PLAN, createdOn: '2026-11-01' };
+    const split = { start: '2026-10-26', end: '2026-11-01' };
+    expect(weekResultOf(plan, [expense('2026-10-27', 'food', 2000)], split)).toMatchObject({ handLoggedCount: 0 });
+    expect(weekResultOf(plan, [expense('2026-11-01', 'food', 500)], split)).toMatchObject({ handLoggedCount: 1 });
   });
 
   it('gives a week with only a transfer and income logged nothing hand-logged', () => {

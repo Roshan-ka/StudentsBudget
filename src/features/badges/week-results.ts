@@ -3,7 +3,7 @@ import type { Entry, Plan, WeekResult } from '@/db/types';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { safeToSpend } from '@/lib/budget';
 import { addDays, firstOfMonth, monthOf, weekOf, type IsoDate } from '@/lib/dates';
-import { NOT_RECORDED, isHandLoggedExpense, isRecorded } from './records';
+import { NOT_RECORDED, isRecorded, loggedExpenseTest } from './records';
 
 type Week = { start: IsoDate; end: IsoDate };
 
@@ -48,8 +48,10 @@ export function weekAwaitingRecord(plan: Plan, today: IsoDate): Week | null {
  * the plan against what was spent on it. A week a month boundary splits is the sum of its two parts, each measured
  * against its own month (`safeToSpend` for the part's last day). A part that ends before setup had no budget and is
  * left out, as the check-in leaves it out; in the week of setup, `safeToSpend` counts from the setup day.
- * `handLoggedCount` is the expenses logged by hand that are dated in the week, whenever they were typed in (a Monday
- * batch for the week before counts for that week); transfers, income and what a schedule posted are not counted.
+ * `handLoggedCount` is the expenses that count as logged (`loggedExpenseTest`) and are dated in the week, whenever
+ * they were typed in (a Monday batch for the week before counts for that week): typed in by hand, in a category the
+ * envelopes measure, and on or after the setup day. Transfers, income, fixed costs and what a schedule posted are not
+ * counted.
  */
 export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<WeekResult, 'paused' | 'recordedAt'> {
   const split = monthOf(week.start) !== monthOf(week.end);
@@ -69,9 +71,8 @@ export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<Wee
     }
   }
 
-  const handLoggedCount = entries.filter(
-    (e) => isHandLoggedExpense(e) && e.date >= week.start && e.date <= week.end,
-  ).length;
+  const isLogged = loggedExpenseTest(plan);
+  const handLoggedCount = entries.filter((e) => isLogged(e) && e.date >= week.start && e.date <= week.end).length;
 
   return {
     weekStart: week.start,
