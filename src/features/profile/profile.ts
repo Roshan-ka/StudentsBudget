@@ -1,5 +1,5 @@
 import { parseISO } from 'date-fns';
-import { SEMESTER_PERIODS, type SemesterPeriod } from '@/data/semesters';
+import { SEMESTER_FEES, SEMESTER_PERIODS, type FeePart, type SemesterFee, type SemesterPeriod } from '@/data/semesters';
 import type { OneOff, Profile } from '@/db/types';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { addDays, daysBetween, firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
@@ -100,47 +100,73 @@ function semesterAfter(university: SemesterPeriod['university'], semester: Semes
 /** The month before the one `start` is in. */
 const monthBefore = (start: IsoDate): IsoMonth => shiftMonth(monthOf(start), -1);
 
+/** The next semester fee: the month it is due, and what `SEMESTER_FEES` states about that semester, if anything. */
+type NextFee = { dueMonth: IsoMonth; fee: SemesterFee | undefined };
+
 /**
- * When the next semester fee is due (ruling R2): the month before the next semester starts, and after this month, so
- * there is a month to set money aside in (a one-off's due month must be). The saved semester itself comes first, for
- * someone who sets up before it starts. At UR and OTH that is the university's own semester the saved start falls in,
- * so lecture dates work as well, followed by the ones after it until one fits. Elsewhere the saved semester is
- * followed by one that starts the day after its end, and nothing is due when neither fits. Null without a semester.
+ * The next semester fee that is still ahead, due after this month so there is a month to set money aside in (a
+ * one-off's due month must be). A fee is due in the semester's re-registration month where `SEMESTER_FEES` states one
+ * (ruling R12), else in the month before the semester starts. The saved semester itself comes first, for someone who
+ * sets up before it starts. At UR and OTH that is the university's own semester the saved start falls in, so lecture
+ * dates work as well, followed by the ones after it until one fits. Elsewhere the saved semester is followed by one
+ * that starts the day after its end, and nothing is due when neither fits.
  */
-export function semesterFeeDue(profile: Profile | null | undefined, today: IsoDate): IsoMonth | null {
+function nextFee(profile: Profile | null | undefined, today: IsoDate): NextFee | null {
   if (!profile || semesterWeeksOf(profile) === null) return null;
   const thisMonth = monthOf(today);
   // 'YYYY-MM' strings sort chronologically.
-  const stillAhead = (start: IsoDate) => monthBefore(start) > thisMonth;
   const { university, semesterStart, semesterEnd } = profile;
   if (university === 'ur' || university === 'oth') {
-    let next = semesterOn(university, semesterStart);
-    while (!stillAhead(next.start)) next = semesterAfter(university, next);
-    return monthBefore(next.start);
+    for (let next = semesterOn(university, semesterStart); ; next = semesterAfter(university, next)) {
+      const fee = SEMESTER_FEES.find((f) => f.university === university && f.starts === next.start);
+      const dueMonth = fee?.reRegistration?.month ?? monthBefore(next.start);
+      if (dueMonth > thisMonth) return { dueMonth, fee };
+    }
   }
-  const next = [semesterStart, addDays(semesterEnd, 1)].find(stillAhead);
-  return next === undefined ? null : monthBefore(next);
+  const start = [semesterStart, addDays(semesterEnd, 1)].find((s) => monthBefore(s) > thisMonth);
+  return start === undefined ? null : { dueMonth: monthBefore(start), fee: undefined };
+}
+
+/** The month the next semester fee is due (see `nextFee`), or null without a semester in the profile. */
+export function semesterFeeDue(profile: Profile | null | undefined, today: IsoDate): IsoMonth | null {
+  return nextFee(profile, today)?.dueMonth ?? null;
 }
 
 export const SEMESTER_FEE_NAME = 'Semester fee';
 
+/** What the one-off costs step offers, and where its numbers come from. */
+export type SemesterFeeOffer = {
+  /** The one-off row one tap adds. */
+  row: Pick<OneOff, 'name' | 'amountMinor' | 'dueMonth'>;
+  /** The sourced parts the amount adds up; none when no page states the fee, and the amount is left empty (0). */
+  parts: FeePart[];
+  /** The stated re-registration month the row is due in, or null when it is the month before the semester. */
+  reRegistration: NonNullable<SemesterFee['reRegistration']> | null;
+};
+
 /**
- * The row the one-off costs step offers: "Semester fee", due when `semesterFeeDue` says. The amount stays empty (0):
- * `src/data/cities.ts` holds no sourced price for the fee (its notes give €208 for winter 2026/27 only, and the fee
- * changes every semester), and a fee is never guessed. A test fails once cities.ts gains one, so it gets used here. Null without a due month, or while a "Semester fee" row is still ahead (due after this
+ * The "Semester fee" row the one-off costs step offers, due as `semesterFeeDue` says. Its amount is the sum of the
+ * parts `SEMESTER_FEES` states for that university and semester (ruling R13), or empty (0) when no page states the
+ * fee: it is never guessed. Null without a due month, or while a "Semester fee" row is still ahead (due after this
  * month), whatever its month: that row is the next fee already. One due this month or earlier has been paid.
  */
 export function semesterFeeOffer(
   profile: Profile | null | undefined,
   today: IsoDate,
   rows: Pick<OneOff, 'name' | 'dueMonth'>[],
-): Pick<OneOff, 'name' | 'amountMinor' | 'dueMonth'> | null {
-  const dueMonth = semesterFeeDue(profile, today);
-  if (dueMonth === null) return null;
+): SemesterFeeOffer | null {
+  const next = nextFee(profile, today);
+  if (next === null) return null;
   const isFee = (name: string) => name.trim().toLowerCase() === SEMESTER_FEE_NAME.toLowerCase();
   // 'YYYY-MM' strings sort chronologically; an unset month ('') is never ahead.
   if (rows.some((row) => isFee(row.name) && row.dueMonth > monthOf(today))) return null;
-  return { name: SEMESTER_FEE_NAME, amountMinor: 0, dueMonth };
+  const parts = next.fee?.parts ?? [];
+  const amountMinor = parts.reduce((sum, part) => sum + part.minor, 0);
+  return {
+    row: { name: SEMESTER_FEE_NAME, amountMinor, dueMonth: next.dueMonth },
+    parts,
+    reRegistration: next.fee?.reRegistration ?? null,
+  };
 }
 
 const dayAndMonth = new Intl.DateTimeFormat('en-IE', { day: 'numeric', month: 'short' });

@@ -167,7 +167,7 @@ describe('semesterFeeDue', () => {
     ).toBeNull();
   });
 
-  it('is the month before the next Universität Regensburg semester starts', () => {
+  it('is the month before the next semester starts where no re-registration month is published (UR)', () => {
     const winter = profile({ university: 'ur', semesterStart: '2026-10-01', semesterEnd: '2027-03-31' });
     expect(semesterFeeDue(winter, TODAY)).toBe('2027-03');
     // Lecture dates instead of the semester: the next semester still starts on 1 April.
@@ -175,10 +175,10 @@ describe('semesterFeeDue', () => {
     expect(semesterFeeDue(lectures, TODAY)).toBe('2027-03');
   });
 
-  it('is the month before the next OTH Regensburg semester starts', () => {
+  it('is the re-registration month where semesters.ts holds one (OTH, summer 2027)', () => {
     const winter = profile({ university: 'oth', semesterStart: '2026-10-01', semesterEnd: '2027-03-14' });
-    // The summer semester starts on 15 March.
-    expect(semesterFeeDue(winter, TODAY)).toBe('2027-02');
+    // Re-registration opens on 7 January 2027, well before the semester starts on 15 March.
+    expect(semesterFeeDue(winter, TODAY)).toBe('2027-01');
   });
 
   it('takes the day after the saved end as the next start at another university', () => {
@@ -215,13 +215,15 @@ describe('semesterFeeDue', () => {
     const firstWinter = profile({ university: 'ur', semesterStart: '2026-10-01', semesterEnd: '2027-03-31' });
     expect(semesterFeeDue(firstWinter, '2026-08-10')).toBe('2026-09');
     const othSummer = profile({ university: 'oth', semesterStart: '2027-03-15', semesterEnd: '2027-09-30' });
-    expect(semesterFeeDue(othSummer, '2027-01-10')).toBe('2027-02');
+    expect(semesterFeeDue(othSummer, '2026-12-10')).toBe('2027-01');
     const other = profile({ university: 'other', semesterStart: '2026-12-01', semesterEnd: '2027-03-31' });
     expect(semesterFeeDue(other, TODAY)).toBe('2026-11');
   });
 
-  it('moves on at OTH once the summer fee is due this month', () => {
+  it('moves on at OTH once re-registration for summer has come', () => {
     const winter = profile({ university: 'oth', semesterStart: '2026-10-01', semesterEnd: '2027-03-14' });
+    // January is this month: the winter 2027/28 fee is next, with no re-registration month published yet.
+    expect(semesterFeeDue(winter, '2027-01-10')).toBe('2027-09');
     expect(semesterFeeDue(winter, '2027-02-10')).toBe('2027-09');
   });
 
@@ -238,14 +240,46 @@ describe('semesterFeeOffer', () => {
     new Date('2026-10-20T08:00:00Z'),
   );
 
-  it('offers a semester fee row with the amount left empty, since no source gives the next fee', () => {
-    expect(semesterFeeOffer(winter, TODAY, [])).toEqual({ name: SEMESTER_FEE_NAME, amountMinor: 0, dueMonth: '2027-03' });
+  const profile = (change: Partial<ProfileDraft>) => toProfile(draft(change), new Date('2026-10-20T08:00:00Z'));
+  const minors = (offer: ReturnType<typeof semesterFeeOffer>) => offer?.parts.map((p) => p.minor);
+
+  it('fills the amount from the sourced parts of the fee (UR, summer 2027: €87 + €128)', () => {
+    const offer = semesterFeeOffer(winter, TODAY, []);
+    expect(offer?.row).toEqual({ name: SEMESTER_FEE_NAME, amountMinor: 21_500, dueMonth: '2027-03' });
+    expect(minors(offer)).toEqual([8700, 12800]);
+    // UR has not published the re-registration month: the due month is the month before the semester.
+    expect(offer?.reRegistration).toBeNull();
     expect(SEMESTER_FEE_NAME).toBe('Semester fee');
   });
 
-  it('is told when cities.ts gains a sourced semester fee', () => {
-    // Ruling R2: the offer fills the amount from a sourced fee in cities.ts, and only from that. There is none yet;
-    // once there is, use it in `semesterFeeOffer` (for the semester the offer is for) and change this test.
+  it('takes the due month from the sourced re-registration month (OTH, summer 2027)', () => {
+    const oth = profile({ university: 'oth', semesterStart: '2026-10-01', semesterEnd: '2027-03-14' });
+    const offer = semesterFeeOffer(oth, TODAY, []);
+    expect(offer?.row).toEqual({ name: SEMESTER_FEE_NAME, amountMinor: 21_500, dueMonth: '2027-01' });
+    expect(offer?.reRegistration?.month).toBe('2027-01');
+  });
+
+  it('fills the winter 2027/28 fee, €92 + €130', () => {
+    const summer = profile({ university: 'ur', semesterStart: '2027-04-01', semesterEnd: '2027-09-30' });
+    const offer = semesterFeeOffer(summer, '2027-05-03', []);
+    expect(offer?.row).toEqual({ name: SEMESTER_FEE_NAME, amountMinor: 22_200, dueMonth: '2027-09' });
+    expect(minors(offer)).toEqual([9200, 13000]);
+  });
+
+  it('leaves the amount empty where no source states the fee', () => {
+    // Summer 2028: no statute yet.
+    const winter2728 = profile({ university: 'ur', semesterStart: '2027-10-01', semesterEnd: '2028-03-31' });
+    const later = semesterFeeOffer(winter2728, '2027-11-02', []);
+    expect(later?.row).toEqual({ name: SEMESTER_FEE_NAME, amountMinor: 0, dueMonth: '2028-03' });
+    expect(later?.parts).toEqual([]);
+    // Another university: nothing is known about its fee.
+    const other = profile({ university: 'other', semesterStart: '2026-10-01', semesterEnd: '2027-01-31' });
+    expect(semesterFeeOffer(other, TODAY, [])?.row).toEqual({ name: SEMESTER_FEE_NAME, amountMinor: 0, dueMonth: '2027-01' });
+  });
+
+  it('keeps every semester fee in semesters.ts, not in cities.ts', () => {
+    // Ruling R13: a fee changes every semester, so it is stored per university and semester in semesters.ts. A
+    // semester fee added to cities.ts would never reach the offer: move it to SEMESTER_FEES instead.
     const fees = CITIES.regensburg.prices.filter((p) => /semester/i.test(p.label));
     expect(fees).toEqual([]);
   });
@@ -256,19 +290,16 @@ describe('semesterFeeOffer', () => {
 
   it('offers nothing while a semester fee row is still ahead, whatever its month', () => {
     expect(semesterFeeOffer(winter, TODAY, [{ name: ' semester FEE ', dueMonth: '2027-03' }])).toBeNull();
-    // OTH's next fee is due in February; the plan's own March row is that fee already.
-    const oth = toProfile(
-      draft({ university: 'oth', semesterStart: '2026-10-01', semesterEnd: '2027-03-14' }),
-      new Date('2026-10-20T08:00:00Z'),
-    );
+    // OTH's next fee is due in January; the plan's own March row is that fee already.
+    const oth = profile({ university: 'oth', semesterStart: '2026-10-01', semesterEnd: '2027-03-14' });
     expect(semesterFeeOffer(oth, TODAY, [{ name: 'Semester fee', dueMonth: '2027-03' }])).toBeNull();
   });
 
   it('offers the next fee once the planned one is due, and ignores rows with other names', () => {
-    const offer = { name: SEMESTER_FEE_NAME, amountMinor: 0, dueMonth: '2027-03' };
-    expect(semesterFeeOffer(winter, TODAY, [{ name: 'Semester fee', dueMonth: '2026-09' }])).toEqual(offer);
-    expect(semesterFeeOffer(winter, TODAY, [{ name: 'Semester fee', dueMonth: '2026-10' }])).toEqual(offer);
-    expect(semesterFeeOffer(winter, TODAY, [{ name: 'Semester fee', dueMonth: '' }])).toEqual(offer);
-    expect(semesterFeeOffer(winter, TODAY, [{ name: 'Laptop', dueMonth: '2027-03' }])).toEqual(offer);
+    const row = { name: SEMESTER_FEE_NAME, amountMinor: 21_500, dueMonth: '2027-03' };
+    expect(semesterFeeOffer(winter, TODAY, [{ name: 'Semester fee', dueMonth: '2026-09' }])?.row).toEqual(row);
+    expect(semesterFeeOffer(winter, TODAY, [{ name: 'Semester fee', dueMonth: '2026-10' }])?.row).toEqual(row);
+    expect(semesterFeeOffer(winter, TODAY, [{ name: 'Semester fee', dueMonth: '' }])?.row).toEqual(row);
+    expect(semesterFeeOffer(winter, TODAY, [{ name: 'Laptop', dueMonth: '2027-03' }])?.row).toEqual(row);
   });
 });

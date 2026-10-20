@@ -30,12 +30,17 @@ function missingRatesNote(currencies: CurrencyCode[]): string {
  * filling, a suggested budget, the badges and what all the accounts add up to. It updates by itself when an entry is
  * saved or a week is recorded.
  */
-export function HomeScreen({ plan }: { plan: Plan }) {
+export function HomeScreen({
+  plan,
+  name,
+}: {
+  plan: Plan;
+  /** The profile's name for the greeting, or '' when none is set. */
+  name: string;
+}) {
   // The date follows the clock, so the week turns over on its own when the app comes back or midnight passes,
   // with no entry saved in between. It is null until the browser runs this (never a date from the prerender).
   const today = useToday();
-  // The greeting: the profile's name, or '' when none is set.
-  const name = useLiveQuery(() => db.profile.get('current').then((p) => p?.name.trim() ?? ''), [], '');
   const data = useLiveQuery(async () => {
     if (today === null) return null;
     const [entries, accounts, rates, weekResults] = await Promise.all([

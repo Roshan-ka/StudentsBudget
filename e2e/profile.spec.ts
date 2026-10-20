@@ -26,6 +26,11 @@ function endField(page: Page) {
   return profileSection(page).getByLabel('Semester end', { exact: true });
 }
 
+/** "Profile saved.", in the section's live region (not role="status", which other Settings lines use). */
+function savedNotice(page: Page) {
+  return profileSection(page).getByText('Profile saved.', { exact: true });
+}
+
 async function openSettings(page: Page) {
   await page.goto('/settings');
   await expect(page.getByRole('heading', { level: 3, name: 'Profile', exact: true })).toBeVisible();
@@ -33,7 +38,7 @@ async function openSettings(page: Page) {
 
 async function saveProfile(page: Page) {
   await profileSection(page).getByRole('button', { name: 'Save profile', exact: true }).click();
-  await expect(profileSection(page).getByRole('status')).toHaveText('Profile saved.');
+  await expect(savedNotice(page)).toBeVisible();
 }
 
 async function overflow(page: Page) {
@@ -111,7 +116,7 @@ test('an end before the start is not saved, and the end field says why', async (
   await expect(endField(page)).toHaveAttribute('aria-invalid', 'true');
   await expect(endField(page)).toHaveAccessibleDescription(problem);
   await expect(startField(page)).not.toHaveAttribute('aria-invalid');
-  await expect(profileSection(page).getByRole('status')).toHaveCount(0);
+  await expect(savedNotice(page)).toHaveCount(0);
   expect(await readStore<Profile>(page, 'profile')).toEqual([]);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
@@ -163,7 +168,7 @@ test('Home says hi once a name is saved', async ({ page }) => {
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
-test('the one-off costs step offers the semester fee due before the next semester, with no amount', async ({ page }) => {
+test('the one-off costs step offers the next semester fee with its sourced amount', async ({ page }) => {
   // Not the default "Semester fee" one-off: the offer is for a plan that has none yet.
   await completeSetup(page, { oneOff: { name: 'Laptop', amount: '300', dueMonth: '2027-03' } });
   await openSettings(page);
@@ -171,19 +176,52 @@ test('the one-off costs step offers the semester fee due before the next semeste
   await saveProfile(page);
   await openOneOffsStep(page);
 
-  // The summer semester starts on 1 April 2027, so the fee is due in March.
-  const offer = page.getByRole('button', { name: 'Add semester fee, due March 2027', exact: true });
+  // Summer 2027 at UR: €87 basic contribution + €128 semester ticket. UR has not published its re-registration
+  // month, so the fee is due the month before the semester starts on 1 April.
+  const parts = '€87.00 Studierendenwerk basic contribution + €128.00 RVV semester ticket.';
+  const offer = page.getByRole('button', { name: 'Add semester fee: €215, due March 2027', exact: true });
+  await expect(page.getByText(parts, { exact: true })).toBeVisible();
+  await expect(page.getByText('Due in March 2027, the month before the semester starts.', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
   await offer.click();
+
   const row = page.getByRole('group', { name: 'One-off cost 2', exact: true });
+  const amount = row.getByRole('textbox', { name: 'Amount', exact: true });
   await expect(row.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('Semester fee');
-  await expect(row.getByRole('textbox', { name: 'Amount', exact: true })).toHaveValue('');
+  await expect(amount).toHaveValue('215');
   await expect(row.getByLabel('Due month', { exact: true })).toHaveValue('2027-03');
-  // One tap adds it once, and the amount, the one thing left to fill in, has the focus.
+  // One tap adds it once; the amount has the focus and keeps its source.
   await expect(offer).toHaveCount(0);
-  await expect(row.getByRole('textbox', { name: 'Amount', exact: true })).toBeFocused();
+  await expect(amount).toBeFocused();
+  await expect(row.getByText(parts, { exact: true })).toBeVisible();
+  await expect(row.getByText('Source: RVV semester ticket', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  // The amount is the person's to fill in.
+  // Another amount is the person's choice; the source no longer belongs to it.
+  await amount.fill('220');
+  await expect(row.getByText(parts, { exact: true })).toHaveCount(0);
+});
+
+test('the one-off costs step leaves the amount empty where no page states the fee', async ({ page }) => {
+  await completeSetup(page, { oneOff: { name: 'Laptop', amount: '300', dueMonth: '2027-03' } });
+  await openSettings(page);
+  await universityField(page).selectOption({ label: 'Other' });
+  await startField(page).fill('2026-10-01');
+  await endField(page).fill('2027-01-31');
+  await saveProfile(page);
+  await openOneOffsStep(page);
+
+  // Another university: the next semester starts the day after the saved end, 1 February 2027.
+  const offer = page.getByRole('button', { name: 'Add semester fee, due January 2027', exact: true });
+  await expect(
+    page.getByText("No page states this semester's fee yet, so the amount is yours to fill in.", { exact: true }),
+  ).toBeVisible();
+  await offer.click();
+  const row = page.getByRole('group', { name: 'One-off cost 2', exact: true });
+  await expect(row.getByRole('textbox', { name: 'Amount', exact: true })).toHaveValue('');
+  await expect(row.getByRole('textbox', { name: 'Amount', exact: true })).toBeFocused();
+  await expect(row.getByLabel('Due month', { exact: true })).toHaveValue('2027-01');
+
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.getByText('Enter an amount above 0 for Semester fee.', { exact: true })).toBeVisible();
 });
@@ -206,7 +244,7 @@ test('the one-off costs step offers nothing without semester dates, or when the 
 
   // The planned fee was what held the offer back: without it, the offer is there.
   await page.getByRole('button', { name: 'Remove one-off cost 1', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Add semester fee, due March 2027', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add semester fee: €215, due March 2027', exact: true })).toBeVisible();
 });
 
 test.describe('on a desktop browser', () => {

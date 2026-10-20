@@ -1,10 +1,8 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarIcon } from 'lucide-react';
-import { useId, useState, type FormEvent, type MouseEvent } from 'react';
-import { cn } from 'cn';
-import { dateText } from '@/components/date-field-helpers';
+import { useEffect, useId, useState, type FormEvent } from 'react';
+import { DateField } from '@/components/date-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,64 +26,6 @@ import {
 } from './profile';
 
 const BLANK: ProfileDraft = { name: '', university: '', semesterStart: '', semesterEnd: '' };
-
-/** Opens the picker on a mouse click anywhere on the field, as `DateField` does; a touch tap is left to the browser. */
-function openPickerOnMouseClick(event: MouseEvent<HTMLInputElement>) {
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-  try {
-    event.currentTarget.showPicker();
-  } catch {
-    // The browser has no showPicker, or does not allow it here: the field still works by typing.
-  }
-}
-
-/**
- * A date as DD-MM-YYYY, laid out like `DateField` but without its Today and Yesterday: a semester rarely starts
- * on either. The transparent native input on top carries the label and the ISO value.
- */
-function SemesterDateField({
-  label,
-  value,
-  min,
-  invalid,
-  describedBy,
-  onChange,
-}: {
-  label: string;
-  value: IsoDate | '';
-  min?: IsoDate;
-  invalid: boolean;
-  describedBy?: string;
-  onChange: (value: IsoDate | '') => void;
-}) {
-  const id = useId();
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <div
-        data-slot="date-field"
-        className="relative flex h-10 items-center justify-between gap-2 rounded-lg border border-input px-2.5 text-base transition-colors has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 has-[[aria-invalid]]:border-destructive md:text-sm dark:bg-input/30"
-      >
-        <span aria-hidden="true" className={cn('tabular-nums', value === '' && 'text-muted-foreground')}>
-          {dateText(value)}
-        </span>
-        <CalendarIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-        {/* 16 px, so iOS does not zoom in on it; one pixel past the border, so the whole field is the target. */}
-        <input
-          id={id}
-          type="date"
-          value={value}
-          min={min}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          onChange={(event) => onChange(event.target.value)}
-          onClick={openPickerOnMouseClick}
-          className="absolute -inset-px h-[calc(100%+2px)] w-[calc(100%+2px)] min-w-0 cursor-pointer appearance-none text-base opacity-0"
-        />
-      </div>
-    </div>
-  );
-}
 
 /** Where the semester dates of UR or OTH come from: the period the start date (or today) falls in, and its source. */
 function PeriodSource({ draft, today }: { draft: ProfileDraft; today: IsoDate }) {
@@ -206,14 +146,16 @@ function ProfileForm({
           ))}
         </NativeSelect>
       </div>
-      <SemesterDateField
+      <DateField
+        chips={false}
         label="Semester start"
         value={draft.semesterStart}
         invalid={startInvalid}
         describedBy={startInvalid ? problemsId : undefined}
         onChange={(semesterStart) => change({ semesterStart })}
       />
-      <SemesterDateField
+      <DateField
+        chips={false}
         label="Semester end"
         value={draft.semesterEnd}
         min={draft.semesterStart || undefined}
@@ -281,6 +223,9 @@ export function ProfileSection() {
     }
   }
   const savedNotice = showSaved && stored !== null && stored === savedAt;
+  // The router keeps Settings mounted but hidden and runs effect cleanups when the person leaves, so this clears the
+  // notice then: back on the page later, "Profile saved." would no longer be news.
+  useEffect(() => () => setShowSaved(false), []);
 
   return (
     <section aria-labelledby="profile-heading" className="flex flex-col gap-3">
@@ -302,11 +247,11 @@ export function ProfileSection() {
           }}
         />
       )}
-      {savedNotice && (
-        <p role="status" className="text-sm text-muted-foreground">
-          Profile saved.
-        </p>
-      )}
+      {/* Always rendered, so a screen reader is already listening when the text appears. A polite live region
+          rather than role="status": Settings has other status lines that tests find by that role on the page. */}
+      <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
+        {savedNotice ? 'Profile saved.' : ''}
+      </p>
     </section>
   );
 }

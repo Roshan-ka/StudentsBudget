@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode, type Ref } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { parseOpeningBalance } from '@/features/accounts/opening-balance';
@@ -39,6 +39,7 @@ export function AmountField({
   blank = 'zero',
   positive = false,
   unit = '€',
+  inputRef,
 }: {
   label: string;
   hint?: ReactNode;
@@ -48,6 +49,8 @@ export function AmountField({
   /** Zero is not allowed (a one-off cost). */
   positive?: boolean;
   unit?: string;
+  /** The input itself, for a caller that moves the focus to it. */
+  inputRef?: Ref<HTMLInputElement>;
 }) {
   const id = useId();
   const [text, setText] = useState(() => toText(value, blank));
@@ -68,6 +71,7 @@ export function AmountField({
         </span>
         <Input
           id={id}
+          ref={inputRef}
           className={unit.length > 1 ? 'h-10 pl-12' : 'h-10 pl-7'}
           inputMode="decimal"
           placeholder="0"
