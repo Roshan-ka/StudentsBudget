@@ -60,7 +60,7 @@ async function openDiscounts(page: Page, at: Date) {
 }
 
 async function showDiscounts(page: Page) {
-  await expect(page.getByRole('heading', { level: 2, name: 'Regensburg tips', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Regensburg tips and discounts', exact: true })).toBeVisible();
   const tab = switcher(page).getByRole('tab', { name: 'Discounts', exact: true });
   await tab.click();
   await expect(tab).toHaveAttribute('aria-selected', 'true');
