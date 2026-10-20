@@ -51,6 +51,19 @@ Immediately after restore, account balances should be **EUR 1,680.22** (local ba
 
 The demo dates are fixed: October 2026 has current spending; if you try this later, move the month switcher in Charts back to September or October. The fixed costs and income in the demo plan are not set to be added automatically, so nothing new appears by itself. Home and check-in always use your device's current date, so their figures change over time. The INR rate is fictional test data, not a current market quote.
 
+## Try it on your iPhone (HTTPS on your own Wi-Fi)
+Offline use needs a service worker, and a service worker only runs on a secure address: HTTPS, or localhost. A plain-HTTP address such as `http://192.168.0.137:3100` is not secure, so the app cannot be tested offline on a phone that way. For a developer who wants to try the production build on a real iPhone, this serves it over HTTPS on your own Wi-Fi, with a certificate the phone trusts.
+
+1. On the PC, install mkcert (`winget install FiloSottile.mkcert`) and run `mkcert -install` once.
+2. Run `npm run cert:https`. It writes `certs/studentsbudget.pem` and `certs/studentsbudget-key.pem` for localhost, this PC's private IP addresses and its `.local` name, and prints the folder of the mkcert root certificate (`mkcert -CAROOT`). It never runs `mkcert -install` for you.
+3. Get the root certificate onto the iPhone: `rootCA.pem` in the printed `mkcert -CAROOT` folder, by email to yourself or through iCloud/OneDrive. Open it, then Settings → General → VPN & Device Management → install the profile. Then Settings → General → About → Certificate Trust Settings → turn on full trust for mkcert.
+4. Run `npm run start:https` and open the printed `https://…:3443` address in Safari. It builds first, so the offline copy matches the commit. `HTTPS_PORT`, `HTTPS_CERT` and `HTTPS_KEY` change the port (3443 by default) and the certificate files. When you run it, Windows may ask whether Node may use the network: allow it on the private network.
+5. Tap Share, then Add to Home Screen. Open the app from the Home Screen while you are still online and set it up there (see Install on iPhone: the Home Screen app keeps its own data). Then try airplane mode.
+
+**Keep the address stable.** The app's data belongs to the exact address (https, host and port). A new IP address or port means an empty app. Reserve the PC's IP address in your router, or use the `.local` name, and export a backup before you change the address. The certificate covers the addresses the PC had when you ran `npm run cert:https`. If its IP changes, run it again. The `.local` name works only if the phone can resolve it; try it once before relying on it.
+
+**Safety.** The mkcert root lets this PC vouch for any site on that phone. Keep `rootCA-key.pem` private, and remove the profile from the phone when the testing is over (Settings → General → VPN & Device Management).
+
 ## Project notes
 `docs/` is an Obsidian vault (open the folder as a vault). Read in this order:
 
@@ -69,6 +82,7 @@ Needs Node 24 and npm. Run `npm install` once, then:
 - `npm test`: unit tests (Vitest)
 - `npm run test:e2e`: end-to-end tests (Playwright, desktop Chrome and iPhone WebKit); starts the dev server if none is running. `E2E_PORT=3001 npm run test:e2e` (PowerShell: `$env:E2E_PORT=3001; npm run test:e2e`) uses another port, for a second checkout.
 - `npm run test:offline`: production build, then the offline check on http://localhost:3100 (Playwright, desktop Chrome)
+- `npm run cert:https`, then `npm run start:https`: the production build over HTTPS for a phone on your Wi-Fi (see Try it on your iPhone)
 - `npm run typecheck`: TypeScript check
 - `npm run lint`: ESLint
 

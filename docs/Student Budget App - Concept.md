@@ -165,6 +165,7 @@ How the envelopes work:
 - A list first. The map view comes later.
 
 ### 12. Hacks feed (P2, AI parts later)
+- **P1.1:** a Tips tab between Charts and Settings with Regensburg tips I seed, read-only. Each tip has a category, a source, a link and a checked date; a number no page states is labelled "Estimate". No venue deals that change weekly (those wait for the discount list) and no drinking tips. The P2 feed moves into this tab.
 - **P2:**
   - Open to all accounts. A post has text, a city (or "anywhere"), a category (food, transport, going out, housing, study, subscriptions) and a date.
   - Buttons: upvote, "worked for me", "outdated", report. The verified badge shows next to the author.

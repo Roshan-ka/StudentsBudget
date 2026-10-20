@@ -47,15 +47,20 @@ const CHECKED: IsoDate = '2026-10-16';
  * (Table A4.26, same PDF), about EUR 479 at 2026 prices, inside the range below.
  *
  * Transport pass, for the "Deutschlandticket / semester ticket" fixed category (https://stwno.de/en/home-en2/semester-contribution-and-tickets/semesterticket-regensburg):
- * the semester fee (about EUR 198 to 210 per semester) already includes an RVV semester ticket.
- * Students can upgrade to the Bavarian discounted Deutschlandticket (EUR 43 a month from 2026-01-01,
- * against EUR 63 for everyone else); the semester ticket is credited, so the upgrade costs the
- * monthly difference. The regular Deutschlandticket goes to EUR 66.80 on 2027-01-01.
+ * the semester fee, EUR 208 in winter 2026/27 (EUR 82 Studierendenwerk plus EUR 126 for the RVV semester ticket, per
+ * https://www.uni-regensburg.de/studieren/im-studium/studienorganisation/rueckmeldung and
+ * https://www.oth-regensburg.de/studieren/im-studium/formales/rueckmeldung, checked 2026-10-20), already includes an
+ * RVV semester ticket. Students can upgrade to the Bavarian discounted Deutschlandticket (EUR 43 a month from
+ * 2026-01-01, against EUR 63 for everyone else); the semester ticket is credited, so the upgrade costs the monthly
+ * difference, which RVV puts at EUR 22.00 a month from 2026-10-01 (https://www.rvv.de/semesterticket, checked
+ * 2026-10-20). The regular Deutschlandticket goes to EUR 66.80 on 2027-01-01; no source gives the Bavarian student
+ * price from then on yet.
  */
 const DSW_URL = 'https://www.studierendenwerke.de/fileadmin/user_upload/22._Soz_Hauptbericht_barrierefrei.pdf';
 const UR_HOUSING_URL = 'https://www.uni-regensburg.de/studieren/rund-ums-studium/wohnen-in-regensburg';
 const STWNO_TICKET_URL = 'https://stwno.de/en/home-en2/semester-contribution-and-tickets/semesterticket-regensburg';
-const MENSA_PLAN_URL = 'https://www.stwno.de/infomax/daten-extern/pdf/UNI-R/speiseplan_nw_de.pdf';
+// The menu page always shows the current week; the PDFs behind it are replaced every week.
+const MENSA_PLAN_URL = 'https://stwno.de/de/gastronomie/speiseplan/uni-regensburg/mensa-ur';
 const NUMBEO_URL = 'https://www.numbeo.com/cost-of-living/in/Regensburg';
 
 const regensburg: City = {
@@ -123,7 +128,7 @@ const regensburg: City = {
     {
       label: 'Mensa main meal (student price)',
       minor: 380,
-      source: 'Studierendenwerk Niederbayern/Oberpfalz, Mensa Uni Regensburg: median student price of the 19 main dishes on the menu, a snapshot of the week 19–23 Oct 2026 (the PDF is replaced every week)',
+      source: 'Studierendenwerk Niederbayern/Oberpfalz, Mensa Uni Regensburg: median student price of the main dishes on the menu in the week 19–23 Oct 2026, a snapshot (the menu page shows the current week)',
       url: MENSA_PLAN_URL,
       checked: CHECKED,
     },

@@ -17,6 +17,29 @@ const eslintConfig = defineConfig([
     // Agent worktrees are full checkouts with their own node_modules: not part of this one.
     ".claude/worktrees/**",
   ]),
+  {
+    rules: {
+      // `crypto.randomUUID` is missing on a plain-HTTP address (a phone opening the PC's LAN address), and it throws there.
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "crypto",
+          property: "randomUUID",
+          message: "Use newId() from @/lib/new-id: randomUUID only exists on HTTPS and localhost.",
+        },
+      ],
+    },
+  },
+  {
+    // The scripts run in Node, not in the browser.
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+      },
+    },
+  },
 ]);
 
 export default eslintConfig;

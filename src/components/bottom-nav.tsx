@@ -9,6 +9,7 @@ export const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/', label: 'Home' },
   { href: '/entries', label: 'Entries' },
   { href: '/charts', label: 'Charts' },
+  { href: '/tips', label: 'Tips' },
   { href: '/settings', label: 'Settings' },
 ];
 
@@ -36,7 +37,7 @@ export function BottomNav() {
               <Link
                 href={href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex min-h-12 items-center justify-center px-4 text-sm font-medium ${
+                className={`flex min-h-12 items-center justify-center px-1 text-sm font-medium ${
                   active ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >

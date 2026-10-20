@@ -2,6 +2,7 @@ import type { Account, Entry } from '@/db/types';
 import type { IsoDate } from '@/lib/dates';
 import { toEurMinor, type RateMap } from '@/lib/fx';
 import type { Minor } from '@/lib/money';
+import { newId } from '@/lib/new-id';
 
 export type TransferInput = {
   fromAccountId: string;
@@ -42,7 +43,7 @@ export function buildTransfer(
   return {
     ok: true,
     entry: {
-      id: existing?.id ?? crypto.randomUUID(),
+      id: existing?.id ?? newId(),
       type: 'transfer',
       date: input.date,
       accountId: input.fromAccountId,

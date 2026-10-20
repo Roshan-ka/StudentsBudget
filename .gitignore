@@ -47,3 +47,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# HTTPS certificate and key for phone testing (npm run cert:https): never committed
+/certs/
