@@ -33,15 +33,24 @@ if (missing.length > 0) {
 
 const app = next({ dev: false, dir: root, hostname: '0.0.0.0', port });
 const handle = app.getRequestHandler();
-await app.prepare();
 
-const server = https.createServer({ key: readFileSync(key), cert: readFileSync(cert) }, (req, res) => {
-  handle(req, res).catch((error) => {
-    console.error(error);
-    if (!res.headersSent) res.statusCode = 500;
-    res.end();
+// Read the files and build the server before the app starts, so a broken certificate fails at once. The error is
+// not printed: its text is of no use here, and a key must never end up in a log.
+let server;
+try {
+  server = https.createServer({ key: readFileSync(key), cert: readFileSync(cert) }, (req, res) => {
+    handle(req, res).catch((error) => {
+      console.error(error);
+      if (!res.headersSent) res.statusCode = 500;
+      res.end();
+    });
   });
-});
+} catch {
+  console.error('The certificate or key could not be read. Run npm run cert:https again.');
+  process.exit(1);
+}
+
+await app.prepare();
 
 server.on('error', (error) => {
   if (error.code === 'EADDRINUSE') {

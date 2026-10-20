@@ -10,9 +10,9 @@ import { certHosts, certPaths, privateIPv4s } from './https-config.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { cert, key } = certPaths(process.env, root);
 
-// Asking where the root CA lives doubles as the check that mkcert is installed.
+// Asking where the root CA lives doubles as the check that mkcert is installed and runs.
 const caRoot = spawnSync('mkcert', ['-CAROOT'], { encoding: 'utf8' });
-if (caRoot.error) {
+if (caRoot.error || caRoot.status !== 0) {
   console.error('mkcert was not found on your PATH. Install it once, then open a new terminal:');
   console.error('  winget install FiloSottile.mkcert');
   console.error('Then run mkcert -install, and npm run cert:https again.');
