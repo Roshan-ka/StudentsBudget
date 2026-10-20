@@ -99,7 +99,7 @@ const basic = (minor: Minor, semester: string): FeePart => ({
 const ticket = (minor: Minor, semester: string): FeePart => ({
   label: 'RVV semester ticket',
   minor,
-  source: `${STWNO}, semester ticket statute of 12 Oct 2026 (scanned PDF, in German), § 3: €128.00 for summer semester 2027 and €130.00 for winter semester 2027/28; § 1: for all students of OTH Regensburg and Universität Regensburg, due with re-registration. This is the ${semester} figure.`,
+  source: `${STWNO}, semester ticket statute of 12 Oct 2026 (scanned PDF, in German), § 3: €128.00 for summer semester 2027 and €130.00 for winter semester 2027/28; § 1: for students of OTH Regensburg and Universität Regensburg (with the statute's exemptions), due with re-registration. This is the ${semester} figure.`,
   url: TICKET_URL,
   checked: CHECKED,
 });

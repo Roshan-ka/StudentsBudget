@@ -13,7 +13,7 @@ export function SemesterFeeSource({ offer }: { offer: SemesterFeeOffer }) {
       ? `${parts.map((p) => `${formatMoney(p.minor, 'EUR')} ${p.label}`).join(' + ')}.`
       : "No page states this semester's fee yet, so the amount is yours to fill in.";
   const due = reRegistration
-    ? `Due in ${monthLabel(row.dueMonth)}, when re-registration opens.`
+    ? `Due in ${monthLabel(row.dueMonth)}, when re-registration is expected to open.`
     : `Due in ${monthLabel(row.dueMonth)}, the month before the semester starts.`;
 
   return (
