@@ -6,6 +6,7 @@ import { newSchedule, perOccurrence, restartSchedule } from '@/features/recurrin
 import { planSummary, type PlanSummary } from '@/lib/budget';
 import { monthOf, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, formatRange, type Minor } from '@/lib/money';
+import { newId } from '@/lib/new-id';
 
 /**
  * "Add it automatically" for one line, as the wizard holds it. The choices stay while it is off or the line's amount
@@ -126,7 +127,7 @@ export function setRentAmount(d: SetupDraft, minor: Minor): SetupDraft {
 export function withAccountKeys(d: SetupDraft): SetupDraft {
   if (d.accounts.every((a) => a.key !== undefined)) return d;
   // Never a key a removed account had: a line that picked that account must not move to a new one.
-  const keyed = d.accounts.map((a) => (a.key === undefined ? { ...a, key: `draft-${crypto.randomUUID()}` } : a));
+  const keyed = d.accounts.map((a) => (a.key === undefined ? { ...a, key: `draft-${newId()}` } : a));
   return { ...d, accounts: keyed };
 }
 
@@ -235,7 +236,7 @@ export function draftToRecords(
   const oneOffs = d.oneOffs.map((row): OneOff => {
     const kept = claim(row);
     return {
-      id: kept?.id ?? crypto.randomUUID(),
+      id: kept?.id ?? newId(),
       name: row.name,
       amountMinor: row.amountMinor,
       createdMonth: kept?.createdMonth ?? thisMonth,
@@ -246,7 +247,7 @@ export function draftToRecords(
   const createdAt = new Date().toISOString();
   const accounts = d.accounts.map(
     (a): Account => ({
-      id: crypto.randomUUID(),
+      id: newId(),
       name: a.name,
       kind: a.kind,
       currency: a.currency,

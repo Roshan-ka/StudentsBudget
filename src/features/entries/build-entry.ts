@@ -3,6 +3,7 @@ import { buildTransfer } from '@/features/accounts/transfer';
 import type { IsoDate } from '@/lib/dates';
 import { toEurMinor, type RateMap } from '@/lib/fx';
 import type { Minor } from '@/lib/money';
+import { newId } from '@/lib/new-id';
 
 export type EntryInput =
   | { id?: string; type: 'expense' | 'income'; date: IsoDate; accountId: string; amountMinor: Minor; categoryId: string; note: string }
@@ -53,7 +54,7 @@ function build(
   return {
     ok: true,
     entry: {
-      id: existing?.id ?? crypto.randomUUID(),
+      id: existing?.id ?? newId(),
       type: input.type,
       date: input.date,
       accountId: input.accountId,

@@ -2,6 +2,7 @@ import { getISODay, isValid, parseISO } from 'date-fns';
 import type { Schedule } from '@/db/types';
 import { addDays, daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoDate } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
+import { newId } from '@/lib/new-id';
 
 type Timing = Pick<Schedule, 'frequency' | 'day'>;
 
@@ -105,7 +106,7 @@ export function perOccurrence(monthlyMinor: Minor, frequency: Schedule['frequenc
 export function newSchedule(
   fields: Pick<Schedule, 'frequency' | 'day' | 'accountId' | 'amountMinor'>,
   today: IsoDate,
-  id: string = crypto.randomUUID(),
+  id: string = newId(),
 ): Schedule {
   return { id, ...fields, startOn: addDays(today, 1), postedThrough: today };
 }
