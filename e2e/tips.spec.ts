@@ -31,7 +31,7 @@ async function openTips(page: Page) {
   await completeSetup(page);
   await mainNav(page).getByRole('link', { name: 'Tips', exact: true }).click();
   await expect(page).toHaveURL('/tips');
-  await expect(page.getByRole('heading', { level: 2, name: 'Regensburg tips', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Regensburg tips and discounts', exact: true })).toBeVisible();
 }
 
 test('the Tips tab sits between Charts and Settings and lists every tip', async ({ page }) => {
@@ -102,7 +102,7 @@ test('a tip shows where it comes from, collapsed until asked for', async ({ page
 
 test('the tips open without a plan, and the nav stays hidden until setup', async ({ page }) => {
   await page.goto('/tips');
-  await expect(page.getByRole('heading', { level: 2, name: 'Regensburg tips', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Regensburg tips and discounts', exact: true })).toBeVisible();
   await expect(tipList(page).getByRole('listitem')).toHaveCount(TIPS.length);
   await expect(mainNav(page)).toHaveCount(0);
 });

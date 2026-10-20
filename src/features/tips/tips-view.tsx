@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TIPS } from '@/data/tips';
+import { DiscountsView } from '@/features/discounts/discounts-view';
 import { categoryName } from '@/features/entries/categories';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { sortTips, tipChipIds, tipTag } from './tips';
@@ -10,11 +12,36 @@ import { sortTips, tipChipIds, tipTag } from './tips';
 const SORTED = sortTips(TIPS);
 const CHIPS = tipChipIds(TIPS);
 
+type View = 'tips' | 'discounts';
+
+/**
+ * The Tips tab: the Regensburg tips or the student discounts, one at a time. Both stay mounted while the other is
+ * shown, so each keeps its chosen category; `/tips` stays the only route.
+ */
+export function TipsView() {
+  const [view, setView] = useState<View>('tips');
+
+  return (
+    <Tabs value={view} onValueChange={(value) => setView(value === 'discounts' ? 'discounts' : 'tips')}>
+      <TabsList aria-label="Tips or discounts" className="w-full group-data-horizontal/tabs:h-10">
+        <TabsTrigger value="tips">Tips</TabsTrigger>
+        <TabsTrigger value="discounts">Discounts</TabsTrigger>
+      </TabsList>
+      <TabsContent value="tips" keepMounted className="pt-2 text-base">
+        <TipList />
+      </TabsContent>
+      <TabsContent value="discounts" keepMounted className="pt-2 text-base">
+        <DiscountsView />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
 /**
  * The Regensburg tips, all or one category at a time. The tips are static, so nothing here waits for the
  * database; the chosen category is kept only while the page stays mounted.
  */
-export function TipsView() {
+function TipList() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
   const shown = categoryId === null ? SORTED : SORTED.filter((t) => t.categoryId === categoryId);
@@ -58,7 +85,8 @@ export function TipsView() {
               <h3 className="font-medium">{tip.title}</h3>
               <p className="text-sm text-muted-foreground">{tip.body}</p>
             </div>
-            <span className="w-fit rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {/* An outline, not the muted fill: muted text on the muted fill is about 4.3:1, on the page about 4.7:1. */}
+            <span className="w-fit rounded-md border px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
               {tipTag(tip)}
             </span>
             <RangeSource range={tip} />
