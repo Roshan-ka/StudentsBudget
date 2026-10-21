@@ -253,6 +253,27 @@ describe('firstAddedOn', () => {
       expect(firstAddedOn(day15, undefined, '2026-11-10', false, line(...entries))).toBe('2027-01-15');
     });
 
+    it('looks at the periods of the new timing: rent posted monthly on 1 Nov, then turned off and on weekly on Fridays', () => {
+      const posted = line(automatic('2026-11-01'));
+
+      // Monday 9 Nov: the new schedule starts on the 10th, and the first Friday is the 13th. The entry of 1 Nov is
+      // in the week before Mon 2 Nov, so it does not hold a week (and the whole month does not count as held).
+      expect(firstAddedOn(fridays, undefined, '2026-11-09', false, posted)).toBe('2026-11-13');
+      expect(firstAddedOn(fridays, undefined, '2026-11-09')).toBe('2026-11-13');
+      // Even a day after the entry: Friday 6 Nov is in the week of Mon 2 Nov to Sun 8 Nov, which holds nothing.
+      expect(firstAddedOn(fridays, undefined, '2026-11-02', false, posted)).toBe('2026-11-06');
+    });
+
+    it('looks at the periods of the new timing: Fridays posted through early November, then monthly on day 15', () => {
+      const posted = line(automatic('2026-10-30'), automatic('2026-11-06'));
+
+      // Tuesday 10 Nov: day 15 would be due on the 15th, but November already holds an automatic entry (6 Nov).
+      expect(firstAddedOn(day15, undefined, '2026-11-10', false, posted)).toBe('2026-12-15');
+      expect(firstAddedOn(day15, undefined, '2026-11-10')).toBe('2026-11-15');
+      // With the last one in October, November holds none yet.
+      expect(firstAddedOn(day15, undefined, '2026-11-02', false, line(automatic('2026-10-30')))).toBe('2026-11-15');
+    });
+
     it('counts an entry on any day of the period, and in a later period than the first occurrence', () => {
       // Posted on the 30th (moved there by hand, say): the same month.
       expect(firstAddedOn(day15, undefined, '2026-11-10', false, line(automatic('2026-11-30')))).toBe('2026-12-15');

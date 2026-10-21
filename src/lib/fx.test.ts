@@ -94,6 +94,7 @@ describe('fetchEcbRates', () => {
       [{ date: '2026-10-16', quote: 'INR', rate: 95.12 }],
       [row('XYZ', 95.12)],
       [{ date: '2026-10-16', base: 'EUR', rate: 95.12 }],
+      [{ date: '2026-10-16', base: 'EUR', quote: 5, rate: 95.12 }],
       [row('INR', '95.12')],
       [row('INR', 0)],
       [row('INR', -95)],
@@ -117,6 +118,33 @@ describe('fetchEcbRates', () => {
 
   it('throws on an empty list: no rows means no rate date and no rates', async () => {
     const fake = vi.fn<typeof fetch>(async () => jsonResponse([]));
+
+    await expect(fetchEcbRates(['INR'], fake)).rejects.toThrow('no rates');
+  });
+
+  it('skips a row for a currency the app has no code for, instead of failing the refresh', async () => {
+    const fake = vi.fn<typeof fetch>(async () => jsonResponse([row('INR', 95.12), row('XYZ', 7), row('ZZZ', 'bad')]));
+
+    expect(await fetchEcbRates(['INR'], fake)).toEqual({ rateDate: '2026-10-16', perEur: { INR: 95.12 } });
+  });
+
+  it('does not take the rate date from a skipped row', async () => {
+    const fake = vi.fn<typeof fetch>(async () =>
+      jsonResponse([row('INR', 95, '2026-10-15'), row('XYZ', 7, '2026-10-16')]),
+    );
+
+    expect(await fetchEcbRates(['INR'], fake)).toEqual({ rateDate: '2026-10-15', perEur: { INR: 95 } });
+  });
+
+  it('still throws on a skipped row that is not a row: wrong base or a bad date', async () => {
+    for (const body of [[row('INR', 95.12), row('XYZ', 7, '2026-10-16', 'USD')], [row('INR', 95.12), row('XYZ', 7, 'soon')]]) {
+      const fake = vi.fn<typeof fetch>(async () => jsonResponse(body));
+      await expect(fetchEcbRates(['INR'], fake), JSON.stringify(body)).rejects.toThrow('unexpected shape');
+    }
+  });
+
+  it('throws when every row is for a currency the app has no code for: nothing is left to date or use', async () => {
+    const fake = vi.fn<typeof fetch>(async () => jsonResponse([row('XYZ', 7), row('ZZZ', 2)]));
 
     await expect(fetchEcbRates(['INR'], fake)).rejects.toThrow('no rates');
   });

@@ -383,6 +383,28 @@ describe('keywordsOf', () => {
     expect(keywordsOf('Coffee.')).toEqual(['coffee']);
   });
 
+  it('leaves out any punctuation at either end of a word, but keeps a hyphen', () => {
+    expect(keywordsOf('Döner!')).toEqual(['döner']);
+    expect(keywordsOf('"döner"')).toEqual(['döner']);
+    expect(keywordsOf('“döner” (mit Tom)?')).toEqual(['döner', 'tom']);
+    expect(keywordsOf('Döner… 6')).toEqual(['döner']);
+    expect(keywordsOf("'coffee'")).toEqual(['coffee']);
+    // A hyphen inside a word, or at its end, is part of it.
+    expect(keywordsOf('e-bike repair')).toEqual(['e-bike', 'repair']);
+    expect(keywordsOf('t-shirt-')).toEqual(['t-shirt-']);
+    // A word that is only punctuation or symbols is no word.
+    expect(keywordsOf('Phone & internet')).toEqual(['phone', 'internet']);
+    expect(keywordsOf('döner - 6 €')).toEqual(['döner']);
+  });
+
+  it('leaves out the German stop words too', () => {
+    expect(keywordsOf('kino mit anna')).toEqual(['kino', 'anna']);
+    expect(keywordsOf('Geschenk für meine Mutter')).toEqual(['geschenk', 'mutter']);
+    expect(keywordsOf('Brötchen beim Bäcker im Dorf am See')).toEqual(['brötchen', 'bäcker', 'dorf', 'see']);
+    expect(keywordsOf('der Zug zur Uni und zum Bahnhof von der Arbeit')).toEqual(['zug', 'uni', 'bahnhof', 'arbeit']);
+    expect(keywordsOf('das ein eine mein meine vom')).toEqual([]);
+  });
+
   it('leaves out numbers, number words, currency markers and the stop words', () => {
     expect(keywordsOf('lunch at mensa')).toEqual(['lunch', 'mensa']);
     expect(keywordsOf('2 coffees 7,40')).toEqual(['coffees']);
@@ -562,11 +584,64 @@ describe('suggestCategory', () => {
         entry('expense', 'lunch at mensa', 'food', '2026-10-12T12:00:00.000Z'),
       ];
 
-      // "lunch" comes first in the note, and its latest expense (12 Oct) wins over "mensa"'s (9 Oct).
+      // "lunch" comes first in the note, and the latest expense that starts with it (12 Oct) wins over "mensa"'s (9 Oct).
       expect(suggestCategory('lunch at mensa', history)).toBe('food');
-      // Only "mensa" is known: the latest expense with the word, whatever its other words.
-      expect(suggestCategory('dinner at mensa', history)).toBe('food');
+      // Only "mensa" is known: the latest expense that starts with it (9 Oct). "lunch at mensa" (12 Oct) starts with
+      // "lunch", so "mensa" is only where that lunch was.
+      expect(suggestCategory('dinner at mensa', history)).toBe('eating-out');
       expect(suggestCategory('dinner at mensa', history.slice(0, 3))).toBe('eating-out');
+    });
+
+    it('matches only the first word of an earlier note: "bus 3" is Transport, not the newer "snacks for the bus"', () => {
+      const history = [
+        entry('expense', 'bus ticket', 'transport', '2026-10-10T12:00:00.000Z'),
+        entry('expense', 'snacks for the bus', 'food', '2026-10-15T12:00:00.000Z'),
+      ];
+      const parsed = parseQuickAdd('bus 3');
+
+      expect(parsed).toEqual({ amountMinor: 300, note: 'bus' });
+      expect(suggestCategory('bus', history)).toBe('transport');
+      // The word is still found when it starts the earlier note, whatever follows.
+      expect(suggestCategory('snacks', history)).toBe('food');
+    });
+
+    it('asks with the chips when the word only came later in an earlier note: "ikea 40" after "bus to ikea"', () => {
+      const history = [entry('expense', 'bus to ikea', 'transport', '2026-10-15T12:00:00.000Z')];
+
+      expect(suggestCategory('ikea', history)).toBeNull();
+      expect(suggestCategory('bus', history)).toBe('transport');
+    });
+
+    it('does not match a name the earlier note ended with: "cinema with tom 9" after "döner with Tom"', () => {
+      const history = [entry('expense', 'döner with Tom', 'eating-out', '2026-10-15T12:00:00.000Z')];
+      const parsed = parseQuickAdd('cinema with tom 9');
+
+      expect(parsed).toEqual({ amountMinor: 900, note: 'cinema with tom' });
+      expect(suggestCategory(parsed?.note ?? '', history)).toBeNull();
+    });
+
+    it('reads the German stop words as stop words: "kino mit anna 9" after "pizza mit lisa"', () => {
+      const history = [entry('expense', 'pizza mit lisa', 'eating-out', '2026-10-15T12:00:00.000Z')];
+      const parsed = parseQuickAdd('kino mit anna 9');
+
+      expect(parsed).toEqual({ amountMinor: 900, note: 'kino mit anna' });
+      expect(suggestCategory(parsed?.note ?? '', history)).toBeNull();
+      // "mit" starts no note either, so it never decides a category.
+      const odd = [entry('expense', 'mit freunden essen', 'eating-out', '2026-10-15T12:00:00.000Z')];
+      expect(suggestCategory('kino mit anna', odd)).toBeNull();
+      expect(suggestCategory('freunden', odd)).toBe('eating-out');
+    });
+
+    it('finds the word through the punctuation dictation adds: "Döner!" and "“döner”" match "döner"', () => {
+      const history = [entry('expense', 'döner', 'eating-out', '2026-10-10T12:00:00.000Z')];
+
+      expect(suggestCategory('Döner!', history)).toBe('eating-out');
+      expect(suggestCategory('"döner"', history)).toBe('eating-out');
+      expect(suggestCategory('(döner)', history)).toBe('eating-out');
+      const loud = [entry('expense', 'Döner!', 'eating-out', '2026-10-10T12:00:00.000Z')];
+      expect(suggestCategory('döner', loud)).toBe('eating-out');
+      // Still a whole word: the hyphen is part of it.
+      expect(suggestCategory('döner', [entry('expense', 'döner-box', 'food', '2026-10-10T12:00:00.000Z')])).toBeNull();
     });
 
     it('does not read a stop word, so "with" never matches another note', () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Account, Entry, Rate } from '@/db/types';
 import type { RateMap } from '@/lib/fx';
 import type { CurrencyCode } from '@/lib/money';
-import { accountBalance, defaultAccount, sortAccounts, totalInEur } from './balances';
+import { accountBalance, defaultAccount, euroAccount, sortAccounts, totalInEur } from './balances';
 
 function account(id: string, currency: CurrencyCode, openingMinor: number): Account {
   return { id, name: id, kind: 'bank', currency, openingMinor, createdAt: '2026-10-01T08:00:00.000Z' };
@@ -119,14 +119,26 @@ describe('defaultAccount', () => {
     expect(defaultAccount([homeBank, { ...localBank, id: 'second-euro-bank' }, localBank])?.id).toBe('second-euro-bank');
   });
 
-  it('is the first bank account when no bank account is in euros', () => {
-    expect(defaultAccount([cash, homeBank, made('pound-bank', 'bank', 'GBP', 4)])).toBe(homeBank);
+  it('is a euro account of any kind when no bank account is in euros: cash in euros beats a bank in rupees', () => {
+    expect(defaultAccount([homeBank, cash])).toBe(cash);
+    expect(defaultAccount([cash, homeBank, made('pound-bank', 'bank', 'GBP', 4)])).toBe(cash);
+    // The first euro account counts, in the order given.
+    expect(defaultAccount([homeBank, { ...cash, id: 'second-cash' }, cash])?.id).toBe('second-cash');
   });
 
-  it('is the first account when none is a bank account', () => {
+  it('is the first bank account when no account is in euros', () => {
     const wallet = made('wallet', 'cash', 'INR', 1);
 
-    expect(defaultAccount([wallet, cash])).toBe(wallet);
+    expect(defaultAccount([wallet, homeBank, made('pound-bank', 'bank', 'GBP', 4)])).toBe(homeBank);
+  });
+
+  it('is the first account when none is in euros and none is a bank account', () => {
+    const wallet = made('wallet', 'cash', 'INR', 1);
+    const pocket = made('pocket', 'cash', 'GBP', 2);
+
+    expect(defaultAccount([wallet, pocket])).toBe(wallet);
+    // A euro wallet is not the first account, but it still wins over a wallet in rupees.
+    expect(defaultAccount([wallet, cash])).toBe(cash);
   });
 
   it('is the first marked one if a damaged file marks two', () => {
@@ -157,6 +169,32 @@ describe('defaultAccount', () => {
     expect(defaultAccount(options)?.id).toBe('draft-1');
     // An option without a kind (a caller that has none) is chosen only as the first.
     expect(defaultAccount([{ id: 'x', name: 'X', currency: 'EUR' as const }])?.id).toBe('x');
+  });
+});
+
+describe('euroAccount', () => {
+  const made = (id: string, kind: Account['kind'], currency: CurrencyCode): Account => ({
+    ...account(id, currency, 0),
+    kind,
+    createdAt: '2026-10-01T08:00:00.000Z',
+  });
+
+  it('is the first euro bank account, else the first euro account of any kind, else nothing', () => {
+    const inr = made('inr', 'bank', 'INR');
+    const cash = made('cash', 'cash', 'EUR');
+    const bank = made('bank', 'bank', 'EUR');
+
+    expect(euroAccount([inr, cash, bank])).toBe(bank);
+    expect(euroAccount([inr, cash])).toBe(cash);
+    expect(euroAccount([inr, made('wallet', 'cash', 'INR')])).toBeUndefined();
+    expect(euroAccount([])).toBeUndefined();
+  });
+
+  it('ignores the mark: it is the euro part of the rule, not the account marked as the default', () => {
+    const markedInr = { ...made('inr', 'bank', 'INR'), isDefault: true as const };
+    const cash = made('cash', 'cash', 'EUR');
+
+    expect(euroAccount([markedInr, cash])).toBe(cash);
   });
 });
 

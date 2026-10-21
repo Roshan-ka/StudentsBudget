@@ -1,10 +1,10 @@
 import type { Account, Entry } from '@/db/types';
-import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
+import { defaultAccount, euroAccount, sortAccounts } from '@/features/accounts/balances';
 import { isIsoDate } from '@/features/recurring/schedule';
 import type { IsoDate } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 import { EXPENSE_CATEGORIES } from './categories';
-import { parseQuickAdd, suggestCategory } from './quick-add';
+import { readQuickAdd, suggestCategory } from './quick-add';
 
 /** What a provider reads a line against: today, the accounts, and every expense so far (`history`). */
 export type QuickAddContext = { today: IsoDate; accounts: Account[]; history: Entry[] };
@@ -12,11 +12,12 @@ export type QuickAddContext = { today: IsoDate; accounts: Account[]; history: En
 /**
  * What a provider made of one line: one amount, or two readings to choose from ("coffee 7 40": €7.40 or €40).
  * `categoryId` is null when the provider cannot tell; quick add then asks with the chips. An amount may name the
- * account and the day; without them quick add saves to the default account, dated today.
+ * account and the day; without them quick add saves to the default account, dated today. A choice may name the account
+ * too, so its two buttons show that account's currency and the amount tapped is saved there.
  */
 export type QuickAddReading =
   | { kind: 'amount'; amountMinor: Minor; note: string; categoryId: string | null; accountId?: string; date?: IsoDate }
-  | { kind: 'choice'; options: [Minor, Minor]; note: string; categoryId: string | null };
+  | { kind: 'choice'; options: [Minor, Minor]; note: string; categoryId: string | null; accountId?: string };
 
 export type QuickAddAmountReading = Extract<QuickAddReading, { kind: 'amount' }>;
 export type QuickAddChoiceReading = Extract<QuickAddReading, { kind: 'choice' }>;
@@ -29,15 +30,32 @@ export interface QuickAddProvider {
   read(text: string, ctx: QuickAddContext): Promise<QuickAddReading | null>;
 }
 
-/** `parseQuickAdd` for the amount and `suggestCategory` for the category, once per line. */
+/**
+ * The euro account a line written in euros is saved to, when the default account is not in euros: "Döner 6 €" must not
+ * become ₹6. The first euro bank account, else any euro account. Undefined when the default is in euros already (the
+ * field saves there), or when there is no euro account at all (the default stays).
+ */
+function euroAccountId(accounts: Account[]): string | undefined {
+  const ordered = sortAccounts(accounts);
+  const fallback = defaultAccount(ordered);
+  return fallback === undefined || fallback.currency === 'EUR' ? undefined : euroAccount(ordered)?.id;
+}
+
+/**
+ * `readQuickAdd` for the amount and `suggestCategory` for the category, once per line. A line with a euro sign, "eur"
+ * or "euro" next to the amount names a euro account when the default account is not in euros.
+ */
 export const localQuickAddProvider: QuickAddProvider = {
   async read(text, ctx) {
-    const parsed = parseQuickAdd(text);
-    if (parsed === null) return null;
+    const line = readQuickAdd(text);
+    if (line === null) return null;
+    const { reading: parsed, euro } = line;
     const categoryId = suggestCategory(parsed.note, ctx.history);
+    const accountId = euro ? euroAccountId(ctx.accounts) : undefined;
+    const account = accountId === undefined ? {} : { accountId };
     return 'kind' in parsed
-      ? { kind: 'choice', options: parsed.options, note: parsed.note, categoryId }
-      : { kind: 'amount', amountMinor: parsed.amountMinor, note: parsed.note, categoryId };
+      ? { kind: 'choice', options: parsed.options, note: parsed.note, categoryId, ...account }
+      : { kind: 'amount', amountMinor: parsed.amountMinor, note: parsed.note, categoryId, ...account };
   },
 };
 
@@ -61,26 +79,39 @@ export function checkReading(reading: QuickAddReading | null, ctx: QuickAddConte
     (EXPENSE_CATEGORY_IDS.has(wanted) || ctx.history.some((e) => e.type === 'expense' && e.categoryId === wanted));
   const categoryId = known ? wanted : null;
 
+  const { accountId } = reading;
+  const account = accountId !== undefined && ctx.accounts.some((a) => a.id === accountId) ? { accountId } : {};
+
   if (reading.kind === 'choice') {
     if (!reading.options.every(isAmount)) return null;
-    return { kind: 'choice', options: reading.options, note: reading.note, categoryId };
+    return { kind: 'choice', options: reading.options, note: reading.note, categoryId, ...account };
   }
 
   if (!isAmount(reading.amountMinor)) return null;
-  const { accountId, date } = reading;
+  const { date } = reading;
   return {
     kind: 'amount',
     amountMinor: reading.amountMinor,
     note: reading.note,
     categoryId,
-    ...(accountId !== undefined && ctx.accounts.some((a) => a.id === accountId) && { accountId }),
+    ...account,
     ...(date !== undefined && isIsoDate(date) && { date }),
   };
 }
 
-/** The amount tapped on a choice, with the note and the category the line was read with: nothing is read again. */
+/**
+ * The amount tapped on a choice, with the note, the category and the account the line was read with: nothing is read
+ * again.
+ */
 export function chosenAmount(choice: QuickAddChoiceReading, amountMinor: Minor): QuickAddAmountReading {
-  return { kind: 'amount', amountMinor, note: choice.note, categoryId: choice.categoryId };
+  const { accountId } = choice;
+  return {
+    kind: 'amount',
+    amountMinor,
+    note: choice.note,
+    categoryId: choice.categoryId,
+    ...(accountId !== undefined && { accountId }),
+  };
 }
 
 /**

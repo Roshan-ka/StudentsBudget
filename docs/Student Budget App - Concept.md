@@ -94,7 +94,7 @@ Each part is tagged with its phase.
 ### 4. Logging: quick add, typed or spoken
 - **P1: manual entry**: amount, category, account, date, note. Edit and delete.
 - **P1: quick add**
-  - One text field: "döner 6". The number is the amount, the rest the note. The category comes from the latest earlier expense that shares a whole word with the note, trying the note's words in order and skipping numbers and small words like "at" or "the" ("lunch at mensa" finds "mensa 4"); otherwise you pick one.
+  - One text field: "döner 6". The number is the amount, the rest the note. The category comes from the latest earlier expense whose note starts with one of the note's words (a whole word), trying the note's words in order and skipping numbers and small words like "at", "the" or "mit" ("lunch at mensa" finds "mensa 4"); a word that only comes later in an earlier note ("bus to ikea") does not count, so "ikea 40" asks; otherwise you pick one.
   - **Voice works from day one** through the mic on the phone keyboard. Quick add understands what dictation produces: "Döner 6 €", "€6", "6,50", "döner six euros".
 - **P2:** a mic button in the app (the browser's built-in speech recognition) for one-tap entry. Support varies by browser, and Chrome sends the audio to Google for recognition, so the app says so the first time it's used.
 - **P1.2:** quick add reads through a provider interface; today's parser is the local provider, so an AI provider can plug in later with the parser as offline fallback.

@@ -31,9 +31,10 @@ function currencyOf(value: unknown): CurrencyCode | undefined {
 
 /**
  * Fetches today's ECB rates (units of each currency per 1 EUR) from Frankfurter.
- * Requested currencies missing from the response are left out of `perEur`.
- * Throws on a network error, a non-OK status, a response of the wrong shape, and an empty response (it
- * has no rate date). The rate date is the newest row date; the ECB rows share one.
+ * Requested currencies missing from the response are left out of `perEur`, and so is a row for a currency the
+ * app has no code for (Frankfurter can add one any time): it is skipped, not an error, and its date does not count.
+ * Throws on a network error, a non-OK status, a response of the wrong shape, and a response with no row for a
+ * currency the app knows (it has no rate date). The rate date is the newest such row's date; the ECB rows share one.
  */
 export async function fetchEcbRates(
   symbols: CurrencyCode[],
@@ -54,14 +55,16 @@ export async function fetchEcbRates(
     if (!isRecord(row) || row.base !== 'EUR' || typeof row.date !== 'string' || !ISO_DATE.test(row.date)) {
       throw new Error('Frankfurter sent a response in an unexpected shape');
     }
+    if (typeof row.quote !== 'string') throw new Error('Frankfurter sent a response in an unexpected shape');
     const quote = currencyOf(row.quote);
-    if (quote === undefined) throw new Error('Frankfurter sent a response in an unexpected shape');
+    if (quote === undefined) continue;
     if (typeof row.rate !== 'number' || !Number.isFinite(row.rate) || row.rate <= 0) {
       throw new Error(`Frankfurter sent an unusable ${quote} rate`);
     }
-    // ISO dates sort as text, and the list is not empty, so this ends on the newest row's date.
+    // ISO dates sort as text, so this ends on the newest row's date.
     if (row.date > rateDate) rateDate = row.date;
     if (symbols.includes(quote)) perEur[quote] = row.rate;
   }
+  if (rateDate === '') throw new Error('Frankfurter sent no rates we can use');
   return { rateDate, perEur };
 }

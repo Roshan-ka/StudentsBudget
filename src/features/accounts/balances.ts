@@ -50,16 +50,22 @@ export function sortAccounts(accounts: Account[]): Account[] {
 type DefaultCandidate = Pick<Account, 'currency'> & Partial<Pick<Account, 'kind' | 'isDefault'>>;
 
 /**
+ * The first euro bank account, else the first euro account of any kind: the euro part of the default rule, which quick
+ * add also uses for a line written with a euro sign. "First" is the order of `accounts`, as in `defaultAccount`.
+ */
+export function euroAccount<A extends DefaultCandidate>(accounts: readonly A[]): A | undefined {
+  return accounts.find((a) => a.kind === 'bank' && a.currency === 'EUR') ?? accounts.find((a) => a.currency === 'EUR');
+}
+
+/**
  * The account new entries start from: the one marked as the default in Settings, else the first euro bank account,
- * else the first bank account, else the first account. "First" is the order of `accounts`, so pass them as
- * `sortAccounts` returns them. Undefined when there are none. A default that has been deleted leaves no mark behind,
- * so the rule applies again.
+ * else any euro account (a cash wallet too), else the first bank account, else the first account. A euro wallet comes
+ * before a bank account in another currency, so "döner 6" is never saved as ₹6 for want of a euro bank. "First" is the
+ * order of `accounts`, so pass them as `sortAccounts` returns them. Undefined when there are none. A default that has
+ * been deleted leaves no mark behind, so the rule applies again.
  */
 export function defaultAccount<A extends DefaultCandidate>(accounts: readonly A[]): A | undefined {
   return (
-    accounts.find((a) => a.isDefault) ??
-    accounts.find((a) => a.kind === 'bank' && a.currency === 'EUR') ??
-    accounts.find((a) => a.kind === 'bank') ??
-    accounts[0]
+    accounts.find((a) => a.isDefault) ?? euroAccount(accounts) ?? accounts.find((a) => a.kind === 'bank') ?? accounts[0]
   );
 }

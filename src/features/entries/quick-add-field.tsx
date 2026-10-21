@@ -220,7 +220,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
   /** Shows the two amount buttons, in the currency of the account quick add saves to. */
   function ask(readings: QuickAddChoiceReading, accounts: Account[]) {
     setError(null);
-    setChoice({ ...readings, currency: accountFor(accounts, undefined)?.currency ?? 'EUR' });
+    setChoice({ ...readings, currency: accountFor(accounts, readings.accountId)?.currency ?? 'EUR' });
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
