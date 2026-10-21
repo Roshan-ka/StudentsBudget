@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '@/db/types';
-import { keywordOf, parseQuickAdd, suggestCategory } from './quick-add';
+import { keywordsOf, parseQuickAdd, suggestCategory } from './quick-add';
 
 describe('parseQuickAdd', () => {
   const cases: [string, number, string][] = [
@@ -369,22 +369,44 @@ describe('parseQuickAdd', () => {
   });
 });
 
-describe('keywordOf', () => {
-  it('returns the first word, lower-cased', () => {
-    expect(keywordOf('Döner with Tom')).toBe('döner');
-    expect(keywordOf('  Coffee  ')).toBe('coffee');
-    expect(keywordOf('ÄPFEL')).toBe('äpfel');
+describe('keywordsOf', () => {
+  it('returns the words in order, lower-cased', () => {
+    expect(keywordsOf('Döner with Tom')).toEqual(['döner', 'tom']);
+    expect(keywordsOf('  Coffee  ')).toEqual(['coffee']);
+    expect(keywordsOf('ÄPFEL')).toEqual(['äpfel']);
   });
 
-  it('leaves out a comma, semicolon or colon that dictation puts after the word', () => {
-    expect(keywordOf('Coffee, 6 €')).toBe('coffee');
-    expect(keywordOf('Döner: with Tom')).toBe('döner');
-    expect(keywordOf('Döner; with Tom')).toBe('döner');
+  it('leaves out a full stop, comma, semicolon or colon at either end of a word', () => {
+    expect(keywordsOf('Coffee, 6 €')).toEqual(['coffee']);
+    expect(keywordsOf('Döner: with Tom')).toEqual(['döner', 'tom']);
+    expect(keywordsOf('Döner; with Tom.')).toEqual(['döner', 'tom']);
+    expect(keywordsOf('Coffee.')).toEqual(['coffee']);
   });
 
-  it('returns null for a blank note', () => {
-    expect(keywordOf('  ')).toBeNull();
-    expect(keywordOf('')).toBeNull();
+  it('leaves out numbers, number words, currency markers and the stop words', () => {
+    expect(keywordsOf('lunch at mensa')).toEqual(['lunch', 'mensa']);
+    expect(keywordsOf('2 coffees 7,40')).toEqual(['coffees']);
+    expect(keywordsOf('two coffees')).toEqual(['coffees']);
+    expect(keywordsOf('twenty-five postcards')).toEqual(['postcards']);
+    expect(keywordsOf('6 € coffee')).toEqual(['coffee']);
+    expect(keywordsOf('coffee 6eur EUR euros')).toEqual(['coffee']);
+    expect(keywordsOf('a gift for my mum')).toEqual(['gift', 'mum']);
+    expect(keywordsOf('the end of the line from the shop on a bus to the lab in a car with a dog and an owl')).toEqual([
+      'end',
+      'line',
+      'shop',
+      'bus',
+      'lab',
+      'car',
+      'dog',
+      'owl',
+    ]);
+  });
+
+  it('returns nothing for a blank note or one of only numbers and stop words', () => {
+    expect(keywordsOf('  ')).toEqual([]);
+    expect(keywordsOf('')).toEqual([]);
+    expect(keywordsOf('a 5 of the 7,40 €')).toEqual([]);
   });
 });
 
@@ -428,17 +450,19 @@ describe('suggestCategory', () => {
     expect(suggestCategory('döner', [])).toBeNull();
   });
 
-  it('matches the first word only, not a longer word that starts the same', () => {
+  it('matches a whole word, not a longer word that starts the same', () => {
     const history = [entry('expense', 'dönerbox', 'food', '2026-10-15T12:00:00.000Z')];
 
     expect(suggestCategory('döner', history)).toBeNull();
+    expect(suggestCategory('dönerbox', [entry('expense', 'döner', 'food', '2026-10-15T12:00:00.000Z')])).toBeNull();
   });
 
-  it('returns null for a blank note', () => {
+  it('returns null for a blank note, or one with no word that can choose a category', () => {
     const history = [entry('expense', '', 'food', '2026-10-15T12:00:00.000Z')];
 
     expect(suggestCategory('  ', history)).toBeNull();
     expect(suggestCategory('', history)).toBeNull();
+    expect(suggestCategory('a 5', [entry('expense', 'a 5', 'food', '2026-10-15T12:00:00.000Z')])).toBeNull();
   });
 
   it('ignores transfers and income', () => {
@@ -473,5 +497,91 @@ describe('suggestCategory', () => {
     // A note the person typed still teaches the category, even next to a posted one.
     const typed = entry('expense', 'phone case', 'shopping', '2026-10-10T12:00:00.000Z');
     expect(suggestCategory('phone charger', [posted, typed])).toBe('shopping');
+  });
+
+  describe('beyond the first word', () => {
+    it('finds "mensa 4" from "lunch at mensa 5"', () => {
+      const history = [entry('expense', 'mensa', 'eating-out', '2026-10-15T12:00:00.000Z')];
+      const parsed = parseQuickAdd('lunch at mensa 5');
+
+      expect(parsed).toEqual({ amountMinor: 500, note: 'lunch at mensa' });
+      expect(suggestCategory('lunch at mensa', history)).toBe('eating-out');
+    });
+
+    it('matches coffees in "2 coffees 7,40", not the "2 tickets" before it', () => {
+      const history = [
+        entry('expense', '2 coffees', 'eating-out', '2026-10-10T12:00:00.000Z'),
+        entry('expense', '2 tickets', 'going-out', '2026-10-15T12:00:00.000Z'),
+      ];
+      const parsed = parseQuickAdd('2 coffees 7,40');
+
+      expect(parsed).toEqual({ amountMinor: 740, note: '2 coffees' });
+      expect(suggestCategory('2 coffees', history)).toBe('eating-out');
+      // With no coffee in the history the number alone suggests nothing: "2" is not a word to match.
+      expect(suggestCategory('2 coffees', history.slice(1))).toBeNull();
+    });
+
+    it('skips a stop word at the start: "a coffee 3"', () => {
+      const history = [
+        entry('expense', 'a gift', 'shopping', '2026-10-16T12:00:00.000Z'),
+        entry('expense', 'coffee', 'eating-out', '2026-10-10T12:00:00.000Z'),
+      ];
+      const parsed = parseQuickAdd('a coffee 3');
+
+      expect(parsed).toEqual({ amountMinor: 300, note: 'a coffee' });
+      expect(suggestCategory('a coffee', history)).toBe('eating-out');
+    });
+
+    it('ignores the full stop dictation puts after the word: "Coffee. 6"', () => {
+      const history = [entry('expense', 'coffee', 'eating-out', '2026-10-10T12:00:00.000Z')];
+      const parsed = parseQuickAdd('Coffee. 6');
+
+      expect(parsed).not.toBeNull();
+      expect(suggestCategory(parsed?.note ?? '', history)).toBe('eating-out');
+      // The same word with a full stop in the history matches too.
+      const dotted = [entry('expense', 'Coffee.', 'eating-out', '2026-10-10T12:00:00.000Z')];
+      expect(suggestCategory('coffee', dotted)).toBe('eating-out');
+    });
+
+    it('ignores the euro sign around the amount: "6 € coffee 7 €"', () => {
+      const history = [
+        entry('expense', '6 € tickets', 'going-out', '2026-10-15T12:00:00.000Z'),
+        entry('expense', 'coffee', 'eating-out', '2026-10-10T12:00:00.000Z'),
+      ];
+      const parsed = parseQuickAdd('6 € coffee 7 €');
+
+      expect(parsed).not.toBeNull();
+      expect(suggestCategory(parsed?.note ?? '', history)).toBe('eating-out');
+    });
+
+    it('lets the first word that has a history decide, and the latest expense with it win', () => {
+      const history = [
+        entry('expense', 'lunch', 'eating-out', '2026-10-01T12:00:00.000Z'),
+        entry('expense', 'mensa lunch', 'food', '2026-10-05T12:00:00.000Z'),
+        entry('expense', 'mensa', 'eating-out', '2026-10-09T12:00:00.000Z'),
+        entry('expense', 'lunch at mensa', 'food', '2026-10-12T12:00:00.000Z'),
+      ];
+
+      // "lunch" comes first in the note, and its latest expense (12 Oct) wins over "mensa"'s (9 Oct).
+      expect(suggestCategory('lunch at mensa', history)).toBe('food');
+      // Only "mensa" is known: the latest expense with the word, whatever its other words.
+      expect(suggestCategory('dinner at mensa', history)).toBe('food');
+      expect(suggestCategory('dinner at mensa', history.slice(0, 3))).toBe('eating-out');
+    });
+
+    it('does not read a stop word, so "with" never matches another note', () => {
+      const history = [entry('expense', 'coffee with Tom', 'eating-out', '2026-10-10T12:00:00.000Z')];
+
+      expect(suggestCategory('cinema with the lads', history)).toBeNull();
+    });
+
+    it('takes the first word that has a history even when a later one has a better match (known limit)', () => {
+      const history = [
+        entry('expense', 'big pizza', 'eating-out', '2026-10-10T12:00:00.000Z'),
+        entry('expense', 'rewe', 'food', '2026-10-12T12:00:00.000Z'),
+      ];
+
+      expect(suggestCategory('big rewe shop', history)).toBe('eating-out');
+    });
   });
 });
