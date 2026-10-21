@@ -228,8 +228,6 @@ test('the one-off costs step leaves the amount empty where no page states the fe
 
   // A row without an amount does not stop the step: it is left out when the plan is saved.
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 3, name: 'Everyday budget', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.getByRole('heading', { level: 3, name: 'Envelopes', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Save plan', exact: true }).click();
   await expect(page).toHaveURL('/');

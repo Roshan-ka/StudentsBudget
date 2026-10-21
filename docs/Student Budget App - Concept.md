@@ -83,10 +83,11 @@ Each part is tagged with its phase.
   - **P1.1:** each income source and fixed cost can repeat on its day, monthly on a day of the month or weekly on a weekday, into or out of a chosen account. The app adds it as an entry on that day, so rent and income no longer need logging by hand. Settings has a "Fixed costs and income" list to edit, pause or remove them.
   - big one-off costs: semester fee, insurance, flight home, winter jacket. Each gets a weekly set-aside, so no single month blows up.
   - **your guess per category**, asked before any envelope amounts ("What do you think you spend on eating out a month?"). Saved from day one, even if the guess vs. reality screen comes later.
+  - an optional everyday budget, which the envelope amounts are suggested from
   - envelope amounts
 - **Realistic for the city without AI:**
   - Next to each envelope, the app shows what's typical for students in my city ("Students here: €200–260 for food"), with the source.
-  - It warns when an amount is below that range, and when the plan adds up to more than income.
+  - It says when an amount is below that range; Settings and Home say calmly when the plan adds up to more than income.
   - City numbers are seeded by hand inside the app, each with its source and date: rent range, Mensa meal, grocery basket, transport, a beer, club entry, gym. No Numbeo scraping.
 - **AI phase:** setup becomes a 5-minute chat that proposes and explains the amounts.
 

@@ -140,7 +140,7 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
   // Set up on 1 November: a new line starts tomorrow, so rent on day 1 first comes in December.
   await page.clock.setFixedTime(on(2026, 11, 1));
   await fillSetup(page, {}, { schedules: true });
-  for (const step of ['Everyday budget', 'Guesses', 'One-off costs', 'Fixed costs']) {
+  for (const step of ['Guesses', 'One-off costs', 'Fixed costs']) {
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
@@ -149,7 +149,7 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
   await rent.getByLabel('Day', { exact: true }).selectOption('15');
   await expect(rent.getByText('First added on 15-11-2026.', { exact: true })).toBeVisible();
   await rent.getByLabel('Day', { exact: true }).selectOption('1');
-  for (const step of ['One-off costs', 'Guesses', 'Everyday budget', 'Envelopes']) {
+  for (const step of ['One-off costs', 'Guesses', 'Envelopes']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }

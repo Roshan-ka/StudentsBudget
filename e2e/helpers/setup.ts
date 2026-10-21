@@ -13,7 +13,7 @@ export type SetupFixture = {
   incomes: { parents: string; job: string };
   oneOff: { name: string; amount: string; dueMonth: string };
   guesses: Record<FlexibleId, string>;
-  /** The everyday budget; blank skips the question. */
+  /** The everyday budget, asked at the top of the envelopes step; blank skips the question. */
   budget: string;
   envelopes: Record<FlexibleId, string>;
 };
@@ -28,9 +28,14 @@ export const DEFAULT_SETUP: SetupFixture = {
   envelopes: { food: '310', 'eating-out': '124', 'going-out': '0', transport: '0', shopping: '0', other: '0' },
 };
 
-/** The question of the everyday budget step. */
+/** The question of the everyday budget, at the top of the envelopes step. */
 export const BUDGET_LABEL =
   'How much do you want to spend in a month on everyday things, apart from rent and your fixed costs?';
+
+/** The everyday budget field. A role and an exact name: the label is long, and a text match would be ambiguous. */
+export function budgetField(page: Page) {
+  return page.getByRole('textbox', { name: BUDGET_LABEL, exact: true });
+}
 
 const GUESS_TOPIC: Record<FlexibleId, string> = {
   food: 'food & groceries',
@@ -139,6 +144,8 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   await page.goto('/setup');
   // The wizard renders once it has read the database, so the first heading proves the page is live.
   await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
+  // 7 steps, or 6 when the accounts already exist and the Accounts step is skipped.
+  await expect(page.getByText(`Step 1 of ${options.accountsExist ? 6 : 7}`, { exact: true })).toBeVisible();
   await page.getByLabel('Rent per month').fill(f.rent);
 
   if (options.accountsExist) {
@@ -169,16 +176,16 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   const oneOff = page.getByRole('group', { name: 'One-off cost 1' });
   await oneOff.getByLabel('Name').fill(f.oneOff.name);
   await oneOff.getByLabel('Amount').fill(f.oneOff.amount);
-  await oneOff.getByLabel('Due month').fill(f.oneOff.dueMonth);
+  // A blank month is the field's own state: there is nothing to clear.
+  if (f.oneOff.dueMonth !== '') await oneOff.getByLabel('Due month').fill(f.oneOff.dueMonth);
   await nextStep(page, 'Guesses');
 
   for (const id of FLEXIBLE_IDS) {
     await page.getByLabel(`What do you think you spend on ${GUESS_TOPIC[id]} a month?`).fill(f.guesses[id]);
   }
-  await nextStep(page, 'Everyday budget');
-
-  if (f.budget !== '') await page.getByLabel(BUDGET_LABEL).fill(f.budget);
   await nextStep(page, 'Envelopes');
+
+  if (f.budget !== '') await budgetField(page).fill(f.budget);
 
   for (const id of FLEXIBLE_IDS) {
     await page.getByLabel(ENVELOPE_LABEL[id], { exact: true }).fill(f.envelopes[id]);
