@@ -47,10 +47,11 @@ export function DraftScheduleFields({
   const account = draftAccountOf(schedule, accounts);
   // Saving starts a line without a stored schedule tomorrow, and one whose account was gone again from tomorrow.
   const lineEntries = useLineEntries(type, categoryId);
+  // The entries only move the day later, never make it appear, so an empty line holds its place while they load.
+  const repaired = isRepaired(schedule, accounts);
+  const expectsFirst = account !== undefined && firstAddedOn(schedule, schedule.saved, today, repaired) !== null;
   const firstOn =
-    account && lineEntries
-      ? firstAddedOn(schedule, schedule.saved, today, isRepaired(schedule, accounts), lineEntries)
-      : null;
+    expectsFirst && lineEntries ? firstAddedOn(schedule, schedule.saved, today, repaired, lineEntries) : null;
 
   return (
     <div role="group" aria-label={`${name} schedule`} className="flex flex-col gap-3 rounded-lg border p-3">
@@ -76,7 +77,9 @@ export function DraftScheduleFields({
                 </p>
               )}
               <RepeatFields timing={schedule} onChange={(timing) => onChange({ ...schedule, ...timing })} />
-              {firstOn && <p className="text-sm text-muted-foreground">{firstAddedLine(firstOn)}</p>}
+              {expectsFirst && (
+                <p className="min-h-5 text-sm text-muted-foreground">{firstOn ? firstAddedLine(firstOn) : null}</p>
+              )}
               <div className="grid gap-1.5">
                 <Label htmlFor={`${id}-account`}>Account</Label>
                 <NativeSelect

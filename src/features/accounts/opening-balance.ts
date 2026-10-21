@@ -1,5 +1,8 @@
 import { parseAmount, type Minor } from '@/lib/money';
 
+/** Zero in any spelling: "0", "00", "0.0", "0,00". */
+const ZERO_TEXT = /^0+(?:[.,]0{1,2})?$/;
+
 /**
  * Parses an amount field where nothing means nothing: empty or zero gives 0 (so a new cash wallet,
  * a zero envelope or an unused income source is valid); anything else must be a positive amount.
@@ -7,7 +10,7 @@ import { parseAmount, type Minor } from '@/lib/money';
  */
 export function parseOptionalAmount(text: string): Minor | null {
   const trimmed = text.trim();
-  if (trimmed === '' || /^0+(?:[.,]0{1,2})?$/.test(trimmed)) return 0;
+  if (trimmed === '' || ZERO_TEXT.test(trimmed)) return 0;
   return parseAmount(trimmed);
 }
 
@@ -40,11 +43,14 @@ export function parseSignedAmount(text: string): Minor | null {
  */
 export type OpeningText = { text: string; waiting: boolean };
 
-/** The box was ticked or cleared. */
+/**
+ * The box was ticked or cleared. A bare 0 is no amount to put a minus on ("-0" is not a balance), so it waits like an
+ * empty field: the 0 goes, and the first thing typed takes the sign.
+ */
 export function tickOverdrawn(text: string, checked: boolean): OpeningText {
   const bare = text.trim().replace(MINUS, '').trim();
   if (!checked) return { text: bare, waiting: false };
-  return bare === '' ? { text: '', waiting: true } : { text: `-${bare}`, waiting: false };
+  return bare === '' || ZERO_TEXT.test(bare) ? { text: '', waiting: true } : { text: `-${bare}`, waiting: false };
 }
 
 /** The field was typed in. A tick that was waiting for an amount puts its minus in front of what was typed. */

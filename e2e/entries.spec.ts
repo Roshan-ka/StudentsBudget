@@ -177,11 +177,11 @@ test('making Cash the default account in Settings moves quick add, the entry for
 
   await page.goto('/settings');
   // The row buttons only exist once the accounts have been read, so a click cannot hit the prerendered page.
-  const makeCash = page.getByRole('button', { name: 'Make Cash the default', exact: true });
+  const makeCash = page.getByRole('button', { name: 'Make default: Cash', exact: true });
   await expect(makeCash).toBeVisible();
   await makeCash.click();
   await expect(makeCash).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Make Local bank the default', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Make default: Local bank', exact: true })).toBeVisible();
 
   const accounts = await readStore<Account>(page, 'accounts');
   const cash = accounts.find((a) => a.name === 'Cash');

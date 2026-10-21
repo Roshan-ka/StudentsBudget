@@ -121,7 +121,7 @@ test('the transfer form sends from the default account, and the first other acco
   await expect(to.locator('option:checked')).toHaveText('Wallet (EUR)');
 
   // Making the wallet the default moves From to it, and To to the first other account.
-  await page.getByRole('button', { name: 'Make Wallet the default', exact: true }).click();
+  await page.getByRole('button', { name: 'Make default: Wallet', exact: true }).click();
   await expect(from.locator('option:checked')).toHaveText('Wallet (EUR)');
   await expect(to.locator('option:checked')).toHaveText('Bank (EUR)');
 });
@@ -144,11 +144,14 @@ test('Settings marks one default account, keeps it through an edit, and falls ba
   expect((await readStore<Account>(page, 'accounts')).some((a) => a.isDefault)).toBe(false);
 
   // Choosing another moves the mark, and the others lose theirs.
-  await page.getByRole('button', { name: 'Make Wallet the default', exact: true }).click();
+  await page.getByRole('button', { name: 'Make default: Wallet', exact: true }).click();
   await expect(row('Wallet').getByText('Default for new entries', { exact: true })).toBeVisible();
-  await expect(row('Bank').getByRole('button', { name: 'Make Bank the default', exact: true })).toBeVisible();
+  await expect(row('Bank').getByRole('button', { name: 'Make default: Bank', exact: true })).toBeVisible();
   await expect(marker).toHaveCount(1);
-  await page.getByRole('button', { name: 'Make Home bank the default', exact: true }).click();
+  // The tapped button is gone, so focus moves to that row's Edit button, and a polite line announces the change.
+  await expect(page.getByRole('button', { name: 'Edit Wallet', exact: true })).toBeFocused();
+  await expect(page.getByText('Wallet is now the default for new entries.', { exact: true })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Make default: Home bank', exact: true }).click();
   await expect(row('Home bank').getByText('Default for new entries', { exact: true })).toBeVisible();
   await expect(marker).toHaveCount(1);
   expect((await readStore<Account>(page, 'accounts')).filter((a) => a.isDefault).map((a) => a.name)).toEqual([

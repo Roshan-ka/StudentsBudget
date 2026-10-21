@@ -38,9 +38,14 @@ function currencyFormatter(currency: CurrencyCode, whole: boolean): Intl.NumberF
   return formatter;
 }
 
-/** "€6.50", or "€63" with `{ whole: true }`. */
+/**
+ * "€6.50", or "€63" with `{ whole: true }`. A whole figure that rounds to nothing is "€0", never "-€0": a few cents
+ * overdrawn would otherwise read as a minus sign in front of zero. (`signDisplay` would do it, but an older Safari throws.)
+ */
 export function formatMoney(m: Minor, c: CurrencyCode, o?: { whole?: boolean }): string {
-  return currencyFormatter(c, o?.whole ?? false).format(m / 100);
+  const whole = o?.whole ?? false;
+  const major = m / 100;
+  return currencyFormatter(c, whole).format(whole && Math.round(major) === 0 ? 0 : major);
 }
 
 const wholeNumberFormatter = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });

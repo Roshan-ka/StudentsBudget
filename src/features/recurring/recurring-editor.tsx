@@ -90,7 +90,10 @@ function LineForm({
   // in, as the poster passes over it.
   const lineType = INCOME_CATEGORIES.some((c) => c.id === categoryId) ? 'income' : 'expense';
   const lineEntries = useLineEntries(lineType, categoryId);
-  const firstOn = auto && account && lineEntries ? firstAddedOn(timing, s, today, orphaned, lineEntries) : null;
+  // Whether the line is coming at all does not depend on the entries (they only move the day later), so an empty line
+  // holds its place while they load, and the form below does not jump when the day appears.
+  const expectsFirst = auto && account !== undefined && firstAddedOn(timing, s, today, orphaned) !== null;
+  const firstOn = expectsFirst && lineEntries ? firstAddedOn(timing, s, today, orphaned, lineEntries) : null;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -181,7 +184,9 @@ function LineForm({
           {s && timing.frequency !== s.frequency && (
             <p className="text-sm text-muted-foreground">A new frequency starts with the next period.</p>
           )}
-          {firstOn && <p className="text-sm text-muted-foreground">{firstAddedLine(firstOn)}</p>}
+          {expectsFirst && (
+            <p className="min-h-5 text-sm text-muted-foreground">{firstOn ? firstAddedLine(firstOn) : null}</p>
+          )}
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-account`}>Account</Label>
             <NativeSelect

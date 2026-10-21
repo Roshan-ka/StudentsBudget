@@ -2,11 +2,18 @@ import { expect, test, type Page } from '@playwright/test';
 import type { Account } from '../src/db/types';
 import { SETUP_DAY, mockFrankfurter, readStore } from './helpers/setup';
 
+// 375 px, the narrowest phone the app is made for: the checks below read the page at that width.
+test.use({ viewport: { width: 375, height: 812 } });
+
 const OVERDRAWN = 'Overdrawn (below zero)';
 
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
 function inlineAlert(page: Page) {
   return page.getByRole('main').getByRole('alert');
+}
+
+async function overflow(page: Page) {
+  return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
 
 async function nextStep(page: Page, heading: string) {
@@ -28,6 +35,51 @@ async function openAccountsStep(page: Page) {
  * Sets up a plan whose only answers are on the Accounts step: `fill` works on that step, every other step is left
  * blank (rent, income and costs all 0), and the plan is saved.
  */
+test('setup: the Accounts step with an overdrawn balance, a long name and an error fits a phone', async ({ page }) => {
+  await openAccountsStep(page);
+  const local = page.getByRole('group', { name: 'Account 1' });
+
+  await local.getByLabel('Name', { exact: true }).fill('Overdraft at the Sparkasse');
+  await local.getByLabel('Opening balance').fill('250');
+  await local.getByRole('checkbox', { name: OVERDRAWN }).check();
+  await expect(local.getByLabel('Opening balance')).toHaveValue('-250');
+  await page.getByRole('button', { name: 'Add account' }).click();
+  await expect(page.getByRole('group', { name: 'Account 4' })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  // The error under the field, with the box below it.
+  const cash = page.getByRole('group', { name: 'Account 3' });
+  await cash.getByLabel('Opening balance').fill('abc');
+  await cash.getByLabel('Opening balance').blur();
+  await expect(cash.getByText('Enter a number, like 250 or 12.50.')).toBeVisible();
+  await expect(cash.getByRole('checkbox', { name: OVERDRAWN })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
+test('setup: a waiting Overdrawn tick stays with its row when a row above is removed', async ({ page }) => {
+  await openAccountsStep(page);
+
+  // Home bank (row 2): ticked on an empty field, so the box waits for an amount.
+  const homeBox = page.getByRole('group', { name: 'Account 2' }).getByRole('checkbox', { name: OVERDRAWN });
+  await homeBox.check();
+  await expect(homeBox).toBeChecked();
+
+  // Removing Local bank above it: Home bank becomes row 1 and keeps its tick; Cash, now row 2, never had one.
+  await page.getByRole('button', { name: 'Remove account 1' }).click();
+  const home = page.getByRole('group', { name: 'Account 1' });
+  const cash = page.getByRole('group', { name: 'Account 2' });
+  await expect(home.getByLabel('Name', { exact: true })).toHaveValue('Home bank');
+  await expect(home.getByRole('checkbox', { name: OVERDRAWN })).toBeChecked();
+  await expect(cash.getByLabel('Name', { exact: true })).toHaveValue('Cash');
+  await expect(cash.getByRole('checkbox', { name: OVERDRAWN })).not.toBeChecked();
+
+  // What is typed next goes to the row that was ticked, with its minus sign, and not to Cash.
+  await home.getByLabel('Opening balance').fill('30');
+  await expect(home.getByLabel('Opening balance')).toHaveValue('-30');
+  await cash.getByLabel('Opening balance').fill('50');
+  await expect(cash.getByLabel('Opening balance')).toHaveValue('50');
+});
+
 async function setupWithAccounts(page: Page, fill: () => Promise<void>) {
   await openAccountsStep(page);
   await fill();
@@ -162,13 +214,50 @@ test('Settings: an account can start overdrawn, with the box or a typed minus, a
 
 test('Settings: text that is not an amount is refused, a lone minus sign included', async ({ page }) => {
   await openSettings(page);
-  await page.getByRole('button', { name: 'Add account' }).click();
-  await page.getByLabel('Name', { exact: true }).fill('Odd');
 
   for (const text of ['abc', '-', '--5']) {
+    // A fresh form for every text: the error of the one before must be gone, or this would read it again.
+    await page.getByRole('button', { name: 'Add account' }).click();
+    await page.getByLabel('Name', { exact: true }).fill('Odd');
     await page.getByLabel('Opening balance').fill(text);
     await page.getByRole('button', { name: 'Save account' }).click();
-    await expect(inlineAlert(page)).toHaveText('Enter the opening balance as a number, like 250 or 12.50.');
+    await expect(inlineAlert(page), text).toHaveText('Enter the opening balance as a number, like 250 or 12.50.');
+
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(inlineAlert(page), text).toHaveCount(0);
   }
   expect(await readStore<Account>(page, 'accounts')).toHaveLength(0);
+});
+
+test('Settings: two accounts, the default mark and the Overdrawn box fit a phone without sideways scrolling', async ({
+  page,
+}) => {
+  await openSettings(page);
+
+  for (const [name, opening, overdrawn] of [
+    ['Overdraft at the Sparkasse', '250', true],
+    ['Wallet', '40', false],
+  ] as const) {
+    await page.getByRole('button', { name: 'Add account' }).click();
+    await page.getByLabel('Name', { exact: true }).fill(name);
+    await page.getByLabel('Opening balance').fill(opening);
+    if (overdrawn) await page.getByRole('checkbox', { name: OVERDRAWN }).check();
+    await page.getByRole('button', { name: 'Save account' }).click();
+    await expect(page.getByRole('button', { name: `Edit ${name}`, exact: true })).toBeVisible();
+  }
+
+  // Both rows with their buttons, and the default mark in the meta line of the first.
+  await expect(page.getByText('-€250.00', { exact: true })).toBeVisible();
+  await expect(page.getByText('Default for new entries', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Make default: Wallet', exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  // The form with its box and an error under the field.
+  await page.getByRole('button', { name: 'Add account' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Odd');
+  await page.getByLabel('Opening balance').fill('abc');
+  await page.getByRole('button', { name: 'Save account' }).click();
+  await expect(inlineAlert(page)).toHaveText('Enter the opening balance as a number, like 250 or 12.50.');
+  await expect(page.getByRole('checkbox', { name: OVERDRAWN })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
 });

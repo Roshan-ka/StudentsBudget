@@ -107,6 +107,18 @@ describe('the Overdrawn checkbox', () => {
     expect(tickOverdrawn('', false)).toEqual({ text: '', waiting: false });
   });
 
+  it('treats a bare 0 like an empty field, so a tick never makes "-0"', () => {
+    expect(tickOverdrawn('0', true)).toEqual({ text: '', waiting: true });
+    expect(tickOverdrawn('00', true)).toEqual({ text: '', waiting: true });
+    expect(tickOverdrawn('0.00', true)).toEqual({ text: '', waiting: true });
+    expect(tickOverdrawn(' 0,0 ', true)).toEqual({ text: '', waiting: true });
+    // Anything else with a 0 in it is an amount.
+    expect(tickOverdrawn('0.5', true)).toEqual({ text: '-0.5', waiting: false });
+    expect(tickOverdrawn('10', true)).toEqual({ text: '-10', waiting: false });
+    // Clearing the box on a bare 0 leaves it as it is.
+    expect(tickOverdrawn('0', false)).toEqual({ text: '0', waiting: false });
+  });
+
   it('gives a waiting tick to the first thing typed', () => {
     expect(typeOpening('2', true)).toEqual({ text: '-2', waiting: false });
     expect(typeOpening('250', true)).toEqual({ text: '-250', waiting: false });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -182,6 +182,10 @@ export function AccountsPanel() {
   // 'new' is the add form; an account id is that account's edit form.
   const [editing, setEditing] = useState<string | null>(null);
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
+  // Each row's Edit button, so focus has somewhere to go when "Make default" disappears under it.
+  const editButtons = useRef(new Map<string, HTMLButtonElement>());
+  // What a screen reader hears after "Make default"; it is spoken once, and only while that account is the default.
+  const [defaultNotice, setDefaultNotice] = useState<{ id: string; message: string } | null>(null);
 
   async function remove(account: Account) {
     setRowError(null);
@@ -210,12 +214,17 @@ export function AccountsPanel() {
     } catch (error) {
       console.error('StudentsBudget: could not change the default account', error);
       setRowError({ id: account.id, message: 'Could not change the default account.' });
+      return;
     }
+    // The button that was tapped is replaced by the mark, and focus would fall to the page: the row's Edit takes it.
+    editButtons.current.get(account.id)?.focus();
+    setDefaultNotice({ id: account.id, message: `${account.name} is now the default for new entries.` });
   }
 
   const loaded = accounts !== undefined && entries !== undefined && rates !== undefined;
   // The marked account, or the one the rule picks while none is marked (or the marked one was deleted).
   const defaultId = loaded ? defaultAccount(accounts)?.id : undefined;
+  const notice = defaultNotice !== null && defaultNotice.id === defaultId ? defaultNotice.message : '';
   const total = loaded && accounts.length > 0 ? totalInEur(accounts, entries, rates) : null;
   // Without a rate for any account's currency nothing was converted, and a total of €0.00 would read as real.
   const nothingConverted = loaded && total !== null && accounts.every((a) => total.missingRates.includes(a.currency));
@@ -240,6 +249,12 @@ export function AccountsPanel() {
         )}
       </div>
 
+      {/* Always rendered, so a screen reader is already listening when the text appears. A polite live region rather
+          than role="status": Settings has other status lines that tests find by that role on the page. */}
+      <p aria-live="polite" aria-atomic="true" className="sr-only">
+        {notice}
+      </p>
+
       {editing === 'new' && <AccountForm currencyLocked={false} onDone={() => setEditing(null)} />}
 
       {loaded && accounts.length === 0 && editing !== 'new' && (
@@ -263,6 +278,13 @@ export function AccountsPanel() {
                       <p className="font-medium break-words">{account.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {KIND_LABELS[account.kind]} · {account.currency}
+                        {/* With one account there is nothing to choose between. */}
+                        {accounts.length > 1 && account.id === defaultId && (
+                          <>
+                            {' · '}
+                            <span className="text-foreground">Default for new entries</span>
+                          </>
+                        )}
                       </p>
                     </div>
                     <p className="shrink-0 font-medium tabular-nums">
@@ -271,6 +293,10 @@ export function AccountsPanel() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
+                      ref={(node: HTMLButtonElement | null) => {
+                        if (node) editButtons.current.set(account.id, node);
+                        else editButtons.current.delete(account.id);
+                      }}
                       variant="outline"
                       className="h-10 px-4"
                       aria-label={`Edit ${account.name}`}
@@ -281,6 +307,16 @@ export function AccountsPanel() {
                     >
                       Edit
                     </Button>
+                    {accounts.length > 1 && account.id !== defaultId && (
+                      <Button
+                        variant="ghost"
+                        className="h-10 px-4"
+                        aria-label={`Make default: ${account.name}`}
+                        onClick={() => void makeDefault(account)}
+                      >
+                        Make default
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       className="h-10 px-4"
@@ -289,20 +325,6 @@ export function AccountsPanel() {
                     >
                       Delete
                     </Button>
-                    {/* With one account there is nothing to choose between. */}
-                    {accounts.length > 1 &&
-                      (account.id === defaultId ? (
-                        <p className="px-1 text-sm text-muted-foreground">Default for new entries</p>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          className="h-10 px-4"
-                          aria-label={`Make ${account.name} the default`}
-                          onClick={() => void makeDefault(account)}
-                        >
-                          Make default
-                        </Button>
-                      ))}
                   </div>
                   {rowError?.id === account.id && (
                     <p role="alert" className="text-sm text-destructive">

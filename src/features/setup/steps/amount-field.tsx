@@ -42,7 +42,8 @@ function toText(value: Minor | undefined, blank: Blank): string {
  * `value`. `hint` sits under the input.
  *
  * With `signed` the amount may be below zero, as an account's opening balance is: an "Overdrawn (below zero)"
- * checkbox sits under the field and puts a minus sign in its text, and a typed "-250" is accepted too.
+ * checkbox sits under the field, its hint and its error, and puts a minus sign in the text; a typed "-250" is
+ * accepted too.
  */
 export function AmountField({
   label,
@@ -74,7 +75,12 @@ export function AmountField({
   // Overdrawn ticked while the field was empty: the first thing typed takes the minus sign.
   const [waiting, setWaiting] = useState(false);
   const [touched, setTouched] = useState(false);
-  const shown = sameAmount(parseField(text, blank, range), value) ? text : toText(value, blank);
+  const fromValue = !sameAmount(parseField(text, blank, range), value);
+  const shown = fromValue ? toText(value, blank) : text;
+  // The tick belongs to the text typed here. A field that shows another value now (a row above was removed) forgets
+  // it, and a tick only waits while the field is empty: with an amount in it, it would put a minus on someone else's.
+  if (fromValue && waiting) setWaiting(false);
+  const pending = waiting && shown.trim() === '';
   const showError = touched && value !== undefined && Number.isNaN(value);
   const describedBy = [hint ? `${id}-hint` : null, showError ? `${id}-error` : null].filter(Boolean).join(' ');
 
@@ -107,28 +113,13 @@ export function AmountField({
           aria-describedby={describedBy || undefined}
           onChange={(event) => {
             if (!signed) return edit(event.target.value);
-            const typed = typeOpening(event.target.value, waiting);
+            const typed = typeOpening(event.target.value, pending);
             setWaiting(typed.waiting);
             edit(typed.text);
           }}
           onBlur={() => setTouched(true)}
         />
       </div>
-      {signed && (
-        <label className="flex min-h-11 items-center gap-3 text-sm">
-          <input
-            type="checkbox"
-            className="size-5 accent-primary"
-            checked={isOverdrawn(shown, waiting)}
-            onChange={(event) => {
-              const ticked = tickOverdrawn(shown, event.target.checked);
-              setWaiting(ticked.waiting);
-              edit(ticked.text);
-            }}
-          />
-          Overdrawn (below zero)
-        </label>
-      )}
       {hint && (
         <div id={`${id}-hint`} className="text-sm text-muted-foreground">
           {hint}
@@ -138,6 +129,21 @@ export function AmountField({
         <p id={`${id}-error`} className="text-sm text-destructive">
           {positive ? 'Enter an amount above 0, like 250 or 12.50.' : 'Enter a number, like 250 or 12.50.'}
         </p>
+      )}
+      {signed && (
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="size-5 accent-primary"
+            checked={isOverdrawn(shown, pending)}
+            onChange={(event) => {
+              const ticked = tickOverdrawn(shown, event.target.checked);
+              setWaiting(ticked.waiting);
+              edit(ticked.text);
+            }}
+          />
+          Overdrawn (below zero)
+        </label>
       )}
     </div>
   );
