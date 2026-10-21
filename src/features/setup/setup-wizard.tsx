@@ -219,7 +219,14 @@ export function SetupWizard() {
     let cancelled = false;
     Promise.all([db.plan.get('current'), db.accounts.toArray()]).then(
       ([plan, accounts]) => {
-        const options = sortAccounts(accounts).map(({ id, name, currency }) => ({ id, name, currency }));
+        // Kind and default mark come along, so a new line starts on the default account.
+        const options = sortAccounts(accounts).map(({ id, name, currency, kind, isDefault }) => ({
+          id,
+          name,
+          currency,
+          kind,
+          ...(isDefault && { isDefault }),
+        }));
         if (!cancelled) setLoaded({ plan: plan ?? null, accounts: options });
       },
       (error: unknown) => {

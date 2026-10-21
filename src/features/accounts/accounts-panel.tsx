@@ -13,8 +13,9 @@ import type { Account, Entry } from '@/db/types';
 import { todayIso } from '@/lib/dates';
 import { CURRENCIES, formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { newId } from '@/lib/new-id';
-import { accountBalance, sortAccounts, totalInEur } from './balances';
-import { parseOpeningBalance } from './opening-balance';
+import { accountBalance, defaultAccount, sortAccounts, totalInEur } from './balances';
+import { isOverdrawn, parseSignedAmount, tickOverdrawn, typeOpening } from './opening-balance';
+import { setDefaultAccount } from './set-default-account';
 
 const KIND_LABELS: Record<Account['kind'], string> = { bank: 'Bank', cash: 'Cash' };
 
@@ -47,7 +48,10 @@ function AccountForm({
   const [name, setName] = useState(account?.name ?? '');
   const [kind, setKind] = useState<Account['kind']>(account?.kind ?? 'bank');
   const [currency, setCurrency] = useState<CurrencyCode>(account?.currency ?? 'EUR');
+  // An overdrawn balance is a minus sign in the text, so a typed "-250" and the checkbox say the same thing.
   const [opening, setOpening] = useState(account ? minorToInput(account.openingMinor) : '');
+  // Overdrawn ticked while the field was empty: the first thing typed takes the minus sign.
+  const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -55,13 +59,15 @@ function AccountForm({
     event.preventDefault();
     const trimmedName = name.trim();
     if (trimmedName === '') return setError('Enter a name.');
-    const openingMinor = parseOpeningBalance(opening);
+    const openingMinor = parseSignedAmount(opening);
     if (openingMinor === null) return setError('Enter the opening balance as a number, like 250 or 12.50.');
 
     setSaving(true);
     setError(null);
     try {
       await db.accounts.put({
+        // The spread keeps what the form does not edit, such as the default mark.
+        ...account,
         id: account?.id ?? newId(),
         name: trimmedName,
         kind,
@@ -131,9 +137,26 @@ function AccountForm({
           inputMode="decimal"
           placeholder="0"
           value={opening}
-          onChange={(event) => setOpening(event.target.value)}
+          onChange={(event) => {
+            const typed = typeOpening(event.target.value, waiting);
+            setWaiting(typed.waiting);
+            setOpening(typed.text);
+          }}
           autoComplete="off"
         />
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="size-5 accent-primary"
+            checked={isOverdrawn(opening, waiting)}
+            onChange={(event) => {
+              const ticked = tickOverdrawn(opening, event.target.checked);
+              setWaiting(ticked.waiting);
+              setOpening(ticked.text);
+            }}
+          />
+          Overdrawn (below zero)
+        </label>
       </div>
       {error && (
         <p role="alert" className="text-sm text-destructive">
@@ -180,7 +203,19 @@ export function AccountsPanel() {
     }
   }
 
+  async function makeDefault(account: Account) {
+    setRowError(null);
+    try {
+      await setDefaultAccount(account.id);
+    } catch (error) {
+      console.error('StudentsBudget: could not change the default account', error);
+      setRowError({ id: account.id, message: 'Could not change the default account.' });
+    }
+  }
+
   const loaded = accounts !== undefined && entries !== undefined && rates !== undefined;
+  // The marked account, or the one the rule picks while none is marked (or the marked one was deleted).
+  const defaultId = loaded ? defaultAccount(accounts)?.id : undefined;
   const total = loaded && accounts.length > 0 ? totalInEur(accounts, entries, rates) : null;
   // Without a rate for any account's currency nothing was converted, and a total of €0.00 would read as real.
   const nothingConverted = loaded && total !== null && accounts.every((a) => total.missingRates.includes(a.currency));
@@ -234,7 +269,7 @@ export function AccountsPanel() {
                       {formatMoney(accountBalance(account, entries), account.currency)}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="outline"
                       className="h-10 px-4"
@@ -254,6 +289,20 @@ export function AccountsPanel() {
                     >
                       Delete
                     </Button>
+                    {/* With one account there is nothing to choose between. */}
+                    {accounts.length > 1 &&
+                      (account.id === defaultId ? (
+                        <p className="px-1 text-sm text-muted-foreground">Default for new entries</p>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          className="h-10 px-4"
+                          aria-label={`Make ${account.name} the default`}
+                          onClick={() => void makeDefault(account)}
+                        >
+                          Make default
+                        </Button>
+                      ))}
                   </div>
                   {rowError?.id === account.id && (
                     <p role="alert" className="text-sm text-destructive">

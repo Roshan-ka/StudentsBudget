@@ -12,7 +12,7 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { saveEntry } from '@/db/repo';
 import type { Entry } from '@/db/types';
-import { sortAccounts } from '@/features/accounts/balances';
+import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
 import { TransferForm } from '@/features/accounts/transfer-form';
 import type { IsoDate } from '@/lib/dates';
 import { parseAmount, type Minor } from '@/lib/money';
@@ -51,7 +51,7 @@ function MoneyEntryForm({
   // Today's date, kept current: null until the browser runs this (never the date of the prerender).
   const today = useToday();
   const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
-  // null until the person picks: the first account and the first category.
+  // null until the person picks: the default account and the first category.
   const [accountChoice, setAccountChoice] = useState<string | null>(editing?.accountId ?? null);
   const [categoryChoice, setCategoryChoice] = useState<string | null>(editing?.categoryId ?? null);
   // null means today, so a form left open over midnight follows the date; a date that was picked stays.
@@ -65,7 +65,7 @@ function MoneyEntryForm({
     return <p className="text-muted-foreground">Add an account in Settings first.</p>;
   }
 
-  const account = accounts.find((a) => a.id === accountChoice) ?? accounts[0];
+  const account = accounts.find((a) => a.id === accountChoice) ?? defaultAccount(accounts) ?? accounts[0];
   // Switching between Expense and Income leaves the other kind's category unknown, which falls back to the first.
   const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
   const category = categories.find((c) => c.id === categoryChoice) ?? categories[0];

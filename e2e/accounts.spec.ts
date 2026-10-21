@@ -98,12 +98,75 @@ test('the transfer form starts with two different accounts and keeps them differ
 
   const from = page.getByLabel('From', { exact: true });
   const to = page.getByLabel('To', { exact: true });
+  // Nobody chose a default account, so From is the first euro bank account, and To the first other one.
   await expect(from.locator('option:checked')).toHaveText('Bank (EUR)');
   await expect(to.locator('option:checked')).toHaveText('Home bank (INR)');
 
   // Picking the account that To shows moves To to the first other account, instead of leaving both the same.
   await from.selectOption({ label: 'Home bank (INR)' });
   await expect(to.locator('option:checked')).toHaveText('Bank (EUR)');
+});
+
+test('the transfer form sends from the default account, and the first other account receives', async ({ page }) => {
+  await mockFrankfurter(page);
+  await openSettings(page);
+  // The wallet is made first, but a euro bank account comes before it as the default.
+  await addAccount(page, { name: 'Wallet', currency: 'EUR', opening: '', kind: 'cash' });
+  await addAccount(page, { name: 'Bank', currency: 'EUR', opening: '200' });
+  await page.getByRole('button', { name: 'Move money between accounts' }).click();
+
+  const from = page.getByLabel('From', { exact: true });
+  const to = page.getByLabel('To', { exact: true });
+  await expect(from.locator('option:checked')).toHaveText('Bank (EUR)');
+  await expect(to.locator('option:checked')).toHaveText('Wallet (EUR)');
+
+  // Making the wallet the default moves From to it, and To to the first other account.
+  await page.getByRole('button', { name: 'Make Wallet the default', exact: true }).click();
+  await expect(from.locator('option:checked')).toHaveText('Wallet (EUR)');
+  await expect(to.locator('option:checked')).toHaveText('Bank (EUR)');
+});
+
+test('Settings marks one default account, keeps it through an edit, and falls back to the rule when it is deleted', async ({
+  page,
+}) => {
+  await mockFrankfurter(page);
+  await openSettings(page);
+  await addAccount(page, { name: 'Bank', currency: 'EUR', opening: '200' });
+  await addAccount(page, { name: 'Home bank', currency: 'INR', opening: '50000' });
+  await addAccount(page, { name: 'Wallet', currency: 'EUR', opening: '', kind: 'cash' });
+  const row = (name: string) =>
+    page.getByRole('listitem').filter({ has: page.getByRole('button', { name: `Edit ${name}`, exact: true }) });
+  const marker = page.getByText('Default for new entries', { exact: true });
+
+  // Nobody chose one: it is the first euro bank account, and only one row says so.
+  await expect(row('Bank').getByText('Default for new entries', { exact: true })).toBeVisible();
+  await expect(marker).toHaveCount(1);
+  expect((await readStore<Account>(page, 'accounts')).some((a) => a.isDefault)).toBe(false);
+
+  // Choosing another moves the mark, and the others lose theirs.
+  await page.getByRole('button', { name: 'Make Wallet the default', exact: true }).click();
+  await expect(row('Wallet').getByText('Default for new entries', { exact: true })).toBeVisible();
+  await expect(row('Bank').getByRole('button', { name: 'Make Bank the default', exact: true })).toBeVisible();
+  await expect(marker).toHaveCount(1);
+  await page.getByRole('button', { name: 'Make Home bank the default', exact: true }).click();
+  await expect(row('Home bank').getByText('Default for new entries', { exact: true })).toBeVisible();
+  await expect(marker).toHaveCount(1);
+  expect((await readStore<Account>(page, 'accounts')).filter((a) => a.isDefault).map((a) => a.name)).toEqual([
+    'Home bank',
+  ]);
+
+  // Editing the default account does not clear the mark.
+  await page.getByRole('button', { name: 'Edit Home bank', exact: true }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Rupee bank');
+  await page.getByRole('button', { name: 'Save account' }).click();
+  await expect(row('Rupee bank').getByText('Default for new entries', { exact: true })).toBeVisible();
+
+  // Deleting it leaves no mark behind: the first euro bank account is the default again.
+  await page.getByRole('button', { name: 'Delete Rupee bank', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Edit Rupee bank', exact: true })).toHaveCount(0);
+  await expect(row('Bank').getByText('Default for new entries', { exact: true })).toBeVisible();
+  await expect(marker).toHaveCount(1);
+  expect((await readStore<Account>(page, 'accounts')).some((a) => a.isDefault)).toBe(false);
 });
 
 test('the transfer form shows its date as DD-MM-YYYY, and Yesterday dates the transfer the day before', async ({

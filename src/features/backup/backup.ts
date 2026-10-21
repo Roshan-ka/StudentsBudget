@@ -14,7 +14,7 @@ export type { BackupData };
  * Version 2 adds the plan's schedules and the entries' `recurring` marker, both optional, so version 1 files read.
  * Version 3 adds `weekResults`, `discountVotes` and `profile`; a file without them reads with those empty.
  * The plan's `spendingBudgetMinor` is optional, so it did not need a version: a file without it reads as a plan with
- * no budget, and an older app that reads one with it ignores it.
+ * no budget, and an older app that reads one with it ignores it. An account's `isDefault` is optional for the same reason.
  */
 export const BACKUP_VERSION = 3;
 
@@ -49,6 +49,9 @@ const account = z.object({
   currency,
   openingMinor: minor,
   createdAt: text,
+  // Optional, like the plan's budget: a file from before the default account has none, and `Account.isDefault?: true`
+  // must match for the type check below.
+  isDefault: z.literal(true).optional(),
 });
 
 const category = z.object({
