@@ -5,6 +5,7 @@ import {
   BUCKET_ID,
   categoryOverPeriod,
   defaultOverTimeCategory,
+  hasEntriesIn,
   incomeBySource,
   incomeBySourceOver,
   monthsOf,
@@ -281,6 +282,56 @@ describe('defaultOverTimeCategory', () => {
   it('starts on the first flexible category when no flexible row is there', () => {
     expect(defaultOverTimeCategory([row('rent', 40000, 40000)])).toBe('food');
     expect(defaultOverTimeCategory([])).toBe('food');
+  });
+
+  describe('with the spending of the months the chart covers', () => {
+    // An empty month: the envelopes are planned, nothing is spent, and rent came in on its own.
+    const emptyMonth = [row('rent', 0, 40000), row('food', 0, 31000), row('eating-out', 0, 12400)];
+    const sixMonths = [row('rent', 240000, 240000), row('eating-out', 3600, 74400), row('food', 1200, 186000)];
+
+    it('falls back to the top flexible spender of those months when the period has no flexible spending', () => {
+      expect(defaultOverTimeCategory(emptyMonth, sixMonths)).toBe('eating-out');
+      expect(defaultOverTimeCategory([], sixMonths)).toBe('eating-out');
+      // Fixed costs do not count: a flat line.
+      expect(defaultOverTimeCategory(emptyMonth, [row('rent', 240000, 240000)])).toBe('food');
+    });
+
+    it('keeps the top flexible spender of the period itself when it has one', () => {
+      const month = [row('food', 900, 31000), row('eating-out', 100, 12400)];
+
+      expect(defaultOverTimeCategory(month, sixMonths)).toBe('food');
+    });
+
+    it('keeps the largest plan when neither has flexible spending', () => {
+      const unspent = [row('rent', 240000, 240000), row('food', 0, 186000), row('eating-out', 0, 74400)];
+
+      expect(defaultOverTimeCategory(emptyMonth, unspent)).toBe('food');
+      expect(defaultOverTimeCategory(emptyMonth, [])).toBe('food');
+    });
+
+    it('is the same as without them when they are the period itself', () => {
+      expect(defaultOverTimeCategory(emptyMonth, emptyMonth)).toBe(defaultOverTimeCategory(emptyMonth));
+    });
+  });
+});
+
+describe('hasEntriesIn', () => {
+  const months = ['2026-09', '2026-10'];
+
+  it('is true when an expense or income is dated in one of the months', () => {
+    expect(hasEntriesIn([expense('food', '2026-10-31', 100)], months)).toBe(true);
+    expect(hasEntriesIn([income('income-job', '2026-09-01', 100)], months)).toBe(true);
+  });
+
+  it('is false for entries in other months, and for no entries', () => {
+    expect(hasEntriesIn([expense('food', '2026-08-31', 100), expense('food', '2026-11-01', 100)], months)).toBe(false);
+    expect(hasEntriesIn([], months)).toBe(false);
+    expect(hasEntriesIn([expense('food', '2026-10-05', 100)], [])).toBe(false);
+  });
+
+  it('does not count a transfer', () => {
+    expect(hasEntriesIn([transfer('2026-10-05', 5000)], months)).toBe(false);
+    expect(hasEntriesIn([transfer('2026-10-05', 5000), expense('food', '2026-10-06', 100)], months)).toBe(true);
   });
 });
 
