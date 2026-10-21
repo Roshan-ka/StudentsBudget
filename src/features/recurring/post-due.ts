@@ -5,7 +5,15 @@ import { buildEntry } from '@/features/entries/build-entry';
 import { categoryName } from '@/features/entries/categories';
 import type { IsoDate } from '@/lib/dates';
 import type { RateMap } from '@/lib/fx';
-import { duePeriods, isIsoDate, isUsableSchedule, laterOf, occurrenceIn, periodOf } from './schedule';
+import {
+  duePeriods,
+  holdsAutomaticEntry,
+  isIsoDate,
+  isUsableSchedule,
+  laterOf,
+  occurrenceIn,
+  periodOf,
+} from './schedule';
 
 /** The id of the entry a schedule posts for one period, so a period can only ever hold one. */
 export function recurringEntryId(scheduleId: string, periodStart: IsoDate): string {
@@ -23,20 +31,16 @@ type Context = {
 };
 
 /**
- * Whether a schedule already posted an entry of this type and category in the period: any schedule, so one that
- * replaced another for the same line finds what the old one posted. An entry logged by hand does not count.
+ * Whether a schedule already posted an entry of this type and category in the period (`holdsAutomaticEntry`, the rule
+ * `firstAddedOn` follows too).
  */
 async function postedIn(
   period: { start: IsoDate; end: IsoDate },
   type: 'income' | 'expense',
   categoryId: string,
 ): Promise<boolean> {
-  const found = await db.entries
-    .where('date')
-    .between(period.start, period.end, true, true)
-    .filter((e) => e.type !== 'transfer' && e.type === type && e.categoryId === categoryId && e.recurring !== undefined)
-    .first();
-  return found !== undefined;
+  const inPeriod = await db.entries.where('date').between(period.start, period.end, true, true).toArray();
+  return holdsAutomaticEntry(inPeriod, period, { type, categoryId });
 }
 
 /**
