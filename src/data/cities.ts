@@ -132,6 +132,7 @@ const regensburg: City = {
       url: MENSA_PLAN_URL,
       checked: CHECKED,
     },
+    // Never shown. The price is €66.80 a month (6680) from 1 Jan 2027, per the DB FAQ cited here; 6300 holds until 31 Dec 2026.
     {
       label: 'Deutschlandticket per month',
       minor: 6300,
