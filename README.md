@@ -70,6 +70,8 @@ Immediately after restore, account balances should be **EUR 1,680.22** (local ba
 
 The demo dates are fixed: October 2026 has current spending; if you try this later, move the month switcher in Charts back to September or October. The fixed costs and income in the demo plan are not set to be added automatically, so nothing new appears by itself. Home and check-in always use your device's current date, so their figures change over time. The INR rate is fictional test data, not a current market quote.
 
+For a broader manual test pack, see [the manual demo guide](fixtures/manual-demo/README.md): 24 accepted scenarios, 58 rejected imports, and step-by-step checks with expected results. [The case inventory](fixtures/manual-demo/CASES.md) lists every upload file and its expected outcome. The pack is a snapshot for 21-10-2026; the guide says how long each expectation holds and how to regenerate the files for another day.
+
 ## Try it on your iPhone (HTTPS on your own Wi-Fi)
 Offline use needs a service worker, and a service worker only runs on a secure address: HTTPS, or localhost. A plain-HTTP address such as `http://192.168.0.137:3100` is not secure, so the app cannot be tested offline on a phone that way. For a developer who wants to try the production build on a real iPhone, this serves it over HTTPS on your own Wi-Fi, with a certificate the phone trusts.
 
