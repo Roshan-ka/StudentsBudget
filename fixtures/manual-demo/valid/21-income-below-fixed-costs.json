@@ -1,0 +1,243 @@
+{
+  "app": "studentsbudget",
+  "version": 3,
+  "exportedAt": "2026-10-21T10:00:00.000Z",
+  "data": {
+    "accounts": [
+      {
+        "id": "bank",
+        "name": "Demo EUR bank",
+        "kind": "bank",
+        "currency": "EUR",
+        "openingMinor": 100000,
+        "createdAt": "2025-01-01T08:00:00Z",
+        "isDefault": true
+      },
+      {
+        "id": "cash",
+        "name": "Demo cash",
+        "kind": "cash",
+        "currency": "EUR",
+        "openingMinor": 10000,
+        "createdAt": "2025-01-01T09:00:00Z"
+      }
+    ],
+    "categories": [
+      {
+        "id": "food",
+        "name": "Food & groceries",
+        "kind": "flexible",
+        "order": 0
+      },
+      {
+        "id": "eating-out",
+        "name": "Eating out",
+        "kind": "flexible",
+        "order": 1
+      },
+      {
+        "id": "going-out",
+        "name": "Going out",
+        "kind": "flexible",
+        "order": 2
+      },
+      {
+        "id": "transport",
+        "name": "Transport",
+        "kind": "flexible",
+        "order": 3
+      },
+      {
+        "id": "shopping",
+        "name": "Shopping",
+        "kind": "flexible",
+        "order": 4
+      },
+      {
+        "id": "health",
+        "name": "Health & pharmacy",
+        "kind": "flexible",
+        "order": 5
+      },
+      {
+        "id": "personal-care",
+        "name": "Personal care",
+        "kind": "flexible",
+        "order": 6
+      },
+      {
+        "id": "study",
+        "name": "Study materials",
+        "kind": "flexible",
+        "order": 7
+      },
+      {
+        "id": "household",
+        "name": "Household",
+        "kind": "flexible",
+        "order": 8
+      },
+      {
+        "id": "travel",
+        "name": "Travel",
+        "kind": "flexible",
+        "order": 9
+      },
+      {
+        "id": "gifts",
+        "name": "Gifts",
+        "kind": "flexible",
+        "order": 10
+      },
+      {
+        "id": "other",
+        "name": "Other",
+        "kind": "flexible",
+        "order": 11
+      },
+      {
+        "id": "rent",
+        "name": "Rent",
+        "kind": "fixed",
+        "order": 12
+      },
+      {
+        "id": "phone",
+        "name": "Phone & internet",
+        "kind": "fixed",
+        "order": 13
+      },
+      {
+        "id": "insurance",
+        "name": "Insurance",
+        "kind": "fixed",
+        "order": 14
+      },
+      {
+        "id": "subscriptions",
+        "name": "Subscriptions",
+        "kind": "fixed",
+        "order": 15
+      },
+      {
+        "id": "transport-pass",
+        "name": "Deutschlandticket / semester ticket",
+        "kind": "fixed",
+        "order": 16
+      },
+      {
+        "id": "gym",
+        "name": "Gym & sports",
+        "kind": "fixed",
+        "order": 17
+      },
+      {
+        "id": "utilities",
+        "name": "Utilities & Rundfunkbeitrag",
+        "kind": "fixed",
+        "order": 18
+      },
+      {
+        "id": "one-off",
+        "name": "One-off costs",
+        "kind": "oneoff",
+        "order": 19
+      },
+      {
+        "id": "income-job",
+        "name": "Job",
+        "kind": "income",
+        "order": 20
+      },
+      {
+        "id": "income-parents",
+        "name": "Parents",
+        "kind": "income",
+        "order": 21
+      },
+      {
+        "id": "income-bafoeg",
+        "name": "BAföG",
+        "kind": "income",
+        "order": 22
+      },
+      {
+        "id": "income-sperrkonto",
+        "name": "Blocked account",
+        "kind": "income",
+        "order": 23
+      },
+      {
+        "id": "income-scholarship",
+        "name": "Scholarship",
+        "kind": "income",
+        "order": 24
+      },
+      {
+        "id": "income-other",
+        "name": "Other income",
+        "kind": "income",
+        "order": 25
+      }
+    ],
+    "entries": [],
+    "guesses": [],
+    "fxRates": [],
+    "weekResults": [],
+    "discountVotes": [],
+    "profile": null,
+    "plan": {
+      "id": "current",
+      "cityId": "regensburg",
+      "createdOn": "2025-10-01",
+      "incomes": [
+        {
+          "categoryId": "income-parents",
+          "monthlyMinor": 10000
+        }
+      ],
+      "fixed": [
+        {
+          "categoryId": "rent",
+          "monthlyMinor": 45000
+        },
+        {
+          "categoryId": "phone",
+          "monthlyMinor": 2000
+        },
+        {
+          "categoryId": "insurance",
+          "monthlyMinor": 3000
+        }
+      ],
+      "envelopes": [
+        {
+          "categoryId": "food",
+          "monthlyMinor": 25000
+        },
+        {
+          "categoryId": "eating-out",
+          "monthlyMinor": 8000
+        },
+        {
+          "categoryId": "going-out",
+          "monthlyMinor": 4000
+        },
+        {
+          "categoryId": "transport",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "shopping",
+          "monthlyMinor": 6000
+        },
+        {
+          "categoryId": "other",
+          "monthlyMinor": 4000
+        }
+      ],
+      "spendingBudgetMinor": 50000,
+      "oneOffs": []
+    }
+  }
+}
