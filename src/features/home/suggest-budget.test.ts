@@ -147,23 +147,62 @@ describe('suggestBudget', () => {
     expect(gifts).toEqual({ categoryId: 'gifts', amountMinor: 0, basis: 'none' });
   });
 
-  it('takes the ranged categories down to their minimum when the middles are too much', () => {
-    // €260 + €75 = €335 is above €300, and €180 + €30 = €210 is not.
+  it('spreads what is available between the minimums and the middles when the middles are too much', () => {
+    // €260 + €75 = €335 is above €300, and €180 + €30 = €210 is not: €90 of the €125 between them, 72% of the way.
     const result = suggestBudget(planWithAvailable(30000), city, [], '2026-11');
     const byId = amounts(result.rows);
 
-    expect(byId.food).toBe(18000);
-    expect(byId['going-out']).toBe(3000);
-    expect(result.unallocatedMinor).toBe(30000 - 21000);
+    // €237.60 and €62.40, rounded down to €235 and €60; the spare €5 goes to food's larger remainder.
+    expect(byId.food).toBe(24000);
+    expect(byId['going-out']).toBe(6000);
+    expect(result.targetMinor).toBe(30000);
+    expect(result.unallocatedMinor).toBe(0);
     // The range stays on the row, so the amount can still be compared with it.
     expect(result.rows.find((r) => r.categoryId === 'food')?.range).toEqual(food);
   });
 
-  it('keeps a last-month amount while only the ranged categories drop to their minimum', () => {
+  it('keeps a last-month amount while only the ranged categories move between minimum and middle', () => {
     // Middles €335 + €50 = €385 is above €350; minimums €210 + €50 = €260 is not.
     const result = suggestBudget(planWithAvailable(35000), city, [expense('health', '2026-10-05', 5000)], '2026-11');
-    expect(amounts(result.rows)).toMatchObject({ food: 18000, 'going-out': 3000, health: 5000 });
-    expect(result.unallocatedMinor).toBe(35000 - 26000);
+    expect(amounts(result.rows)).toMatchObject({ food: 24000, 'going-out': 6000, health: 5000 });
+    expect(result.unallocatedMinor).toBe(0);
+  });
+
+  it('uses all of €600 in Regensburg, where it used to stop at the minimums and leave €220', () => {
+    const result = suggestBudget(planWithAvailable(60000), CITIES.regensburg, [], '2026-11');
+    // The same split setup shows for a €600 everyday budget.
+    expect(amounts(result.rows)).toMatchObject({
+      food: 25000,
+      'eating-out': 7500,
+      'going-out': 7000,
+      transport: 3000,
+      shopping: 4500,
+      other: 13000,
+    });
+    expect(total(result.rows)).toBe(60000);
+    expect(result.unallocatedMinor).toBe(0);
+  });
+
+  it('gives these amounts in Regensburg at what Home is checked at', () => {
+    const at = (availableMinor: number, entries: Entry[] = []) =>
+      suggestBudget(planWithAvailable(availableMinor), CITIES.regensburg, entries, '2026-11').rows.map(
+        (r) => r.amountMinor / 100,
+      );
+    // In order: food, eating out, going out, transport, shopping, health, personal care, study, household, travel,
+    // gifts, other.
+    expect(at(40000)).toEqual([185, 35, 35, 10, 35, 0, 0, 0, 0, 0, 0, 100]);
+    expect(at(44000)).toEqual([200, 40, 40, 15, 40, 0, 0, 0, 0, 0, 0, 105]);
+    // Last month's €12 on health is €10, and that stays: the ranged rows split the other €430.
+    expect(at(44000, [expense('health', '2026-10-20', 1200)])).toEqual([195, 40, 40, 15, 40, 10, 0, 0, 0, 0, 0, 100]);
+    expect(at(144000)).toEqual([260, 85, 75, 35, 50, 0, 0, 0, 0, 0, 0, 135]);
+  });
+
+  it('has no cliff below the middles: down to the minimums it uses what is available, rounded down to €5', () => {
+    // The middles add up to €335 and the minimums to €210; odd cents, so no multiple of €5 hides a slip.
+    for (let available = 21000; available < 33500; available += 37) {
+      const result = suggestBudget(planWithAvailable(available), city, [], '2026-11');
+      expect(total(result.rows), `${available}`).toBe(Math.floor(available / 500) * 500);
+    }
   });
 
   it('scales every row down, rounded down to €5, when even the minimums are too much', () => {
@@ -230,6 +269,65 @@ describe('suggestBudget', () => {
     };
     // €1,000 available, less the fee spread over five months (€60); the paused subscription is not counted.
     expect(suggestBudget(plan, city, [], '2026-11').availableMinor).toBe(100000 - 6000);
+  });
+
+  describe('with an everyday budget', () => {
+    const withBudget = (availableMinor: number, spendingBudgetMinor?: number): Plan => ({
+      ...planWithAvailable(availableMinor),
+      ...(spendingBudgetMinor !== undefined && { spendingBudgetMinor }),
+    });
+
+    it('keeps to the budget when it is less than what is available, and leaves the rest for savings', () => {
+      const result = suggestBudget(withBudget(100000, 30000), city, [], '2026-11');
+      expect(result.availableMinor).toBe(100000);
+      expect(result.targetMinor).toBe(30000);
+      // The same split as €300 available.
+      expect(amounts(result.rows)).toMatchObject({ food: 24000, 'going-out': 6000 });
+      expect(result.unallocatedMinor).toBe(100000 - 30000);
+    });
+
+    it('keeps to what is available when that is less than the budget', () => {
+      const result = suggestBudget(withBudget(30000, 60000), city, [], '2026-11');
+      expect(result.targetMinor).toBe(30000);
+      expect(amounts(result.rows)).toMatchObject({ food: 24000, 'going-out': 6000 });
+      expect(result.unallocatedMinor).toBe(0);
+    });
+
+    it('starts at the middles when the budget is above them, and leaves the rest of what is available', () => {
+      const result = suggestBudget(withBudget(100000, 50000), city, [], '2026-11');
+      expect(result.targetMinor).toBe(50000);
+      expect(amounts(result.rows)).toMatchObject({ food: 26000, 'going-out': 7500 });
+      expect(result.unallocatedMinor).toBe(100000 - 33500);
+    });
+
+    it('splits what is available when there is no budget, or one of €0', () => {
+      for (const plan of [withBudget(30000), withBudget(30000, 0)]) {
+        const result = suggestBudget(plan, city, [], '2026-11');
+        expect(result.targetMinor).toBe(30000);
+        expect(amounts(result.rows)).toMatchObject({ food: 24000, 'going-out': 6000 });
+      }
+    });
+
+    it('suggests €0 everywhere when nothing is available, whatever the budget', () => {
+      for (const available of [0, -20000]) {
+        const result = suggestBudget(withBudget(available, 60000), city, [], '2026-11');
+        expect(result.targetMinor).toBe(available);
+        expect(result.rows.every((r) => r.amountMinor === 0)).toBe(true);
+        expect(result.unallocatedMinor).toBe(0);
+      }
+    });
+
+    it('never suggests more than the budget or what is available, whichever is less', () => {
+      const entries = [expense('health', '2026-10-05', 5000), expense('travel', '2026-10-06', 12345)];
+      for (let budget = 0; budget <= 60000; budget += 1100) {
+        for (const available of [20000, 40000, 80000]) {
+          const result = suggestBudget(withBudget(available, budget), city, entries, '2026-11');
+          const cap = budget > 0 ? Math.min(budget, available) : available;
+          expect(total(result.rows), `${budget}, ${available}`).toBeLessThanOrEqual(cap);
+          expect(result.unallocatedMinor).toBe(available - total(result.rows));
+        }
+      }
+    });
   });
 });
 

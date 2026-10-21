@@ -75,7 +75,8 @@ export type Plan = {
   envelopes: Amount[];
   /**
    * The monthly everyday-spending budget setup asked for, in EUR: rent and fixed costs are not part of it. It only
-   * guides the envelope suggestion and blocks nothing. A plan saved without one has none.
+   * guides the envelope suggestions, in setup and in Home's suggested budget, and blocks nothing. A plan saved without
+   * one has none.
    */
   spendingBudgetMinor?: Minor;
   createdOn: IsoDate;
