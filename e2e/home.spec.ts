@@ -396,6 +396,57 @@ test('when the plan fits, each ranged category starts at the middle of its range
   await expect(panel.getByText('€800 left for savings', { exact: true })).toBeVisible();
 });
 
+test('with an everyday budget, the suggestion keeps to it, or to what is available when that is less', async ({
+  page,
+}) => {
+  await completeSetup(page, { budget: '600' });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await suggestionLink(page).click();
+  const panel = suggestion(page);
+  const field = (name: string) => panel.getByRole('textbox', { name: `${name} per month`, exact: true });
+  const amounts = async () =>
+    Promise.all(
+      ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other'].map((name) =>
+        field(name).inputValue(),
+      ),
+    );
+
+  // €600 is more than the €440 available, so the amounts share out €440: the same as without a budget.
+  await expect(
+    panel.getByText(
+      '€440 a month is available after your fixed costs and set-asides. That is less than your everyday budget of ' +
+        '€600, so these amounts keep to €440.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(field('Food & groceries')).toHaveValue('200');
+  expect(await amounts()).toEqual(['200', '40', '40', '15', '40', '105']);
+  await expect(panel.getByText('€440 of your €600 budget · €0 left for savings', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  // A budget of €400 is less than what is available: the amounts keep to it, and the other €40 is left for savings.
+  const [plan] = await readStore<Plan>(page, 'plan');
+  await writeStore(page, 'plan', [{ ...plan, spendingBudgetMinor: 40000 }]);
+  await page.reload();
+  await suggestionLink(page).click();
+  await expect(
+    panel.getByText(
+      '€440 a month is available after your fixed costs and set-asides. These amounts keep to your everyday budget ' +
+        'of €400.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(field('Food & groceries')).toHaveValue('185');
+  expect(await amounts()).toEqual(['185', '35', '35', '10', '35', '100']);
+  await expect(panel.getByText('€400 of your €400 budget · €40 left for savings', { exact: true })).toBeVisible();
+
+  // Going over the budget reads calmly, and only guides: Use this budget still works.
+  await field('Food & groceries').fill('215');
+  await expect(panel.getByText('€30 over your €400 budget · €10 left for savings', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+  await expect(panel.getByRole('button', { name: 'Use this budget', exact: true })).toBeEnabled();
+});
+
 test('Not now and the saved note last until the month turns', async ({ page }) => {
   await completeSetup(page);
   // Tuesday 3 Nov: the first week, so the suggestion leads.
@@ -446,21 +497,24 @@ test('in the first week of the month the suggested budget leads, and using it ch
   await expect(envelopes(page).getByRole('listitem')).toHaveCount(2);
 
   // The middles of the ranges, rounded to €5, add up to €640, and €650 with health's €10: more than the €440
-  // available, so every ranged category is at the bottom of its range.
-  await expect(panel.getByText('€440 a month is available after your fixed costs and set-asides.')).toBeVisible();
+  // available. The minimums add up to €390 with health, so each ranged category goes the same share of the way from
+  // its minimum to its middle (€50 of €260), to €5, and all €440 is used. No everyday budget, so only the €440 shows.
+  await expect(
+    panel.getByText('€440 a month is available after your fixed costs and set-asides.', { exact: true }),
+  ).toBeVisible();
   const field = (name: string) => panel.getByRole('textbox', { name: `${name} per month`, exact: true });
-  await expect(field('Food & groceries')).toHaveValue('180');
-  await expect(field('Eating out')).toHaveValue('30');
-  await expect(field('Going out')).toHaveValue('30');
-  await expect(field('Transport')).toHaveValue('10');
-  await expect(field('Shopping')).toHaveValue('35');
-  await expect(field('Other')).toHaveValue('95');
+  await expect(field('Food & groceries')).toHaveValue('195');
+  await expect(field('Eating out')).toHaveValue('40');
+  await expect(field('Going out')).toHaveValue('40');
+  await expect(field('Transport')).toHaveValue('15');
+  await expect(field('Shopping')).toHaveValue('40');
+  await expect(field('Other')).toHaveValue('100');
   // Last month's €12 is rounded to €5. €2 rounds to €0 but is still spending, so its row keeps that basis (below);
   // a category with neither a range nor spending starts at €0.
   await expect(field('Health & pharmacy')).toHaveValue('10');
   await expect(field('Study materials')).toHaveValue('');
   await expect(field('Gifts')).toHaveValue('');
-  await expect(panel.getByText('€50 left for savings', { exact: true })).toBeVisible();
+  await expect(panel.getByText('€0 left for savings', { exact: true })).toBeVisible();
 
   // Where each amount comes from. Six categories have a range, and each shows its source.
   await expect(panel.getByText('Students here: €180–335', { exact: true })).toBeVisible();
@@ -471,9 +525,12 @@ test('in the first week of the month the suggested budget leads, and using it ch
   await expect(panel.locator('summary', { hasText: 'Source' })).toHaveCount(6);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  // Edit one amount: food from €180 to €200 leaves €30.
-  await field('Food & groceries').fill('200');
-  await expect(panel.getByText('€30 left for savings', { exact: true })).toBeVisible();
+  // Edit one amount: food from €195 to €175 leaves €20, and €10 more than what is available is €10 over.
+  await field('Food & groceries').fill('175');
+  await expect(panel.getByText('€20 left for savings', { exact: true })).toBeVisible();
+  await field('Food & groceries').fill('205');
+  await expect(panel.getByText('€10 over what is available', { exact: true })).toBeVisible();
+  await field('Food & groceries').fill('175');
   await panel.getByRole('button', { name: 'Use this budget', exact: true }).click();
 
   // The panel steps back and the envelopes follow the amounts, 12 of them, with only the used ones listed.
@@ -482,12 +539,12 @@ test('in the first week of the month the suggested budget leads, and using it ch
   await expect(suggestionLink(page)).toBeVisible();
   const list = envelopes(page);
   await expect(list.getByRole('listitem')).toHaveCount(7);
-  await expect(list.getByText('€200 left of €200 this month', { exact: true })).toBeVisible();
-  await expect(list.getByText('€30 left of €30 this month', { exact: true })).toHaveCount(2);
-  await expect(list.getByText('€95 left of €95 this month', { exact: true })).toBeVisible();
-  await expect(card.getByText('€410', { exact: true })).toBeVisible();
-  // €410 / 5 = €82.
-  await expect(card.getByText('This week: €82 safe to spend', { exact: true })).toBeVisible();
+  await expect(list.getByText('€175 left of €175 this month', { exact: true })).toBeVisible();
+  await expect(list.getByText('€40 left of €40 this month', { exact: true })).toHaveCount(3);
+  await expect(list.getByText('€100 left of €100 this month', { exact: true })).toBeVisible();
+  await expect(card.getByText('€420', { exact: true })).toBeVisible();
+  // €420 / 5 = €84.
+  await expect(card.getByText('This week: €84 safe to spend', { exact: true })).toBeVisible();
 
   // Only the envelopes were written: the guesses and the rest of the plan are as they were.
   expect(await readStore(page, 'guesses')).toEqual(guessesBefore);
@@ -495,18 +552,18 @@ test('in the first week of the month the suggested budget leads, and using it ch
   expect(planAfter).toEqual({
     ...planBefore,
     envelopes: [
-      { categoryId: 'food', monthlyMinor: 20000 },
-      { categoryId: 'eating-out', monthlyMinor: 3000 },
-      { categoryId: 'going-out', monthlyMinor: 3000 },
-      { categoryId: 'transport', monthlyMinor: 1000 },
-      { categoryId: 'shopping', monthlyMinor: 3500 },
+      { categoryId: 'food', monthlyMinor: 17500 },
+      { categoryId: 'eating-out', monthlyMinor: 4000 },
+      { categoryId: 'going-out', monthlyMinor: 4000 },
+      { categoryId: 'transport', monthlyMinor: 1500 },
+      { categoryId: 'shopping', monthlyMinor: 4000 },
       { categoryId: 'health', monthlyMinor: 1000 },
       { categoryId: 'personal-care', monthlyMinor: 0 },
       { categoryId: 'study', monthlyMinor: 0 },
       { categoryId: 'household', monthlyMinor: 0 },
       { categoryId: 'travel', monthlyMinor: 0 },
       { categoryId: 'gifts', monthlyMinor: 0 },
-      { categoryId: 'other', monthlyMinor: 9500 },
+      { categoryId: 'other', monthlyMinor: 10000 },
     ],
   });
 });
