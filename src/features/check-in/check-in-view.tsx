@@ -11,7 +11,7 @@ import { categoryName } from '@/features/entries/categories';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
 import { SwapLine } from '@/features/swaps/swap-line';
-import { safeToSpend } from '@/lib/budget';
+import { weekToSpend } from '@/lib/budget';
 import { previousMonthTail, weekOf, type IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
@@ -83,7 +83,7 @@ const EARLIER_THIS_WEEK: Titles = {
 };
 
 /**
- * One part of a week, as `safeToSpend` cuts it at the month's edge: its range, each envelope against the
+ * One part of a week, as `weekToSpend` cuts it at the month's edge: its range, each envelope against the
  * part's share of the plan, and what was logged in it. `day` is any day of the part, which also picks the
  * month whose budget it is measured against.
  */
@@ -102,7 +102,7 @@ function WeekPart({
 }) {
   const planId = useId();
   const weekId = useId();
-  const week = safeToSpend(plan, entries, day);
+  const week = weekToSpend(plan, entries, day);
   // Envelopes planned at €0 and not used this week would only add empty rows.
   const rows = week.envelopes.filter((e) => e.weekShareMinor > 0 || e.spentThisWeekMinor > 0);
   // A swap is judged by the check-in's own measure: only a row over this week's share of the plan ("€12 over") gets

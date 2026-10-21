@@ -10,7 +10,7 @@ import { BadgesCard } from '@/features/badges/badges-card';
 import { CheckInCard } from '@/features/check-in/check-in-card';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RevealCard } from '@/features/reveal/reveal-view';
-import { monthStatus, safeToSpend } from '@/lib/budget';
+import { monthStatus, weekToSpend } from '@/lib/budget';
 import { monthOf } from '@/lib/dates';
 import { formatMoney, type CurrencyCode } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
@@ -58,7 +58,7 @@ export function HomeScreen({
   // Rendered from the date the data was read for, so a new day swaps in as one piece.
   if (data) {
     const { today, entries, accounts, rates, weekResults, guessCount } = data;
-    const week = safeToSpend(plan, entries, today);
+    const week = weekToSpend(plan, entries, today);
     const month = monthStatus(plan, entries, monthOf(today));
     // Negative once more has been spent than the envelopes planned, which the card says as "over".
     const leftMinor = month.reduce((total, status) => total + status.plannedMinor - status.spentMinor, 0);

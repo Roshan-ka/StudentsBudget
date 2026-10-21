@@ -81,9 +81,9 @@ function slicesOf<T extends { categoryId: string }>(
 /**
  * Spending by category over the period. The donut is the overview: the top 6 by spent, and "Everything else" for
  * the rest. Bars and Table list every category, spent against planned. `note` is the line for the month the plan
- * was set up in ("Budget starts 16 Oct."), which explains why the planned amounts there are smaller than a full
- * month's and why earlier spending is left out. Where nothing is planned (a period before the setup month) it is
- * spending alone: no legend, no Planned column.
+ * was set up in ("Envelope spending counts from 16 Oct."), which explains why earlier spending in the envelopes is
+ * left out. Where nothing is planned (a period before the setup month) it is spending alone: no legend, no Planned
+ * column.
  */
 export function SpendingSection({
   spending,

@@ -35,11 +35,14 @@ const PERIODS = [
   { value: 12, text: '12 months' },
 ] as const;
 
-/** "Budget starts 16 Oct.", if the plan was set up in a month of the period, unless that was on the 1st; null otherwise. */
-function budgetStartNote(plan: Plan, months: IsoMonth[]): string | null {
+/**
+ * "Envelope spending counts from 16 Oct.", if the plan was set up in a month of the period, unless that was on the 1st;
+ * null otherwise. The envelopes are planned for the whole month, but spending before the setup day is left out.
+ */
+function countedFromNote(plan: Plan, months: IsoMonth[]): string | null {
   const { createdOn } = plan;
   if (!months.includes(monthOf(createdOn)) || createdOn === firstOfMonth(monthOf(createdOn))) return null;
-  return `Budget starts ${dayAndMonth.format(parseISO(createdOn))}.`;
+  return `Envelope spending counts from ${dayAndMonth.format(parseISO(createdOn))}.`;
 }
 
 /** The months of a period in a sentence or a caption: "October 2026", or "August 2026 to October 2026". */
@@ -122,7 +125,7 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
             spending={spending}
             period={period}
             periodText={text}
-            note={budgetStartNote(plan, inPeriod)}
+            note={countedFromNote(plan, inPeriod)}
             noneText={`No spending logged in ${monthIn} yet.`}
           />
           <IncomeSection

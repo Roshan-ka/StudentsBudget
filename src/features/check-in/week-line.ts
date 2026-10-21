@@ -3,8 +3,8 @@ import { formatWeekAmount } from '@/lib/week-amount';
 
 /**
  * One envelope's week in a line: "€70 planned · €20 spent · €50 under". The week is compared with its own
- * share of the plan, not with what is carried over from earlier weeks, so the line says the same thing the
- * student did this week. Over is said plainly ("€12 over"); equal reads "on plan".
+ * share of what was left of the month when it began, so the line says the same thing the student did this week.
+ * Over is said plainly ("€12 over"); equal reads "on plan".
  */
 export function weekLine(e: EnvelopeWeek): string {
   const planned = formatWeekAmount(e.weekShareMinor).text;

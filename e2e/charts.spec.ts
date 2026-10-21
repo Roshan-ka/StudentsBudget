@@ -3,7 +3,7 @@ import type { Account } from '../src/db/types';
 import { completeSetup, readStore } from './helpers/setup';
 
 // `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day: food 310 and eating out 124
-// are planned from the 16th, so 16 of October's 31 days (food €160, eating out €64), and rent is €400.
+// are planned in full for October, though the plan starts on the 16th, and rent is €400.
 // Flexible spending only counts from the 16th on, so the seeds for October flexible categories are dated after it.
 
 // The charts have to work on a phone: 375 px wide, whatever the project's device.
@@ -222,16 +222,16 @@ test('shows each category spent against its plan as bars, and a tapped bar opens
   await pickStyle(spending, 'Spending chart style', 'Bars');
 
   // On the chart: spent of planned, a number per row. Food has the most, rent is planned and untouched.
-  await expect(spending.getByText('€20 of €160', { exact: true })).toBeVisible();
-  await expect(spending.getByText('€6 of €64', { exact: true })).toBeVisible();
+  await expect(spending.getByText('€20 of €310', { exact: true })).toBeVisible();
+  await expect(spending.getByText('€6 of €124', { exact: true })).toBeVisible();
   await expect(spending.getByText('€0 of €400', { exact: true })).toBeVisible();
   // Every category on the bars is the one colour, which the names tell apart.
-  await expect(spending.getByRole('row', { name: /Food & groceries/ }).getByRole('cell')).toHaveText(['€20', '€160']);
+  await expect(spending.getByRole('row', { name: /Food & groceries/ }).getByRole('cell')).toHaveText(['€20', '€310']);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   // A pointer on a row reads out its numbers, and leaving it clears them.
   await marks(spending).nth(1).hover();
-  await expect(spending.getByRole('tooltip')).toHaveText(/Eating out.*Spent.*€6.*Planned.*€64/);
+  await expect(spending.getByRole('tooltip')).toHaveText(/Eating out.*Spent.*€6.*Planned.*€124/);
   await page.getByRole('heading', { level: 2, name: 'Charts' }).hover();
   await expect(spending.getByRole('tooltip')).toHaveCount(0);
 
@@ -265,7 +265,7 @@ test('the table style lists every category, most spent first, with what was plan
     'Study materials',
     'Rent',
   ]);
-  await expect(table.getByRole('row', { name: /Food & groceries/ }).getByRole('cell')).toHaveText(['€200', '€160']);
+  await expect(table.getByRole('row', { name: /Food & groceries/ }).getByRole('cell')).toHaveText(['€200', '€310']);
   await expect(table.getByRole('row', { name: /Rent/ }).getByRole('cell')).toHaveText(['€0', '€400']);
   await expect(table.getByRole('row', { name: /Gifts/ }).getByRole('cell')).toHaveText(['€15', '€0']);
   // The chart is gone: this style is the table alone.
@@ -337,12 +337,12 @@ test('a period of 3 months adds up the months, and the month switcher moves wher
   await expect(monthSwitcher(page)).toContainText('Aug – Oct 2026');
   await expect(spending.getByRole('img', { name: /August 2026 to October 2026/ })).toBeVisible();
   // The plan started on the 16th, which is inside the period.
-  await expect(spending.getByText('Budget starts 16 Oct.', { exact: true })).toBeVisible();
+  await expect(spending.getByText('Envelope spending counts from 16 Oct.', { exact: true })).toBeVisible();
   await expect(spending.getByRole('listitem').first()).toHaveText('Food & groceries€30051%');
 
-  // Bars: food was spent €300 over three months, against the €160 planned from the 16th (there was no plan before).
+  // Bars: food was spent €300 over three months, against the €310 planned for October (there was no plan before).
   await pickStyle(spending, 'Spending chart style', 'Bars');
-  await expect(spending.getByText('€300 of €160', { exact: true })).toBeVisible();
+  await expect(spending.getByText('€300 of €310', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   // Previous moves the end month: July to September has the July food and September's, and no plan at all.
@@ -352,7 +352,7 @@ test('a period of 3 months adds up the months, and the month switcher moves wher
   await expect(monthSwitcher(page)).toContainText('Jul – Sept 2026');
   await expect(spending.getByRole('columnheader')).toHaveText(['Category', 'Spent']);
   await expect(spending.getByRole('row', { name: /Food & groceries/ }).getByRole('cell')).toHaveText(['€1,099']);
-  await expect(spending.getByText(/Budget starts/)).toHaveCount(0);
+  await expect(spending.getByText(/Envelope spending counts/)).toHaveCount(0);
 
   for (const period of ['6 months', '12 months', 'This month']) {
     await pickPeriod(page, period);
@@ -560,7 +560,7 @@ test('the month switcher moves between months, and a month with nothing in it sa
   await expect(spendingSection(page)).toBeVisible();
 });
 
-test('the setup month measures spending from the setup day on and says when the budget starts', async ({ page }) => {
+test('the setup month plans the whole envelope, counts spending from the setup day on and says so', async ({ page }) => {
   await completeSetup(page);
   await quickAdd(page, 'rewe 20', 'Food & groceries', 'Saved €20.00 · rewe · Food & groceries');
   await seedEntries(page, [
@@ -574,13 +574,13 @@ test('the setup month measures spending from the setup day on and says when the 
   const spending = spendingSection(page);
   await pickStyle(spending, 'Spending chart style', 'Table');
   const food = spending.getByRole('row', { name: /Food & groceries/ }).getByRole('cell');
-  const note = /Budget starts/;
+  const note = /Envelope spending counts/;
 
-  // October: €20 of the €160 planned from the 16th, not €200 of it, and the line that explains the 160.
-  await expect(spending.getByText('Budget starts 16 Oct.', { exact: true })).toBeVisible();
-  await expect(food).toHaveText(['€20', '€160']);
+  // October: €20 of the whole €310, not €200 of it, and the line that explains why the €180 is left out.
+  await expect(spending.getByText('Envelope spending counts from 16 Oct.', { exact: true })).toBeVisible();
+  await expect(food).toHaveText(['€20', '€310']);
   // The table carries the line too.
-  await expect(spending.getByRole('table')).toContainText('Budget starts 16 Oct.');
+  await expect(spending.getByRole('table')).toContainText('Envelope spending counts from 16 Oct.');
 
   // September came before the plan: what was spent, with nothing to measure it against.
   await monthSwitcher(page).getByRole('button', { name: 'Previous' }).click();
@@ -589,7 +589,7 @@ test('the setup month measures spending from the setup day on and says when the 
   await expect(food).toHaveText(['€30']);
   await expect(spending.getByText(note)).toHaveCount(0);
 
-  // November: the whole envelope again, and no line.
+  // November: the same envelope, and no line.
   await monthSwitcher(page).getByRole('button', { name: 'Next' }).click();
   await monthSwitcher(page).getByRole('button', { name: 'Next' }).click();
   await expect(monthSwitcher(page)).toContainText('November 2026');
