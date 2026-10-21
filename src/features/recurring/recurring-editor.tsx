@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '@/components/ui/native-select';
 import { db } from '@/db/db';
 import type { Account, Category, Plan, PlanLine } from '@/db/types';
-import { sortAccounts } from '@/features/accounts/balances';
+import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
 import { INCOME_CATEGORIES, categoryName } from '@/features/entries/categories';
 import { monthOf, todayIso, type IsoDate } from '@/lib/dates';
 import { formatMoney, parseAmount, type Minor } from '@/lib/money';
@@ -67,7 +67,7 @@ function LineForm({
   const [timing, setTiming] = useState<Timing>({ frequency: s?.frequency ?? 'monthly', day: s?.day ?? 1 });
   // '' when the account the line used is gone: the person has to pick one.
   const [accountId, setAccountId] = useState(
-    s ? (accounts.some((a) => a.id === s.accountId) ? s.accountId : '') : (accounts[0]?.id ?? ''),
+    s ? (accounts.some((a) => a.id === s.accountId) ? s.accountId : '') : (defaultAccount(accounts)?.id ?? ''),
   );
   const [amount, setAmount] = useState(s ? minorToInput(s.amountMinor) : line ? minorToInput(line.monthlyMinor) : '');
   const [monthly, setMonthly] = useState(line ? minorToInput(line.monthlyMinor) : '');

@@ -114,7 +114,7 @@ function AmountChoice({
 
 /**
  * One line to log an expense: "döner 6", typed or dictated. It saves straight away when an earlier
- * expense with the same first word gives the category; otherwise it asks with one chip per flexible
+ * expense that shares a word with the note gives the category; otherwise it asks with one chip per flexible
  * category (the original six, and the rest behind More). A line with two readings ("coffee 7 40 euros") first
  * asks which amount. A line that says what was saved comes with an Undo button.
  *
