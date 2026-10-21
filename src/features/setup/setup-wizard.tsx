@@ -24,7 +24,6 @@ import {
   type StepId,
 } from './draft';
 import { AccountsStep } from './steps/accounts';
-import { BudgetStep } from './steps/budget';
 import { CityRentStep } from './steps/city-rent';
 import { EnvelopesStep } from './steps/envelopes';
 import { FixedStep } from './steps/fixed';
@@ -32,7 +31,7 @@ import { GuessesStep } from './steps/guesses';
 import { IncomeStep } from './steps/income';
 import { OneOffsStep } from './steps/one-offs';
 
-const NEW_STEPS: StepId[] = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'budget', 'envelopes'];
+const NEW_STEPS: StepId[] = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'envelopes'];
 // Accounts are edited in Settings and guesses are locked, so editing skips both.
 const EDIT_STEPS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts' && s !== 'guesses');
 // Accounts that already exist (added in Settings before setup) are kept, so a new setup skips that step.
@@ -45,7 +44,6 @@ const TITLES: Record<StepId, string> = {
   fixed: 'Fixed costs',
   'one-offs': 'One-off costs',
   guesses: 'Guesses',
-  budget: 'Everyday budget',
   envelopes: 'Envelopes',
 };
 
@@ -167,7 +165,6 @@ function Wizard({
       {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
       {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
       {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
-      {step === 'budget' && <BudgetStep draft={draft} update={update} />}
       {step === 'envelopes' && (
         <EnvelopesStep draft={draft} update={update} today={today} existing={existing} edit={edit} />
       )}

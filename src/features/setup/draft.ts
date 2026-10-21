@@ -65,7 +65,7 @@ export type SetupDraft = {
 
 export type DraftUpdate = (change: (d: SetupDraft) => SetupDraft) => void;
 
-export type StepId = 'city-rent' | 'accounts' | 'income' | 'fixed' | 'one-offs' | 'guesses' | 'budget' | 'envelopes';
+export type StepId = 'city-rent' | 'accounts' | 'income' | 'fixed' | 'one-offs' | 'guesses' | 'envelopes';
 
 const ofKind = (kind: Category['kind']): Category[] => CATEGORIES.filter((c) => c.kind === kind);
 
@@ -86,7 +86,8 @@ export function amountOf(list: Amount[], categoryId: string): Minor | undefined 
 
 /**
  * The categories a step asks about. A new setup asks the basic ones (`basicIds`); edit mode asks every one. A category
- * whose line already has an amount is always asked, so nothing the plan holds is hidden.
+ * whose line has an amount is asked too, but that clause is only a guard: edit mode already asks every category, and a
+ * new setup holds no line outside the basic ones, so today it never decides anything.
  */
 export function askedCategories(
   all: Category[],
@@ -480,15 +481,16 @@ export function validateStep(
         return minor === undefined || isAmount(minor) ? [] : [`Check the guess for ${c.name}.`];
       });
 
-    case 'budget':
-      return isAmount(d.spendingBudgetMinor) ? [] : ['Check the amount for your everyday budget.'];
-
     case 'envelopes':
-      return FLEXIBLE_CATEGORIES.flatMap((c) => {
-        const minor = amountOf(d.envelopes, c.id);
-        if (minor === undefined) return [`Add an amount for ${c.name}`];
-        return isAmount(minor) ? [] : [`Check the amount for ${c.name}.`];
-      });
+      return [
+        // The everyday budget is asked at the top of this step. Blank, 0 and an amount are all fine.
+        ...(isAmount(d.spendingBudgetMinor) ? [] : ['Check the amount for your everyday budget.']),
+        ...FLEXIBLE_CATEGORIES.flatMap((c) => {
+          const minor = amountOf(d.envelopes, c.id);
+          if (minor === undefined) return [`Add an amount for ${c.name}`];
+          return isAmount(minor) ? [] : [`Check the amount for ${c.name}.`];
+        }),
+      ];
   }
 }
 
@@ -510,9 +512,11 @@ export function envelopesFooter(s: PlanSummary): string {
 
 /**
  * The line under the envelopes when there is an everyday budget: "€394 of your €600 budget", or "€40 over your €600
- * budget". Whole euros; the overage is rounded up, so it never reads as less than it is.
+ * budget". Whole euros; the overage is rounded up, so it never reads as less than it is. `null` without a budget
+ * (zero or less): there is nothing to compare with.
  */
-export function budgetLine(plannedMinor: Minor, budgetMinor: Minor): string {
+export function budgetLine(plannedMinor: Minor, budgetMinor: Minor): string | null {
+  if (!(budgetMinor > 0)) return null;
   const budget = wholeEuros(budgetMinor);
   if (plannedMinor <= budgetMinor) return `${wholeEuros(plannedMinor)} of your ${budget} budget`;
   return `${wholeEuros(Math.ceil((plannedMinor - budgetMinor) / 100) * 100)} over your ${budget} budget`;

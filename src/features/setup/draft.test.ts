@@ -396,16 +396,22 @@ describe('validateStep', () => {
   });
 
   it('takes a blank, a 0 and an amount for the everyday budget, and names one that did not parse', () => {
-    expect(validateStep('budget', draft, TODAY)).toEqual([]);
-    expect(validateStep('budget', { ...draft, spendingBudgetMinor: 60000 }, TODAY)).toEqual([]);
-    expect(validateStep('budget', { ...draft, spendingBudgetMinor: Number.NaN }, TODAY)).toEqual([
+    expect(validateStep('envelopes', draft, TODAY)).toEqual([]);
+    expect(validateStep('envelopes', { ...draft, spendingBudgetMinor: 60000 }, TODAY)).toEqual([]);
+    expect(validateStep('envelopes', { ...draft, spendingBudgetMinor: Number.NaN }, TODAY)).toEqual([
       'Check the amount for your everyday budget.',
+    ]);
+    // It comes first, ahead of an envelope that did not parse either.
+    const bad = withAmount(draft.envelopes, 'food', Number.NaN);
+    expect(validateStep('envelopes', { ...draft, spendingBudgetMinor: Number.NaN, envelopes: bad }, TODAY)).toEqual([
+      'Check the amount for your everyday budget.',
+      'Check the amount for Food & groceries.',
     ]);
   });
 
   it('lets a fresh draft through every step, so setup can be saved with nothing filled in', () => {
     const fresh = initialDraft();
-    const steps = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'budget', 'envelopes'] as const;
+    const steps = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'envelopes'] as const;
     for (const step of steps) expect(validateStep(step, fresh, TODAY), step).toEqual([]);
   });
 });
@@ -587,6 +593,12 @@ describe('budgetLine', () => {
 
   it('rounds an amount with cents to whole euros when it is within the budget', () => {
     expect(budgetLine(39450, 60000)).toBe('€395 of your €600 budget');
+  });
+
+  it('says nothing without a budget, whatever is planned', () => {
+    expect(budgetLine(39400, 0)).toBeNull();
+    expect(budgetLine(0, 0)).toBeNull();
+    expect(budgetLine(39400, -100)).toBeNull();
   });
 });
 
