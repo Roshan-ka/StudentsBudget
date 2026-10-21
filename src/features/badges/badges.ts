@@ -109,9 +109,10 @@ export function badgeHistory(plan: Plan, entries: Entry[], results: WeekResult[]
 }
 
 /**
- * Weeks with a logged expense (`loggedExpenseTest`) that came in at or under their share of the envelopes. A week
- * with no spending logged says nothing about the budget, a week with nothing planned has nothing to be under, and a
- * week away does not count. Bronze at 4, silver at 12, gold at a semester.
+ * Weeks with a logged expense (`loggedExpenseTest`) that came in at or under their share of the envelopes: what was
+ * left of them at the start of the week, split over the weeks left in the month (`weekAllowance`). A week with no
+ * spending logged says nothing about the budget, a week with nothing planned (a share of 0) has nothing to be under,
+ * and a week away does not count. Bronze at 4, silver at 12, gold at a semester.
  */
 function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number): Badge {
   const gold = goldWeeks(semesterWeeks);

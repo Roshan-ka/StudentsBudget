@@ -2,12 +2,13 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/db';
 import type { Entry, Plan, WeekResult } from '@/db/types';
-import { safeToSpend } from '@/lib/budget';
+import { weekToSpend } from '@/lib/budget';
 import type { IsoDate } from '@/lib/dates';
 import { completedWeeks, recordCompletedWeeks, setAway, weekAwaitingRecord, weekResultOf } from './week-results';
 
-// Food €310 and eating out €124 a month, set up on Friday 16 October 2026. October has 31 days, so a full
-// October week plans food 31000 * 7/31 = 7000 and eating out 12400 * 7/31 = 2800.
+// Food €310 and eating out €124 a month (€434), set up on Friday 16 October 2026. A week plans what was left of the
+// month when it began, split over the weeks left in it: from the Friday of setup three weeks of October are left
+// (12-18, 19-25 and 26-31), so the week of setup plans 43400 / 3 = 14467, the next 21700 and the last 43400.
 const PLAN: Plan = {
   id: 'current',
   cityId: 'regensburg',
@@ -40,13 +41,22 @@ function expense(date: IsoDate, categoryId: string, eurMinor: number, overrides:
   } as Entry;
 }
 
-/** What the check-in shows for the part of a week that ends on `day`: the envelopes' shares and spending summed. */
+/**
+ * What Home and the check-in show for the part of a week that ends on `day`, with nothing dated after it yet: its
+ * total and the envelopes' spending. Spending is what the total has come down by, so the week's allowance is the total
+ * plus the spending.
+ */
 function checkInPart(plan: Plan, entries: Entry[], day: IsoDate) {
-  const week = safeToSpend(plan, entries, day);
+  const week = weekToSpend(
+    plan,
+    entries.filter((e) => e.date <= day),
+    day,
+  );
   const of = (id: string) => week.envelopes.find((e) => e.categoryId === id)?.spentThisWeekMinor ?? 0;
+  const spentMinor = week.envelopes.reduce((total, e) => total + e.spentThisWeekMinor, 0);
   return {
-    plannedMinor: week.envelopes.reduce((total, e) => total + e.weekShareMinor, 0),
-    spentMinor: week.envelopes.reduce((total, e) => total + e.spentThisWeekMinor, 0),
+    plannedMinor: Math.max(0, week.totalMinor + spentMinor),
+    spentMinor,
     foodSpentMinor: of('food'),
     eatingOutSpentMinor: of('eating-out'),
   };
@@ -144,12 +154,38 @@ describe('weekResultOf', () => {
     expect(result).toMatchObject({
       weekStart: '2026-10-19',
       weekEnd: '2026-10-25',
-      plannedMinor: 9800,
+      // Two weeks of October are left on Monday 19: 43400 / 2.
+      plannedMinor: 21700,
       spentMinor: 3000,
       foodSpentMinor: 1500,
       eatingOutSpentMinor: 900,
     });
     expect(result).toMatchObject(checkInPart(PLAN, entries, '2026-10-25'));
+  });
+
+  it('plans what was left of the month when the week began, split over the weeks left', () => {
+    // €200 of food on Saturday 17 is spent before the week of 19 October: (43400 - 20000) / 2.
+    const entries = [expense('2026-10-17', 'food', 20000), expense('2026-10-20', 'food', 1500)];
+
+    expect(weekResultOf(PLAN, entries, WEEK)).toMatchObject({ plannedMinor: 11700, spentMinor: 1500 });
+    // The week it was spent in is measured against what the month had then: 43400 / 3.
+    expect(weekResultOf(PLAN, entries, { start: '2026-10-12', end: '2026-10-18' })).toMatchObject({
+      plannedMinor: 14467,
+      spentMinor: 20000,
+    });
+  });
+
+  it('plans nothing, never less, for a week that begins in a month that is already overspent', () => {
+    // €500 of food by Sunday 18: (43400 - 50000) / 2 would be -3300, and a saved week is never negative.
+    const entries = [expense('2026-10-17', 'food', 50000), expense('2026-10-22', 'food', 800)];
+
+    expect(weekResultOf(PLAN, entries, WEEK)).toMatchObject({ plannedMinor: 0, spentMinor: 800 });
+  });
+
+  it('does not plan less for an expense dated after the week', () => {
+    const entries = [expense('2026-10-20', 'food', 1500), expense('2026-10-30', 'food', 9000)];
+
+    expect(weekResultOf(PLAN, entries, WEEK)).toMatchObject({ plannedMinor: 21700, spentMinor: 1500 });
   });
 
   it('adds up the two parts of a week a month boundary splits', () => {
@@ -161,12 +197,12 @@ describe('weekResultOf', () => {
 
     const result = weekResultOf(PLAN, entries, { start: '2026-10-26', end: '2026-11-01' });
 
-    // October's part (26-31, six days): food 6000, eating out 2400. November's (the 1st, of 30 days):
-    // food round(31000 / 30) = 1033, eating out round(12400 / 30) = 413.
+    // October's part (26-31) is its last week: all that was left of the 43400 on the Monday, as nothing was spent
+    // before. November's (the 1st, a stub week) is one of its six weeks left: 43400 / 6 = 7233.
     expect(result).toEqual({
       weekStart: '2026-10-26',
       weekEnd: '2026-11-01',
-      plannedMinor: 6000 + 2400 + 1033 + 413,
+      plannedMinor: 43400 + 7233,
       spentMinor: 3500,
       foodSpentMinor: 2500,
       eatingOutSpentMinor: 1000,
@@ -181,9 +217,9 @@ describe('weekResultOf', () => {
   it('counts the week of setup only from the setup day', () => {
     const entries = [expense('2026-10-14', 'food', 800), expense('2026-10-17', 'food', 1000)];
 
-    // Friday to Sunday: food 3000, eating out 1200. The Wednesday before setup is not counted.
+    // Three weeks of October are left on the Friday of setup: 43400 / 3. The Wednesday before setup is not counted.
     expect(weekResultOf(PLAN, entries, { start: '2026-10-12', end: '2026-10-18' })).toMatchObject({
-      plannedMinor: 4200,
+      plannedMinor: 14467,
       spentMinor: 1000,
       foodSpentMinor: 1000,
     });
@@ -195,7 +231,7 @@ describe('weekResultOf', () => {
     const entries = [expense('2026-10-27', 'food', 2000), expense('2026-11-01', 'food', 500)];
 
     expect(weekResultOf(plan, entries, { start: '2026-10-26', end: '2026-11-01' })).toMatchObject({
-      plannedMinor: 1033 + 413,
+      plannedMinor: 7233,
       spentMinor: 500,
       foodSpentMinor: 500,
     });
@@ -240,7 +276,7 @@ describe('weekResultOf', () => {
     // Rent typed in by hand and nothing else: the week has no spending in `spentMinor`, so it is not logged.
     const entries = [expense('2026-10-21', 'rent', 40000), expense('2026-10-22', 'phone', 2000)];
 
-    expect(weekResultOf(PLAN, entries, WEEK)).toMatchObject({ plannedMinor: 9800, spentMinor: 0, handLoggedCount: 0 });
+    expect(weekResultOf(PLAN, entries, WEEK)).toMatchObject({ plannedMinor: 21700, spentMinor: 0, handLoggedCount: 0 });
     // With an envelope expense next to it, the week is logged once, by that expense.
     expect(weekResultOf(PLAN, [...entries, expense('2026-10-23', 'food', 800)], WEEK)).toMatchObject({
       spentMinor: 800,
@@ -255,7 +291,7 @@ describe('weekResultOf', () => {
   });
 
   it('does not count an expense dated before the setup day, so it cannot make the week of setup logged', () => {
-    // Set up on Friday 16 October: the Wednesday before has no plan, and `safeToSpend` leaves it out of the spending.
+    // Set up on Friday 16 October: the Wednesday before has no plan, and the week's spending leaves it out.
     const setupWeek = { start: '2026-10-12', end: '2026-10-18' };
     const before = [expense('2026-10-14', 'food', 800)];
 
@@ -382,10 +418,10 @@ describe('recordCompletedWeeks', () => {
     expect(await recordCompletedWeeks('2026-10-27')).toEqual({ recorded: 0 });
     expect(await db.weekResults.get('2026-10-19')).toBeUndefined();
 
-    // Wednesday: the week is recorded with all of it, so it is over its share (eating out 2800, food 7000).
+    // Wednesday: the week is recorded with all of it, €123 of its €217.
     expect(await recordCompletedWeeks('2026-10-28')).toEqual({ recorded: 1 });
     expect(await db.weekResults.get('2026-10-19')).toMatchObject({
-      plannedMinor: 9800,
+      plannedMinor: 21700,
       spentMinor: 2000 + 7000 + 1500 + 1800,
       eatingOutSpentMinor: 7000,
       handLoggedCount: 4,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry, Plan } from '@/db/types';
-import { safeToSpend } from '@/lib/budget';
+import { weekToSpend } from '@/lib/budget';
 import type { IsoDate } from '@/lib/dates';
 import { loggedExpenseTest } from './records';
 
@@ -77,14 +77,14 @@ describe('loggedExpenseTest', () => {
   });
 
   it('follows the plan it is made for: its envelopes, and its setup day', () => {
-    // A category outside the flexible ones counts when the plan has an envelope for it, as `safeToSpend` sums it.
+    // A category outside the flexible ones counts when the plan has an envelope for it, as `weekToSpend` sums it.
     const odd: Plan = { ...PLAN, envelopes: [...PLAN.envelopes, { categoryId: 'rent', monthlyMinor: 10000 }] };
     expect(logged(entry('2026-10-20', 'rent'), odd)).toBe(true);
     expect(logged(entry('2026-10-10', 'food'), { ...PLAN, createdOn: '2026-10-01' })).toBe(true);
   });
 
-  it('measures the categories safeToSpend adds up, not a list of its own', () => {
-    const measured = safeToSpend(PLAN, [], '2026-10-20').envelopes.map((e) => e.categoryId);
+  it('measures the categories weekToSpend adds up, not a list of its own', () => {
+    const measured = weekToSpend(PLAN, [], '2026-10-20').envelopes.map((e) => e.categoryId);
     expect(measured).toContain('going-out');
     expect(measured).not.toContain('rent');
     for (const categoryId of measured) expect(logged(entry('2026-10-20', categoryId)), categoryId).toBe(true);

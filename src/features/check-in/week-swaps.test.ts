@@ -3,6 +3,7 @@ import type { Entry, Plan } from '@/db/types';
 import { localSuggestions } from '@/features/swaps/suggest';
 import { weekToSpend, type EnvelopeWeek } from '@/lib/budget';
 import { weekLine } from './week-line';
+import { weekRows } from './week-rows';
 import { weekSwaps } from './week-swaps';
 
 function row(categoryId: string, weekShareMinor: number, spentThisWeekMinor: number): EnvelopeWeek {
@@ -81,12 +82,11 @@ describe('weekSwaps', () => {
     // Wed 21 Oct: two weeks of October are left. Eating out is €40 down from the 6th, so its week share is
     // (80 − 40) / 2 = €20, not the €40 an even split of the month would give.
     const day = '2026-10-21';
-    // The rows the check-in lists: an envelope with no share and nothing spent is left out.
-    const weekRows = (entries: Entry[]) =>
-      weekToSpend(plan, entries, day).envelopes.filter((e) => e.weekShareMinor > 0 || e.spentThisWeekMinor > 0);
+    // The rows the check-in lists: an envelope with a monthly amount, whatever its share of the week.
+    const rowsOf = (entries: Entry[]) => weekRows(plan, weekToSpend(plan, entries, day).envelopes);
 
     it('judges a row against its share of what is left of the month', () => {
-      const rows = weekRows([
+      const rows = rowsOf([
         expense('a', 'eating-out', '2026-10-06', 4000),
         expense('b', 'eating-out', '2026-10-20', 2500),
         // Food: €100 gone this week of its €125 share, so under it.
@@ -103,9 +103,9 @@ describe('weekSwaps', () => {
     });
 
     it('gives a row whose month is used up no share, so any spending in it is over', () => {
-      const rows = weekRows([expense('a', 'transport', '2026-10-03', 5200), expense('b', 'transport', '2026-10-22', 600)]);
-      expect(rows[2]).toMatchObject({ categoryId: 'transport', weekShareMinor: 0, spentThisWeekMinor: 600 });
-      expect(weekLine(rows[2])).toBe('€0 planned · €6 spent · €6 over');
+      const rows = rowsOf([expense('a', 'transport', '2026-10-03', 5200), expense('b', 'transport', '2026-10-22', 600)]);
+      expect(rows[2]).toMatchObject({ categoryId: 'transport', weekShareMinor: 0, spentThisWeekMinor: 600, usedUp: true });
+      expect(weekLine(rows[2], rows[2].usedUp)).toBe('Nothing left this month · €6 spent · €6 over');
       expect(swapIds(weekSwaps(rows, day))).toEqual([['transport', 'deutschlandticket-for-travel-months']]);
     });
   });
