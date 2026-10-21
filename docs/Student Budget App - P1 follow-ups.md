@@ -109,7 +109,7 @@ Checked on 2026-10-20, before the ledgers were deleted.
 
 ## 2. Open follow-ups
 
-Every deferred or minor item in the two ledgers was checked against the code on this branch (`bb19e33` plus this note). 75 are still open, listed by area. "(worth doing next)" marks the five a user would notice first. One extra area, "Accounts, rates and data layer", holds items that fit none of the others.
+Every deferred or minor item in the two ledgers was checked against the code on this branch (`bb19e33` plus this note). 75 were open on 2026-10-20, listed by area; those fixed since end in "Done" with the date. "(worth doing next)" marks the five a user would notice first. One extra area, "Accounts, rates and data layer", holds items that fit none of the others.
 
 ### Quick add and entries
 - `keywordOf` reads only the first word, so "2 coffees" gets the keyword "2" and matches "2 tickets", and "Coffee. 6" keeps "Coffee." as its keyword (`src/features/entries/quick-add.ts`). Category suggestions follow the wrong word. (worth doing next) Done 2026-10-21 (feat/fixes-upkeep).
@@ -175,7 +175,7 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 
 ### Accounts, rates and data layer
 - `toEurMinor` returns -0 for small negatives and has no exact .5 tie test (`src/lib/fx.ts`). Done 2026-10-21: the -0 is fixed (the .5 tie test is still open).
-- Rates: the empty-response "failed" path doesn't log; a partially missing currency returns "updated" and refetches on every call; the error contract is uneven (bulkPut errors become "failed", reads reject); no test shows a rejected refresh doesn't poison the queue (`src/db/rates.ts`).
+- Rates: the "failed" path for a response with none of the needed currencies doesn't log (an empty `[]` does since the v2 move, as does one with only currencies the app has no code for); a partially missing currency returns "updated" and refetches on every call; the error contract is uneven (bulkPut errors become "failed", reads reject); no test shows a rejected refresh doesn't poison the queue (`src/db/rates.ts`).
 - `AbortSignal.timeout` throws on WebKit older than 16, so every rate refresh fails without a hint on an older iPhone (`fx.ts`).
 - Frankfurter v1 is deprecated with no sunset date; a move to v2 with `providers=ecb` is tracked nowhere (`fx.ts`). Done 2026-10-21: moved to v2 (quotes, providers=ecb).
 - The `refreshRates` try/catch is repeated in AppInit, the accounts panel, the rates panel and the setup wizard; a `safeRefreshRates` helper would hold it once (`rates.ts`).
