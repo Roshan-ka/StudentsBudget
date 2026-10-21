@@ -31,10 +31,6 @@ async function openAccountsStep(page: Page) {
   await nextStep(page, 'Accounts');
 }
 
-/**
- * Sets up a plan whose only answers are on the Accounts step: `fill` works on that step, every other step is left
- * blank (rent, income and costs all 0), and the plan is saved.
- */
 test('setup: the Accounts step with an overdrawn balance, a long name and an error fits a phone', async ({ page }) => {
   await openAccountsStep(page);
   const local = page.getByRole('group', { name: 'Account 1' });
@@ -80,6 +76,10 @@ test('setup: a waiting Overdrawn tick stays with its row when a row above is rem
   await expect(cash.getByLabel('Opening balance')).toHaveValue('50');
 });
 
+/**
+ * Sets up a plan whose only answers are on the Accounts step: `fill` works on that step, every other step is left
+ * blank (rent, income and costs all 0), and the plan is saved.
+ */
 async function setupWithAccounts(page: Page, fill: () => Promise<void>) {
   await openAccountsStep(page);
   await fill();

@@ -57,7 +57,9 @@ describe('formatMoney', () => {
       expect(formatMoney(minor, 'EUR', { whole: true }), String(minor)).toBe('€0');
     }
     expect(formatMoney(-30, 'INR', { whole: true })).toBe(formatMoney(0, 'INR', { whole: true }));
-    // From a whole euro up the sign stays.
+    // Half a euro rounds away from zero on both sides, and from there up the sign stays.
+    expect(formatMoney(-50, 'EUR', { whole: true })).toBe('-€1');
+    expect(formatMoney(50, 'EUR', { whole: true })).toBe('€1');
     expect(formatMoney(-51, 'EUR', { whole: true })).toBe('-€1');
     expect(formatMoney(-100, 'EUR', { whole: true })).toBe('-€1');
     expect(formatMoney(51, 'EUR', { whole: true })).toBe('€1');

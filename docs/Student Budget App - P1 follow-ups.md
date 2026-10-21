@@ -126,6 +126,7 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 
 ### Recurring
 - "First added on DD-MM-YYYY" can name the wrong day after auto-add is turned off and on again mid-month once this month has already posted (`src/features/recurring/schedule.ts` `firstAddedOn`, `recurring-editor.tsx`, `draft-schedule-fields.tsx`). (worth doing next) Done 2026-10-21 (feat/fixes-upkeep).
+- `postedIn` now loads the whole period and filters it in memory instead of stopping at the first match (`post-due.ts`); same result, trivial cost. Found 2026-10-21.
 - A plain weekly-to-monthly edit skips that month's first monthly entry (the period scan finds the weekly ones), and monthly-to-weekly posts weekly entries in a month whose monthly one already posted (`post-due.ts` `postedIn`).
 - A future-dated automatic entry that was moved to another day still suppresses its period (`post-due.ts`).
 - A stale second-tab wizard can re-orphan an `accountId`, and a plan exported in that state can't be restored (`update-plan.ts`, `src/features/backup/backup.ts`).
@@ -161,6 +162,7 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 
 ### Setup
 - The opening balance can't be negative in the account form, though a restored backup accepts an overdrawn account (`src/features/accounts/opening-balance.ts`, `accounts-panel.tsx`). (worth doing next) Done 2026-10-21 (feat/fixes-upkeep).
+- Unticking "Overdrawn" on a mistyped "--250" leaves "-250" and the box ticked; the text is invalid anyway (`opening-balance.ts`). Found 2026-10-21.
 - The save error says "Try again" for `GuessesLockedError`, which can never succeed; no test covers the transaction rolling back when `saveGuesses` throws (`src/features/setup/setup-wizard.tsx`).
 - The install hint also shows in edit mode (`src/app/setup/page.tsx`).
 - `draftToRecords` rebuilds the Plan from scratch, so a later Plan field would be dropped on edit (use `{ ...existing, … }`); `previewPlan` runs `newId` and `new Date` about three times per render on the last step (`draft.ts`).
@@ -178,6 +180,7 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 - Rates: the "failed" path for a response with none of the needed currencies doesn't log (an empty `[]` does since the v2 move, as does one with only currencies the app has no code for); a partially missing currency returns "updated" and refetches on every call; the error contract is uneven (bulkPut errors become "failed", reads reject); no test shows a rejected refresh doesn't poison the queue (`src/db/rates.ts`).
 - `AbortSignal.timeout` throws on WebKit older than 16, so every rate refresh fails without a hint on an older iPhone (`fx.ts`).
 - Frankfurter v1 is deprecated with no sunset date; a move to v2 with `providers=ecb` is tracked nowhere (`fx.ts`). Done 2026-10-21: moved to v2 (quotes, providers=ecb).
+- Frankfurter v2 rows each carry a date, but one refresh stamps the newest row date on every currency; harmless while all six are ECB daily rates (`fx.ts`). Found 2026-10-21.
 - The `refreshRates` try/catch is repeated in AppInit, the accounts panel, the rates panel and the setup wizard; a `safeRefreshRates` helper would hold it once (`rates.ts`).
 - `accounts-panel.tsx` writes `db.accounts.put` directly instead of a repo `saveAccount` with a test; `parseRate` (in `rates-panel.tsx`) and the currency lock have no unit tests.
 - Accounts: one-tap delete with no confirm; no uniqueness check on names; form errors aren't tied to their fields (`aria-invalid`, `aria-describedby`); focus drops to the body when a form opens or closes (`accounts-panel.tsx`, `transfer-form.tsx`, `entry-form.tsx`).

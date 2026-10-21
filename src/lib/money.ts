@@ -45,7 +45,8 @@ function currencyFormatter(currency: CurrencyCode, whole: boolean): Intl.NumberF
 export function formatMoney(m: Minor, c: CurrencyCode, o?: { whole?: boolean }): string {
   const whole = o?.whole ?? false;
   const major = m / 100;
-  return currencyFormatter(c, whole).format(whole && Math.round(major) === 0 ? 0 : major);
+  // Below half a unit either way rounds to nothing; ±0.50 rounds away from zero, as Intl does, so both signs match.
+  return currencyFormatter(c, whole).format(whole && Math.abs(major) < 0.5 ? 0 : major);
 }
 
 const wholeNumberFormatter = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
