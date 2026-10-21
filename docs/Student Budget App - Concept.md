@@ -107,7 +107,7 @@ Each part is tagged with its phase.
   - **"Left to spend this month: €310"**, with one small line underneath: "This week: €63 safe to spend".
   - Envelopes read "€X left of €Y this month".
   - Below them: what's left across all accounts.
-- **P1.1: suggested budget.** Home proposes envelope amounts from income minus fixed costs and set-asides. It starts from Regensburg's typical ranges, with their sources, or from last month's spending, and scales down when the money doesn't stretch. You edit the amounts and accept them. It's prominent in the first week of a month or when the plan is over budget. Guesses never change.
+- **P1.1: suggested budget.** Home proposes envelope amounts from income minus fixed costs and set-asides. It starts from Regensburg's typical ranges, with their sources, or from last month's spending. It shares out what is available, or the everyday budget when one is set and is less: each range moves the same share of the way from its middle down to its minimum, and everything scales down only below the minimums. You edit the amounts and accept them. It's prominent in the first week of a month or when the plan is over budget. Guesses never change.
 
 How the envelopes work:
 1. The plan is monthly, because income arrives monthly.
