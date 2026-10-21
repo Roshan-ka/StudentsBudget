@@ -414,6 +414,15 @@ test('saves and lands on home', async ({ page }) => {
     ['Home bank', 'INR', 5000000],
     ['Local bank', 'EUR', 100000],
   ]);
+  // Each account has a creation time of its own, in the order of the wizard: with a shared one the names would
+  // have put Cash first. Local bank, the first euro bank account, is the default.
+  expect([...accounts].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((a) => a.name)).toEqual([
+    'Local bank',
+    'Home bank',
+    'Cash',
+  ]);
+  expect(new Set(accounts.map((a) => a.createdAt)).size).toBe(3);
+  expect(accounts.some((a) => a.isDefault)).toBe(false);
 
   // Setup fetched the INR rate for the new account.
   await page.getByRole('link', { name: 'Settings' }).click();
