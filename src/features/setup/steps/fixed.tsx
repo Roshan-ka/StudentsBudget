@@ -35,6 +35,11 @@ export function FixedStep({
       <p className="text-muted-foreground">
         What do you pay every month, in euros? Your rent is already in from step 1. Leave out what you do not pay.
       </p>
+      {!edit && (
+        <p className="text-muted-foreground">
+          Subscriptions, the gym, utilities and the Rundfunkbeitrag can be added later under Edit plan in Settings.
+        </p>
+      )}
       {draft.rentSchedule && draft.rentMinor > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Rent: {formatMoney(draft.rentMinor, 'EUR')} a month</p>

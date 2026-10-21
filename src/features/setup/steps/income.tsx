@@ -35,8 +35,11 @@ export function IncomeStep({
       </p>
       <p className="text-muted-foreground">
         Living off savings? Add what you use each month under Other income and switch off{' '}
-        <em>Add it automatically</em>.
+        <em>Add it automatically</em>, so money already in your account isn&apos;t counted twice.
       </p>
+      {!edit && (
+        <p className="text-muted-foreground">Get BAföG or a scholarship? Add it later under Edit plan in Settings.</p>
+      )}
       {askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, edit, draft.incomes).map((c) => {
         const line = draft.incomes.find((l) => l.categoryId === c.id);
         return (

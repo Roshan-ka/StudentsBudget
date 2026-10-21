@@ -44,19 +44,20 @@ export function HomeScreen({
   const today = useToday();
   const data = useLiveQuery(async () => {
     if (today === null) return null;
-    const [entries, accounts, rates, weekResults] = await Promise.all([
+    const [entries, accounts, rates, weekResults, guessCount] = await Promise.all([
       db.entries.toArray(),
       db.accounts.toArray(),
       loadRates(),
       db.weekResults.toArray(),
+      db.guesses.count(),
     ]);
-    return { today, entries, accounts, rates, weekResults };
+    return { today, entries, accounts, rates, weekResults, guessCount };
   }, [today]);
 
   let content = null;
   // Rendered from the date the data was read for, so a new day swaps in as one piece.
   if (data) {
-    const { today, entries, accounts, rates, weekResults } = data;
+    const { today, entries, accounts, rates, weekResults, guessCount } = data;
     const week = safeToSpend(plan, entries, today);
     const month = monthStatus(plan, entries, monthOf(today));
     // Negative once more has been spent than the envelopes planned, which the card says as "over".
@@ -78,7 +79,8 @@ export function HomeScreen({
         <SuggestedBudget key={monthOf(today)} plan={plan} entries={entries} today={today} />
         <CheckInCard today={today} />
         <BadgesCard badges={badges} />
-        <RevealCard startedOn={plan.createdOn} today={today} />
+        {/* Guesses are optional: with none saved there is nothing to unlock. */}
+        {guessCount > 0 && <RevealCard startedOn={plan.createdOn} today={today} />}
         <div className="flex flex-col gap-1">
           <p className="font-medium">
             {`Across all accounts: ${nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { whole: true })}`}

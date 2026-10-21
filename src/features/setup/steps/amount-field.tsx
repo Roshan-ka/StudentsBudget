@@ -61,7 +61,9 @@ export function AmountField({
 
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="leading-snug">
+        {label}
+      </Label>
       <div className="relative">
         <span
           aria-hidden="true"

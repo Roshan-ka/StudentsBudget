@@ -84,23 +84,17 @@ function Locked({ unlockDate }: { unlockDate: IsoDate }) {
 function Revealed({ rows, startedOn, today }: { rows: GuessRow[]; startedOn: IsoDate; today: IsoDate }) {
   return (
     <div className="flex flex-col gap-4">
-      {rows.length === 0 ? (
-        <p className="text-muted-foreground">No guesses were saved in setup, so there is nothing to compare yet.</p>
-      ) : (
-        <>
-          <ul aria-label="Your guesses" className="flex flex-col gap-4">
-            {rows.map((row) => (
-              <li key={row.categoryId} className="flex flex-col gap-0.5">
-                <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
-                <p className="tabular-nums">{guessLine(row)}</p>
-              </li>
-            ))}
-          </ul>
-          <p className="text-sm text-muted-foreground">
-            {`Your spending from ${formatDay(startedOn)} to ${formatDay(today)}, scaled to a month of 30 days.`}
-          </p>
-        </>
-      )}
+      <ul aria-label="Your guesses" className="flex flex-col gap-4">
+        {rows.map((row) => (
+          <li key={row.categoryId} className="flex flex-col gap-0.5">
+            <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
+            <p className="tabular-nums">{guessLine(row)}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="text-sm text-muted-foreground">
+        {`Your spending from ${formatDay(startedOn)} to ${formatDay(today)}, scaled to a month of 30 days.`}
+      </p>
       <Link href="/setup?edit=1" className={buttonVariants({ className: 'h-10 self-start px-4' })}>
         Adjust my plan
       </Link>
@@ -132,7 +126,10 @@ function Reveal({ plan, guesses, entries, today }: { plan: Plan; guesses: Guess[
 
   return (
     <div className="flex flex-col gap-8">
-      {unlocked ? (
+      {guesses.length === 0 ? (
+        // Guesses are optional, so there may be none to wait for.
+        <p className="text-muted-foreground">No guesses were saved in setup, so there is nothing to compare.</p>
+      ) : unlocked ? (
         <Revealed rows={rows} startedOn={plan.createdOn} today={today} />
       ) : (
         <Locked unlockDate={unlockDate} />
