@@ -23,7 +23,8 @@ function rule(id: Badge['id'], semesterWeeks: number): string {
       // A short semester still needs 13 weeks for gold (`goldWeeks`), which is then no whole semester.
       const gold = goldWeeks(semesterWeeks);
       return (
-        'Counts a week in which you log envelope spending yourself and spend no more than its share of your envelopes. ' +
+        'Counts a week in which you log envelope spending yourself and spend no more than its share of your envelopes: ' +
+        'what was left of them at the start of the week, split over the weeks left in the month. ' +
         `Bronze at 4 weeks, silver at 12, gold at ${gold}${gold === semesterWeeks ? ': a whole semester' : ''}.`
       );
     }

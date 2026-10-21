@@ -36,13 +36,14 @@ const PERIODS = [
 ] as const;
 
 /**
- * "Envelope spending counts from 16 Oct.", if the plan was set up in a month of the period, unless that was on the 1st;
- * null otherwise. The envelopes are planned for the whole month, but spending before the setup day is left out.
+ * "Envelope spending counts from 16 Oct, the day you set up.", if the plan was set up in a month of the period,
+ * unless that was on the 1st; null otherwise. The envelopes are planned for the whole month, but spending before the
+ * setup day is left out.
  */
 function countedFromNote(plan: Plan, months: IsoMonth[]): string | null {
   const { createdOn } = plan;
   if (!months.includes(monthOf(createdOn)) || createdOn === firstOfMonth(monthOf(createdOn))) return null;
-  return `Envelope spending counts from ${dayAndMonth.format(parseISO(createdOn))}.`;
+  return `Envelope spending counts from ${dayAndMonth.format(parseISO(createdOn))}, the day you set up.`;
 }
 
 /** The months of a period in a sentence or a caption: "October 2026", or "August 2026 to October 2026". */

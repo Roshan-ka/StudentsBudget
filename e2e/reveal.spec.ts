@@ -94,8 +94,9 @@ test('on day 22 each guess shows next to what was spent, and the plan can be adj
   await expect(page.getByText('Your spending from 16 Oct to 6 Nov, scaled to a month of 30 days.')).toBeVisible();
   await expect(page.getByText(/unlock on/)).toHaveCount(0);
 
-  // October is over by 1 Nov: planned 31000 + 12400, spent 10000 + 6000, so €274 left over. November is still running.
-  await expect(recaps(page)).toHaveText(['October 2026: €274 left over → savings']);
+  // October is over by 1 Nov: planned 31000 + 12400, spent 10000 + 6000, so €274 left over. The plan began on the 16th,
+  // so the line says where the counting began and does not call the €274 savings. November is still running.
+  await expect(recaps(page)).toHaveText(['October 2026 (counted from 16 Oct): €274 left over']);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   const adjust = page.getByRole('link', { name: 'Adjust my plan' });
@@ -112,8 +113,21 @@ test('a finished month that went over its plan reads calmly, even before the gue
   await page.clock.setFixedTime(noon('2026-11-02'));
   await page.goto('/reveal');
   await expect(page.getByText('Your guesses unlock on 6 Nov. Keep logging.', { exact: true })).toBeVisible();
-  await expect(recaps(page)).toHaveText(['October 2026: €66 over plan']);
+  await expect(recaps(page)).toHaveText(['October 2026 (counted from 16 Oct): €66 over plan']);
   await expect(page.getByText(/failed|warning/i)).toHaveCount(0);
+});
+
+test('a month after the setup month is planned from its 1st, so what is left of it is savings', async ({ page }) => {
+  await completeSetup(page);
+
+  // 2 Dec: October and November are over, and nothing was spent in either. Newest first.
+  await page.clock.setFixedTime(noon('2026-12-02'));
+  await page.goto('/reveal');
+  await expect(recaps(page)).toHaveText([
+    'November 2026: €434 left over → savings',
+    'October 2026 (counted from 16 Oct): €434 left over',
+  ]);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
 test('without a plan the page points to setup', async ({ page }) => {

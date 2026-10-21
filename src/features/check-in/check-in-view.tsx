@@ -18,7 +18,8 @@ import { useToday } from '@/lib/use-today';
 import { cn } from '@/lib/utils';
 import { weekLabel } from '@/lib/week-label';
 import { notCountedNote } from './not-counted';
-import { weekLine } from './week-line';
+import { weekLine, weekTotalLine } from './week-line';
+import { weekRows } from './week-rows';
 import { weekSwaps } from './week-swaps';
 
 const LINK_CLASS = 'inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline';
@@ -85,7 +86,8 @@ const EARLIER_THIS_WEEK: Titles = {
 /**
  * One part of a week, as `weekToSpend` cuts it at the month's edge: its range, each envelope against the
  * part's share of the plan, and what was logged in it. `day` is any day of the part, which also picks the
- * month whose budget it is measured against.
+ * month whose budget it is measured against. `withTotal` adds the week's total, the number Home shows as "This
+ * week", to the part that is today's.
  */
 function WeekPart({
   plan,
@@ -93,18 +95,21 @@ function WeekPart({
   accounts,
   day,
   titles,
+  withTotal,
 }: {
   plan: Plan;
   entries: Entry[];
   accounts: Account[];
   day: IsoDate;
   titles: Titles;
+  withTotal: boolean;
 }) {
   const planId = useId();
   const weekId = useId();
   const week = weekToSpend(plan, entries, day);
-  // Envelopes planned at €0 and not used this week would only add empty rows.
-  const rows = week.envelopes.filter((e) => e.weekShareMinor > 0 || e.spentThisWeekMinor > 0);
+  // Every envelope with a monthly amount is listed, even one that is used up and so has no share of the week; an
+  // envelope at €0 and a category with no envelope only when something was spent on it this week.
+  const rows = weekRows(plan, week.envelopes);
   // A swap is judged by the check-in's own measure: only a row over this week's share of the plan ("€12 over") gets
   // one. The month's early warning is Home's.
   const suggestions = weekSwaps(rows, day);
@@ -119,20 +124,23 @@ function WeekPart({
           {titles.against}
         </h3>
         {rows.length === 0 ? (
-          <p className="text-muted-foreground">No envelopes are planned for this week.</p>
+          <p className="text-muted-foreground">No envelope has an amount in your plan.</p>
         ) : (
-          <ul aria-labelledby={planId} className="flex flex-col gap-3">
-            {rows.map((row) => {
-              const suggestion = suggestions.get(row.categoryId);
-              return (
-                <li key={row.categoryId} className="flex flex-col gap-0.5">
-                  <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
-                  <p className="text-sm tabular-nums">{weekLine(row)}</p>
-                  {suggestion !== undefined && <SwapLine suggestion={suggestion} />}
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {withTotal && <p className="font-medium tabular-nums">{weekTotalLine(week.totalMinor)}</p>}
+            <ul aria-labelledby={planId} className="flex flex-col gap-3">
+              {rows.map((row) => {
+                const suggestion = suggestions.get(row.categoryId);
+                return (
+                  <li key={row.categoryId} className="flex flex-col gap-0.5">
+                    <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
+                    <p className="text-sm tabular-nums">{weekLine(row, row.usedUp)}</p>
+                    {suggestion !== undefined && <SwapLine suggestion={suggestion} />}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </section>
 
@@ -240,9 +248,16 @@ function CheckIn({
   return (
     <div className="flex flex-col gap-6">
       {earlierDay !== null && (
-        <WeekPart plan={plan} entries={entries} accounts={accounts} day={earlierDay} titles={EARLIER_THIS_WEEK} />
+        <WeekPart
+          plan={plan}
+          entries={entries}
+          accounts={accounts}
+          day={earlierDay}
+          titles={EARLIER_THIS_WEEK}
+          withTotal={false}
+        />
       )}
-      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} titles={THIS_WEEK} />
+      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} titles={THIS_WEEK} withTotal />
       <AwayToggle plan={plan} today={today} />
 
       <section aria-labelledby={addId} className="flex flex-col gap-3">

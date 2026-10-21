@@ -66,6 +66,8 @@ test('shows each envelope against this week and what was logged', async ({ page 
   await expect(section(page, 'This week against your plan').getByRole('listitem')).toHaveCount(2);
   await expectWeekLine(page, 'Food & groceries', '€103 planned · €0 spent · €103 under');
   await expectWeekLine(page, 'Eating out', '€41 planned · €6 spent · €35 under');
+  // The week in one number, the same as Home's "This week": €434 / 3 = €144.67, less the €6.
+  await expect(page.getByText('In total: €139 to spend this week', { exact: true })).toBeVisible();
 
   const entries = section(page, 'This week').getByRole('listitem');
   await expect(entries).toHaveCount(1);
@@ -179,6 +181,8 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await page.goto('/check-in');
   await expectWeekLine(page, 'Eating out', '€41 planned · €50 spent · €9 over');
   await expectWeekLine(page, 'Food & groceries', '€103 planned · €103 spent · on plan');
+  // €144.67 less €153.33 spent: the week as a whole is €8.66 over.
+  await expect(page.getByText('In total: €9 over this week', { exact: true })).toBeVisible();
 
   // Newest day first: today's rewe, then Saturday's purchase, which has no note and so shows its category.
   const entries = section(page, 'This week').getByRole('listitem');
@@ -295,6 +299,58 @@ test('an expense dated before the plan started is listed with a note that it is 
   // No tail on this Sunday: its week starts in its own month.
   await expect(page.getByRole('heading', { level: 3, name: 'Earlier this week' })).toHaveCount(0);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
+test('in a later week, an envelope that is used up is listed as used up and the total agrees with Home', async ({
+  page,
+}) => {
+  await completeSetup(page);
+  const accounts = await readStore<{ id: string; name: string }>(page, 'accounts');
+  const accountId = accounts.find((a) => a.name === 'Cash')?.id;
+  // €506 on eating out on Sat 17 Oct, against its €124 for the month.
+  await putEntries(page, [
+    {
+      id: 'party',
+      type: 'expense',
+      accountId,
+      categoryId: 'eating-out',
+      date: '2026-10-17',
+      amountMinor: 50600,
+      eurMinor: 50600,
+      note: 'Party',
+      createdAt: '2026-10-17T10:00:00.000Z',
+    },
+  ]);
+
+  // Mon 19 Oct, with two weeks of October left (19-25 and 26-31) and nothing spent yet this week: the €434 for the
+  // month is €72 over, which is €36 over for each of the two weeks.
+  await page.clock.setFixedTime(new Date(2026, 9, 19, 12, 0, 0));
+  await page.goto('/');
+  const card = page.getByRole('region', { name: 'Left to spend this month' });
+  await expect(card.getByText('€72 over this month', { exact: true })).toBeVisible();
+  await expect(card.getByText('This week: €36 over', { exact: true })).toBeVisible();
+
+  await page.goto('/check-in');
+  await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
+  await expect(page.getByText('Mon 19 – Sun 25 Oct', { exact: true })).toBeVisible();
+  await expect(page.getByText('In total: €36 over this week', { exact: true })).toBeVisible();
+  // Eating out is used up and has no share, but it is still listed. Food has half of its €310.
+  await expect(section(page, 'This week against your plan').getByRole('listitem')).toHaveCount(2);
+  await expectWeekLine(page, 'Eating out', 'Nothing left this month · €0 spent');
+  await expectWeekLine(page, 'Food & groceries', '€155 planned · €0 spent · €155 under');
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  // €6 more on eating out comes off the week, and the line says it plainly. Home and the total follow together.
+  await quickAdd(page, 'döner 6');
+  await page.getByRole('button', { name: 'Eating out' }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
+  await expectWeekLine(page, 'Eating out', 'Nothing left this month · €6 spent · €6 over');
+  await expect(page.getByText('In total: €42 over this week', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  await page.goto('/');
+  await expect(card.getByText('€78 over this month', { exact: true })).toBeVisible();
+  await expect(card.getByText('This week: €42 over', { exact: true })).toBeVisible();
 });
 
 test('home says when the check-in is and highlights it on Sunday', async ({ page }) => {

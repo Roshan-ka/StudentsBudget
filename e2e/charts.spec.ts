@@ -337,7 +337,7 @@ test('a period of 3 months adds up the months, and the month switcher moves wher
   await expect(monthSwitcher(page)).toContainText('Aug – Oct 2026');
   await expect(spending.getByRole('img', { name: /August 2026 to October 2026/ })).toBeVisible();
   // The plan started on the 16th, which is inside the period.
-  await expect(spending.getByText('Envelope spending counts from 16 Oct.', { exact: true })).toBeVisible();
+  await expect(spending.getByText('Envelope spending counts from 16 Oct, the day you set up.', { exact: true })).toBeVisible();
   await expect(spending.getByRole('listitem').first()).toHaveText('Food & groceries€30051%');
 
   // Bars: food was spent €300 over three months, against the €310 planned for October (there was no plan before).
@@ -577,10 +577,10 @@ test('the setup month plans the whole envelope, counts spending from the setup d
   const note = /Envelope spending counts/;
 
   // October: €20 of the whole €310, not €200 of it, and the line that explains why the €180 is left out.
-  await expect(spending.getByText('Envelope spending counts from 16 Oct.', { exact: true })).toBeVisible();
+  await expect(spending.getByText('Envelope spending counts from 16 Oct, the day you set up.', { exact: true })).toBeVisible();
   await expect(food).toHaveText(['€20', '€310']);
   // The table carries the line too.
-  await expect(spending.getByRole('table')).toContainText('Envelope spending counts from 16 Oct.');
+  await expect(spending.getByRole('table')).toContainText('Envelope spending counts from 16 Oct, the day you set up.');
 
   // September came before the plan: what was spent, with nothing to measure it against.
   await monthSwitcher(page).getByRole('button', { name: 'Previous' }).click();
