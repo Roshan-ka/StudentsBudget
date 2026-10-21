@@ -547,6 +547,12 @@ test('the month switcher moves between months, and a month with nothing in it sa
   await monthSwitcher(page).getByRole('button', { name: 'Next' }).click();
   await expect(monthSwitcher(page)).toContainText('November 2026');
   await expect(page.getByText('Nothing logged in November yet.')).toBeVisible();
+  // The line replaces spending and income only: the 6 months behind November reach October's döner, so the two charts
+  // that look back 6 months stay, and the over-time chart opens on the category that was spent in them.
+  await expect(spendingSection(page)).toHaveCount(0);
+  await expect(incomeSection(page)).toHaveCount(0);
+  await expect(savingsSection(page)).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Eating out over time' })).toBeVisible();
 
   // A longer period says so in the same words, for its months: November to January has nothing in it either.
   await monthSwitcher(page).getByRole('button', { name: 'Next' }).click();

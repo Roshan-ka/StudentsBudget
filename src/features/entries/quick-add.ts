@@ -316,25 +316,61 @@ export function parseQuickAdd(text: string): QuickAddAmount | QuickAddChoice | n
   return options === null ? { amountMinor: chosen.minor, note } : { kind: 'choice', note, options };
 }
 
-/** The first word of a note, without a comma, semicolon or colon after it, lower-cased; null for a blank note. */
-export function keywordOf(note: string): string | null {
-  const first = note.trim().split(/\s+/)[0].replace(WORD_SEPARATOR_END, '');
-  return first ? first.toLocaleLowerCase('de-DE') : null;
+/** Words that carry no meaning of their own ("lunch at mensa"): they never choose a category. */
+const STOP_WORDS = new Set(['a', 'an', 'the', 'at', 'for', 'with', 'and', 'of', 'in', 'on', 'to', 'from', 'my']);
+/** Number words ("two coffees") are numbers like "2 coffees": a quantity says nothing about the category. */
+const NUMBER_WORDS = new Set([...UNITS.keys(), ...SMALL.keys(), ...TENS.keys()]);
+/** A word's own punctuation at either end: "Coffee.", "mensa,". */
+const EDGE_PUNCTUATION = /^[.,;:]+|[.,;:]+$/g;
+
+/**
+ * The words of a note that can choose a category, in order, lower-cased and without a full stop, comma, semicolon or
+ * colon at either end. Numbers ("6", "7,40", "€", "two"), currency markers and the stop words are left out.
+ */
+export function keywordsOf(note: string): string[] {
+  const words: string[] = [];
+  for (const token of note.split(/\s+/)) {
+    const word = token.replace(EDGE_PUNCTUATION, '').toLocaleLowerCase('de-DE');
+    const skipped =
+      word === '' ||
+      NUMBER_LIKE.test(word) ||
+      MARKERS.has(word) ||
+      NUMBER_WORDS.has(word) ||
+      HYPHEN_COMPOUND.test(word) ||
+      STOP_WORDS.has(word);
+    if (!skipped) words.push(word);
+  }
+  return words;
 }
 
 /**
- * The category of the most recent expense whose note starts with the same word, or null. Entries a schedule
- * posted do not count: their note is the category name ("Phone & internet"), not something the person typed.
+ * The category of the most recent expense that shares a word with the note, or null. The note's words are tried in
+ * order, and the first one that an earlier expense has, as a whole word, decides: "lunch at mensa" finds "mensa 4"
+ * through "mensa", and "döner" does not find "dönerbox". Entries a schedule posted do not count: their note is the
+ * category name ("Phone & internet"), not something the person typed.
+ *
+ * Known limit: the first word with any history wins, not the best one. "big rewe shop" takes an earlier "big pizza"'s
+ * category, though "rewe" has a history of its own. The AI phase replaces this reading, so it stays simple.
  */
 export function suggestCategory(note: string, history: Entry[]): string | null {
-  const keyword = keywordOf(note);
-  if (keyword === null) return null;
+  const keywords = keywordsOf(note);
+  if (keywords.length === 0) return null;
 
-  let latest: { categoryId: string; createdAt: string } | null = null;
+  // Each expense the person typed, with the words of its note, read once for all the keywords tried.
+  const typed: { categoryId: string; createdAt: string; words: Set<string> }[] = [];
   for (const entry of history) {
-    if (entry.type !== 'expense' || entry.recurring !== undefined || keywordOf(entry.note) !== keyword) continue;
-    // createdAt is always written with toISOString(), so comparing the strings compares the times.
-    if (latest === null || entry.createdAt > latest.createdAt) latest = entry;
+    if (entry.type !== 'expense' || entry.recurring !== undefined) continue;
+    typed.push({ categoryId: entry.categoryId, createdAt: entry.createdAt, words: new Set(keywordsOf(entry.note)) });
   }
-  return latest?.categoryId ?? null;
+
+  for (const keyword of keywords) {
+    let latest: { categoryId: string; createdAt: string } | null = null;
+    for (const entry of typed) {
+      if (!entry.words.has(keyword)) continue;
+      // createdAt is always written with toISOString(), so comparing the strings compares the times.
+      if (latest === null || entry.createdAt > latest.createdAt) latest = entry;
+    }
+    if (latest !== null) return latest.categoryId;
+  }
+  return null;
 }

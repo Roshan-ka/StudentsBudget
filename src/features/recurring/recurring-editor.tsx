@@ -9,7 +9,7 @@ import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '@/compon
 import { db } from '@/db/db';
 import type { Account, Category, Plan, PlanLine } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
-import { categoryName } from '@/features/entries/categories';
+import { INCOME_CATEGORIES, categoryName } from '@/features/entries/categories';
 import { monthOf, todayIso, type IsoDate } from '@/lib/dates';
 import { formatMoney, parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
@@ -29,6 +29,7 @@ import {
 import { RepeatFields, type Timing } from './repeat-fields';
 import { firstAddedOn, monthlyEquivalent } from './schedule';
 import { updatePlan } from './update-plan';
+import { useLineEntries } from './use-line-entries';
 
 type Change = (mutate: (plan: Plan) => Plan) => Promise<boolean>;
 
@@ -85,8 +86,11 @@ function LineForm({
       : null;
   const name = line ? categoryName(line.categoryId) : null;
   // A new or turned-on line starts tomorrow, as does one whose account was gone once one is picked; a resumed one has
-  // not started either. Each says when its first entry comes.
-  const firstOn = auto && account ? firstAddedOn(timing, s, today, orphaned) : null;
+  // not started either. Each says when its first entry comes, past a period the line already has an automatic entry
+  // in, as the poster passes over it.
+  const lineType = INCOME_CATEGORIES.some((c) => c.id === categoryId) ? 'income' : 'expense';
+  const lineEntries = useLineEntries(lineType, categoryId);
+  const firstOn = auto && account && lineEntries ? firstAddedOn(timing, s, today, orphaned, lineEntries) : null;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

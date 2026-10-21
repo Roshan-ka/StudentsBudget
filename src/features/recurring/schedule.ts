@@ -1,5 +1,5 @@
 import { getISODay, isValid, parseISO } from 'date-fns';
-import type { Schedule } from '@/db/types';
+import type { Entry, Schedule } from '@/db/types';
 import { addDays, daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoDate } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 import { newId } from '@/lib/new-id';
@@ -52,17 +52,53 @@ export function firstOccurrence(timing: Timing, startOn: IsoDate): IsoDate {
   return occurrence >= startOn ? occurrence : occurrenceIn(timing, nextPeriodStart(timing, start));
 }
 
+/** The kind of entry a plan line posts: income lines post income, fixed lines post expenses. */
+export type LineType = 'income' | 'expense';
+
+/** The line an automatic entry belongs to: the entry's type and category. */
+export type LineKey = { type: LineType; categoryId: string };
+
+/** Entries to look through for a line: its key, and entries of its category, any of which may be by hand. */
+export type LineEntries = LineKey & { entries: readonly Entry[] };
+
+/** Whether a schedule posted the entry, for the line: automatic, with the line's type and category. */
+function isAutomaticEntryOf(entry: Entry, line: LineKey): boolean {
+  return (
+    entry.type !== 'transfer' &&
+    entry.type === line.type &&
+    entry.categoryId === line.categoryId &&
+    entry.recurring !== undefined
+  );
+}
+
+/**
+ * Whether `period` already holds an entry a schedule posted for the line, from any schedule: one that replaced another
+ * for the same line finds what the old one posted. An entry logged by hand does not count. The poster skips such a
+ * period, and `firstAddedOn` looks past it.
+ */
+export function holdsAutomaticEntry(
+  entries: readonly Entry[],
+  period: { start: IsoDate; end: IsoDate },
+  line: LineKey,
+): boolean {
+  return entries.some((e) => e.date >= period.start && e.date <= period.end && isAutomaticEntryOf(e, line));
+}
+
 /**
  * The day the first automatic entry comes, for a line whose schedule has not started yet. Without a `stored` schedule
  * (a new line, or one turned on) it starts tomorrow, as `newSchedule` does; with `restart` a stored one is added again
  * from tomorrow (`restartSchedule`). The first entry is the first occurrence from the start, or from the day after the
  * watermark when that is later. Null once the schedule has started (its start is today or earlier) and while paused.
+ *
+ * Given the `line`'s entries, a period that already holds an automatic entry of the line is passed over, as the
+ * poster passes over it: rent posted on 1 November, turned off and on again with day 15, first comes on 15 December.
  */
 export function firstAddedOn(
   timing: Timing,
   stored: Schedule | undefined,
   today: IsoDate,
   restart = false,
+  line?: LineEntries,
 ): IsoDate | null {
   const s =
     stored === undefined
@@ -71,7 +107,15 @@ export function firstAddedOn(
         ? restartSchedule(stored, today)
         : stored;
   if (stored?.paused || s.startOn <= today) return null;
-  return firstOccurrence(timing, laterOf(s.startOn, addDays(s.postedThrough, 1)));
+  let first = firstOccurrence(timing, laterOf(s.startOn, addDays(s.postedThrough, 1)));
+  if (line === undefined) return first;
+  // Each period passed over holds at least one of the entries, so this ends.
+  let period = periodOf(timing, first);
+  while (holdsAutomaticEntry(line.entries, period, line)) {
+    first = occurrenceIn(timing, nextPeriodStart(timing, period.start));
+    period = periodOf(timing, first);
+  }
+  return first;
 }
 
 /**

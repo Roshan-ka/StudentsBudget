@@ -52,6 +52,8 @@ export function IncomeStep({
             {line?.schedule && line.monthlyMinor > 0 && (
               <DraftScheduleFields
                 name={c.name}
+                categoryId={c.id}
+                type="income"
                 monthlyMinor={line.monthlyMinor}
                 schedule={line.schedule}
                 accounts={accounts}
