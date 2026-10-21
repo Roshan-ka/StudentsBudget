@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Account, Entry, Plan, PlanLine, Rate } from '../src/db/types';
-import { DEFAULT_SETUP, FRANKFURTER, completeSetup, fillSetup, readStore } from './helpers/setup';
+import { FRANKFURTER, completeSetup, fillSetup, readStore } from './helpers/setup';
 
 /** Noon on a local calendar day; month is 1–12. */
 const on = (year: number, month: number, day: number) => new Date(year, month - 1, day, 12, 0, 0);
@@ -139,9 +139,8 @@ test('rent is added on its day, a changed day posts once, and a deleted one stay
 test('setup and the editor say when the first automatic entry comes', async ({ page }) => {
   // Set up on 1 November: a new line starts tomorrow, so rent on day 1 first comes in December.
   await page.clock.setFixedTime(on(2026, 11, 1));
-  // From November the €300 fee is set aside over four months, so food is planned lower to keep the plan in budget.
-  await fillSetup(page, { envelopes: { ...DEFAULT_SETUP.envelopes, food: '200' } }, { schedules: true });
-  for (const step of ['Guesses', 'One-off costs', 'Fixed costs']) {
+  await fillSetup(page, {}, { schedules: true });
+  for (const step of ['Everyday budget', 'Guesses', 'One-off costs', 'Fixed costs']) {
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
@@ -150,7 +149,7 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
   await rent.getByLabel('Day', { exact: true }).selectOption('15');
   await expect(rent.getByText('First added on 15-11-2026.', { exact: true })).toBeVisible();
   await rent.getByLabel('Day', { exact: true }).selectOption('1');
-  for (const step of ['One-off costs', 'Guesses', 'Envelopes']) {
+  for (const step of ['One-off costs', 'Guesses', 'Everyday budget', 'Envelopes']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }

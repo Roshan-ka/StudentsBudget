@@ -2,7 +2,7 @@
 Budget app for students new to a city: see where your money goes across all your accounts and cash, check whether your budget is realistic for your city, and log spending in seconds. Installable web app; data stays on your phone.
 
 ## What it is
-StudentsBudget helps you through your first months in a new city. You set up your rent, your income and your accounts once, for example a local bank, a bank back home and some cash. The app compares your plan with typical costs in Regensburg, the only city it knows so far.
+StudentsBudget helps you through your first months in a new city. You set up your rent, your income, what you want to spend each month and your accounts once, for example a local bank, a bank back home and some cash. The app compares your plan with typical costs in Regensburg, the only city it knows so far.
 
 After that you log spending in a few seconds, with a line like "döner 6". The home screen shows how much is left to spend this month, and under it how much is safe to spend this week. Charts show where the money went. On Sundays, a short check-in looks back at the week.
 
@@ -23,6 +23,8 @@ Open the app once while you are online after each update. From then on it opens 
 Exchange rates need a connection to refresh. Offline, the app shows the last rates it saved, each with the date it is from (Settings, then Exchange rates).
 
 ## Using the app
+**Setup.** Setup asks only the basics: rent, your accounts, a few income sources and fixed costs, one-off costs, optional guesses, an optional everyday budget (what you want to spend in a month, apart from rent and your fixed costs) and an amount for six envelopes. Amounts can be left blank, and nothing stops you from saving, even a plan that adds up to more than your income: the app shows it calmly, and Home suggests a budget. With an everyday budget, each envelope shows a suggested amount next to what students here spend, and "Use this split" fills them all. Guesses you skip are not saved. If you live off savings, enter what you use each month as Other income and switch off "Add it automatically", so it is not logged as income. The other income sources, fixed costs and envelopes are under Settings, then Edit plan.
+
 **Fixed costs and income.** Rent, your income and other fixed costs can be added for you on their day. Leave "Add it automatically" on in setup, or change it later under Settings, then Fixed costs and income, where you can also pause, resume and edit a line. A new or resumed line starts the next day, and setup and Settings say when its first entry comes. If the app was closed on that day, the entry is added the next time you open it. These entries are tagged "Recurring" in Entries. Don't log them by hand as well, or they count twice.
 
 **Home.** The big number is what is left to spend this month across your envelopes, with a "This week" line under it. Going over reads as "€12 over". A suggested budget (an amount per category, from last month's spending or from typical Regensburg costs) leads in the first week of the month, or when your envelopes add up to more than what is available. Otherwise it waits behind "See a suggested budget". "Use this budget" changes your envelopes only.

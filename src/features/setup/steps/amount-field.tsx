@@ -46,7 +46,7 @@ export function AmountField({
   value: Minor | undefined;
   onChange: (minor: Minor | undefined) => void;
   blank?: Blank;
-  /** Zero is not allowed (a one-off cost). */
+  /** Zero is not allowed (the amount of a schedule in another currency). */
   positive?: boolean;
   unit?: string;
   /** The input itself, for a caller that moves the focus to it. */

@@ -115,7 +115,7 @@ How the envelopes work:
 4. The rest is split into flexible envelopes: food, eating out, going out, transport, shopping, other. P1.1 adds health and pharmacy, personal care, study materials, household, travel and gifts. Each envelope's monthly amount is spread evenly over the month's weeks.
 5. Safe to spend this week = this week's share of the flexible envelopes + whatever was left from earlier weeks this month − what you've spent this week. Overspending lowers the coming weeks.
 6. At month end, the leftover goes to savings or a goal, and the next month starts fresh.
-7. The plan can't add up to more than income. The app warns and shows by how much.
+7. A plan can add up to more than income. The app shows it calmly and suggests a budget on Home.
 8. Income that varies (a job with changing hours) is planned on a low estimate. Anything extra goes to savings.
 
 ### 6. Charts (P1)

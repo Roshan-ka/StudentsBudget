@@ -73,7 +73,6 @@ function OneOffRow({
       </div>
       <AmountField
         label="Amount"
-        positive
         hint={feeSource}
         inputRef={amountRef}
         value={oneOff.amountMinor}
@@ -127,7 +126,7 @@ export function OneOffsStep({
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground">
         Big costs that come once, like a semester fee or a deposit. We set a share aside each month until the due
-        month. Skip this if you have none.
+        month. Skip this if you have none. A cost without an amount is left out.
       </p>
       {draft.oneOffs.map((oneOff, index) => (
         <OneOffRow

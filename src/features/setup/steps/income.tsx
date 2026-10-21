@@ -1,9 +1,11 @@
 'use client';
 
+import { SETUP_INCOME_IDS } from '@/data/categories';
 import { DraftScheduleFields } from '@/features/recurring/draft-schedule-fields';
 import type { IsoDate } from '@/lib/dates';
 import {
   INCOME_CATEGORIES,
+  askedCategories,
   setLineAmount,
   setLineSchedule,
   type AccountOption,
@@ -17,18 +19,25 @@ export function IncomeStep({
   update,
   accounts,
   today,
+  edit,
 }: {
   draft: SetupDraft;
   update: DraftUpdate;
   accounts: AccountOption[];
   today: IsoDate;
+  /** Edit mode asks every income source; a new setup asks the basic ones. */
+  edit: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground">
         How much comes in each month, in euros? Leave out what you do not get. If it varies, enter a low estimate.
       </p>
-      {INCOME_CATEGORIES.map((c) => {
+      <p className="text-muted-foreground">
+        Living off savings? Add what you use each month under Other income and switch off{' '}
+        <em>Add it automatically</em>.
+      </p>
+      {askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, edit, draft.incomes).map((c) => {
         const line = draft.incomes.find((l) => l.categoryId === c.id);
         return (
           <div key={c.id} className="flex flex-col gap-2">

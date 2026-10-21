@@ -1,10 +1,12 @@
 'use client';
 
+import { SETUP_FIXED_IDS } from '@/data/categories';
 import { DraftScheduleFields } from '@/features/recurring/draft-schedule-fields';
 import type { IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import {
   FIXED_CATEGORIES,
+  askedCategories,
   setLineAmount,
   setLineSchedule,
   type AccountOption,
@@ -19,11 +21,14 @@ export function FixedStep({
   update,
   accounts,
   today,
+  edit,
 }: {
   draft: SetupDraft;
   update: DraftUpdate;
   accounts: AccountOption[];
   today: IsoDate;
+  /** Edit mode asks every fixed cost; a new setup asks the basic ones. */
+  edit: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -43,7 +48,7 @@ export function FixedStep({
           />
         </div>
       )}
-      {FIXED_CATEGORIES.map((c) => {
+      {askedCategories(FIXED_CATEGORIES, SETUP_FIXED_IDS, edit, draft.fixed).map((c) => {
         const line = draft.fixed.find((l) => l.categoryId === c.id);
         return (
           <div key={c.id} className="flex flex-col gap-2">

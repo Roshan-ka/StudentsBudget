@@ -16,7 +16,6 @@ import {
   draftToRecords,
   dropUnparsed,
   initialDraft,
-  summarizeDraft,
   validateStep,
   withAccountKeys,
   type AccountOption,
@@ -25,6 +24,7 @@ import {
   type StepId,
 } from './draft';
 import { AccountsStep } from './steps/accounts';
+import { BudgetStep } from './steps/budget';
 import { CityRentStep } from './steps/city-rent';
 import { EnvelopesStep } from './steps/envelopes';
 import { FixedStep } from './steps/fixed';
@@ -32,7 +32,7 @@ import { GuessesStep } from './steps/guesses';
 import { IncomeStep } from './steps/income';
 import { OneOffsStep } from './steps/one-offs';
 
-const NEW_STEPS: StepId[] = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'envelopes'];
+const NEW_STEPS: StepId[] = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'budget', 'envelopes'];
 // Accounts are edited in Settings and guesses are locked, so editing skips both.
 const EDIT_STEPS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts' && s !== 'guesses');
 // Accounts that already exist (added in Settings before setup) are kept, so a new setup skips that step.
@@ -93,7 +93,6 @@ function Wizard({
   const isLast = index === steps.length - 1;
   const existing = edit && stored ? stored : undefined;
   const problems = validateStep(step, draft, today, existing, storedAccounts);
-  const overBy = isLast ? summarizeDraft(draft, today, existing).overByMinor : 0;
   const accounts = accountOptions(draft, storedAccounts);
 
   useEffect(() => {
@@ -164,11 +163,14 @@ function Wizard({
       {step === 'income' && !edit && accountsExist && (
         <p className="text-sm text-muted-foreground">Your accounts are already set up in Settings.</p>
       )}
-      {step === 'income' && <IncomeStep draft={draft} update={update} accounts={accounts} today={today} />}
-      {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} />}
+      {step === 'income' && <IncomeStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
+      {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
       {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
       {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
-      {step === 'envelopes' && <EnvelopesStep draft={draft} update={update} today={today} existing={existing} />}
+      {step === 'budget' && <BudgetStep draft={draft} update={update} />}
+      {step === 'envelopes' && (
+        <EnvelopesStep draft={draft} update={update} today={today} existing={existing} edit={edit} />
+      )}
 
       {attempted && problems.length > 0 && (
         <div role="alert" className="text-sm text-destructive">
@@ -192,7 +194,7 @@ function Wizard({
           </Button>
         )}
         {isLast ? (
-          <Button type="button" className="h-10 px-4" onClick={() => void save()} disabled={saving || overBy > 0}>
+          <Button type="button" className="h-10 px-4" onClick={() => void save()} disabled={saving}>
             Save plan
           </Button>
         ) : (

@@ -244,7 +244,14 @@ const total = (rows: { amountMinor: number }[]) => rows.reduce((sum, row) => sum
 describe('startingRows', () => {
   it('gives one row per id asked for, in that order', () => {
     const rows = setupRows();
-    expect(rows.map((r) => r.categoryId)).toEqual(['food', 'eating-out', 'going-out', 'transport', 'shopping', 'other']);
+    expect(rows.map((r) => r.categoryId)).toEqual([
+      'food',
+      'eating-out',
+      'going-out',
+      'transport',
+      'shopping',
+      'other',
+    ]);
     expect(startingRows(setupCity, NO_SPENDING, ['other', 'food']).map((r) => r.categoryId)).toEqual(['other', 'food']);
     expect(startingRows(setupCity, NO_SPENDING, [])).toEqual([]);
   });

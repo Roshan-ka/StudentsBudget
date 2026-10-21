@@ -2,7 +2,10 @@ import { expect, type Page } from '@playwright/test';
 
 export type FlexibleId = 'food' | 'eating-out' | 'going-out' | 'transport' | 'shopping' | 'other';
 
-/** What a test types into the setup wizard. Every amount is text, in euros except the opening balances. */
+/**
+ * What a test types into the setup wizard. Every amount is text, in euros except the opening balances; an empty
+ * string leaves the field blank.
+ */
 export type SetupFixture = {
   rent: string;
   /** Opening balances of the prefilled accounts, in order: Local bank (EUR), Home bank (INR), Cash (EUR). */
@@ -10,6 +13,8 @@ export type SetupFixture = {
   incomes: { parents: string; job: string };
   oneOff: { name: string; amount: string; dueMonth: string };
   guesses: Record<FlexibleId, string>;
+  /** The everyday budget; blank skips the question. */
+  budget: string;
   envelopes: Record<FlexibleId, string>;
 };
 
@@ -19,8 +24,13 @@ export const DEFAULT_SETUP: SetupFixture = {
   incomes: { parents: '500', job: '400' },
   oneOff: { name: 'Semester fee', amount: '300', dueMonth: '2027-03' },
   guesses: { food: '200', 'eating-out': '80', 'going-out': '60', transport: '20', shopping: '40', other: '20' },
+  budget: '',
   envelopes: { food: '310', 'eating-out': '124', 'going-out': '0', transport: '0', shopping: '0', other: '0' },
 };
+
+/** The question of the everyday budget step. */
+export const BUDGET_LABEL =
+  'How much do you want to spend in a month on everyday things, apart from rent and your fixed costs?';
 
 const GUESS_TOPIC: Record<FlexibleId, string> = {
   food: 'food & groceries',
@@ -165,6 +175,9 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   for (const id of FLEXIBLE_IDS) {
     await page.getByLabel(`What do you think you spend on ${GUESS_TOPIC[id]} a month?`).fill(f.guesses[id]);
   }
+  await nextStep(page, 'Everyday budget');
+
+  if (f.budget !== '') await page.getByLabel(BUDGET_LABEL).fill(f.budget);
   await nextStep(page, 'Envelopes');
 
   for (const id of FLEXIBLE_IDS) {

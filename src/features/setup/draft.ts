@@ -508,6 +508,16 @@ export function envelopesFooter(s: PlanSummary): string {
   return parts.join(' · ');
 }
 
+/**
+ * The line under the envelopes when there is an everyday budget: "€394 of your €600 budget", or "€40 over your €600
+ * budget". Whole euros; the overage is rounded up, so it never reads as less than it is.
+ */
+export function budgetLine(plannedMinor: Minor, budgetMinor: Minor): string {
+  const budget = wholeEuros(budgetMinor);
+  if (plannedMinor <= budgetMinor) return `${wholeEuros(plannedMinor)} of your ${budget} budget`;
+  return `${wholeEuros(Math.ceil((plannedMinor - budgetMinor) / 100) * 100)} over your ${budget} budget`;
+}
+
 /** "Students here: €200–260", with "(estimate)" added when no source gives the number. */
 export function rangeLine(prefix: string, range: Pick<CityRange, 'minMinor' | 'maxMinor' | 'source'>): string {
   const line = `${prefix}: ${formatRange(range.minMinor, range.maxMinor)}`;

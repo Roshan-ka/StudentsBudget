@@ -7,6 +7,7 @@ import {
   INCOME_CATEGORIES,
   accountOptions,
   askedCategories,
+  budgetLine,
   draftAccountOf,
   draftFromPlan,
   draftToRecords,
@@ -566,6 +567,26 @@ describe('envelopesFooter', () => {
       expect(footer(planned(15666 + 2401))).toContain('Over by €25');
       expect(footer(planned(15666 + 2400))).toContain('Over by €24');
     });
+  });
+});
+
+describe('budgetLine', () => {
+  it('says how much of the budget the envelopes use', () => {
+    expect(budgetLine(39400, 60000)).toBe('€394 of your €600 budget');
+    expect(budgetLine(0, 60000)).toBe('€0 of your €600 budget');
+    expect(budgetLine(60000, 60000)).toBe('€600 of your €600 budget');
+  });
+
+  it('says how much it is over, in whole euros and never less than it is', () => {
+    expect(budgetLine(64000, 60000)).toBe('€40 over your €600 budget');
+    // €0.40 over reads as €1 over, not as nothing.
+    expect(budgetLine(60040, 60000)).toBe('€1 over your €600 budget');
+    expect(budgetLine(60100, 60000)).toBe('€1 over your €600 budget');
+    expect(budgetLine(60101, 60000)).toBe('€2 over your €600 budget');
+  });
+
+  it('rounds an amount with cents to whole euros when it is within the budget', () => {
+    expect(budgetLine(39450, 60000)).toBe('€395 of your €600 budget');
   });
 });
 
