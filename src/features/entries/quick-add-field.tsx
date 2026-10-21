@@ -12,7 +12,6 @@ import { todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { buildEntry } from './build-entry';
 import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES, categoryName } from './categories';
-import { pickQuickAddAccount } from './quick-add-account';
 import {
   accountFor,
   checkReading,
@@ -120,7 +119,7 @@ function AmountChoice({
  * asks which amount. A line that says what was saved comes with an Undo button.
  *
  * `provider` reads the line (the local parser unless another is given), once per submit. Its category, account and
- * date are checked against the data first: an unknown one falls back to the chips, `pickQuickAddAccount` or today.
+ * date are checked against the data first: an unknown one falls back to the chips, the default account or today.
  */
 export function QuickAddField({ provider = localQuickAddProvider }: { provider?: QuickAddProvider }) {
   const id = useId();
@@ -161,8 +160,8 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
   }
 
   /**
-   * Saves to the account the reading names, else the one `pickQuickAddAccount` chooses, dated the reading's day or
-   * today. Says why in `error` when it cannot. Callers go through `runOnce`.
+   * Saves to the account the reading names, else the default account, dated the reading's day or today. Says why in
+   * `error` when it cannot. Callers go through `runOnce`.
    */
   async function save(line: QuickAddAmountReading, categoryId: string) {
     setError(null);
@@ -221,7 +220,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
   /** Shows the two amount buttons, in the currency of the account quick add saves to. */
   function ask(readings: QuickAddChoiceReading, accounts: Account[]) {
     setError(null);
-    setChoice({ ...readings, currency: pickQuickAddAccount(accounts)?.currency ?? 'EUR' });
+    setChoice({ ...readings, currency: accountFor(accounts, undefined)?.currency ?? 'EUR' });
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {

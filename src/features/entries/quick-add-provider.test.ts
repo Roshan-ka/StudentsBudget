@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Account, Entry } from '@/db/types';
 import { parseQuickAdd, suggestCategory } from './quick-add';
-import { pickQuickAddAccount } from './quick-add-account';
 import {
   accountFor,
   checkReading,
@@ -333,10 +332,35 @@ describe('accountFor', () => {
     expect(accountFor(accounts, 'bank')).toBe(bank);
   });
 
-  it('falls back to pickQuickAddAccount without one, or for one that is gone', () => {
-    expect(pickQuickAddAccount(accounts)).toBe(cash);
-    expect(accountFor(accounts, undefined)).toBe(cash);
-    expect(accountFor(accounts, 'deleted-account')).toBe(cash);
+  it('falls back to the default account without one, or for one that is gone: the euro bank account, not cash', () => {
+    expect(accountFor(accounts, undefined)).toBe(bank);
+    expect(accountFor(accounts, 'deleted-account')).toBe(bank);
     expect(accountFor([], 'bank')).toBeUndefined();
+  });
+
+  it('falls back to the account marked as the default, even if it is cash', () => {
+    const markedCash = { ...cash, isDefault: true as const };
+
+    expect(accountFor([bank, markedCash], undefined)).toBe(markedCash);
+    expect(accountFor([bank, markedCash], 'deleted-account')).toBe(markedCash);
+    // A reading that names an account still wins.
+    expect(accountFor([bank, markedCash], 'bank')).toBe(bank);
+  });
+
+  it('counts from the account created first, in whatever order the accounts arrive', () => {
+    const earlier = { ...bank, id: 'bank-0', createdAt: '2026-10-01T08:00:00.000Z' };
+
+    expect(accountFor([cash, bank, earlier], undefined)).toBe(earlier);
+  });
+
+  it('is the first euro bank account for accounts made together in setup, where every createdAt is the same', () => {
+    const together = '2026-10-16T08:00:00.000Z';
+    const setup = [
+      { ...cash, createdAt: together },
+      { ...bank, id: 'home-bank', name: 'Home bank', currency: 'INR' as const, createdAt: together },
+      { ...bank, id: 'local-bank', name: 'Local bank', createdAt: together },
+    ];
+
+    expect(accountFor(setup, undefined)?.id).toBe('local-bank');
   });
 });

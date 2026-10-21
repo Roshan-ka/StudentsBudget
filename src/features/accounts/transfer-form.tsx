@@ -14,7 +14,7 @@ import type { Entry } from '@/db/types';
 import type { IsoDate } from '@/lib/dates';
 import { parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
-import { sortAccounts } from './balances';
+import { defaultAccount, sortAccounts } from './balances';
 import { buildTransfer } from './transfer';
 
 function minorToInput(minor: Minor): string {
@@ -31,7 +31,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
   // Today's date, kept current: null until the browser runs this (never the date of the prerender).
   const today = useToday();
-  // null until the person picks: the first account sends, the first other account receives.
+  // null until the person picks: the default account sends, the first other account receives.
   const [fromChoice, setFromChoice] = useState<string | null>(editing?.accountId ?? null);
   const [toChoice, setToChoice] = useState<string | null>(editing?.toAccountId ?? null);
   const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
@@ -49,7 +49,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
   }
 
   // An account deleted while the form is open falls back to the default.
-  const from = accounts.find((account) => account.id === fromChoice) ?? accounts[0];
+  const from = accounts.find((account) => account.id === fromChoice) ?? defaultAccount(accounts) ?? accounts[0];
   const to = accounts.find((account) => account.id === toChoice) ?? accounts.filter((a) => a.id !== from.id)[0];
   // What the amount received shows until the person types in it. Between accounts in one currency it is the
   // amount sent, so editing only the amount keeps the two equal. An edit that keeps both accounts starts from

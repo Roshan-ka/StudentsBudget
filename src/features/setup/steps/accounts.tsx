@@ -69,6 +69,7 @@ function AccountRow({
       <AmountField
         label="Opening balance"
         unit={account.currency === 'EUR' ? '€' : account.currency}
+        signed
         value={account.openingMinor}
         onChange={(minor) => onChange({ openingMinor: minor ?? 0 })}
       />

@@ -201,6 +201,42 @@ describe('serializeBackup and parseBackup', () => {
     expect(without.ok && without.data.plan).not.toHaveProperty('spendingBudgetMinor');
   });
 
+  it('round-trips the default account, and accounts without the mark stay without it', () => {
+    const data = sample();
+    data.accounts[1] = { ...data.accounts[1], isDefault: true };
+
+    const result = parseBackup(serializeBackup(data, NOW));
+    expect(result).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(result.ok && result.data.accounts.map((a) => a.isDefault)).toEqual([undefined, true]);
+
+    const without = parseBackup(serializeBackup(sample(), NOW));
+    expect(without.ok && without.data.accounts[0]).not.toHaveProperty('isDefault');
+  });
+
+  it('reads files whose accounts have no default mark: versions 1, 2 and 3, and the demo', () => {
+    const version3 = fileOf(() => {});
+    for (const text of [olderFileOf(sample(), 1), olderFileOf(sampleV2(), 2), version3, DEMO]) {
+      const result = parseBackup(text);
+      expect(result.ok).toBe(true);
+      expect(result.ok && result.data.accounts.some((a) => 'isDefault' in a)).toBe(false);
+    }
+  });
+
+  it('says it is incomplete for a default mark that is not true', () => {
+    const text = fileOf((file) => {
+      (file.data.accounts as Record<string, unknown>[])[0].isDefault = false;
+    });
+
+    expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
+  });
+
+  it('round-trips an overdrawn account', () => {
+    const data = sample();
+    data.accounts[0] = { ...data.accounts[0], openingMinor: -25_000 };
+
+    expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+  });
+
   it('still reads the older files, none of which has an everyday budget', () => {
     for (const text of [olderFileOf(sample(), 1), olderFileOf(sampleV2(), 2), DEMO]) {
       const result = parseBackup(text);

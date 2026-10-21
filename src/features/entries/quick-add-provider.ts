@@ -1,10 +1,10 @@
 import type { Account, Entry } from '@/db/types';
+import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
 import { isIsoDate } from '@/features/recurring/schedule';
 import type { IsoDate } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 import { EXPENSE_CATEGORIES } from './categories';
 import { parseQuickAdd, suggestCategory } from './quick-add';
-import { pickQuickAddAccount } from './quick-add-account';
 
 /** What a provider reads a line against: today, the accounts, and every expense so far (`history`). */
 export type QuickAddContext = { today: IsoDate; accounts: Account[]; history: Entry[] };
@@ -12,7 +12,7 @@ export type QuickAddContext = { today: IsoDate; accounts: Account[]; history: En
 /**
  * What a provider made of one line: one amount, or two readings to choose from ("coffee 7 40": €7.40 or €40).
  * `categoryId` is null when the provider cannot tell; quick add then asks with the chips. An amount may name the
- * account and the day; without them quick add saves to the account `pickQuickAddAccount` chooses, dated today.
+ * account and the day; without them quick add saves to the default account, dated today.
  */
 export type QuickAddReading =
   | { kind: 'amount'; amountMinor: Minor; note: string; categoryId: string | null; accountId?: string; date?: IsoDate }
@@ -51,7 +51,7 @@ function isAmount(minor: Minor): boolean {
 /**
  * The reading with only what the context backs: a category an expense can be filed under (built in, or one an
  * earlier expense was filed under), an account that exists and a real day. Anything else is dropped, so quick add
- * falls back to the chips, `pickQuickAddAccount` and today. An amount that is not whole cents above zero is no reading.
+ * falls back to the chips, the default account and today. An amount that is not whole cents above zero is no reading.
  */
 export function checkReading(reading: QuickAddReading | null, ctx: QuickAddContext): QuickAddReading | null {
   if (reading === null) return null;
@@ -83,7 +83,10 @@ export function chosenAmount(choice: QuickAddChoiceReading, amountMinor: Minor):
   return { kind: 'amount', amountMinor, note: choice.note, categoryId: choice.categoryId };
 }
 
-/** The account a reading names, or the one `pickQuickAddAccount` chooses when it names none or one that is gone. */
+/**
+ * The account a reading names, or the default account when it names none or one that is gone. `accounts` can come in
+ * any order: the default rule counts from the one created first.
+ */
 export function accountFor(accounts: Account[], accountId: string | undefined): Account | undefined {
-  return accounts.find((a) => a.id === accountId) ?? pickQuickAddAccount(accounts);
+  return accounts.find((a) => a.id === accountId) ?? defaultAccount(sortAccounts(accounts));
 }

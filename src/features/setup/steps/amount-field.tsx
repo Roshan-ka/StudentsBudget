@@ -3,17 +3,27 @@
 import { useId, useState, type ReactNode, type Ref } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { parseOpeningBalance } from '@/features/accounts/opening-balance';
+import {
+  isOverdrawn,
+  parseOptionalAmount,
+  parseSignedAmount,
+  tickOverdrawn,
+  typeOpening,
+} from '@/features/accounts/opening-balance';
 import { parseAmount, type Minor } from '@/lib/money';
 
 /** What an empty field means: 0 (income, costs, envelopes), or no answer yet (guesses). */
 type Blank = 'zero' | 'unset';
 
+/** What the text may be: 0 or more, above 0, or below 0 too (an opening balance). */
+type Range = 'optional' | 'positive' | 'signed';
+
 /** `NaN` marks text that is not an amount; see `SetupDraft`. */
-function parseField(text: string, blank: Blank, positive: boolean): Minor | undefined {
+function parseField(text: string, blank: Blank, range: Range): Minor | undefined {
   const trimmed = text.trim();
   if (trimmed === '') return blank === 'unset' ? undefined : 0;
-  return (positive ? parseAmount(trimmed) : parseOpeningBalance(trimmed)) ?? Number.NaN;
+  const parse = range === 'positive' ? parseAmount : range === 'signed' ? parseSignedAmount : parseOptionalAmount;
+  return parse(trimmed) ?? Number.NaN;
 }
 
 const sameAmount = (a: Minor | undefined, b: Minor | undefined): boolean =>
@@ -30,6 +40,9 @@ function toText(value: Minor | undefined, blank: Blank): string {
  * `onChange`. Text that is not an amount is reported as `NaN` and shown as an error once the field
  * loses focus. When `value` no longer matches the text (a row above was removed, say), the field shows
  * `value`. `hint` sits under the input.
+ *
+ * With `signed` the amount may be below zero, as an account's opening balance is: an "Overdrawn (below zero)"
+ * checkbox sits under the field and puts a minus sign in its text, and a typed "-250" is accepted too.
  */
 export function AmountField({
   label,
@@ -38,6 +51,7 @@ export function AmountField({
   onChange,
   blank = 'zero',
   positive = false,
+  signed = false,
   unit = '€',
   inputRef,
 }: {
@@ -48,16 +62,26 @@ export function AmountField({
   blank?: Blank;
   /** Zero is not allowed (the amount of a schedule in another currency). */
   positive?: boolean;
+  /** Below zero is allowed, and the Overdrawn checkbox shows. */
+  signed?: boolean;
   unit?: string;
   /** The input itself, for a caller that moves the focus to it. */
   inputRef?: Ref<HTMLInputElement>;
 }) {
   const id = useId();
+  const range: Range = signed ? 'signed' : positive ? 'positive' : 'optional';
   const [text, setText] = useState(() => toText(value, blank));
+  // Overdrawn ticked while the field was empty: the first thing typed takes the minus sign.
+  const [waiting, setWaiting] = useState(false);
   const [touched, setTouched] = useState(false);
-  const shown = sameAmount(parseField(text, blank, positive), value) ? text : toText(value, blank);
+  const shown = sameAmount(parseField(text, blank, range), value) ? text : toText(value, blank);
   const showError = touched && value !== undefined && Number.isNaN(value);
   const describedBy = [hint ? `${id}-hint` : null, showError ? `${id}-error` : null].filter(Boolean).join(' ');
+
+  function edit(next: string) {
+    setText(next);
+    onChange(parseField(next, blank, range));
+  }
 
   return (
     <div className="grid gap-1.5">
@@ -82,12 +106,29 @@ export function AmountField({
           aria-invalid={showError || undefined}
           aria-describedby={describedBy || undefined}
           onChange={(event) => {
-            setText(event.target.value);
-            onChange(parseField(event.target.value, blank, positive));
+            if (!signed) return edit(event.target.value);
+            const typed = typeOpening(event.target.value, waiting);
+            setWaiting(typed.waiting);
+            edit(typed.text);
           }}
           onBlur={() => setTouched(true)}
         />
       </div>
+      {signed && (
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="size-5 accent-primary"
+            checked={isOverdrawn(shown, waiting)}
+            onChange={(event) => {
+              const ticked = tickOverdrawn(shown, event.target.checked);
+              setWaiting(ticked.waiting);
+              edit(ticked.text);
+            }}
+          />
+          Overdrawn (below zero)
+        </label>
+      )}
       {hint && (
         <div id={`${id}-hint`} className="text-sm text-muted-foreground">
           {hint}
