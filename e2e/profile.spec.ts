@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { Profile } from '../src/db/types';
+import type { Plan, Profile } from '../src/db/types';
 import { completeSetup, readStore } from './helpers/setup';
 
 // 375 px, the narrowest phone the app is made for. `completeSetup` pins the clock to Friday 2026-10-16, which falls in
@@ -204,7 +204,9 @@ test('the one-off costs step offers the next semester fee with its sourced amoun
   await expect(row.getByText(parts, { exact: true })).toHaveCount(0);
 });
 
-test('the one-off costs step leaves the amount empty where no page states the fee', async ({ page }) => {
+test('the one-off costs step leaves the amount empty where no page states the fee, and saves without that row', async ({
+  page,
+}) => {
   await completeSetup(page, { oneOff: { name: 'Laptop', amount: '300', dueMonth: '2027-03' } });
   await openSettings(page);
   await universityField(page).selectOption({ label: 'Other' });
@@ -224,8 +226,14 @@ test('the one-off costs step leaves the amount empty where no page states the fe
   await expect(row.getByRole('textbox', { name: 'Amount', exact: true })).toBeFocused();
   await expect(row.getByLabel('Due month', { exact: true })).toHaveValue('2027-01');
 
+  // A row without an amount does not stop the step: it is left out when the plan is saved.
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await expect(page.getByText('Enter an amount above 0 for Semester fee.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 3, name: 'Envelopes', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Save plan', exact: true }).click();
+  await expect(page).toHaveURL('/');
+
+  const [plan] = await readStore<Plan>(page, 'plan');
+  expect(plan.oneOffs).toMatchObject([{ name: 'Laptop', amountMinor: 30000 }]);
 });
 
 test('the one-off costs step offers nothing without semester dates, or when the fee is already planned', async ({

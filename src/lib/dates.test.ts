@@ -14,6 +14,7 @@ import {
   todayIso,
   weekInMonth,
   weekOf,
+  weeksLeftInMonth,
 } from './dates';
 
 describe('todayIso', () => {
@@ -149,6 +150,33 @@ describe('weekOf', () => {
   it('treats Monday as the first and Sunday as the last day of the week', () => {
     expect(weekOf('2026-10-12')).toEqual({ start: '2026-10-12', end: '2026-10-18' });
     expect(weekOf('2026-10-18')).toEqual({ start: '2026-10-12', end: '2026-10-18' });
+  });
+});
+
+describe('weeksLeftInMonth', () => {
+  it('counts the week of the day itself, from its Monday, up to the month end', () => {
+    // October 2026 has the weeks 1–4, 5–11, 12–18, 19–25 and 26–31.
+    expect(weeksLeftInMonth('2026-10-01')).toBe(5);
+    expect(weeksLeftInMonth('2026-10-04')).toBe(5);
+    expect(weeksLeftInMonth('2026-10-05')).toBe(4);
+    expect(weeksLeftInMonth('2026-10-21')).toBe(2);
+    expect(weeksLeftInMonth('2026-10-25')).toBe(2);
+    expect(weeksLeftInMonth('2026-10-26')).toBe(1);
+    expect(weeksLeftInMonth('2026-10-31')).toBe(1);
+  });
+
+  it('counts a week that is in the month for a single day, at either end', () => {
+    // Sun 1 Nov 2026 is the only November day of the week that began on 26 Oct: it and the five after it.
+    expect(weeksLeftInMonth('2026-11-01')).toBe(6);
+    expect(weeksLeftInMonth('2026-11-02')).toBe(5);
+    // Mon 31 Aug 2026 is the only August day of its week.
+    expect(weeksLeftInMonth('2026-08-31')).toBe(1);
+    expect(weeksLeftInMonth('2026-08-30')).toBe(2);
+  });
+
+  it('is exactly four for a February that starts on a Monday', () => {
+    expect(weeksLeftInMonth('2027-02-01')).toBe(4);
+    expect(weeksLeftInMonth('2027-02-28')).toBe(1);
   });
 });
 

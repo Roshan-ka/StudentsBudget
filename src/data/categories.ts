@@ -44,3 +44,17 @@ export const GUESS_CATEGORY_IDS: readonly string[] = [
   'shopping',
   'other',
 ];
+
+/** The income sources a new setup asks about. Edit plan and Settings offer all of them. */
+export const SETUP_INCOME_IDS: readonly string[] = [
+  'income-job',
+  'income-parents',
+  'income-sperrkonto',
+  'income-other',
+];
+
+/** The fixed costs a new setup asks about, besides rent, which has its own question. */
+export const SETUP_FIXED_IDS: readonly string[] = ['phone', 'insurance', 'transport-pass'];
+
+/** The envelopes a new setup asks about: the original six, the ones the city ranges cover. */
+export const SETUP_ENVELOPE_IDS: readonly string[] = GUESS_CATEGORY_IDS;

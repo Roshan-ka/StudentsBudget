@@ -83,10 +83,11 @@ Each part is tagged with its phase.
   - **P1.1:** each income source and fixed cost can repeat on its day, monthly on a day of the month or weekly on a weekday, into or out of a chosen account. The app adds it as an entry on that day, so rent and income no longer need logging by hand. Settings has a "Fixed costs and income" list to edit, pause or remove them.
   - big one-off costs: semester fee, insurance, flight home, winter jacket. Each gets a weekly set-aside, so no single month blows up.
   - **your guess per category**, asked before any envelope amounts ("What do you think you spend on eating out a month?"). Saved from day one, even if the guess vs. reality screen comes later.
+  - an optional everyday budget, which the envelope amounts are suggested from
   - envelope amounts
 - **Realistic for the city without AI:**
   - Next to each envelope, the app shows what's typical for students in my city ("Students here: €200–260 for food"), with the source.
-  - It warns when an amount is below that range, and when the plan adds up to more than income.
+  - It says when an amount is below that range; Settings and Home say calmly when the plan adds up to more than income.
   - City numbers are seeded by hand inside the app, each with its source and date: rent range, Mensa meal, grocery basket, transport, a beer, club entry, gym. No Numbeo scraping.
 - **AI phase:** setup becomes a 5-minute chat that proposes and explains the amounts.
 
@@ -115,7 +116,7 @@ How the envelopes work:
 4. The rest is split into flexible envelopes: food, eating out, going out, transport, shopping, other. P1.1 adds health and pharmacy, personal care, study materials, household, travel and gifts. Each envelope's monthly amount is spread evenly over the month's weeks.
 5. Safe to spend this week = this week's share of the flexible envelopes + whatever was left from earlier weeks this month − what you've spent this week. Overspending lowers the coming weeks.
 6. At month end, the leftover goes to savings or a goal, and the next month starts fresh.
-7. The plan can't add up to more than income. The app warns and shows by how much.
+7. A plan can add up to more than income. The app shows it calmly and suggests a budget on Home.
 8. Income that varies (a job with changing hours) is planned on a low estimate. Anything extra goes to savings.
 
 ### 6. Charts (P1)

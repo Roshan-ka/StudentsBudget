@@ -189,6 +189,26 @@ describe('serializeBackup and parseBackup', () => {
     expect(result).toEqual({ ok: true, data: sample(), exportedAt: NOW.toISOString() });
   });
 
+  it('round-trips the everyday budget of the plan, and a plan without one stays without', () => {
+    const data = sample();
+    data.plan = { ...data.plan!, spendingBudgetMinor: 60_000 };
+
+    const result = parseBackup(serializeBackup(data, NOW));
+    expect(result).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(result.ok && result.data.plan?.spendingBudgetMinor).toBe(60_000);
+
+    const without = parseBackup(serializeBackup(sample(), NOW));
+    expect(without.ok && without.data.plan).not.toHaveProperty('spendingBudgetMinor');
+  });
+
+  it('still reads the older files, none of which has an everyday budget', () => {
+    for (const text of [olderFileOf(sample(), 1), olderFileOf(sampleV2(), 2), DEMO]) {
+      const result = parseBackup(text);
+      expect(result.ok).toBe(true);
+      expect(result.ok && result.data.plan).not.toHaveProperty('spendingBudgetMinor');
+    }
+  });
+
   it('round-trips schedules and the entries a schedule posted, whether or not a schedule is paused', () => {
     const data = sampleV2();
 
@@ -644,6 +664,7 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['an income line', (data: BackupData) => (data.plan!.incomes[0].monthlyMinor = -1)],
       ['a fixed line', (data: BackupData) => (data.plan!.fixed[0].monthlyMinor = -1)],
       ['an envelope', (data: BackupData) => (data.plan!.envelopes[0].monthlyMinor = -1)],
+      ['the everyday budget', (data: BackupData) => (data.plan!.spendingBudgetMinor = -1)],
       ['a guess', (data: BackupData) => (data.guesses[0].monthlyMinor = -1)],
       ['a planned week amount', (data: BackupData) => (data.weekResults[0].plannedMinor = -1)],
       ['a spent week amount', (data: BackupData) => (data.weekResults[0].spentMinor = -1)],
@@ -663,6 +684,12 @@ describe('parseBackup checks what the rows say about each other', () => {
       });
 
       expect(result.ok).toBe(true);
+    });
+
+    it('passes an everyday budget of zero, and one above it', () => {
+      for (const budget of [0, 60_000]) {
+        expect(parseChanged((data) => (data.plan!.spendingBudgetMinor = budget)).ok).toBe(true);
+      }
     });
 
     it('passes a week of zeros, a plan of €0 and a count of 0, as a paused or empty week is', () => {

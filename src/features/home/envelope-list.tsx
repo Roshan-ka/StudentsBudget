@@ -8,7 +8,7 @@ import { formatWeekAmount } from '@/lib/week-amount';
 
 export type EnvelopeRow = {
   categoryId: string;
-  /** Planned for this month; in the month of setup only from the setup day on. */
+  /** Planned for this month: the whole monthly amount, in the month of setup too. */
   plannedMinor: Minor;
   spentMinor: Minor;
 };

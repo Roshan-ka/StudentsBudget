@@ -4,8 +4,8 @@ import { completeSetup, readStore } from './helpers/setup';
 
 // `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day, so the guesses unlock on
 // Friday 2026-11-06 (21 days later). It guesses food 200, eating out 80, going out 60, transport 20, shopping 40
-// and other 20 a month, and plans food 310 and eating out 124: from the 16th, 16 of October's 31 days, which is
-// food €160 and eating out €64.
+// and other 20 a month, and plans food 310 and eating out 124: October is planned in full, though the plan starts
+// on the 16th.
 
 /** Noon on a day, local time, as the clock the page should show. */
 const noon = (iso: string) => new Date(`${iso}T12:00:00`);
@@ -94,8 +94,9 @@ test('on day 22 each guess shows next to what was spent, and the plan can be adj
   await expect(page.getByText('Your spending from 16 Oct to 6 Nov, scaled to a month of 30 days.')).toBeVisible();
   await expect(page.getByText(/unlock on/)).toHaveCount(0);
 
-  // October is over by 1 Nov: planned 16000 + 6400, spent 10000 + 6000, so €64 left over. November is still running.
-  await expect(recaps(page)).toHaveText(['October 2026: €64 left over → savings']);
+  // October is over by 1 Nov: planned 31000 + 12400, spent 10000 + 6000, so €274 left over. The plan began on the 16th,
+  // so the line says where the counting began and does not call the €274 savings. November is still running.
+  await expect(recaps(page)).toHaveText(['October 2026 (counted from 16 Oct): €274 left over']);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   const adjust = page.getByRole('link', { name: 'Adjust my plan' });
@@ -106,14 +107,27 @@ test('on day 22 each guess shows next to what was spent, and the plan can be adj
 
 test('a finished month that went over its plan reads calmly, even before the guesses unlock', async ({ page }) => {
   await completeSetup(page);
-  await logOn(page, '2026-10-20', 'döner 300', 'Eating out', 'Saved €300.00 · döner · Eating out');
+  await logOn(page, '2026-10-20', 'döner 500', 'Eating out', 'Saved €500.00 · döner · Eating out');
 
-  // 2 Nov: October is over, the guesses unlock in four days. Planned 22400, spent 30000: €76 over.
+  // 2 Nov: October is over, the guesses unlock in four days. Planned 43400, spent 50000: €66 over.
   await page.clock.setFixedTime(noon('2026-11-02'));
   await page.goto('/reveal');
   await expect(page.getByText('Your guesses unlock on 6 Nov. Keep logging.', { exact: true })).toBeVisible();
-  await expect(recaps(page)).toHaveText(['October 2026: €76 over plan']);
+  await expect(recaps(page)).toHaveText(['October 2026 (counted from 16 Oct): €66 over plan']);
   await expect(page.getByText(/failed|warning/i)).toHaveCount(0);
+});
+
+test('a month after the setup month is planned from its 1st, so what is left of it is savings', async ({ page }) => {
+  await completeSetup(page);
+
+  // 2 Dec: October and November are over, and nothing was spent in either. Newest first.
+  await page.clock.setFixedTime(noon('2026-12-02'));
+  await page.goto('/reveal');
+  await expect(recaps(page)).toHaveText([
+    'November 2026: €434 left over → savings',
+    'October 2026 (counted from 16 Oct): €434 left over',
+  ]);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
 test('without a plan the page points to setup', async ({ page }) => {

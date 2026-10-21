@@ -4,8 +4,8 @@ import { TIPS } from '../src/data/tips';
 import { completeSetup } from './helpers/setup';
 
 // 375 px, the narrowest phone the app is made for. `completeSetup` pins the clock to Friday 2026-10-16 and creates the
-// plan that day: eating out 124 is planned from the 16th (16 of 31 days, so €64 this month), and the week Mon 12 -
-// Sun 18 Oct has three days of it (€12). Transport and going out are planned at €0.
+// plan that day: eating out 124 is planned in full (€124 this month), and the week Mon 12 - Sun 18 Oct has a third of
+// it, with three weeks of October left (€41). Transport and going out are planned at €0.
 test.use({ viewport: { width: 375, height: 812 } });
 
 const MENSA_LINE = 'Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal';
@@ -81,11 +81,11 @@ async function openCheckInFromHome(page: Page) {
 
 test('an eating-out envelope that runs over shows a sourced swap on Home and in the check-in', async ({ page }) => {
   await completeSetup(page);
-  await quickAdd(page, 'döner 100', 'Eating out');
+  await quickAdd(page, 'döner 150', 'Eating out');
 
   const mensa = swapById('mensa-instead-of-restaurant');
   const row = homeRow(page, 'Eating out');
-  await expect(row.getByText('€36 over the €64 planned this month', { exact: true })).toBeVisible();
+  await expect(row.getByText('€26 over the €124 planned this month', { exact: true })).toBeVisible();
 
   // One calm line under the row; nothing else asks for attention until it is tapped.
   const line = row.getByRole('button', { name: MENSA_LINE, exact: true });
@@ -115,10 +115,10 @@ test('an eating-out envelope that runs over shows a sourced swap on Home and in 
   );
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  // The check-in judges the row by this week's share: €100 against €12.
+  // The check-in judges the row by this week's share: €150 against €41.
   await openCheckInFromHome(page);
   const checkInRow = weekAgainstPlan(page).getByRole('listitem').filter({ hasText: 'Eating out' });
-  await expect(checkInRow.getByText('€12 planned · €100 spent · €88 over', { exact: true })).toBeVisible();
+  await expect(checkInRow.getByText('€41 planned · €150 spent · €109 over', { exact: true })).toBeVisible();
   const checkInLine = checkInRow.getByRole('button', { name: MENSA_LINE, exact: true });
   await expect(checkInLine).toBeVisible();
   await expect(anyTryThis(page)).toHaveCount(1);
@@ -132,13 +132,13 @@ test('an eating-out envelope that runs over shows a sourced swap on Home and in 
 test('nothing shows while every envelope is on track, or when the envelope over has no swap', async ({ page }) => {
   await completeSetup(page);
   await quickAdd(page, 'döner 6', 'Eating out');
-  await expect(homeRow(page, 'Eating out').getByText('€58 left of €64 this month', { exact: true })).toBeVisible();
+  await expect(homeRow(page, 'Eating out').getByText('€118 left of €124 this month', { exact: true })).toBeVisible();
   await expect(anyTryThis(page)).toHaveCount(0);
 
   // Food has no swap: over plan, it still gets no line.
-  await quickAdd(page, 'Rewe 200', 'Food & groceries');
+  await quickAdd(page, 'Rewe 350', 'Food & groceries');
   await expect(
-    homeRow(page, 'Food & groceries').getByText('€40 over the €160 planned this month', { exact: true }),
+    homeRow(page, 'Food & groceries').getByText('€40 over the €310 planned this month', { exact: true }),
   ).toBeVisible();
   await expect(anyTryThis(page)).toHaveCount(0);
 
@@ -147,23 +147,23 @@ test('nothing shows while every envelope is on track, or when the envelope over 
     weekAgainstPlan(page)
       .getByRole('listitem')
       .filter({ hasText: 'Food & groceries' })
-      .getByText('€30 planned · €200 spent · €170 over', { exact: true }),
+      .getByText('€103 planned · €350 spent · €247 over', { exact: true }),
   ).toBeVisible();
   await expect(anyTryThis(page)).toHaveCount(0);
 });
 
 test('past 90% of the plan early in the month counts, and the last 7 days of the month do not', async ({ page }) => {
   await completeSetup(page);
-  // €60 of the €64 is 94%.
-  await quickAdd(page, 'döner 60', 'Eating out');
+  // €115 of the €124 is 93%.
+  await quickAdd(page, 'döner 115', 'Eating out');
   const row = homeRow(page, 'Eating out');
-  await expect(row.getByText('€4 left of €64 this month', { exact: true })).toBeVisible();
+  await expect(row.getByText('€9 left of €124 this month', { exact: true })).toBeVisible();
   await expect(row.getByRole('button', { name: MENSA_LINE, exact: true })).toBeVisible();
 
   // Mon 26 Oct is one of the last 7 days: too late in the month for a suggestion on spending that is still on plan.
   await page.clock.setFixedTime(new Date(2026, 9, 26, 12, 0, 0));
   await page.reload();
-  await expect(homeRow(page, 'Eating out').getByText('€4 left of €64 this month', { exact: true })).toBeVisible();
+  await expect(homeRow(page, 'Eating out').getByText('€9 left of €124 this month', { exact: true })).toBeVisible();
   await expect(anyTryThis(page)).toHaveCount(0);
 });
 

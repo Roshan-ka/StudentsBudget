@@ -622,10 +622,10 @@ What the screen shows:
 - The week underneath: "Mon 12 – Sun 18 Oct".
 - Each envelope: name, a progress bar of spent vs. planned this month, and "€… left this week".
 - "Across all accounts: €…", plus "INR rate missing" when that applies. When nothing could be converted, show "—" (as the accounts panel does). Setup refreshes the INR rate without waiting, so the note can show briefly until the live query picks the rate up.
-- **Setup month (Day 2 ruling):** in the month of `plan.createdOn`, `safeToSpend` and `monthStatus` accrue only from the setup day. That's already built into `src/lib/budget.ts`.
+- **Setup month (Day 2 ruling):** in the month of `plan.createdOn`, `safeToSpend` and `monthStatus` accrue only from the setup day. That's already built into `src/lib/budget.ts`. Superseded on 2026-10-21: no day-based proration; see README Home.
 
 - [ ] **Step 1: Write the failing e2e test.** `completeSetup` pins the clock to 2026-10-16 12:00, so the plan is created that day.
-  - Home shows `€42`: food 3000 + eating-out 1200, three days of the week Oct 12–18 from the setup day.
+  - Home shows `€42`: food 3000 + eating-out 1200, three days of the week Oct 12–18 from the setup day. Superseded on 2026-10-21: no day-based proration; see README Home.
   - After quick add "döner 6" in Eating out it shows `€36`.
   - With "döner 300" it shows "over this week".
 - [ ] **Step 2: Run `npm run test:e2e -- home`.** Expected: FAIL.
@@ -689,7 +689,7 @@ Rules:
 - `startedOn = plan.createdOn`; `unlockOn = addDays(startedOn, 21)`; `unlocked = today ≥ unlockOn`.
 - `actualMonthly = round(spent in [startedOn, today] × 30 / (daysBetween(startedOn, today) + 1))`.
 - `leftover = Σ planned − Σ spent` over the flexible envelopes (it can be negative).
-- **Setup month:** `monthRecap` uses `monthStatus` (`src/lib/budget.ts`), so in the month of `plan.createdOn` both planned and spent run from the setup day. Otherwise the first recap shows a false "left over".
+- **Setup month:** `monthRecap` uses `monthStatus` (`src/lib/budget.ts`), so in the month of `plan.createdOn` both planned and spent run from the setup day. Otherwise the first recap shows a false "left over". Superseded on 2026-10-21: no day-based proration; see README Home.
 
 Copy:
 - Each row: "You guessed €80. It was €190."

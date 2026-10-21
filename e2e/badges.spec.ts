@@ -2,10 +2,12 @@ import { expect, test, type Page } from '@playwright/test';
 import type { Account, WeekResult } from '../src/db/types';
 import { completeSetup, readStore } from './helpers/setup';
 
-// `completeSetup` creates the plan on Friday 16 October 2026: food €310 and eating out €124 a month. The seed
-// below logs groceries by hand in each of the five weeks after that. The third week (26 October - 1 November,
-// split by the month) plans €98.46 and gets €200 of groceries, so it is the only one over its plan. A week is
-// recorded from the Wednesday after its Sunday.
+// `completeSetup` creates the plan on Friday 16 October 2026: food €310 and eating out €124 a month (€434). The seed
+// below logs groceries by hand in each of the five weeks after that. A week plans what was left of the month when it
+// began, split over the weeks left in it: €144.67 for the week of setup (three weeks left), then €212.00, then the
+// whole of what is left of October (€404.00) plus a sixth of November (€72.33) for the split week of 26 October -
+// 1 November, then €86.80 and €104.75. That split week gets €500 of groceries, so it is the only one over its plan. A
+// week is recorded from the Wednesday after its Sunday.
 
 // 375 px, the narrowest phone the app is made for: the badge pages, their dates and the switches must fit it.
 test.use({ viewport: { width: 375, height: 812 } });
@@ -19,7 +21,7 @@ const RECORDING = { timeout: 15_000 };
 const SEED: [string, number][] = [
   ['2026-10-17', 1000],
   ['2026-10-20', 2000],
-  ['2026-10-28', 20000],
+  ['2026-10-28', 50000],
   ['2026-11-03', 1500],
   ['2026-11-10', 1200],
 ];

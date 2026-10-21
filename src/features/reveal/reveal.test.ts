@@ -189,17 +189,17 @@ describe('monthRecap', () => {
     expect(recap.leftoverMinor).toBe(1500);
   });
 
-  it('in the setup month plans and counts only from the setup day on', () => {
+  it('in the setup month plans the whole month and counts spending only from the setup day on', () => {
     const plan = planOf('2026-10-16', [{ categoryId: 'food', monthlyMinor: 31000 }]);
-    // 16 of October's 31 days: 31000 × 16 / 31 = 16000. The food bought on the 10th is from before the plan.
+    // The whole 31000, not the part from the 16th. The food bought on the 10th is from before the plan.
     const before = monthRecap(guesses, plan, [entry('food', '2026-10-10', 9000)], '2026-10');
-    expect(used(before.rows)).toEqual([{ categoryId: 'food', guessMinor: 20000, plannedMinor: 16000, spentMinor: 0 }]);
-    expect(before.leftoverMinor).toBe(16000);
+    expect(used(before.rows)).toEqual([{ categoryId: 'food', guessMinor: 20000, plannedMinor: 31000, spentMinor: 0 }]);
+    expect(before.leftoverMinor).toBe(31000);
 
     const logged = [entry('food', '2026-10-10', 9000), entry('food', '2026-10-20', 5000)];
     const after = monthRecap(guesses, plan, logged, '2026-10');
     expect(after.rows[0].spentMinor).toBe(5000);
-    expect(after.leftoverMinor).toBe(11000);
+    expect(after.leftoverMinor).toBe(26000);
   });
 
   it('is negative when more was spent than planned', () => {
@@ -208,10 +208,22 @@ describe('monthRecap', () => {
     expect(recap.leftoverMinor).toBe(-1200);
   });
 
-  it('uses a guess of 0 for an envelope that was not guessed', () => {
+  it('has no guess ("No guess") for an envelope that was not guessed, and a guess of 0 stays a 0', () => {
     const plan = planOf('2026-09-01', [{ categoryId: 'transport', monthlyMinor: 5000 }]);
     const rows = monthRecap(guesses, plan, [], '2026-10').rows;
-    expect(rows.find((r) => r.categoryId === 'transport')?.guessMinor).toBe(0);
+    expect(rows.find((r) => r.categoryId === 'transport')?.guessMinor).toBeNull();
+    expect(rows.find((r) => r.categoryId === 'food')?.guessMinor).toBe(20000);
+
+    const zero = monthRecap([guess('transport', 0)], plan, [], '2026-10').rows;
+    expect(zero.find((r) => r.categoryId === 'transport')?.guessMinor).toBe(0);
+  });
+
+  it('has no guess for any envelope when no guess was saved', () => {
+    const plan = planOf('2026-09-01', [{ categoryId: 'food', monthlyMinor: 31000 }]);
+    const recap = monthRecap([], plan, [entry('food', '2026-10-05', 1000)], '2026-10');
+    expect(recap.rows.every((r) => r.guessMinor === null)).toBe(true);
+    // The leftover does not depend on the guesses.
+    expect(recap.leftoverMinor).toBe(30000);
   });
 
   it('counts spending in a category the plan has no envelope for, against nothing', () => {
@@ -219,7 +231,7 @@ describe('monthRecap', () => {
     const recap = monthRecap(guesses, plan, [entry('health', '2026-10-05', 1800)], '2026-10');
     expect(recap.rows.find((r) => r.categoryId === 'health')).toEqual({
       categoryId: 'health',
-      guessMinor: 0,
+      guessMinor: null,
       plannedMinor: 0,
       spentMinor: 1800,
     });

@@ -46,7 +46,7 @@ export function AmountField({
   value: Minor | undefined;
   onChange: (minor: Minor | undefined) => void;
   blank?: Blank;
-  /** Zero is not allowed (a one-off cost). */
+  /** Zero is not allowed (the amount of a schedule in another currency). */
   positive?: boolean;
   unit?: string;
   /** The input itself, for a caller that moves the focus to it. */
@@ -61,7 +61,9 @@ export function AmountField({
 
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="leading-snug">
+        {label}
+      </Label>
       <div className="relative">
         <span
           aria-hidden="true"

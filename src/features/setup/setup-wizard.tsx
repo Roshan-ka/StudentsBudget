@@ -16,7 +16,6 @@ import {
   draftToRecords,
   dropUnparsed,
   initialDraft,
-  summarizeDraft,
   validateStep,
   withAccountKeys,
   type AccountOption,
@@ -92,7 +91,6 @@ function Wizard({
   const isLast = index === steps.length - 1;
   const existing = edit && stored ? stored : undefined;
   const problems = validateStep(step, draft, today, existing, storedAccounts);
-  const overBy = isLast ? summarizeDraft(draft, today, existing).overByMinor : 0;
   const accounts = accountOptions(draft, storedAccounts);
 
   useEffect(() => {
@@ -163,11 +161,13 @@ function Wizard({
       {step === 'income' && !edit && accountsExist && (
         <p className="text-sm text-muted-foreground">Your accounts are already set up in Settings.</p>
       )}
-      {step === 'income' && <IncomeStep draft={draft} update={update} accounts={accounts} today={today} />}
-      {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} />}
+      {step === 'income' && <IncomeStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
+      {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
       {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
       {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
-      {step === 'envelopes' && <EnvelopesStep draft={draft} update={update} today={today} existing={existing} />}
+      {step === 'envelopes' && (
+        <EnvelopesStep draft={draft} update={update} today={today} existing={existing} edit={edit} />
+      )}
 
       {attempted && problems.length > 0 && (
         <div role="alert" className="text-sm text-destructive">
@@ -191,7 +191,7 @@ function Wizard({
           </Button>
         )}
         {isLast ? (
-          <Button type="button" className="h-10 px-4" onClick={() => void save()} disabled={saving || overBy > 0}>
+          <Button type="button" className="h-10 px-4" onClick={() => void save()} disabled={saving}>
             Save plan
           </Button>
         ) : (

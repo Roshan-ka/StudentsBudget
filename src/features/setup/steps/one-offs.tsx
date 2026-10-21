@@ -58,6 +58,8 @@ function OneOffRow({
   // The source stays with the amount while it is the offered one.
   const feeSource =
     feeOffer && oneOff.amountMinor === feeOffer.row.amountMinor ? <SemesterFeeSource offer={feeOffer} /> : undefined;
+  // A named cost with no amount is left out when saving: say so where the amount goes, without stopping anyone.
+  const leftOut = oneOff.name.trim() !== '' && oneOff.amountMinor === 0;
 
   return (
     <div role="group" aria-label={`One-off cost ${index + 1}`} className="flex flex-col gap-4 rounded-lg border p-4">
@@ -73,8 +75,14 @@ function OneOffRow({
       </div>
       <AmountField
         label="Amount"
-        positive
-        hint={feeSource}
+        hint={
+          feeSource || leftOut ? (
+            <>
+              {feeSource}
+              {leftOut && <p>Without an amount, this cost isn&apos;t saved.</p>}
+            </>
+          ) : undefined
+        }
         inputRef={amountRef}
         value={oneOff.amountMinor}
         onChange={(minor) => onChange({ amountMinor: minor ?? 0 })}
@@ -127,7 +135,7 @@ export function OneOffsStep({
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground">
         Big costs that come once, like a semester fee or a deposit. We set a share aside each month until the due
-        month. Skip this if you have none.
+        month. Skip this if you have none. A cost without an amount isn&apos;t saved.
       </p>
       {draft.oneOffs.map((oneOff, index) => (
         <OneOffRow

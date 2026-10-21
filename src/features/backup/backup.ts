@@ -13,6 +13,8 @@ export type { BackupData };
  * Bumped when the file's shape changes. A file with a higher number than this came from a newer app.
  * Version 2 adds the plan's schedules and the entries' `recurring` marker, both optional, so version 1 files read.
  * Version 3 adds `weekResults`, `discountVotes` and `profile`; a file without them reads with those empty.
+ * The plan's `spendingBudgetMinor` is optional, so it did not need a version: a file without it reads as a plan with
+ * no budget, and an older app that reads one with it ignores it.
  */
 export const BACKUP_VERSION = 3;
 
@@ -100,6 +102,8 @@ const plan = z.object({
     z.object({ id, name: text, amountMinor: minor, createdMonth: isoMonth, dueMonth: isoMonth }),
   ),
   envelopes: z.array(amount),
+  // Optional, as on `Plan`: older files have none, and the check below needs the two types to agree.
+  spendingBudgetMinor: minor.optional(),
   createdOn: isoDate,
 });
 
@@ -262,8 +266,14 @@ function findProblem(d: BackupData): string | null {
     (d.plan?.oneOffs ?? []).some((o) => o.amountMinor <= 0) ||
     schedules.some((s) => s.amountMinor <= 0);
   if (moneyOut) return 'an amount is zero or negative';
-  // Zero is fine for these: an envelope, a guess or the rent can be 0, and a small amount can convert to €0.00.
-  if (d.entries.some((e) => e.eurMinor < 0) || [...planLines, ...d.guesses].some((line) => line.monthlyMinor < 0)) {
+  // Zero is fine for these: an envelope, a guess, the rent or the everyday budget can be 0, and a small amount can
+  // convert to €0.00.
+  const budget = d.plan?.spendingBudgetMinor ?? 0;
+  if (
+    d.entries.some((e) => e.eurMinor < 0) ||
+    [...planLines, ...d.guesses].some((line) => line.monthlyMinor < 0) ||
+    budget < 0
+  ) {
     return 'an amount is negative';
   }
   // A paused or empty week is all zeros, and a plan can be €0, so zero is fine here too.
