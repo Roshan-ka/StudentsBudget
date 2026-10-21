@@ -1,6 +1,7 @@
 import { CATEGORIES } from '@/data/categories';
 import type { CityRange } from '@/data/cities';
 import type { Account, Amount, Category, Guess, OneOff, Plan, PlanLine, Schedule } from '@/db/types';
+import { defaultAccount } from '@/features/accounts/balances';
 import { GUESS_CATEGORIES } from '@/features/entries/categories';
 import { newSchedule, perOccurrence, restartSchedule } from '@/features/recurring/schedule';
 import { planSummary, type PlanSummary } from '@/lib/budget';
@@ -11,7 +12,7 @@ import { newId } from '@/lib/new-id';
 /**
  * "Add it automatically" for one line, as the wizard holds it. The choices stay while it is off or the line's amount
  * is cleared, so they come back. `accountId` is a draft account's key in a new setup, else a stored account's id.
- * For a new line, one that matches no account (or '') means the first account; a stored schedule whose account is
+ * For a new line, one that matches no account (or '') means the default account; a stored schedule whose account is
  * missing stays untouched until one is picked (`draftAccountOf`). `foreignMinor` is the amount each time, in the
  * account's currency, for an account that is not in EUR: setup has no rate to convert the euro figure with. `saved`
  * is the stored schedule in edit mode, so its id, start, watermark and pause carry over.
@@ -31,8 +32,11 @@ export type DraftLine = Amount & { schedule?: DraftSchedule };
 /** A draft account. `key` is draft-local until Save, when the account gets its id and every line that picked it follows. */
 export type DraftAccount = Pick<Account, 'name' | 'kind' | 'currency' | 'openingMinor'> & { key?: string };
 
-/** An account a line can be added to: a draft account (its key as `id`) or a stored one. */
-export type AccountOption = Pick<Account, 'id' | 'name' | 'currency'>;
+/**
+ * An account a line can be added to: a draft account (its key as `id`) or a stored one. `kind` and `isDefault` let
+ * `defaultAccount` choose among them; an option without them is chosen only as the first.
+ */
+export type AccountOption = Pick<Account, 'id' | 'name' | 'currency'> & Partial<Pick<Account, 'kind' | 'isDefault'>>;
 
 /**
  * What the wizard holds while the person fills it in. Nothing is stored until Save.
@@ -154,20 +158,22 @@ export function withAccountKeys(d: SetupDraft): SetupDraft {
 export function accountOptions(d: SetupDraft, stored: AccountOption[]): AccountOption[] {
   if (d.accounts.length === 0) return stored;
   return d.accounts.flatMap((a, i) =>
-    a.key === undefined ? [] : [{ id: a.key, name: a.name.trim() || `Account ${i + 1}`, currency: a.currency }],
+    a.key === undefined
+      ? []
+      : [{ id: a.key, name: a.name.trim() || `Account ${i + 1}`, currency: a.currency, kind: a.kind }],
   );
 }
 
 /**
- * The account a line's schedule uses in the wizard: the one it picked, else the first (a new line, or a draft account
- * that was removed). A stored schedule whose account is gone has none until the person picks one: it is never
- * quietly moved to the first account.
+ * The account a line's schedule uses in the wizard: the one it picked, else the default account (a new line, or a
+ * draft account that was removed). A stored schedule whose account is gone has none until the person picks one: it
+ * is never quietly moved to the default account.
  */
 export function draftAccountOf(schedule: DraftSchedule | undefined, options: AccountOption[]): AccountOption | undefined {
   if (!schedule) return undefined;
   const picked = options.find((o) => o.id === schedule.accountId);
   if (schedule.saved && !picked) return undefined;
-  return picked ?? options[0];
+  return picked ?? defaultAccount(options);
 }
 
 /** Whether a stored schedule's account is gone and the person has just picked another: it is added again from tomorrow. */
@@ -268,15 +274,17 @@ export function draftToRecords(
       };
     });
 
-  const createdAt = new Date().toISOString();
+  // One millisecond apart, in draft order and ending now. With one shared timestamp the name tiebreak of
+  // `sortAccounts` ordered them (Cash before Home bank before Local bank).
+  const now = Date.now();
   const accounts = d.accounts.map(
-    (a): Account => ({
+    (a, i): Account => ({
       id: newId(),
       name: a.name,
       kind: a.kind,
       currency: a.currency,
       openingMinor: a.openingMinor,
-      createdAt,
+      createdAt: new Date(now - (d.accounts.length - 1 - i)).toISOString(),
     }),
   );
   const idOfKey = new Map(
@@ -439,7 +447,8 @@ export function validateStep(
       const problems: string[] = [];
       if (d.accounts.some((a) => a.name.trim() === '')) problems.push('Give every account a name.');
       d.accounts.forEach((a, i) => {
-        if (!isAmount(a.openingMinor)) {
+        // An opening balance may be below zero: an account can start overdrawn.
+        if (!Number.isSafeInteger(a.openingMinor)) {
           problems.push(`Check the opening balance for ${a.name.trim() || `account ${i + 1}`}.`);
         }
       });

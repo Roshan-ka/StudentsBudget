@@ -69,6 +69,7 @@ function AccountRow({
       <AmountField
         label="Opening balance"
         unit={account.currency === 'EUR' ? '€' : account.currency}
+        signed
         value={account.openingMinor}
         onChange={(minor) => onChange({ openingMinor: minor ?? 0 })}
       />
@@ -87,8 +88,9 @@ export function AccountsStep({ draft, update }: { draft: SetupDraft; update: Dra
       </p>
       {draft.accounts.map((account, index) => (
         <AccountRow
-          // The rows have no id of their own, and removing one shifts the rest, so index is the identity.
-          key={index}
+          // The draft key follows the account when a row above is removed, so a field's own state (a waiting Overdrawn
+          // tick) stays with its row. The wizard gives every account a key; the index only covers a draft that has none.
+          key={account.key ?? index}
           account={account}
           index={index}
           onChange={(change) =>

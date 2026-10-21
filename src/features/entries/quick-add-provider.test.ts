@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Account, Entry } from '@/db/types';
 import { parseQuickAdd, suggestCategory } from './quick-add';
-import { pickQuickAddAccount } from './quick-add-account';
 import {
   accountFor,
   checkReading,
@@ -181,6 +180,102 @@ describe('localQuickAddProvider', () => {
   });
 });
 
+describe('a euro marker when the default account is not in euros', () => {
+  const early = '2026-10-01T08:00:00.000Z';
+  // Marked as the default in Settings: the rule alone would pick a euro account over it.
+  const rupees = { ...account('home-bank', 'bank', 'INR', early), isDefault: true as const };
+  const euroBank = account('local-bank', 'bank', 'EUR', '2026-10-02T08:00:00.000Z');
+  const euroCash = account('wallet', 'cash', 'EUR', '2026-10-03T08:00:00.000Z');
+  const pounds = account('pound-bank', 'bank', 'GBP', '2026-10-04T08:00:00.000Z');
+  const read = (text: string, list: Account[]) =>
+    localQuickAddProvider.read(text, { today: '2026-10-20', accounts: list, history: [] });
+
+  it('names the first euro bank account for "Döner 6 €", "€6", "6 eur" and "6 euros"', async () => {
+    const list = [rupees, euroCash, euroBank];
+
+    for (const text of ['Döner 6 €', 'döner €6', 'döner 6eur', 'döner 6 euros', 'eur 6 döner', 'döner 6 euro 50']) {
+      const reading = await read(text, list);
+
+      expect(reading, text).toMatchObject({ kind: 'amount', accountId: 'local-bank' });
+      expect(checkReading(reading, context([])), text).not.toBeNull();
+    }
+    expect(await read('Döner 6 €', list)).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 600,
+      note: 'Döner',
+      categoryId: null,
+      accountId: 'local-bank',
+    });
+  });
+
+  it('names a euro cash account when no bank account is in euros', async () => {
+    expect(await read('döner 6 €', [rupees, euroCash, pounds])).toMatchObject({ accountId: 'wallet' });
+  });
+
+  it('keeps the default for a line with no euro marker, or when no account is in euros', async () => {
+    expect(await read('döner 6', [rupees, euroBank])).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 600,
+      note: 'döner',
+      categoryId: null,
+    });
+    expect(await read('döner 6 €', [rupees, pounds])).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 600,
+      note: 'döner',
+      categoryId: null,
+    });
+    // The default is in euros already: the field saves there, so the reading names nothing. Unmarked, the rule picks
+    // the euro wallet over the first account in rupees.
+    const unmarked = account('home-bank', 'bank', 'INR', early);
+    expect(await read('döner 6 €', [unmarked, euroCash])).not.toHaveProperty('accountId');
+    expect(await read('döner 6 €', [{ ...euroBank, isDefault: true as const }, unmarked])).not.toHaveProperty('accountId');
+  });
+
+  it('counts accounts from the one created first, in whatever order they arrive', async () => {
+    const earlierBank = { ...euroBank, id: 'bank-0', createdAt: '2026-10-01T07:00:00.000Z' };
+
+    expect(await read('döner 6 €', [euroBank, euroCash, rupees, earlierBank])).toMatchObject({ accountId: 'bank-0' });
+  });
+
+  it('carries the account through a choice, so its buttons and the saved entry are in euros', async () => {
+    const list = [rupees, euroBank];
+    const reading = await read('coffee 7 40 euros', list);
+
+    expect(reading).toStrictEqual({
+      kind: 'choice',
+      options: [740, 4000],
+      note: 'coffee',
+      categoryId: null,
+      accountId: 'local-bank',
+    });
+    if (reading?.kind !== 'choice') throw new Error('expected a choice');
+    expect(chosenAmount(reading, 740)).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 740,
+      note: 'coffee',
+      categoryId: null,
+      accountId: 'local-bank',
+    });
+    // The field shows and saves in the currency of the account the reading names.
+    expect(accountFor(list, reading.accountId)?.currency).toBe('EUR');
+    expect(accountFor(list, undefined)?.currency).toBe('INR');
+  });
+
+  it('is dropped by checkReading when the account is gone', async () => {
+    const reading = await read('döner 6 €', [rupees, euroBank]);
+
+    expect(checkReading(reading, { today: '2026-10-20', accounts: [rupees], history: [] })).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 600,
+      note: 'döner',
+      categoryId: null,
+    });
+    const choice = await read('coffee 7 40 euros', [rupees, euroBank]);
+    expect(checkReading(choice, { today: '2026-10-20', accounts: [rupees], history: [] })).not.toHaveProperty('accountId');
+  });
+});
+
 describe('checkReading', () => {
   const ctx = context([expense('lunch', 'mensa', '2026-10-13T12:00:00.000Z')]);
   const fake = (reading: QuickAddReading | null): QuickAddProvider => ({ read: async () => reading });
@@ -333,10 +428,35 @@ describe('accountFor', () => {
     expect(accountFor(accounts, 'bank')).toBe(bank);
   });
 
-  it('falls back to pickQuickAddAccount without one, or for one that is gone', () => {
-    expect(pickQuickAddAccount(accounts)).toBe(cash);
-    expect(accountFor(accounts, undefined)).toBe(cash);
-    expect(accountFor(accounts, 'deleted-account')).toBe(cash);
+  it('falls back to the default account without one, or for one that is gone: the euro bank account, not cash', () => {
+    expect(accountFor(accounts, undefined)).toBe(bank);
+    expect(accountFor(accounts, 'deleted-account')).toBe(bank);
     expect(accountFor([], 'bank')).toBeUndefined();
+  });
+
+  it('falls back to the account marked as the default, even if it is cash', () => {
+    const markedCash = { ...cash, isDefault: true as const };
+
+    expect(accountFor([bank, markedCash], undefined)).toBe(markedCash);
+    expect(accountFor([bank, markedCash], 'deleted-account')).toBe(markedCash);
+    // A reading that names an account still wins.
+    expect(accountFor([bank, markedCash], 'bank')).toBe(bank);
+  });
+
+  it('counts from the account created first, in whatever order the accounts arrive', () => {
+    const earlier = { ...bank, id: 'bank-0', createdAt: '2026-10-01T08:00:00.000Z' };
+
+    expect(accountFor([cash, bank, earlier], undefined)).toBe(earlier);
+  });
+
+  it('is the first euro bank account for accounts made together in setup, where every createdAt is the same', () => {
+    const together = '2026-10-16T08:00:00.000Z';
+    const setup = [
+      { ...cash, createdAt: together },
+      { ...bank, id: 'home-bank', name: 'Home bank', currency: 'INR' as const, createdAt: together },
+      { ...bank, id: 'local-bank', name: 'Local bank', createdAt: together },
+    ];
+
+    expect(accountFor(setup, undefined)?.id).toBe('local-bank');
   });
 });

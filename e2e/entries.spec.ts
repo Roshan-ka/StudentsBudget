@@ -126,25 +126,84 @@ test('a double tap on a category chip saves the entry once', async ({ page }) =>
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(1);
 });
 
-test('quick add saves to the cash account, dated today, with the amount in euro cents', async ({ page }) => {
+test('quick add saves to the default bank account, not to cash, dated today, with the amount in euro cents', async ({
+  page,
+}) => {
   await setupAndOpenEntries(page);
 
   await quickAdd(page, 'Rewe 12,50');
   await page.getByRole('button', { name: 'Food & groceries' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €12.50 · Rewe · Food & groceries');
 
-  const accounts = await readStore<{ id: string; name: string }>(page, 'accounts');
+  // No account is marked as the default, so it is the first euro bank account: Local bank, which setup made first.
+  const accounts = await readStore<Account>(page, 'accounts');
+  const local = accounts.find((a) => a.name === 'Local bank');
   const cash = accounts.find((a) => a.name === 'Cash');
+  expect(accounts.some((a) => a.isDefault)).toBe(false);
   const [entry] = await readStore<Entry>(page, 'entries');
+  expect(entry.accountId).not.toBe(cash?.id);
   expect(entry).toMatchObject({
     type: 'expense',
-    accountId: cash?.id,
+    accountId: local?.id,
     amountMinor: 1250,
     eurMinor: 1250,
     categoryId: 'food',
     note: 'Rewe',
     date: '2026-10-16',
   });
+});
+
+test('the entry form opens on the default bank account for an expense and an income, and the transfer starts there', async ({
+  page,
+}) => {
+  await setupAndOpenEntries(page);
+  await page.getByRole('link', { name: 'Add entry' }).click();
+  const account = page.getByLabel('Account', { exact: true });
+  await expect(account.locator('option:checked')).toHaveText('Local bank (EUR)');
+
+  await page.getByRole('tab', { name: 'Income' }).click();
+  await expect(account.locator('option:checked')).toHaveText('Local bank (EUR)');
+
+  // The transfer sends from the default account, and receives into the first other one.
+  await page.getByRole('tab', { name: 'Transfer' }).click();
+  await expect(page.getByLabel('From', { exact: true }).locator('option:checked')).toHaveText('Local bank (EUR)');
+  await expect(page.getByLabel('To', { exact: true }).locator('option:checked')).toHaveText('Home bank (INR)');
+});
+
+test('making Cash the default account in Settings moves quick add, the entry form and the transfer to it', async ({
+  page,
+}) => {
+  await completeSetup(page);
+
+  await page.goto('/settings');
+  // The row buttons only exist once the accounts have been read, so a click cannot hit the prerendered page.
+  const makeCash = page.getByRole('button', { name: 'Make default: Cash', exact: true });
+  await expect(makeCash).toBeVisible();
+  await makeCash.click();
+  await expect(makeCash).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Make default: Local bank', exact: true })).toBeVisible();
+
+  const accounts = await readStore<Account>(page, 'accounts');
+  const cash = accounts.find((a) => a.name === 'Cash');
+  expect(accounts.filter((a) => a.isDefault).map((a) => a.name)).toEqual(['Cash']);
+
+  // Quick add.
+  await openEntries(page);
+  await quickAdd(page, 'Rewe 12,50');
+  await page.getByRole('button', { name: 'Food & groceries' }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €12.50 · Rewe · Food & groceries');
+  const [entry] = await readStore<Entry>(page, 'entries');
+  expect(entry).toMatchObject({ type: 'expense', accountId: cash?.id, amountMinor: 1250 });
+
+  // The entry form: expense, income and the transfer's From. To is the first other account.
+  await page.getByRole('link', { name: 'Add entry' }).click();
+  const account = page.getByLabel('Account', { exact: true });
+  await expect(account.locator('option:checked')).toHaveText('Cash (EUR)');
+  await page.getByRole('tab', { name: 'Income' }).click();
+  await expect(account.locator('option:checked')).toHaveText('Cash (EUR)');
+  await page.getByRole('tab', { name: 'Transfer' }).click();
+  await expect(page.getByLabel('From', { exact: true }).locator('option:checked')).toHaveText('Cash (EUR)');
+  await expect(page.getByLabel('To', { exact: true }).locator('option:checked')).toHaveText('Local bank (EUR)');
 });
 
 test('quick add without an amount says so and saves nothing', async ({ page }) => {
@@ -178,17 +237,16 @@ test('quick add refuses an account whose currency has no rate yet', async ({ pag
   await expect.poll(async () => (await readStore<Rate>(page, 'fxRates')).length).toBe(1);
   await page.route(FRANKFURTER, (route) =>
     route.fulfill({
-      json: { amount: 1, base: 'EUR', date: '2026-10-16', rates: {} },
+      json: [],
       headers: { 'access-control-allow-origin': '*' },
     }),
   );
   await writeStore(page, 'fxRates', { clear: true });
-  // Quick add saves to the first cash account: make the INR account the only cash account.
+  // Quick add saves to the default account: make the INR account the default.
   const accounts = await readStore<Account>(page, 'accounts');
-  const cash = accounts.find((a) => a.name === 'Cash');
   const homeBank = accounts.find((a) => a.name === 'Home bank');
-  expect(cash && homeBank).toBeTruthy();
-  await writeStore(page, 'accounts', { remove: [cash!.id], put: [{ ...homeBank, kind: 'cash' }] });
+  expect(homeBank).toBeTruthy();
+  await writeStore(page, 'accounts', { put: [{ ...homeBank, isDefault: true }] });
   await openEntries(page);
 
   await quickAdd(page, 'chai 40');

@@ -260,7 +260,7 @@ describe("requests that are not the worker's", () => {
   it('does not handle a request to api.frankfurter.dev', async () => {
     const worker = loadWorker(offline);
 
-    const rates = worker.get('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=INR', 'cors');
+    const rates = worker.get('https://api.frankfurter.dev/v2/rates?base=EUR&quotes=INR&providers=ecb', 'cors');
 
     expect(rates.answered).toBe(false);
     expect(worker.fetchStub).not.toHaveBeenCalled();

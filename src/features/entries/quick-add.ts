@@ -61,6 +61,9 @@ export type QuickAddAmount = { amountMinor: Minor; note: string };
 /** Two readings of "coffee 7 40 euros" to choose from: euros and cents (€7.40), or the second number alone (€40). */
 export type QuickAddChoice = { kind: 'choice'; note: string; options: [Minor, Minor] };
 
+/** What `readQuickAdd` read: the amount or choice, and whether the amount was written with a euro marker. */
+export type QuickAddLine = { reading: QuickAddAmount | QuickAddChoice; euro: boolean };
+
 type Word = { word: string; token: number };
 type Span = { value: number; end: number };
 type Invalid = 'invalid';
@@ -276,8 +279,11 @@ function findCandidates(tokens: string[]): Candidate[] | null {
  *
  * Dictation punctuation does not count: a full stop, !, ? or … at the end of the line is dropped, and so is
  * a comma, semicolon or colon after a word ("Coffee, 6 €.") but not after a number ("6,50" is a decimal).
+ *
+ * `euro` says the amount (or, for a choice, the number the options end in) has a euro marker next to it: "Döner 6 €",
+ * "€6", "6eur", "coffee 7 40 euros". Quick add uses it to save to a euro account when the default is not in euros.
  */
-export function parseQuickAdd(text: string): QuickAddAmount | QuickAddChoice | null {
+export function readQuickAdd(text: string): QuickAddLine | null {
   const trimmed = text.trim().replace(SENTENCE_END, '').trimEnd();
   // `tokens` is the line as typed, for the note; `read` has the same tokens without a word's separator.
   const tokens = trimmed === '' ? [] : trimmed.split(/\s+/);
@@ -313,28 +319,83 @@ export function parseQuickAdd(text: string): QuickAddAmount | QuickAddChoice | n
     .filter((_, i) => !drop.has(i))
     .join(' ')
     .replace(/[\s,;:]+$/, '');
-  return options === null ? { amountMinor: chosen.minor, note } : { kind: 'choice', note, options };
+  const reading: QuickAddAmount | QuickAddChoice =
+    options === null ? { amountMinor: chosen.minor, note } : { kind: 'choice', note, options };
+  return { reading, euro: marked.length > 0 };
 }
 
-/** The first word of a note, without a comma, semicolon or colon after it, lower-cased; null for a blank note. */
-export function keywordOf(note: string): string | null {
-  const first = note.trim().split(/\s+/)[0].replace(WORD_SEPARATOR_END, '');
-  return first ? first.toLocaleLowerCase('de-DE') : null;
+/** The amount or choice `readQuickAdd` reads from a line, or null. See there for what a line may look like. */
+export function parseQuickAdd(text: string): QuickAddAmount | QuickAddChoice | null {
+  return readQuickAdd(text)?.reading ?? null;
 }
 
 /**
- * The category of the most recent expense whose note starts with the same word, or null. Entries a schedule
- * posted do not count: their note is the category name ("Phone & internet"), not something the person typed.
+ * Words that carry no meaning of their own ("lunch at mensa", "kino mit anna"): they never choose a category. English
+ * and German, since the notes are typed and dictated in both.
+ */
+const STOP_WORDS = new Set([
+  'a', 'an', 'the', 'at', 'for', 'with', 'and', 'of', 'in', 'on', 'to', 'from', 'my',
+  'mit', 'für', 'im', 'am', 'beim', 'bei', 'und', 'zum', 'zur', 'vom', 'von', 'der', 'die', 'das', 'ein', 'eine', 'mein',
+  'meine',
+]);
+/** Number words ("two coffees") are numbers like "2 coffees": a quantity says nothing about the category. */
+const NUMBER_WORDS = new Set([...UNITS.keys(), ...SMALL.keys(), ...TENS.keys()]);
+/** A word's own punctuation at either end: "Coffee.", "mensa,", "Döner!", "“döner”". A hyphen stays: "e-bike". */
+const EDGE_PUNCTUATION = /^[^\p{L}\p{M}\p{N}-]+|[^\p{L}\p{M}\p{N}-]+$/gu;
+const HAS_LETTER = /\p{L}/u;
+
+/**
+ * The words of a note that can choose a category, in order, lower-cased and without punctuation at either end (a full
+ * stop, comma, !, ?, quotes, brackets; a hyphen inside the word stays). Numbers ("6", "7,40", "€", "two"), currency
+ * markers, words with no letter ("-", "&") and the stop words are left out.
+ */
+export function keywordsOf(note: string): string[] {
+  const words: string[] = [];
+  for (const token of note.split(/\s+/)) {
+    const word = token.replace(EDGE_PUNCTUATION, '').toLocaleLowerCase('de-DE');
+    const skipped =
+      !HAS_LETTER.test(word) ||
+      NUMBER_LIKE.test(word) ||
+      MARKERS.has(word) ||
+      NUMBER_WORDS.has(word) ||
+      HYPHEN_COMPOUND.test(word) ||
+      STOP_WORDS.has(word);
+    if (!skipped) words.push(word);
+  }
+  return words;
+}
+
+/**
+ * The category of the most recent expense whose note starts with one of the note's words, or null. The note's words
+ * are tried in order, and the first one that an earlier expense starts with, as a whole word, decides: "lunch at
+ * mensa" finds "mensa 4" through "mensa", and "döner" does not find "dönerbox". Only the first word of an earlier
+ * note counts, because that is the thing bought; the words after it are where it was or who was there. "bus 3" finds
+ * "bus ticket" but not "snacks for the bus", and "ikea 40" does not find "bus to ikea". Entries a schedule posted do
+ * not count: their note is the category name ("Phone & internet"), not something the person typed.
+ *
+ * Known limit: the first word with any history wins, not the best one. "big rewe shop" takes an earlier "big pizza"'s
+ * category, though "rewe" has a history of its own. The AI phase replaces this reading, so it stays simple.
  */
 export function suggestCategory(note: string, history: Entry[]): string | null {
-  const keyword = keywordOf(note);
-  if (keyword === null) return null;
+  const keywords = keywordsOf(note);
+  if (keywords.length === 0) return null;
 
-  let latest: { categoryId: string; createdAt: string } | null = null;
+  // The newest expense the person typed for each first word of a note, read once for all the keywords tried.
+  const latest = new Map<string, { categoryId: string; createdAt: string }>();
   for (const entry of history) {
-    if (entry.type !== 'expense' || entry.recurring !== undefined || keywordOf(entry.note) !== keyword) continue;
+    if (entry.type !== 'expense' || entry.recurring !== undefined) continue;
+    const first = keywordsOf(entry.note)[0];
+    if (first === undefined) continue;
+    const known = latest.get(first);
     // createdAt is always written with toISOString(), so comparing the strings compares the times.
-    if (latest === null || entry.createdAt > latest.createdAt) latest = entry;
+    if (known === undefined || entry.createdAt > known.createdAt) {
+      latest.set(first, { categoryId: entry.categoryId, createdAt: entry.createdAt });
+    }
   }
-  return latest?.categoryId ?? null;
+
+  for (const keyword of keywords) {
+    const found = latest.get(keyword);
+    if (found !== undefined) return found.categoryId;
+  }
+  return null;
 }

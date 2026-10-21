@@ -45,6 +45,8 @@ export function FixedStep({
           <p className="text-sm font-medium">Rent: {formatMoney(draft.rentMinor, 'EUR')} a month</p>
           <DraftScheduleFields
             name="Rent"
+            categoryId="rent"
+            type="expense"
             monthlyMinor={draft.rentMinor}
             schedule={draft.rentSchedule}
             accounts={accounts}
@@ -65,6 +67,8 @@ export function FixedStep({
             {line?.schedule && line.monthlyMinor > 0 && (
               <DraftScheduleFields
                 name={c.name}
+                categoryId={c.id}
+                type="expense"
                 monthlyMinor={line.monthlyMinor}
                 schedule={line.schedule}
                 accounts={accounts}

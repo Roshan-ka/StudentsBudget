@@ -174,6 +174,21 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
   await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
   await expect(page.getByRole('form', { name: 'Change Rent' }).getByText("It's added on its day — don't log it by hand.")).toBeVisible();
   await expect(page.getByRole('form', { name: 'Change Rent' }).getByText(/^First added on/)).toHaveCount(0);
+
+  // Switched off and on again with day 15, the new schedule would be due on 15 December, but December already holds
+  // the rent posted on the 1st and the poster skips a period like that: the first entry is 15 January.
+  const started = page.getByRole('form', { name: 'Change Rent' });
+  await started.getByRole('checkbox', { name: 'Add it automatically', exact: true }).uncheck();
+  await started.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(
+    list(page, 'Fixed costs').getByText('€400.00 a month · Not added automatically', { exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
+  const again = page.getByRole('form', { name: 'Change Rent' });
+  await again.getByRole('checkbox', { name: 'Add it automatically', exact: true }).check();
+  await again.getByLabel('Day', { exact: true }).selectOption('15');
+  await expect(again.getByText('First added on 15-01-2027.', { exact: true })).toBeVisible();
+  await expect(again.getByText('First added on 15-12-2026.', { exact: true })).toHaveCount(0);
 });
 
 test('in Settings a line can be added automatically, paused, resumed, added and deleted', async ({ page }) => {

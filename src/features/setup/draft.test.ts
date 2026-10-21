@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES, GUESS_CATEGORY_IDS, SETUP_FIXED_IDS, SETUP_INCOME_IDS } from '@/data/categories';
 import type { Plan, Schedule } from '@/db/types';
+import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
 import {
   FIXED_CATEGORIES,
   FLEXIBLE_CATEGORIES,
@@ -145,6 +146,28 @@ describe('draftToRecords', () => {
     expect(accounts.every((a) => !Number.isNaN(Date.parse(a.createdAt)))).toBe(true);
   });
 
+  it('gives the accounts distinct creation times in draft order, so Local bank sorts first and Cash last', () => {
+    const { accounts } = draftToRecords(draft, TODAY);
+    const times = accounts.map((a) => a.createdAt);
+
+    expect(new Set(times).size).toBe(3);
+    expect([...times].sort()).toEqual(times);
+    // With one shared time the name tiebreak put Cash first, then Home bank, then Local bank.
+    expect(sortAccounts(accounts).map((a) => a.name)).toEqual(['Local bank', 'Home bank', 'Cash']);
+    expect(defaultAccount(sortAccounts(accounts))?.name).toBe('Local bank');
+  });
+
+  it('saves one account with a time of its own as well, and none for a draft without accounts', () => {
+    expect(draftToRecords({ ...draft, accounts: draft.accounts.slice(0, 1) }, TODAY).accounts).toHaveLength(1);
+    expect(draftToRecords({ ...draft, accounts: [] }, TODAY).accounts).toEqual([]);
+  });
+
+  it('saves an opening balance below zero as it is', () => {
+    const overdrawn = { ...draft, accounts: [{ ...draft.accounts[0], openingMinor: -25000 }] };
+
+    expect(draftToRecords(overdrawn, TODAY).accounts[0].openingMinor).toBe(-25000);
+  });
+
   describe('editing a saved plan', () => {
     const existing: Plan = {
       id: 'current',
@@ -270,6 +293,33 @@ describe('validateStep', () => {
     expect(validateStep('accounts', { ...draft, accounts: blank }, TODAY)).toEqual([
       'Give every account a name.',
       'Check the opening balance for account 1.',
+    ]);
+  });
+
+  it('lets an account start below zero: any whole number of cents is a readable opening balance', () => {
+    const withOpening = (openingMinor: number) => ({
+      ...draft,
+      accounts: [{ ...draft.accounts[0], name: 'Local bank', openingMinor }],
+    });
+
+    expect(validateStep('accounts', withOpening(-25000), TODAY)).toEqual([]);
+    expect(validateStep('accounts', withOpening(-1), TODAY)).toEqual([]);
+    expect(validateStep('accounts', withOpening(0), TODAY)).toEqual([]);
+    expect(validateStep('accounts', withOpening(Number.MIN_SAFE_INTEGER), TODAY)).toEqual([]);
+    const unreadable = ['Check the opening balance for Local bank.'];
+    expect(validateStep('accounts', withOpening(Number.NaN), TODAY)).toEqual(unreadable);
+    expect(validateStep('accounts', withOpening(12.5), TODAY)).toEqual(unreadable);
+    expect(validateStep('accounts', withOpening(-Infinity), TODAY)).toEqual(unreadable);
+    expect(validateStep('accounts', withOpening(Number.MIN_SAFE_INTEGER - 2), TODAY)).toEqual(unreadable);
+  });
+
+  it('still wants every other amount to be 0 or more', () => {
+    expect(validateStep('city-rent', { ...draft, rentMinor: -100 }, TODAY)).toEqual(['Check the amount for Rent.']);
+    const incomes = withAmount(draft.incomes, 'income-job', -100);
+    expect(validateStep('income', { ...draft, incomes }, TODAY)).toEqual(['Check the amount for Job.']);
+    const envelopes = withAmount(draft.envelopes, 'food', -100);
+    expect(validateStep('envelopes', { ...draft, envelopes }, TODAY)).toEqual([
+      'Check the amount for Food & groceries.',
     ]);
   });
 
@@ -658,6 +708,38 @@ describe('adding lines automatically', () => {
       ['Cash', 'EUR'],
     ]);
     expect(accountOptions(initialDraft(true), stored)).toEqual(stored);
+  });
+
+  describe('the account a new line starts on', () => {
+    const newLine = { on: true, frequency: 'monthly' as const, day: 1, accountId: '', foreignMinor: 0 };
+    const cashRow = { name: 'Cash', kind: 'cash' as const, currency: 'EUR' as const, openingMinor: 0 };
+    const bankRow = { name: 'Local bank', kind: 'bank' as const, currency: 'EUR' as const, openingMinor: 0 };
+
+    it('is the first euro bank account of a new setup, wherever the rows are', () => {
+      expect(draftAccountOf(newLine, accountOptions(fresh, []))?.name).toBe('Local bank');
+      const cashFirst = withAccountKeys({ ...fresh, accounts: [cashRow, bankRow] });
+      expect(draftAccountOf(newLine, accountOptions(cashFirst, []))?.name).toBe('Local bank');
+    });
+
+    it('carries the kind of each draft account', () => {
+      expect(accountOptions(fresh, []).map((a) => a.kind)).toEqual(['bank', 'bank', 'cash']);
+    });
+
+    it('is the default account among the stored ones in edit mode', () => {
+      const stored = [
+        { id: 'cash', name: 'Cash', currency: 'EUR' as const, kind: 'cash' as const },
+        { id: 'local', name: 'Local bank', currency: 'EUR' as const, kind: 'bank' as const },
+      ];
+      const edit = draftFromPlan(draftToRecords(fresh, TODAY).plan);
+
+      expect(draftAccountOf(newLine, accountOptions(edit, stored))?.id).toBe('local');
+      const marked = [{ ...stored[0], isDefault: true as const }, stored[1]];
+      expect(draftAccountOf(newLine, accountOptions(edit, marked))?.id).toBe('cash');
+    });
+
+    it('is still the account the line picked, when it picked one that exists', () => {
+      expect(draftAccountOf({ ...newLine, accountId: 'draft-3' }, accountOptions(fresh, []))?.name).toBe('Cash');
+    });
   });
 
   it('turns it on for a line that gets an amount, monthly on the 1st from the first account', () => {

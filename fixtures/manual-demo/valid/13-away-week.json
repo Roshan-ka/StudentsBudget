@@ -1,0 +1,476 @@
+{
+  "app": "studentsbudget",
+  "version": 3,
+  "exportedAt": "2026-10-21T10:00:00.000Z",
+  "data": {
+    "accounts": [
+      {
+        "id": "bank",
+        "name": "Demo EUR bank",
+        "kind": "bank",
+        "currency": "EUR",
+        "openingMinor": 100000,
+        "createdAt": "2025-01-01T08:00:00Z",
+        "isDefault": true
+      },
+      {
+        "id": "cash",
+        "name": "Demo cash",
+        "kind": "cash",
+        "currency": "EUR",
+        "openingMinor": 10000,
+        "createdAt": "2025-01-01T09:00:00Z"
+      }
+    ],
+    "categories": [
+      {
+        "id": "food",
+        "name": "Food & groceries",
+        "kind": "flexible",
+        "order": 0
+      },
+      {
+        "id": "eating-out",
+        "name": "Eating out",
+        "kind": "flexible",
+        "order": 1
+      },
+      {
+        "id": "going-out",
+        "name": "Going out",
+        "kind": "flexible",
+        "order": 2
+      },
+      {
+        "id": "transport",
+        "name": "Transport",
+        "kind": "flexible",
+        "order": 3
+      },
+      {
+        "id": "shopping",
+        "name": "Shopping",
+        "kind": "flexible",
+        "order": 4
+      },
+      {
+        "id": "health",
+        "name": "Health & pharmacy",
+        "kind": "flexible",
+        "order": 5
+      },
+      {
+        "id": "personal-care",
+        "name": "Personal care",
+        "kind": "flexible",
+        "order": 6
+      },
+      {
+        "id": "study",
+        "name": "Study materials",
+        "kind": "flexible",
+        "order": 7
+      },
+      {
+        "id": "household",
+        "name": "Household",
+        "kind": "flexible",
+        "order": 8
+      },
+      {
+        "id": "travel",
+        "name": "Travel",
+        "kind": "flexible",
+        "order": 9
+      },
+      {
+        "id": "gifts",
+        "name": "Gifts",
+        "kind": "flexible",
+        "order": 10
+      },
+      {
+        "id": "other",
+        "name": "Other",
+        "kind": "flexible",
+        "order": 11
+      },
+      {
+        "id": "rent",
+        "name": "Rent",
+        "kind": "fixed",
+        "order": 12
+      },
+      {
+        "id": "phone",
+        "name": "Phone & internet",
+        "kind": "fixed",
+        "order": 13
+      },
+      {
+        "id": "insurance",
+        "name": "Insurance",
+        "kind": "fixed",
+        "order": 14
+      },
+      {
+        "id": "subscriptions",
+        "name": "Subscriptions",
+        "kind": "fixed",
+        "order": 15
+      },
+      {
+        "id": "transport-pass",
+        "name": "Deutschlandticket / semester ticket",
+        "kind": "fixed",
+        "order": 16
+      },
+      {
+        "id": "gym",
+        "name": "Gym & sports",
+        "kind": "fixed",
+        "order": 17
+      },
+      {
+        "id": "utilities",
+        "name": "Utilities & Rundfunkbeitrag",
+        "kind": "fixed",
+        "order": 18
+      },
+      {
+        "id": "one-off",
+        "name": "One-off costs",
+        "kind": "oneoff",
+        "order": 19
+      },
+      {
+        "id": "income-job",
+        "name": "Job",
+        "kind": "income",
+        "order": 20
+      },
+      {
+        "id": "income-parents",
+        "name": "Parents",
+        "kind": "income",
+        "order": 21
+      },
+      {
+        "id": "income-bafoeg",
+        "name": "BAföG",
+        "kind": "income",
+        "order": 22
+      },
+      {
+        "id": "income-sperrkonto",
+        "name": "Blocked account",
+        "kind": "income",
+        "order": 23
+      },
+      {
+        "id": "income-scholarship",
+        "name": "Scholarship",
+        "kind": "income",
+        "order": 24
+      },
+      {
+        "id": "income-other",
+        "name": "Other income",
+        "kind": "income",
+        "order": 25
+      }
+    ],
+    "entries": [
+      {
+        "id": "entry-1",
+        "type": "expense",
+        "date": "2026-09-07",
+        "accountId": "bank",
+        "categoryId": "food",
+        "amountMinor": 700,
+        "eurMinor": 700,
+        "note": "Demo food",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-2",
+        "type": "expense",
+        "date": "2026-09-07",
+        "accountId": "bank",
+        "categoryId": "eating-out",
+        "amountMinor": 500,
+        "eurMinor": 500,
+        "note": "Demo eating-out",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-3",
+        "type": "expense",
+        "date": "2026-09-14",
+        "accountId": "bank",
+        "categoryId": "food",
+        "amountMinor": 600,
+        "eurMinor": 600,
+        "note": "Demo food",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-4",
+        "type": "expense",
+        "date": "2026-09-14",
+        "accountId": "bank",
+        "categoryId": "eating-out",
+        "amountMinor": 500,
+        "eurMinor": 500,
+        "note": "Demo eating-out",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-5",
+        "type": "expense",
+        "date": "2026-09-21",
+        "accountId": "bank",
+        "categoryId": "food",
+        "amountMinor": 500,
+        "eurMinor": 500,
+        "note": "Demo food",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-6",
+        "type": "expense",
+        "date": "2026-09-21",
+        "accountId": "bank",
+        "categoryId": "eating-out",
+        "amountMinor": 500,
+        "eurMinor": 500,
+        "note": "Demo eating-out",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-7",
+        "type": "expense",
+        "date": "2026-09-28",
+        "accountId": "bank",
+        "categoryId": "food",
+        "amountMinor": 400,
+        "eurMinor": 400,
+        "note": "Demo food",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-8",
+        "type": "expense",
+        "date": "2026-09-28",
+        "accountId": "bank",
+        "categoryId": "eating-out",
+        "amountMinor": 500,
+        "eurMinor": 500,
+        "note": "Demo eating-out",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-9",
+        "type": "expense",
+        "date": "2026-10-05",
+        "accountId": "bank",
+        "categoryId": "food",
+        "amountMinor": 300,
+        "eurMinor": 300,
+        "note": "Demo food",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-10",
+        "type": "expense",
+        "date": "2026-10-05",
+        "accountId": "bank",
+        "categoryId": "eating-out",
+        "amountMinor": 500,
+        "eurMinor": 500,
+        "note": "Demo eating-out",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-11",
+        "type": "expense",
+        "date": "2026-10-12",
+        "accountId": "bank",
+        "categoryId": "food",
+        "amountMinor": 200,
+        "eurMinor": 200,
+        "note": "Demo food",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-12",
+        "type": "expense",
+        "date": "2026-10-12",
+        "accountId": "bank",
+        "categoryId": "eating-out",
+        "amountMinor": 500,
+        "eurMinor": 500,
+        "note": "Demo eating-out",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-13",
+        "type": "expense",
+        "date": "2025-12-01",
+        "accountId": "bank",
+        "categoryId": "eating-out",
+        "amountMinor": 12000,
+        "eurMinor": 12000,
+        "note": "Demo eating-out",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "id": "entry-14",
+        "type": "expense",
+        "date": "2026-01-01",
+        "accountId": "bank",
+        "categoryId": "eating-out",
+        "amountMinor": 4000,
+        "eurMinor": 4000,
+        "note": "Demo eating-out",
+        "createdAt": "2026-10-21T10:00:00.000Z"
+      }
+    ],
+    "guesses": [],
+    "fxRates": [],
+    "weekResults": [
+      {
+        "weekStart": "2026-09-07",
+        "weekEnd": "2026-09-13",
+        "plannedMinor": 10000,
+        "spentMinor": 1200,
+        "foodSpentMinor": 700,
+        "eatingOutSpentMinor": 500,
+        "handLoggedCount": 2,
+        "paused": false,
+        "recordedAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "weekStart": "2026-09-14",
+        "weekEnd": "2026-09-20",
+        "plannedMinor": 10000,
+        "spentMinor": 1100,
+        "foodSpentMinor": 600,
+        "eatingOutSpentMinor": 500,
+        "handLoggedCount": 2,
+        "paused": false,
+        "recordedAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "weekStart": "2026-09-21",
+        "weekEnd": "2026-09-27",
+        "plannedMinor": 10000,
+        "spentMinor": 1000,
+        "foodSpentMinor": 500,
+        "eatingOutSpentMinor": 500,
+        "handLoggedCount": 2,
+        "paused": false,
+        "recordedAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "weekStart": "2026-09-28",
+        "weekEnd": "2026-10-04",
+        "plannedMinor": 10000,
+        "spentMinor": 900,
+        "foodSpentMinor": 400,
+        "eatingOutSpentMinor": 500,
+        "handLoggedCount": 2,
+        "paused": false,
+        "recordedAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "weekStart": "2026-10-05",
+        "weekEnd": "2026-10-11",
+        "plannedMinor": 10000,
+        "spentMinor": 800,
+        "foodSpentMinor": 300,
+        "eatingOutSpentMinor": 500,
+        "handLoggedCount": 2,
+        "paused": false,
+        "recordedAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "weekStart": "2026-10-12",
+        "weekEnd": "2026-10-18",
+        "plannedMinor": 10000,
+        "spentMinor": 700,
+        "foodSpentMinor": 200,
+        "eatingOutSpentMinor": 500,
+        "handLoggedCount": 2,
+        "paused": true,
+        "recordedAt": "2026-10-21T10:00:00.000Z"
+      },
+      {
+        "weekStart": "2026-10-19",
+        "weekEnd": "2026-10-25",
+        "plannedMinor": 10000,
+        "spentMinor": 0,
+        "foodSpentMinor": 0,
+        "eatingOutSpentMinor": 0,
+        "handLoggedCount": 0,
+        "paused": true,
+        "recordedAt": ""
+      }
+    ],
+    "discountVotes": [],
+    "profile": null,
+    "plan": {
+      "id": "current",
+      "cityId": "regensburg",
+      "createdOn": "2025-10-01",
+      "incomes": [
+        {
+          "categoryId": "income-parents",
+          "monthlyMinor": 120000
+        }
+      ],
+      "fixed": [
+        {
+          "categoryId": "rent",
+          "monthlyMinor": 45000
+        },
+        {
+          "categoryId": "phone",
+          "monthlyMinor": 2000
+        },
+        {
+          "categoryId": "insurance",
+          "monthlyMinor": 3000
+        }
+      ],
+      "envelopes": [
+        {
+          "categoryId": "food",
+          "monthlyMinor": 25000
+        },
+        {
+          "categoryId": "eating-out",
+          "monthlyMinor": 8000
+        },
+        {
+          "categoryId": "going-out",
+          "monthlyMinor": 4000
+        },
+        {
+          "categoryId": "transport",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "shopping",
+          "monthlyMinor": 6000
+        },
+        {
+          "categoryId": "other",
+          "monthlyMinor": 4000
+        }
+      ],
+      "spendingBudgetMinor": 50000,
+      "oneOffs": []
+    }
+  }
+}

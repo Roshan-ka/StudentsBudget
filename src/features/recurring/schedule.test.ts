@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { Schedule } from '@/db/types';
+import type { Entry, Schedule } from '@/db/types';
+import type { IsoDate } from '@/lib/dates';
 import {
   describeTiming,
   duePeriods,
   firstAddedOn,
   firstOccurrence,
+  holdsAutomaticEntry,
   isUsableSchedule,
   monthlyEquivalent,
   newSchedule,
@@ -31,6 +33,30 @@ function monthly(overrides: Partial<Schedule> = {}): Schedule {
 function weekly(overrides: Partial<Schedule> = {}): Schedule {
   return monthly({ frequency: 'weekly', day: 5, amountMinor: 2500, ...overrides });
 }
+
+type TypedEntry = Exclude<Entry, { type: 'transfer' }>;
+
+/** An entry a schedule posted: an expense in rent's category, unless said otherwise. */
+function automatic(date: IsoDate, overrides: Partial<Pick<TypedEntry, 'categoryId' | 'type'>> = {}): TypedEntry {
+  return {
+    id: `rec:s1:${date}`,
+    type: 'expense',
+    date,
+    accountId: 'a1',
+    amountMinor: 40000,
+    eurMinor: 40000,
+    categoryId: 'rent',
+    note: 'Rent',
+    createdAt: `${date}T08:00:00.000Z`,
+    recurring: { scheduleId: 's1' },
+    ...overrides,
+  };
+}
+
+/** The same entry logged by hand: no schedule posted it. */
+const byHand = (date: IsoDate): Entry => ({ ...automatic(date), recurring: undefined });
+
+const RENT = { type: 'expense', categoryId: 'rent' } as const;
 
 describe('periodOf', () => {
   it('is the calendar month for a monthly schedule', () => {
@@ -204,6 +230,110 @@ describe('firstAddedOn', () => {
     expect(firstAddedOn(rent, monthly(), '2026-10-17')).toBeNull();
     expect(firstAddedOn(rent, monthly(), '2026-11-20')).toBeNull();
     expect(firstAddedOn(rent, monthly({ startOn: '2026-11-03', paused: true }), '2026-11-02')).toBeNull();
+  });
+
+  describe('with the entries the line already has', () => {
+    const day15 = { frequency: 'monthly', day: 15 } as const;
+    const fridays = { frequency: 'weekly', day: 5 } as const;
+    const line = (...entries: Entry[]) => ({ ...RENT, entries });
+
+    it('passes over a month the poster would skip: rent posted on 1 Nov, turned off and on with day 15 on 10 Nov', () => {
+      // The new schedule is due on 15 Nov, but November already holds an automatic rent entry, so the poster skips it.
+      expect(firstAddedOn(day15, undefined, '2026-11-10')).toBe('2026-11-15');
+      expect(firstAddedOn(day15, undefined, '2026-11-10', false, line(automatic('2026-11-01')))).toBe('2026-12-15');
+    });
+
+    it('passes over a week the poster would skip: Mondays posted through 16 Nov, Fridays from Tue 17 Nov', () => {
+      expect(firstAddedOn(fridays, undefined, '2026-11-17')).toBe('2026-11-20');
+      expect(firstAddedOn(fridays, undefined, '2026-11-17', false, line(automatic('2026-11-16')))).toBe('2026-11-27');
+    });
+
+    it('passes over several periods in a row, and stops at the first without an entry', () => {
+      const entries = [automatic('2026-11-01'), automatic('2026-12-01'), automatic('2027-02-01')];
+      expect(firstAddedOn(day15, undefined, '2026-11-10', false, line(...entries))).toBe('2027-01-15');
+    });
+
+    it('looks at the periods of the new timing: rent posted monthly on 1 Nov, then turned off and on weekly on Fridays', () => {
+      const posted = line(automatic('2026-11-01'));
+
+      // Monday 9 Nov: the new schedule starts on the 10th, and the first Friday is the 13th. The entry of 1 Nov is
+      // in the week before Mon 2 Nov, so it does not hold a week (and the whole month does not count as held).
+      expect(firstAddedOn(fridays, undefined, '2026-11-09', false, posted)).toBe('2026-11-13');
+      expect(firstAddedOn(fridays, undefined, '2026-11-09')).toBe('2026-11-13');
+      // Even a day after the entry: Friday 6 Nov is in the week of Mon 2 Nov to Sun 8 Nov, which holds nothing.
+      expect(firstAddedOn(fridays, undefined, '2026-11-02', false, posted)).toBe('2026-11-06');
+    });
+
+    it('looks at the periods of the new timing: Fridays posted through early November, then monthly on day 15', () => {
+      const posted = line(automatic('2026-10-30'), automatic('2026-11-06'));
+
+      // Tuesday 10 Nov: day 15 would be due on the 15th, but November already holds an automatic entry (6 Nov).
+      expect(firstAddedOn(day15, undefined, '2026-11-10', false, posted)).toBe('2026-12-15');
+      expect(firstAddedOn(day15, undefined, '2026-11-10')).toBe('2026-11-15');
+      // With the last one in October, November holds none yet.
+      expect(firstAddedOn(day15, undefined, '2026-11-02', false, line(automatic('2026-10-30')))).toBe('2026-11-15');
+    });
+
+    it('counts an entry on any day of the period, and in a later period than the first occurrence', () => {
+      // Posted on the 30th (moved there by hand, say): the same month.
+      expect(firstAddedOn(day15, undefined, '2026-11-10', false, line(automatic('2026-11-30')))).toBe('2026-12-15');
+      // Sunday 22 Nov is the last day of the week that holds Friday 20 Nov.
+      expect(firstAddedOn(fridays, undefined, '2026-11-17', false, line(automatic('2026-11-22')))).toBe('2026-11-27');
+    });
+
+    it('is not moved by entries from before the first period, or by ones the poster would not count', () => {
+      const first = firstAddedOn(day15, undefined, '2026-11-10');
+      const others = [
+        automatic('2026-10-01'),
+        byHand('2026-11-01'),
+        automatic('2026-11-01', { categoryId: 'phone' }),
+        automatic('2026-11-01', { type: 'income' }),
+        { ...automatic('2026-11-01'), type: 'transfer', toAccountId: 'a2', toAmountMinor: 40000 } as Entry,
+      ];
+      expect(firstAddedOn(day15, undefined, '2026-11-10', false, line(...others))).toBe(first);
+    });
+
+    it('follows a stored schedule that has not started yet, and a repaired line', () => {
+      const resumed = resumeSchedule(monthly({ postedThrough: '2026-10-31', paused: true }), '2026-11-02');
+      // Resumed on 2 Nov, the rent comes on 1 Dec, unless December holds one already.
+      expect(firstAddedOn(rent, resumed, '2026-11-02', false, line(automatic('2026-11-01')))).toBe('2026-12-01');
+      expect(firstAddedOn(rent, resumed, '2026-11-02', false, line(automatic('2026-12-01')))).toBe('2027-01-01');
+      const orphan = monthly({ startOn: '2026-10-17', postedThrough: '2026-10-31' });
+      expect(firstAddedOn(rent, orphan, '2026-11-05', true, line(automatic('2026-12-01')))).toBe('2027-01-01');
+    });
+
+    it('stays null once the schedule has started, whatever it holds', () => {
+      expect(firstAddedOn(rent, monthly(), '2026-11-20', false, line(automatic('2026-11-01')))).toBeNull();
+    });
+  });
+});
+
+describe('holdsAutomaticEntry', () => {
+  const november = { start: '2026-11-01', end: '2026-11-30' } as const;
+
+  it('is true for an automatic entry of the line dated in the period, edges included', () => {
+    expect(holdsAutomaticEntry([automatic('2026-11-15')], november, RENT)).toBe(true);
+    expect(holdsAutomaticEntry([automatic('2026-11-01')], november, RENT)).toBe(true);
+    expect(holdsAutomaticEntry([automatic('2026-11-30')], november, RENT)).toBe(true);
+  });
+
+  it('is false outside the period', () => {
+    expect(holdsAutomaticEntry([automatic('2026-10-31'), automatic('2026-12-01')], november, RENT)).toBe(false);
+    expect(holdsAutomaticEntry([], november, RENT)).toBe(false);
+  });
+
+  it('is false for an entry by hand, of another category or type, or a transfer', () => {
+    const transfer = { ...automatic('2026-11-15'), type: 'transfer', toAccountId: 'a2', toAmountMinor: 1 } as Entry;
+    expect(holdsAutomaticEntry([byHand('2026-11-15')], november, RENT)).toBe(false);
+    expect(holdsAutomaticEntry([automatic('2026-11-15', { categoryId: 'phone' })], november, RENT)).toBe(false);
+    expect(holdsAutomaticEntry([automatic('2026-11-15', { type: 'income' })], november, RENT)).toBe(false);
+    expect(holdsAutomaticEntry([transfer], november, RENT)).toBe(false);
+  });
+
+  it('is true for the line with that type and category among other entries', () => {
+    const entries = [automatic('2026-11-15', { categoryId: 'phone' }), automatic('2026-11-02')];
+    expect(holdsAutomaticEntry(entries, november, RENT)).toBe(true);
+    expect(holdsAutomaticEntry(entries, november, { type: 'income', categoryId: 'rent' })).toBe(false);
   });
 });
 

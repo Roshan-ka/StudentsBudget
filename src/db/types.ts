@@ -6,8 +6,14 @@ export type Account = {
   name: string;
   kind: 'bank' | 'cash';
   currency: CurrencyCode;
+  /** Negative for an account that starts overdrawn. */
   openingMinor: Minor;
   createdAt: string;
+  /**
+   * The account new entries, quick add and transfers start from, chosen in Settings. At most one account has it; with
+   * none, `defaultAccount` picks by rule. It is not indexed, so it needed no new schema version.
+   */
+  isDefault?: true;
 };
 
 export type CategoryKind = 'flexible' | 'fixed' | 'oneoff' | 'income';

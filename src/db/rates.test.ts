@@ -24,9 +24,15 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' }, ...init });
 }
 
-/** A fake Frankfurter that answers with the given rates, dated today. */
+/** A fake Frankfurter (v2) that answers with a row per given rate, dated today and sorted by quote. */
 function fakeFrankfurter(rates: Partial<Record<CurrencyCode, number>>) {
-  return vi.fn<typeof fetch>(async () => jsonResponse({ amount: 1, base: 'EUR', date: TODAY, rates }));
+  return vi.fn<typeof fetch>(async () => jsonResponse(v2Rows(rates)));
+}
+
+function v2Rows(rates: Partial<Record<CurrencyCode, number>>, date = TODAY) {
+  return Object.entries(rates)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([quote, rate]) => ({ date, base: 'EUR', quote, rate }));
 }
 
 let consoleError: MockInstance<typeof console.error>;
@@ -64,7 +70,7 @@ describe('refreshRates', () => {
     expect(await refreshRates(TODAY, fake)).toBe('updated');
 
     expect(fake).toHaveBeenCalledTimes(1);
-    expect(fake.mock.calls[0]?.[0]).toBe('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=INR,USD');
+    expect(fake.mock.calls[0]?.[0]).toBe('https://api.frankfurter.dev/v2/rates?base=EUR&quotes=INR,USD&providers=ecb');
     expect(await db.fxRates.toArray()).toEqual(
       expect.arrayContaining([
         { currency: 'INR', perEur: 95.12, rateDate: TODAY, fetchedOn: TODAY, source: 'ecb' },
@@ -72,6 +78,21 @@ describe('refreshRates', () => {
       ]),
     );
     expect(await db.fxRates.count()).toBe(2);
+  });
+
+  it('stores the rate date of the rows apart from the day it was fetched', async () => {
+    await db.accounts.add(account('a1', 'INR'));
+    const weekend = vi.fn<typeof fetch>(async () => jsonResponse(v2Rows({ INR: 95.12 }, YESTERDAY)));
+
+    expect(await refreshRates(TODAY, weekend)).toBe('updated');
+
+    expect(await db.fxRates.get(['INR', 'ecb'])).toEqual({
+      currency: 'INR',
+      perEur: 95.12,
+      rateDate: YESTERDAY,
+      fetchedOn: TODAY,
+      source: 'ecb',
+    });
   });
 
   it('returns fresh without fetching when fetched today', async () => {
@@ -122,14 +143,38 @@ describe('refreshRates', () => {
   it('returns failed on a non-OK response or an unreadable body, and stores nothing', async () => {
     await db.accounts.add(account('a1', 'INR'));
     const serverError = vi.fn<typeof fetch>(async () => jsonResponse({ message: 'oops' }, { status: 500 }));
+    const unknownParameter = vi.fn<typeof fetch>(async () =>
+      jsonResponse({ status: 422, message: 'unknown parameter: symbols' }, { status: 422 }),
+    );
     const notJson = vi.fn<typeof fetch>(async () => new Response('<html>oops</html>'));
     const wrongShape = vi.fn<typeof fetch>(async () => jsonResponse({ rates: 'none' }));
+    const wrongBase = vi.fn<typeof fetch>(async () =>
+      jsonResponse([{ date: TODAY, base: 'USD', quote: 'INR', rate: 95 }]),
+    );
+    const badDate = vi.fn<typeof fetch>(async () =>
+      jsonResponse([{ date: 'yesterday', base: 'EUR', quote: 'INR', rate: 95 }]),
+    );
+    const badRate = vi.fn<typeof fetch>(async () => jsonResponse([{ date: TODAY, base: 'EUR', quote: 'INR', rate: 0 }]));
 
     expect(await refreshRates(TODAY, serverError)).toBe('failed');
+    expect(await refreshRates(TODAY, unknownParameter)).toBe('failed');
     expect(await refreshRates(TODAY, notJson)).toBe('failed');
     expect(await refreshRates(TODAY, wrongShape)).toBe('failed');
+    expect(await refreshRates(TODAY, wrongBase)).toBe('failed');
+    expect(await refreshRates(TODAY, badDate)).toBe('failed');
+    expect(await refreshRates(TODAY, badRate)).toBe('failed');
 
     expect(await db.fxRates.count()).toBe(0);
+  });
+
+  it('returns failed on an empty list, keeping the old rate', async () => {
+    await db.accounts.add(account('a1', 'INR'));
+    const old = ecb('INR', 95, YESTERDAY);
+    await db.fxRates.put(old);
+
+    expect(await refreshRates(TODAY, fakeFrankfurter({}))).toBe('failed');
+
+    expect(await db.fxRates.toArray()).toEqual([old]);
   });
 
   it('returns failed when the response has none of the currencies in use', async () => {
@@ -171,9 +216,9 @@ describe('refreshRates', () => {
     });
     const fake = vi.fn<typeof fetch>(async (input) => {
       await gate;
-      const symbols = String(input).split('symbols=')[1] ?? '';
-      const rates = Object.fromEntries(symbols.split(',').map((c) => [c, c === 'INR' ? 95 : 1.1]));
-      return jsonResponse({ amount: 1, base: 'EUR', date: TODAY, rates });
+      const quotes = new URL(String(input)).searchParams.get('quotes') ?? '';
+      const rates = Object.fromEntries(quotes.split(',').map((c) => [c, c === 'INR' ? 95 : 1.1]));
+      return jsonResponse(v2Rows(rates));
     });
 
     const first = refreshRates(TODAY, fake);

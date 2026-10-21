@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '@/components/ui/native-select';
 import { db } from '@/db/db';
 import type { Account, Category, Plan, PlanLine } from '@/db/types';
-import { sortAccounts } from '@/features/accounts/balances';
-import { categoryName } from '@/features/entries/categories';
+import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
+import { INCOME_CATEGORIES, categoryName } from '@/features/entries/categories';
 import { monthOf, todayIso, type IsoDate } from '@/lib/dates';
 import { formatMoney, parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
@@ -29,6 +29,7 @@ import {
 import { RepeatFields, type Timing } from './repeat-fields';
 import { firstAddedOn, monthlyEquivalent } from './schedule';
 import { updatePlan } from './update-plan';
+import { useLineEntries } from './use-line-entries';
 
 type Change = (mutate: (plan: Plan) => Plan) => Promise<boolean>;
 
@@ -66,7 +67,7 @@ function LineForm({
   const [timing, setTiming] = useState<Timing>({ frequency: s?.frequency ?? 'monthly', day: s?.day ?? 1 });
   // '' when the account the line used is gone: the person has to pick one.
   const [accountId, setAccountId] = useState(
-    s ? (accounts.some((a) => a.id === s.accountId) ? s.accountId : '') : (accounts[0]?.id ?? ''),
+    s ? (accounts.some((a) => a.id === s.accountId) ? s.accountId : '') : (defaultAccount(accounts)?.id ?? ''),
   );
   const [amount, setAmount] = useState(s ? minorToInput(s.amountMinor) : line ? minorToInput(line.monthlyMinor) : '');
   const [monthly, setMonthly] = useState(line ? minorToInput(line.monthlyMinor) : '');
@@ -85,8 +86,14 @@ function LineForm({
       : null;
   const name = line ? categoryName(line.categoryId) : null;
   // A new or turned-on line starts tomorrow, as does one whose account was gone once one is picked; a resumed one has
-  // not started either. Each says when its first entry comes.
-  const firstOn = auto && account ? firstAddedOn(timing, s, today, orphaned) : null;
+  // not started either. Each says when its first entry comes, past a period the line already has an automatic entry
+  // in, as the poster passes over it.
+  const lineType = INCOME_CATEGORIES.some((c) => c.id === categoryId) ? 'income' : 'expense';
+  const lineEntries = useLineEntries(lineType, categoryId);
+  // Whether the line is coming at all does not depend on the entries (they only move the day later), so an empty line
+  // holds its place while they load, and the form below does not jump when the day appears.
+  const expectsFirst = auto && account !== undefined && firstAddedOn(timing, s, today, orphaned) !== null;
+  const firstOn = expectsFirst && lineEntries ? firstAddedOn(timing, s, today, orphaned, lineEntries) : null;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -177,7 +184,9 @@ function LineForm({
           {s && timing.frequency !== s.frequency && (
             <p className="text-sm text-muted-foreground">A new frequency starts with the next period.</p>
           )}
-          {firstOn && <p className="text-sm text-muted-foreground">{firstAddedLine(firstOn)}</p>}
+          {expectsFirst && (
+            <p className="min-h-5 text-sm text-muted-foreground">{firstOn ? firstAddedLine(firstOn) : null}</p>
+          )}
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-account`}>Account</Label>
             <NativeSelect

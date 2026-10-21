@@ -109,11 +109,11 @@ Checked on 2026-10-20, before the ledgers were deleted.
 
 ## 2. Open follow-ups
 
-Every deferred or minor item in the two ledgers was checked against the code on this branch (`bb19e33` plus this note). 75 are still open, listed by area. "(worth doing next)" marks the five a user would notice first. One extra area, "Accounts, rates and data layer", holds items that fit none of the others.
+Every deferred or minor item in the two ledgers was checked against the code on this branch (`bb19e33` plus this note). 75 were open on 2026-10-20, listed by area; those fixed since end in "Done" with the date. "(worth doing next)" marks the five a user would notice first. One extra area, "Accounts, rates and data layer", holds items that fit none of the others.
 
 ### Quick add and entries
-- `keywordOf` reads only the first word, so "2 coffees" gets the keyword "2" and matches "2 tickets", and "Coffee. 6" keeps "Coffee." as its keyword (`src/features/entries/quick-add.ts`). Category suggestions follow the wrong word. (worth doing next)
-- The manual entry form starts on the first account in sort order, and setup stamps one `createdAt` on every account, so the default is Cash by name (`src/features/setup/draft.ts`, `src/features/entries/entry-form.tsx`). Wrong for someone who mostly pays by bank. (worth doing next)
+- `keywordOf` reads only the first word, so "2 coffees" gets the keyword "2" and matches "2 tickets", and "Coffee. 6" keeps "Coffee." as its keyword (`src/features/entries/quick-add.ts`). Category suggestions follow the wrong word. (worth doing next) Done 2026-10-21 (feat/fixes-upkeep).
+- The manual entry form starts on the first account in sort order, and setup stamps one `createdAt` on every account, so the default is Cash by name (`src/features/setup/draft.ts`, `src/features/entries/entry-form.tsx`). Wrong for someone who mostly pays by bank. (worth doing next) Done 2026-10-21 (feat/fixes-upkeep).
 - German number words ("Döner sechs Euro") give no amount (`quick-add.ts`). Matters for someone dictating in German.
 - A space around the decimal comma ("Döner 6 ,50") saves €6 with ",50" in the note; "6€ 50" and "euro 6 50" save €6 with "50" left in the note; "6 euros 50 cents" leaves the note empty (`quick-add.ts`). The confirmation line shows the amount, so it is visible.
 - Odd lines still save silently or are refused: "euro2024 tickets 30" is €2024, "tel 0176" is €176, "coffee 6 , 50" is €50, "coffee twenty, five" is €25, "coffee 7 40 3 euros" offers €40.03 or €3, and "lunch for two and cake 12 euros" gives no amount (`quick-add.ts`). Contrived; listed so they are not rediscovered.
@@ -125,7 +125,8 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 - Date field: the Today chip stores the picked date, so it no longer follows midnight (documented), and the native date segments are invisible when typing on a desktop (`src/components/date-field.tsx`).
 
 ### Recurring
-- "First added on DD-MM-YYYY" can name the wrong day after auto-add is turned off and on again mid-month once this month has already posted (`src/features/recurring/schedule.ts` `firstAddedOn`, `recurring-editor.tsx`, `draft-schedule-fields.tsx`). (worth doing next)
+- "First added on DD-MM-YYYY" can name the wrong day after auto-add is turned off and on again mid-month once this month has already posted (`src/features/recurring/schedule.ts` `firstAddedOn`, `recurring-editor.tsx`, `draft-schedule-fields.tsx`). (worth doing next) Done 2026-10-21 (feat/fixes-upkeep).
+- `postedIn` now loads the whole period and filters it in memory instead of stopping at the first match (`post-due.ts`); same result, trivial cost. Found 2026-10-21.
 - A plain weekly-to-monthly edit skips that month's first monthly entry (the period scan finds the weekly ones), and monthly-to-weekly posts weekly entries in a month whose monthly one already posted (`post-due.ts` `postedIn`).
 - A future-dated automatic entry that was moved to another day still suppresses its period (`post-due.ts`).
 - A stale second-tab wizard can re-orphan an `accountId`, and a plan exported in that state can't be restored (`update-plan.ts`, `src/features/backup/backup.ts`).
@@ -139,7 +140,7 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 - Buttons are 40 px high (`h-10`) here and in most forms, against a 44 px touch target (`suggested-budget.tsx`).
 
 ### Charts
-- An empty selected month hides all the charts, including the 6-month ones that have history; the page only says "Nothing logged in October yet." (`src/features/charts/charts-view.tsx`). (worth doing next)
+- An empty selected month hides all the charts, including the 6-month ones that have history; the page only says "Nothing logged in October yet." (`src/features/charts/charts-view.tsx`). (worth doing next) Done 2026-10-21 (feat/fixes-upkeep).
 - A period that reaches back before setup counts spending but no plan ("€300 of €160", with no "Earlier months had no plan." note), and Savings counts expenses before the setup day while Spending does not, with no caption saying so (`aggregate.ts`, `sections.tsx`). Superseded on 2026-10-21: no day-based proration; see README Home.
 - Sub-euro overspend reads "€160 of €160" in the bars, because cents show only for 1–49 cents (`bars.tsx`, `src/lib/week-amount.ts`).
 - Bars: the `memo` is defeated because `plain` is a new array on every render; the hit-rect maths assumes plot height equals rows times `ROW_HEIGHT`; tapping the category name or the number column does nothing (`bars.tsx`).
@@ -160,11 +161,12 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 - Backup e2e: delete and restore run on Chromium only; the AbortError test can pass before the rejection lands; the slow-read race uses a 600 ms timer instead of an explicit gate; the SUMMARY regex relies on the pinned noon clock (`e2e/backup.spec.ts`).
 
 ### Setup
-- The opening balance can't be negative in the account form, though a restored backup accepts an overdrawn account (`src/features/accounts/opening-balance.ts`, `accounts-panel.tsx`). (worth doing next)
+- The opening balance can't be negative in the account form, though a restored backup accepts an overdrawn account (`src/features/accounts/opening-balance.ts`, `accounts-panel.tsx`). (worth doing next) Done 2026-10-21 (feat/fixes-upkeep).
+- Unticking "Overdrawn" on a mistyped "--250" leaves "-250" and the box ticked; the text is invalid anyway (`opening-balance.ts`). Found 2026-10-21.
 - The save error says "Try again" for `GuessesLockedError`, which can never succeed; no test covers the transaction rolling back when `saveGuesses` throws (`src/features/setup/setup-wizard.tsx`).
 - The install hint also shows in edit mode (`src/app/setup/page.tsx`).
 - `draftToRecords` rebuilds the Plan from scratch, so a later Plan field would be dropped on edit (use `{ ...existing, … }`); `previewPlan` runs `newId` and `new Date` about three times per render on the last step (`draft.ts`).
-- `parseOpeningBalance` now parses every optional amount; rename it to `parseOptionalAmount` (`opening-balance.ts`).
+- `parseOpeningBalance` now parses every optional amount; rename it to `parseOptionalAmount` (`opening-balance.ts`). Done 2026-10-21 (feat/fixes-upkeep).
 - The envelopes footer rounds "Planned" to the nearest euro and floors "Available", so within a 50-cent band it can read "Planned €467 · Available €466" without "Over by"; the footer is also off-screen while typing at 375×812 (`draft.ts` `envelopesFooter`, `steps/envelopes.tsx`).
 - Editing a kept one-off's amount or due month keeps `createdMonth`, so it under-reserves; `isDueMonthProblem` matches id-less one-offs without claim tracking (`draft.ts`).
 - The range "Source" summary is about 16 px tall as a tap target (`steps/range-source.tsx`).
@@ -174,10 +176,11 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 - City data: `CITIES.prices` is never shown in the app; the Deutschlandticket €63 goes stale on 2027-01-01 (€66.80) and the semester-ticket upgrade isn't offered as guidance; the grocery basket price is missing; the Destatis URLs live only in a code comment (`cities.ts`).
 
 ### Accounts, rates and data layer
-- `toEurMinor` returns -0 for small negatives and has no exact .5 tie test (`src/lib/fx.ts`).
-- Rates: the empty-response "failed" path doesn't log; a partially missing currency returns "updated" and refetches on every call; the error contract is uneven (bulkPut errors become "failed", reads reject); no test shows a rejected refresh doesn't poison the queue (`src/db/rates.ts`).
+- `toEurMinor` returns -0 for small negatives and has no exact .5 tie test (`src/lib/fx.ts`). Done 2026-10-21: the -0 is fixed (the .5 tie test is still open).
+- Rates: the "failed" path for a response with none of the needed currencies doesn't log (an empty `[]` does since the v2 move, as does one with only currencies the app has no code for); a partially missing currency returns "updated" and refetches on every call; the error contract is uneven (bulkPut errors become "failed", reads reject); no test shows a rejected refresh doesn't poison the queue (`src/db/rates.ts`).
 - `AbortSignal.timeout` throws on WebKit older than 16, so every rate refresh fails without a hint on an older iPhone (`fx.ts`).
-- Frankfurter v1 is deprecated with no sunset date; a move to v2 with `providers=ecb` is tracked nowhere (`fx.ts`).
+- Frankfurter v1 is deprecated with no sunset date; a move to v2 with `providers=ecb` is tracked nowhere (`fx.ts`). Done 2026-10-21: moved to v2 (quotes, providers=ecb).
+- Frankfurter v2 rows each carry a date, but one refresh stamps the newest row date on every currency; harmless while all six are ECB daily rates (`fx.ts`). Found 2026-10-21.
 - The `refreshRates` try/catch is repeated in AppInit, the accounts panel, the rates panel and the setup wizard; a `safeRefreshRates` helper would hold it once (`rates.ts`).
 - `accounts-panel.tsx` writes `db.accounts.put` directly instead of a repo `saveAccount` with a test; `parseRate` (in `rates-panel.tsx`) and the currency lock have no unit tests.
 - Accounts: one-tap delete with no confirm; no uniqueness check on names; form errors aren't tied to their fields (`aria-invalid`, `aria-describedby`); focus drops to the body when a form opens or closes (`accounts-panel.tsx`, `transfer-form.tsx`, `entry-form.tsx`).
@@ -209,6 +212,11 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 ### Docs
 - Plan Task 1 Step 1 still says `npx shadcn@latest init`; a historic step, and shadcn is pinned at 4.21.5 (`docs/superpowers/plans/2026-10-16-p1-test-project.md`).
 - Plan Task 15 Step 3 versus Step 4 (iPhone checklist after the deploy, or record the results before merging) is still an open question in the plan text.
+
+### Dated re-checks
+Reminders with a date, not counted in the 75 above.
+- 2026-10-21: re-check the Regensburg €22 Deutschlandticket student surcharge for 2027 in December 2026 (`rvv.de/semesterticket`). The regular Deutschlandticket goes to €66.80 on 2027-01-01, but no 2027 figure for the student surcharge is published yet, so the €22 in `src/data/swaps.ts` and `src/data/tips.ts` stays.
+- 2026-10-21: all 17 discounts read "May be outdated" from 15-12-2026 without votes (56 days after the source check on 2026-10-20). Re-check the sources and update `CHECKED` in `src/data/discounts.ts` before then.
 
 ### Not checkable from the code
 Two ledger items could not be classified by reading the code:

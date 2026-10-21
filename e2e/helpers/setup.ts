@@ -60,11 +60,11 @@ const FLEXIBLE_IDS = Object.keys(GUESS_TOPIC) as FlexibleId[];
 /** Matches every request to the Frankfurter API; for tests that need the request to fail. */
 export const FRANKFURTER = '**/api.frankfurter.dev/**';
 
-/** Answers like Frankfurter does, with INR at 95. The CORS header is what the real API sends. */
+/** Answers like Frankfurter v2 does (a list of rows), with INR at 95. The CORS header is what the real API sends. */
 export async function mockFrankfurter(page: Page) {
   await page.route(FRANKFURTER, (route) =>
     route.fulfill({
-      json: { amount: 1, base: 'EUR', date: '2026-10-16', rates: { INR: 95 } },
+      json: [{ date: '2026-10-16', base: 'EUR', quote: 'INR', rate: 95 }],
       headers: { 'access-control-allow-origin': '*' },
     }),
   );

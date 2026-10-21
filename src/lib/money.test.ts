@@ -45,6 +45,25 @@ describe('formatMoney', () => {
   it('formats other currencies', () => {
     expect(formatMoney(100000, 'INR')).toContain('1,000.00');
   });
+
+  it('puts the minus in front of a negative amount', () => {
+    expect(formatMoney(-20000, 'EUR', { whole: true })).toBe('-€200');
+    expect(formatMoney(-25000, 'EUR')).toBe('-€250.00');
+    expect(formatMoney(-20, 'EUR')).toBe('-€0.20');
+  });
+
+  it('shows 0, never "-€0", for a whole figure that rounds to nothing', () => {
+    for (const minor of [-1, -20, -49, 0, 20, 49]) {
+      expect(formatMoney(minor, 'EUR', { whole: true }), String(minor)).toBe('€0');
+    }
+    expect(formatMoney(-30, 'INR', { whole: true })).toBe(formatMoney(0, 'INR', { whole: true }));
+    // Half a euro rounds away from zero on both sides, and from there up the sign stays.
+    expect(formatMoney(-50, 'EUR', { whole: true })).toBe('-€1');
+    expect(formatMoney(50, 'EUR', { whole: true })).toBe('€1');
+    expect(formatMoney(-51, 'EUR', { whole: true })).toBe('-€1');
+    expect(formatMoney(-100, 'EUR', { whole: true })).toBe('-€1');
+    expect(formatMoney(51, 'EUR', { whole: true })).toBe('€1');
+  });
 });
 
 describe('formatRange', () => {

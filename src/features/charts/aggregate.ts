@@ -104,11 +104,28 @@ const FLEXIBLE_IDS = new Set(FLEXIBLE_CATEGORIES.map((c) => c.id));
 
 /**
  * The category the "over time" chart starts on, from `spending` ranked as `spendingByCategoryOver` ranks it: the top
- * flexible spender, or with nothing flexible spent the flexible row with the largest plan, or the first flexible
- * category. A fixed cost such as rent comes in at the same amount every month, so its chart is a flat line.
+ * flexible spender. With nothing flexible spent in the period, it is the top flexible spender of the chart's own
+ * months (`windowSpending`, the same rows when the chart covers the period), so a month with nothing in it still opens
+ * on a chart with columns. With nothing flexible spent there either, it is the flexible row with the largest plan, or
+ * the first flexible category. A fixed cost such as rent comes in at the same amount every month, so its chart is a
+ * flat line.
  */
-export function defaultOverTimeCategory(spending: SpendingRow[]): string {
-  return spending.find((row) => FLEXIBLE_IDS.has(row.categoryId))?.categoryId ?? FLEXIBLE_CATEGORIES[0].id;
+export function defaultOverTimeCategory(spending: SpendingRow[], windowSpending: SpendingRow[] = spending): string {
+  const topFlexible = (rows: SpendingRow[]) => rows.find((row) => FLEXIBLE_IDS.has(row.categoryId));
+  const top = topFlexible(spending);
+  if (top !== undefined && top.spentMinor > 0) return top.categoryId;
+  const windowTop = topFlexible(windowSpending);
+  if (windowTop !== undefined && windowTop.spentMinor > 0) return windowTop.categoryId;
+  return top?.categoryId ?? FLEXIBLE_CATEGORIES[0].id;
+}
+
+/**
+ * Whether any income or expense is logged in `months`. A transfer only moves money between accounts, so it is not
+ * logged spending or income and does not count.
+ */
+export function hasEntriesIn(entries: Entry[], months: IsoMonth[]): boolean {
+  const wanted = new Set(months);
+  return entries.some((e) => e.type !== 'transfer' && wanted.has(monthOf(e.date)));
 }
 
 /** `spendingByCategoryOver` for a single month; `spendingRowsOf` has the rules for spent and planned. */
