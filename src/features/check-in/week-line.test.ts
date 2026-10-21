@@ -20,7 +20,7 @@ describe('weekLine', () => {
     expect(weekLine(week(0, 0))).toBe('€0 planned · €0 spent · on plan');
   });
 
-  it('compares the week with its own share, not with what is carried over from earlier weeks', () => {
+  it('compares the week with its own share, whatever the safe amount of the row says', () => {
     expect(weekLine(week(7000, 2000, -30000))).toBe('€70 planned · €20 spent · €50 under');
     expect(weekLine(week(7000, 8200, 90000))).toBe('€70 planned · €82 spent · €12 over');
   });
