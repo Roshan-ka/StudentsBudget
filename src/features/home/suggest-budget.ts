@@ -87,8 +87,8 @@ export function fitTo(rows: Suggestion, totalMinor: Minor): Suggestion {
  *   row leaves its range. Money stays whole numbers: the shares are compared as fractions with a common
  *   denominator, never as floats.
  *
- * It relies on every low and high end being a multiple of €5 (the city ranges are; a test pins it). Home keeps
- * `fitTo` as it is.
+ * It relies on every low and high end being a multiple of €5 (the city ranges are; a test pins it). Home's
+ * `suggestBudget` uses it too.
  */
 export function splitBudget(rows: Suggestion, budgetMinor: Minor): Suggestion {
   const highs = rows.map((row) => row.amountMinor);
@@ -147,22 +147,27 @@ export function liveSuggestions(
 
 /**
  * A suggested amount for every flexible category, to start the month from: `startingRows` for last month's
- * spending, fitted to what the plan has available.
+ * spending, split by `splitBudget` across `targetMinor`. That is what the plan has available, or the plan's everyday
+ * budget when one is set and is less: the budget is what the person wants to spend, and more than is available
+ * cannot be suggested.
  *
- * `unallocatedMinor` is what stays free for savings. `availableMinor` can be zero or negative.
+ * `unallocatedMinor` is what stays free for savings, out of what is available, so it includes what the budget leaves
+ * unused. `availableMinor` can be zero or negative.
  */
 export function suggestBudget(
   plan: Plan,
   city: City,
   entries: Entry[],
   month: IsoMonth,
-): { rows: Suggestion; availableMinor: Minor; unallocatedMinor: Minor } {
+): { rows: Suggestion; availableMinor: Minor; targetMinor: Minor; unallocatedMinor: Minor } {
   const { availableMinor } = planSummary(plan, month);
+  const budgetMinor = plan.spendingBudgetMinor ?? 0;
+  const targetMinor = budgetMinor > 0 ? Math.min(availableMinor, budgetMinor) : availableMinor;
   const lastMonth = spentIn(entries, shiftMonth(month, -1));
   const start = startingRows(city, lastMonth, FLEXIBLE_CATEGORIES.map((c) => c.id));
-  const rows = fitTo(start, availableMinor);
+  const rows = splitBudget(start, targetMinor);
 
-  return { rows, availableMinor, unallocatedMinor: Math.max(0, availableMinor - sum(rows)) };
+  return { rows, availableMinor, targetMinor, unallocatedMinor: Math.max(0, availableMinor - sum(rows)) };
 }
 
 /**
