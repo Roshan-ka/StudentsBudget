@@ -266,7 +266,7 @@ test('the first setup asks only the basic questions, with the budget at the top 
 
   // The budget is the first question of this step, blank, with what students here typically spend: the six
   // minimums to the six maximums, and which of those are estimates.
-  await expect(page.getByText('Optional. The envelopes below are suggested from it.', { exact: true })).toBeVisible();
+  await expect(page.getByText('An everyday budget is optional: with one, each envelope below gets a suggested amount.', { exact: true })).toBeVisible();
   await expect(budgetField(page)).toHaveValue('');
   await expect(
     page.getByText(

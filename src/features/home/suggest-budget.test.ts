@@ -494,7 +494,7 @@ describe('splitBudget', () => {
     // Food €180–340 (middle €260) and going out €30–120 (middle €75), with health at last month's €50 and no range.
     const start = startingRows(city, new Map([['health', 5000]]), ['food', 'going-out', 'health']);
     const rows = splitBudget(start, 30000);
-    // The exact shares are €205.60 and €44.40: rounded down to €200 and €40, the spare €5 goes to going out.
+    // The exact shares are €205.60 and €44.40: rounded down to €205 and €40, the spare €5 goes to going out.
     expect(amounts(rows)).toEqual({ food: 20500, 'going-out': 4500, health: 5000 });
     expect(total(rows)).toBe(30000);
     expect(rows[0].range).toEqual(food);

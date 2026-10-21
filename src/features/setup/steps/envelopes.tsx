@@ -80,7 +80,9 @@ export function EnvelopesStep({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground">Optional. The envelopes below are suggested from it.</p>
+      <p className="text-muted-foreground">
+        An everyday budget is optional: with one, each envelope below gets a suggested amount.
+      </p>
       <div className="grid gap-1.5">
         <AmountField
           label="How much do you want to spend in a month on everyday things, apart from rent and your fixed costs?"
@@ -147,19 +149,19 @@ export function EnvelopesStep({
           </div>
         );
       })}
-      {(line !== null || edit) && (
-        <div
-          aria-live="polite"
-          className="flex flex-col gap-1 rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums"
-        >
-          {line !== null && <p>{line}</p>}
-          {edit && (
-            <p className="font-normal text-muted-foreground">
-              {envelopesFooter(summarizeDraft(draft, today, existing))}
-            </p>
-          )}
-        </div>
-      )}
+      {/* The live region stays mounted, so the first total after a budget is typed is announced too. */}
+      <div aria-live="polite">
+        {(line !== null || edit) && (
+          <div className="flex flex-col gap-1 rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
+            {line !== null && <p>{line}</p>}
+            {edit && (
+              <p className="font-normal text-muted-foreground">
+                {envelopesFooter(summarizeDraft(draft, today, existing))}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

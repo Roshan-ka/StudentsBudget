@@ -18,7 +18,7 @@ export function EditPlanSection() {
       </h3>
       <p className="text-muted-foreground">
         Change your envelopes and one-off costs, add the income sources, fixed costs and envelopes setup skipped, or go
-        through the whole plan again. Accounts are below, and your guesses stay as you made them.
+        through the whole plan again. Accounts are below. Guesses from setup aren&apos;t changed.
       </p>
       <Link href="/setup?edit=1" className={buttonVariants({ variant: 'outline', className: 'h-10 self-start px-4' })}>
         Edit plan
