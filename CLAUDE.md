@@ -82,7 +82,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 
 **What P1 leaves out**
 - No AI calls, server routes, login, analytics or third-party scripts.
-- The only outgoing request: `https://api.frankfurter.dev/v1/latest?base=EUR&symbols=…`. Confirm the endpoint in Frankfurter's docs before coding.
+- The only outgoing request: `https://api.frankfurter.dev/v2/rates?base=EUR&quotes=…&providers=ecb`. Confirm the endpoint in Frankfurter's docs before coding.
 
 **Text and layout**
 - UI language is English. Money is formatted with `Intl.NumberFormat('en-IE', …)`: `€6.50`, and `€63` for headlines.

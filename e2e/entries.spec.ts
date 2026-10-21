@@ -237,7 +237,7 @@ test('quick add refuses an account whose currency has no rate yet', async ({ pag
   await expect.poll(async () => (await readStore<Rate>(page, 'fxRates')).length).toBe(1);
   await page.route(FRANKFURTER, (route) =>
     route.fulfill({
-      json: { amount: 1, base: 'EUR', date: '2026-10-16', rates: {} },
+      json: [],
       headers: { 'access-control-allow-origin': '*' },
     }),
   );

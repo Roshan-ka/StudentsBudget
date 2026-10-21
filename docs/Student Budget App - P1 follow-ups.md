@@ -174,10 +174,10 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 - City data: `CITIES.prices` is never shown in the app; the Deutschlandticket €63 goes stale on 2027-01-01 (€66.80) and the semester-ticket upgrade isn't offered as guidance; the grocery basket price is missing; the Destatis URLs live only in a code comment (`cities.ts`).
 
 ### Accounts, rates and data layer
-- `toEurMinor` returns -0 for small negatives and has no exact .5 tie test (`src/lib/fx.ts`).
+- `toEurMinor` returns -0 for small negatives and has no exact .5 tie test (`src/lib/fx.ts`). Done 2026-10-21: the -0 is fixed (the .5 tie test is still open).
 - Rates: the empty-response "failed" path doesn't log; a partially missing currency returns "updated" and refetches on every call; the error contract is uneven (bulkPut errors become "failed", reads reject); no test shows a rejected refresh doesn't poison the queue (`src/db/rates.ts`).
 - `AbortSignal.timeout` throws on WebKit older than 16, so every rate refresh fails without a hint on an older iPhone (`fx.ts`).
-- Frankfurter v1 is deprecated with no sunset date; a move to v2 with `providers=ecb` is tracked nowhere (`fx.ts`).
+- Frankfurter v1 is deprecated with no sunset date; a move to v2 with `providers=ecb` is tracked nowhere (`fx.ts`). Done 2026-10-21: moved to v2 (quotes, providers=ecb).
 - The `refreshRates` try/catch is repeated in AppInit, the accounts panel, the rates panel and the setup wizard; a `safeRefreshRates` helper would hold it once (`rates.ts`).
 - `accounts-panel.tsx` writes `db.accounts.put` directly instead of a repo `saveAccount` with a test; `parseRate` (in `rates-panel.tsx`) and the currency lock have no unit tests.
 - Accounts: one-tap delete with no confirm; no uniqueness check on names; form errors aren't tied to their fields (`aria-invalid`, `aria-describedby`); focus drops to the body when a form opens or closes (`accounts-panel.tsx`, `transfer-form.tsx`, `entry-form.tsx`).
@@ -209,6 +209,11 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 ### Docs
 - Plan Task 1 Step 1 still says `npx shadcn@latest init`; a historic step, and shadcn is pinned at 4.21.5 (`docs/superpowers/plans/2026-10-16-p1-test-project.md`).
 - Plan Task 15 Step 3 versus Step 4 (iPhone checklist after the deploy, or record the results before merging) is still an open question in the plan text.
+
+### Dated re-checks
+Reminders with a date, not counted in the 75 above.
+- 2026-10-21: re-check the Regensburg €22 Deutschlandticket student surcharge for 2027 in December 2026 (`rvv.de/semesterticket`). The regular Deutschlandticket goes to €66.80 on 2027-01-01, but no 2027 figure for the student surcharge is published yet, so the €22 in `src/data/swaps.ts` and `src/data/tips.ts` stays.
+- 2026-10-21: all 17 discounts read "May be outdated" from 15-12-2026 without votes (56 days after the source check on 2026-10-20). Re-check the sources and update `CHECKED` in `src/data/discounts.ts` before then.
 
 ### Not checkable from the code
 Two ledger items could not be classified by reading the code:
