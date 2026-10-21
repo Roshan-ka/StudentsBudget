@@ -45,6 +45,7 @@ const TITLES: Record<StepId, string> = {
   fixed: 'Fixed costs',
   'one-offs': 'One-off costs',
   guesses: 'Guesses',
+  budget: 'Everyday budget',
   envelopes: 'Envelopes',
 };
 

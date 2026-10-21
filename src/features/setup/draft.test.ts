@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { CATEGORIES, GUESS_CATEGORY_IDS, SETUP_FIXED_IDS, SETUP_INCOME_IDS } from '@/data/categories';
 import type { Plan, Schedule } from '@/db/types';
 import {
+  FIXED_CATEGORIES,
+  FLEXIBLE_CATEGORIES,
+  INCOME_CATEGORIES,
   accountOptions,
+  askedCategories,
   draftAccountOf,
   draftFromPlan,
   draftToRecords,
@@ -43,6 +48,7 @@ const draft: SetupDraft = {
     { categoryId: 'shopping', monthlyMinor: 4000 },
     { categoryId: 'other', monthlyMinor: 2000 },
   ],
+  spendingBudgetMinor: 0,
   envelopes: [
     { categoryId: 'food', monthlyMinor: 31000 },
     { categoryId: 'eating-out', monthlyMinor: 12400 },
@@ -97,6 +103,37 @@ describe('draftToRecords', () => {
     expect(plan).toMatchObject({ id: 'current', cityId: 'regensburg', createdOn: TODAY });
     expect(plan.incomes).toEqual(draft.incomes);
     expect(plan.envelopes).toEqual(draft.envelopes);
+  });
+
+  it('saves the everyday budget only when it is above 0', () => {
+    expect(draftToRecords({ ...draft, spendingBudgetMinor: 60000 }, TODAY).plan.spendingBudgetMinor).toBe(60000);
+    expect(draftToRecords(draft, TODAY).plan).not.toHaveProperty('spendingBudgetMinor');
+    expect(draftToRecords({ ...draft, spendingBudgetMinor: Number.NaN }, TODAY).plan).not.toHaveProperty(
+      'spendingBudgetMinor',
+    );
+  });
+
+  it('leaves out a one-off without an amount and keeps the others', () => {
+    const rows = [
+      { name: '', amountMinor: 0, dueMonth: '' },
+      { name: 'Semester fee', amountMinor: 30000, dueMonth: '2027-03' },
+      { name: 'Laptop', amountMinor: 0, dueMonth: '2027-02' },
+    ];
+    const { plan } = draftToRecords({ ...draft, oneOffs: rows }, TODAY);
+    expect(plan.oneOffs.map((o) => o.name)).toEqual(['Semester fee']);
+  });
+
+  it('saves only the guesses that were answered, a typed 0 included', () => {
+    const answered = [
+      { categoryId: 'food', monthlyMinor: 20000 },
+      { categoryId: 'going-out', monthlyMinor: 0 },
+    ];
+    const { guesses } = draftToRecords({ ...draft, guesses: answered }, TODAY);
+    expect(guesses).toEqual([
+      { categoryId: 'food', monthlyMinor: 20000, guessedOn: TODAY },
+      { categoryId: 'going-out', monthlyMinor: 0, guessedOn: TODAY },
+    ]);
+    expect(draftToRecords({ ...draft, guesses: [] }, TODAY).guesses).toEqual([]);
   });
 
   it('gives each account its own id and creation time', () => {
@@ -154,6 +191,21 @@ describe('draftToRecords', () => {
     it('round-trips: opening the plan and saving it unchanged changes nothing', () => {
       expect(draftToRecords(draftFromPlan(existing), TODAY, existing).plan).toEqual(existing);
     });
+
+    it('round-trips the everyday budget, and writes none for a plan that has none', () => {
+      const budgeted: Plan = { ...existing, spendingBudgetMinor: 60000 };
+      expect(draftFromPlan(budgeted).spendingBudgetMinor).toBe(60000);
+      expect(draftToRecords(draftFromPlan(budgeted), TODAY, budgeted).plan).toEqual(budgeted);
+
+      expect(draftFromPlan(existing).spendingBudgetMinor).toBe(0);
+      expect(draftToRecords(draftFromPlan(existing), TODAY, existing).plan).not.toHaveProperty('spendingBudgetMinor');
+    });
+
+    it('drops the budget when it is cleared', () => {
+      const budgeted: Plan = { ...existing, spendingBudgetMinor: 60000 };
+      const cleared = { ...draftFromPlan(budgeted), spendingBudgetMinor: 0 };
+      expect(draftToRecords(cleared, TODAY, budgeted).plan).not.toHaveProperty('spendingBudgetMinor');
+    });
   });
 });
 
@@ -189,23 +241,13 @@ describe('draftFromPlan', () => {
 });
 
 describe('validateStep', () => {
-  it('asks for a guess on the six categories people guess, and on no other', () => {
+  it('lets every guess stay blank: a guess is optional', () => {
     expect(validateStep('guesses', draft, TODAY)).toEqual([]);
     const fresh = initialDraft();
     expect(fresh.envelopes).toHaveLength(12);
-    expect(validateStep('guesses', fresh, TODAY)).toEqual([
-      'Add a guess for Food & groceries',
-      'Add a guess for Eating out',
-      'Add a guess for Going out',
-      'Add a guess for Transport',
-      'Add a guess for Shopping',
-      'Add a guess for Other',
-    ]);
-  });
-
-  it('names the guess that is missing', () => {
+    expect(validateStep('guesses', fresh, TODAY)).toEqual([]);
     const noEatingOut = { ...draft, guesses: draft.guesses.filter((g) => g.categoryId !== 'eating-out') };
-    expect(validateStep('guesses', noEatingOut, TODAY)).toEqual(['Add a guess for Eating out']);
+    expect(validateStep('guesses', noEatingOut, TODAY)).toEqual([]);
   });
 
   it('accepts a guess of 0', () => {
@@ -263,11 +305,27 @@ describe('validateStep', () => {
       expect(check('2027-13')).toEqual(['Pick a month after this one.']);
     });
 
-    it('wants a name and an amount above zero', () => {
-      const oneOffs = [{ name: ' ', amountMinor: 0, dueMonth: '2027-03' }];
+    it('wants a name, and a readable amount', () => {
+      const oneOffs = [{ name: ' ', amountMinor: Number.NaN, dueMonth: '2027-03' }];
       expect(validateStep('one-offs', { ...draft, oneOffs }, TODAY)).toEqual([
         'Name every one-off cost.',
-        'Enter an amount above 0 for one-off cost 1.',
+        'Check the amount for one-off cost 1.',
+      ]);
+      const named = [{ ...fee, amountMinor: Number.NaN, dueMonth: '2027-03' }];
+      expect(validateStep('one-offs', { ...draft, oneOffs: named }, TODAY)).toEqual([
+        'Check the amount for Semester fee.',
+      ]);
+    });
+
+    it('ignores a row without an amount: it is not saved, so it needs no name and no due month', () => {
+      const blank = { name: '', amountMinor: 0, dueMonth: '' };
+      expect(validateStep('one-offs', { ...draft, oneOffs: [blank] }, TODAY)).toEqual([]);
+      expect(validateStep('one-offs', { ...draft, oneOffs: [{ ...blank, name: 'Laptop' }] }, TODAY)).toEqual([]);
+      // The rows that have an amount are still checked.
+      const rows = [blank, { name: ' ', amountMinor: 8000, dueMonth: '2026-10' }];
+      expect(validateStep('one-offs', { ...draft, oneOffs: rows }, TODAY)).toEqual([
+        'Name every one-off cost.',
+        'Pick a month after this one.',
       ]);
     });
 
@@ -306,7 +364,14 @@ describe('validateStep', () => {
       it('still checks a new one-off, and still checks a kept row for a name and an amount', () => {
         const laptop = { name: 'Laptop', amountMinor: 80000, dueMonth: '2026-10' };
         expect(check([kept, laptop])).toEqual(['Pick a month after this one.']);
-        expect(check([{ ...kept, amountMinor: 0 }])).toEqual(['Enter an amount above 0 for Semester fee.']);
+        expect(check([{ ...kept, amountMinor: Number.NaN }])).toEqual(['Check the amount for Semester fee.']);
+        expect(check([{ ...kept, name: ' ' }])).toEqual(['Name every one-off cost.']);
+      });
+
+      it('lets a kept row go by clearing its amount: it is then left out of the plan', () => {
+        const cleared = { ...kept, amountMinor: 0 };
+        expect(check([cleared])).toEqual([]);
+        expect(draftToRecords({ ...draft, oneOffs: [cleared] }, TODAY, saved).plan.oneOffs).toEqual([]);
       });
     });
 
@@ -329,16 +394,64 @@ describe('validateStep', () => {
     ]);
   });
 
-  it('lets a fresh draft through every step except the unanswered guesses', () => {
+  it('takes a blank, a 0 and an amount for the everyday budget, and names one that did not parse', () => {
+    expect(validateStep('budget', draft, TODAY)).toEqual([]);
+    expect(validateStep('budget', { ...draft, spendingBudgetMinor: 60000 }, TODAY)).toEqual([]);
+    expect(validateStep('budget', { ...draft, spendingBudgetMinor: Number.NaN }, TODAY)).toEqual([
+      'Check the amount for your everyday budget.',
+    ]);
+  });
+
+  it('lets a fresh draft through every step, so setup can be saved with nothing filled in', () => {
     const fresh = initialDraft();
-    expect(validateStep('city-rent', fresh, TODAY)).toEqual([]);
-    expect(validateStep('accounts', fresh, TODAY)).toEqual([]);
-    expect(validateStep('income', fresh, TODAY)).toEqual([]);
-    expect(validateStep('fixed', fresh, TODAY)).toEqual([]);
-    expect(validateStep('one-offs', fresh, TODAY)).toEqual([]);
-    expect(validateStep('envelopes', fresh, TODAY)).toEqual([]);
-    // Guesses start unanswered: a blank is not a 0, because they are saved once.
-    expect(validateStep('guesses', fresh, TODAY)).toHaveLength(6);
+    const steps = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'budget', 'envelopes'] as const;
+    for (const step of steps) expect(validateStep(step, fresh, TODAY), step).toEqual([]);
+  });
+});
+
+describe('askedCategories', () => {
+  const ids = (list: { id: string }[]) => list.map((c) => c.id);
+
+  it('asks the basic ones in a new setup, in category order', () => {
+    expect(ids(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, false, []))).toEqual([
+      'income-job',
+      'income-parents',
+      'income-sperrkonto',
+      'income-other',
+    ]);
+    expect(ids(askedCategories(FIXED_CATEGORIES, SETUP_FIXED_IDS, false, []))).toEqual([
+      'phone',
+      'insurance',
+      'transport-pass',
+    ]);
+    expect(ids(askedCategories(FLEXIBLE_CATEGORIES, GUESS_CATEGORY_IDS, false, []))).toEqual([
+      'food',
+      'eating-out',
+      'going-out',
+      'transport',
+      'shopping',
+      'other',
+    ]);
+  });
+
+  it('asks every category in edit mode', () => {
+    expect(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, true, [])).toEqual(INCOME_CATEGORIES);
+    expect(askedCategories(FIXED_CATEGORIES, SETUP_FIXED_IDS, true, [])).toEqual(FIXED_CATEGORIES);
+    expect(askedCategories(FLEXIBLE_CATEGORIES, GUESS_CATEGORY_IDS, true, [])).toEqual(FLEXIBLE_CATEGORIES);
+  });
+
+  it('asks a category that already has an amount, whatever the mode', () => {
+    const lines = [{ categoryId: 'income-bafoeg', monthlyMinor: 45000 }];
+    expect(ids(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, false, lines))).toContain('income-bafoeg');
+    // A line at 0 is not an amount.
+    const zero = [{ categoryId: 'income-bafoeg', monthlyMinor: 0 }];
+    expect(ids(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, false, zero))).not.toContain('income-bafoeg');
+  });
+
+  it('names only categories that exist, and rent stays out of the fixed ones', () => {
+    const known = new Set(CATEGORIES.map((c) => c.id));
+    for (const id of [...SETUP_INCOME_IDS, ...SETUP_FIXED_IDS, ...GUESS_CATEGORY_IDS]) expect(known.has(id)).toBe(true);
+    expect(SETUP_FIXED_IDS).not.toContain('rent');
   });
 });
 
@@ -376,10 +489,12 @@ describe('dropUnparsed', () => {
       fixed: withAmount([], 'phone', Number.NaN),
       oneOffs: [{ name: 'Fee', amountMinor: Number.NaN, dueMonth: '2027-03' }],
       guesses: withAmount(draft.guesses, 'food', Number.NaN),
+      spendingBudgetMinor: Number.NaN,
       envelopes: withAmount(draft.envelopes, 'food', Number.NaN),
     };
     const clean = dropUnparsed(messy);
     expect(clean.rentMinor).toBe(0);
+    expect(clean.spendingBudgetMinor).toBe(0);
     expect(clean.accounts[0].openingMinor).toBe(0);
     expect(clean.incomes).toEqual(draft.incomes);
     expect(clean.fixed).toEqual([]);

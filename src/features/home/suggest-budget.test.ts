@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { City, CityRange } from '@/data/cities';
+import { SETUP_ENVELOPE_IDS } from '@/data/categories';
+import { CITIES, type City, type CityRange } from '@/data/cities';
 import type { Entry, Plan } from '@/db/types';
 import { FLEXIBLE_CATEGORIES } from '@/features/entries/categories';
-import { suggestBudget, suggestionIsProminent } from './suggest-budget';
+import { fitTo, startingRows, suggestBudget, suggestionIsProminent } from './suggest-budget';
 
 const range = (categoryId: string, minMinor: number, maxMinor: number): CityRange => ({
   categoryId,
@@ -221,6 +222,128 @@ describe('suggestBudget', () => {
     };
     // €1,000 available, less the fee spread over five months (€60); the paused subscription is not counted.
     expect(suggestBudget(plan, city, [], '2026-11').availableMinor).toBe(100000 - 6000);
+  });
+});
+
+/** The six envelopes a new setup suggests for, each with a range: the middles add up to €635 and the minimums to €390. */
+const setupCity: City = {
+  ...city,
+  ranges: [
+    range('food', 18000, 34000),
+    range('eating-out', 4000, 12000),
+    range('going-out', 3000, 12000),
+    range('transport', 1000, 6000),
+    range('shopping', 3500, 6500),
+    range('other', 9500, 17500),
+  ],
+};
+const NO_SPENDING = new Map<string, number>();
+const setupRows = () => startingRows(setupCity, NO_SPENDING, SETUP_ENVELOPE_IDS);
+const total = (rows: { amountMinor: number }[]) => rows.reduce((sum, row) => sum + row.amountMinor, 0);
+
+describe('startingRows', () => {
+  it('gives one row per id asked for, in that order', () => {
+    const rows = setupRows();
+    expect(rows.map((r) => r.categoryId)).toEqual(['food', 'eating-out', 'going-out', 'transport', 'shopping', 'other']);
+    expect(startingRows(setupCity, NO_SPENDING, ['other', 'food']).map((r) => r.categoryId)).toEqual(['other', 'food']);
+    expect(startingRows(setupCity, NO_SPENDING, [])).toEqual([]);
+  });
+
+  it('starts a ranged category at the middle of its range, to the nearest €5', () => {
+    expect(amounts(setupRows())).toEqual({
+      food: 26000,
+      'eating-out': 8000,
+      'going-out': 7500,
+      transport: 3500,
+      shopping: 5000,
+      other: 13500,
+    });
+    expect(total(setupRows())).toBe(63500);
+    expect(setupRows().every((r) => r.basis === 'city' && r.range !== undefined)).toBe(true);
+  });
+
+  it('starts one without a range at last month, to the nearest €5, or at €0 with a basis of none', () => {
+    const spent = new Map([['health', 4800]]);
+    expect(startingRows(city, spent, ['health', 'gifts'])).toEqual([
+      { categoryId: 'health', amountMinor: 5000, basis: 'last-month' },
+      { categoryId: 'gifts', amountMinor: 0, basis: 'none' },
+    ]);
+    // A ranged category keeps its range, whatever was spent.
+    expect(startingRows(city, new Map([['food', 99900]]), ['food'])[0].amountMinor).toBe(26000);
+  });
+});
+
+describe('fitTo', () => {
+  it('leaves rows as they are when they fit, down to a total that is exactly the budget', () => {
+    expect(fitTo(setupRows(), 100000)).toEqual(setupRows());
+    expect(fitTo(setupRows(), 63500)).toEqual(setupRows());
+  });
+
+  it('takes the ranged rows down to their minimums when the middles are too much', () => {
+    // €635 is above €600, and the minimums (€390) are not.
+    const rows = fitTo(setupRows(), 60000);
+    expect(amounts(rows)).toEqual({
+      food: 18000,
+      'eating-out': 4000,
+      'going-out': 3000,
+      transport: 1000,
+      shopping: 3500,
+      other: 9500,
+    });
+    expect(total(rows)).toBe(39000);
+    // The range stays on the row, so the amount can still be compared with it.
+    expect(rows[0].range).toEqual(setupCity.ranges[0]);
+  });
+
+  it('scales every row down in proportion, rounded down to €5, when even the minimums are too much', () => {
+    const rows = fitTo(setupRows(), 30000);
+    expect(amounts(rows)).toEqual({
+      food: 13500,
+      'eating-out': 3000,
+      'going-out': 2000,
+      transport: 500,
+      shopping: 2500,
+      other: 7000,
+    });
+    expect(total(rows)).toBe(28500);
+  });
+
+  it('never passes the budget, in whole €5, however small the budget is', () => {
+    for (let budget = 1; budget <= 70000; budget += 1300) {
+      const rows = fitTo(setupRows(), budget);
+      expect(total(rows)).toBeLessThanOrEqual(budget);
+      for (const row of rows) expect(row.amountMinor % 500).toBe(0);
+    }
+  });
+
+  it('suggests €0 everywhere for a budget of €0 or less, and keeps each row otherwise as it was', () => {
+    for (const budget of [0, -100]) {
+      const rows = fitTo(setupRows(), budget);
+      expect(total(rows)).toBe(0);
+      expect(rows.map((r) => r.categoryId)).toEqual(SETUP_ENVELOPE_IDS);
+      expect(rows[0].range).toEqual(setupCity.ranges[0]);
+    }
+  });
+
+  it('does not change the rows it is given', () => {
+    const rows = setupRows();
+    const copy = structuredClone(rows);
+    fitTo(rows, 30000);
+    fitTo(rows, 0);
+    expect(rows).toEqual(copy);
+  });
+
+  it('gives the setup envelopes of Regensburg the amounts a €600 budget shows', () => {
+    const rows = fitTo(startingRows(CITIES.regensburg, NO_SPENDING, SETUP_ENVELOPE_IDS), 60000);
+    // The middles come to €640, so €600 takes the six down to the bottom of their ranges.
+    expect(amounts(rows)).toEqual({
+      food: 18000,
+      'eating-out': 3000,
+      'going-out': 3000,
+      transport: 1000,
+      shopping: 3500,
+      other: 9500,
+    });
   });
 });
 
