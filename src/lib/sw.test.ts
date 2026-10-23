@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const SOURCE = readFileSync(fileURLToPath(new URL('../../public/sw.js', import.meta.url)), 'utf8');
 const ORIGIN = 'https://studentsbudget.test';
 const CACHE_NAME = 'studentsbudget-build-a';
-const PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/badges', '/check-in', '/reveal', '/settings', '/setup'];
+const PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/badges', '/check-in', '/reveal', '/settings', '/settings/account', '/setup'];
 
 beforeEach(() => {
   vi.useFakeTimers();

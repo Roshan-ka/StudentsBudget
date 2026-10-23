@@ -18,11 +18,16 @@ const subscribe = () => () => {};
 const showOnClient = () => shouldShowInstallHint(detectEnvironment());
 const showOnServer = () => false;
 
-/** Tells iOS Safari users to install first: Safari and the home-screen app keep separate storage. */
-export function InstallHint() {
+/** True in iOS Safari outside the home-screen app, which keeps its own storage and sign-ins apart from Safari's. */
+export function useShowInstallHint(): boolean {
   // The server snapshot is used for the server render and for hydration, so they always agree; the
   // browser's own answer replaces it right after. An effect with setState would do the same but lints as a cascading render.
-  const show = useSyncExternalStore(subscribe, showOnClient, showOnServer);
+  return useSyncExternalStore(subscribe, showOnClient, showOnServer);
+}
+
+/** Tells iOS Safari users to install first: Safari and the home-screen app keep separate storage. */
+export function InstallHint() {
+  const show = useShowInstallHint();
 
   if (!show) return null;
   return (
