@@ -2,7 +2,7 @@
 
 @AGENTS.md
 
-Installable Next.js web app for students new to a city (P1: no AI, no login, all data in the browser's IndexedDB). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`; `docs/` is an Obsidian vault and stays notes-only.
+Installable Next.js web app for students new to a city (P1: no AI, no login, all data in the browser's IndexedDB). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`, and P2.1 (email-and-password accounts and a Supabase database, in progress) in `docs/superpowers/plans/2026-10-23-p2-1-accounts-and-database.md`; `docs/` is an Obsidian vault and stays notes-only.
 
 ## Stack
 
@@ -26,6 +26,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | dexie-react-hooks | 4.4.0 |
 | recharts | 3.8.0 |
 | zod | 4.6.7 |
+| @supabase/supabase-js | 2.118.0 |
 | eslint, eslint-config-next | 9.39.5, 16.4.2 |
 | vitest | 5.0.5 |
 | fake-indexeddb | 6.2.5 |
