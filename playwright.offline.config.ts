@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_SUPABASE_ENV } from './e2e/helpers/supabase';
 
 // The service worker is only registered in a production build, so this config runs the one spec that needs it
 // against `next start`. Port 3100 keeps it apart from the dev server on 3000 that `playwright.config.ts` uses.
@@ -15,5 +16,7 @@ export default defineConfig({
     reuseExistingServer: false,
     // The build runs before the server starts.
     timeout: 300_000,
+    // The settings are built into the app: the build shows the account UI, as a deployed one with Supabase does.
+    env: E2E_SUPABASE_ENV,
   },
 });

@@ -2,7 +2,7 @@
 
 @AGENTS.md
 
-Installable Next.js web app for students new to a city (P1: no AI, no login, all data in the browser's IndexedDB). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`; `docs/` is an Obsidian vault and stays notes-only.
+Installable Next.js web app for students new to a city (P1: no AI, no login, all data in the browser's IndexedDB). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`, and P2.1 (email-and-password accounts and a Supabase database, in progress) in `docs/superpowers/plans/2026-10-23-p2-1-accounts-and-database.md`; `docs/` is an Obsidian vault and stays notes-only.
 
 ## Stack
 
@@ -26,6 +26,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | dexie-react-hooks | 4.4.0 |
 | recharts | 3.8.0 |
 | zod | 4.6.7 |
+| @supabase/supabase-js | 2.118.0 |
 | eslint, eslint-config-next | 9.39.5, 16.4.2 |
 | vitest | 5.0.5 |
 | fake-indexeddb | 6.2.5 |
@@ -33,6 +34,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | @types/node | 24.19.2 |
 | @types/react | 19.3.0 |
 | @types/react-dom | 19.3.0 |
+| supabase (the CLI, a dev dependency) | 2.121.0 |
 
 ## Commands
 
@@ -47,8 +49,10 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | `npm run test:offline` | Production build, `next start` on :3100 (the port must be free: it never reuses a server), then the Playwright offline check (`desktop-chrome`) |
 | `npm run cert:https` | mkcert makes the HTTPS certificate for phone testing into `certs/` (git-ignored); it never runs `mkcert -install` |
 | `npm run start:https` | Production build, then serves it over HTTPS on :3443 (`HTTPS_PORT`, `HTTPS_CERT`, `HTTPS_KEY` override); needs the certificate |
+| `npm run supabase:start` / `supabase:stop` | The local Supabase stack in Docker (`supabase/config.toml`), with the migrations applied; Studio on http://127.0.0.1:54323 |
+| `npm run test:db` | pgTAP tests in `supabase/tests` against the running local stack |
 
-CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and the offline check on every pull request.
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and the offline check on every pull request, and in a second job (`db`) the migrations and `test:db` on a local Supabase stack.
 
 ## Framework rules
 
@@ -62,6 +66,8 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Worktree installs:** run `npm ci` in one worktree at a time, or `npm ci --prefer-offline` from a warm cache; parallel installs stall for 20 minutes or more.
 - **Secure origins:** browser APIs such as `crypto.randomUUID` and service workers exist only on secure origins (HTTPS or localhost). Use `newId()` from `@/lib/new-id`, and test the phone via `npm run start:https`, never a plain-HTTP LAN address.
 - **Dexie schema:** a schema change adds a new `db.version(n)`; never edit a version that has shipped.
+- **Supabase in the app:** `getSupabase()` only in effects and event handlers; the session lives in the browser's localStorage, and no page reads it while rendering, so every page stays static and precached. Without the two `NEXT_PUBLIC_SUPABASE_*` settings the app is local-only and hides the account UI; changing them needs a rebuild.
+- **Supabase schema:** a change is a new migration (`npx supabase migration new <name>`), never an edit to an applied one. Every table has row-level security with owner-only policies on `(select auth.uid()) = user_id`, a `user_id` that cascades from `auth.users`, nothing for `anon`, and pgTAP tests in `supabase/tests`.
 - **Backup v3:** it reads v1–v3 files (`READABLE_VERSIONS`). A table added to the backup needs a zod default in `backup.ts` (`[]` or `null`), so older files and the demo fixture still restore.
 - **Budget maths:** no day-based proration. `monthStatus` (Home, charts, reveal) plans the whole monthly amount, in the setup month too, and counts spending from the setup day. Home's "This week" and the check-in's shares come from `weekToSpend`: what is left at the week's start, with expenses dated later in the month already off it (so "This week" never exceeds "Left this month"), ÷ `weeksLeftInMonth` (a stub week counts whole), less this week's spending. An envelope's share is clamped at €0; the total is not. New badge week records use `weekAllowance` (the same, before the week's own spending and before any later-dated expenses, clamped at €0 because backup refuses negatives); recorded rows are never rewritten.
 - **Week results:** each Monday–Sunday week is recorded once, keyed by its Monday, from the Wednesday after it ends (`GRACE_DAYS`), and never rewritten, so a plan edit never changes a past week. The three weekly badges read only these rows; Latte Survivor reads the entries, so editing an old month can change it.

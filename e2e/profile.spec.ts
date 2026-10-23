@@ -55,13 +55,14 @@ async function openOneOffsStep(page: Page) {
   }
 }
 
-test('Profile comes first in Settings, prefills the semester and keeps what was saved after a reload', async ({
+test('Profile comes first in Settings after Your account, prefills the semester and keeps what was saved after a reload', async ({
   page,
 }) => {
   await completeSetup(page);
   await openSettings(page);
-  // The first section of Settings.
-  await expect(page.getByRole('main').getByRole('heading', { level: 3 }).first()).toHaveText('Profile');
+  // The first section of Settings after Your account, which shows only when the build has a Supabase project.
+  const headings = await page.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
+  expect(headings.filter((heading) => heading !== 'Your account')[0]).toBe('Profile');
   await expect(profileSection(page).getByText('stored only on this phone', { exact: false })).toBeVisible();
 
   await nameField(page).fill('Roshan');
