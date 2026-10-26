@@ -15,7 +15,8 @@ export type UserDataStore = {
   upsert(table: ServerTable, rows: ServerRow[]): Promise<void>;
   /**
    * Deletes the user's rows with these ids by writing tombstones: the row stays with no data, and the database marks it
-   * deleted, so other phones learn of the delete. Ids the account doesn't have are left alone.
+   * deleted, so other phones learn of the delete. An id the account never had gets a tombstone too, which reads leave
+   * out and a pull applies as a delete of nothing.
    */
   tombstone(table: ServerTable, ids: string[]): Promise<void>;
 };
@@ -34,11 +35,9 @@ export class StoreError extends Error {
 }
 
 // Rows per request. Upserts stay well under the API's body limit; a page asks for the API's default maximum (a server
-// set lower sends shorter pages, which reading copes with); a tombstone write names its ids in the URL, so it stays
-// short.
+// set lower sends shorter pages, which reading copes with).
 const UPSERT_BATCH = 500;
 const PAGE = 1000;
-const DELETE_BATCH = 100;
 
 const idRows = z.array(z.object({ id: z.string() }));
 const fullRows = z.array(z.object({ id: z.string(), data: z.unknown() }));
@@ -97,8 +96,11 @@ export function supabaseStore(client: SupabaseClient): UserDataStore {
       }
     },
     async tombstone(table, ids) {
-      for (const batch of batches(ids, DELETE_BATCH)) {
-        check(table, await client.from(table).update({ data: null }).in('id', batch));
+      // An upsert, not an update: every write then takes the user's revision counter before the row (see the sync
+      // migration), so two phones of one user can't lock the two in opposite orders and deadlock.
+      for (const batch of batches(ids, UPSERT_BATCH)) {
+        const tombstones = batch.map((id) => ({ id, data: null }));
+        check(table, await client.from(table).upsert(tombstones, { onConflict: 'user_id,id' }));
       }
     },
   };

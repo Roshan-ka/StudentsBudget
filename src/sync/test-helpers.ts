@@ -97,7 +97,8 @@ export function fakeStore(initial: Partial<Record<ServerTable, Record<string, un
     },
     async tombstone(table, ids) {
       calls.push(`tombstone ${table} ${ids.join(',')}`);
-      for (const id of ids) if (tables[table].has(id)) tables[table].set(id, null);
+      // As the database does: an id it never had gets a tombstone too.
+      for (const id of ids) tables[table].set(id, null);
     },
   };
   return { store, tables, calls };

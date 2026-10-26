@@ -1,12 +1,14 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { liveQuery } from 'dexie';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
+import { replaceAll } from '@/db/bulk';
 import { db } from '@/db/db';
-import { clearManualRate, setManualRate } from '@/db/rates';
+import { clearManualRate, refreshRates, setManualRate } from '@/db/rates';
 import { deleteAccount, deleteEntry, ensureSeeded, saveEntry, saveGuesses } from '@/db/repo';
 import type { Account, Entry, Plan, Rate } from '@/db/types';
 import { setDefaultAccount } from '@/features/accounts/set-default-account';
-import { setAway } from '@/features/badges/week-results';
+import { recordCompletedWeeks, setAway } from '@/features/badges/week-results';
 import { postDueRecurring } from '@/features/recurring/post-due';
 import { updatePlan } from '@/features/recurring/update-plan';
 import { untracked } from './untracked';
@@ -16,8 +18,8 @@ import { untracked } from './untracked';
 
 const CREATED_AT = '2026-10-16T10:00:00.000Z';
 
-function account(id: string): Account {
-  return { id, name: id, kind: 'bank', currency: 'EUR', openingMinor: 0, createdAt: CREATED_AT };
+function account(id: string, currency: Account['currency'] = 'EUR'): Account {
+  return { id, name: id, kind: 'bank', currency, openingMinor: 0, createdAt: CREATED_AT };
 }
 
 function expense(id: string, accountId = 'local'): Entry {
@@ -94,6 +96,13 @@ describe('while the phone is not linked', () => {
       semesterEnd: '',
       updatedAt: CREATED_AT,
     });
+    expect(await recorded()).toEqual([]);
+  });
+
+  it('records nothing while the sync state holds no account', async () => {
+    await db.syncState.put({ id: 'current', userId: null, cursor: 0, lastSyncedAt: null, problem: null });
+    await saveEntry(expense('e1'));
+    await db.entries.clear();
     expect(await recorded()).toEqual([]);
   });
 });
@@ -221,5 +230,91 @@ describe('while the phone is linked', () => {
     ).rejects.toThrow('changed my mind');
     expect(await recorded()).toEqual([]);
     expect(await db.entries.get('e2')).toBeUndefined();
+  });
+
+  it('records only the rows a partly refused bulkAdd added', async () => {
+    await saveEntry(expense('e1'));
+    await forget();
+    await expect(db.entries.bulkAdd([expense('e1'), expense('e3')])).rejects.toThrow();
+    expect(await db.entries.get('e3')).toBeDefined();
+    expect(await recorded()).toEqual(['entries:e3']);
+  });
+
+  it('records every row a range delete removes: clear() and a collection delete', async () => {
+    await saveEntry(expense('e1'));
+    await saveEntry({ ...expense('e2'), date: '2026-10-17' });
+    await saveEntry({ ...expense('e3'), date: '2026-10-17' });
+    await forget();
+    await db.entries.where('date').equals('2026-10-17').delete();
+    expect(await recorded()).toEqual(['entries:e2', 'entries:e3']);
+
+    await forget();
+    await db.entries.clear();
+    expect(await recorded()).toEqual(['entries:e1']);
+  });
+
+  it('records what a backup restore (replaceAll) removes and adds, so a push makes the account match it', async () => {
+    await db.accounts.bulkAdd([account('local')]);
+    await db.plan.put(PLAN);
+    await saveEntry(expense('e1'));
+    await saveEntry(expense('e2'));
+    await forget();
+    await replaceAll({
+      accounts: [account('local')],
+      categories: CATEGORIES,
+      entries: [expense('e2'), expense('e3')],
+      plan: null,
+      guesses: [],
+      fxRates: [],
+      weekResults: [],
+      discountVotes: [],
+      profile: null,
+    });
+    expect(await recorded()).toEqual(['accounts:local', 'entries:e1', 'entries:e2', 'entries:e3', 'plans:current']);
+  });
+
+  it('refuses untracked() inside another transaction, which it would silence too', async () => {
+    await expect(
+      db.transaction('rw', db.entries, () => untracked([db.entries], async () => undefined)),
+    ).rejects.toThrow('untracked() must not run inside another transaction');
+  });
+
+  it("keeps a row's seq rising above the one it has, even one another tab wrote with a clock ahead", async () => {
+    const ahead = Date.now() + 10_000_000;
+    await db.outbox.put({ table: 'entries', id: 'e1', seq: ahead });
+    await saveEntry(expense('e1'));
+    expect((await db.outbox.get(['entries', 'e1']))?.seq).toBeGreaterThan(ahead);
+  });
+
+  it('lets a live query of the outbox hear each change', async () => {
+    const counts: number[] = [];
+    const subscription = liveQuery(() => db.outbox.count()).subscribe((count) => counts.push(count));
+    try {
+      await vi.waitFor(() => expect(counts).toContain(0));
+      await saveEntry(expense('e1'));
+      await vi.waitFor(() => expect(counts).toContain(1));
+    } finally {
+      subscription.unsubscribe();
+    }
+  });
+
+  it('records nothing when the exchange rates are refreshed (refreshRates writes ECB rates only)', async () => {
+    await db.accounts.bulkAdd([account('home', 'INR')]);
+    await forget();
+    const fetchRates: typeof fetch = async () =>
+      new Response(JSON.stringify([{ date: '2026-10-16', base: 'EUR', quote: 'INR', rate: 95 }]));
+    expect(await refreshRates('2026-10-16', fetchRates)).toBe('updated');
+    expect(await db.fxRates.get(['INR', 'ecb'])).toBeDefined();
+    expect(await recorded()).toEqual([]);
+  });
+
+  it('records the weeks recordCompletedWeeks writes, by their Mondays', async () => {
+    await db.plan.put({ ...PLAN, fixed: [], createdOn: '2026-10-05' });
+    await forget();
+    const { recorded: weeks } = await recordCompletedWeeks('2026-10-22');
+    expect(weeks).toBeGreaterThan(0);
+    const changes = await recorded();
+    expect(changes).toHaveLength(weeks);
+    expect(changes.every((change) => change.startsWith('week_results:'))).toBe(true);
   });
 });

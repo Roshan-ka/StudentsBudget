@@ -5,7 +5,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(17);
+select plan(20);
 
 create temporary table user_tables (name text primary key) on commit drop;
 insert into user_tables
@@ -44,6 +44,13 @@ select is_empty(
 select is_empty(
   $$ select name from user_tables where has_table_privilege('authenticated', 'public.' || name, 'DELETE') $$,
   'authenticated cannot delete from any user-data table'
+);
+
+-- The revision counters are out of every signed-in user's reach: a counter set back would make pulls skip changes.
+select ok(
+  not has_schema_privilege('authenticated', 'private', 'USAGE')
+    and not has_table_privilege('authenticated', 'private.sync_meta', 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE'),
+  'authenticated cannot reach private.sync_meta'
 );
 
 -- 2. Revisions: one counter per user, a new number for every write.
@@ -101,6 +108,7 @@ select ok(
   'the tombstone keeps its id, has no data, gets deleted_at and a new revision'
 );
 
+
 select lives_ok(
   $$
   do $do$
@@ -149,6 +157,38 @@ select throws_ok(
   'a row without data must be marked deleted'
 );
 alter table public.entries enable trigger stamp_sync;
+
+-- A row under another user's id is refused before that user's counter is touched, with the same error whether or not
+-- the id belongs to anyone.
+select lives_ok(
+  $$
+  do $do$
+  declare
+    before bigint;
+  begin
+    select rev into before from private.sync_meta where user_id = '00000000-0000-4000-8000-00000000000a';
+    perform pg_temp.act_as('b');
+    begin
+      insert into public.entries (user_id, id, data) values ('00000000-0000-4000-8000-00000000000a', 'planted', '{}');
+      raise exception 'B wrote under A';
+    exception when insufficient_privilege then
+      null;
+    end;
+    begin
+      insert into public.entries (user_id, id, data) values ('00000000-0000-4000-8000-0000000000ff', 'nobody', '{}');
+      raise exception 'B wrote under an unknown id';
+    exception when insufficient_privilege then
+      null;
+    end;
+    execute 'reset role';
+    if (select rev from private.sync_meta where user_id = '00000000-0000-4000-8000-00000000000a') <> before then
+      raise exception 'B moved A''s counter';
+    end if;
+  end
+  $do$
+  $$,
+  'a row under another user''s id is refused with 42501, known id or not, and leaves that user''s counter alone'
+);
 
 -- 4. sync_pull: the caller's own changes after a revision, oldest first, within the limit.
 select lives_ok(
@@ -221,6 +261,31 @@ select lives_ok(
 select ok(
   not has_function_privilege('anon', 'public.sync_pull(bigint, integer)', 'EXECUTE'),
   'anon has no EXECUTE on sync_pull'
+);
+
+-- The phone cannot choose when a row was deleted (after the pulls above, which list every row of A).
+select lives_ok(
+  $$
+  do $do$
+  declare
+    first_deleted timestamptz;
+  begin
+    perform pg_temp.act_as('a');
+    -- The phone cannot choose when a row was deleted, and writing a tombstone again keeps the first time.
+    insert into public.entries (id, data, deleted_at) values ('e9', null, '1999-01-01')
+      on conflict (user_id, id) do update set data = excluded.data, deleted_at = excluded.deleted_at;
+    select deleted_at into first_deleted from public.entries where id = 'e9';
+    if first_deleted < now() - interval '1 minute' then raise exception 'the phone set deleted_at to %', first_deleted; end if;
+    insert into public.entries (id, data, deleted_at) values ('e9', null, '2099-01-01')
+      on conflict (user_id, id) do update set data = excluded.data, deleted_at = excluded.deleted_at;
+    if (select deleted_at from public.entries where id = 'e9') <> first_deleted then
+      raise exception 'a second tombstone moved deleted_at';
+    end if;
+    execute 'reset role';
+  end
+  $do$
+  $$,
+  'deleted_at is the server''s time of the first delete, whatever the phone sends'
 );
 
 -- 5. Deleting a user removes their counter with their rows.

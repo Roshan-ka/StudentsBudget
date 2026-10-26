@@ -7,12 +7,20 @@
 --
 -- Deletion markers. A deleted row stays, with `data` null and `deleted_at` set (a tombstone), so other phones learn of
 -- the delete when they pull. Signed-in users can no longer delete rows; deleting the user still removes them all.
--- Writing data to a tombstone's id brings the row back. `deleted_at` is the server's time, set by the trigger.
+-- Writing data to a tombstone's id brings the row back. `deleted_at` is the server's time, set by the trigger whatever
+-- the phone sends. The app writes tombstones as upserts, so every write takes the counter before the row and two
+-- phones of one user cannot lock the two in opposite orders.
+--
+-- A BEFORE trigger added later that rewrites `data` must be named to sort before `stamp_sync` (triggers fire in name
+-- order), so `deleted_at` is decided on the final data.
 
 create table private.sync_meta (
   user_id uuid primary key references auth.users (id) on delete cascade,
   rev bigint not null default 0
 );
+
+-- Only its owner (and so the trigger below) reaches it; a counter set back would make pulls skip changes.
+alter table private.sync_meta enable row level security;
 
 -- Runs as its owner: signed-in users have no access to private.sync_meta, only this trigger does.
 create function private.stamp_sync()
@@ -22,11 +30,24 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- Row-level security checks the row only after this trigger. A signed-in caller writing under another user's id is
+  -- refused here first, so it neither touches that user's counter nor learns from the error whether the id exists.
+  if current_setting('role', true) in ('authenticated', 'anon') and new.user_id is distinct from auth.uid() then
+    raise exception 'new row violates row-level security policy for table "%"', tg_table_name
+      using errcode = '42501';
+  end if;
+
   insert into private.sync_meta as meta (user_id, rev)
   values (new.user_id, 1)
   on conflict (user_id) do update set rev = meta.rev + 1
   returning meta.rev into new.rev;
-  new.deleted_at := case when new.data is null then coalesce(new.deleted_at, now()) else null end;
+
+  new.deleted_at := case
+    when new.data is not null then null
+    -- Already a tombstone: it stays deleted since when it was deleted.
+    when tg_op = 'UPDATE' and old.data is null then old.deleted_at
+    else now()
+  end;
   return new;
 end;
 $$;

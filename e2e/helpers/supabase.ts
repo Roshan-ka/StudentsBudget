@@ -100,16 +100,10 @@ export const SUPABASE_REST = '**/rest/v1/**';
 /** The account's tables as the mock keeps them: table → id → the row's data, null for a tombstone. */
 export type ServerTables = Map<string, Map<string, unknown>>;
 
-/** The ids in a PostgREST filter such as `in.(e1,"a,b")`. */
-function idsOf(filter: string | null): string[] {
-  const inner = filter?.match(/^in\.\((.*)\)$/)?.[1] ?? '';
-  return inner === '' ? [] : inner.split(',').map((id) => id.replace(/^"(.*)"$/, '$1'));
-}
-
 /**
  * Answers the account's tables like PostgREST does for one signed-in user: read ids or whole rows (by id, a page at a
- * time after the last id, tombstones left out when asked), upsert rows, and write tombstones (data null) by id. A hard
- * delete is refused, as the database refuses it. A call without the mocked session's token gets 401, as row-level
+ * time after the last id, tombstones left out when asked), and upsert rows, a tombstone being a row with data null. A
+ * hard delete is refused, as the database refuses it. A call without the mocked session's token gets 401, as row-level
  * security would refuse it, so a spec cannot pass while the app sends its calls signed out. `failWith` makes every call
  * answer with that status instead. `tables` shares the account with another page, a second phone. Returns the tables,
  * to look at and to seed.
@@ -153,11 +147,6 @@ export async function mockSupabaseData(
     if (request.method() === 'POST') {
       for (const row of request.postDataJSON() as { id: string; data: unknown }[]) rows.set(row.id, row.data);
       return route.fulfill({ status: 201, headers: CORS });
-    }
-    if (request.method() === 'PATCH') {
-      const { data } = request.postDataJSON() as { data?: unknown };
-      for (const id of idsOf(url.searchParams.get('id'))) if (rows.has(id)) rows.set(id, data ?? null);
-      return route.fulfill({ status: 204, headers: CORS });
     }
     if (request.method() === 'DELETE') {
       return route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message: 'permission denied' } });

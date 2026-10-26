@@ -72,8 +72,9 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('the account store against a rea
     const left = await store.listIds('entries');
     expect(left).toHaveLength(2400);
     expect(left).not.toContain('c0000');
-    // An id the account never had is left alone.
+    // An id the account never had gets a tombstone, which reads leave out.
     await store.tombstone('entries', ['never-saved']);
+    expect(await store.listIds('entries')).not.toContain('never-saved');
 
     await store.upsert('entries', [{ id: 'c0000', data: { n: 0, back: true } }]);
     expect(await store.listIds('entries')).toContain('c0000');
