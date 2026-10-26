@@ -89,13 +89,14 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('the account store against a rea
 
   it('pulls every change after a revision, oldest first, with the tombstones, page by page', async () => {
     const changes = await pullAll(a, 0, 1000);
-    // One change per row: the latest one. 2,500 rows, of which c0001–c0099 are tombstones.
-    expect(changes.map((c) => c.id).sort()).toEqual(ids);
+    // One change per row: the latest one. The 2,500 rows, of which c0001–c0099 are tombstones, and the tombstone of
+    // never-saved, the id the account never had.
+    expect(changes.map((c) => c.id).sort()).toEqual([...ids, 'never-saved']);
     const revs = changes.map((c) => c.rev);
     expect(revs).toEqual([...revs].sort((x, y) => x - y));
     expect(new Set(revs).size).toBe(revs.length);
     const tombstones = changes.filter((c) => c.data === null);
-    expect(tombstones.map((c) => c.id).sort()).toEqual(ids.slice(1, 100));
+    expect(tombstones.map((c) => c.id).sort()).toEqual([...ids.slice(1, 100), 'never-saved']);
     expect(tombstones.every((c) => c.deleted_at !== null && c.tbl === 'entries')).toBe(true);
 
     // After the last revision there is nothing; a new write shows up on its own.
