@@ -1,5 +1,18 @@
 import Dexie, { type Table } from 'dexie';
-import type { Account, Category, DiscountVote, Entry, Guess, Plan, Profile, Rate, WeekResult } from './types';
+import { trackChanges } from '@/sync/track-changes';
+import type {
+  Account,
+  Category,
+  DiscountVote,
+  Entry,
+  Guess,
+  OutboxEntry,
+  Plan,
+  Profile,
+  Rate,
+  SyncState,
+  WeekResult,
+} from './types';
 
 export type StudentsBudgetDb = Dexie & {
   accounts: Table<Account, string>;
@@ -15,11 +28,18 @@ export type StudentsBudgetDb = Dexie & {
   discountVotes: Table<DiscountVote, DiscountVote['discountId']>;
   /** At most one row, like the plan. */
   profile: Table<Profile, Profile['id']>;
+  /** The rows that changed since the last push, while the phone is linked to an account. One entry per row. */
+  outbox: Table<OutboxEntry, [OutboxEntry['table'], string]>;
+  /** At most one row: the account this phone syncs with, and how far it has pulled. */
+  syncState: Table<SyncState, SyncState['id']>;
 };
 
 // Constructing Dexie opens nothing, so importing this module is safe during SSR and `next build`.
 // IndexedDB is only touched on the first query, which only runs in the browser.
 export const db = new Dexie('studentsbudget') as StudentsBudgetDb;
+
+// Records which synced rows change, for live sync (src/sync/track-changes.ts). Registered before the database opens.
+db.use(trackChanges);
 
 db.version(1).stores({
   accounts: 'id',
@@ -44,6 +64,13 @@ db.version(3).stores({
   weekResults: 'weekStart',
   discountVotes: 'discountId',
   profile: 'id',
+});
+
+// Two tables for live sync (P2.2): the outbox of changed rows, and the phone's link to an account. Neither is in a
+// backup, and Delete everything removes both with the rest.
+db.version(4).stores({
+  outbox: '[table+id]',
+  syncState: 'id',
 });
 
 /** Asks the browser not to evict the data. Resolves false when unsupported, denied or failing; never throws. */

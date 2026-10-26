@@ -1,5 +1,6 @@
 import type { IsoDate, IsoMonth } from '@/lib/dates';
 import type { CurrencyCode, Minor } from '@/lib/money';
+import type { ServerTable } from '@/sync/tables';
 
 export type Account = {
   id: string;
@@ -129,4 +130,23 @@ export type Profile = {
   semesterStart: IsoDate | '';
   semesterEnd: IsoDate | '';
   updatedAt: string;
+};
+
+/**
+ * One row of this phone that changed and still has to reach the account: which server table, the row's server id, and
+ * when it was recorded (`seq`, rising). Only the key is kept; a push sends the row as it is then. One entry per row:
+ * a later change replaces it.
+ */
+export type OutboxEntry = { table: ServerTable; id: string; seq: number };
+
+/**
+ * This phone's link to an account, one row like the plan. `userId` is the account it syncs with (null: not linked, and
+ * nothing is recorded in the outbox); `cursor` the highest revision it has pulled.
+ */
+export type SyncState = {
+  id: 'current';
+  userId: string | null;
+  cursor: number;
+  lastSyncedAt: string | null;
+  problem: string | null;
 };

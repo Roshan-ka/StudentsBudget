@@ -48,3 +48,32 @@ export function serverRowsOf(d: BackupData): Record<ServerTable, ServerRow[]> {
     profiles: d.profile ? [{ id: d.profile.id, data: d.profile }] : [],
   };
 }
+
+/** How a Dexie table syncs: the server table it goes to, and the server id of one of its keys (null: not synced). */
+export type DexieSync = { server: ServerTable; idOf: (key: unknown) => string | null };
+
+const stringKey = (key: unknown): string | null => (typeof key === 'string' ? key : null);
+
+/**
+ * Every Dexie table the account keeps, by its Dexie name. The same rules as `serverRowsOf`: the plan and the profile are
+ * 'current', a manual rate goes by its currency, and an ECB rate (key [currency, 'ecb']) and the built-in categories
+ * stay on the phone.
+ */
+const DEXIE_SYNC: Readonly<Record<string, DexieSync>> = {
+  accounts: { server: 'accounts', idOf: stringKey },
+  entries: { server: 'entries', idOf: stringKey },
+  plan: { server: 'plans', idOf: stringKey },
+  guesses: { server: 'guesses', idOf: stringKey },
+  fxRates: {
+    server: 'manual_rates',
+    idOf: (key) => (Array.isArray(key) && key[1] === 'manual' && typeof key[0] === 'string' ? key[0] : null),
+  },
+  weekResults: { server: 'week_results', idOf: stringKey },
+  discountVotes: { server: 'discount_votes', idOf: stringKey },
+  profile: { server: 'profiles', idOf: stringKey },
+};
+
+/** How the Dexie table `name` syncs, or null when it stays on the phone. */
+export function dexieSync(name: string): DexieSync | null {
+  return Object.hasOwn(DEXIE_SYNC, name) ? DEXIE_SYNC[name] : null;
+}
