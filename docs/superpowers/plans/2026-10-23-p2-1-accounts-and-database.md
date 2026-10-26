@@ -9,7 +9,7 @@
 
 This turns StudentsBudget into a working prototype with a real database that later features can build on. It is not live sync yet: saving and loading are buttons. Live sync is the next plan.
 
-**Status (2026-10-23):** waiting for Roshan's approval.
+**Status (2026-10-26):** day 1 (chunks 1–3) merged in PR #13 on 2026-10-23; day 2 (chunks 4–5) on `feat/p2-1-database`.
 
 **Spec:** [[Student Budget App - Concept]]: P2 (:58), login and the EU database (:71), EU data (:194–196). [[Student Budget App - Tech Stack]]. Open items: [[Student Budget App - P1 follow-ups]].
 
@@ -58,35 +58,35 @@ This turns StudentsBudget into a working prototype with a real database that lat
 
 ### Chunk 1 – Supabase client (no visible change)
 
-- [ ] **The package:** `@supabase/supabase-js`, at the latest stable version, pinned exactly. Add it to CLAUDE.md's Stack table.
-- [ ] **`src/lib/supabase/env.ts`:** `readSupabaseEnv(): { url: string; publishableKey: string } | null`.
+- [x] **The package:** `@supabase/supabase-js`, at the latest stable version, pinned exactly. Add it to CLAUDE.md's Stack table.
+- [x] **`src/lib/supabase/env.ts`:** `readSupabaseEnv(): { url: string; publishableKey: string } | null`.
   - It reads `process.env.NEXT_PUBLIC_SUPABASE_URL` and `…_PUBLISHABLE_KEY` literally, since dynamic lookups are not inlined, and validates them with zod.
   - Unset or invalid values give `null`.
-- [ ] **`src/lib/supabase/client.ts`:** `getSupabase(): SupabaseClient | null` is a browser singleton.
+- [x] **`src/lib/supabase/client.ts`:** `getSupabase(): SupabaseClient | null` is a browser singleton.
   - Options: `auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'studentsbudget-auth' }`.
   - It is called only in effects and event handlers, never during render or on the server.
-- [ ] **`.env.example`** with the two names, and `!.env.example` in `.gitignore`, because today the `.env*` pattern would hide it.
-- [ ] **Tests:** `env.test.ts` covers unset, valid, a bad URL and an empty key.
+- [x] **`.env.example`** with the two names, and `!.env.example` in `.gitignore`, because today the `.env*` pattern would hide it.
+- [x] **Tests:** `env.test.ts` covers unset, valid, a bad URL and an empty key.
 - **Done when:** lint, typecheck and unit tests pass, and the app is unchanged with and without `.env.local`.
 
 ### Chunk 2 – Sign up, sign in, sign out
 
-- [ ] **`src/features/account/use-auth.ts`:** `useAuth()` returns `{ status: 'off' | 'loading' | 'signed-out' | 'signed-in'; email?: string }`, built from `onAuthStateChange`. `INITIAL_SESSION` arrives first.
-- [ ] **`src/app/settings/account/page.tsx`:** a static shell that renders `account-view.tsx` (client).
+- [x] **`src/features/account/use-auth.ts`:** `useAuth()` returns `{ status: 'off' | 'loading' | 'signed-out' | 'signed-in'; email?: string }`, built from `onAuthStateChange`. `INITIAL_SESSION` arrives first.
+- [x] **`src/app/settings/account/page.tsx`:** a static shell that renders `account-view.tsx` (client).
   - **Signed out:** an Email field, a Password field and a **Sign in** button, plus "New here? Create an account", which switches the button to **Create account**.
     - Fields use `autoComplete="email"` and `current-password` or `new-password`.
     - Create account checks for 8 characters before sending.
   - **Signed in:** "Signed in as …", a **Sign out** button (`signOut({ scope: 'local' })`) and the line "Your data stays on this phone."
-- [ ] **`src/features/account/auth-errors.ts`:** maps the Supabase error codes to calm text. Unit tested.
+- [x] **`src/features/account/auth-errors.ts`:** maps the Supabase error codes to calm text. Unit tested.
   - `invalid_credentials`: "Email or password is wrong."
   - `user_already_exists`: "This email already has an account. Sign in instead."
   - `weak_password`.
   - The rate limit.
   - Offline: "You're offline. Signing in needs a connection."
-- [ ] **Settings:** an **Account** card at the top links to `/settings/account`. It shows "Signed in as …" when signed in, and is hidden when Supabase isn't configured.
-- [ ] **Offline:** `public/sw.js` PAGES gains `/settings/account`, with matching changes in `src/lib/sw.test.ts` and `e2e/offline.spec.ts`.
-- [ ] **The install hint:** iOS keeps Safari and the Home Screen app apart, so sign in inside the app.
-- [ ] **e2e:**
+- [x] **Settings:** an **Account** card at the top links to `/settings/account`. It shows "Signed in as …" when signed in, and is hidden when Supabase isn't configured.
+- [x] **Offline:** `public/sw.js` PAGES gains `/settings/account`, with matching changes in `src/lib/sw.test.ts` and `e2e/offline.spec.ts`.
+- [x] **The install hint:** iOS keeps Safari and the Home Screen app apart, so sign in inside the app.
+- [x] **e2e:**
   - The Playwright configs set a fake `NEXT_PUBLIC_SUPABASE_URL` (`https://e2e.supabase.invalid`) and a fake key.
   - `e2e/account.spec.ts` mocks `**/auth/v1/**` **by path**, so the mock holds even against a dev server that has the real `.env.local`.
   - It covers: create an account, sign in, a wrong password, sign out, and offline.
@@ -94,32 +94,32 @@ This turns StudentsBudget into a working prototype with a real database that lat
 
 ### Chunk 3 – The database tables
 
-- [ ] **The CLI:** `supabase` as a pinned dev dependency, run with `npx`. Run `npx supabase init`, which adds `supabase/config.toml` (local values only).
-- [ ] **Migration `supabase/migrations/<timestamp>_user_data.sql`:**
+- [x] **The CLI:** `supabase` as a pinned dev dependency, run with `npx`. Run `npx supabase init`, which adds `supabase/config.toml` (local values only).
+- [x] **Migration `supabase/migrations/<timestamp>_user_data.sql`:**
   - Eight tables: `accounts`, `entries`, `plans`, `guesses`, `manual_rates`, `week_results`, `discount_votes` and `profiles`.
   - Each has: `user_id uuid not null default auth.uid() references auth.users on delete cascade`, `id text not null`, `data jsonb not null`, `updated_at timestamptz not null default now()`, primary key `(user_id, id)`, and `check (pg_column_size(data) <= 65536)`.
   - RLS is on for every table. Four policies (select, insert, update, delete) for `authenticated`, each on `(select auth.uid()) = user_id`. Revoke all from `anon`.
-- [ ] **pgTAP `supabase/tests/user_data.test.sql`:**
+- [x] **pgTAP `supabase/tests/user_data.test.sql`:**
   - every public table has RLS;
   - user A cannot read or change user B's rows;
   - `anon` sees nothing;
   - deleting a user deletes their rows.
-- [ ] **CI:** a new job `db` runs `npx supabase start` (Docker on ubuntu-latest, no secrets) and then `npx supabase test db`. A script `test:db` does the same locally.
-- [ ] **Roshan applies it to his project:** either `npx supabase login`, `npx supabase link --project-ref <ref>` and `npx supabase db push`, or pastes the migration into the SQL editor. The plan gives the exact commands.
+- [x] **CI:** a new job `db` runs `npx supabase start` (Docker on ubuntu-latest, no secrets) and then `npx supabase test db`. A script `test:db` does the same locally.
+- [x] **Roshan applies it to his project:** either `npx supabase login`, `npx supabase link --project-ref <ref>` and `npx supabase db push`, or pastes the migration into the SQL editor. The plan gives the exact commands.
 - **Done when:** the `db` job is green, and the 8 tables show in the dashboard with RLS on.
 
 ### Chunk 4 – Save this phone's data to the account
 
-- [ ] **`src/db/schemas.ts`:** the zod row schemas move here from `src/features/backup/backup.ts`, which imports them. Backup behaviour is unchanged and its tests still pass.
-- [ ] **`src/sync/tables.ts`:** the registry, mapping each Dexie table to its server table, its row id and its schema.
+- [x] **`src/db/schemas.ts`:** the zod row schemas move here from `src/features/backup/backup.ts`, which imports them. Backup behaviour is unchanged and its tests still pass.
+- [x] **`src/sync/tables.ts`:** the registry, mapping each Dexie table to its server table, its row id and its schema.
   - `plan` and `profile` use id `current`.
   - `fxRates` sends only `manual` rows (id = currency).
   - `categories` are built-in and not sent.
-- [ ] **`src/sync/upload.ts`:** `uploadAll(supabase)` makes the account mirror the phone.
+- [x] **`src/sync/upload.ts`:** `uploadAll(supabase)` makes the account mirror the phone.
   - Per table: upsert every local row in batches of 500 (`onConflict: 'user_id,id'`), then delete the server rows this phone no longer has.
   - It returns counts per table.
-- [ ] **UI:** "Save to my account" on the account page, with the result line "Saved 42 entries, 3 accounts and your plan." Errors are calm, and a failed save changes nothing on the phone.
-- [ ] **Tests:** `upload.test.ts` against a small in-memory fake of the Supabase query calls:
+- [x] **UI:** "Save to my account" on the account page, with the result line "Saved 42 entries, 3 accounts and your plan." Errors are calm, and a failed save changes nothing on the phone.
+- [x] **Tests:** `upload.test.ts` against a small in-memory fake of the Supabase query calls:
   - every table is sent;
   - a deleted entry is removed on the server;
   - ECB rates are never sent;
@@ -128,18 +128,18 @@ This turns StudentsBudget into a working prototype with a real database that lat
 
 ### Chunk 5 – Load the account's data onto this phone, plus docs
 
-- [ ] **`src/sync/download.ts`:** `downloadAll(supabase)`.
+- [x] **`src/sync/download.ts`:** `downloadAll(supabase)`.
   - Fetches every table in pages of 1000.
   - Checks every row with the zod schemas (as `checkBackupData` does).
   - Then calls `replaceAll` from `src/db/bulk.ts` in one transaction.
   - Any invalid row means nothing changes, with a calm error.
-- [ ] **UI:**
+- [x] **UI:**
   - "Load from my account" asks first: "This replaces the data on this phone with your account's data (128 entries)."
   - Signing in on a phone **without a plan** offers it straight away: "Your account has data. Load it onto this phone?"
-- [ ] **Tests:**
+- [x] **Tests:**
   - a round trip, upload then download, gives identical data, like the backup round-trip test;
   - an invalid row changes nothing.
-- [ ] **Docs and copy:**
+- [x] **Docs and copy:**
   - **README:** "Your data stays on your phone unless you sign in and save it to your account", plus how to set up `.env.local`.
   - **CLAUDE.md:** the Commands rows (`test:db`). "What P1 leaves out" becomes "What P2.1 leaves out". New one-line rules:
     - Supabase only in effects and handlers;

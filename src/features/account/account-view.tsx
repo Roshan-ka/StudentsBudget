@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useShowInstallHint } from '@/features/setup/install-hint';
 import { getSupabase } from '@/lib/supabase/client';
+import { AccountData } from './account-data';
 import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
 import { checkCredentials, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
 import { useAuth } from './use-auth';
@@ -194,7 +195,7 @@ function SignedInPanel({ email }: { email: string }) {
       <p className="break-words">
         Signed in as <span className="font-medium">{email}</span>.
       </p>
-      <p className="text-muted-foreground">Your data stays on this phone, and signing out keeps it here.</p>
+      <p className="text-muted-foreground">Signing out keeps your data on this phone.</p>
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -213,7 +214,10 @@ function SignedInPanel({ email }: { email: string }) {
   );
 }
 
-/** Settings → Your account: the sign-in form or who is signed in. Without a Supabase project, a line that says so. */
+/**
+ * Settings → Your account: the sign-in form, or who is signed in and saving to the account. Without a Supabase project,
+ * a line that says so.
+ */
 export function AccountView() {
   const auth = useAuth();
   switch (auth.status) {
@@ -226,7 +230,12 @@ export function AccountView() {
     case 'loading':
       return <p className="text-muted-foreground">Checking your account…</p>;
     case 'signed-in':
-      return <SignedInPanel email={auth.email} />;
+      return (
+        <>
+          <SignedInPanel email={auth.email} />
+          <AccountData />
+        </>
+      );
     case 'signed-out':
       return <SignInForm />;
   }

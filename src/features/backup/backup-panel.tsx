@@ -181,7 +181,7 @@ function DeleteEverything() {
       <h4 className="font-medium">Delete everything</h4>
       <p className="text-sm text-muted-foreground">
         Removes your plan, accounts, entries, saved weeks and badges, discount answers, profile and exchange rates
-        from this phone.
+        from this phone. If you saved to an account, its copy stays, and you stay signed in.
       </p>
       {open ? (
         <form
@@ -190,8 +190,8 @@ function DeleteEverything() {
           className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3"
         >
           <p className="text-sm">
-            This can&apos;t be undone. A backup file is the only copy you can get back, so export one first if you
-            might want your data again.
+            This can&apos;t be undone on this phone. To get your data back later, export a backup first, or save to
+            your account.
           </p>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={inputId}>Type {CONFIRM_WORD} to confirm</Label>
@@ -243,8 +243,8 @@ export function BackupPanel() {
         Backup
       </h3>
       <p className="text-muted-foreground">
-        Everything you enter stays on this phone, and nowhere else. A backup file is your only second copy, so export
-        one now and then and keep it somewhere safe.
+        Everything you enter stays on this phone unless you save it to your account. A backup file is a copy you keep
+        yourself, so export one now and then and keep it somewhere safe.
       </p>
       <ExportBackup />
       <div className="flex flex-col gap-2">

@@ -206,7 +206,7 @@ function ProfileForm({
 
 /**
  * Settings → Profile: an optional name, the university and the semester dates. One row in `db.profile`, which the
- * backup includes; nothing here leaves the phone.
+ * backup includes; it leaves the phone only when the user saves to their account.
  */
 export function ProfileSection() {
   // The clock is only read in the browser, and the prefill needs it.
@@ -240,7 +240,8 @@ export function ProfileSection() {
         Profile
       </h3>
       <p className="text-muted-foreground">
-        Your profile is stored only on this phone and goes into any backup you export. The app never sends it anywhere.
+        Your profile is stored on this phone and goes into any backup you export, and into your account when you save
+        to it.
       </p>
       {saved !== 'loading' && today !== null && formKey > 0 && (
         <ProfileForm

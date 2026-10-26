@@ -1,11 +1,19 @@
-import { isValid, parseISO } from 'date-fns';
 import { z } from 'zod';
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
+import {
+  accountRow,
+  categoryRow,
+  discountVoteRow,
+  entryRow,
+  guessRow,
+  planRow,
+  profileRow,
+  rateRow,
+  weekResultRow,
+} from '@/db/schemas';
 import type { Category, Plan, Schedule } from '@/db/types';
-import { hasSemesterYear } from '@/features/profile/profile';
 import { addDays, formatDateTime, todayIso, weekOf } from '@/lib/dates';
-import { CURRENCIES } from '@/lib/money';
 
 export type { BackupData };
 
@@ -26,135 +34,18 @@ const NOT_A_BACKUP = "This isn't a StudentsBudget backup file.";
 const NEWER_VERSION = 'This backup is from a newer version of the app.';
 const INCOMPLETE = 'This backup file is incomplete.';
 
-// The file is the only input the app does not write itself, so every field is checked, not only its type.
-const text = z.string();
-const id = z.string().min(1);
-const minor = z.int();
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => isValid(parseISO(value)));
-// A semester date also needs a year of four digits from 1000 on, which `semesterOn` builds its dates from.
-const semesterDate = isoDate.refine(hasSemesterYear);
-const isoMonth = z
-  .string()
-  .regex(/^\d{4}-\d{2}$/)
-  .refine((value) => isValid(parseISO(value)));
-const currency = z.literal(CURRENCIES);
-
-const account = z.object({
-  id,
-  name: text,
-  kind: z.enum(['bank', 'cash']),
-  currency,
-  openingMinor: minor,
-  createdAt: text,
-  // Optional, like the plan's budget: a file from before the default account has none, and `Account.isDefault?: true`
-  // must match for the type check below.
-  isDefault: z.literal(true).optional(),
-});
-
-const category = z.object({
-  id,
-  name: text,
-  kind: z.enum(['flexible', 'fixed', 'oneoff', 'income']),
-  order: z.int(),
-});
-
-const entryBase = {
-  id,
-  date: isoDate,
-  accountId: id,
-  amountMinor: minor,
-  eurMinor: minor,
-  note: text,
-  createdAt: text,
-};
-
-const entry = z.discriminatedUnion('type', [
-  z.object({
-    ...entryBase,
-    type: z.enum(['expense', 'income']),
-    categoryId: id,
-    recurring: z.object({ scheduleId: id }).optional(),
-  }),
-  z.object({ ...entryBase, type: z.literal('transfer'), toAccountId: id, toAmountMinor: minor }),
-]);
-
-const amount = z.object({ categoryId: id, monthlyMinor: minor });
-
-const schedule = z.object({
-  id,
-  frequency: z.enum(['monthly', 'weekly']),
-  day: z.int(),
-  accountId: id,
-  amountMinor: minor,
-  startOn: isoDate,
-  postedThrough: isoDate,
-  paused: z.boolean().optional(),
-});
-
-const planLine = z.object({ categoryId: id, monthlyMinor: minor, schedule: schedule.optional() });
-
-const plan = z.object({
-  id: z.literal('current'),
-  cityId: z.literal('regensburg'),
-  incomes: z.array(planLine),
-  fixed: z.array(planLine),
-  oneOffs: z.array(
-    z.object({ id, name: text, amountMinor: minor, createdMonth: isoMonth, dueMonth: isoMonth }),
-  ),
-  envelopes: z.array(amount),
-  // Optional, as on `Plan`: older files have none, and the check below needs the two types to agree.
-  spendingBudgetMinor: minor.optional(),
-  createdOn: isoDate,
-});
-
-const guess = z.object({ categoryId: id, monthlyMinor: minor, guessedOn: isoDate });
-
-const rate = z.object({
-  currency,
-  perEur: z.number().positive(),
-  rateDate: isoDate,
-  fetchedOn: isoDate,
-  source: z.enum(['ecb', 'manual']),
-});
-
-const weekResult = z.object({
-  weekStart: isoDate,
-  weekEnd: isoDate,
-  plannedMinor: minor,
-  spentMinor: minor,
-  foodSpentMinor: minor,
-  eatingOutSpentMinor: minor,
-  handLoggedCount: z.int().nonnegative(),
-  paused: z.boolean(),
-  recordedAt: text,
-});
-
-const discountVote = z.object({ discountId: id, vote: z.enum(['works', 'outdated']), on: isoDate });
-
-// A field the user has not chosen yet is the empty string, not a missing key.
-const profile = z.object({
-  id: z.literal('current'),
-  name: text,
-  university: z.enum(['ur', 'oth', 'other', '']),
-  semesterStart: z.union([semesterDate, z.literal('')]),
-  semesterEnd: z.union([semesterDate, z.literal('')]),
-  updatedAt: text,
-});
-
+// A file is data this app did not write, so every field of every row is checked (the row schemas: src/db/schemas.ts).
 const backupData = z.object({
-  accounts: z.array(account),
-  categories: z.array(category),
-  entries: z.array(entry),
-  plan: plan.nullable(),
-  guesses: z.array(guess),
-  fxRates: z.array(rate),
+  accounts: z.array(accountRow),
+  categories: z.array(categoryRow),
+  entries: z.array(entryRow),
+  plan: planRow.nullable(),
+  guesses: z.array(guessRow),
+  fxRates: z.array(rateRow),
   // Version 3. The defaults let a version 1 or 2 file, which has none of these keys, read as "nothing saved yet".
-  weekResults: z.array(weekResult).default([]),
-  discountVotes: z.array(discountVote).default([]),
-  profile: profile.nullable().default(null),
+  weekResults: z.array(weekResultRow).default([]),
+  discountVotes: z.array(discountVoteRow).default([]),
+  profile: profileRow.nullable().default(null),
 });
 
 const backupFile = z.object({
@@ -289,6 +180,14 @@ function findProblem(d: BackupData): string | null {
     return 'a fixed cost or income has an impossible schedule';
   }
   return null;
+}
+
+/**
+ * What a complete set of data says about itself, as `findProblem` sees it: null when its rows fit together, else what
+ * is wrong. Loading from the account checks its rows with this too, before they replace the phone's.
+ */
+export function checkBackupData(d: BackupData): string | null {
+  return findProblem(d);
 }
 
 /** The file's categories and every built-in one it lacks, so a file from before a category existed still restores all 26. */

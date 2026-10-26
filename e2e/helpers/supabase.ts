@@ -21,6 +21,9 @@ const CORS = {
 
 const USER_ID = '00000000-0000-4000-8000-000000000001';
 
+/** How the mocked session's access token ends; the data mock checks for it. */
+const SESSION_SIGNATURE = '.e2e-signature';
+
 function base64url(value: object): string {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
@@ -39,7 +42,7 @@ function sessionFor(email: string) {
   };
   const claims = { sub: USER_ID, email, role: 'authenticated', aud: 'authenticated', iat: now, exp: now + 3600 };
   return {
-    access_token: `${base64url({ alg: 'HS256', typ: 'JWT' })}.${base64url(claims)}.e2e-signature`,
+    access_token: `${base64url({ alg: 'HS256', typ: 'JWT' })}.${base64url(claims)}${SESSION_SIGNATURE}`,
     token_type: 'bearer',
     expires_in: 3600,
     expires_at: now + 3600,
@@ -89,6 +92,72 @@ export async function mockSupabaseAuth(page: Page, accounts: Record<string, stri
   });
 
   return calls;
+}
+
+/** Every call to the account's tables (PostgREST). Matched by path, like the auth calls. */
+export const SUPABASE_REST = '**/rest/v1/**';
+
+/** The account's tables as the mock keeps them: table → id → the row's data. */
+export type ServerTables = Map<string, Map<string, unknown>>;
+
+/** The ids in a PostgREST filter such as `in.(e1,"a,b")`. */
+function idsOf(filter: string | null): string[] {
+  const inner = filter?.match(/^in\.\((.*)\)$/)?.[1] ?? '';
+  return inner === '' ? [] : inner.split(',').map((id) => id.replace(/^"(.*)"$/, '$1'));
+}
+
+/**
+ * Answers the account's tables like PostgREST does for one signed-in user: read ids or whole rows (by id, a page at a
+ * time after the last id), upsert rows, and delete rows by id. A call without the mocked session's token gets 401, as
+ * row-level security would refuse it, so a spec cannot pass while the app sends its calls signed out. `failWith` makes every call answer with that status instead. `tables` shares the
+ * account with another page, a second phone. Returns the tables, to look at and to seed.
+ */
+export async function mockSupabaseData(
+  page: Page,
+  options: { failWith?: number; tables?: ServerTables } = {},
+): Promise<ServerTables> {
+  const tables: ServerTables = options.tables ?? new Map();
+  const table = (name: string) => {
+    if (!tables.has(name)) tables.set(name, new Map());
+    return tables.get(name)!;
+  };
+
+  await page.route(SUPABASE_REST, async (route) => {
+    const request = route.request();
+    if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+    if (options.failWith !== undefined) {
+      return route.fulfill({ status: options.failWith, headers: CORS, json: { code: 'XX000', message: 'mock failure' } });
+    }
+
+    if (!(request.headers()['authorization'] ?? '').endsWith(SESSION_SIGNATURE)) {
+      return route.fulfill({ status: 401, headers: CORS, json: { code: 'PGRST301', message: 'not signed in' } });
+    }
+
+    const url = new URL(request.url());
+    const rows = table(url.pathname.replace(/^.*\/rest\/v1\//, ''));
+    if (request.method() === 'GET') {
+      const after = url.searchParams.get('id')?.match(/^gt\.(.*)$/)?.[1] ?? null;
+      const limit = Number(url.searchParams.get('limit') ?? 1000);
+      const ids = [...rows.keys()]
+        .sort()
+        .filter((id) => after === null || id > after)
+        .slice(0, limit);
+      const withData = (url.searchParams.get('select') ?? '').includes('data');
+      const json = ids.map((id) => (withData ? { id, data: rows.get(id) } : { id }));
+      return route.fulfill({ status: 200, headers: CORS, json });
+    }
+    if (request.method() === 'POST') {
+      for (const row of request.postDataJSON() as { id: string; data: unknown }[]) rows.set(row.id, row.data);
+      return route.fulfill({ status: 201, headers: CORS });
+    }
+    if (request.method() === 'DELETE') {
+      for (const id of idsOf(url.searchParams.get('id'))) rows.delete(id);
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    return route.fulfill({ status: 405, headers: CORS });
+  });
+
+  return tables;
 }
 
 /**

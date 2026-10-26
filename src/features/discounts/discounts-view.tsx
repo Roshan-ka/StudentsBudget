@@ -130,7 +130,7 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
         Student discounts in Regensburg. Each one says where it is stated. Tell the app whether one still works: your
-        answers stay on this phone. Ones you confirm move up; ones you mark as not working, or that haven&rsquo;t been
+        answers are saved on this phone. Ones you confirm move up; ones you mark as not working, or that haven&rsquo;t been
         confirmed for 8 weeks, move down.
       </p>
       <div role="group" aria-label="Show discounts for" className="flex flex-wrap gap-2">
