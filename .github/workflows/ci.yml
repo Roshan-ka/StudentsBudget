@@ -39,3 +39,6 @@ jobs:
       - run: npm ci
       - run: npm run supabase:start -- --exclude studio,mailpit
       - run: npm run test:db
+      # The app's account store (src/sync/store.ts) against the same stack, as a signed-in user.
+      - run: node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
+      - run: npm run test:contract

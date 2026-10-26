@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { StoreError, type UserDataStore } from './store';
 import { SERVER_TABLES, serverRowsOf } from './tables';
-import { expense, fakeStore, MANUAL, snapshot } from './test-helpers';
+import { expense, fakeStore, liveIds, MANUAL, snapshot } from './test-helpers';
 import { applyUpload, planUpload, saveErrorMessage, staleSummary, uploadSummary } from './upload';
 
 describe('serverRowsOf', () => {
@@ -45,7 +45,7 @@ describe('planUpload and applyUpload', () => {
     expect([...tables.entries.keys()]).toEqual(['e1', 'e2', 'rec:s1:2026-10-01']);
     expect([...tables.manual_rates.keys()]).toEqual(['INR']);
     expect(tables.plans.get('current')).toEqual(snapshot().plan);
-    expect(calls.some((call) => call.startsWith('remove '))).toBe(false);
+    expect(calls.some((call) => call.startsWith('tombstone '))).toBe(false);
   });
 
   it('a second save of the same data writes the same rows again and deletes nothing', async () => {
@@ -67,8 +67,10 @@ describe('planUpload and applyUpload', () => {
     expect(staleSummary(plan)).toBe('2 entries');
     await applyUpload(store, plan);
 
-    expect([...tables.entries.keys()]).toEqual(['e1']);
-    const firstRemove = calls.findIndex((call) => call.startsWith('remove '));
+    expect(liveIds(tables.entries)).toEqual(['e1']);
+    // Deleted as tombstones: the rows stay without data, so other phones learn of the delete.
+    expect(tables.entries.get('e2')).toBeNull();
+    const firstRemove = calls.findIndex((call) => call.startsWith('tombstone '));
     const lastUpsert = calls.findLastIndex((call) => call.startsWith('upsert '));
     expect(firstRemove).toBeGreaterThan(lastUpsert);
   });
@@ -78,8 +80,8 @@ describe('planUpload and applyUpload', () => {
     await applyUpload(store, await planUpload(store, snapshot()));
     const writes = calls.filter((call) => call.startsWith('upsert ')).map((call) => call.split(' ')[1]);
     expect(writes.at(-1)).toBe('plans');
-    const removes = calls.filter((call) => call.startsWith('remove '));
-    expect(removes).toEqual(['remove entries old', 'remove accounts gone']);
+    const removes = calls.filter((call) => call.startsWith('tombstone '));
+    expect(removes).toEqual(['tombstone entries old', 'tombstone accounts gone']);
   });
 
   it('counts what an empty phone would delete from an account saved elsewhere', async () => {

@@ -71,28 +71,34 @@ export function snapshot(overrides: Partial<BackupData> = {}): BackupData {
 
 /**
  * The account's tables in memory, for tests: the store, the tables to look at or seed (table → id → data), and every
- * call written down ("list entries", "upsert entries e1,e2", "remove entries e2").
+ * call written down ("list entries", "upsert entries e1,e2", "tombstone entries e2"). A tombstone is kept as null.
  */
+/** The ids of a fake table's rows that are not tombstones, sorted. */
+export function liveIds(rows: Map<string, unknown>): string[] {
+  return [...rows.keys()].filter((id) => rows.get(id) !== null).sort();
+}
+
 export function fakeStore(initial: Partial<Record<ServerTable, Record<string, unknown>>> = {}) {
   const tables = byTable((table) => new Map<string, unknown>(Object.entries(initial[table] ?? {})));
   const calls: string[] = [];
   const store: UserDataStore = {
     async listIds(table) {
       calls.push(`list ${table}`);
-      return [...tables[table].keys()].sort();
+      return liveIds(tables[table]);
     },
     async listRows(table) {
       calls.push(`read ${table}`);
-      return [...tables[table].keys()].sort().map((id) => ({ id, data: tables[table].get(id) }));
+      return liveIds(tables[table]).map((id) => ({ id, data: tables[table].get(id) }));
     },
     async upsert(table, rows) {
       calls.push(`upsert ${table} ${rows.map((row) => row.id).join(',')}`);
       // Stored as JSON would be: a copy, not the phone's own object.
       for (const row of rows) tables[table].set(row.id, structuredClone(row.data));
     },
-    async remove(table, ids) {
-      calls.push(`remove ${table} ${ids.join(',')}`);
-      for (const id of ids) tables[table].delete(id);
+    async tombstone(table, ids) {
+      calls.push(`tombstone ${table} ${ids.join(',')}`);
+      // As the database does: an id it never had gets a tombstone too.
+      for (const id of ids) tables[table].set(id, null);
     },
   };
   return { store, tables, calls };

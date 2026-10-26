@@ -9,7 +9,7 @@
 
 This turns StudentsBudget into a working prototype with a real database that later features can build on. It is not live sync yet: saving and loading are buttons. Live sync is the next plan.
 
-**Status (2026-10-26):** day 1 (chunks 1–3) merged in PR #13 on 2026-10-23; day 2 (chunks 4–5) on `feat/p2-1-database`.
+**Status (2026-10-26):** done. Day 1 (chunks 1–3) merged in PR #13, day 2 (chunks 4–5) in PR #14. Next: [[2026-10-26-p2-2-live-sync|P2.2 plan]].
 
 **Spec:** [[Student Budget App - Concept]]: P2 (:58), login and the EU database (:71), EU data (:194–196). [[Student Budget App - Tech Stack]]. Open items: [[Student Budget App - P1 follow-ups]].
 

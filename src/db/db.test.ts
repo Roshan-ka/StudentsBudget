@@ -33,7 +33,7 @@ describe('schema upgrade', () => {
 
     expect(await db.categories.count()).toBe(26);
     expect(await db.fxRates.count()).toBe(0);
-    expect(db.verno).toBe(3);
+    expect(db.verno).toBe(4);
     // The version-1 table is gone from the real database, not only from the schema.
     expect(db.backendDB().objectStoreNames.contains('rates')).toBe(false);
     // A database two versions behind gets the version-3 tables too, empty.
@@ -89,7 +89,7 @@ describe('schema upgrade', () => {
 
     await db.open();
 
-    expect(db.verno).toBe(3);
+    expect(db.verno).toBe(4);
     expect(await db.accounts.toArray()).toEqual([account]);
     expect(await db.categories.count()).toBe(26);
     expect(await db.entries.toArray()).toEqual([entry]);

@@ -97,20 +97,16 @@ export async function mockSupabaseAuth(page: Page, accounts: Record<string, stri
 /** Every call to the account's tables (PostgREST). Matched by path, like the auth calls. */
 export const SUPABASE_REST = '**/rest/v1/**';
 
-/** The account's tables as the mock keeps them: table → id → the row's data. */
+/** The account's tables as the mock keeps them: table → id → the row's data, null for a tombstone. */
 export type ServerTables = Map<string, Map<string, unknown>>;
-
-/** The ids in a PostgREST filter such as `in.(e1,"a,b")`. */
-function idsOf(filter: string | null): string[] {
-  const inner = filter?.match(/^in\.\((.*)\)$/)?.[1] ?? '';
-  return inner === '' ? [] : inner.split(',').map((id) => id.replace(/^"(.*)"$/, '$1'));
-}
 
 /**
  * Answers the account's tables like PostgREST does for one signed-in user: read ids or whole rows (by id, a page at a
- * time after the last id), upsert rows, and delete rows by id. A call without the mocked session's token gets 401, as
- * row-level security would refuse it, so a spec cannot pass while the app sends its calls signed out. `failWith` makes every call answer with that status instead. `tables` shares the
- * account with another page, a second phone. Returns the tables, to look at and to seed.
+ * time after the last id, tombstones left out when asked), and upsert rows, a tombstone being a row with data null. A
+ * hard delete is refused, as the database refuses it. A call without the mocked session's token gets 401, as row-level
+ * security would refuse it, so a spec cannot pass while the app sends its calls signed out. `failWith` makes every call
+ * answer with that status instead. `tables` shares the account with another page, a second phone. Returns the tables,
+ * to look at and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
@@ -138,9 +134,11 @@ export async function mockSupabaseData(
     if (request.method() === 'GET') {
       const after = url.searchParams.get('id')?.match(/^gt\.(.*)$/)?.[1] ?? null;
       const limit = Number(url.searchParams.get('limit') ?? 1000);
+      const liveOnly = url.searchParams.get('deleted_at') === 'is.null';
       const ids = [...rows.keys()]
         .sort()
         .filter((id) => after === null || id > after)
+        .filter((id) => !liveOnly || rows.get(id) !== null)
         .slice(0, limit);
       const withData = (url.searchParams.get('select') ?? '').includes('data');
       const json = ids.map((id) => (withData ? { id, data: rows.get(id) } : { id }));
@@ -151,8 +149,7 @@ export async function mockSupabaseData(
       return route.fulfill({ status: 201, headers: CORS });
     }
     if (request.method() === 'DELETE') {
-      for (const id of idsOf(url.searchParams.get('id'))) rows.delete(id);
-      return route.fulfill({ status: 204, headers: CORS });
+      return route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message: 'permission denied' } });
     }
     return route.fulfill({ status: 405, headers: CORS });
   });

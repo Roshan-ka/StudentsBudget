@@ -19,7 +19,8 @@
     "test:offline": "playwright test -c playwright.offline.config.ts",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
-    "test:db": "supabase test db"
+    "test:db": "supabase test db",
+    "test:contract": "vitest run src/sync/store.contract.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
