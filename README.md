@@ -1,12 +1,12 @@
 # StudentsBudget
-Budget app for students new to a city: see where your money goes across all your accounts and cash, check whether your budget is realistic for your city, and log spending in seconds. Installable web app; data stays on your phone.
+Budget app for students new to a city: see where your money goes across all your accounts and cash, check whether your budget is realistic for your city, and log spending in seconds. Installable web app; data stays on your phone unless you save it to your account.
 
 ## What it is
 StudentsBudget helps you through your first months in a new city. You set up your rent, your income, what you want to spend each month and your accounts once, for example a local bank, a bank back home and some cash. The app compares your plan with typical costs in Regensburg, the only city it knows so far.
 
 After that you log spending in a few seconds, with a line like "döner 6". The home screen shows how much is left to spend this month, and under it how much is safe to spend this week. Charts show where the money went. On Sundays, a short check-in looks back at the week.
 
-There is no account to create. Everything is stored on your device.
+You don't need an account: everything is stored on your device. If you want, create one with an email and a password, save your data to it, and load it onto another phone (see **Account** below).
 
 ## Install on iPhone
 Install the app first, then set up. A Safari tab and the Home Screen app keep their data apart, so anything you enter in Safari stays in Safari.
@@ -43,17 +43,20 @@ Each week (Monday to Sunday) is saved from the Wednesday after it ends, the next
 
 **Discounts.** The Tips tab has a second view, Discounts: student discounts in Regensburg, with no alcohol deals. Each shows the place, what you get, the conditions, the address and the page it comes from, with the date it was checked. Tried one? Tap "Still works" or "Doesn't work anymore". Your answer is saved on your phone, and tapping again changes it. "Last confirmed" is the later of the check date and your last "Still works". A discount last confirmed 8 or more weeks ago reads "May be outdated" and moves down the list; one you marked as not working goes to the end.
 
-**Profile.** Settings starts with your profile, all optional: your name (Home then says "Hi" with it), your university (Universität Regensburg, OTH Regensburg or Other) and your semester dates. For the two Regensburg universities the dates fill in from the university's published semester dates, with the source shown, and you can still change them. Your semester sets gold for Under-Budget Week. With semester dates saved, the one-off costs step (in setup, or Settings, then Edit plan) offers the next semester fee in one tap. Where the Studierendenwerk has published that semester's fee, the amount is filled in with its sources; otherwise you fill it in. The fee is due in the month re-registration opens where your university has published it, else in the month before the semester starts.
+**Account.** Optional. Settings starts with **Your account** (when the app has an account server set up): create an account with an email and a password of 8 or more characters, or sign in. Signed in, **Save to my account** copies everything on the phone to your account. If your account holds something this phone doesn't (saved from another phone, or deleted here since), the app says how much would go and asks first. On a second phone, **Sign in to load it** at the top of setup leads to **Load from my account**, which replaces that phone's data with your account's once you confirm. Nothing updates by itself yet: save again after changes. Using two phones? Load on one before you change anything there, or its next save replaces what the other one saved. Signing out keeps the data on the phone. On iPhone, sign in inside the Home Screen app.
+
+**Profile.** Settings has your profile right after your account, all optional: your name (Home then says "Hi" with it), your university (Universität Regensburg, OTH Regensburg or Other) and your semester dates. For the two Regensburg universities the dates fill in from the university's published semester dates, with the source shown, and you can still change them. Your semester sets gold for Under-Budget Week. With semester dates saved, the one-off costs step (in setup, or Settings, then Edit plan) offers the next semester fee in one tap. Where the Studierendenwerk has published that semester's fee, the amount is filled in with its sources; otherwise you fill it in. The fee is due in the month re-registration opens where your university has published it, else in the month before the semester starts.
 
 **Charts.** Spending by category and income by source open as a donut. Switch each chart to Bars or Table. "Saved each month" and a category over time show Columns, Line or Table. One period selector (This month, 3, 6 or 12 months) applies to all of them, and the month switcher moves where the period ends. On This month, the two over-time charts show the last 6 months up to that month instead. A tap on a slice, bar or column opens those entries (except "Everything else"). For a 3, 6 or 12-month period, a slice or bar opens the entries of the period's end month, and a column opens its own month. A month with nothing logged says so, and still shows those two charts when the 6 months up to it have entries.
 
 **Dates.** Full dates read DD-MM-YYYY. When you add or edit an entry, Today and Yesterday are one tap away.
 
 ## Privacy
-- Your data stays in this browser's IndexedDB, on this device. There is no server copy.
-- Your profile (name, university and semester dates, all optional), the weekly records behind your badges and your discount answers are stored only on this device and go into any backup you export. The app never sends them anywhere.
-- There is no login, no analytics and no third-party scripts. The fonts come from the app itself.
-- The only outgoing request is to `api.frankfurter.dev`, for exchange rates. It names the foreign currencies your accounts use. It carries none of your entries or amounts. Like any web request, it shows your IP address to that service.
+- Your data stays in this browser's IndexedDB, on this device. Until you save to an account, there is no server copy.
+- An account is optional (email and password). When you save to it, a copy of your accounts, entries, plan, guesses, manual exchange rates, weekly records, discount answers and profile is kept in a Supabase database in Frankfurt (EU). Row-level security lets each account read and change only its own rows. The copy is not encrypted end to end: whoever runs the Supabase project could technically read it.
+- Your profile (name, university and semester dates, all optional), the weekly records behind your badges and your discount answers are stored on this device, go into any backup you export, and go into your account only when you save to it.
+- No analytics and no third-party scripts. The fonts come from the app itself.
+- Signed out, the only outgoing request is to `api.frankfurter.dev`, for exchange rates. It names the foreign currencies your accounts use. It carries none of your entries or amounts. Like any web request, it shows your IP address to that service. Signed in, the app also talks to the Supabase project: to sign in, to keep the sign-in fresh in the background, and when you save or load.
 - A backup file is a plain JSON file that you keep. The app never uploads it. Anyone who has the file can read your data, so keep it somewhere you trust.
 - Clearing the site's data in your browser, or removing the app, deletes your data. Export a backup regularly: Settings, then Backup, then Export backup. To get your data back, choose the file under **Restore from a backup** in Settings, or under **Have a backup? Restore it** at the bottom of the setup screen. The app names the file and says when it was saved and what it holds, then asks you to confirm **Replace all data**.
 
@@ -94,6 +97,7 @@ Offline use needs a service worker, and a service worker only runs on a secure a
 4. [Repo Setup](docs/Student%20Budget%20App%20-%20Repo%20Setup.md): GitHub settings checklist
 5. [Kickoff](docs/Student%20Budget%20App%20-%20Kickoff.md): repo layout and how a build day runs
 6. [P1 plan](docs/superpowers/plans/2026-10-16-p1-test-project.md): the 4-day build plan, task by task
+7. [P2.1 plan](docs/superpowers/plans/2026-10-23-p2-1-accounts-and-database.md): accounts and the database, in 2-hour chunks
 
 ## Development
 Needs Node 24 and npm. Run `npm install` once, then:
@@ -108,3 +112,12 @@ Needs Node 24 and npm. Run `npm install` once, then:
 - `npm run lint`: ESLint
 
 Playwright needs its browsers once: `npx playwright install chromium webkit`.
+
+### Accounts and the database (optional)
+Without Supabase settings the app runs local-only and hides the account UI. To try accounts:
+
+1. Create a Supabase project in region Frankfurt. Under Authentication, turn on Email, turn **Confirm email** off, and set the minimum password length to 8.
+2. Copy `.env.example` to `.env.local` and fill in the Project URL and the **Publishable** key (Project Settings → API Keys). Never put a secret key there. Restart `npm run dev` after a change: the values are built into the app.
+3. Apply the migrations in `supabase/migrations`: `npx supabase login`, `npx supabase link --project-ref <ref>`, then `npx supabase db push`, or paste each file into the SQL editor.
+
+With Docker running, `npm run supabase:start` starts a local Supabase stack with the migrations applied (Studio on http://127.0.0.1:54323), `npm run test:db` runs the database tests (pgTAP, in `supabase/tests`) against it, and `npm run supabase:stop` stops it. CI runs them on every pull request.

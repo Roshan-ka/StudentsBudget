@@ -69,6 +69,7 @@ Each part is tagged with its phase.
   - The app must be installed on the home screen. On iPhone, Safari clears storage for websites that haven't been opened for 7 days, but installed apps are exempt.
   - "Export backup" saves everything as one file, and "Import backup" restores it. Losing the phone or clearing browser data otherwise loses the data.
 - **P2:** email login (magic link) and a database in the EU. The P1 backup file is imported into the account, so nothing is lost.
+  - P2.1 (2026-10-23) started simpler: email and password instead of a magic link, and "Save to my account" / "Load from my account" buttons instead of live sync. The phone's data goes into the account with the first save.
 
 ### 2. Accounts and currencies (P1)
 - Accounts such as home-country bank, local bank and cash, each in its own currency.

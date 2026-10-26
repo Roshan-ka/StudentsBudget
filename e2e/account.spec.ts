@@ -1,11 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Guess, Plan } from '../src/db/types';
-import { completeSetup, readStore } from './helpers/setup';
+import { completeSetup, mockFrankfurter, readStore, SETUP_DAY } from './helpers/setup';
 import {
   mockSupabaseAuth,
   mockSupabaseData,
   skipUnlessAccountsShow,
   SUPABASE_AUTH,
+  SUPABASE_REST,
   type ServerTables,
 } from './helpers/supabase';
 
@@ -192,7 +193,24 @@ test('Save to my account copies the phone, and asks before it removes what only 
     saveSection(page).getByText("Your account has 1 entry that this phone doesn't.", { exact: false }),
   ).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
+  // The question takes focus, so a screen reader reads it out with the button.
+  await expect(saveSection(page).getByRole('button', { name: 'Save anyway', exact: true })).toBeFocused();
+
+  // Leaving the page drops the question: the page stays mounted while hidden, and an old question would save an old
+  // snapshot.
+  const nav = page.getByRole('navigation', { name: 'Main' });
+  await nav.getByRole('link', { name: 'Home', exact: true }).click();
+  await nav.getByRole('link', { name: 'Settings', exact: true }).click();
+  await page.getByRole('link', { name: 'Manage account', exact: true }).click();
+  await expect(saveSection(page).getByRole('button', { name: 'Save anyway', exact: true })).toHaveCount(0);
+  await expect(saveSection(page).getByRole('button', { name: 'Save to my account', exact: true })).toBeVisible();
+
+  await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
   await saveSection(page).getByRole('button', { name: 'Cancel', exact: true }).click();
+  // Cancel closes the question, gives focus back, and sends nothing.
+  const saveButton = saveSection(page).getByRole('button', { name: 'Save to my account', exact: true });
+  await expect(saveButton).toBeFocused();
+  await expect(saveSection(page).getByRole('button', { name: 'Save anyway', exact: true })).toHaveCount(0);
   expect(data.get('entries')?.has('from-another-phone')).toBe(true);
 
   await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
@@ -217,4 +235,132 @@ test('without a plan there is nothing to save yet, and a refused save says so ca
   await expect(signedInLine(page, EMAIL)).toBeVisible();
   await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
   await expect(alert(page)).toHaveText("Couldn't save to your account. Check your connection and try again.");
+});
+
+test('a second phone signs in from setup and loads what the first one saved', async ({ page, browser }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  const data = await mockSupabaseData(page);
+  await completeSetup(page);
+  const homeA = (await page.getByRole('region', { name: 'Left to spend this month', exact: true }).textContent()) ?? '';
+
+  await page.goto('/settings/account');
+  await signIn(page, EMAIL, PASSWORD);
+  await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
+  await expect(saveSection(page).getByText('Saved to your account:', { exact: false })).toBeVisible();
+
+  // Phone B: a new browser with nothing on it, sharing the account, on the same day as phone A.
+  const phoneB = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const pageB = await phoneB.newPage();
+  await pageB.clock.setFixedTime(SETUP_DAY);
+  await mockFrankfurter(pageB);
+  await mockSupabaseAuth(pageB, { [EMAIL]: PASSWORD });
+  await mockSupabaseData(pageB, { tables: data });
+
+  await pageB.goto('/setup');
+  await pageB.getByRole('link', { name: 'Sign in to load it', exact: true }).click();
+  await expect(pageB).toHaveURL('/settings/account');
+  await signIn(pageB, EMAIL, PASSWORD);
+
+  // Without a plan, loading comes first.
+  const loadSection = pageB.getByRole('region', { name: 'Load from your account', exact: true });
+  await expect(loadSection).toBeVisible();
+  const headings = await pageB.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
+  expect(headings.slice(1)).toEqual(['Load from your account', 'Save to your account']);
+  await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
+  await expect(
+    loadSection.getByText("This replaces the data on this phone with your account's: 3 accounts, 0 entries and your plan."),
+  ).toBeVisible();
+  await loadSection.getByRole('button', { name: 'Load', exact: true }).click();
+  await expect(
+    loadSection.getByText('Loaded from your account: 3 accounts, 0 entries and your plan.', { exact: true }),
+  ).toBeVisible();
+  expect(await overflow(pageB)).toBeLessThanOrEqual(0);
+
+  // Phone B now holds phone A's data, and Home says the same.
+  const sorted = <T extends { id: string }>(rows: T[]) => [...rows].sort((a, b) => a.id.localeCompare(b.id));
+  expect(sorted(await readStore<Account>(pageB, 'accounts'))).toEqual(sorted(await readStore<Account>(page, 'accounts')));
+  expect(await readStore<Plan>(pageB, 'plan')).toEqual(await readStore<Plan>(page, 'plan'));
+  await pageB.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home', exact: true }).click();
+  await expect(pageB.getByRole('region', { name: 'Left to spend this month', exact: true })).toHaveText(homeA);
+  await phoneB.close();
+});
+
+test('loading from an empty account, or one with rows the app cannot read, leaves the phone as it was', async ({
+  page,
+}) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  const data = await mockSupabaseData(page);
+  await completeSetup(page);
+  const planBefore = await readStore<Plan>(page, 'plan');
+
+  await page.goto('/settings/account');
+  await signIn(page, EMAIL, PASSWORD);
+  const loadSection = page.getByRole('region', { name: 'Load from your account', exact: true });
+  await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
+  await expect(loadSection.getByText('Your account has nothing saved yet.', { exact: true })).toBeVisible();
+
+  // Rows without a plan: a first save that stopped halfway.
+  data.set('entries', new Map([['e1', { id: 'e1' }]]));
+  await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
+  await expect(alert(page)).toHaveText(
+    "Your account's last save didn't finish, so nothing changed on this phone. Save again from the phone that has your data.",
+  );
+
+  // A plan, but a row that isn't the app's data.
+  data.set('plans', new Map([['current', planBefore[0]]]));
+  data.set('entries', new Map([['e1', { id: 'e1', amountMinor: 'not money' }]]));
+  await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
+  await expect(alert(page)).toHaveText("Your account's data couldn't be read, so nothing changed on this phone.");
+
+  // The account's server fails.
+  await page.unroute(SUPABASE_REST);
+  await mockSupabaseData(page, { failWith: 500 });
+  await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
+  await expect(alert(page)).toHaveText("Couldn't load from your account. Check your connection and try again.");
+  expect(await readStore<Plan>(page, 'plan')).toEqual(planBefore);
+});
+
+test("loading onto a phone with its own data replaces it with the account's, after asking", async ({ page, browser }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  const data = await mockSupabaseData(page);
+  await completeSetup(page);
+  await page.goto('/settings/account');
+  await signIn(page, EMAIL, PASSWORD);
+  await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
+  await expect(saveSection(page).getByText('Saved to your account:', { exact: false })).toBeVisible();
+  const planA = await readStore<Plan>(page, 'plan');
+
+  // Phone B was set up on its own, with another rent.
+  const phoneB = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const pageB = await phoneB.newPage();
+  await mockSupabaseAuth(pageB, { [EMAIL]: PASSWORD });
+  await mockSupabaseData(pageB, { tables: data });
+  await completeSetup(pageB, { rent: '520' });
+  expect(await readStore<Plan>(pageB, 'plan')).not.toEqual(planA);
+
+  await pageB.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings', exact: true }).click();
+  await pageB.getByRole('region', { name: 'Your account', exact: true }).getByRole('link', { name: 'Sign in' }).click();
+  await signIn(pageB, EMAIL, PASSWORD);
+  // With a plan, saving comes first and loading second.
+  const loadSection = pageB.getByRole('region', { name: 'Load from your account', exact: true });
+  await expect(loadSection).toBeVisible();
+  const headings = await pageB.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
+  expect(headings.slice(1)).toEqual(['Save to your account', 'Load from your account']);
+
+  await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
+  await expect(
+    loadSection.getByText("This replaces the data on this phone with your account's:", { exact: false }),
+  ).toBeVisible();
+  await loadSection.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(loadSection.getByRole('button', { name: 'Load from my account', exact: true })).toBeFocused();
+  expect(await readStore<Plan>(pageB, 'plan')).not.toEqual(planA);
+
+  await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
+  await loadSection.getByRole('button', { name: 'Load', exact: true }).click();
+  await expect(loadSection.getByText('Loaded from your account:', { exact: false })).toBeVisible();
+  expect(await readStore<Plan>(pageB, 'plan')).toEqual(planA);
+  await phoneB.close();
 });

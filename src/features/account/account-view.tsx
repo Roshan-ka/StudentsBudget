@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useShowInstallHint } from '@/features/setup/install-hint';
 import { getSupabase } from '@/lib/supabase/client';
+import { AccountData } from './account-data';
 import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
 import { checkCredentials, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
-import { SaveToAccount } from './save-to-account';
 import { useAuth } from './use-auth';
 
 /** Email and password, to sign in or to create an account. */
@@ -195,7 +195,7 @@ function SignedInPanel({ email }: { email: string }) {
       <p className="break-words">
         Signed in as <span className="font-medium">{email}</span>.
       </p>
-      <p className="text-muted-foreground">Your data stays on this phone, and signing out keeps it here.</p>
+      <p className="text-muted-foreground">Signing out keeps your data on this phone.</p>
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -233,7 +233,7 @@ export function AccountView() {
       return (
         <>
           <SignedInPanel email={auth.email} />
-          <SaveToAccount />
+          <AccountData />
         </>
       );
     case 'signed-out':

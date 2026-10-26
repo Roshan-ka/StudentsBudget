@@ -2,7 +2,7 @@
 
 @AGENTS.md
 
-Installable Next.js web app for students new to a city (P1: no AI, no login, all data in the browser's IndexedDB). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`, and P2.1 (email-and-password accounts and a Supabase database, in progress) in `docs/superpowers/plans/2026-10-23-p2-1-accounts-and-database.md`; `docs/` is an Obsidian vault and stays notes-only.
+Installable Next.js web app for students new to a city (local-first: the phone's data lives in the browser's IndexedDB; since P2.1 an optional email-and-password account can save it to Supabase and load it onto another phone; no AI yet). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`, and P2.1 (email-and-password accounts and a Supabase database, in progress) in `docs/superpowers/plans/2026-10-23-p2-1-accounts-and-database.md`; `docs/` is an Obsidian vault and stays notes-only.
 
 ## Stack
 
@@ -68,6 +68,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Dexie schema:** a schema change adds a new `db.version(n)`; never edit a version that has shipped.
 - **Supabase in the app:** `getSupabase()` only in effects and event handlers; the session lives in the browser's localStorage, and no page reads it while rendering, so every page stays static and precached. Without the two `NEXT_PUBLIC_SUPABASE_*` settings the app is local-only and hides the account UI; changing them needs a rebuild.
 - **Supabase schema:** a change is a new migration (`npx supabase migration new <name>`), never an edit to an applied one. Every table has row-level security with owner-only policies on `(select auth.uid()) = user_id`, a `user_id` that cascades from `auth.users`, nothing for `anon`, and pgTAP tests in `supabase/tests`.
+- **Save and load:** Save makes the account match the phone (rows first, deletions last; it asks before deleting rows only the account has). Load reads and checks every row with the row schemas (`src/db/schemas.ts`) and `checkBackupData` before one `replaceAll`, so a refused load changes nothing. A new Dexie table the account should keep needs a new migration, an entry in `serverRowsOf` (`src/sync/tables.ts`) and one in `planDownload`.
 - **Backup v3:** it reads v1–v3 files (`READABLE_VERSIONS`). A table added to the backup needs a zod default in `backup.ts` (`[]` or `null`), so older files and the demo fixture still restore.
 - **Budget maths:** no day-based proration. `monthStatus` (Home, charts, reveal) plans the whole monthly amount, in the setup month too, and counts spending from the setup day. Home's "This week" and the check-in's shares come from `weekToSpend`: what is left at the week's start, with expenses dated later in the month already off it (so "This week" never exceeds "Left this month"), ÷ `weeksLeftInMonth` (a stub week counts whole), less this week's spending. An envelope's share is clamped at €0; the total is not. New badge week records use `weekAllowance` (the same, before the week's own spending and before any later-dated expenses, clamped at €0 because backup refuses negatives); recorded rows are never rewritten.
 - **Week results:** each Monday–Sunday week is recorded once, keyed by its Monday, from the Wednesday after it ends (`GRACE_DAYS`), and never rewritten, so a plan edit never changes a past week. The three weekly badges read only these rows; Latte Survivor reads the entries, so editing an old month can change it.
@@ -85,11 +86,12 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - TypeScript `strict`; no `any`.
 - **Money:** integer minor units (`Minor`), never floats. Plan, envelope and city amounts are in EUR. Each entry keeps its account's currency in `amountMinor`, plus `eurMinor` converted at save time.
 - **Dates:** local `IsoDate` strings (`YYYY-MM-DD`) and `IsoMonth` strings (`YYYY-MM`). Shown as `DD-MM-YYYY` with `formatDate` wherever a full date appears; short labels like "Mon 26 Oct" stay. Weeks run Monday–Sunday. The check-in is on Sunday.
-- **Data:** everything lives in the IndexedDB database `studentsbudget`.
+- **Data:** the phone's data lives in the IndexedDB database `studentsbudget`; the account (Supabase, Frankfurt) holds a copy only when the user saves to it.
 
-**What P1 leaves out**
-- No AI calls, server routes, login, analytics or third-party scripts.
-- The only outgoing request: `https://api.frankfurter.dev/v2/rates?base=EUR&quotes=…&providers=ecb`. Confirm the endpoint in Frankfurter's docs before coding.
+**What P2.1 leaves out**
+- No AI calls, server routes, analytics or third-party scripts. The browser talks to Supabase directly (Auth and the user-data tables), behind row-level security.
+- No automatic sync (save and load are buttons), account deletion, password reset, email confirmation or legal pages yet.
+- Outgoing requests: `https://api.frankfurter.dev/v2/rates?base=EUR&quotes=…&providers=ecb` (confirm the endpoint in Frankfurter's docs before coding), and, only when the build has Supabase settings, the Supabase project: sign-in, the session refresh supabase-js runs in the background, save and load.
 
 **Text and layout**
 - UI language is English. Money is formatted with `Intl.NumberFormat('en-IE', …)`: `€6.50`, and `€63` for headlines.

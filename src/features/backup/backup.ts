@@ -182,6 +182,14 @@ function findProblem(d: BackupData): string | null {
   return null;
 }
 
+/**
+ * What a complete set of data says about itself, as `findProblem` sees it: null when its rows fit together, else what
+ * is wrong. Loading from the account checks its rows with this too, before they replace the phone's.
+ */
+export function checkBackupData(d: BackupData): string | null {
+  return findProblem(d);
+}
+
 /** The file's categories and every built-in one it lacks, so a file from before a category existed still restores all 26. */
 function withBuiltInCategories(categories: Category[]): Category[] {
   const present = new Set(categories.map((c) => c.id));

@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'StudentsBudget',
     short_name: 'StudentsBudget',
-    description: 'See where your money goes and log spending in seconds. Your data stays on your phone.',
+    description: 'See where your money goes and log spending in seconds. Your data stays on your phone unless you save it to your account.',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

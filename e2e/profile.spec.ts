@@ -63,7 +63,7 @@ test('Profile comes first in Settings after Your account, prefills the semester 
   // The first section of Settings after Your account, which shows only when the build has a Supabase project.
   const headings = await page.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
   expect(headings.filter((heading) => heading !== 'Your account')[0]).toBe('Profile');
-  await expect(profileSection(page).getByText('stored only on this phone', { exact: false })).toBeVisible();
+  await expect(profileSection(page).getByText('stored on this phone and goes into any backup', { exact: false })).toBeVisible();
 
   await nameField(page).fill('Roshan');
   await universityField(page).selectOption({ label: 'Universität Regensburg' });

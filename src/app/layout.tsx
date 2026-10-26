@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'StudentsBudget',
-  description: 'See where your money goes and log spending in seconds. Your data stays on your phone.',
+  description: 'See where your money goes and log spending in seconds. Your data stays on your phone unless you save it to your account.',
   appleWebApp: { capable: true, title: 'StudentsBudget' },
 };
 

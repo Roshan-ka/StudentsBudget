@@ -1,5 +1,6 @@
 import type { BackupData } from '@/db/bulk';
 import { StoreError, type UserDataStore } from './store';
+import { contentsOf, count, listed } from './summary';
 import { byTable, SERVER_TABLES, serverRowsOf, type ServerRow, type ServerTable } from './tables';
 
 /**
@@ -22,36 +23,31 @@ export async function planUpload(store: UserDataStore, d: BackupData): Promise<U
   return { rows, stale };
 }
 
+// The plan goes last: until it is there, a first save that stopped halfway reads as unfinished (see planDownload), not
+// as a phone without a plan.
+const WRITE_ORDER: ServerTable[] = [...SERVER_TABLES.filter((table) => table !== 'plans'), 'plans'];
+// Rows that point at others go before what they point at: entries before the accounts they use. A delete that stops
+// halfway then leaves accounts with no entries, never entries on a missing account.
+const DELETE_ORDER: ServerTable[] = [...SERVER_TABLES].reverse();
+
 /**
  * Writes every row of the plan, then deletes the stale ones. Writing comes first: if a request fails halfway, the
- * account has rows to spare, never rows missing, and saving again finishes the job.
+ * account has rows to spare rather than rows missing, and saving again finishes the job. A later save that stops
+ * halfway can leave the account with some new rows next to the old plan; saving again puts that right.
  */
 export async function applyUpload(store: UserDataStore, plan: UploadPlan): Promise<void> {
-  for (const table of SERVER_TABLES) {
+  for (const table of WRITE_ORDER) {
     if (plan.rows[table].length > 0) await store.upsert(table, plan.rows[table]);
   }
-  for (const table of SERVER_TABLES) {
+  for (const table of DELETE_ORDER) {
     if (plan.stale[table].length > 0) await store.remove(table, plan.stale[table]);
   }
 }
 
-function count(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
-
-/** "3 accounts and 1 entry", "a, b and c". */
-function listed(parts: string[]): string {
-  return parts.length <= 1 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
-}
-
 /** What a finished save says: "Saved to your account: 3 accounts, 42 entries and your plan." */
 export function uploadSummary(plan: UploadPlan): string {
-  const parts = [
-    count(plan.rows.accounts.length, 'account', 'accounts'),
-    count(plan.rows.entries.length, 'entry', 'entries'),
-  ];
-  if (plan.rows.plans.length > 0) parts.push('your plan');
-  return `Saved to your account: ${listed(parts)}.`;
+  const { accounts, entries, plans } = plan.rows;
+  return `Saved to your account: ${contentsOf(accounts.length, entries.length, plans.length > 0)}.`;
 }
 
 /**
@@ -72,6 +68,10 @@ export function staleSummary(plan: UploadPlan): string | null {
 export function saveErrorMessage(error: unknown): string {
   if (error instanceof StoreError && error.status === 401) {
     return 'Your sign-in has run out. Sign out, sign in again, then save.';
+  }
+  // The database refused the rows themselves, so trying again would fail the same way.
+  if (error instanceof StoreError && error.status >= 400 && error.status < 500) {
+    return "Your account couldn't take some of this phone's data, so the save stopped. Nothing on this phone changed.";
   }
   return "Couldn't save to your account. Check your connection and try again.";
 }

@@ -2,10 +2,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import type { ServerRow, ServerTable } from './tables';
 
-/** What saving to the account needs from its database. The app uses `supabaseStore`; tests use an in-memory fake. */
+/** A row as it comes back from the account: its id, and data that still has to be checked. */
+export type StoredRow = { id: string; data: unknown };
+
+/** What saving to and loading from the account need from its database. The app uses `supabaseStore`; tests a fake. */
 export type UserDataStore = {
   /** The ids of every row the signed-in user has in `table`. */
   listIds(table: ServerTable): Promise<string[]>;
+  /** Every row the signed-in user has in `table`, by id. */
+  listRows(table: ServerTable): Promise<StoredRow[]>;
   /** Adds the rows, or replaces the user's rows that have the same ids. */
   upsert(table: ServerTable, rows: ServerRow[]): Promise<void>;
   /** Deletes the user's rows with these ids. */
@@ -25,13 +30,14 @@ export class StoreError extends Error {
   }
 }
 
-// Rows per request. Upserts stay well under the API's body limit; a page is the API's default maximum; a delete names
-// its ids in the URL, so it stays short.
+// Rows per request. Upserts stay well under the API's body limit; a page asks for the API's default maximum (a server
+// set lower sends shorter pages, which reading copes with); a delete names its ids in the URL, so it stays short.
 const UPSERT_BATCH = 500;
 const PAGE = 1000;
 const DELETE_BATCH = 100;
 
 const idRows = z.array(z.object({ id: z.string() }));
+const fullRows = z.array(z.object({ id: z.string(), data: z.unknown() }));
 
 function batches<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -51,20 +57,35 @@ function check(table: ServerTable, { error, status }: Answer): void {
  * `user_id` is filled in by the database, so no call names a user.
  */
 export function supabaseStore(client: SupabaseClient): UserDataStore {
+  /**
+   * Every row of `table` with the given columns, a page at a time in id order. Each page starts after the last id of
+   * the one before, and only an empty page ends the read: a server that sends shorter pages than asked for, or a row
+   * deleted in the meantime, never makes it skip rows.
+   */
+  async function readAll<T extends { id: string }>(
+    table: ServerTable,
+    columns: string,
+    rows: z.ZodType<T[]>,
+  ): Promise<T[]> {
+    const all: T[] = [];
+    let after: string | null = null;
+    for (;;) {
+      const query = client.from(table).select(columns);
+      const answer = await (after === null ? query : query.gt('id', after)).order('id').limit(PAGE);
+      check(table, answer);
+      const page = rows.parse(answer.data);
+      if (page.length === 0) return all;
+      all.push(...page);
+      after = page[page.length - 1].id;
+    }
+  }
+
   return {
     async listIds(table) {
-      const ids: string[] = [];
-      for (let from = 0; ; from += PAGE) {
-        const answer = await client
-          .from(table)
-          .select('id')
-          .order('id')
-          .range(from, from + PAGE - 1);
-        check(table, answer);
-        const page = idRows.parse(answer.data);
-        ids.push(...page.map((row) => row.id));
-        if (page.length < PAGE) return ids;
-      }
+      return (await readAll(table, 'id', idRows)).map((row) => row.id);
+    },
+    async listRows(table) {
+      return readAll(table, 'id, data', fullRows);
     },
     async upsert(table, rows) {
       for (const batch of batches(rows, UPSERT_BATCH)) {
