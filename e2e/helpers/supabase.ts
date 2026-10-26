@@ -91,6 +91,59 @@ export async function mockSupabaseAuth(page: Page, accounts: Record<string, stri
   return calls;
 }
 
+/** Every call to the account's tables (PostgREST). Matched by path, like the auth calls. */
+export const SUPABASE_REST = '**/rest/v1/**';
+
+/** The account's tables as the mock keeps them: table → id → the row's data. */
+export type ServerTables = Map<string, Map<string, unknown>>;
+
+/** The ids in a PostgREST filter such as `in.(e1,"a,b")`. */
+function idsOf(filter: string | null): string[] {
+  const inner = filter?.match(/^in\.\((.*)\)$/)?.[1] ?? '';
+  return inner === '' ? [] : inner.split(',').map((id) => id.replace(/^"(.*)"$/, '$1'));
+}
+
+/**
+ * Answers the account's tables like PostgREST does for one signed-in user: list ids (paged, by id), upsert rows, and
+ * delete rows by id. `failWith` makes every call answer with that status instead. Returns the tables, to look at and
+ * to seed.
+ */
+export async function mockSupabaseData(page: Page, options: { failWith?: number } = {}): Promise<ServerTables> {
+  const tables: ServerTables = new Map();
+  const table = (name: string) => {
+    if (!tables.has(name)) tables.set(name, new Map());
+    return tables.get(name)!;
+  };
+
+  await page.route(SUPABASE_REST, async (route) => {
+    const request = route.request();
+    if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+    if (options.failWith !== undefined) {
+      return route.fulfill({ status: options.failWith, headers: CORS, json: { code: 'XX000', message: 'mock failure' } });
+    }
+
+    const url = new URL(request.url());
+    const rows = table(url.pathname.replace(/^.*\/rest\/v1\//, ''));
+    if (request.method() === 'GET') {
+      const offset = Number(url.searchParams.get('offset') ?? 0);
+      const limit = Number(url.searchParams.get('limit') ?? 1000);
+      const ids = [...rows.keys()].sort().slice(offset, offset + limit);
+      return route.fulfill({ status: 200, headers: CORS, json: ids.map((id) => ({ id })) });
+    }
+    if (request.method() === 'POST') {
+      for (const row of request.postDataJSON() as { id: string; data: unknown }[]) rows.set(row.id, row.data);
+      return route.fulfill({ status: 201, headers: CORS });
+    }
+    if (request.method() === 'DELETE') {
+      for (const id of idsOf(url.searchParams.get('id'))) rows.delete(id);
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    return route.fulfill({ status: 405, headers: CORS });
+  });
+
+  return tables;
+}
+
 /**
  * Skips the spec when the server shows no account UI: Playwright reused a dev server that was started without the
  * Supabase settings. Stop that server, or run on another port (E2E_PORT=3001), to run the spec.

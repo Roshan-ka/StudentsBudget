@@ -8,6 +8,7 @@ import { useShowInstallHint } from '@/features/setup/install-hint';
 import { getSupabase } from '@/lib/supabase/client';
 import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
 import { checkCredentials, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
+import { SaveToAccount } from './save-to-account';
 import { useAuth } from './use-auth';
 
 /** Email and password, to sign in or to create an account. */
@@ -213,7 +214,10 @@ function SignedInPanel({ email }: { email: string }) {
   );
 }
 
-/** Settings → Your account: the sign-in form or who is signed in. Without a Supabase project, a line that says so. */
+/**
+ * Settings → Your account: the sign-in form, or who is signed in and saving to the account. Without a Supabase project,
+ * a line that says so.
+ */
 export function AccountView() {
   const auth = useAuth();
   switch (auth.status) {
@@ -226,7 +230,12 @@ export function AccountView() {
     case 'loading':
       return <p className="text-muted-foreground">Checking your account…</p>;
     case 'signed-in':
-      return <SignedInPanel email={auth.email} />;
+      return (
+        <>
+          <SignedInPanel email={auth.email} />
+          <SaveToAccount />
+        </>
+      );
     case 'signed-out':
       return <SignInForm />;
   }

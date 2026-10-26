@@ -1,7 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { Plan } from '../src/db/types';
+import type { Account, Guess, Plan } from '../src/db/types';
 import { completeSetup, readStore } from './helpers/setup';
-import { mockSupabaseAuth, skipUnlessAccountsShow, SUPABASE_AUTH } from './helpers/supabase';
+import {
+  mockSupabaseAuth,
+  mockSupabaseData,
+  skipUnlessAccountsShow,
+  SUPABASE_AUTH,
+  type ServerTables,
+} from './helpers/supabase';
 
 // 375 px, the narrowest phone the app is made for. Supabase Auth is mocked: the configs point the app at a project
 // that never resolves, and `mockSupabaseAuth` answers its calls.
@@ -145,4 +151,70 @@ test('says calmly what went wrong: a wrong password, a taken email, offline, no 
     "The account server can't be reached. Check your connection and try again.",
   );
   await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
+});
+
+/** The account page's save section. */
+function saveSection(page: Page) {
+  return page.getByRole('region', { name: 'Save to your account', exact: true });
+}
+
+/** The rows the mock keeps for one table, sorted by id, as plain data. */
+function serverRows(data: ServerTables, table: string): unknown[] {
+  const rows = data.get(table) ?? new Map<string, unknown>();
+  return [...rows.keys()].sort().map((id) => rows.get(id));
+}
+
+test('Save to my account copies the phone, and asks before it removes what only the account has', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  const data = await mockSupabaseData(page);
+  await completeSetup(page);
+
+  await page.goto('/settings/account');
+  await signIn(page, EMAIL, PASSWORD);
+  await expect(signedInLine(page, EMAIL)).toBeVisible();
+  await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
+  await expect(saveSection(page).getByText('Saved to your account: 3 accounts, 0 entries and your plan.')).toBeVisible();
+
+  // The account holds exactly the phone's rows.
+  const byId = <T extends object>(key: keyof T) => (a: T, b: T) => String(a[key]).localeCompare(String(b[key]));
+  expect(serverRows(data, 'accounts')).toEqual((await readStore<Account>(page, 'accounts')).sort(byId<Account>('id')));
+  expect(serverRows(data, 'plans')).toEqual(await readStore<Plan>(page, 'plan'));
+  expect(serverRows(data, 'guesses')).toEqual(
+    (await readStore<Guess>(page, 'guesses')).sort(byId<Guess>('categoryId')),
+  );
+  expect(serverRows(data, 'entries')).toEqual([]);
+
+  // A row only the account has, as if saved from another phone: the save asks first, and Cancel keeps it.
+  data.get('entries')?.set('from-another-phone', { id: 'from-another-phone' });
+  await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
+  await expect(
+    saveSection(page).getByText("Your account has 1 entry that this phone doesn't.", { exact: false }),
+  ).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+  await saveSection(page).getByRole('button', { name: 'Cancel', exact: true }).click();
+  expect(data.get('entries')?.has('from-another-phone')).toBe(true);
+
+  await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
+  await saveSection(page).getByRole('button', { name: 'Save anyway', exact: true }).click();
+  await expect(saveSection(page).getByText('Saved to your account: 3 accounts, 0 entries and your plan.')).toBeVisible();
+  expect(data.get('entries')?.has('from-another-phone')).toBe(false);
+});
+
+test('without a plan there is nothing to save yet, and a refused save says so calmly', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await mockSupabaseData(page, { failWith: 500 });
+
+  await signIn(page, EMAIL, PASSWORD);
+  await expect(
+    saveSection(page).getByText('Set up your plan on this phone first; then you can save it here.', { exact: true }),
+  ).toBeVisible();
+  await expect(saveSection(page).getByRole('button', { name: 'Save to my account', exact: true })).toHaveCount(0);
+
+  await completeSetup(page);
+  await page.goto('/settings/account');
+  await expect(signedInLine(page, EMAIL)).toBeVisible();
+  await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
+  await expect(alert(page)).toHaveText("Couldn't save to your account. Check your connection and try again.");
 });
