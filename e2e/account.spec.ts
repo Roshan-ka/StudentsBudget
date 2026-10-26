@@ -211,12 +211,13 @@ test('Save to my account copies the phone, and asks before it removes what only 
   const saveButton = saveSection(page).getByRole('button', { name: 'Save to my account', exact: true });
   await expect(saveButton).toBeFocused();
   await expect(saveSection(page).getByRole('button', { name: 'Save anyway', exact: true })).toHaveCount(0);
-  expect(data.get('entries')?.has('from-another-phone')).toBe(true);
+  expect(data.get('entries')?.get('from-another-phone')).toEqual({ id: 'from-another-phone' });
 
   await saveSection(page).getByRole('button', { name: 'Save to my account', exact: true }).click();
   await saveSection(page).getByRole('button', { name: 'Save anyway', exact: true }).click();
   await expect(saveSection(page).getByText('Saved to your account: 3 accounts, 0 entries and your plan.')).toBeVisible();
-  expect(data.get('entries')?.has('from-another-phone')).toBe(false);
+  // Deleted as a tombstone: the row stays, without data, so other phones learn of the delete.
+  expect(data.get('entries')?.get('from-another-phone')).toBeNull();
 });
 
 test('without a plan there is nothing to save yet, and a refused save says so calmly', async ({ page }) => {

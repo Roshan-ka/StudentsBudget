@@ -7,14 +7,17 @@ export type StoredRow = { id: string; data: unknown };
 
 /** What saving to and loading from the account need from its database. The app uses `supabaseStore`; tests a fake. */
 export type UserDataStore = {
-  /** The ids of every row the signed-in user has in `table`. */
+  /** The ids of every row the signed-in user has in `table`, tombstones left out. */
   listIds(table: ServerTable): Promise<string[]>;
-  /** Every row the signed-in user has in `table`, by id. */
+  /** Every row the signed-in user has in `table`, by id, tombstones left out. */
   listRows(table: ServerTable): Promise<StoredRow[]>;
   /** Adds the rows, or replaces the user's rows that have the same ids. */
   upsert(table: ServerTable, rows: ServerRow[]): Promise<void>;
-  /** Deletes the user's rows with these ids. */
-  remove(table: ServerTable, ids: string[]): Promise<void>;
+  /**
+   * Deletes the user's rows with these ids by writing tombstones: the row stays with no data, and the database marks it
+   * deleted, so other phones learn of the delete. Ids the account doesn't have are left alone.
+   */
+  tombstone(table: ServerTable, ids: string[]): Promise<void>;
 };
 
 /** A request the account's database refused or never answered. `status` is the HTTP status, 0 without an answer. */
@@ -31,7 +34,8 @@ export class StoreError extends Error {
 }
 
 // Rows per request. Upserts stay well under the API's body limit; a page asks for the API's default maximum (a server
-// set lower sends shorter pages, which reading copes with); a delete names its ids in the URL, so it stays short.
+// set lower sends shorter pages, which reading copes with); a tombstone write names its ids in the URL, so it stays
+// short.
 const UPSERT_BATCH = 500;
 const PAGE = 1000;
 const DELETE_BATCH = 100;
@@ -70,7 +74,7 @@ export function supabaseStore(client: SupabaseClient): UserDataStore {
     const all: T[] = [];
     let after: string | null = null;
     for (;;) {
-      const query = client.from(table).select(columns);
+      const query = client.from(table).select(columns).is('deleted_at', null);
       const answer = await (after === null ? query : query.gt('id', after)).order('id').limit(PAGE);
       check(table, answer);
       const page = rows.parse(answer.data);
@@ -92,9 +96,9 @@ export function supabaseStore(client: SupabaseClient): UserDataStore {
         check(table, await client.from(table).upsert(batch, { onConflict: 'user_id,id' }));
       }
     },
-    async remove(table, ids) {
+    async tombstone(table, ids) {
       for (const batch of batches(ids, DELETE_BATCH)) {
-        check(table, await client.from(table).delete().in('id', batch));
+        check(table, await client.from(table).update({ data: null }).in('id', batch));
       }
     },
   };

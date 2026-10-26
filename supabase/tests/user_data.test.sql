@@ -50,7 +50,8 @@ select is_empty(
   'every table in public has row-level security on'
 );
 
--- 2. Grants: nothing for anon, and only the four row operations for signed-in users.
+-- 2. Grants: nothing for anon, and for signed-in users only reading, adding and changing rows. Deleting is writing a
+-- tombstone, a change (migration 20261026132206_sync.sql).
 select is_empty(
   $$ select name from user_tables
      where has_table_privilege('anon', 'public.' || name, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER') $$,
@@ -59,12 +60,11 @@ select is_empty(
 
 select is_empty(
   $$ select name from user_tables
-     where has_table_privilege('authenticated', 'public.' || name, 'TRUNCATE, REFERENCES, TRIGGER')
+     where has_table_privilege('authenticated', 'public.' || name, 'DELETE, TRUNCATE, REFERENCES, TRIGGER')
         or not (has_table_privilege('authenticated', 'public.' || name, 'SELECT')
           and has_table_privilege('authenticated', 'public.' || name, 'INSERT')
-          and has_table_privilege('authenticated', 'public.' || name, 'UPDATE')
-          and has_table_privilege('authenticated', 'public.' || name, 'DELETE')) $$,
-  'authenticated has exactly SELECT, INSERT, UPDATE and DELETE (no TRUNCATE, which would skip row-level security)'
+          and has_table_privilege('authenticated', 'public.' || name, 'UPDATE')) $$,
+  'authenticated has exactly SELECT, INSERT and UPDATE (no TRUNCATE, which would skip row-level security)'
 );
 
 -- 3. Each user reads and writes their own rows, on every table.
@@ -115,9 +115,16 @@ select lives_ok(
       execute format('update public.%I set data = %L where id = %L', t, '{"owner": "b"}', 'row-a');
       get diagnostics n = row_count;
       if n <> 0 then raise exception '%: B changed A''s row', t; end if;
-      execute format('delete from public.%I where id = %L', t, 'row-a');
+      -- Deleting is writing a tombstone, which is a change like the one above.
+      execute format('update public.%I set data = null where id = %L', t, 'row-a');
       get diagnostics n = row_count;
       if n <> 0 then raise exception '%: B deleted A''s row', t; end if;
+      begin
+        execute format('delete from public.%I where id = %L', t, 'row-a');
+        raise exception '%: B could hard-delete', t;
+      exception when insufficient_privilege then
+        null;
+      end;
       execute 'reset role';
     end loop;
   end
