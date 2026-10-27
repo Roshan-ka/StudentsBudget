@@ -111,6 +111,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - `.gitattributes` with `* text=auto eol=lf`.
 - Conventional Commits, ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - One branch and one Draft PR per day, from `main`. Nothing is pushed to `main` after the initial commit, and Roshan merges.
+- **Repos (since 2026-10-27):** the main repo is `Roshan-ka/StudentsBudget` (`origin`, Roshan's personal account): PRs are opened, checked and merged there. `origin` has a second push URL, so every `git push origin` also updates `SupportRW/StudentsBudget` (fetch it as `supportrw`), which keeps a copy. After Roshan merges, `main` is pulled from `origin` and pushed once more, so SupportRW's `main` catches up (fast-forward only). Commits use Roshan's personal identity (repo-local git config), and Vercel and Supabase run on his personal accounts.
 
 ## Keeping this file honest
 
