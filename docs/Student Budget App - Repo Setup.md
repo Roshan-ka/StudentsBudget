@@ -8,6 +8,9 @@ created: 2026-10-16
 See also: [[Student Budget App - Concept]] · [[2026-10-16-p1-test-project|P1 plan]]
 
 ## The repo
+- **Since 2026-10-27:** `Roshan-ka/StudentsBudget` (Roshan's personal account), **public**, is the main repo. It holds the full history (`main` and both `chore/` branches, copied over in one push), and pull requests are opened and merged there. Vercel and Supabase run on the personal accounts too.
+- `SupportRW/StudentsBudget` still receives every push as a copy: in the local checkout, `origin` pushes to both. It was the repo from 2026-10-16 to 2026-10-26 (PRs #1–#15).
+- The settings checklist below was done on `SupportRW/StudentsBudget`; go through it again on `Roshan-ka/StudentsBudget`.
 - `SupportRW/StudentsBudget`, **public**, created 2026-10-16 with GitHub's README.
 - Public, because on a free personal account branch rules, unlimited Actions minutes and free secret scanning only apply to public repos. P1 has no secrets, and real spending data never enters the repo; it stays on the phone.
 - Description:
@@ -47,3 +50,4 @@ See also: [[Student Budget App - Concept]] · [[2026-10-16-p1-test-project|P1 pl
 ### Tools
 - [ ] GitHub CLI installed (`winget install --id GitHub.cli -e`) and `gh auth login` done
 - [ ] Vercel: signed in with GitHub; the Vercel GitHub app has access to **only this repository**
+- [ ] Vercel and Supabase on the personal accounts (since 2026-10-27): the Vercel project imported from `Roshan-ka/StudentsBudget`, with the two `NEXT_PUBLIC_SUPABASE_*` variables (type Config, Production) from the personal Supabase project
