@@ -3,8 +3,9 @@ import type { Minor } from '@/lib/money';
 import { formatWeekAmount } from '@/lib/week-amount';
 
 /**
- * The one number the app leads with: what is left to spend this month across the envelopes, and under it what
- * is safe to spend this week. Overspending is said plainly and in the same colours as the good case.
+ * The one number the app leads with: what is left to spend this month across the envelopes (the whole monthly
+ * amounts minus what was spent), and under it what is safe to spend this week (`weekToSpend`). Overspending is said
+ * plainly and in the same colours as the good case.
  */
 export function LeftThisMonthCard({ leftMinor, weekMinor }: { leftMinor: Minor; weekMinor: Minor }) {
   const headingId = useId();

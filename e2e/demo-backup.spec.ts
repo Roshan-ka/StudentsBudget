@@ -13,6 +13,8 @@ test('the demo backup restores from setup and populates home, entries and charts
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/setup');
+  // The wizard renders once the page is live, so the file input below has its handler before the file is picked.
+  await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
   await page.getByLabel('File to restore').setInputFiles(demoFile);
   await expect(page.getByText('Replace all data with studentsbudget-demo-2026-10.json?')).toBeVisible();
   await expect(page.getByText('Saved 19-10-2026, 12:00 · 3 accounts · 47 entries')).toBeVisible();

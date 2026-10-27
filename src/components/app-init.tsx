@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { requestPersistence } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import { ensureSeeded } from '@/db/repo';
+import { recordCompletedWeeks } from '@/features/badges/week-results';
 import { postDueRecurring } from '@/features/recurring/post-due';
 import { todayIso } from '@/lib/dates';
 import { registerServiceWorker } from '@/lib/sw-register';
@@ -24,13 +25,23 @@ async function postRecurring() {
   }
 }
 
+async function recordWeeks() {
+  try {
+    await recordCompletedWeeks(todayIso());
+  } catch (error) {
+    console.error('StudentsBudget: could not save the weeks that are over', error);
+  }
+}
+
 /**
  * Fixed costs and income that are due are added once the rate refresh has settled, whether it worked or not, so a
  * foreign-currency line converts with today's rate when there is one. A line still without a rate waits for the next run.
+ * The weeks that are over are saved after that, for the badges.
  */
 async function refreshThenPost() {
   await refreshExchangeRates();
   await postRecurring();
+  await recordWeeks();
 }
 
 async function startServiceWorker() {
@@ -48,7 +59,8 @@ async function startServiceWorker() {
 
 /**
  * Prepares the local database on mount, keeps the exchange rates current, adds the fixed costs and income that are
- * due, and starts the service worker that opens the app offline (production builds only). Renders nothing.
+ * due, saves the weeks that are over, and starts the service worker that opens the app offline (production builds
+ * only). Renders nothing.
  */
 export function AppInit() {
   useEffect(() => {

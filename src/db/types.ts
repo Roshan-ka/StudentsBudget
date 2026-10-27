@@ -1,13 +1,20 @@
 import type { IsoDate, IsoMonth } from '@/lib/dates';
 import type { CurrencyCode, Minor } from '@/lib/money';
+import type { ServerTable } from '@/sync/tables';
 
 export type Account = {
   id: string;
   name: string;
   kind: 'bank' | 'cash';
   currency: CurrencyCode;
+  /** Negative for an account that starts overdrawn. */
   openingMinor: Minor;
   createdAt: string;
+  /**
+   * The account new entries, quick add and transfers start from, chosen in Settings. At most one account has it; with
+   * none, `defaultAccount` picks by rule. It is not indexed, so it needed no new schema version.
+   */
+  isDefault?: true;
 };
 
 export type CategoryKind = 'flexible' | 'fixed' | 'oneoff' | 'income';
@@ -73,6 +80,12 @@ export type Plan = {
   fixed: PlanLine[];
   oneOffs: OneOff[];
   envelopes: Amount[];
+  /**
+   * The monthly everyday-spending budget setup asked for, in EUR: rent and fixed costs are not part of it. It only
+   * guides the envelope suggestions, in setup and in Home's suggested budget, and blocks nothing. A plan saved without
+   * one has none.
+   */
+  spendingBudgetMinor?: Minor;
   createdOn: IsoDate;
 };
 
@@ -85,4 +98,55 @@ export type Rate = {
   rateDate: IsoDate;
   fetchedOn: IsoDate;
   source: 'ecb' | 'manual';
+};
+
+/**
+ * What one finished week came to, saved once (from the Wednesday after it) so badges can read it without the plan of
+ * that day. The week runs Monday to Sunday and `weekStart` is its key. Amounts are EUR; `paused` marks a week the user
+ * was away. Until a week is recorded, a row with an empty `recordedAt` and no amounts only keeps its "I was away"
+ * mark; the week fills it in when it is recorded.
+ */
+export type WeekResult = {
+  weekStart: IsoDate;
+  weekEnd: IsoDate;
+  plannedMinor: Minor;
+  spentMinor: Minor;
+  foodSpentMinor: Minor;
+  eatingOutSpentMinor: Minor;
+  /** Expenses dated in the week that the user typed in: no transfers, no income, none a schedule posted. */
+  handLoggedCount: number;
+  paused: boolean;
+  recordedAt: string;
+};
+
+/** The user's verdict on one discount. One vote per discount: voting again replaces it. */
+export type DiscountVote = { discountId: string; vote: 'works' | 'outdated'; on: IsoDate };
+
+/** One row, like the plan. A field the user has not chosen yet is the empty string. */
+export type Profile = {
+  id: 'current';
+  name: string;
+  university: 'ur' | 'oth' | 'other' | '';
+  semesterStart: IsoDate | '';
+  semesterEnd: IsoDate | '';
+  updatedAt: string;
+};
+
+/**
+ * One row of this phone that changed and still has to reach the account: which server table, the row's server id, and
+ * when it was recorded (`seq`, rising). Only the key is kept; a push sends the row as it is then. One entry per row:
+ * a later change replaces it.
+ */
+export type OutboxEntry = { table: ServerTable; id: string; seq: number };
+
+/**
+ * This phone's link to an account, one row like the plan. `userId` is the account it syncs with (null: not linked, and
+ * nothing is recorded in the outbox); `cursor` the highest revision it has pulled.
+ */
+export type SyncState = {
+  id: 'current';
+  userId: string | null;
+  cursor: number;
+  lastSyncedAt: string | null;
+  problem: string | null;
 };

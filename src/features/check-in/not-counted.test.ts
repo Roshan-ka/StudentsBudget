@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry, Plan } from '@/db/types';
-import { safeToSpend } from '@/lib/budget';
+import { weekToSpend } from '@/lib/budget';
 import { notCountedNote } from './not-counted';
 
 const plan: Plan = {
@@ -60,11 +60,11 @@ describe('notCountedNote', () => {
     const before = entry({ id: 'before', date: '2026-10-13' });
     const after = entry({ id: 'after', date: '2026-10-16' });
 
-    const [food] = safeToSpend(plan, [before], '2026-10-18').envelopes;
+    const [food] = weekToSpend(plan, [before], '2026-10-18').envelopes;
     expect(food.spentThisWeekMinor).toBe(0);
     expect(notCountedNote(before, plan.createdOn)).not.toBeNull();
 
-    const [counted] = safeToSpend(plan, [after], '2026-10-18').envelopes;
+    const [counted] = weekToSpend(plan, [after], '2026-10-18').envelopes;
     expect(counted.spentThisWeekMinor).toBe(2000);
     expect(notCountedNote(after, plan.createdOn)).toBeNull();
   });

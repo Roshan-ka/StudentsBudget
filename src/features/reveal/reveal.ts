@@ -56,12 +56,17 @@ export function guessVsReality(
   return { unlocked: today >= unlockDate, unlockOn: unlockDate, rows };
 }
 
-export type RecapRow = { categoryId: string; guessMinor: Minor; plannedMinor: Minor; spentMinor: Minor };
+/**
+ * `guessMinor` is `null` for an envelope without a guess, shown as "No guess": guesses are optional, and a guess of
+ * €0 is a real one.
+ */
+export type RecapRow = { categoryId: string; guessMinor: Minor | null; plannedMinor: Minor; spentMinor: Minor };
 
 /**
  * How one calendar month went against the envelopes: planned and spent per envelope with the original guess
- * alongside, and what is left over in total (negative when more was spent than planned). It uses `monthStatus`,
- * so in the month of setup both planned and spent start on the setup day.
+ * alongside (`null` where there was none), and what is left over in total (negative when more was spent than
+ * planned). It uses `monthStatus`, so in the month of setup planned is the whole month's amount and spent counts
+ * from the setup day on.
  */
 export function monthRecap(
   guesses: Guess[],
@@ -73,7 +78,7 @@ export function monthRecap(
   const rows = monthStatus(plan, entries, month).map(
     (s): RecapRow => ({
       categoryId: s.categoryId,
-      guessMinor: guessed.get(s.categoryId) ?? 0,
+      guessMinor: guessed.get(s.categoryId) ?? null,
       plannedMinor: s.plannedMinor,
       spentMinor: s.spentMinor,
     }),

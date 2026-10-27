@@ -1,6 +1,5 @@
 'use client';
 
-import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronRightIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -9,34 +8,19 @@ import { buttonVariants } from '@/components/ui/button';
 import { db } from '@/db/db';
 import type { Entry, Guess, Plan } from '@/db/types';
 import { categoryName } from '@/features/entries/categories';
-import type { IsoDate, IsoMonth } from '@/lib/dates';
-import type { Minor } from '@/lib/money';
+import type { IsoDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
 import { formatWeekAmount } from '@/lib/week-amount';
 import { REVEAL_MIN_DAYS, completedMonths, guessVsReality, monthRecap, unlockOn, type GuessRow } from './reveal';
+import { formatDay, recapLine } from './reveal-text';
 
 const LINK_CLASS = 'text-primary underline-offset-4 hover:underline';
-
-const dayAndMonth = new Intl.DateTimeFormat('en-IE', { day: 'numeric', month: 'short' });
-const monthAndYear = new Intl.DateTimeFormat('en-IE', { month: 'long', year: 'numeric' });
-
-// `parseISO` reads a date-only string as local midnight, so the day never shifts.
-const formatDay = (date: IsoDate): string => dayAndMonth.format(parseISO(date));
 
 /** "You guessed €80. It was €190." Whole euros, except that a non-zero amount under 50 cents keeps its cents. */
 function guessLine(row: GuessRow): string {
   const guessed = formatWeekAmount(row.guessMinor).text;
   const actual = formatWeekAmount(row.actualMonthlyMinor).text;
   return `You guessed ${guessed}. It was ${actual}.`;
-}
-
-/** "October 2026: €15 left over → savings", or "October 2026: €12 over plan". Calm either way. */
-function recapLine(month: IsoMonth, leftoverMinor: Minor): string {
-  const label = monthAndYear.format(parseISO(`${month}-01`));
-  const { text } = formatWeekAmount(leftoverMinor);
-  if (leftoverMinor > 0) return `${label}: ${text} left over → savings`;
-  if (leftoverMinor < 0) return `${label}: ${text} over plan`;
-  return `${label}: right on plan`;
 }
 
 /**
@@ -84,23 +68,17 @@ function Locked({ unlockDate }: { unlockDate: IsoDate }) {
 function Revealed({ rows, startedOn, today }: { rows: GuessRow[]; startedOn: IsoDate; today: IsoDate }) {
   return (
     <div className="flex flex-col gap-4">
-      {rows.length === 0 ? (
-        <p className="text-muted-foreground">No guesses were saved in setup, so there is nothing to compare yet.</p>
-      ) : (
-        <>
-          <ul aria-label="Your guesses" className="flex flex-col gap-4">
-            {rows.map((row) => (
-              <li key={row.categoryId} className="flex flex-col gap-0.5">
-                <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
-                <p className="tabular-nums">{guessLine(row)}</p>
-              </li>
-            ))}
-          </ul>
-          <p className="text-sm text-muted-foreground">
-            {`Your spending from ${formatDay(startedOn)} to ${formatDay(today)}, scaled to a month of 30 days.`}
-          </p>
-        </>
-      )}
+      <ul aria-label="Your guesses" className="flex flex-col gap-4">
+        {rows.map((row) => (
+          <li key={row.categoryId} className="flex flex-col gap-0.5">
+            <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
+            <p className="tabular-nums">{guessLine(row)}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="text-sm text-muted-foreground">
+        {`Your spending from ${formatDay(startedOn)} to ${formatDay(today)}, scaled to a month of 30 days.`}
+      </p>
       <Link href="/setup?edit=1" className={buttonVariants({ className: 'h-10 self-start px-4' })}>
         Adjust my plan
       </Link>
@@ -120,7 +98,9 @@ function Recaps({ guesses, plan, entries, today }: { guesses: Guess[]; plan: Pla
       </h3>
       <ul aria-labelledby={headingId} className="flex flex-col gap-2">
         {months.map((month) => (
-          <li key={month}>{recapLine(month, monthRecap(guesses, plan, entries, month).leftoverMinor)}</li>
+          <li key={month}>
+            {recapLine(month, monthRecap(guesses, plan, entries, month).leftoverMinor, plan.createdOn)}
+          </li>
         ))}
       </ul>
     </section>
@@ -132,7 +112,10 @@ function Reveal({ plan, guesses, entries, today }: { plan: Plan; guesses: Guess[
 
   return (
     <div className="flex flex-col gap-8">
-      {unlocked ? (
+      {guesses.length === 0 ? (
+        // Guesses are optional, so there may be none to wait for.
+        <p className="text-muted-foreground">No guesses were saved in setup, so there is nothing to compare.</p>
+      ) : unlocked ? (
         <Revealed rows={rows} startedOn={plan.createdOn} today={today} />
       ) : (
         <Locked unlockDate={unlockDate} />

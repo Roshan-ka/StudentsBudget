@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const SOURCE = readFileSync(fileURLToPath(new URL('../../public/sw.js', import.meta.url)), 'utf8');
 const ORIGIN = 'https://studentsbudget.test';
 const CACHE_NAME = 'studentsbudget-build-a';
-const PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/check-in', '/reveal', '/settings', '/setup'];
+const PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/badges', '/check-in', '/reveal', '/settings', '/settings/account', '/setup'];
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -260,7 +260,7 @@ describe("requests that are not the worker's", () => {
   it('does not handle a request to api.frankfurter.dev', async () => {
     const worker = loadWorker(offline);
 
-    const rates = worker.get('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=INR', 'cors');
+    const rates = worker.get('https://api.frankfurter.dev/v2/rates?base=EUR&quotes=INR&providers=ecb', 'cors');
 
     expect(rates.answered).toBe(false);
     expect(worker.fetchStub).not.toHaveBeenCalled();
@@ -297,7 +297,7 @@ describe('static files', () => {
 });
 
 describe('install and activate', () => {
-  it('precaches the eight documents and the files they name, with waitUntil called during dispatch', async () => {
+  it('precaches every document and the files they name, with waitUntil called during dispatch', async () => {
     const worker = loadWorker((input) => {
       const path = new URL(typeof input === 'string' ? input : input.url, ORIGIN).pathname;
       if (path.startsWith('/_next/static/')) return Promise.resolve(basic('asset'));

@@ -2,7 +2,10 @@ import { expect, type Page } from '@playwright/test';
 
 export type FlexibleId = 'food' | 'eating-out' | 'going-out' | 'transport' | 'shopping' | 'other';
 
-/** What a test types into the setup wizard. Every amount is text, in euros except the opening balances. */
+/**
+ * What a test types into the setup wizard. Every amount is text, in euros except the opening balances; an empty
+ * string leaves the field blank.
+ */
 export type SetupFixture = {
   rent: string;
   /** Opening balances of the prefilled accounts, in order: Local bank (EUR), Home bank (INR), Cash (EUR). */
@@ -10,6 +13,8 @@ export type SetupFixture = {
   incomes: { parents: string; job: string };
   oneOff: { name: string; amount: string; dueMonth: string };
   guesses: Record<FlexibleId, string>;
+  /** The everyday budget, asked at the top of the envelopes step; blank skips the question. */
+  budget: string;
   envelopes: Record<FlexibleId, string>;
 };
 
@@ -19,8 +24,18 @@ export const DEFAULT_SETUP: SetupFixture = {
   incomes: { parents: '500', job: '400' },
   oneOff: { name: 'Semester fee', amount: '300', dueMonth: '2027-03' },
   guesses: { food: '200', 'eating-out': '80', 'going-out': '60', transport: '20', shopping: '40', other: '20' },
+  budget: '',
   envelopes: { food: '310', 'eating-out': '124', 'going-out': '0', transport: '0', shopping: '0', other: '0' },
 };
+
+/** The question of the everyday budget, at the top of the envelopes step. */
+export const BUDGET_LABEL =
+  'How much do you want to spend in a month on everyday things, apart from rent and your fixed costs?';
+
+/** The everyday budget field. A role and an exact name: the label is long, and a text match would be ambiguous. */
+export function budgetField(page: Page) {
+  return page.getByRole('textbox', { name: BUDGET_LABEL, exact: true });
+}
 
 const GUESS_TOPIC: Record<FlexibleId, string> = {
   food: 'food & groceries',
@@ -45,11 +60,11 @@ const FLEXIBLE_IDS = Object.keys(GUESS_TOPIC) as FlexibleId[];
 /** Matches every request to the Frankfurter API; for tests that need the request to fail. */
 export const FRANKFURTER = '**/api.frankfurter.dev/**';
 
-/** Answers like Frankfurter does, with INR at 95. The CORS header is what the real API sends. */
+/** Answers like Frankfurter v2 does (a list of rows), with INR at 95. The CORS header is what the real API sends. */
 export async function mockFrankfurter(page: Page) {
   await page.route(FRANKFURTER, (route) =>
     route.fulfill({
-      json: { amount: 1, base: 'EUR', date: '2026-10-16', rates: { INR: 95 } },
+      json: [{ date: '2026-10-16', base: 'EUR', quote: 'INR', rate: 95 }],
       headers: { 'access-control-allow-origin': '*' },
     }),
   );
@@ -129,6 +144,8 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   await page.goto('/setup');
   // The wizard renders once it has read the database, so the first heading proves the page is live.
   await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
+  // 7 steps, or 6 when the accounts already exist and the Accounts step is skipped.
+  await expect(page.getByText(`Step 1 of ${options.accountsExist ? 6 : 7}`, { exact: true })).toBeVisible();
   await page.getByLabel('Rent per month').fill(f.rent);
 
   if (options.accountsExist) {
@@ -159,13 +176,16 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   const oneOff = page.getByRole('group', { name: 'One-off cost 1' });
   await oneOff.getByLabel('Name').fill(f.oneOff.name);
   await oneOff.getByLabel('Amount').fill(f.oneOff.amount);
-  await oneOff.getByLabel('Due month').fill(f.oneOff.dueMonth);
+  // A blank month is the field's own state: there is nothing to clear.
+  if (f.oneOff.dueMonth !== '') await oneOff.getByLabel('Due month').fill(f.oneOff.dueMonth);
   await nextStep(page, 'Guesses');
 
   for (const id of FLEXIBLE_IDS) {
     await page.getByLabel(`What do you think you spend on ${GUESS_TOPIC[id]} a month?`).fill(f.guesses[id]);
   }
   await nextStep(page, 'Envelopes');
+
+  if (f.budget !== '') await budgetField(page).fill(f.budget);
 
   for (const id of FLEXIBLE_IDS) {
     await page.getByLabel(ENVELOPE_LABEL[id], { exact: true }).fill(f.envelopes[id]);

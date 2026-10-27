@@ -16,10 +16,15 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:offline": "playwright test -c playwright.offline.config.ts"
+    "test:offline": "playwright test -c playwright.offline.config.ts",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "test:db": "supabase test db",
+    "test:contract": "vitest run src/sync/store.contract.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
+    "@supabase/supabase-js": "2.118.0",
     "class-variance-authority": "0.7.1",
     "cn": "0.4.0",
     "date-fns": "4.4.0",
@@ -44,6 +49,7 @@
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.2",
     "fake-indexeddb": "6.2.5",
+    "supabase": "2.121.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "vitest": "5.0.5"

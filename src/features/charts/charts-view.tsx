@@ -11,6 +11,7 @@ import { firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '
 import { useToday } from '@/lib/use-today';
 import {
   defaultOverTimeCategory,
+  hasEntriesIn,
   incomeBySourceOver,
   monthsOf,
   spendingByCategoryOver,
@@ -35,11 +36,15 @@ const PERIODS = [
   { value: 12, text: '12 months' },
 ] as const;
 
-/** "Budget starts 16 Oct.", if the plan was set up in a month of the period, unless that was on the 1st; null otherwise. */
-function budgetStartNote(plan: Plan, months: IsoMonth[]): string | null {
+/**
+ * "Envelope spending counts from 16 Oct, the day you set up.", if the plan was set up in a month of the period,
+ * unless that was on the 1st; null otherwise. The envelopes are planned for the whole month, but spending before the
+ * setup day is left out.
+ */
+function countedFromNote(plan: Plan, months: IsoMonth[]): string | null {
   const { createdOn } = plan;
   if (!months.includes(monthOf(createdOn)) || createdOn === firstOfMonth(monthOf(createdOn))) return null;
-  return `Budget starts ${dayAndMonth.format(parseISO(createdOn))}.`;
+  return `Envelope spending counts from ${dayAndMonth.format(parseISO(createdOn))}, the day you set up.`;
 }
 
 /** The months of a period in a sentence or a caption: "October 2026", or "August 2026 to October 2026". */
@@ -98,7 +103,7 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
       : endMonth.slice(0, 4) === today.slice(0, 4)
         ? monthOnly.format(monthDate(endMonth))
         : text;
-  const logged = entries.some((entry) => entry.type !== 'transfer' && inPeriod.includes(monthOf(entry.date)));
+  const logged = hasEntriesIn(entries, inPeriod);
 
   const spending = spendingByCategoryOver(entries, plan, period);
   const income = incomeBySourceOver(entries, period);
@@ -107,6 +112,9 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
   const overTime: Period = lookBack ? { endMonth, months: 6 } : period;
   const overTimeText = lookBack ? periodText(monthsOf(overTime)) : text;
   const overTimeSubtitle = lookBack ? 'Last 6 months' : null;
+  // A month with nothing in it has no spending or income to show, but the 6 months before it may have both charts' data.
+  const loggedOverTime = lookBack ? hasEntriesIn(entries, monthsOf(overTime)) : logged;
+  const overTimeSpending = lookBack ? spendingByCategoryOver(entries, plan, overTime) : spending;
 
   return (
     <div className="flex flex-col gap-6">
@@ -114,15 +122,13 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
         <MonthSwitcher month={endMonth} months={inPeriod} onChange={setPickedMonth} />
         <SegmentedControl label="Period" options={PERIODS} value={months} onChange={setMonths} />
       </div>
-      {!logged ? (
-        <p className="text-muted-foreground">{`Nothing logged in ${monthIn} yet.`}</p>
-      ) : (
+      {logged ? (
         <>
           <SpendingSection
             spending={spending}
             period={period}
             periodText={text}
-            note={budgetStartNote(plan, inPeriod)}
+            note={countedFromNote(plan, inPeriod)}
             noneText={`No spending logged in ${monthIn} yet.`}
           />
           <IncomeSection
@@ -131,9 +137,15 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
             periodText={text}
             noneText={`No income logged in ${monthIn} yet.`}
           />
+        </>
+      ) : (
+        <p className="text-muted-foreground">{`Nothing logged in ${monthIn} yet.`}</p>
+      )}
+      {loggedOverTime && (
+        <>
           <SavingsSection entries={entries} period={overTime} periodText={overTimeText} subtitle={overTimeSubtitle} />
           <OverTimeSection
-            categoryId={pickedCategory ?? defaultOverTimeCategory(spending)}
+            categoryId={pickedCategory ?? defaultOverTimeCategory(spending, overTimeSpending)}
             onCategoryChange={setPickedCategory}
             entries={entries}
             period={overTime}
@@ -149,7 +161,8 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
 /**
  * Where the money went over one period (this month, or the last 3, 6 or 12): spending by category against the plan,
  * income by source, what was saved each month, and one category month by month. On "This month" the last two look
- * back 6 months, since one month is a single column, and say "Last 6 months". Each chart has its own style
+ * back 6 months, since one month is a single column, and say "Last 6 months". A month with nothing logged in it says
+ * so in place of the first two, and keeps the last two when the 6 months have something. Each chart has its own style
  * (donut, bars or table; columns, line or table). Every slice, bar and column opens the entries behind it. It reads
  * the whole database and updates by itself when an entry is saved.
  */

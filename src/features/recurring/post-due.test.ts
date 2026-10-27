@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan, PlanLine, Rate, Schedule } from '@/db/types';
 import type { CurrencyCode } from '@/lib/money';
+import type { IsoDate } from '@/lib/dates';
 import { postDueRecurring, recurringEntryId } from './post-due';
+import { firstAddedOn, newSchedule } from './schedule';
 
 const CREATED_AT = '2026-10-16T10:00:00.000Z';
 
@@ -243,6 +245,69 @@ describe('postDueRecurring', () => {
 
       expect(await postDueRecurring('2026-11-01')).toEqual({ posted: 1 });
       expect(await db.entries.get('rec:rent-s:2026-11-01')).toBeDefined();
+    });
+  });
+
+  // "First added on" in the editor is read from the line's entries; the entry the poster really adds first must be
+  // on that day, however the schedule changed.
+  describe('the first entry it adds is on the day "First added on" says', () => {
+    const rentEntries = () =>
+      db.entries
+        .where('categoryId')
+        .equals('rent')
+        .filter((e) => e.type === 'expense' && e.recurring !== undefined)
+        .toArray();
+
+    /** What the editor shows for rent turned off and on with this timing today, from the entries the database holds. */
+    async function predicted(timing: Pick<Schedule, 'frequency' | 'day'>, today: IsoDate): Promise<IsoDate | null> {
+      const entries = await rentEntries();
+      return firstAddedOn(timing, undefined, today, false, { type: 'expense', categoryId: 'rent', entries });
+    }
+
+    /** Rent becomes a new schedule today, as turning it off and on does: it starts tomorrow, its watermark is today. */
+    async function replaceRent(timing: Pick<Schedule, 'frequency' | 'day'>, today: IsoDate, id: string) {
+      const next = newSchedule({ ...timing, accountId: 'local', amountMinor: 40000 }, today, id);
+      const p = await storedPlan();
+      await db.plan.put({ ...p, fixed: [{ categoryId: 'rent', monthlyMinor: 40000, schedule: next }] });
+    }
+
+    /** The day before it posts nothing for the new schedule, the day itself posts one entry, dated as predicted. */
+    async function expectFirstOn(first: IsoDate | null, id: string) {
+      if (first === null) throw new Error('no first day');
+      const dayBefore = new Date(Date.parse(`${first}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+      const before = (await rentEntries()).length;
+
+      expect(await postDueRecurring(dayBefore)).toEqual({ posted: 0 });
+      expect(await postDueRecurring(first)).toEqual({ posted: 1 });
+      const added = (await rentEntries()).filter((e) => e.type !== 'transfer' && e.recurring?.scheduleId === id);
+      expect(added.map((e) => e.date)).toEqual([first]);
+      expect(await rentEntries()).toHaveLength(before + 1);
+    }
+
+    it('after a month the old schedule posted, then weekly on Fridays: 13 Nov', async () => {
+      await db.plan.put(plan());
+      expect(await postDueRecurring('2026-11-01')).toEqual({ posted: 1 });
+
+      await replaceRent({ frequency: 'weekly', day: 5 }, '2026-11-09', 'rent-w');
+      const first = await predicted({ frequency: 'weekly', day: 5 }, '2026-11-09');
+
+      expect(first).toBe('2026-11-13');
+      await expectFirstOn(first, 'rent-w');
+    });
+
+    it('after weeks the old schedule posted, then monthly on day 15: 15 Dec, as November is held', async () => {
+      const fridays = schedule({ id: 'rent-f', frequency: 'weekly', day: 5 });
+      await db.plan.put(plan({ fixed: [{ categoryId: 'rent', monthlyMinor: 40000, schedule: fridays }] }));
+      // Fridays 23 and 30 October, 6 November.
+      expect(await postDueRecurring('2026-11-10')).toEqual({ posted: 3 });
+
+      await replaceRent({ frequency: 'monthly', day: 15 }, '2026-11-10', 'rent-m');
+      const first = await predicted({ frequency: 'monthly', day: 15 }, '2026-11-10');
+
+      expect(first).toBe('2026-12-15');
+      await expectFirstOn(first, 'rent-m');
+      // The 15th of November was handled without an entry.
+      expect((await rentEntries()).map((e) => e.date)).toEqual(['2026-10-23', '2026-10-30', '2026-11-06', '2026-12-15']);
     });
   });
 

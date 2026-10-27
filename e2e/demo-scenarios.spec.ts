@@ -12,9 +12,10 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
     test.setTimeout(90_000);
     const file = JSON.parse(readFileSync(new URL(name, root), 'utf8'));
     await page.clock.setFixedTime(new Date(file.exportedAt));
-    // Preserve missing-rate and blocked-schedule states; a real online refresh can resolve them.
+    // Preserve missing-rate and blocked-schedule states; a real online refresh can resolve them. Frankfurter v2
+    // answers with a list of rows: an empty one means no new rates.
     await page.route(FRANKFURTER, (route) => route.fulfill({
-      json: { base: 'EUR', date: file.exportedAt.slice(0, 10), rates: {} },
+      json: [],
       headers: { 'access-control-allow-origin': '*' },
     }));
     const errors: string[] = [];

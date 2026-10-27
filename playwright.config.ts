@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_SUPABASE_ENV } from './e2e/helpers/supabase';
 
 // Parallel checkouts each run on a port of their own: `E2E_PORT=3001 npm run test:e2e`.
 const port = Number(process.env.E2E_PORT ?? 3000);
@@ -19,5 +20,8 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: true,
     timeout: 120_000,
+    // A Supabase project that is configured but never reached: the account UI shows, and the specs answer its calls
+    // by path. A dev server that is already running keeps its own settings (.env.local, or none).
+    env: E2E_SUPABASE_ENV,
   },
 });

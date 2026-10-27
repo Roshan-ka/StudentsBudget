@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EnvelopeWeek } from '@/lib/budget';
-import { weekLine } from './week-line';
+import { weekLine, weekTotalLine } from './week-line';
 
 function week(weekShareMinor: number, spentThisWeekMinor: number, safeMinor = 0): EnvelopeWeek {
   return { categoryId: 'eating-out', weekShareMinor, spentThisWeekMinor, safeMinor };
@@ -20,7 +20,7 @@ describe('weekLine', () => {
     expect(weekLine(week(0, 0))).toBe('€0 planned · €0 spent · on plan');
   });
 
-  it('compares the week with its own share, not with what is carried over from earlier weeks', () => {
+  it('compares the week with its own share, whatever the safe amount of the row says', () => {
     expect(weekLine(week(7000, 2000, -30000))).toBe('€70 planned · €20 spent · €50 under');
     expect(weekLine(week(7000, 8200, 90000))).toBe('€70 planned · €82 spent · €12 over');
   });
@@ -33,5 +33,32 @@ describe('weekLine', () => {
 
   it('reads spending in an envelope that has no share this week as over', () => {
     expect(weekLine(week(0, 600))).toBe('€0 planned · €6 spent · €6 over');
+  });
+
+  describe('for an envelope with nothing left this month', () => {
+    it('says so instead of "€0 planned", and what was spent as over', () => {
+      expect(weekLine(week(0, 600), true)).toBe('Nothing left this month · €6 spent · €6 over');
+      expect(weekLine(week(0, 40), true)).toBe('Nothing left this month · €0.40 spent · €0.40 over');
+    });
+
+    it('leaves the over out when nothing was spent', () => {
+      expect(weekLine(week(0, 0), true)).toBe('Nothing left this month · €0 spent');
+    });
+  });
+});
+
+describe('weekTotalLine', () => {
+  it('says what is left to spend in the week', () => {
+    expect(weekTotalLine(14500)).toBe('In total: €145 to spend this week');
+    expect(weekTotalLine(0)).toBe('In total: €0 to spend this week');
+  });
+
+  it('says plainly when the week is over, without a minus sign', () => {
+    expect(weekTotalLine(-3600)).toBe('In total: €36 over this week');
+  });
+
+  it('keeps the cents of a non-zero amount under 50 cents, like the other week lines', () => {
+    expect(weekTotalLine(40)).toBe('In total: €0.40 to spend this week');
+    expect(weekTotalLine(-49)).toBe('In total: €0.49 over this week');
   });
 });

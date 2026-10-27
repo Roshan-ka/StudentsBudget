@@ -1,20 +1,32 @@
-import { isValid, parseISO } from 'date-fns';
 import { z } from 'zod';
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
+import {
+  accountRow,
+  categoryRow,
+  discountVoteRow,
+  entryRow,
+  guessRow,
+  planRow,
+  profileRow,
+  rateRow,
+  weekResultRow,
+} from '@/db/schemas';
 import type { Category, Plan, Schedule } from '@/db/types';
-import { addDays, formatDateTime, todayIso } from '@/lib/dates';
-import { CURRENCIES } from '@/lib/money';
+import { addDays, formatDateTime, todayIso, weekOf } from '@/lib/dates';
 
 export type { BackupData };
 
 /**
  * Bumped when the file's shape changes. A file with a higher number than this came from a newer app.
  * Version 2 adds the plan's schedules and the entries' `recurring` marker, both optional, so version 1 files read.
+ * Version 3 adds `weekResults`, `discountVotes` and `profile`; a file without them reads with those empty.
+ * The plan's `spendingBudgetMinor` is optional, so it did not need a version: a file without it reads as a plan with
+ * no budget, and an older app that reads one with it ignores it. An account's `isDefault` is optional for the same reason.
  */
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
-const READABLE_VERSIONS = [1, BACKUP_VERSION] as const;
+const READABLE_VERSIONS = [1, 2, BACKUP_VERSION] as const;
 
 const APP = 'studentsbudget';
 
@@ -22,100 +34,18 @@ const NOT_A_BACKUP = "This isn't a StudentsBudget backup file.";
 const NEWER_VERSION = 'This backup is from a newer version of the app.';
 const INCOMPLETE = 'This backup file is incomplete.';
 
-// The file is the only input the app does not write itself, so every field is checked, not only its type.
-const text = z.string();
-const id = z.string().min(1);
-const minor = z.int();
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => isValid(parseISO(value)));
-const isoMonth = z
-  .string()
-  .regex(/^\d{4}-\d{2}$/)
-  .refine((value) => isValid(parseISO(value)));
-const currency = z.literal(CURRENCIES);
-
-const account = z.object({
-  id,
-  name: text,
-  kind: z.enum(['bank', 'cash']),
-  currency,
-  openingMinor: minor,
-  createdAt: text,
-});
-
-const category = z.object({
-  id,
-  name: text,
-  kind: z.enum(['flexible', 'fixed', 'oneoff', 'income']),
-  order: z.int(),
-});
-
-const entryBase = {
-  id,
-  date: isoDate,
-  accountId: id,
-  amountMinor: minor,
-  eurMinor: minor,
-  note: text,
-  createdAt: text,
-};
-
-const entry = z.discriminatedUnion('type', [
-  z.object({
-    ...entryBase,
-    type: z.enum(['expense', 'income']),
-    categoryId: id,
-    recurring: z.object({ scheduleId: id }).optional(),
-  }),
-  z.object({ ...entryBase, type: z.literal('transfer'), toAccountId: id, toAmountMinor: minor }),
-]);
-
-const amount = z.object({ categoryId: id, monthlyMinor: minor });
-
-const schedule = z.object({
-  id,
-  frequency: z.enum(['monthly', 'weekly']),
-  day: z.int(),
-  accountId: id,
-  amountMinor: minor,
-  startOn: isoDate,
-  postedThrough: isoDate,
-  paused: z.boolean().optional(),
-});
-
-const planLine = z.object({ categoryId: id, monthlyMinor: minor, schedule: schedule.optional() });
-
-const plan = z.object({
-  id: z.literal('current'),
-  cityId: z.literal('regensburg'),
-  incomes: z.array(planLine),
-  fixed: z.array(planLine),
-  oneOffs: z.array(
-    z.object({ id, name: text, amountMinor: minor, createdMonth: isoMonth, dueMonth: isoMonth }),
-  ),
-  envelopes: z.array(amount),
-  createdOn: isoDate,
-});
-
-const guess = z.object({ categoryId: id, monthlyMinor: minor, guessedOn: isoDate });
-
-const rate = z.object({
-  currency,
-  perEur: z.number().positive(),
-  rateDate: isoDate,
-  fetchedOn: isoDate,
-  source: z.enum(['ecb', 'manual']),
-});
-
+// A file is data this app did not write, so every field of every row is checked (the row schemas: src/db/schemas.ts).
 const backupData = z.object({
-  accounts: z.array(account),
-  categories: z.array(category),
-  entries: z.array(entry),
-  plan: plan.nullable(),
-  guesses: z.array(guess),
-  fxRates: z.array(rate),
+  accounts: z.array(accountRow),
+  categories: z.array(categoryRow),
+  entries: z.array(entryRow),
+  plan: planRow.nullable(),
+  guesses: z.array(guessRow),
+  fxRates: z.array(rateRow),
+  // Version 3. The defaults let a version 1 or 2 file, which has none of these keys, read as "nothing saved yet".
+  weekResults: z.array(weekResultRow).default([]),
+  discountVotes: z.array(discountVoteRow).default([]),
+  profile: profileRow.nullable().default(null),
 });
 
 const backupFile = z.object({
@@ -179,8 +109,9 @@ function isPossibleSchedule(schedule: Schedule, planCreatedOn: string): boolean 
 
 /**
  * What the rows of a file that has the right shape say about each other, as the first thing that cannot be
- * true: a row that points at one the file does not have, two rows with a key that must be unique, an amount
- * that cannot happen. Null when nothing is wrong. `openingMinor` is free: an account can be overdrawn.
+ * true: a row that points at one the file does not have, two rows with a key that must be unique, a saved week
+ * that is not a Monday–Sunday week, an amount that cannot happen. Null when nothing is wrong. `openingMinor` is
+ * free: an account can be overdrawn.
  */
 function findProblem(d: BackupData): string | null {
   const accountIds = new Set(d.accounts.map((a) => a.id));
@@ -212,18 +143,36 @@ function findProblem(d: BackupData): string | null {
     schedules.map((s) => s.id),
     d.guesses.map((g) => g.categoryId),
     d.fxRates.map((r) => `${r.currency}+${r.source}`),
+    d.weekResults.map((w) => w.weekStart),
+    d.discountVotes.map((v) => v.discountId),
   ];
   if (keyLists.some(hasDuplicates)) return 'two rows share the same id';
+
+  // A saved week runs Monday to Sunday and is keyed by its Monday. A row keyed by another day would not stop the
+  // app from saving the real Monday as well, and that week would count twice.
+  const weekOutOfShape = d.weekResults.some(
+    (w) => weekOf(w.weekStart).start !== w.weekStart || w.weekEnd !== addDays(w.weekStart, 6),
+  );
+  if (weekOutOfShape) return "a saved week doesn't run from Monday to Sunday";
 
   const moneyOut =
     d.entries.some((e) => e.amountMinor <= 0 || (e.type === 'transfer' && e.toAmountMinor <= 0)) ||
     (d.plan?.oneOffs ?? []).some((o) => o.amountMinor <= 0) ||
     schedules.some((s) => s.amountMinor <= 0);
   if (moneyOut) return 'an amount is zero or negative';
-  // Zero is fine for these: an envelope, a guess or the rent can be 0, and a small amount can convert to €0.00.
-  if (d.entries.some((e) => e.eurMinor < 0) || [...planLines, ...d.guesses].some((line) => line.monthlyMinor < 0)) {
+  // Zero is fine for these: an envelope, a guess, the rent or the everyday budget can be 0, and a small amount can
+  // convert to €0.00.
+  const budget = d.plan?.spendingBudgetMinor ?? 0;
+  if (
+    d.entries.some((e) => e.eurMinor < 0) ||
+    [...planLines, ...d.guesses].some((line) => line.monthlyMinor < 0) ||
+    budget < 0
+  ) {
     return 'an amount is negative';
   }
+  // A paused or empty week is all zeros, and a plan can be €0, so zero is fine here too.
+  const weekAmounts = d.weekResults.flatMap((w) => [w.plannedMinor, w.spentMinor, w.foodSpentMinor, w.eatingOutSpentMinor]);
+  if (weekAmounts.some((amount) => amount < 0)) return 'an amount is negative';
 
   // There are schedules only when there is a plan.
   const createdOn = d.plan?.createdOn ?? '';
@@ -231,6 +180,14 @@ function findProblem(d: BackupData): string | null {
     return 'a fixed cost or income has an impossible schedule';
   }
   return null;
+}
+
+/**
+ * What a complete set of data says about itself, as `findProblem` sees it: null when its rows fit together, else what
+ * is wrong. Loading from the account checks its rows with this too, before they replace the phone's.
+ */
+export function checkBackupData(d: BackupData): string | null {
+  return findProblem(d);
 }
 
 /** The file's categories and every built-in one it lacks, so a file from before a category existed still restores all 26. */

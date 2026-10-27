@@ -5,7 +5,7 @@ created: 2026-10-16
 
 # Student Budget App: Concept
 
-See also: [[Student Budget App]] · [[Student Budget App - Tech Stack]] · [[2026-10-16-p1-test-project|P1 plan]] · [[Student Budget App - Kickoff]] · Newcomer City Guide (Personal Project Ideas vault)
+See also: [[Student Budget App]] · [[Student Budget App - Tech Stack]] · [[2026-10-16-p1-test-project|P1 plan]] · [[Student Budget App - Kickoff]] · [[Student Budget App - P1 follow-ups|P1 follow-ups]] · Newcomer City Guide (Personal Project Ideas vault)
 
 Working name: **StudentsBudget** (not final).
 
@@ -69,6 +69,7 @@ Each part is tagged with its phase.
   - The app must be installed on the home screen. On iPhone, Safari clears storage for websites that haven't been opened for 7 days, but installed apps are exempt.
   - "Export backup" saves everything as one file, and "Import backup" restores it. Losing the phone or clearing browser data otherwise loses the data.
 - **P2:** email login (magic link) and a database in the EU. The P1 backup file is imported into the account, so nothing is lost.
+  - P2.1 (2026-10-23) started simpler: email and password instead of a magic link, and "Save to my account" / "Load from my account" buttons instead of live sync. The phone's data goes into the account with the first save.
 
 ### 2. Accounts and currencies (P1)
 - Accounts such as home-country bank, local bank and cash, each in its own currency.
@@ -83,19 +84,21 @@ Each part is tagged with its phase.
   - **P1.1:** each income source and fixed cost can repeat on its day, monthly on a day of the month or weekly on a weekday, into or out of a chosen account. The app adds it as an entry on that day, so rent and income no longer need logging by hand. Settings has a "Fixed costs and income" list to edit, pause or remove them.
   - big one-off costs: semester fee, insurance, flight home, winter jacket. Each gets a weekly set-aside, so no single month blows up.
   - **your guess per category**, asked before any envelope amounts ("What do you think you spend on eating out a month?"). Saved from day one, even if the guess vs. reality screen comes later.
+  - an optional everyday budget, which the envelope amounts are suggested from
   - envelope amounts
 - **Realistic for the city without AI:**
   - Next to each envelope, the app shows what's typical for students in my city ("Students here: €200–260 for food"), with the source.
-  - It warns when an amount is below that range, and when the plan adds up to more than income.
+  - It says when an amount is below that range; Settings and Home say calmly when the plan adds up to more than income.
   - City numbers are seeded by hand inside the app, each with its source and date: rent range, Mensa meal, grocery basket, transport, a beer, club entry, gym. No Numbeo scraping.
 - **AI phase:** setup becomes a 5-minute chat that proposes and explains the amounts.
 
 ### 4. Logging: quick add, typed or spoken
 - **P1: manual entry**: amount, category, account, date, note. Edit and delete.
 - **P1: quick add**
-  - One text field: "döner 6". The number is the amount, the rest the note. The category comes from earlier entries with the same word; otherwise you pick one.
+  - One text field: "döner 6". The number is the amount, the rest the note. The category comes from the latest earlier expense whose note starts with one of the note's words (a whole word), trying the note's words in order and skipping numbers and small words like "at", "the" or "mit" ("lunch at mensa" finds "mensa 4"); a word that only comes later in an earlier note ("bus to ikea") does not count, so "ikea 40" asks; otherwise you pick one.
   - **Voice works from day one** through the mic on the phone keyboard. Quick add understands what dictation produces: "Döner 6 €", "€6", "6,50", "döner six euros".
 - **P2:** a mic button in the app (the browser's built-in speech recognition) for one-tap entry. Support varies by browser, and Chrome sends the audio to Google for recognition, so the app says so the first time it's used.
+- **P1.2:** quick add reads through a provider interface; today's parser is the local provider, so an AI provider can plug in later with the parser as offline fallback.
 - **AI phase:** natural sentences like "12 for pizza with Tom yesterday, paid cash", plus receipt scan for big grocery shops. A scanned receipt attaches to its matching entry instead of counting twice.
 - **Later:** CSV statement import, then bank or card connection.
 
@@ -105,7 +108,7 @@ Each part is tagged with its phase.
   - **"Left to spend this month: €310"**, with one small line underneath: "This week: €63 safe to spend".
   - Envelopes read "€X left of €Y this month".
   - Below them: what's left across all accounts.
-- **P1.1: suggested budget.** Home proposes envelope amounts from income minus fixed costs and set-asides. It starts from Regensburg's typical ranges, with their sources, or from last month's spending, and scales down when the money doesn't stretch. You edit the amounts and accept them. It's prominent in the first week of a month or when the plan is over budget. Guesses never change.
+- **P1.1: suggested budget.** Home proposes envelope amounts from income minus fixed costs and set-asides. It starts from Regensburg's typical ranges, with their sources, or from last month's spending. It shares out what is available, or the everyday budget when one is set and is less: each range moves the same share of the way from its middle down to its minimum, and everything scales down only below the minimums. You edit the amounts and accept them. It's prominent in the first week of a month or when the plan is over budget. Guesses never change.
 
 How the envelopes work:
 1. The plan is monthly, because income arrives monthly.
@@ -114,7 +117,7 @@ How the envelopes work:
 4. The rest is split into flexible envelopes: food, eating out, going out, transport, shopping, other. P1.1 adds health and pharmacy, personal care, study materials, household, travel and gifts. Each envelope's monthly amount is spread evenly over the month's weeks.
 5. Safe to spend this week = this week's share of the flexible envelopes + whatever was left from earlier weeks this month − what you've spent this week. Overspending lowers the coming weeks.
 6. At month end, the leftover goes to savings or a goal, and the next month starts fresh.
-7. The plan can't add up to more than income. The app warns and shows by how much.
+7. A plan can add up to more than income. The app shows it calmly and suggests a budget on Home.
 8. Income that varies (a job with changing hours) is planned on a low estimate. Anything extra goes to savings.
 
 ### 6. Charts (P1)
@@ -148,13 +151,14 @@ How the envelopes work:
   - Never reward spending.
   - Trust criteria are published.
   - Streaks are weekly and can be paused; no punishment or manipulative design.
-- **P1 already stores everything the personal badges need** (entries, weekly results), so they can be awarded backwards when P2 arrives.
+- **P1.2 (local):** each finished week is recorded once on the phone (planned vs spent, hand-logged entries, "I was away"), and four personal badges come from those records: Under-Budget Week (bronze 4, silver 12, gold a semester), Logging Streak, Ramen Royalty and Latte Survivor. The same functions can run on a server in P2.
 
 ### 10. Verified student badge (P2)
 - Confirm a university email once. The badge shows next to your posts and discount confirmations.
 - It expires after 12 months, so it marks *current* students.
 - The domain is checked against a public list of university domains, then a confirmation link goes to that address. Afterwards only the domain and date are stored, not the address.
 - The badge never restricts reading or posting.
+- **P1.2 (local):** a profile in Settings (name, university, semester dates) stays on the phone; it becomes the account profile in P2.
 
 ### 11. Discounts in my city (P2)
 - Local places only: cafés, restaurants, arcades, bowling, karting, clubs, group deals.
@@ -163,6 +167,7 @@ How the envelopes work:
 - Sorted by freshness: "Last confirmed 3 days ago by a verified student · 14 confirmations this semester". Entries unconfirmed for 8 weeks sink and get flagged.
 - Facts only, no star ratings.
 - A list first. The map view comes later.
+- **P1.2 (local):** a sourced list I seed, inside the Tips tab; "still works" and "doesn't work anymore" are saved on the phone and sort the list by freshness. In P2 the same list and confirmations move to the server.
 
 ### 12. Hacks feed (P2, AI parts later)
 - **P1.1:** a Tips tab between Charts and Settings with Regensburg tips I seed, read-only. Each tip has a category, a source, a link and a checked date; a number no page states is labelled "Estimate". No venue deals that change weekly (those wait for the discount list) and no drinking tips. The P2 feed moves into this tab.
@@ -179,6 +184,7 @@ How the envelopes work:
   - habits: cook two more nights, eat at the Mensa instead of the café, get the Deutschlandticket instead of single tickets
   - cheaper versions of the same night out: student nights, free entry before 23:00, splitting a taxi
   - a discount from the city list or a hack from the feed, linked
+- **P1.2 (no AI):** where an envelope runs over, a rule picks one sourced swap ("Try this: …") from a seeded list. The AI phase fills the same interface later and must keep citing sources.
 - Ask: "Can I afford karting on Saturday?" It answers from your plan, your spending, the city numbers, the discounts and the hacks.
 - Rules:
   - Every suggestion that rests on a price or a tip names its source.

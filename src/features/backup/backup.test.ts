@@ -69,7 +69,60 @@ function sample(): BackupData {
       { currency: 'INR', perEur: 95, rateDate: '2026-10-16', fetchedOn: '2026-10-16', source: 'ecb' },
       { currency: 'INR', perEur: 97.5, rateDate: '2026-10-16', fetchedOn: '2026-10-16', source: 'manual' },
     ],
+    // What version 3 adds. A paused week and a vote of each kind, and a profile that is filled in.
+    weekResults: [
+      {
+        weekStart: '2026-10-05',
+        weekEnd: '2026-10-11',
+        plannedMinor: 7_000,
+        spentMinor: 6_500,
+        foodSpentMinor: 4_000,
+        eatingOutSpentMinor: 900,
+        handLoggedCount: 3,
+        paused: false,
+        recordedAt: '2026-10-12T08:00:00.000Z',
+      },
+      {
+        weekStart: '2026-10-12',
+        weekEnd: '2026-10-18',
+        plannedMinor: 7_000,
+        spentMinor: 0,
+        foodSpentMinor: 0,
+        eatingOutSpentMinor: 0,
+        handLoggedCount: 0,
+        paused: true,
+        recordedAt: '2026-10-19T08:00:00.000Z',
+      },
+    ],
+    discountVotes: [
+      { discountId: 'cinema-student', vote: 'works', on: '2026-10-20' },
+      { discountId: 'mensa-card', vote: 'outdated', on: '2026-10-21' },
+    ],
+    profile: {
+      id: 'current',
+      name: 'Roshan',
+      university: 'ur',
+      semesterStart: '2026-10-12',
+      semesterEnd: '2027-02-12',
+      updatedAt: '2026-10-20T08:00:00.000Z',
+    },
   };
+}
+
+/** The keys version 3 added. */
+const VERSION_3_KEYS = ['weekResults', 'discountVotes', 'profile'] as const;
+
+/** What a file from before version 3 gives back where `sample()` has week results, votes and a profile. */
+function noVersion3Data(): Pick<BackupData, (typeof VERSION_3_KEYS)[number]> {
+  return { weekResults: [], discountVotes: [], profile: null };
+}
+
+/** The file of an older version: the data without the keys that version did not know. */
+function olderFileOf(data: BackupData, version: 1 | 2): string {
+  return fileOf((file) => {
+    file.version = version;
+    for (const key of VERSION_3_KEYS) delete file.data[key];
+  }, data);
 }
 
 /** What version 2 adds: schedules on the plan's lines and the entries a schedule posted. `sample()` has none of it, like a version 1 file. */
@@ -127,13 +180,69 @@ describe('serializeBackup and parseBackup', () => {
     const file: unknown = JSON.parse(serializeBackup(sample(), NOW));
 
     expect(file).toEqual({ app: 'studentsbudget', version: BACKUP_VERSION, exportedAt: NOW.toISOString(), data: sample() });
-    expect(BACKUP_VERSION).toBe(2);
+    expect(BACKUP_VERSION).toBe(3);
   });
 
   it('round-trips every table, the ECB and the manual rate included', () => {
     const result = parseBackup(serializeBackup(sample(), NOW));
 
     expect(result).toEqual({ ok: true, data: sample(), exportedAt: NOW.toISOString() });
+  });
+
+  it('round-trips the everyday budget of the plan, and a plan without one stays without', () => {
+    const data = sample();
+    data.plan = { ...data.plan!, spendingBudgetMinor: 60_000 };
+
+    const result = parseBackup(serializeBackup(data, NOW));
+    expect(result).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(result.ok && result.data.plan?.spendingBudgetMinor).toBe(60_000);
+
+    const without = parseBackup(serializeBackup(sample(), NOW));
+    expect(without.ok && without.data.plan).not.toHaveProperty('spendingBudgetMinor');
+  });
+
+  it('round-trips the default account, and accounts without the mark stay without it', () => {
+    const data = sample();
+    data.accounts[1] = { ...data.accounts[1], isDefault: true };
+
+    const result = parseBackup(serializeBackup(data, NOW));
+    expect(result).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(result.ok && result.data.accounts.map((a) => a.isDefault)).toEqual([undefined, true]);
+
+    const without = parseBackup(serializeBackup(sample(), NOW));
+    expect(without.ok && without.data.accounts[0]).not.toHaveProperty('isDefault');
+  });
+
+  it('reads files whose accounts have no default mark: versions 1, 2 and 3, and the demo', () => {
+    const version3 = fileOf(() => {});
+    for (const text of [olderFileOf(sample(), 1), olderFileOf(sampleV2(), 2), version3, DEMO]) {
+      const result = parseBackup(text);
+      expect(result.ok).toBe(true);
+      expect(result.ok && result.data.accounts.some((a) => 'isDefault' in a)).toBe(false);
+    }
+  });
+
+  it('says it is incomplete for a default mark that is not true', () => {
+    const text = fileOf((file) => {
+      (file.data.accounts as Record<string, unknown>[])[0].isDefault = false;
+    });
+
+    expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
+  });
+
+  it('round-trips an overdrawn account', () => {
+    const data = sample();
+    data.accounts[0] = { ...data.accounts[0], openingMinor: -25_000 };
+
+    expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+  });
+
+  it('still reads the older files, none of which has an everyday budget', () => {
+    for (const text of [olderFileOf(sample(), 1), olderFileOf(sampleV2(), 2), DEMO]) {
+      const result = parseBackup(text);
+      expect(result.ok).toBe(true);
+      expect(result.ok && result.data.plan).not.toHaveProperty('spendingBudgetMinor');
+    }
   });
 
   it('round-trips schedules and the entries a schedule posted, whether or not a schedule is paused', () => {
@@ -144,10 +253,73 @@ describe('serializeBackup and parseBackup', () => {
     expect(data.plan?.fixed[0].schedule?.paused).toBe(true);
   });
 
-  it('still reads a version 1 file, which has none of the new keys', () => {
-    const text = fileOf((file) => (file.version = 1));
+  it('round-trips the week results, the votes and the profile, a paused week and both vote kinds included', () => {
+    const data = sample();
 
-    expect(parseBackup(text)).toEqual({ ok: true, data: sample(), exportedAt: NOW.toISOString() });
+    expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(data.weekResults.map((week) => week.paused)).toEqual([false, true]);
+    expect(data.discountVotes.map((vote) => vote.vote)).toEqual(['works', 'outdated']);
+  });
+
+  it('round-trips the "I was away" marks of weeks not recorded yet: no amounts and an empty time', () => {
+    const data = sample();
+    const mark = (weekStart: string, weekEnd: string) => ({
+      weekStart,
+      weekEnd,
+      plannedMinor: 0,
+      spentMinor: 0,
+      foodSpentMinor: 0,
+      eatingOutSpentMinor: 0,
+      handLoggedCount: 0,
+      paused: true,
+      recordedAt: '',
+    });
+    // Last week, waiting to be recorded, and the week still running.
+    data.weekResults.push(mark('2026-10-19', '2026-10-25'), mark('2026-10-26', '2026-11-01'));
+
+    expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+  });
+
+  it('takes a semester in the first and the last year the profile form allows', () => {
+    for (const [semesterStart, semesterEnd] of [
+      ['1000-01-01', '1000-03-31'],
+      ['9999-10-01', '9999-12-31'],
+    ]) {
+      const data: BackupData = {
+        ...sample(),
+        profile: { id: 'current', name: '', university: 'ur', semesterStart, semesterEnd, updatedAt: '2026-10-20T08:00:00.000Z' },
+      };
+
+      expect(parseBackup(serializeBackup(data, NOW)), semesterStart).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    }
+  });
+
+  it('round-trips a profile that is still empty, and no week results or votes', () => {
+    const data: BackupData = {
+      ...sample(),
+      ...noVersion3Data(),
+      profile: { id: 'current', name: '', university: '', semesterStart: '', semesterEnd: '', updatedAt: '2026-10-20T08:00:00.000Z' },
+    };
+
+    expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+  });
+
+  it('still reads a version 1 file, which has none of the new keys: they come back empty', () => {
+    const text = olderFileOf(sample(), 1);
+
+    expect(parseBackup(text)).toEqual({ ok: true, data: { ...sample(), ...noVersion3Data() }, exportedAt: NOW.toISOString() });
+  });
+
+  it('still reads a version 2 file, with its schedules but without week results, votes and profile', () => {
+    const text = olderFileOf(sampleV2(), 2);
+
+    expect(parseBackup(text)).toEqual({ ok: true, data: { ...sampleV2(), ...noVersion3Data() }, exportedAt: NOW.toISOString() });
+  });
+
+  it.each(VERSION_3_KEYS)('gives data.%s its empty value when only that key is missing', (key) => {
+    const result = parseBackup(fileOf((file) => delete file.data[key]));
+
+    expect(result).toEqual({ ok: true, data: { ...sample(), [key]: noVersion3Data()[key] }, exportedAt: NOW.toISOString() });
   });
 
   it('reads the demo backup, a version 1 file with 47 entries', () => {
@@ -157,6 +329,7 @@ describe('serializeBackup and parseBackup', () => {
     if (!result.ok) return;
     expect(result.data.entries).toHaveLength(47);
     expect(result.data.accounts).toHaveLength(3);
+    expect(result.data).toMatchObject(noVersion3Data());
   });
 
   it('round-trips a backup without a plan', () => {
@@ -181,8 +354,8 @@ describe('serializeBackup and parseBackup', () => {
   });
 
   it('rejects a newer version, whatever else the file holds', () => {
-    expect(parseBackup(fileOf((file) => (file.version = 3)))).toEqual({ ok: false, error: NEWER });
-    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 3, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
+    expect(parseBackup(fileOf((file) => (file.version = 4)))).toEqual({ ok: false, error: NEWER });
+    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 4, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
     expect(parseBackup(shapeUnknown)).toEqual({ ok: false, error: NEWER });
   });
 
@@ -254,6 +427,40 @@ describe('serializeBackup and parseBackup', () => {
       const plan = file.data.plan as { fixed: { schedule: Record<string, unknown> }[] };
       change(plan.fixed[0].schedule);
     }, sampleV2());
+
+    expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
+  });
+
+  type V3File = { data: { weekResults: Record<string, unknown>[]; discountVotes: Record<string, unknown>[]; profile: Record<string, unknown> } };
+
+  it.each([
+    ['a week that starts on no date', (file: V3File) => (file.data.weekResults[0].weekStart = '12/10/2026')],
+    ['a week that ends on no date', (file: V3File) => (file.data.weekResults[0].weekEnd = '2026-02-30')],
+    ['a week result without its start', (file: V3File) => delete file.data.weekResults[0].weekStart],
+    ['a planned amount with decimals', (file: V3File) => (file.data.weekResults[0].plannedMinor = 70.5)],
+    ['a spent amount that is text', (file: V3File) => (file.data.weekResults[0].spentMinor = '6500')],
+    ['a food amount with decimals', (file: V3File) => (file.data.weekResults[0].foodSpentMinor = 4_000.5)],
+    ['an eating-out amount with decimals', (file: V3File) => (file.data.weekResults[0].eatingOutSpentMinor = 0.5)],
+    ['a hand-logged count with decimals', (file: V3File) => (file.data.weekResults[0].handLoggedCount = 2.5)],
+    ['a hand-logged count below zero', (file: V3File) => (file.data.weekResults[0].handLoggedCount = -1)],
+    ['a week result without its pause flag', (file: V3File) => delete file.data.weekResults[0].paused],
+    ['a pause flag that is text', (file: V3File) => (file.data.weekResults[0].paused = 'yes')],
+    ['a week result without its time', (file: V3File) => delete file.data.weekResults[0].recordedAt],
+    ['a vote that is neither works nor outdated', (file: V3File) => (file.data.discountVotes[0].vote = 'maybe')],
+    ['a vote without its discount', (file: V3File) => delete file.data.discountVotes[0].discountId],
+    ['a vote with an empty discount id', (file: V3File) => (file.data.discountVotes[0].discountId = '')],
+    ['a vote on no date', (file: V3File) => (file.data.discountVotes[0].on = 'today')],
+    ['a profile that is not the current one', (file: V3File) => (file.data.profile.id = 'other')],
+    ['a profile without its name', (file: V3File) => delete file.data.profile.name],
+    ['an unknown university', (file: V3File) => (file.data.profile.university = 'mit')],
+    ['a semester that starts on no date', (file: V3File) => (file.data.profile.semesterStart = '2026-13-01')],
+    ['a semester that ends on no date', (file: V3File) => (file.data.profile.semesterEnd = 'March')],
+    ['a semester that starts in a year below 1000', (file: V3File) => (file.data.profile.semesterStart = '0999-10-01')],
+    ['a semester that ends in a year below 1000', (file: V3File) => (file.data.profile.semesterEnd = '0999-12-31')],
+    ['a profile that is not an object', (file: V3File) => (file.data.profile = 'Roshan' as never)],
+    ['week results that are not a list', (file: V3File) => (file.data.weekResults = {} as never)],
+  ])('says it is incomplete for %s', (_name, change) => {
+    const text = fileOf((file) => change(file as unknown as V3File));
 
     expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
   });
@@ -390,6 +597,9 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['two one-offs', (data: BackupData) => data.plan!.oneOffs.push({ ...data.plan!.oneOffs[0] })],
       ['two guesses for one category', (data: BackupData) => data.guesses.push({ ...data.guesses[0], monthlyMinor: 1 })],
       ['two rates of one currency and source', (data: BackupData) => data.fxRates.push({ ...data.fxRates[0], perEur: 96 })],
+      ['two week results of one week', (data: BackupData) => data.weekResults.push({ ...data.weekResults[0], spentMinor: 1 })],
+      ['two week results that start on one day', (data: BackupData) => (data.weekResults[1].weekStart = data.weekResults[0].weekStart)],
+      ['two votes on one discount', (data: BackupData) => data.discountVotes.push({ ...data.discountVotes[0], vote: 'outdated' })],
     ])('refuses %s that share a key', (_name, change) => {
       expect(parseChanged(change)).toEqual(damaged('two rows share the same id'));
     });
@@ -411,10 +621,53 @@ describe('parseBackup checks what the rows say about each other', () => {
       expect(parseBackup(serializeBackup(data, NOW)).ok).toBe(true);
     });
 
+    it('passes the same week result as two different weeks, and the same vote kind on two discounts', () => {
+      const result = parseChanged((data) => {
+        data.weekResults.push({ ...data.weekResults[0], weekStart: '2026-10-19', weekEnd: '2026-10-25' });
+        data.discountVotes.push({ ...data.discountVotes[0], discountId: 'bookshop' });
+      });
+
+      expect(result.ok && [result.data.weekResults.length, result.data.discountVotes.length]).toEqual([3, 3]);
+    });
+
     it('passes a plan whose lines share a category, because the plan is one row', () => {
       const result = parseChanged((data) => data.plan!.fixed.push({ categoryId: 'rent', monthlyMinor: 1_000 }));
 
       expect(result.ok).toBe(true);
+    });
+  });
+
+  describe('saved weeks that are not a Monday-Sunday week', () => {
+    const OUT_OF_SHAPE = damaged("a saved week doesn't run from Monday to Sunday");
+
+    it.each([
+      // Tuesday 6 to Monday 12 October: six days on, but not from a Monday.
+      ['a week that starts on a Tuesday', (data: BackupData) => Object.assign(data.weekResults[0], { weekStart: '2026-10-06', weekEnd: '2026-10-12' })],
+      // Sunday 11 to Saturday 17 October: the Sunday before the week of 12 October, which the app would save too.
+      ['a week keyed by its Sunday', (data: BackupData) => Object.assign(data.weekResults[1], { weekStart: '2026-10-11', weekEnd: '2026-10-17' })],
+      ['a week that ends a day early', (data: BackupData) => (data.weekResults[0].weekEnd = '2026-10-10')],
+      ['a week that ends a day late', (data: BackupData) => (data.weekResults[0].weekEnd = '2026-10-12')],
+      ['a week that ends before it starts', (data: BackupData) => (data.weekResults[1].weekEnd = '2026-10-05')],
+    ])('refuses %s', (_name, change) => {
+      expect(parseChanged(change)).toEqual(OUT_OF_SHAPE);
+    });
+
+    it('passes weeks across a month end, the end of summer time and a year end', () => {
+      const result = parseChanged((data) => {
+        data.weekResults.push(
+          { ...data.weekResults[0], weekStart: '2026-10-19', weekEnd: '2026-10-25' },
+          { ...data.weekResults[0], weekStart: '2026-10-26', weekEnd: '2026-11-01' },
+          { ...data.weekResults[0], weekStart: '2026-12-28', weekEnd: '2027-01-03' },
+        );
+      });
+
+      expect(result.ok && result.data.weekResults.length).toBe(5);
+    });
+
+    it('reports two rows of one week as a shared key, before their shape', () => {
+      expect(parseChanged((data) => (data.weekResults[1].weekStart = data.weekResults[0].weekStart))).toEqual(
+        damaged('two rows share the same id'),
+      );
     });
   });
 
@@ -447,7 +700,12 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['an income line', (data: BackupData) => (data.plan!.incomes[0].monthlyMinor = -1)],
       ['a fixed line', (data: BackupData) => (data.plan!.fixed[0].monthlyMinor = -1)],
       ['an envelope', (data: BackupData) => (data.plan!.envelopes[0].monthlyMinor = -1)],
+      ['the everyday budget', (data: BackupData) => (data.plan!.spendingBudgetMinor = -1)],
       ['a guess', (data: BackupData) => (data.guesses[0].monthlyMinor = -1)],
+      ['a planned week amount', (data: BackupData) => (data.weekResults[0].plannedMinor = -1)],
+      ['a spent week amount', (data: BackupData) => (data.weekResults[0].spentMinor = -1)],
+      ['a food week amount', (data: BackupData) => (data.weekResults[1].foodSpentMinor = -1)],
+      ['an eating-out week amount', (data: BackupData) => (data.weekResults[1].eatingOutSpentMinor = -1)],
     ])('refuses %s below zero', (_name, change) => {
       expect(parseChanged(change)).toEqual(damaged('an amount is negative'));
     });
@@ -459,6 +717,27 @@ describe('parseBackup checks what the rows say about each other', () => {
         data.plan!.incomes = data.plan!.incomes.map((line) => ({ ...line, monthlyMinor: 0 }));
         data.guesses = data.guesses.map((guess) => ({ ...guess, monthlyMinor: 0 }));
         data.entries[0].eurMinor = 0;
+      });
+
+      expect(result.ok).toBe(true);
+    });
+
+    it('passes an everyday budget of zero, and one above it', () => {
+      for (const budget of [0, 60_000]) {
+        expect(parseChanged((data) => (data.plan!.spendingBudgetMinor = budget)).ok).toBe(true);
+      }
+    });
+
+    it('passes a week of zeros, a plan of €0 and a count of 0, as a paused or empty week is', () => {
+      const result = parseChanged((data) => {
+        data.weekResults = data.weekResults.map((week) => ({
+          ...week,
+          plannedMinor: 0,
+          spentMinor: 0,
+          foodSpentMinor: 0,
+          eatingOutSpentMinor: 0,
+          handLoggedCount: 0,
+        }));
       });
 
       expect(result.ok).toBe(true);

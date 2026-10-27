@@ -1,10 +1,12 @@
 'use client';
 
+import { SETUP_FIXED_IDS } from '@/data/categories';
 import { DraftScheduleFields } from '@/features/recurring/draft-schedule-fields';
 import type { IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import {
   FIXED_CATEGORIES,
+  askedCategories,
   setLineAmount,
   setLineSchedule,
   type AccountOption,
@@ -19,22 +21,32 @@ export function FixedStep({
   update,
   accounts,
   today,
+  edit,
 }: {
   draft: SetupDraft;
   update: DraftUpdate;
   accounts: AccountOption[];
   today: IsoDate;
+  /** Edit mode asks every fixed cost; a new setup asks the basic ones. */
+  edit: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground">
         What do you pay every month, in euros? Your rent is already in from step 1. Leave out what you do not pay.
       </p>
+      {!edit && (
+        <p className="text-muted-foreground">
+          Subscriptions, the gym, utilities and the Rundfunkbeitrag can be added later under Edit plan in Settings.
+        </p>
+      )}
       {draft.rentSchedule && draft.rentMinor > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Rent: {formatMoney(draft.rentMinor, 'EUR')} a month</p>
           <DraftScheduleFields
             name="Rent"
+            categoryId="rent"
+            type="expense"
             monthlyMinor={draft.rentMinor}
             schedule={draft.rentSchedule}
             accounts={accounts}
@@ -43,7 +55,7 @@ export function FixedStep({
           />
         </div>
       )}
-      {FIXED_CATEGORIES.map((c) => {
+      {askedCategories(FIXED_CATEGORIES, SETUP_FIXED_IDS, edit, draft.fixed).map((c) => {
         const line = draft.fixed.find((l) => l.categoryId === c.id);
         return (
           <div key={c.id} className="flex flex-col gap-2">
@@ -55,6 +67,8 @@ export function FixedStep({
             {line?.schedule && line.monthlyMinor > 0 && (
               <DraftScheduleFields
                 name={c.name}
+                categoryId={c.id}
+                type="expense"
                 monthlyMinor={line.monthlyMinor}
                 schedule={line.schedule}
                 accounts={accounts}

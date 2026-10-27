@@ -7,15 +7,34 @@ import { Label } from '@/components/ui/label';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { deleteEntry, saveEntry } from '@/db/repo';
+import type { Account } from '@/db/types';
 import { todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { buildEntry } from './build-entry';
 import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES, categoryName } from './categories';
-import { parseQuickAdd, suggestCategory, type QuickAddAmount, type QuickAddChoice } from './quick-add';
-import { pickQuickAddAccount } from './quick-add-account';
+import {
+  accountFor,
+  checkReading,
+  chosenAmount,
+  localQuickAddProvider,
+  type QuickAddAmountReading,
+  type QuickAddChoiceReading,
+  type QuickAddContext,
+  type QuickAddProvider,
+  type QuickAddReading,
+} from './quick-add-provider';
 
 /** The two readings of a line like "coffee 7 40 euros", shown in the currency quick add saves in. */
-type Choice = QuickAddChoice & { currency: CurrencyCode };
+type Choice = QuickAddChoiceReading & { currency: CurrencyCode };
+
+/** What the provider reads a line against: today, the accounts and every expense so far. */
+async function loadContext(): Promise<QuickAddContext> {
+  const [accounts, history] = await Promise.all([
+    db.accounts.toArray(),
+    db.entries.where('type').equals('expense').toArray(),
+  ]);
+  return { today: todayIso(), accounts, history };
+}
 
 /** How long the "Saved …" line, with its Undo, stays up. */
 const SAVED_LINE_MS = 10_000;
@@ -95,17 +114,20 @@ function AmountChoice({
 
 /**
  * One line to log an expense: "döner 6", typed or dictated. It saves straight away when an earlier
- * expense with the same first word gives the category; otherwise it asks with one chip per flexible
+ * expense whose note starts with one of the line's words gives the category; otherwise it asks with one chip per flexible
  * category (the original six, and the rest behind More). A line with two readings ("coffee 7 40 euros") first
  * asks which amount. A line that says what was saved comes with an Undo button.
+ *
+ * `provider` reads the line (the local parser unless another is given), once per submit. Its category, account and
+ * date are checked against the data first: an unknown one falls back to the chips, the default account or today.
  */
-export function QuickAddField() {
+export function QuickAddField({ provider = localQuickAddProvider }: { provider?: QuickAddProvider }) {
   const id = useId();
   const [text, setText] = useState('');
   // Set while the amount buttons are shown: the two readings of the typed line, waiting for a tap.
   const [choice, setChoice] = useState<Choice | null>(null);
-  // Set while the chips are shown: what the typed line parsed to, waiting for a category.
-  const [pending, setPending] = useState<QuickAddAmount | null>(null);
+  // Set while the chips are shown: what the typed line was read as, waiting for a category.
+  const [pending, setPending] = useState<QuickAddAmountReading | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -138,13 +160,14 @@ export function QuickAddField() {
   }
 
   /**
-   * Saves to the account `pickQuickAddAccount` chooses, dated today. Says why in `error` when it cannot.
-   * Callers go through `runOnce`.
+   * Saves to the account the reading names, else the default account, dated the reading's day or today. Says why in
+   * `error` when it cannot. Callers go through `runOnce`.
    */
-  async function save(parsed: QuickAddAmount, categoryId: string) {
+  async function save(line: QuickAddAmountReading, categoryId: string) {
     setError(null);
     try {
-      const account = pickQuickAddAccount(await db.accounts.toArray());
+      // Read again rather than taken from the context: the chips can wait while the accounts change in Settings.
+      const account = accountFor(await db.accounts.toArray(), line.accountId);
       if (account === undefined) {
         setError('Add an account in Settings first.');
         return;
@@ -153,11 +176,11 @@ export function QuickAddField() {
       const result = buildEntry(
         {
           type: 'expense',
-          date: todayIso(now),
+          date: line.date ?? todayIso(now),
           accountId: account.id,
-          amountMinor: parsed.amountMinor,
+          amountMinor: line.amountMinor,
           categoryId,
-          note: parsed.note,
+          note: line.note,
         },
         account,
         await loadRates(),
@@ -181,41 +204,23 @@ export function QuickAddField() {
   }
 
   /**
-   * Saves under the category of an earlier expense with the same first word, or shows the chips when there is none.
-   * Callers go through `runOnce`.
+   * Saves under the category the line was read with, or shows the chips when it has none. The category is read once
+   * per line, so a tap on an amount button does not look it up again. Callers go through `runOnce`.
    */
-  async function saveOrAsk(parsed: QuickAddAmount) {
-    let suggestion: string | null;
-    try {
-      const history = await db.entries.where('type').equals('expense').toArray();
-      suggestion = suggestCategory(parsed.note, history);
-    } catch (readError) {
-      console.error('StudentsBudget: could not read the earlier entries', readError);
-      setError('Could not save the entry.');
-      return;
-    }
-
-    if (suggestion === null) {
+  async function saveOrAsk(line: QuickAddAmountReading) {
+    if (line.categoryId === null) {
       setError(null);
       setChoice(null);
-      setPending(parsed);
+      setPending(line);
       return;
     }
-    await save(parsed, suggestion);
+    await save(line, line.categoryId);
   }
 
-  /** Shows the two amount buttons, in the currency of the account quick add saves to. Callers go through `runOnce`. */
-  async function ask(readings: QuickAddChoice) {
-    let currency: CurrencyCode;
-    try {
-      currency = pickQuickAddAccount(await db.accounts.toArray())?.currency ?? 'EUR';
-    } catch (readError) {
-      console.error('StudentsBudget: could not read the accounts', readError);
-      setError('Could not save the entry.');
-      return;
-    }
+  /** Shows the two amount buttons, in the currency of the account quick add saves to. */
+  function ask(readings: QuickAddChoiceReading, accounts: Account[]) {
     setError(null);
-    setChoice({ ...readings, currency });
+    setChoice({ ...readings, currency: accountFor(accounts, readings.accountId)?.currency ?? 'EUR' });
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -227,16 +232,25 @@ export function QuickAddField() {
       setSaved(null);
       setChoice(null);
       setPending(null);
-      const parsed = parseQuickAdd(text);
-      if (parsed === null) {
+      let ctx: QuickAddContext;
+      let reading: QuickAddReading | null;
+      try {
+        ctx = await loadContext();
+        reading = checkReading(await provider.read(text, ctx), ctx);
+      } catch (readError) {
+        console.error('StudentsBudget: could not read the quick-add line', readError);
+        setError('Could not save the entry.');
+        return;
+      }
+      if (reading === null) {
         setError('Add an amount, like “döner 6”');
         return;
       }
-      if ('kind' in parsed) {
-        await ask(parsed);
+      if (reading.kind === 'choice') {
+        ask(reading, ctx.accounts);
         return;
       }
-      await saveOrAsk(parsed);
+      await saveOrAsk(reading);
     });
   }
 
@@ -281,7 +295,7 @@ export function QuickAddField() {
         <AmountChoice
           choice={choice}
           busy={busy}
-          onPick={(amountMinor) => void runOnce(() => saveOrAsk({ amountMinor, note: choice.note }))}
+          onPick={(amountMinor) => void runOnce(() => saveOrAsk(chosenAmount(choice, amountMinor)))}
         />
       )}
 

@@ -3,9 +3,9 @@ import type { Account, Amount, Entry, Plan } from '../src/db/types';
 import { FRANKFURTER, completeSetup, fillSetup, readStore } from './helpers/setup';
 
 // `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day: food 310 and eating out 124 are
-// planned from the 16th, so 16 of October's 31 days (food €160, eating out €64). The week Oct 12-18 has three days
-// of budget: food 310 * 3/31 = €30 and eating out 124 * 3/31 = €12. Available each month: 900 - 400 rent - 60 for
-// the €300 fee (spread over October to February) = €440.
+// planned in full (€434), though the plan starts on the 16th. Three weeks of October are left that day (12-18, 19-25
+// and 26-31), so the week Oct 12-18 is €434 / 3 = €145. Available each month: 900 - 400 rent - 60 for the €300 fee
+// (spread over October to February) = €440.
 
 function leftThisMonth(page: Page) {
   return page.getByRole('region', { name: 'Left to spend this month' });
@@ -83,21 +83,27 @@ test('leads with what is left to spend this month, and under it what is safe thi
   await completeSetup(page);
   const card = leftThisMonth(page);
 
-  await expect(card.getByText('€224', { exact: true })).toBeVisible();
-  await expect(card.getByText('This week: €42 safe to spend', { exact: true })).toBeVisible();
+  await expect(card.getByText('€434', { exact: true })).toBeVisible();
+  await expect(card.getByText('This week: €145 safe to spend', { exact: true })).toBeVisible();
 
   // The first "döner" has no learned category, so quick add asks.
   await quickAdd(page, 'döner 6');
   await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
-  await expect(card.getByText('€218', { exact: true })).toBeVisible();
-  await expect(card.getByText('This week: €36 safe to spend', { exact: true })).toBeVisible();
+  await expect(card.getByText('€428', { exact: true })).toBeVisible();
+  await expect(card.getByText('This week: €139 safe to spend', { exact: true })).toBeVisible();
 
-  // Overspending reads calmly, for the month and for the week.
+  // Overspending reads calmly, for the week first, with the month still ahead...
   await quickAdd(page, 'döner 300');
   await expect(page.getByRole('status')).toHaveText('Saved €300.00 · döner · Eating out');
-  await expect(card.getByText('€82 over this month', { exact: true })).toBeVisible();
-  await expect(card.getByText('This week: €264 over', { exact: true })).toBeVisible();
+  await expect(card.getByText('€128', { exact: true })).toBeVisible();
+  await expect(card.getByText('This week: €161 over', { exact: true })).toBeVisible();
+
+  // ...and then for the month.
+  await quickAdd(page, 'döner 200');
+  await expect(page.getByRole('status')).toHaveText('Saved €200.00 · döner · Eating out');
+  await expect(card.getByText('€72 over this month', { exact: true })).toBeVisible();
+  await expect(card.getByText('This week: €361 over', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
@@ -133,24 +139,24 @@ test('the envelopes show what is left of the month and how much of it is used', 
   const food = list.getByRole('listitem').filter({ hasText: 'Food & groceries' });
   const eatingOut = list.getByRole('listitem').filter({ hasText: 'Eating out' });
 
-  // From the setup day only: 16 of October's 31 days are planned.
-  await expect(food.getByText('€160 left of €160 this month', { exact: true })).toBeVisible();
-  await expect(eatingOut.getByText('€64 left of €64 this month', { exact: true })).toBeVisible();
+  // The whole month is planned, though the plan starts on the 16th.
+  await expect(food.getByText('€310 left of €310 this month', { exact: true })).toBeVisible();
+  await expect(eatingOut.getByText('€124 left of €124 this month', { exact: true })).toBeVisible();
   // Envelopes planned at €0 and unused stay out of the way.
   await expect(list.getByRole('listitem')).toHaveCount(2);
 
   await quickAdd(page, 'döner 6');
   await page.getByRole('button', { name: 'Eating out' }).click();
-  await expect(eatingOut.getByText('€58 left of €64 this month', { exact: true })).toBeVisible();
+  await expect(eatingOut.getByText('€118 left of €124 this month', { exact: true })).toBeVisible();
   const bar = eatingOut.getByRole('progressbar', { name: 'Eating out this month' });
-  await expect(bar).toHaveAttribute('aria-valuetext', '€58 left of €64 this month');
-  await expect(bar).toHaveAttribute('aria-valuenow', '9');
-  await expect(food.getByText('€160 left of €160 this month', { exact: true })).toBeVisible();
+  await expect(bar).toHaveAttribute('aria-valuetext', '€118 left of €124 this month');
+  await expect(bar).toHaveAttribute('aria-valuenow', '5');
+  await expect(food.getByText('€310 left of €310 this month', { exact: true })).toBeVisible();
 
   // Over the plan: the real numbers show, the bar stops at full.
-  await quickAdd(page, 'döner 100');
-  await expect(eatingOut.getByText('€42 over the €64 planned this month', { exact: true })).toBeVisible();
-  await expect(bar).toHaveAttribute('aria-valuetext', '€42 over the €64 planned this month');
+  await quickAdd(page, 'döner 130');
+  await expect(eatingOut.getByText('€12 over the €124 planned this month', { exact: true })).toBeVisible();
+  await expect(bar).toHaveAttribute('aria-valuetext', '€12 over the €124 planned this month');
   await expect(bar).toHaveAttribute('aria-valuenow', '100');
   await expect(bar).toHaveAttribute('aria-valuemax', '100');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
@@ -160,25 +166,25 @@ test('an amount under 50 cents keeps its cents instead of reading as €0', asyn
   await completeSetup(page);
   const card = leftThisMonth(page);
   const row = (name: string) => envelopes(page).getByRole('listitem').filter({ hasText: name });
-  await expect(card.getByText('€224', { exact: true })).toBeVisible();
+  await expect(card.getByText('€434', { exact: true })).toBeVisible();
 
-  // €159.60 of food's €160 leaves €0.40.
-  await quickAdd(page, 'Rewe 159,60');
+  // €309.60 of food's €310 leaves €0.40.
+  await quickAdd(page, 'Rewe 309,60');
   await page.getByRole('button', { name: 'Food & groceries' }).click();
-  await expect(row('Food & groceries').getByText('€0.40 left of €160 this month', { exact: true })).toBeVisible();
-  await expect(card.getByText('€64.40', { exact: true })).toHaveCount(0);
-  await expect(card.getByText('€64', { exact: true })).toBeVisible();
+  await expect(row('Food & groceries').getByText('€0.40 left of €310 this month', { exact: true })).toBeVisible();
+  await expect(card.getByText('€124.40', { exact: true })).toHaveCount(0);
+  await expect(card.getByText('€124', { exact: true })).toBeVisible();
 
   // Eating out used up exactly: a plain €0, and the whole month is down to the €0.40 in food.
-  await quickAdd(page, 'döner 64');
+  await quickAdd(page, 'döner 124');
   await page.getByRole('button', { name: 'Eating out' }).click();
-  await expect(row('Eating out').getByText('€0 left of €64 this month', { exact: true })).toBeVisible();
+  await expect(row('Eating out').getByText('€0 left of €124 this month', { exact: true })).toBeVisible();
   await expect(card.getByText('€0.40', { exact: true })).toBeVisible();
 
   // 80 cents more is €0.40 over, in food and in total.
   await quickAdd(page, 'Rewe 0,80');
   await expect(
-    row('Food & groceries').getByText('€0.40 over the €160 planned this month', { exact: true }),
+    row('Food & groceries').getByText('€0.40 over the €310 planned this month', { exact: true }),
   ).toBeVisible();
   await expect(card.getByText('€0.40 over this month', { exact: true })).toBeVisible();
 });
@@ -192,20 +198,21 @@ test('the week follows the date when the app is opened again on a later day', as
   await page.clock.setFixedTime(new Date(2026, 9, 18, 12, 0, 0));
   await page.reload();
   const card = leftThisMonth(page);
-  await expect(card.getByText('This week: €42 safe to spend', { exact: true })).toBeVisible();
+  // Still three weeks of October left (12-18, 19-25, 26-31): €434 / 3.
+  await expect(card.getByText('This week: €145 safe to spend', { exact: true })).toBeVisible();
 
   // Monday just after midnight. Nothing is written; the app only comes back from the background.
   await page.clock.setFixedTime(new Date(2026, 9, 19, 0, 0, 5));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  // Ten days of the plan so far this month: food 310 * 10/31 + eating out 124 * 10/31.
-  await expect(card.getByText('This week: €140 safe to spend', { exact: true })).toBeVisible();
+  // Two weeks left (19-25 and 26-31): €434 / 2.
+  await expect(card.getByText('This week: €217 safe to spend', { exact: true })).toBeVisible();
   // The month does not change with the week.
-  await expect(card.getByText('€224', { exact: true })).toBeVisible();
+  await expect(card.getByText('€434', { exact: true })).toBeVisible();
 
-  // The next week is cut off at the end of October. This time the window gets focus.
+  // The last week is cut off at the end of October, and has all that is left. This time the window gets focus.
   await page.clock.setFixedTime(new Date(2026, 9, 26, 9, 0, 0));
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await expect(card.getByText('This week: €224 safe to spend', { exact: true })).toBeVisible();
+  await expect(card.getByText('This week: €434 safe to spend', { exact: true })).toBeVisible();
 });
 
 test('the week turns over at midnight while the app stays open', async ({ page }) => {
@@ -214,18 +221,18 @@ test('the week turns over at midnight while the app stays open', async ({ page }
   await page.clock.install({ time: new Date(2026, 9, 11, 23, 50, 0) });
   await completeSetup(page);
   const card = leftThisMonth(page);
-  // One day of budget so far (the setup day): food 310/31 + eating out 124/31.
-  await expect(card.getByText('This week: €14 safe to spend', { exact: true })).toBeVisible();
+  // Four weeks of October are left on Sunday 11 Oct (5-11, 12-18, 19-25 and 26-31): €434 / 4 = €108.50.
+  await expect(card.getByText('This week: €109 safe to spend', { exact: true })).toBeVisible();
 
   // Nobody touches the app, and no entry is saved: the timer for midnight does it. Mon 12 - Sun 18 Oct has
-  // eight days of budget counted from the 11th.
+  // three weeks left: €434 / 3.
   await page.clock.fastForward('15:00');
-  await expect(card.getByText('This week: €112 safe to spend', { exact: true })).toBeVisible();
+  await expect(card.getByText('This week: €145 safe to spend', { exact: true })).toBeVisible();
 });
 
 test('coming back from another page shows what was added there', async ({ page }) => {
   await completeSetup(page);
-  await expect(leftThisMonth(page).getByText('€224', { exact: true })).toBeVisible();
+  await expect(leftThisMonth(page).getByText('€434', { exact: true })).toBeVisible();
 
   // The dev server's "Cache disabled" badge covers the left of the nav on a phone, so the click goes to the link.
   await page.getByRole('link', { name: 'Entries' }).dispatchEvent('click');
@@ -235,7 +242,7 @@ test('coming back from another page shows what was added there', async ({ page }
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
 
   await page.getByRole('link', { name: 'Home' }).dispatchEvent('click');
-  await expect(leftThisMonth(page).getByText('€218', { exact: true })).toBeVisible();
+  await expect(leftThisMonth(page).getByText('€428', { exact: true })).toBeVisible();
   await expect(page).toHaveURL('/');
 });
 
@@ -251,7 +258,7 @@ test('the Saved line is gone when the person comes back to the page', async ({ p
   await page.getByRole('link', { name: 'Entries' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Entries' })).toBeVisible();
   await page.getByRole('link', { name: 'Home' }).click();
-  await expect(leftThisMonth(page).getByText('€218', { exact: true })).toBeVisible();
+  await expect(leftThisMonth(page).getByText('€428', { exact: true })).toBeVisible();
 
   await expect(page.getByRole('status')).toHaveText('');
   await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0);
@@ -389,6 +396,57 @@ test('when the plan fits, each ranged category starts at the middle of its range
   await expect(panel.getByText('€800 left for savings', { exact: true })).toBeVisible();
 });
 
+test('with an everyday budget, the suggestion keeps to it, or to what is available when that is less', async ({
+  page,
+}) => {
+  await completeSetup(page, { budget: '600' });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await suggestionLink(page).click();
+  const panel = suggestion(page);
+  const field = (name: string) => panel.getByRole('textbox', { name: `${name} per month`, exact: true });
+  const amounts = async () =>
+    Promise.all(
+      ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other'].map((name) =>
+        field(name).inputValue(),
+      ),
+    );
+
+  // €600 is more than the €440 available, so the amounts share out €440: the same as without a budget.
+  await expect(
+    panel.getByText(
+      '€440 a month is available after your fixed costs and set-asides. That is less than your everyday budget of ' +
+        '€600, so these amounts keep to €440.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(field('Food & groceries')).toHaveValue('200');
+  expect(await amounts()).toEqual(['200', '40', '40', '15', '40', '105']);
+  await expect(panel.getByText('€440 of your €600 budget · €0 left for savings', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  // A budget of €400 is less than what is available: the amounts keep to it, and the other €40 is left for savings.
+  const [plan] = await readStore<Plan>(page, 'plan');
+  await writeStore(page, 'plan', [{ ...plan, spendingBudgetMinor: 40000 }]);
+  await page.reload();
+  await suggestionLink(page).click();
+  await expect(
+    panel.getByText(
+      '€440 a month is available after your fixed costs and set-asides. These amounts keep to your everyday budget ' +
+        'of €400.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(field('Food & groceries')).toHaveValue('185');
+  expect(await amounts()).toEqual(['185', '35', '35', '10', '35', '100']);
+  await expect(panel.getByText('€400 of your €400 budget · €40 left for savings', { exact: true })).toBeVisible();
+
+  // Going over the budget reads calmly, and only guides: Use this budget still works.
+  await field('Food & groceries').fill('215');
+  await expect(panel.getByText('€30 over your €400 budget · €10 left for savings', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+  await expect(panel.getByRole('button', { name: 'Use this budget', exact: true })).toBeEnabled();
+});
+
 test('Not now and the saved note last until the month turns', async ({ page }) => {
   await completeSetup(page);
   // Tuesday 3 Nov: the first week, so the suggestion leads.
@@ -431,28 +489,32 @@ test('in the first week of the month the suggested budget leads, and using it ch
   await expect(panel).toBeVisible();
   await expect(suggestionLink(page)).toHaveCount(0);
 
-  // Before: food 310 and eating out 124 for the whole month, and eight of November's thirty days so far.
+  // Before: food 310 and eating out 124 for the whole month. Tue 3 Nov has five weeks of November left (2-8, 9-15,
+  // 16-22, 23-29 and 30 Nov - 6 Dec): €434 / 5 = €86.80.
   const card = leftThisMonth(page);
   await expect(card.getByText('€434', { exact: true })).toBeVisible();
-  await expect(card.getByText('This week: €116 safe to spend', { exact: true })).toBeVisible();
+  await expect(card.getByText('This week: €87 safe to spend', { exact: true })).toBeVisible();
   await expect(envelopes(page).getByRole('listitem')).toHaveCount(2);
 
   // The middles of the ranges, rounded to €5, add up to €640, and €650 with health's €10: more than the €440
-  // available, so every ranged category is at the bottom of its range.
-  await expect(panel.getByText('€440 a month is available after your fixed costs and set-asides.')).toBeVisible();
+  // available. The minimums add up to €390 with health, so each ranged category goes the same share of the way from
+  // its minimum to its middle (€50 of €260), to €5, and all €440 is used. No everyday budget, so only the €440 shows.
+  await expect(
+    panel.getByText('€440 a month is available after your fixed costs and set-asides.', { exact: true }),
+  ).toBeVisible();
   const field = (name: string) => panel.getByRole('textbox', { name: `${name} per month`, exact: true });
-  await expect(field('Food & groceries')).toHaveValue('180');
-  await expect(field('Eating out')).toHaveValue('30');
-  await expect(field('Going out')).toHaveValue('30');
-  await expect(field('Transport')).toHaveValue('10');
-  await expect(field('Shopping')).toHaveValue('35');
-  await expect(field('Other')).toHaveValue('95');
+  await expect(field('Food & groceries')).toHaveValue('195');
+  await expect(field('Eating out')).toHaveValue('40');
+  await expect(field('Going out')).toHaveValue('40');
+  await expect(field('Transport')).toHaveValue('15');
+  await expect(field('Shopping')).toHaveValue('40');
+  await expect(field('Other')).toHaveValue('100');
   // Last month's €12 is rounded to €5. €2 rounds to €0 but is still spending, so its row keeps that basis (below);
   // a category with neither a range nor spending starts at €0.
   await expect(field('Health & pharmacy')).toHaveValue('10');
   await expect(field('Study materials')).toHaveValue('');
   await expect(field('Gifts')).toHaveValue('');
-  await expect(panel.getByText('€50 left for savings', { exact: true })).toBeVisible();
+  await expect(panel.getByText('€0 left for savings', { exact: true })).toBeVisible();
 
   // Where each amount comes from. Six categories have a range, and each shows its source.
   await expect(panel.getByText('Students here: €180–335', { exact: true })).toBeVisible();
@@ -463,9 +525,12 @@ test('in the first week of the month the suggested budget leads, and using it ch
   await expect(panel.locator('summary', { hasText: 'Source' })).toHaveCount(6);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  // Edit one amount: food from €180 to €200 leaves €30.
-  await field('Food & groceries').fill('200');
-  await expect(panel.getByText('€30 left for savings', { exact: true })).toBeVisible();
+  // Edit one amount: food from €195 to €175 leaves €20, and €10 more than what is available is €10 over.
+  await field('Food & groceries').fill('175');
+  await expect(panel.getByText('€20 left for savings', { exact: true })).toBeVisible();
+  await field('Food & groceries').fill('205');
+  await expect(panel.getByText('€10 over what is available', { exact: true })).toBeVisible();
+  await field('Food & groceries').fill('175');
   await panel.getByRole('button', { name: 'Use this budget', exact: true }).click();
 
   // The panel steps back and the envelopes follow the amounts, 12 of them, with only the used ones listed.
@@ -474,11 +539,12 @@ test('in the first week of the month the suggested budget leads, and using it ch
   await expect(suggestionLink(page)).toBeVisible();
   const list = envelopes(page);
   await expect(list.getByRole('listitem')).toHaveCount(7);
-  await expect(list.getByText('€200 left of €200 this month', { exact: true })).toBeVisible();
-  await expect(list.getByText('€30 left of €30 this month', { exact: true })).toHaveCount(2);
-  await expect(list.getByText('€95 left of €95 this month', { exact: true })).toBeVisible();
-  await expect(card.getByText('€410', { exact: true })).toBeVisible();
-  await expect(card.getByText('This week: €109 safe to spend', { exact: true })).toBeVisible();
+  await expect(list.getByText('€175 left of €175 this month', { exact: true })).toBeVisible();
+  await expect(list.getByText('€40 left of €40 this month', { exact: true })).toHaveCount(3);
+  await expect(list.getByText('€100 left of €100 this month', { exact: true })).toBeVisible();
+  await expect(card.getByText('€420', { exact: true })).toBeVisible();
+  // €420 / 5 = €84.
+  await expect(card.getByText('This week: €84 safe to spend', { exact: true })).toBeVisible();
 
   // Only the envelopes were written: the guesses and the rest of the plan are as they were.
   expect(await readStore(page, 'guesses')).toEqual(guessesBefore);
@@ -486,18 +552,18 @@ test('in the first week of the month the suggested budget leads, and using it ch
   expect(planAfter).toEqual({
     ...planBefore,
     envelopes: [
-      { categoryId: 'food', monthlyMinor: 20000 },
-      { categoryId: 'eating-out', monthlyMinor: 3000 },
-      { categoryId: 'going-out', monthlyMinor: 3000 },
-      { categoryId: 'transport', monthlyMinor: 1000 },
-      { categoryId: 'shopping', monthlyMinor: 3500 },
+      { categoryId: 'food', monthlyMinor: 17500 },
+      { categoryId: 'eating-out', monthlyMinor: 4000 },
+      { categoryId: 'going-out', monthlyMinor: 4000 },
+      { categoryId: 'transport', monthlyMinor: 1500 },
+      { categoryId: 'shopping', monthlyMinor: 4000 },
       { categoryId: 'health', monthlyMinor: 1000 },
       { categoryId: 'personal-care', monthlyMinor: 0 },
       { categoryId: 'study', monthlyMinor: 0 },
       { categoryId: 'household', monthlyMinor: 0 },
       { categoryId: 'travel', monthlyMinor: 0 },
       { categoryId: 'gifts', monthlyMinor: 0 },
-      { categoryId: 'other', monthlyMinor: 9500 },
+      { categoryId: 'other', monthlyMinor: 10000 },
     ],
   });
 });

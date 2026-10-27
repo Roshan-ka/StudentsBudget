@@ -1,0 +1,684 @@
+{
+  "generatedFor": "2026-10-21",
+  "month": "2026-10",
+  "cases": [
+    {
+      "path": "valid/01-everyday-student.json",
+      "description": "Realistic two-month demo with 47 entries and three accounts.",
+      "checks": [
+        "Open Home, Entries, Charts and Settings. Shopping is over budget in the demo month.",
+        "Balances: local EUR 1,680.22; home INR 170,050.00; cash EUR 143.00. Combined EUR 3,613.22 at the fictional manual rate INR 95 per EUR.",
+        "Dates moved to the demo month, but this file can include purchases later than today. Entries and monthly totals include those dates."
+      ],
+      "expected": {
+        "balances": {
+          "demo-local": 168022,
+          "demo-home": 17005000,
+          "demo-cash": 14300
+        },
+        "accounts": 3,
+        "entries": 47,
+        "leftMinor": 13810
+      },
+      "accountSummary": "Local bank (demo): €1,680.22; Home bank (demo): ₹170,050.00; Cash (demo): €143.00"
+    },
+    {
+      "path": "valid/02-clean-budget.json",
+      "description": "Clean starting point for entering expenses, income and transfers.",
+      "checks": [
+        "Home: EUR 500 left this month. Settings: bank EUR 1,000; cash EUR 100; combined EUR 1,100.",
+        "Home on 21-10-2026: \"This week: €250 safe to spend\", and \"This week: €240 safe to spend\" after EUR 10 of Food. The week figure changes with the date.",
+        "Quick add demo-snack 6, choose Eating out, then demo-snack 4: second entry remembers the category. Undo within 10 seconds removes only the EUR 4 entry.",
+        "Quick add defaults to the EUR bank. Edit the EUR 6 entry to EUR 7.50; exactly one entry remains. Cancel a deletion, then confirm it."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 50000,
+        "weekMinor": 25000,
+        "weekAfterFoodMinor": 24000
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/03-overspent-swaps.json",
+      "description": "Overspending, negative remaining money and saving suggestions.",
+      "checks": [
+        "Home: EUR 60 over this month. Food EUR 50 over; Eating out EUR 40 over; Shopping EUR 40 over; Transport EUR 10 over.",
+        "Open the Eating out Try this suggestion: sources and saving explanation appear. Check-in also reviews the overspent categories."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 44000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 4,
+        "leftMinor": -6000
+      },
+      "accountSummary": "Demo EUR bank: €440.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/04-zero-budget.json",
+      "description": "All amounts zero; empty charts and no earned badges.",
+      "checks": [
+        "Home shows EUR 0, never NaN or Infinity. Charts explain the empty data. Adding EUR 1 spending is allowed and makes the month EUR 1 over."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 0,
+          "cash": 0
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 0
+      },
+      "accountSummary": "Demo EUR bank: €0.00; Demo cash: €0.00"
+    },
+    {
+      "path": "valid/05-overdrawn-accounts.json",
+      "description": "Negative balances are valid and distinct from the envelope budget.",
+      "checks": [
+        "Settings: bank -EUR 50; cash -EUR 5; combined -EUR 55. Home still has EUR 485 left in envelopes."
+      ],
+      "expected": {
+        "balances": {
+          "bank": -5000,
+          "cash": -500
+        },
+        "accounts": 2,
+        "entries": 1,
+        "leftMinor": 48500
+      },
+      "accountSummary": "Demo EUR bank: -€50.00; Demo cash: -€5.00"
+    },
+    {
+      "path": "valid/06-all-currencies.json",
+      "description": "All seven supported currencies with stable fictional manual rates.",
+      "checks": [
+        "Combined balance EUR 1,680; Home EUR 480 left. Both imported foreign expenses count as EUR 10, even after a rate change.",
+        "Add INR 950 through the full expense form: EUR 10 spending at INR 95 per EUR. Manual INR 0 is refused; 100 is accepted and affects future conversions and account totals.",
+        "Use ECB rate again only after checking the manual case: live market values are deliberately not fixed expectations."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000,
+          "INR": 855000,
+          "USD": 11250,
+          "GBP": 8000,
+          "CHF": 10000,
+          "CNY": 80000,
+          "TRY": 400000
+        },
+        "accounts": 8,
+        "entries": 2,
+        "leftMinor": 48000
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00; Demo INR: ₹8,550.00; Demo USD: US$112.50; Demo GBP: £80.00; Demo CHF: CHF 100.00; Demo CNY: CN¥800.00; Demo TRY: TRY 4,000.00"
+    },
+    {
+      "path": "valid/07-missing-exchange-rate.json",
+      "description": "Foreign account without any saved rate; test OFFLINE.",
+      "checks": [
+        "Load/cache the production app first. Go offline before restoring this file so a live rate cannot fill the gap.",
+        "The account shows INR 9,500. Combined balance shows a dash and names the missing INR rate. A foreign expense cannot save until a rate exists.",
+        "Set a manual INR rate of 95 in Settings. Combined balance becomes EUR 100 and INR 95 spending converts to EUR 1."
+      ],
+      "expected": {
+        "balances": {
+          "INR": 950000
+        },
+        "accounts": 1,
+        "entries": 0,
+        "leftMinor": 50000
+      },
+      "accountSummary": "INR bank without rate: ₹9,500.00"
+    },
+    {
+      "path": "valid/08-recurring-due-and-paused.json",
+      "description": "Three occurrences due on the generation date; one paused.",
+      "checks": [
+        "On the demo date, restore then open Entries: Parents EUR 1,200 income, Job EUR 50 income, Rent EUR 450 expense appear with Recurring tags; no Phone entry.",
+        "After posting: bank EUR 1,800; cash EUR 100; combined EUR 1,900. Envelope money stays EUR 500.",
+        "Reload twice: exactly three entries remain. Settings lets you pause, resume and edit schedules; resuming starts from the next day, without backfilling the pause."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 50000,
+        "afterPosting": {
+          "entries": 3,
+          "bankMinor": 180000
+        }
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/09-twelve-months-all-categories.json",
+      "description": "Twelve populated months, every spending category, income and transfers.",
+      "checks": [
+        "This month spending EUR 201; income EUR 1,400; saved EUR 1,199. Twelve months: spending EUR 2,412; income EUR 16,800; saved EUR 14,388.",
+        "Try Donut/Bars/Table, Columns/Line/Table and 1/3/6/12-month ranges. The donut groups small categories into Everything else.",
+        "Tap a category or time column to open matching entries. Everything else has no drill-down. Multi-month category drill-down opens the end month.",
+        "The EUR 20 monthly transfers move balances without increasing chart income or spending. Check narrow phone layout and keyboard navigation."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 1514800,
+          "cash": 34000
+        },
+        "accounts": 2,
+        "entries": 264,
+        "leftMinor": 42200
+      },
+      "accountSummary": "Demo EUR bank: €15,148.00; Demo cash: €340.00"
+    },
+    {
+      "path": "valid/10-badges-bronze.json",
+      "description": "6 recorded under-budget weeks; bronze tier and all four badges.",
+      "checks": [
+        "Badges: Under-Budget Week bronze, Logging Streak earned, Ramen Royalty earned, Latte Survivor earned.",
+        "Saved weeks represent historical EUR 100 weekly allowances; changing today's plan does not rewrite those records."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 78300,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 14,
+        "leftMinor": 48500,
+        "badgeTier": "bronze"
+      },
+      "accountSummary": "Demo EUR bank: €783.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/11-badges-silver.json",
+      "description": "12 recorded under-budget weeks; silver tier and all four badges.",
+      "checks": [
+        "Badges: Under-Budget Week silver, Logging Streak earned, Ramen Royalty earned, Latte Survivor earned.",
+        "Saved weeks represent historical EUR 100 weekly allowances; changing today's plan does not rewrite those records."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 69000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 26,
+        "leftMinor": 48500,
+        "badgeTier": "silver"
+      },
+      "accountSummary": "Demo EUR bank: €690.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/12-badges-gold.json",
+      "description": "26 recorded under-budget weeks; gold tier and all four badges.",
+      "checks": [
+        "Badges: Under-Budget Week gold, Logging Streak earned, Ramen Royalty earned, Latte Survivor earned.",
+        "Saved weeks represent historical EUR 100 weekly allowances; changing today's plan does not rewrite those records."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 33300,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 54,
+        "leftMinor": 48500,
+        "badgeTier": "gold"
+      },
+      "accountSummary": "Demo EUR bank: €333.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/13-away-week.json",
+      "description": "An earned streak with a recorded away week and a current away mark.",
+      "checks": [
+        "Check-in: I was away this week is selected. Badges: streak is paused; away weeks do not count toward Under-Budget Week or grocery records. Toggle off and reload: the current mark stays off."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 78300,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 14,
+        "leftMinor": 48500
+      },
+      "accountSummary": "Demo EUR bank: €783.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/14-fresh-setup.json",
+      "description": "Accepted empty backup to demonstrate onboarding.",
+      "checks": [
+        "Restore returns to setup, with no plan or accounts. Complete the wizard on a phone-sized screen.",
+        "Try blank/zero amounts, invalid text, Back/Next, city cost sources and suggested envelopes. Save a valid plan; reopening setup should not create a second one."
+      ],
+      "expected": {
+        "balances": {},
+        "accounts": 0,
+        "entries": 0
+      },
+      "accountSummary": ""
+    },
+    {
+      "path": "valid/15-setup-date-boundary.json",
+      "description": "Spending before setup affects balances but not the setup month's envelopes.",
+      "checks": [
+        "Home has EUR 480 left. Combined accounts EUR 1,070: both purchases affect balances.",
+        "Charts for the demo month count only EUR 20 of grocery spending. On the first of a month, the earlier EUR 10 belongs to the previous month instead.",
+        "Check-in lists a pre-setup purchase with an exclusion note when it falls in the displayed week; otherwise find it through Entries."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 97000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 2,
+        "leftMinor": 48000
+      },
+      "accountSummary": "Demo EUR bank: €970.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/16-one-off-reserves.json",
+      "description": "Past, current and future due months.",
+      "checks": [
+        "Edit plan keeps all three costs and remains saveable. Plan summary sets aside EUR 50 this month, leaving EUR 650 available after fixed costs; envelope total remains EUR 500. One-off reserves do not create transactions by themselves."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 50000,
+        "setAsideMinor": 5000,
+        "availableMinor": 65000
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/17-cents-unicode-long-text.json",
+      "description": "One-cent precision, multilingual text, long notes and literal markup.",
+      "checks": [
+        "Home shows EUR 0.29 left, with cents retained. Bank EUR 999.99. Note displays as text, including the script characters; no alert executes. Edit/reload/export/restore preserve the note. Phone view has no sideways scrolling."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 99999,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 1,
+        "leftMinor": 29
+      },
+      "accountSummary": "Demo EUR bank: €999.99; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/18-default-cash-account.json",
+      "description": "Explicit default cash overrides the automatic EUR bank choice.",
+      "checks": [
+        "Quick add demo-default 6 and choose a category. Cash becomes EUR 94; bank stays EUR 1,000. Set bank as default in Settings and add demo-default 4: bank becomes EUR 996; cash stays EUR 94."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 50000
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/19-profile-discount-feedback.json",
+      "description": "Profile, semester dates and saved feedback on real catalog IDs.",
+      "checks": [
+        "Home greets Alex Demo. Settings contains the university and both semester dates. Change the name, save and reload.",
+        "Tips > Discounts: Asia Restaurant Sunrise is marked Still works; Mensa Uni Regensburg is marked as no longer working and sorted behind working offers. Change feedback, filter a category and reload.",
+        "Semester dates allow a next-semester-fee offer in Edit plan. A published amount depends on the bundled semester catalog; do not expect a quote for every future semester.",
+        "Profile form refuses reversed or partially filled semester dates. Clear both dates to save without a semester."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 50000
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/20-exactly-exhausted.json",
+      "description": "Every nonzero envelope is spent exactly to its limit.",
+      "checks": [
+        "Home: EUR 0 left this month, with no negative-zero display. Add EUR 0.01 Food spending: the month becomes EUR 0.01 over."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 50000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 6,
+        "leftMinor": 0
+      },
+      "accountSummary": "Demo EUR bank: €500.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/21-income-below-fixed-costs.json",
+      "description": "A plan with EUR 100 income, EUR 500 fixed and EUR 500 envelopes.",
+      "checks": [
+        "The plan still restores and can be edited. Suggested budget explains that nothing is available and suggests EUR 0 everywhere, so Use this budget is disabled. Type an amount into one envelope, then press Use this budget: only the envelopes change; income, fixed costs, account balances and entries stay as they were."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 50000,
+        "availableMinor": -40000
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/22-legacy-version-1.json",
+      "description": "Version 1 compatibility and missing built-in categories.",
+      "checks": [
+        "Restore succeeds; the app supplies all 26 built-in categories. Profile and votes are empty. Export produces a current version 3 backup."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 50000
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/23-legacy-version-2.json",
+      "description": "Version 2 compatibility and missing built-in categories.",
+      "checks": [
+        "Restore succeeds; the app supplies all 26 built-in categories. Profile and votes are empty. Export produces a current version 3 backup."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 50000
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00"
+    },
+    {
+      "path": "valid/24-unknown-extra-fields.json",
+      "description": "Unknown object fields are ignored for forward-compatible additions.",
+      "checks": [
+        "Restore succeeds with the same values as 02-clean-budget. Export does not retain unknown fields."
+      ],
+      "expected": {
+        "balances": {
+          "bank": 100000,
+          "cash": 10000
+        },
+        "accounts": 2,
+        "entries": 0,
+        "leftMinor": 50000
+      },
+      "accountSummary": "Demo EUR bank: €1,000.00; Demo cash: €100.00"
+    },
+    {
+      "path": "invalid/wrong-app.json",
+      "error": "This isn't a StudentsBudget backup file."
+    },
+    {
+      "path": "invalid/newer-version.json",
+      "error": "This backup is from a newer version of the app."
+    },
+    {
+      "path": "invalid/missing-version.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/missing-exported-at.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/missing-data.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/missing-data-accounts.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/missing-data-categories.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/missing-data-entries.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/missing-data-plan.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/missing-data-guesses.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/missing-data-fx-rates.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/unsupported-version-zero.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/version-is-text.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/bad-export-timestamp.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/unknown-currency.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/unknown-city.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/rate-zero.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/rate-negative.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/bad-entry-date-2026-02-30.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/bad-entry-date-21-10-2026.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/fractional-minor-units.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/amount-is-text.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/entry-zero.json",
+      "error": "This backup file is damaged: an amount is zero or negative."
+    },
+    {
+      "path": "invalid/entry-negative.json",
+      "error": "This backup file is damaged: an amount is zero or negative."
+    },
+    {
+      "path": "invalid/entry-negative-euros.json",
+      "error": "This backup file is damaged: an amount is negative."
+    },
+    {
+      "path": "invalid/missing-entry-account.json",
+      "error": "This backup file is damaged: an entry uses an account that isn't in the file."
+    },
+    {
+      "path": "invalid/missing-entry-category.json",
+      "error": "This backup file is damaged: an entry uses a category that isn't in the file."
+    },
+    {
+      "path": "invalid/unknown-plan-category.json",
+      "error": "This backup file is damaged: the plan or the guesses use an unknown category."
+    },
+    {
+      "path": "invalid/negative-envelope.json",
+      "error": "This backup file is damaged: an amount is negative."
+    },
+    {
+      "path": "invalid/negative-spending-budget.json",
+      "error": "This backup file is damaged: an amount is negative."
+    },
+    {
+      "path": "invalid/missing-transfer-target.json",
+      "error": "This backup file is damaged: a transfer goes to an account that isn't in the file."
+    },
+    {
+      "path": "invalid/transfer-without-target-field.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/transfer-received-zero.json",
+      "error": "This backup file is damaged: an amount is zero or negative."
+    },
+    {
+      "path": "invalid/duplicate-accounts.json",
+      "error": "This backup file is damaged: two rows share the same id."
+    },
+    {
+      "path": "invalid/duplicate-categories.json",
+      "error": "This backup file is damaged: two rows share the same id."
+    },
+    {
+      "path": "invalid/duplicate-entries.json",
+      "error": "This backup file is damaged: two rows share the same id."
+    },
+    {
+      "path": "invalid/duplicate-guesses.json",
+      "error": "This backup file is damaged: two rows share the same id."
+    },
+    {
+      "path": "invalid/duplicate-fx-rates.json",
+      "error": "This backup file is damaged: two rows share the same id."
+    },
+    {
+      "path": "invalid/duplicate-week-results.json",
+      "error": "This backup file is damaged: two rows share the same id."
+    },
+    {
+      "path": "invalid/duplicate-discount-votes.json",
+      "error": "This backup file is damaged: two rows share the same id."
+    },
+    {
+      "path": "invalid/duplicate-one-offs.json",
+      "error": "This backup file is damaged: two rows share the same id."
+    },
+    {
+      "path": "invalid/duplicate-schedules.json",
+      "error": "This backup file is damaged: two rows share the same id."
+    },
+    {
+      "path": "invalid/schedule-missing-account.json",
+      "error": "This backup file is damaged: a fixed cost or income uses an account that isn't in the file."
+    },
+    {
+      "path": "invalid/schedule-day-32.json",
+      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule."
+    },
+    {
+      "path": "invalid/schedule-weekday-8.json",
+      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule."
+    },
+    {
+      "path": "invalid/schedule-watermark-before-start.json",
+      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule."
+    },
+    {
+      "path": "invalid/schedule-before-plan-start.json",
+      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule."
+    },
+    {
+      "path": "invalid/schedule-frequency-daily.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/week-start-not-monday.json",
+      "error": "This backup file is damaged: a saved week doesn't run from Monday to Sunday."
+    },
+    {
+      "path": "invalid/week-end-not-sunday.json",
+      "error": "This backup file is damaged: a saved week doesn't run from Monday to Sunday."
+    },
+    {
+      "path": "invalid/negative-week-amount.json",
+      "error": "This backup file is damaged: an amount is negative."
+    },
+    {
+      "path": "invalid/negative-log-count.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/unknown-discount-vote.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/unknown-university.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/invalid-semester-date.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/one-off-zero.json",
+      "error": "This backup file is damaged: an amount is zero or negative."
+    },
+    {
+      "path": "invalid/one-off-invalid-month.json",
+      "error": "This backup file is incomplete."
+    },
+    {
+      "path": "invalid/malformed-json.json",
+      "error": "This isn't a StudentsBudget backup file."
+    }
+  ]
+}

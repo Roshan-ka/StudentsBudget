@@ -5,6 +5,7 @@ import {
   BUCKET_ID,
   categoryOverPeriod,
   defaultOverTimeCategory,
+  hasEntriesIn,
   incomeBySource,
   incomeBySourceOver,
   monthsOf,
@@ -104,22 +105,22 @@ describe('spendingByCategory', () => {
     expect(spendingByCategory(entries, foodOnly, '2026-10')[0]?.spentMinor).toBe(1300);
   });
 
-  it('plans a flexible category from its envelope, the same prorated amount monthStatus gives', () => {
-    // Set up on the 16th: 16 of October's 31 days are planned (310 * 16/31 = 160).
+  it('plans a flexible category with its whole envelope in the setup month too, the amount monthStatus gives', () => {
+    // Set up on the 16th: the whole 310 is planned, not the part from the 16th.
     const setUpOn16th: Plan = { ...foodOnly, createdOn: '2026-10-16' };
     const entries = [expense('food', '2026-10-20', 2000)];
 
     const rows = spendingByCategory(entries, setUpOn16th, '2026-10');
 
     const fromHome = monthStatus(setUpOn16th, entries, '2026-10')[0];
-    expect(rows).toEqual([{ categoryId: 'food', spentMinor: 2000, plannedMinor: 16000 }]);
+    expect(rows).toEqual([{ categoryId: 'food', spentMinor: 2000, plannedMinor: 31000 }]);
     expect(rows[0]?.plannedMinor).toBe(fromHome?.plannedMinor);
-    // A later month is planned in full again.
+    // A later month is planned the same.
     expect(spendingByCategory([], setUpOn16th, '2026-11')[0]?.plannedMinor).toBe(31000);
   });
 
   it('leaves spending before the setup day out of an envelope, as home does, but not out of a fixed or unplanned category', () => {
-    // Set up on the 16th: €180 of groceries backdated to the 3rd must not read as "€180 of €160".
+    // Set up on the 16th: €180 of groceries backdated to the 3rd must not read as "€180 of €310".
     const setUpOn16th: Plan = { ...plan, createdOn: '2026-10-16' };
     const entries = [
       expense('food', '2026-10-03', 18000),
@@ -131,7 +132,7 @@ describe('spendingByCategory', () => {
     const rows = spendingByCategory(entries, setUpOn16th, '2026-10');
 
     const fromHome = monthStatus(setUpOn16th, entries, '2026-10').find((s) => s.categoryId === 'food');
-    expect(rows.find((r) => r.categoryId === 'food')).toEqual({ categoryId: 'food', spentMinor: 2000, plannedMinor: 16000 });
+    expect(rows.find((r) => r.categoryId === 'food')).toEqual({ categoryId: 'food', spentMinor: 2000, plannedMinor: 31000 });
     expect(rows.find((r) => r.categoryId === 'food')?.spentMinor).toBe(fromHome?.spentMinor);
     // Rent paid on the 1st still counts against the whole month's amount.
     expect(rows.find((r) => r.categoryId === 'rent')).toEqual({ categoryId: 'rent', spentMinor: 40000, plannedMinor: 40000 });
@@ -146,7 +147,7 @@ describe('spendingByCategory', () => {
     const setUpOn16th: Plan = { ...foodOnly, createdOn: '2026-10-16' };
 
     expect(spendingByCategory([expense('food', '2026-10-03', 18000)], setUpOn16th, '2026-10')).toEqual([
-      { categoryId: 'food', spentMinor: 0, plannedMinor: 16000 },
+      { categoryId: 'food', spentMinor: 0, plannedMinor: 31000 },
     ]);
   });
 
@@ -170,7 +171,7 @@ describe('spendingByCategory', () => {
     ]);
   });
 
-  it('plans a fixed category with its monthly amount, not prorated', () => {
+  it('plans a fixed category with its monthly amount', () => {
     const setUpOn16th: Plan = { ...plan, createdOn: '2026-10-16' };
     const entries = [expense('rent', '2026-10-17', 40000)];
 
@@ -281,6 +282,56 @@ describe('defaultOverTimeCategory', () => {
   it('starts on the first flexible category when no flexible row is there', () => {
     expect(defaultOverTimeCategory([row('rent', 40000, 40000)])).toBe('food');
     expect(defaultOverTimeCategory([])).toBe('food');
+  });
+
+  describe('with the spending of the months the chart covers', () => {
+    // An empty month: the envelopes are planned, nothing is spent, and rent came in on its own.
+    const emptyMonth = [row('rent', 0, 40000), row('food', 0, 31000), row('eating-out', 0, 12400)];
+    const sixMonths = [row('rent', 240000, 240000), row('eating-out', 3600, 74400), row('food', 1200, 186000)];
+
+    it('falls back to the top flexible spender of those months when the period has no flexible spending', () => {
+      expect(defaultOverTimeCategory(emptyMonth, sixMonths)).toBe('eating-out');
+      expect(defaultOverTimeCategory([], sixMonths)).toBe('eating-out');
+      // Fixed costs do not count: a flat line.
+      expect(defaultOverTimeCategory(emptyMonth, [row('rent', 240000, 240000)])).toBe('food');
+    });
+
+    it('keeps the top flexible spender of the period itself when it has one', () => {
+      const month = [row('food', 900, 31000), row('eating-out', 100, 12400)];
+
+      expect(defaultOverTimeCategory(month, sixMonths)).toBe('food');
+    });
+
+    it('keeps the largest plan when neither has flexible spending', () => {
+      const unspent = [row('rent', 240000, 240000), row('food', 0, 186000), row('eating-out', 0, 74400)];
+
+      expect(defaultOverTimeCategory(emptyMonth, unspent)).toBe('food');
+      expect(defaultOverTimeCategory(emptyMonth, [])).toBe('food');
+    });
+
+    it('is the same as without them when they are the period itself', () => {
+      expect(defaultOverTimeCategory(emptyMonth, emptyMonth)).toBe(defaultOverTimeCategory(emptyMonth));
+    });
+  });
+});
+
+describe('hasEntriesIn', () => {
+  const months = ['2026-09', '2026-10'];
+
+  it('is true when an expense or income is dated in one of the months', () => {
+    expect(hasEntriesIn([expense('food', '2026-10-31', 100)], months)).toBe(true);
+    expect(hasEntriesIn([income('income-job', '2026-09-01', 100)], months)).toBe(true);
+  });
+
+  it('is false for entries in other months, and for no entries', () => {
+    expect(hasEntriesIn([expense('food', '2026-08-31', 100), expense('food', '2026-11-01', 100)], months)).toBe(false);
+    expect(hasEntriesIn([], months)).toBe(false);
+    expect(hasEntriesIn([expense('food', '2026-10-05', 100)], [])).toBe(false);
+  });
+
+  it('does not count a transfer', () => {
+    expect(hasEntriesIn([transfer('2026-10-05', 5000)], months)).toBe(false);
+    expect(hasEntriesIn([transfer('2026-10-05', 5000), expense('food', '2026-10-06', 100)], months)).toBe(true);
   });
 });
 
@@ -435,7 +486,7 @@ describe('spendingByCategoryOver', () => {
     expect(ids).toEqual(['food', 'shopping', 'transport']);
   });
 
-  it('counts the setup month from the setup day on, plans it in part, and has no plan before it', () => {
+  it('counts the setup month from the setup day on, plans it in full, and has no plan before it', () => {
     const setUpOn16th: Plan = { ...foodOnly, createdOn: '2026-10-16' };
     const entries = [
       expense('food', '2026-08-15', 3000),
@@ -447,8 +498,8 @@ describe('spendingByCategoryOver', () => {
 
     const rows = spendingByCategoryOver(entries, setUpOn16th, period('2026-10', 3));
 
-    // August and September had no plan; October's is the part from the 16th (310 * 16/31 = 160).
-    expect(rows).toEqual([{ categoryId: 'food', spentMinor: 7000, plannedMinor: 16000 }]);
+    // August and September had no plan; October's is the whole envelope.
+    expect(rows).toEqual([{ categoryId: 'food', spentMinor: 7000, plannedMinor: 31000 }]);
   });
 
   it('leaves the plan null for a period that ends before the plan starts', () => {

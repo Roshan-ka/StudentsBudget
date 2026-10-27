@@ -6,16 +6,21 @@ import Link from 'next/link';
 import { useId } from 'react';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan } from '@/db/types';
+import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
 import { categoryName } from '@/features/entries/categories';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
-import { safeToSpend } from '@/lib/budget';
-import { previousMonthTail, type IsoDate } from '@/lib/dates';
+import { SwapLine } from '@/features/swaps/swap-line';
+import { weekToSpend } from '@/lib/budget';
+import { previousMonthTail, weekOf, type IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
+import { cn } from '@/lib/utils';
 import { weekLabel } from '@/lib/week-label';
 import { notCountedNote } from './not-counted';
-import { weekLine } from './week-line';
+import { weekLine, weekTotalLine } from './week-line';
+import { weekRows } from './week-rows';
+import { weekSwaps } from './week-swaps';
 
 const LINK_CLASS = 'inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline';
 
@@ -79,9 +84,10 @@ const EARLIER_THIS_WEEK: Titles = {
 };
 
 /**
- * One part of a week, as `safeToSpend` cuts it at the month's edge: its range, each envelope against the
+ * One part of a week, as `weekToSpend` cuts it at the month's edge: its range, each envelope against the
  * part's share of the plan, and what was logged in it. `day` is any day of the part, which also picks the
- * month whose budget it is measured against.
+ * month whose budget it is measured against. `withTotal` adds the week's total, the number Home shows as "This
+ * week", to the part that is today's.
  */
 function WeekPart({
   plan,
@@ -89,18 +95,24 @@ function WeekPart({
   accounts,
   day,
   titles,
+  withTotal,
 }: {
   plan: Plan;
   entries: Entry[];
   accounts: Account[];
   day: IsoDate;
   titles: Titles;
+  withTotal: boolean;
 }) {
   const planId = useId();
   const weekId = useId();
-  const week = safeToSpend(plan, entries, day);
-  // Envelopes planned at €0 and not used this week would only add empty rows.
-  const rows = week.envelopes.filter((e) => e.weekShareMinor > 0 || e.spentThisWeekMinor > 0);
+  const week = weekToSpend(plan, entries, day);
+  // Every envelope with a monthly amount is listed, even one that is used up and so has no share of the week; an
+  // envelope at €0 and a category with no envelope only when something was spent on it this week.
+  const rows = weekRows(plan, week.envelopes);
+  // A swap is judged by the check-in's own measure: only a row over this week's share of the plan ("€12 over") gets
+  // one. The month's early warning is Home's.
+  const suggestions = weekSwaps(rows, day);
   const thisWeek = entriesOfWeek(entries, week.weekStart, week.weekEnd);
 
   return (
@@ -112,16 +124,23 @@ function WeekPart({
           {titles.against}
         </h3>
         {rows.length === 0 ? (
-          <p className="text-muted-foreground">No envelopes are planned for this week.</p>
+          <p className="text-muted-foreground">No envelope has an amount in your plan.</p>
         ) : (
-          <ul aria-labelledby={planId} className="flex flex-col gap-3">
-            {rows.map((row) => (
-              <li key={row.categoryId} className="flex flex-col gap-0.5">
-                <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
-                <p className="text-sm tabular-nums">{weekLine(row)}</p>
-              </li>
-            ))}
-          </ul>
+          <>
+            {withTotal && <p className="font-medium tabular-nums">{weekTotalLine(week.totalMinor)}</p>}
+            <ul aria-labelledby={planId} className="flex flex-col gap-3">
+              {rows.map((row) => {
+                const suggestion = suggestions.get(row.categoryId);
+                return (
+                  <li key={row.categoryId} className="flex flex-col gap-0.5">
+                    <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
+                    <p className="text-sm tabular-nums">{weekLine(row, row.usedUp)}</p>
+                    {suggestion !== undefined && <SwapLine suggestion={suggestion} />}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </section>
 
@@ -139,6 +158,71 @@ function WeekPart({
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+/**
+ * One "I was away" switch, for the whole Monday–Sunday week of `day`. It is read from and saved to the database, so
+ * it survives a reload and the page coming back from hidden; the week keeps it when it is recorded. A switch, not a
+ * checkbox: a checkbox would flick back for a moment before the database answers.
+ */
+function AwaySwitch({ day, label, hintId }: { day: IsoDate; label: string; hintId: string }) {
+  const { start } = weekOf(day);
+  // null until read; a week with no row yet is not away.
+  const away = useLiveQuery(() => db.weekResults.get(start).then((row) => row?.paused === true), [start], null);
+
+  const toggle = () => {
+    if (away === null) return;
+    setAway(day, !away).catch((error: unknown) => console.error(`StudentsBudget: could not save "${label}"`, error));
+  };
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={away === true}
+      aria-describedby={hintId}
+      disabled={away === null}
+      onClick={toggle}
+      className="flex min-h-11 items-center gap-3 self-start rounded-md text-left font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          'relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors',
+          away ? 'bg-primary' : 'bg-muted-foreground/80',
+        )}
+      >
+        <span
+          className={cn(
+            'absolute top-0.5 left-0.5 size-5 rounded-full bg-background shadow-sm transition-transform',
+            away && 'translate-x-4',
+          )}
+        />
+      </span>
+      {label}
+    </button>
+  );
+}
+
+/**
+ * "I was away this week", and on the Monday and the Tuesday also "I was away last week", for the week that waits to
+ * be recorded until the Wednesday: someone who was away all week often opens the app only after it. One hint
+ * describes both.
+ */
+function AwayToggle({ plan, today }: { plan: Plan; today: IsoDate }) {
+  const hintId = useId();
+  const lastWeek = weekAwaitingRecord(plan, today);
+
+  return (
+    <div className="flex flex-col gap-1">
+      {lastWeek !== null && <AwaySwitch day={lastWeek.start} label="I was away last week" hintId={hintId} />}
+      <AwaySwitch day={today} label="I was away this week" hintId={hintId} />
+      <p id={hintId} className="text-sm text-muted-foreground">
+        A week away keeps your logging streak as it is and doesn&apos;t count towards Under-Budget Week or Ramen
+        Royalty.
+      </p>
     </div>
   );
 }
@@ -164,9 +248,17 @@ function CheckIn({
   return (
     <div className="flex flex-col gap-6">
       {earlierDay !== null && (
-        <WeekPart plan={plan} entries={entries} accounts={accounts} day={earlierDay} titles={EARLIER_THIS_WEEK} />
+        <WeekPart
+          plan={plan}
+          entries={entries}
+          accounts={accounts}
+          day={earlierDay}
+          titles={EARLIER_THIS_WEEK}
+          withTotal={false}
+        />
       )}
-      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} titles={THIS_WEEK} />
+      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} titles={THIS_WEEK} withTotal />
+      <AwayToggle plan={plan} today={today} />
 
       <section aria-labelledby={addId} className="flex flex-col gap-3">
         <h3 id={addId} className="text-lg font-semibold">

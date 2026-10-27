@@ -7,7 +7,7 @@ import { CITIES } from '@/data/cities';
 import { db } from '@/db/db';
 import type { Amount, Entry, Plan } from '@/db/types';
 import { categoryName } from '@/features/entries/categories';
-import { rangeLine } from '@/features/setup/draft';
+import { budgetLine, rangeLine } from '@/features/setup/draft';
 import { AmountField } from '@/features/setup/steps/amount-field';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
@@ -30,18 +30,49 @@ function basisLine(row: Suggestion[number], lastMonth: IsoMonth): string {
   return 'Nothing to go on yet';
 }
 
-/** What is left over, or by how much the amounts pass what is available. Whole euros, never flattering. */
-function leftoverLine(availableMinor: Minor, totalMinor: Minor): string {
-  const left = availableMinor - totalMinor;
-  return left >= 0
-    ? `${whole(Math.floor(left / 100) * 100)} left for savings`
-    : `${whole(Math.ceil(-left / 100) * 100)} over what is available`;
+/** Whole euros, rounded down: an amount to spend never reads as more than it is. */
+const wholeDown = (minor: Minor): string => whole(Math.floor(minor / 100) * 100);
+
+/**
+ * What is available, and with an everyday budget (`budgetMinor` above €0) which of the two the amounts keep to: the
+ * budget, or what is available when that is less. Compared in the whole euros shown, so the line never reads
+ * "€600 is less than your budget of €600".
+ */
+function availableLine(availableMinor: Minor, budgetMinor: Minor): string {
+  if (availableMinor <= 0) {
+    return (
+      'Nothing is available to budget yet: your income leaves nothing after fixed costs and set-asides. ' +
+      'You can change your plan in Settings.'
+    );
+  }
+  const available = `${wholeDown(availableMinor)} a month is available after your fixed costs and set-asides.`;
+  if (!(budgetMinor > 0)) return available;
+  if (Math.floor(budgetMinor / 100) <= Math.floor(availableMinor / 100)) {
+    return `${available} These amounts keep to your everyday budget of ${wholeDown(budgetMinor)}.`;
+  }
+  return (
+    `${available} That is less than your everyday budget of ${wholeDown(budgetMinor)}, ` +
+    `so these amounts keep to ${wholeDown(availableMinor)}.`
+  );
 }
 
 /**
- * A budget to start the month from, with an editable amount for every flexible category. It leads Home in the
- * first week of the month and when the plan is over what is available; otherwise it sits behind a link.
- * "Use this budget" replaces the plan's envelopes and nothing else.
+ * What is left over, or by how much the amounts pass what is available, after setup's "€600 of your €600 budget"
+ * when there is an everyday budget. Whole euros, never flattering.
+ */
+function leftoverLine(availableMinor: Minor, totalMinor: Minor, budgetMinor: Minor): string {
+  const left = availableMinor - totalMinor;
+  const savings =
+    left >= 0 ? `${wholeDown(left)} left for savings` : `${whole(Math.ceil(-left / 100) * 100)} over what is available`;
+  const budget = budgetLine(totalMinor, budgetMinor);
+  return budget ? `${budget} · ${savings}` : savings;
+}
+
+/**
+ * A budget to start the month from, with an editable amount for every flexible category, split across what is
+ * available or the everyday budget when that is less (`suggestBudget`). It leads Home in the first week of the month
+ * and when the plan is over what is available; otherwise it sits behind a link. "Use this budget" replaces the
+ * plan's envelopes and nothing else.
  */
 export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries: Entry[]; today: IsoDate }) {
   const headingId = useId();
@@ -55,6 +86,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   const month = monthOf(today);
   const lastMonth = shiftMonth(month, -1);
   const { rows, availableMinor } = suggestBudget(plan, CITIES[plan.cityId], entries, month);
+  const budgetMinor = plan.spendingBudgetMinor ?? 0;
   const amountOf = (row: Suggestion[number]): Minor => edits[row.categoryId] ?? row.amountMinor;
   const shown = expanded ?? suggestionIsProminent(plan, today);
 
@@ -105,12 +137,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
         <h2 id={headingId} className="text-lg font-semibold">
           Suggested budget
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {availableMinor > 0
-            ? `${whole(Math.floor(availableMinor / 100) * 100)} a month is available after your fixed costs and set-asides.`
-            : 'Nothing is available to budget yet: your income leaves nothing after fixed costs and set-asides. ' +
-              'You can change your plan in Settings.'}
-        </p>
+        <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor)}</p>
       </div>
 
       {rows.map((row) => {
@@ -130,7 +157,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
 
       {availableMinor > 0 && (
         <p aria-live="polite" className="rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
-          {leftoverLine(availableMinor, total)}
+          {leftoverLine(availableMinor, total, budgetMinor)}
         </p>
       )}
 

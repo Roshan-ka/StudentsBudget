@@ -34,10 +34,10 @@ export type SpendingRow = { categoryId: string; spentMinor: Minor; plannedMinor:
  * that has spending or any plan (a planned amount of 0 included), in no particular order. Which rows are worth
  * showing is for the caller to decide, once the months of a period are added up.
  *
- * Spent and planned are like-for-like, and the same as home shows:
+ * Spent and planned are the same as home shows:
  * - A flexible category takes both from `monthStatus`, which gives every flexible category a row: the plan's
- *   envelope, or €0 for one without an envelope. In the month of setup that is the envelope from the setup day
- *   on and only the spending from the setup day on; before it nothing is planned or counted there.
+ *   envelope, or €0 for one without an envelope. In the month of setup that is the whole envelope against only the
+ *   spending from the setup day on, so the two are not like-for-like there; the charts say so in a note.
  * - A fixed category is planned at the plan's monthly amount, not prorated, and counts the whole month's spending
  *   (rent paid on the 1st is still rent). A fixed line whose schedule is paused is planned at 0.
  * - Any other category (a one-off cost, or a fixed one the plan has no line for) has no plan (`plannedMinor`
@@ -104,11 +104,28 @@ const FLEXIBLE_IDS = new Set(FLEXIBLE_CATEGORIES.map((c) => c.id));
 
 /**
  * The category the "over time" chart starts on, from `spending` ranked as `spendingByCategoryOver` ranks it: the top
- * flexible spender, or with nothing flexible spent the flexible row with the largest plan, or the first flexible
- * category. A fixed cost such as rent comes in at the same amount every month, so its chart is a flat line.
+ * flexible spender. With nothing flexible spent in the period, it is the top flexible spender of the chart's own
+ * months (`windowSpending`, the same rows when the chart covers the period), so a month with nothing in it still opens
+ * on a chart with columns. With nothing flexible spent there either, it is the flexible row with the largest plan, or
+ * the first flexible category. A fixed cost such as rent comes in at the same amount every month, so its chart is a
+ * flat line.
  */
-export function defaultOverTimeCategory(spending: SpendingRow[]): string {
-  return spending.find((row) => FLEXIBLE_IDS.has(row.categoryId))?.categoryId ?? FLEXIBLE_CATEGORIES[0].id;
+export function defaultOverTimeCategory(spending: SpendingRow[], windowSpending: SpendingRow[] = spending): string {
+  const topFlexible = (rows: SpendingRow[]) => rows.find((row) => FLEXIBLE_IDS.has(row.categoryId));
+  const top = topFlexible(spending);
+  if (top !== undefined && top.spentMinor > 0) return top.categoryId;
+  const windowTop = topFlexible(windowSpending);
+  if (windowTop !== undefined && windowTop.spentMinor > 0) return windowTop.categoryId;
+  return top?.categoryId ?? FLEXIBLE_CATEGORIES[0].id;
+}
+
+/**
+ * Whether any income or expense is logged in `months`. A transfer only moves money between accounts, so it is not
+ * logged spending or income and does not count.
+ */
+export function hasEntriesIn(entries: Entry[], months: IsoMonth[]): boolean {
+  const wanted = new Set(months);
+  return entries.some((e) => e.type !== 'transfer' && wanted.has(monthOf(e.date)));
 }
 
 /** `spendingByCategoryOver` for a single month; `spendingRowsOf` has the rules for spent and planned. */
