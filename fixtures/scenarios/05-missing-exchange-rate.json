@@ -1,0 +1,557 @@
+{
+  "app": "studentsbudget",
+  "version": 2,
+  "exportedAt": "2026-10-20T10:00:00.000Z",
+  "data": {
+    "accounts": [
+      {
+        "id": "eur",
+        "name": "Demo EUR eur",
+        "kind": "bank",
+        "currency": "EUR",
+        "openingMinor": 100000,
+        "createdAt": "2025-11-01T10:00:00.000Z"
+      },
+      {
+        "id": "inr",
+        "name": "Demo INR inr",
+        "kind": "bank",
+        "currency": "INR",
+        "openingMinor": 9500000,
+        "createdAt": "2025-11-01T10:00:00.000Z"
+      },
+      {
+        "id": "usd",
+        "name": "Demo USD usd",
+        "kind": "bank",
+        "currency": "USD",
+        "openingMinor": 110000,
+        "createdAt": "2025-11-01T10:00:00.000Z"
+      },
+      {
+        "id": "gbp",
+        "name": "Demo GBP gbp",
+        "kind": "bank",
+        "currency": "GBP",
+        "openingMinor": 85000,
+        "createdAt": "2025-11-01T10:00:00.000Z"
+      },
+      {
+        "id": "chf",
+        "name": "Demo CHF chf",
+        "kind": "bank",
+        "currency": "CHF",
+        "openingMinor": 95000,
+        "createdAt": "2025-11-01T10:00:00.000Z"
+      },
+      {
+        "id": "cny",
+        "name": "Demo CNY cny",
+        "kind": "bank",
+        "currency": "CNY",
+        "openingMinor": 780000,
+        "createdAt": "2025-11-01T10:00:00.000Z"
+      },
+      {
+        "id": "try",
+        "name": "Demo TRY try",
+        "kind": "bank",
+        "currency": "TRY",
+        "openingMinor": 3800000,
+        "createdAt": "2025-11-01T10:00:00.000Z"
+      }
+    ],
+    "categories": [
+      {
+        "id": "food",
+        "name": "Food & groceries",
+        "kind": "flexible",
+        "order": 0
+      },
+      {
+        "id": "eating-out",
+        "name": "Eating out",
+        "kind": "flexible",
+        "order": 1
+      },
+      {
+        "id": "going-out",
+        "name": "Going out",
+        "kind": "flexible",
+        "order": 2
+      },
+      {
+        "id": "transport",
+        "name": "Transport",
+        "kind": "flexible",
+        "order": 3
+      },
+      {
+        "id": "shopping",
+        "name": "Shopping",
+        "kind": "flexible",
+        "order": 4
+      },
+      {
+        "id": "health",
+        "name": "Health & pharmacy",
+        "kind": "flexible",
+        "order": 5
+      },
+      {
+        "id": "personal-care",
+        "name": "Personal care",
+        "kind": "flexible",
+        "order": 6
+      },
+      {
+        "id": "study",
+        "name": "Study materials",
+        "kind": "flexible",
+        "order": 7
+      },
+      {
+        "id": "household",
+        "name": "Household",
+        "kind": "flexible",
+        "order": 8
+      },
+      {
+        "id": "travel",
+        "name": "Travel",
+        "kind": "flexible",
+        "order": 9
+      },
+      {
+        "id": "gifts",
+        "name": "Gifts",
+        "kind": "flexible",
+        "order": 10
+      },
+      {
+        "id": "other",
+        "name": "Other",
+        "kind": "flexible",
+        "order": 11
+      },
+      {
+        "id": "rent",
+        "name": "Rent",
+        "kind": "fixed",
+        "order": 12
+      },
+      {
+        "id": "phone",
+        "name": "Phone & internet",
+        "kind": "fixed",
+        "order": 13
+      },
+      {
+        "id": "insurance",
+        "name": "Insurance",
+        "kind": "fixed",
+        "order": 14
+      },
+      {
+        "id": "subscriptions",
+        "name": "Subscriptions",
+        "kind": "fixed",
+        "order": 15
+      },
+      {
+        "id": "transport-pass",
+        "name": "Deutschlandticket / semester ticket",
+        "kind": "fixed",
+        "order": 16
+      },
+      {
+        "id": "gym",
+        "name": "Gym & sports",
+        "kind": "fixed",
+        "order": 17
+      },
+      {
+        "id": "utilities",
+        "name": "Utilities & Rundfunkbeitrag",
+        "kind": "fixed",
+        "order": 18
+      },
+      {
+        "id": "one-off",
+        "name": "One-off costs",
+        "kind": "oneoff",
+        "order": 19
+      },
+      {
+        "id": "income-job",
+        "name": "Job",
+        "kind": "income",
+        "order": 20
+      },
+      {
+        "id": "income-parents",
+        "name": "Parents",
+        "kind": "income",
+        "order": 21
+      },
+      {
+        "id": "income-bafoeg",
+        "name": "BAföG",
+        "kind": "income",
+        "order": 22
+      },
+      {
+        "id": "income-sperrkonto",
+        "name": "Blocked account",
+        "kind": "income",
+        "order": 23
+      },
+      {
+        "id": "income-scholarship",
+        "name": "Scholarship",
+        "kind": "income",
+        "order": 24
+      },
+      {
+        "id": "income-other",
+        "name": "Other income",
+        "kind": "income",
+        "order": 25
+      }
+    ],
+    "entries": [
+      {
+        "id": "demo-0001",
+        "date": "2026-10-20",
+        "type": "expense",
+        "categoryId": "food",
+        "accountId": "eur",
+        "amountMinor": 1000,
+        "eurMinor": 1000,
+        "note": "Groceries paid in EUR",
+        "createdAt": "2026-10-20T10:00:00.000Z"
+      },
+      {
+        "id": "demo-0002",
+        "date": "2026-10-20",
+        "type": "expense",
+        "categoryId": "food",
+        "accountId": "inr",
+        "amountMinor": 95000,
+        "eurMinor": 1000,
+        "note": "Groceries paid in INR",
+        "createdAt": "2026-10-20T10:00:00.000Z"
+      },
+      {
+        "id": "demo-0003",
+        "date": "2026-10-20",
+        "type": "expense",
+        "categoryId": "food",
+        "accountId": "usd",
+        "amountMinor": 1100,
+        "eurMinor": 1000,
+        "note": "Groceries paid in USD",
+        "createdAt": "2026-10-20T10:00:00.000Z"
+      },
+      {
+        "id": "demo-0004",
+        "date": "2026-10-20",
+        "type": "expense",
+        "categoryId": "food",
+        "accountId": "gbp",
+        "amountMinor": 850,
+        "eurMinor": 1000,
+        "note": "Groceries paid in GBP",
+        "createdAt": "2026-10-20T10:00:00.000Z"
+      },
+      {
+        "id": "demo-0005",
+        "date": "2026-10-20",
+        "type": "expense",
+        "categoryId": "food",
+        "accountId": "chf",
+        "amountMinor": 950,
+        "eurMinor": 1000,
+        "note": "Groceries paid in CHF",
+        "createdAt": "2026-10-20T10:00:00.000Z"
+      },
+      {
+        "id": "demo-0006",
+        "date": "2026-10-20",
+        "type": "expense",
+        "categoryId": "food",
+        "accountId": "cny",
+        "amountMinor": 7800,
+        "eurMinor": 1000,
+        "note": "Groceries paid in CNY",
+        "createdAt": "2026-10-20T10:00:00.000Z"
+      },
+      {
+        "id": "demo-0007",
+        "date": "2026-10-20",
+        "type": "expense",
+        "categoryId": "food",
+        "accountId": "try",
+        "amountMinor": 38000,
+        "eurMinor": 1000,
+        "note": "Groceries paid in TRY",
+        "createdAt": "2026-10-20T10:00:00.000Z"
+      },
+      {
+        "id": "transfer-7",
+        "date": "2026-10-20",
+        "type": "transfer",
+        "accountId": "eur",
+        "toAccountId": "usd",
+        "amountMinor": 10000,
+        "toAmountMinor": 11000,
+        "eurMinor": 10000,
+        "note": "Demo transfer (excluded from spending)",
+        "createdAt": "2026-10-20T10:00:00.000Z"
+      },
+      {
+        "id": "transfer-8",
+        "date": "2026-10-20",
+        "type": "transfer",
+        "accountId": "inr",
+        "toAccountId": "eur",
+        "amountMinor": 950000,
+        "toAmountMinor": 10000,
+        "eurMinor": 10000,
+        "note": "Demo transfer (excluded from spending)",
+        "createdAt": "2026-10-20T10:00:00.000Z"
+      }
+    ],
+    "plan": {
+      "id": "current",
+      "cityId": "regensburg",
+      "createdOn": "2026-10-01",
+      "incomes": [
+        {
+          "categoryId": "income-job",
+          "monthlyMinor": 60000
+        },
+        {
+          "categoryId": "income-parents",
+          "monthlyMinor": 70000
+        },
+        {
+          "categoryId": "income-bafoeg",
+          "monthlyMinor": 20000
+        },
+        {
+          "categoryId": "income-sperrkonto",
+          "monthlyMinor": 10000
+        },
+        {
+          "categoryId": "income-scholarship",
+          "monthlyMinor": 15000
+        },
+        {
+          "categoryId": "income-other",
+          "monthlyMinor": 5000
+        }
+      ],
+      "fixed": [
+        {
+          "categoryId": "rent",
+          "monthlyMinor": 45000
+        },
+        {
+          "categoryId": "phone",
+          "monthlyMinor": 1500
+        },
+        {
+          "categoryId": "insurance",
+          "monthlyMinor": 12500
+        },
+        {
+          "categoryId": "subscriptions",
+          "monthlyMinor": 999
+        },
+        {
+          "categoryId": "transport-pass",
+          "monthlyMinor": 4300
+        },
+        {
+          "categoryId": "gym",
+          "monthlyMinor": 2500
+        },
+        {
+          "categoryId": "utilities",
+          "monthlyMinor": 5000
+        }
+      ],
+      "envelopes": [
+        {
+          "categoryId": "food",
+          "monthlyMinor": 24000
+        },
+        {
+          "categoryId": "eating-out",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "going-out",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "transport",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "shopping",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "health",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "personal-care",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "study",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "household",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "travel",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "gifts",
+          "monthlyMinor": 3000
+        },
+        {
+          "categoryId": "other",
+          "monthlyMinor": 3000
+        }
+      ],
+      "oneOffs": [
+        {
+          "id": "semester",
+          "name": "Next semester fee",
+          "amountMinor": 30000,
+          "createdMonth": "2026-10",
+          "dueMonth": "2027-03"
+        },
+        {
+          "id": "deposit",
+          "name": "Past accommodation deposit",
+          "amountMinor": 50000,
+          "createdMonth": "2025-11",
+          "dueMonth": "2025-12"
+        }
+      ]
+    },
+    "guesses": [
+      {
+        "categoryId": "food",
+        "monthlyMinor": 6000,
+        "guessedOn": "2026-10-01"
+      },
+      {
+        "categoryId": "eating-out",
+        "monthlyMinor": 6000,
+        "guessedOn": "2026-10-01"
+      },
+      {
+        "categoryId": "going-out",
+        "monthlyMinor": 6000,
+        "guessedOn": "2026-10-01"
+      },
+      {
+        "categoryId": "transport",
+        "monthlyMinor": 6000,
+        "guessedOn": "2026-10-01"
+      },
+      {
+        "categoryId": "shopping",
+        "monthlyMinor": 6000,
+        "guessedOn": "2026-10-01"
+      },
+      {
+        "categoryId": "other",
+        "monthlyMinor": 6000,
+        "guessedOn": "2026-10-01"
+      }
+    ],
+    "fxRates": [
+      {
+        "currency": "INR",
+        "perEur": 95,
+        "source": "manual",
+        "rateDate": "2026-10-20",
+        "fetchedOn": "2026-10-20"
+      },
+      {
+        "currency": "INR",
+        "perEur": 96.9,
+        "source": "ecb",
+        "rateDate": "2026-10-19",
+        "fetchedOn": "2026-10-20"
+      },
+      {
+        "currency": "USD",
+        "perEur": 1.1,
+        "source": "manual",
+        "rateDate": "2026-10-20",
+        "fetchedOn": "2026-10-20"
+      },
+      {
+        "currency": "USD",
+        "perEur": 1.122,
+        "source": "ecb",
+        "rateDate": "2026-10-19",
+        "fetchedOn": "2026-10-20"
+      },
+      {
+        "currency": "GBP",
+        "perEur": 0.85,
+        "source": "manual",
+        "rateDate": "2026-10-20",
+        "fetchedOn": "2026-10-20"
+      },
+      {
+        "currency": "GBP",
+        "perEur": 0.867,
+        "source": "ecb",
+        "rateDate": "2026-10-19",
+        "fetchedOn": "2026-10-20"
+      },
+      {
+        "currency": "CHF",
+        "perEur": 0.95,
+        "source": "manual",
+        "rateDate": "2026-10-20",
+        "fetchedOn": "2026-10-20"
+      },
+      {
+        "currency": "CHF",
+        "perEur": 0.969,
+        "source": "ecb",
+        "rateDate": "2026-10-19",
+        "fetchedOn": "2026-10-20"
+      },
+      {
+        "currency": "CNY",
+        "perEur": 7.8,
+        "source": "manual",
+        "rateDate": "2026-10-20",
+        "fetchedOn": "2026-10-20"
+      },
+      {
+        "currency": "CNY",
+        "perEur": 7.9559999999999995,
+        "source": "ecb",
+        "rateDate": "2026-10-19",
+        "fetchedOn": "2026-10-20"
+      }
+    ]
+  }
+}
