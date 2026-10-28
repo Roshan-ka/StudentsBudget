@@ -156,9 +156,16 @@ With Docker running, `npm run supabase:start` starts a local Supabase stack with
   - The data is as of your last **Save to my account** on the phone.
   - It signs in with two more lines in `.env.local`: `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD` (see `.env.example`). The password sits there in plain text; the file is git-ignored. Use a test account first.
   - Your figures and entry notes go into the Claude chat.
+- Two prompts, ready-made requests that run those tools for you:
+  - `weekly_check_in`: your week and month so far, what is over, your biggest expenses and a sourced swap or two.
+  - `new_in_regensburg`, optionally for `ur` or `oth`: a first month for a new student, from costs and the semester fee to tips and discounts.
 - Claude reads every answer into the chat.
 
-**Claude Code:** open this repo, and Claude Code offers the `studentsbudget` server from `.mcp.json`. Approve it, or use `/mcp`. Then ask something like "What does a room cost in Regensburg?" or "Which student discounts are there for swimming?".
+**Claude Code:** open this repo, and Claude Code offers the `studentsbudget` server from `.mcp.json`. Approve it, or use `/mcp`. Then:
+- ask something like "What does a room cost in Regensburg?" or "Which student discounts are there for swimming?";
+- or type `/mcp__studentsbudget__weekly_check_in`, or `/mcp__studentsbudget__new_in_regensburg ur`, to run a prompt.
+
+A session started before a change to `mcp/` keeps the old server: reconnect it in `/mcp`, or start a new session.
 
 **Claude Desktop:** in Settings → Developer → Edit Config, add the server to `claude_desktop_config.json` with the full path to this checkout, then restart Claude Desktop:
 

@@ -80,6 +80,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Default account:** new entries, quick add, a transfer's From and new recurring lines (in Settings, setup and Edit plan) start on `defaultAccount` (`balances.ts`) over accounts in `sortAccounts` order (setup: draft order): the account marked `isDefault`, else the first euro bank account, else any euro account, else the first bank account, else the first account. Never `accounts[0]`. A quick-add line written with a euro marker (€, eur, euro) goes to `euroAccount` (the euro part of that rule) when the default is not in euros.
 - **MCP server** (`mcp/`, plan in `docs/superpowers/plans/2026-10-28-mcp-server.md`):
   - A local stdio server with read-only tools over `src/data`, plus `budget_overview` and `recent_entries`. It isn't part of the web app: nothing in `src/` imports it.
+  - Two prompts (`mcp/prompts.ts`): `weekly_check_in` and `new_in_regensburg`, which Claude Code shows as slash commands. A prompt states no figure itself: it tells Claude which tools to call and how to write the answer. Every snake_case word in a prompt must be one of the server's tools (tested).
   - `budget_overview` and `recent_entries` read the user's account with the app's own `supabaseStore` and `planDownload`, signed in as the user (`mcp/account.ts`).
     - `server.ts` loads `.env.local`: the app's two Supabase values, plus `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD`.
     - The store they get refuses writes (`readOnly`).
