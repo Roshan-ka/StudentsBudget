@@ -62,22 +62,28 @@ describe('regensburg_costs', () => {
     expect(text).toMatch(/- Eating out: €30–135 a month\. Estimate: no page states this number/);
   });
 
-  it('narrows the list to a word, in any case', async () => {
+  it('narrows the list to a word, in any case, and finds it in a source too', async () => {
     const rent = await costs('RENT');
     expect(rent.data.ranges.map((r) => r.categoryId)).toEqual(['rent']);
     expect(rent.data.prices).toEqual([]);
+    expect(rent.data.note).toMatch(/^1 of the 12 Regensburg cost figures matches "RENT"\. Names are often German/);
+    expect(rent.data.note).toContain('call again without search and look through all 12. Cite each item’s source');
     expect(rent.text).not.toContain('Single prices');
+
+    // "WG room" is in the rent range's source.
+    expect((await costs('room')).data.ranges.map((r) => r.categoryId)).toEqual(['rent']);
 
     const gym = await costs('gym');
     expect(gym.data.ranges).toEqual([]);
     expect(gym.data.prices.map((p) => p.label)).toEqual(['Gym per month']);
   });
 
-  it('says what it has when nothing matches, instead of an error', async () => {
+  it('returns everything, and says so in the note, when nothing matches', async () => {
     const { isError, text, data } = await costs('parking');
     expect(isError).toBe(false);
-    expect(data).toEqual({ ranges: [], prices: [] });
-    expect(text).toContain('Nothing in the Regensburg costs matches "parking"');
-    expect(text).toContain('Monthly ranges: Rent, Food & groceries');
+    expect(data.ranges).toHaveLength(city.ranges.length);
+    expect(data.prices).toHaveLength(city.prices.length);
+    expect(data.note).toMatch(/^Nothing matched "parking", so all 12 Regensburg cost figures are listed instead/);
+    expect(text.startsWith(data.note)).toBe(true);
   });
 });

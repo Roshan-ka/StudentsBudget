@@ -2,10 +2,13 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { SWAPS, type Swap } from '../src/data/swaps.ts';
 import type { Minor } from '../src/lib/money.ts';
-import { amountText, askedFor, categoryChoices, categoryIdsOf, categoryInput, categoryName, holds, orderOf, searchInput } from './catalog.ts';
+import { amountText, categoryIdsOf, categoryInput, categoryName, CITE_NOTE, countNote, narrowed, orderOf, searchInput } from './catalog.ts';
 import { isEstimate, sourcedShape, sourceLine } from './sourced.ts';
 
 const CATEGORY_IDS = categoryIdsOf(SWAPS);
+
+/** Words that find a swap; a test holds them to it, since the search input offers them as examples. */
+export const SWAP_SEARCH_EXAMPLES = ['Mensa', 'cinema', 'Deutschlandticket'];
 
 /**
  * The saving as the app's swap line says it: whole euros rounded down, so it never flatters ("about €10" for
@@ -35,7 +38,7 @@ const swapSchema = z.object({
 
 export type FoundSwap = z.infer<typeof swapSchema>;
 
-function found(s: Swap): FoundSwap {
+function foundSwap(s: Swap): FoundSwap {
   return {
     id: s.id,
     title: s.title,
@@ -59,19 +62,25 @@ function found(s: Swap): FoundSwap {
   };
 }
 
-/** The swaps in a category and holding a word, in the app's category order, the biggest saving first within one. */
-export function findSwaps(category?: string, search?: string): FoundSwap[] {
-  return SWAPS.filter((s) => category === undefined || s.categoryId === category)
-    .filter((s) => holds(search, s.title, s.body, categoryName(s.categoryId)))
-    .map(found)
+export type FoundSwaps = { note: string; swaps: FoundSwap[] };
+
+/**
+ * The swaps in a category holding every word of `search` (title, text, category or a source), in the app's category
+ * order with the biggest saving first within one; all of the category's when none does.
+ */
+export function findSwaps(category?: string, search?: string): FoundSwaps {
+  const inCategory = SWAPS.filter((s) => category === undefined || s.categoryId === category)
+    .map(foundSwap)
     .sort((a, b) => orderOf(a.categoryId) - orderOf(b.categoryId) || b.savingPerUseMinor - a.savingPerUseMinor);
+  const found = narrowed(inCategory, search, (s) => [s.title, s.body, s.category, s.source, s.toSource ?? '']);
+  const note =
+    `${countNote(found, ['cheaper swap in Regensburg', 'cheaper swaps in Regensburg'], { search, category })} ${CITE_NOTE} ` +
+    'source and url state the usual price; toSource and toUrl, where given, state the cheaper one.';
+  return { note, swaps: found.items };
 }
 
-export function swapsText(swaps: FoundSwap[], category?: string, search?: string): string {
-  if (swaps.length === 0) {
-    return `No Regensburg swap matches ${askedFor(category, search)}. Categories with swaps: ${categoryChoices(CATEGORY_IDS)}.`;
-  }
-  const lines = ['Cheaper swaps in Regensburg, each with both prices sourced:'];
+export function swapsText({ note, swaps }: FoundSwaps): string {
+  const lines = [note, ''];
   for (const s of swaps) {
     // Without its own source, the cheaper price is stated on the same page as the usual one.
     const prices =
@@ -95,13 +104,13 @@ export function registerSuggestSwaps(server: McpServer): void {
         'Cheaper alternatives for students in Regensburg, Germany, such as the Mensa instead of a restaurant: the ' +
         'usual price, the cheaper price and the saving per use. Both prices are sourced: cite the sources and the ' +
         'date they were checked, and call a saving marked as an estimate an estimate. Regensburg only.',
-      inputSchema: { category: categoryInput(CATEGORY_IDS), search: searchInput },
-      outputSchema: { swaps: z.array(swapSchema) },
+      inputSchema: { category: categoryInput(CATEGORY_IDS), search: searchInput(SWAP_SEARCH_EXAMPLES) },
+      outputSchema: { note: z.string(), swaps: z.array(swapSchema) },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ category, search }) => {
-      const swaps = findSwaps(category, search);
-      return { content: [{ type: 'text', text: swapsText(swaps, category, search) }], structuredContent: { swaps } };
+      const found = findSwaps(category, search);
+      return { content: [{ type: 'text', text: swapsText(found) }], structuredContent: found };
     },
   );
 }

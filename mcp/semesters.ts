@@ -130,10 +130,17 @@ function feeLines(s: SemesterInfo, name: string): string[] {
   return lines;
 }
 
+/** How to read the result: what the model sees in a client that passes only the structured content on. */
+export const SEMESTER_NOTE =
+  'current is the semester the date falls in, next the one after it. Cite the sources and checked dates. fee: null ' +
+  'means no page states that fee yet: say so, and never estimate it, because it changes every semester. A fee is ' +
+  'paid with the re-registration (Rückmeldung) before its semester; reRegistration: null means the university has ' +
+  "not published when that opens. The current semester's fee is shown only while a page still states it.";
+
 export function semesterText(date: IsoDate, found: UniversityInfo[]): string {
-  const lines: string[] = [];
+  const lines: string[] = [SEMESTER_NOTE];
   for (const u of found) {
-    if (lines.length > 0) lines.push('');
+    lines.push('');
     const { current, next } = u;
     lines.push(
       `${u.name} on ${formatDate(date)}: ${current.label}, ${formatDate(current.start)} to ${formatDate(current.end)}. ${sourceLine(current)}.`,
@@ -169,7 +176,7 @@ export function registerSemesterInfo(server: McpServer, today: () => IsoDate): v
           .describe('ur (Universität Regensburg) or oth (OTH Regensburg). Leave it out for both.'),
         date: isoDate.optional().describe('The day to look at, as YYYY-MM-DD. Today when left out.'),
       },
-      outputSchema: { date: z.string(), universities: z.array(universitySchema) },
+      outputSchema: { note: z.string(), date: z.string(), universities: z.array(universitySchema) },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ university, date }) => {
@@ -177,7 +184,7 @@ export function registerSemesterInfo(server: McpServer, today: () => IsoDate): v
       const universities = semesterInfo(day, university === undefined ? ['ur', 'oth'] : [university]);
       return {
         content: [{ type: 'text', text: semesterText(day, universities) }],
-        structuredContent: { date: day, universities },
+        structuredContent: { note: SEMESTER_NOTE, date: day, universities },
       };
     },
   );

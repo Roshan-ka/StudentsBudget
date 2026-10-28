@@ -1,10 +1,13 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { TIPS } from '../src/data/tips.ts';
-import { askedFor, categoryChoices, categoryIdsOf, categoryInput, categoryName, holds, orderOf, searchInput } from './catalog.ts';
+import { categoryIdsOf, categoryInput, categoryName, CITE_NOTE, countNote, narrowed, orderOf, searchInput } from './catalog.ts';
 import { sourcedFields, sourcedShape, sourceLine } from './sourced.ts';
 
 const CATEGORY_IDS = categoryIdsOf(TIPS);
+
+/** Words that find a tip; a test holds them to it, since the search input offers them as examples. */
+export const TIP_SEARCH_EXAMPLES = ['Mensa', 'library', 'Rundfunkbeitrag'];
 
 const tipSchema = z.object({
   id: z.string(),
@@ -16,28 +19,32 @@ const tipSchema = z.object({
 });
 
 export type FoundTip = z.infer<typeof tipSchema>;
+export type FoundTips = { note: string; tips: FoundTip[] };
 
-/** The tips in a category and holding a word (title, text or category name), in the order the app's tips page shows. */
-export function findTips(category?: string, search?: string): FoundTip[] {
-  return TIPS.filter((t) => category === undefined || t.categoryId === category)
-    .filter((t) => holds(search, t.title, t.body, categoryName(t.categoryId)))
-    .sort((a, b) => orderOf(a.categoryId) - orderOf(b.categoryId))
-    .map((t) => ({
-      id: t.id,
-      title: t.title,
-      body: t.body,
-      categoryId: t.categoryId,
-      category: categoryName(t.categoryId),
-      ...sourcedFields(t),
-    }));
+/**
+ * The tips in a category holding every word of `search` (title, text, category or source), in the order the app's
+ * tips page shows; all of the category's when none does.
+ */
+export function findTips(category?: string, search?: string): FoundTips {
+  const inCategory = TIPS.filter((t) => category === undefined || t.categoryId === category).sort(
+    (a, b) => orderOf(a.categoryId) - orderOf(b.categoryId),
+  );
+  const found = narrowed(inCategory, search, (t) => [t.title, t.body, categoryName(t.categoryId), t.source]);
+  const tips = found.items.map((t) => ({
+    id: t.id,
+    title: t.title,
+    body: t.body,
+    categoryId: t.categoryId,
+    category: categoryName(t.categoryId),
+    ...sourcedFields(t),
+  }));
+  const note = countNote(found, ['Regensburg money tip', 'Regensburg money tips'], { search, category });
+  return { note: `${note} ${CITE_NOTE}`, tips };
 }
 
-export function tipsText(found: FoundTip[], category?: string, search?: string): string {
-  if (found.length === 0) {
-    return `No Regensburg money tip matches ${askedFor(category, search)}. Categories with tips: ${categoryChoices(CATEGORY_IDS)}.`;
-  }
-  const lines = ['Money tips for students in Regensburg:'];
-  for (const t of found) lines.push(`- ${t.title} (${t.category}): ${t.body} ${sourceLine(t)}.`);
+export function tipsText({ note, tips }: FoundTips): string {
+  const lines = [note, ''];
+  for (const t of tips) lines.push(`- ${t.title} (${t.category}): ${t.body} ${sourceLine(t)}.`);
   return lines.join('\n');
 }
 
@@ -50,13 +57,13 @@ export function registerFindTips(server: McpServer): void {
         'Ways for students in Regensburg, Germany, to spend less: the Mensa, the semester ticket, the library, free ' +
         'museums and more. Every number in a tip is stated on its source page: cite the source and the date it ' +
         'was checked, and call a tip marked as an estimate an estimate. Regensburg only.',
-      inputSchema: { category: categoryInput(CATEGORY_IDS), search: searchInput },
-      outputSchema: { tips: z.array(tipSchema) },
+      inputSchema: { category: categoryInput(CATEGORY_IDS), search: searchInput(TIP_SEARCH_EXAMPLES) },
+      outputSchema: { note: z.string(), tips: z.array(tipSchema) },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ category, search }) => {
-      const tips = findTips(category, search);
-      return { content: [{ type: 'text', text: tipsText(tips, category, search) }], structuredContent: { tips } };
+      const found = findTips(category, search);
+      return { content: [{ type: 'text', text: tipsText(found) }], structuredContent: found };
     },
   );
 }
