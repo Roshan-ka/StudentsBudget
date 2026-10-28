@@ -132,7 +132,7 @@ Needs Node 24 and npm. Run `npm install` once, then:
 - `npm run typecheck`: TypeScript check
 - `npm run lint`: ESLint
 
-Playwright needs its browsers once: `npx playwright install chromium webkit`.
+Playwright needs its browsers once: `npx playwright install chromium webkit`. A failed Playwright test keeps a trace: `npx playwright show-trace test-results/<test>/trace.zip`. In CI, a failed run uploads the HTML report and the traces as the `playwright-report` artifact.
 
 ### Accounts and the database (optional)
 Without Supabase settings the app runs local-only and hides the account UI. To try accounts:
