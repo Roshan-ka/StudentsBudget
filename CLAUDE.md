@@ -80,8 +80,10 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Default account:** new entries, quick add, a transfer's From and new recurring lines (in Settings, setup and Edit plan) start on `defaultAccount` (`balances.ts`) over accounts in `sortAccounts` order (setup: draft order): the account marked `isDefault`, else the first euro bank account, else any euro account, else the first bank account, else the first account. Never `accounts[0]`. A quick-add line written with a euro marker (€, eur, euro) goes to `euroAccount` (the euro part of that rule) when the default is not in euros.
 - **MCP server** (`mcp/`, plan in `docs/superpowers/plans/2026-10-28-mcp-server.md`):
   - A local stdio server with read-only tools over `src/data`. It isn't part of the web app: nothing in `src/` imports it.
-  - Node 24 runs the `.ts` files directly with type stripping. So `mcp/` imports app files by relative path with `.ts` (tsconfig `allowImportingTsExtensions`), and only files whose runtime imports avoid `@/`: `src/data/*`, `src/lib/money.ts`, `src/lib/dates.ts`.
-  - An app helper that imports through `@/` gets a copy in `mcp/`. `mcp/catalogs.test.ts` holds each copy to the app's function.
+  - Node 24 runs the `.ts` files directly with type stripping (tsconfig `allowImportingTsExtensions`; `erasableSyntaxOnly` keeps every file in `src/` strippable, so no enums or parameter properties).
+  - Statically, `mcp/` imports only app files without runtime `@/` imports (`src/data/*`, `src/lib/money.ts`, `src/lib/dates.ts`), by relative path with `.ts`.
+  - The rest of the app (`@/` and extensionless imports) loads through `mcp/app-imports.ts`: call `registerAppImports()` first, then a dynamic `import()`, since static imports resolve before any code runs (see `mcp/budget-smoke.ts`).
+  - The M1 copies of app helpers in `mcp/catalog.ts` and `mcp/semesters.ts` are held to the app's functions by `mcp/catalogs.test.ts`.
   - stdout carries the protocol: log only to stderr.
   - Claude Code hands the model only a tool's structured content, not its text. Whatever the model must know (cite the sources, what a `null` means, that a search missed) goes in the structured `note`, as well as in the text.
   - Every item keeps its source, URL and checked date.

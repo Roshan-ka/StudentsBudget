@@ -4,9 +4,20 @@
 
 **Goal:** a local MCP server, so Claude Code and Claude Desktop on Roshan's PC can answer from StudentsBudget's own data: first the sourced Regensburg catalogs, then his budget from the account. Building an MCP server end to end is one of Roshan's main internship tasks.
 
-**Status (2026-10-28):** M1.1 and M1.2 built on `feat/mcp-server`: the server and five read-only tools (`regensburg_costs`, `find_discounts`, `find_tips`, `suggest_swaps`, `semester_info`), with in-memory client tests and tests that hold the server's copies of app helpers to the app's answers. M1.3's real try in Claude Code found two gaps, both fixed:
+**Status (2026-10-28):** M1 is done and merged (PR #4): the server and five read-only tools (`regensburg_costs`, `find_discounts`, `find_tips`, `suggest_swaps`, `semester_info`), with in-memory client tests and tests that hold the server's copies of app helpers to the app's answers. M1.3's real try in Claude Code found two gaps, both fixed:
 - Claude Code passes only the structured content to the model, so a miss reached it as an empty list. Every result now carries a `note`, and a miss returns the whole list.
 - "room" and "swimming" found nothing. The search now matches words at their start in every field, sources included, and its note points to the full list when a German name may hide a match.
+
+M2.1 is built on `feat/mcp-budget`; M2.2 is next.
+
+**M2.1 result: a resolve hook, not `tsx`.**
+- `mcp/app-imports.ts` registers a synchronous Node resolve hook (`module.registerHooks`). For files in `src/` only, it maps `@/…` to `src/…` and tries an extensionless path with `.ts`, then as a folder.
+- A file that imports the app through `@/` must be loaded with a dynamic `import()` after the hook is registered: static imports are resolved before any code runs.
+- The runtime graph of `src/lib/budget.ts`, `src/sync/download.ts` and `src/sync/store.ts` is 14 app files plus `date-fns` and `zod`, with no Dexie.
+- One file used syntax Node can't strip: `StoreError`'s constructor parameter properties. Its fields are now written out, and tsconfig's `erasableSyntaxOnly` makes typecheck refuse such syntax anywhere.
+- `mcp/budget.ts` runs Home's maths (`monthStatus`, `weekToSpend`). `mcp/budget.test.ts` runs it in plain Node through `mcp/budget-smoke.ts`: the demo backup's October 2026 leaves €138.10, as the demo pack documents, and every figure matches the same code loaded by Vitest.
+- No new dependency. `tsx` would have added esbuild, whose install script npm 12 blocks by default.
+- The catalog helpers copied into `mcp/catalog.ts` and `mcp/semesters.ts` in M1 could now come from the app through the hook. That is worth doing once M2's tools exist, so the parity tests can go.
 
 **Builds on:** the catalogs in `src/data/` (every number with a source, a URL and a checked date) and P2.1's account ([[2026-10-23-p2-1-accounts-and-database|P2.1 plan]]). **Spec:** [[Student Budget App - Concept]]: the AI never states prices or advice it can't back up, and always says where they came from. Live sync ([[2026-10-26-p2-2-live-sync|P2.2 plan]]) is paused: reading needs no sync.
 
@@ -31,7 +42,7 @@
 
 | Chunk | What | Done when |
 |---|---|---|
-| M2.1 | Spike: run `src/lib/budget.ts` and `src/sync/download.ts`, which import through `@/` at runtime, from the server. Either a small Node resolve hook or `tsx` | A smoke test computes a month from the demo backup |
+| M2.1 ✓ | Spike: run `src/lib/budget.ts` and `src/sync/download.ts`, which import through `@/` at runtime, from the server. Either a small Node resolve hook or `tsx`. Chosen: the hook (see the status above) | A smoke test computes a month from the demo backup |
 | M2.2 | Sign-in from `.env.local` (`STUDENTSBUDGET_MCP_EMAIL`, `STUDENTSBUDGET_MCP_PASSWORD`, git-ignored and entered by Roshan), `supabaseStore` and `planDownload`, then a `budget_overview` tool: left this month, this week, envelopes and balances, "as of your last Save" | Tests with the fake store: figures, an empty account, a refused row |
 | M2.3 | `recent_entries`; tried for real with a test account and the demo backup; docs, reviewers, PR | Claude's "this week" figure matches Home |
 
