@@ -18,8 +18,10 @@ M2.1–M2.3 are built on `feat/mcp-budget`.
   - `beforeSetup` on entries the budget leaves out;
   - the store wrapped so it refuses writes;
   - tests for the session (one sign-in, no kept failure, exactly one retry on a 401);
-  - errors split into unreachable, refused and error, each logged to stderr.
-- The Draft PR is next.
+    - errors split into unreachable, refused and error, each logged to stderr.
+- M2 merged as PR #5 on 28-10-2026, after green CI (e2e and the offline check included).
+
+M3 (prompts and the clean-up) started on `feat/mcp-prompts`.
 
 **M2.1 result: a resolve hook, not `tsx`.**
 - `mcp/app-imports.ts` registers a synchronous Node resolve hook (`module.registerHooks`). For files in `src/` only, it maps `@/…` to `src/…` and tries an extensionless path with `.ts`, then as a folder.
@@ -58,6 +60,16 @@ M2.1–M2.3 are built on `feat/mcp-budget`.
 | M2.3 ✓ | `recent_entries`; tried for real with a test account and the demo backup; docs, reviewers, PR | Claude's "this week" figure matches Home |
 
 In M2 the budget figures and entry notes go into the Claude conversation, so the first real try uses a test account.
+
+## Stage M3: prompts, and one source of truth (chosen on 28-10-2026)
+
+After tools, MCP's other main building block is the **prompt**: a named template the user picks, which Claude Code shows as a slash command (`/mcp__studentsbudget__<name>`). Resources were left out: the catalogs serve better as searchable tools than as static documents.
+
+| Chunk | What | Done when |
+|---|---|---|
+| M3.1 | **Clean-up.** The M1 copies of app helpers become imports of the app's own code, through the import hook that M2 brought:<br>• `categoryName` and `orderOf` (`src/features/entries/categories.ts`);<br>• `amountText`, and the saving wording (`src/features/swaps/suggest.ts`, which exports its `savingText` for this);<br>• `STALE_AFTER_DAYS` (`src/features/discounts/discounts.ts`);<br>• `semesterOn` and `UNIVERSITIES` (`src/features/profile/profile.ts`).<br>The parity tests in `mcp/catalogs.test.ts` go; the behaviour tests stay. | One copy of each rule. The plain-Node smoke test loads the new graph. Lint, typecheck and unit tests pass, and the server answers over stdio as before |
+| M3.2 | **Two prompts:**<br>• `weekly_check_in`: the app's Sunday check-in, in a chat. Claude calls `budget_overview` and `recent_entries`, then `suggest_swaps` for envelopes that are over, and writes it the calm way, as of the last Save;<br>• `new_in_regensburg`, with an optional university: the first month for a new student, through `regensburg_costs`, `semester_info`, `find_tips` and `find_discounts`, all cited. | The in-memory client lists both and gets their messages; the steps name only tools that exist |
+| M3.3 | **Try it for real** in Claude Code: reconnect the server and run both slash commands. Then README and CLAUDE.md, two parallel reviewers, push after Roshan's go, and the Draft PR | The check-in matches Home's figures; CI green |
 
 ## Later, each a plan of its own
 
