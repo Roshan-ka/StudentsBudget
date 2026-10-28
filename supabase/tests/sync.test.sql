@@ -47,9 +47,10 @@ select is_empty(
 );
 
 -- The revision counters are out of every signed-in user's reach: a counter set back would make pulls skip changes.
+-- (Signed-in users may use the private schema since 20261028150013_two_step_sign_in.sql, for one function only:
+-- two_step.test.sql checks that.)
 select ok(
-  not has_schema_privilege('authenticated', 'private', 'USAGE')
-    and not has_table_privilege('authenticated', 'private.sync_meta', 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE'),
+  not has_table_privilege('authenticated', 'private.sync_meta', 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE'),
   'authenticated cannot reach private.sync_meta'
 );
 

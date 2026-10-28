@@ -11,6 +11,7 @@ import {
   AccountProblem,
   accountFromEnv,
   accountFromSettings,
+  needsSecondStep,
   readAccountSettings,
   readOnly,
   type ReadAccount,
@@ -114,6 +115,15 @@ describe('budget_overview', () => {
     };
     expect((await overview(signInFailed)).data).toMatchObject({ state: 'sign-in-failed', note: 'Email or password is wrong.' });
 
+    // An account with two-step sign-in shows a password-only session nothing: that is said, not read as "empty".
+    const secondStep: ReadAccount = async () => {
+      throw new AccountProblem('needs-second-step', 'This account uses two-step sign-in.');
+    };
+    for (const tool of ['budget_overview', 'recent_entries', 'week_check_in']) {
+      const { data } = await call<{ state: string; note: string }>(await connect(DEMO_DAY, secondStep), tool);
+      expect(data, tool).toMatchObject({ state: 'needs-second-step', note: 'This account uses two-step sign-in.' });
+    }
+
     // The rest also leaves a trace on stderr, which stays quiet here.
     const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
     const failing = (error: unknown): ReadAccount => async () => {
@@ -167,6 +177,15 @@ describe('budget_overview', () => {
 describe('the account session', () => {
   const settings = { url: 'https://x.supabase.co', publishableKey: 'sb_publishable_x', email: 'a@example.com', password: 'p' };
   const reader = { store: fakeStore().store, lastSavedAt: async () => null };
+
+  it('knows a session that still owes the second step', () => {
+    // The account has a verified factor, and only the password was given.
+    expect(needsSecondStep({ currentLevel: 'aal1', nextLevel: 'aal2' })).toBe(true);
+    // The code was given; or the account has no factor; or an unconfirmed one only (next level stays aal1).
+    expect(needsSecondStep({ currentLevel: 'aal2', nextLevel: 'aal2' })).toBe(false);
+    expect(needsSecondStep({ currentLevel: 'aal1', nextLevel: 'aal1' })).toBe(false);
+    expect(needsSecondStep(null)).toBe(false);
+  });
 
   it('signs in once for many reads, and doesn’t keep a sign-in that failed', async () => {
     let signIns = 0;

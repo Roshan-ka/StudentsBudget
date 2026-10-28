@@ -84,6 +84,7 @@ export const stateSchema = z.enum([
   'invalid',
   'not-set-up',
   'sign-in-failed',
+  'needs-second-step',
   'unreachable',
   'refused',
   'error',
