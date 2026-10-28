@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { SWAPS, type Swap } from '../src/data/swaps.ts';
-import type { Minor } from '../src/lib/money.ts';
+import { savingText } from '@/features/swaps/suggest';
 import { amountText, categoryIdsOf, categoryInput, categoryName, CITE_NOTE, countNote, narrowed, orderOf, searchInput } from './catalog.ts';
 import { isEstimate, sourcedShape, sourceLine } from './sourced.ts';
 
@@ -17,15 +17,7 @@ const GERMAN_NAMES = 'Mensa is the university canteen, Kinos a cinema';
 const SWAP_ESTIMATE_NOTE =
   'estimate: true means the saving rests on an assumption no page states (both prices are stated), so call the saving an estimate.';
 
-/**
- * The saving as the app's swap line says it: whole euros rounded down, so it never flatters ("about €10" for
- * €10.70), except that a saving under €1 keeps its cents.
- */
-export function savingText(minor: Minor): string {
-  return minor < 100 ? amountText(minor) : amountText(Math.floor(minor / 100) * 100);
-}
-
-const swapSchema = z.object({
+export const swapSchema = z.object({
   id: z.string(),
   title: z.string(),
   body: z.string(),
@@ -45,7 +37,7 @@ const swapSchema = z.object({
 
 export type FoundSwap = z.infer<typeof swapSchema>;
 
-function foundSwap(s: Swap): FoundSwap {
+export function foundSwap(s: Swap): FoundSwap {
   return {
     id: s.id,
     title: s.title,

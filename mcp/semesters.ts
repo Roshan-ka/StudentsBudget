@@ -1,52 +1,20 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { SEMESTER_FEES, SEMESTER_PERIODS, type SemesterPeriod } from '../src/data/semesters.ts';
+import { SEMESTER_FEES, type SemesterPeriod } from '../src/data/semesters.ts';
 import { addDays, formatDate, type IsoDate, type IsoMonth } from '../src/lib/dates.ts';
+// The app's own semester rule (which semester a day falls in) and university names.
+import { semesterOn, UNIVERSITIES, type Semester } from '@/features/profile/profile';
 import { amountText } from './catalog.ts';
 import { sourcedFields, sourcedShape, sourceLine } from './sourced.ts';
 
 type University = SemesterPeriod['university'];
-type Term = SemesterPeriod['term'];
 
-/** As `UNIVERSITIES` in the app's profile. */
-export const UNIVERSITY_NAMES: Record<University, string> = { ur: 'Universität Regensburg', oth: 'OTH Regensburg' };
-
-export type SemesterDates = { term: Term; start: IsoDate; end: IsoDate; period: SemesterPeriod };
-
-function periodOf(university: University, term: Term): SemesterPeriod {
-  const period = SEMESTER_PERIODS.find((p) => p.university === university && p.term === term);
-  if (!period) throw new Error(`StudentsBudget: no ${term} semester for ${university}`);
-  return period;
-}
-
-/** A year as four digits, so a year below 1000 still builds a real date. */
-const yearText = (year: number): string => String(year).padStart(4, '0');
-
-/**
- * The semester of `university` that `date` falls in, as the app's `semesterOn` (src/features/profile/profile.ts)
- * works it out; a test holds the two to the same answer. The periods leave no gap: before this year's summer
- * semester it is the winter semester that began last autumn, after it the one that begins this autumn.
- */
-export function semesterOn(university: University, date: IsoDate): SemesterDates {
-  const year = Number(date.slice(0, 4));
-  const summer = periodOf(university, 'summer');
-  const summerStart = `${yearText(year)}-${summer.starts}`;
-  const summerEnd = `${yearText(year)}-${summer.ends}`;
-  if (date >= summerStart && date <= summerEnd) {
-    return { term: 'summer', start: summerStart, end: summerEnd, period: summer };
-  }
-  const winter = periodOf(university, 'winter');
-  const startYear = date < summerStart ? year - 1 : year;
-  return {
-    term: 'winter',
-    start: `${yearText(startYear)}-${winter.starts}`,
-    end: `${yearText(startYear + 1)}-${winter.ends}`,
-    period: winter,
-  };
+function universityName(university: University): string {
+  return UNIVERSITIES.find((u) => u.id === university)?.name ?? university;
 }
 
 /** "winter semester 2026/27", "summer semester 2027". */
-export function semesterLabel(s: Pick<SemesterDates, 'term' | 'start'>): string {
+export function semesterLabel(s: Pick<Semester, 'term' | 'start'>): string {
   const year = Number(s.start.slice(0, 4));
   return s.term === 'summer'
     ? `summer semester ${year}`
@@ -88,7 +56,7 @@ export type SemesterInfo = z.infer<typeof semesterSchema>;
 export type UniversityInfo = z.infer<typeof universitySchema>;
 
 /** What the pages state about paying for this semester: its parts and re-registration month, or null for nothing. */
-function feeOf(university: University, s: SemesterDates): SemesterInfo['fee'] {
+function feeOf(university: University, s: Semester): SemesterInfo['fee'] {
   const fee = SEMESTER_FEES.find((f) => f.university === university && f.starts === s.start);
   const parts = fee?.parts ?? [];
   if (parts.length === 0 && fee?.reRegistration === undefined) return null;
@@ -105,7 +73,7 @@ function feeOf(university: University, s: SemesterDates): SemesterInfo['fee'] {
   };
 }
 
-function info(university: University, s: SemesterDates): SemesterInfo {
+function info(university: University, s: Semester): SemesterInfo {
   return { term: s.term, label: semesterLabel(s), start: s.start, end: s.end, ...sourcedFields(s.period), fee: feeOf(university, s) };
 }
 
@@ -114,7 +82,7 @@ export function semesterInfo(date: IsoDate, universities: readonly University[])
   return universities.map((university) => {
     const current = semesterOn(university, date);
     const next = semesterOn(university, addDays(current.end, 1));
-    return { university, name: UNIVERSITY_NAMES[university], current: info(university, current), next: info(university, next) };
+    return { university, name: universityName(university), current: info(university, current), next: info(university, next) };
   });
 }
 

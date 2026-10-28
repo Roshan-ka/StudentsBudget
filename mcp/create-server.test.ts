@@ -5,7 +5,7 @@ import { call, connect } from './test-client.ts';
 
 const city = CITIES.regensburg;
 const shownPrices = city.prices.filter((p) => !HIDDEN_PRICE_LABELS.includes(p.label));
-/** The tools over the sourced Regensburg catalogs; budget_overview and recent_entries read the user's own account. */
+/** The tools over the sourced Regensburg catalogs; budget_overview, recent_entries and week_check_in read the user's own account. */
 const CATALOG_TOOLS = ['find_discounts', 'find_tips', 'regensburg_costs', 'semester_info', 'suggest_swaps'];
 
 describe('the StudentsBudget MCP server', () => {
@@ -15,7 +15,7 @@ describe('the StudentsBudget MCP server', () => {
     expect(client.getInstructions()).toContain('Cite them');
 
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(['budget_overview', ...CATALOG_TOOLS, 'recent_entries'].sort());
+    expect(tools.map((t) => t.name).sort()).toEqual(['budget_overview', ...CATALOG_TOOLS, 'recent_entries', 'week_check_in'].sort());
     for (const tool of tools) {
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
       expect(tool.outputSchema, tool.name).toBeDefined();

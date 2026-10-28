@@ -1,21 +1,9 @@
 import { z } from 'zod';
-import { CATEGORIES } from '../src/data/categories.ts';
-import { formatMoney, type Minor } from '../src/lib/money.ts';
+import { categoryName, orderOf } from '@/features/entries/categories';
 
-// The app's own helpers for these (src/features/…) import through `@/`, which Node's type stripping can't resolve,
-// so the few the tools need live here. The tests check them against the app's.
-
-const NAMES = new Map(CATEGORIES.map((c) => [c.id, c.name]));
-const ORDER = new Map(CATEGORIES.map((c) => [c.id, c.order]));
-
-export function categoryName(id: string): string {
-  return NAMES.get(id) ?? id;
-}
-
-/** The app's category order: the chips, the tips page and the setup steps all follow it. */
-export function orderOf(categoryId: string): number {
-  return ORDER.get(categoryId) ?? Number.MAX_SAFE_INTEGER;
-}
+// The app's own helpers, loaded through ./app-imports.ts (server.ts registers it before importing the tools).
+export { categoryName, orderOf };
+export { amountText } from '@/features/swaps/suggest';
 
 /** The categories `items` use, in the app's order. */
 export function categoryIdsOf(items: readonly { categoryId: string }[]): string[] {
@@ -119,8 +107,3 @@ export const CITE_NOTE =
 
 /** What `estimate: true` means on a cost, discount or tip (a swap's differs: see swaps.ts). */
 export const ESTIMATE_NOTE = 'estimate: true means no page states the number, so call it an estimate.';
-
-/** "€14.50" for an amount with cents, "€34" for a whole-euro one, as the app's swap lines write it. */
-export function amountText(minor: Minor): string {
-  return formatMoney(minor, 'EUR', minor % 100 === 0 ? { whole: true } : undefined);
-}
