@@ -1,13 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { CATEGORIES } from '../src/data/categories.ts';
 import { CITIES } from '../src/data/cities.ts';
 import { formatMoney, formatRange } from '../src/lib/money.ts';
-import { isEstimate, sourceLine, type Sourced } from './sourced.ts';
+import { categoryName } from './catalog.ts';
+import { sourcedFields, sourcedShape, sourceLine } from './sourced.ts';
 
 const city = CITIES.regensburg;
 
-const sourcedShape = { estimate: z.boolean(), source: z.string(), url: z.string(), checked: z.string() };
 const rangeSchema = z.object({
   categoryId: z.string(),
   category: z.string(),
@@ -22,14 +21,6 @@ const outputShape = { ranges: z.array(rangeSchema), prices: z.array(priceSchema)
 export type CostRange = z.infer<typeof rangeSchema>;
 export type CostPrice = z.infer<typeof priceSchema>;
 export type RegensburgCosts = { ranges: CostRange[]; prices: CostPrice[] };
-
-function categoryName(id: string): string {
-  return CATEGORIES.find((c) => c.id === id)?.name ?? id;
-}
-
-function sourcedFields(item: Sourced) {
-  return { estimate: isEstimate(item), source: item.source, url: item.url, checked: item.checked };
-}
 
 /** The monthly ranges and single prices, narrowed to those whose name holds `search` (any case) when it is given. */
 export function regensburgCosts(search = ''): RegensburgCosts {

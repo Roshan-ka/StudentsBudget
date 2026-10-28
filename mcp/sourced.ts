@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { formatDate, type IsoDate } from '../src/lib/dates.ts';
 
 /** Every catalog item carries these: where its figure comes from, and the day that page was opened. */
@@ -14,4 +15,11 @@ export function sourceLine(item: Sourced): string {
   return isEstimate(item)
     ? `Estimate: no page states this number; it is built from ${item.url}, ${checked}`
     : `Source: ${item.source}, ${item.url}, ${checked}`;
+}
+
+/** The sourced fields of a tool's structured output. */
+export const sourcedShape = { estimate: z.boolean(), source: z.string(), url: z.string(), checked: z.string() };
+
+export function sourcedFields(item: Sourced): { estimate: boolean; source: string; url: string; checked: IsoDate } {
+  return { estimate: isEstimate(item), source: item.source, url: item.url, checked: item.checked };
 }

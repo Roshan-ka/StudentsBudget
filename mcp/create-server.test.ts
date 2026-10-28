@@ -1,44 +1,42 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { describe, expect, it } from 'vitest';
 import { CITIES } from '../src/data/cities.ts';
-import { createServer } from './create-server.ts';
 import type { RegensburgCosts } from './regensburg-costs.ts';
-
-/** A real MCP client talking to the server over the SDK's in-memory transport: the same protocol as stdio. */
-async function connect(): Promise<Client> {
-  const client = new Client({ name: 'test', version: '0.0.0' });
-  const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  await Promise.all([createServer().connect(serverSide), client.connect(clientSide)]);
-  return client;
-}
-
-async function costs(client: Client, search?: string) {
-  const result = await client.callTool({ name: 'regensburg_costs', arguments: search === undefined ? {} : { search } });
-  const [first] = result.content as { type: string; text: string }[];
-  return { result, text: first.text, data: result.structuredContent as RegensburgCosts };
-}
+import { call, connect } from './test-client.ts';
 
 const city = CITIES.regensburg;
+const TOOLS = ['find_discounts', 'find_tips', 'regensburg_costs', 'semester_info', 'suggest_swaps'];
 
 describe('the StudentsBudget MCP server', () => {
-  it('introduces itself and lists regensburg_costs as a read-only tool', async () => {
+  it('introduces itself and lists its tools, all read-only, each asking for the sources to be cited', async () => {
     const client = await connect();
     expect(client.getServerVersion()?.name).toBe('studentsbudget');
     expect(client.getInstructions()).toContain('Cite them');
 
     const { tools } = await client.listTools();
-    const tool = tools.find((t) => t.name === 'regensburg_costs');
-    expect(tool?.annotations?.readOnlyHint).toBe(true);
-    expect(tool?.description).toContain('source, URL and the date it was checked');
-    expect(tool?.outputSchema).toBeDefined();
+    expect(tools.map((t) => t.name).sort()).toEqual(TOOLS);
+    for (const tool of tools) {
+      expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
+      expect(tool.description, tool.name).toMatch(/[Cc]ite/);
+      expect(tool.outputSchema, tool.name).toBeDefined();
+    }
+  });
+
+  it('refuses input outside a tool’s schema, as a tool error the model can read', async () => {
+    const client = await connect();
+    const unknownCategory = await client.callTool({ name: 'find_tips', arguments: { category: 'parking' } });
+    expect(unknownCategory.isError).toBe(true);
+    const notADay = await client.callTool({ name: 'semester_info', arguments: { date: '2027-02-30' } });
+    expect(notADay.isError).toBe(true);
   });
 });
 
 describe('regensburg_costs', () => {
+  const costs = async (search?: string) =>
+    call<RegensburgCosts>(await connect(), 'regensburg_costs', search === undefined ? {} : { search });
+
   it('returns every monthly range and single price, each with its source, URL and checked date', async () => {
-    const { result, text, data } = await costs(await connect());
-    expect(result.isError).toBeFalsy();
+    const { isError, text, data } = await costs();
+    expect(isError).toBe(false);
     expect(data.ranges).toHaveLength(city.ranges.length);
     expect(data.prices).toHaveLength(city.prices.length);
     for (const item of [...data.ranges, ...data.prices]) {
@@ -50,7 +48,7 @@ describe('regensburg_costs', () => {
   });
 
   it('writes each figure as the app does, with the date as DD-MM-YYYY', async () => {
-    const { text, data } = await costs(await connect());
+    const { text, data } = await costs();
     const rent = data.ranges.find((r) => r.categoryId === 'rent');
     expect(rent).toMatchObject({ category: 'Rent', range: '€215–561', minMinor: 21500, maxMinor: 56100, estimate: false });
     expect(text).toContain('- Rent: €215–561 a month. Source: Universität Regensburg');
@@ -59,27 +57,25 @@ describe('regensburg_costs', () => {
   });
 
   it('calls an estimate an estimate', async () => {
-    const { text, data } = await costs(await connect());
-    const eatingOut = data.ranges.find((r) => r.categoryId === 'eating-out');
-    expect(eatingOut?.estimate).toBe(true);
+    const { text, data } = await costs();
+    expect(data.ranges.find((r) => r.categoryId === 'eating-out')?.estimate).toBe(true);
     expect(text).toMatch(/- Eating out: €30–135 a month\. Estimate: no page states this number/);
   });
 
   it('narrows the list to a word, in any case', async () => {
-    const client = await connect();
-    const rent = await costs(client, 'RENT');
+    const rent = await costs('RENT');
     expect(rent.data.ranges.map((r) => r.categoryId)).toEqual(['rent']);
     expect(rent.data.prices).toEqual([]);
     expect(rent.text).not.toContain('Single prices');
 
-    const gym = await costs(client, 'gym');
+    const gym = await costs('gym');
     expect(gym.data.ranges).toEqual([]);
     expect(gym.data.prices.map((p) => p.label)).toEqual(['Gym per month']);
   });
 
   it('says what it has when nothing matches, instead of an error', async () => {
-    const { result, text, data } = await costs(await connect(), 'parking');
-    expect(result.isError).toBeFalsy();
+    const { isError, text, data } = await costs('parking');
+    expect(isError).toBe(false);
     expect(data).toEqual({ ranges: [], prices: [] });
     expect(text).toContain('Nothing in the Regensburg costs matches "parking"');
     expect(text).toContain('Monthly ranges: Rent, Food & groceries');
