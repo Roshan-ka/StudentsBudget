@@ -8,7 +8,7 @@
 - Claude Code passes only the structured content to the model, so a miss reached it as an empty list. Every result now carries a `note`, and a miss returns the whole list.
 - "room" and "swimming" found nothing. The search now matches words at their start in every field, sources included, and its note points to the full list when a German name may hide a match.
 
-M2.1 is built on `feat/mcp-budget`; M2.2 is next.
+M2.1 and M2.2 are built on `feat/mcp-budget`: `budget_overview` reads the account and runs the app's own maths, tested with the fake store and over stdio without credentials. Next is a real sign-in with a test account (M2.3).
 
 **M2.1 result: a resolve hook, not `tsx`.**
 - `mcp/app-imports.ts` registers a synchronous Node resolve hook (`module.registerHooks`). For files in `src/` only, it maps `@/…` to `src/…` and tries an extensionless path with `.ts`, then as a folder.
@@ -43,7 +43,7 @@ M2.1 is built on `feat/mcp-budget`; M2.2 is next.
 | Chunk | What | Done when |
 |---|---|---|
 | M2.1 ✓ | Spike: run `src/lib/budget.ts` and `src/sync/download.ts`, which import through `@/` at runtime, from the server. Either a small Node resolve hook or `tsx`. Chosen: the hook (see the status above) | A smoke test computes a month from the demo backup |
-| M2.2 | Sign-in from `.env.local` (`STUDENTSBUDGET_MCP_EMAIL`, `STUDENTSBUDGET_MCP_PASSWORD`, git-ignored and entered by Roshan), `supabaseStore` and `planDownload`, then a `budget_overview` tool: left this month, this week, envelopes and balances, "as of your last Save" | Tests with the fake store: figures, an empty account, a refused row |
+| M2.2 ✓ | Sign-in from `.env.local` (`STUDENTSBUDGET_MCP_EMAIL`, `STUDENTSBUDGET_MCP_PASSWORD`, git-ignored and entered by Roshan), `supabaseStore` and `planDownload`, then a `budget_overview` tool: left this month, this week, envelopes and balances, "as of your last Save" | Tests with the fake store: figures, an empty account, a refused row |
 | M2.3 | `recent_entries`; tried for real with a test account and the demo backup; docs, reviewers, PR | Claude's "this week" figure matches Home |
 
 In M2 the budget figures and entry notes go into the Claude conversation, so the first real try uses a test account.

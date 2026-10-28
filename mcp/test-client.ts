@@ -1,13 +1,15 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { IsoDate } from '../src/lib/dates.ts';
+import type { ReadAccount } from './account.ts';
 import { createServer } from './create-server.ts';
 
 /** A real MCP client talking to the server over the SDK's in-memory transport: the same protocol as stdio. */
-export async function connect(today: IsoDate = '2026-10-28'): Promise<Client> {
+export async function connect(today: IsoDate = '2026-10-28', account?: ReadAccount): Promise<Client> {
   const client = new Client({ name: 'test', version: '0.0.0' });
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  await Promise.all([createServer({ today: () => today }).connect(serverSide), client.connect(clientSide)]);
+  const server = createServer({ today: () => today, ...(account === undefined ? {} : { account }) });
+  await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
   return client;
 }
 
