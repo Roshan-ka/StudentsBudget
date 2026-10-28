@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { todayIso, type IsoDate } from '../src/lib/dates.ts';
 import { accountFromEnv, type ReadAccount } from './account.ts';
-import { registerBudgetOverview } from './budget.ts';
+import { registerBudgetOverview, registerRecentEntries } from './budget.ts';
 import { registerFindDiscounts } from './discounts.ts';
 import { registerRegensburgCosts } from './regensburg-costs.ts';
 import { registerSemesterInfo } from './semesters.ts';
@@ -34,5 +34,6 @@ export function createServer({ today = () => todayIso(), account = accountFromEn
   registerSuggestSwaps(server);
   registerSemesterInfo(server, today);
   registerBudgetOverview(server, account, today);
+  registerRecentEntries(server, account, today);
   return server;
 }

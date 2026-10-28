@@ -8,7 +8,7 @@ import { StoreError, type UserDataStore } from '@/sync/store';
 import { fakeStore, snapshot } from '@/sync/test-helpers';
 import { applyUpload, planUpload } from '@/sync/upload';
 import { AccountProblem, accountFromEnv, readAccountSettings, type ReadAccount } from './account.ts';
-import type { BudgetOverview } from './budget.ts';
+import type { BudgetOverview, RecentEntries } from './budget.ts';
 import { call, connect } from './test-client.ts';
 
 // The demo pack's everyday student, saved to a fake account the way the app's Save writes it. On the pack's day
@@ -145,5 +145,64 @@ describe('the account settings', () => {
     expect(o.note).toMatch(
       /^The server has no account to read: add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, STUDENTSBUDGET_MCP_EMAIL and STUDENTSBUDGET_MCP_PASSWORD to \.env\.local/,
     );
+  });
+});
+
+describe('recent_entries', () => {
+  async function entries(read: ReadAccount, args: Record<string, unknown> = {}, today = DEMO_DAY) {
+    return call<RecentEntries>(await connect(today, read), 'recent_entries', args);
+  }
+
+  it('lists this month’s entries newest first, each with its account, amounts and note', async () => {
+    const data = demo();
+    const october = data.entries.filter((e) => e.date.startsWith('2026-10'));
+    const { isError, data: r } = await entries((await savedAccount(data)).read);
+    expect(isError).toBe(false);
+    expect(r).toMatchObject({ state: 'ready', savedAt: SAVED_AT, month: '2026-10', found: october.length });
+    expect(r.entries).toHaveLength(october.length);
+    const dates = r.entries.map((e) => e.date);
+    expect(dates).toEqual([...dates].sort().reverse());
+    expect(r.note).toMatch(/^24 entries in 2026-10\. The user’s own entries/);
+    expect(r.note).toContain('Last saved on 21-10-2026.');
+  });
+
+  it('adds up to what budget_overview counts as spent, for one category', async () => {
+    const { read } = await savedAccount(demo());
+    const { data: r } = await entries(read, { category: 'shopping' });
+    expect(r.entries.every((e) => e.type === 'expense' && e.category === 'Shopping')).toBe(true);
+    const { data: o } = await overview(read);
+    const shopping = o.budget!.envelopes.find((e) => e.categoryId === 'shopping')!;
+    // In euros: one of them was paid from the INR account, so its amount is in rupees.
+    expect(r.entries.reduce((n, e) => n + e.eurMinor, 0)).toBe(shopping.spentMinor);
+    expect(r.entries.some((e) => e.amount.startsWith('₹'))).toBe(true);
+    expect(r.note).toContain('add up eurMinor, never amountMinor');
+    expect(r.note).toMatch(/^\d+ Shopping entries in 2026-10\./);
+  });
+
+  it('shows a transfer as a move between two accounts, with no category', async () => {
+    const { data: r } = await entries((await savedAccount(demo())).read);
+    const transfer = r.entries.find((e) => e.type === 'transfer');
+    expect(transfer).toMatchObject({ categoryId: null, category: null, automatic: false });
+    expect(transfer?.toAccount).not.toBeNull();
+    expect(transfer?.toAmount).not.toBeNull();
+  });
+
+  it('takes another month and a limit, and says how many it left out', async () => {
+    const data = demo();
+    const september = data.entries.filter((e) => e.date.startsWith('2026-09')).length;
+    const { text, data: r } = await entries((await savedAccount(data)).read, { month: '2026-09', limit: 5 });
+    expect(r).toMatchObject({ month: '2026-09', found: september });
+    expect(r.entries).toHaveLength(5);
+    expect(r.note).toMatch(new RegExp(`^${september} entries in 2026-09, the newest 5 shown\\.`));
+    expect(text.split('\n').filter((line) => line.startsWith('- '))).toHaveLength(5);
+  });
+
+  it('refuses a month that isn’t one, and shows nothing from an account it can’t read', async () => {
+    const client = await connect(DEMO_DAY, (await savedAccount(demo())).read);
+    expect((await client.callTool({ name: 'recent_entries', arguments: { month: '2026-13' } })).isError).toBe(true);
+    expect((await client.callTool({ name: 'recent_entries', arguments: { limit: 0 } })).isError).toBe(true);
+
+    const { data: r } = await entries((await savedAccount(null)).read);
+    expect(r).toMatchObject({ state: 'empty', found: 0, entries: [], savedAt: null });
   });
 });

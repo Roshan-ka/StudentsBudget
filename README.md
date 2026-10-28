@@ -150,10 +150,12 @@ With Docker running, `npm run supabase:start` starts a local Supabase stack with
 - Five read-only tools over the Regensburg data: `regensburg_costs`, `find_discounts`, `find_tips`, `suggest_swaps` and `semester_info`.
   - Every figure comes with its source, URL and checked date, and the tools tell Claude to cite them. A fee no page states is never guessed.
   - They need no account and send nothing anywhere.
-- `budget_overview`, also read-only, reads your StudentsBudget account and runs the app's own maths on it: what is left this month and this week, each envelope, and the account balances.
-  - The figures are as of your last **Save to my account** on the phone.
+- `budget_overview` and `recent_entries`, also read-only, read your StudentsBudget account:
+  - `budget_overview` runs the app's own maths on it: what is left this month and this week, each envelope, and the account balances.
+  - `recent_entries` lists a month's entries, newest first, optionally for one category.
+  - The data is as of your last **Save to my account** on the phone.
   - It signs in with two more lines in `.env.local`: `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD` (see `.env.example`). Use a test account first.
-  - Your figures go into the Claude chat.
+  - Your figures and entry notes go into the Claude chat.
 - Claude reads every answer into the chat.
 
 **Claude Code:** open this repo, and Claude Code offers the `studentsbudget` server from `.mcp.json`. Approve it, or use `/mcp`. Then ask something like "What does a room cost in Regensburg?" or "Which student discounts are there for swimming?".

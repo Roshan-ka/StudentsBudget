@@ -79,8 +79,8 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Quick add:** `QuickAddField` reads every line through a `QuickAddProvider` (default `localQuickAddProvider`), and every reading passes `checkReading` before it is saved. Don't call `parseQuickAdd` or `suggestCategory` from the field.
 - **Default account:** new entries, quick add, a transfer's From and new recurring lines (in Settings, setup and Edit plan) start on `defaultAccount` (`balances.ts`) over accounts in `sortAccounts` order (setup: draft order): the account marked `isDefault`, else the first euro bank account, else any euro account, else the first bank account, else the first account. Never `accounts[0]`. A quick-add line written with a euro marker (€, eur, euro) goes to `euroAccount` (the euro part of that rule) when the default is not in euros.
 - **MCP server** (`mcp/`, plan in `docs/superpowers/plans/2026-10-28-mcp-server.md`):
-  - A local stdio server with read-only tools over `src/data`, plus `budget_overview`. It isn't part of the web app: nothing in `src/` imports it.
-  - `budget_overview` reads the user's account with the app's own `supabaseStore` and `planDownload`, signed in as the user (`mcp/account.ts`).
+  - A local stdio server with read-only tools over `src/data`, plus `budget_overview` and `recent_entries`. It isn't part of the web app: nothing in `src/` imports it.
+  - `budget_overview` and `recent_entries` read the user's account with the app's own `supabaseStore` and `planDownload`, signed in as the user (`mcp/account.ts`). Sums across accounts use `eurMinor`, never `amountMinor`.
     - `server.ts` loads `.env.local`: the app's two Supabase values, plus `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD`.
     - It never writes to the account.
     - A problem reading the account is a `state` with a note, not an error.
