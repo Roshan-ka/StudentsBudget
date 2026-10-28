@@ -28,10 +28,16 @@ function base64url(value: object): string {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
 
-/** A session as Supabase Auth returns it, valid for an hour of real time (ahead of any clock a spec pins). */
-function sessionFor(email: string) {
-  const now = Math.floor(Date.now() / 1000);
-  const user = {
+/** The one code the mocked authenticator accepts; any other is wrong. */
+export const E2E_TOTP_CODE = '246802';
+/** The key the mocked authenticator hands out. */
+export const E2E_TOTP_SECRET = 'JBSWY3DPEHPK3PXP';
+
+/** An authenticator factor as Supabase Auth lists it on the user. */
+type MockFactor = { id: string; friendly_name: string; factor_type: 'totp'; status: 'verified' | 'unverified' };
+
+function userFor(email: string, factors: MockFactor[]) {
+  return {
     id: USER_ID,
     aud: 'authenticated',
     role: 'authenticated',
@@ -39,8 +45,18 @@ function sessionFor(email: string) {
     app_metadata: { provider: 'email', providers: ['email'] },
     user_metadata: {},
     created_at: new Date().toISOString(),
+    factors: factors.map((f) => ({ ...f, created_at: 'x', updated_at: 'x' })),
   };
-  const claims = { sub: USER_ID, email, role: 'authenticated', aud: 'authenticated', iat: now, exp: now + 3600 };
+}
+
+/**
+ * A session as Supabase Auth returns it, valid for an hour of real time (ahead of any clock a spec pins). `aal` is the
+ * assurance level its token states: 'aal2' once an authenticator code was given.
+ */
+function sessionFor(email: string, aal: 'aal1' | 'aal2' = 'aal1', factors: MockFactor[] = []) {
+  const now = Math.floor(Date.now() / 1000);
+  const user = userFor(email, factors);
+  const claims = { sub: USER_ID, email, role: 'authenticated', aud: 'authenticated', aal, iat: now, exp: now + 3600 };
   return {
     access_token: `${base64url({ alg: 'HS256', typ: 'JWT' })}.${base64url(claims)}${SESSION_SIGNATURE}`,
     token_type: 'bearer',
@@ -55,12 +71,25 @@ function sessionFor(email: string) {
 export type AuthCall = { method: string; path: string; search: string; body: unknown };
 
 /**
- * Answers Supabase Auth like a project with email and password sign-in and "Confirm email" off: a new account is
- * signed in at once. `accounts` maps each existing email to its password. Returns every call, in order.
+ * Answers Supabase Auth like a project with email and password sign-in, "Confirm email" off and authenticator apps on
+ * (two-step sign-in): a new account is signed in at once. `accounts` maps each existing email to its password. The
+ * authenticator accepts only E2E_TOTP_CODE. Returns every call, in order.
  */
 export async function mockSupabaseAuth(page: Page, accounts: Record<string, string> = {}): Promise<AuthCall[]> {
   const passwords = new Map(Object.entries(accounts));
   const calls: AuthCall[] = [];
+  // Each account's authenticator factors, the account signed in, and whether its session gave a code.
+  const factorsOf = new Map<string, MockFactor[]>();
+  let current: string | null = null;
+  let currentAal: 'aal1' | 'aal2' = 'aal1';
+  let created = 0;
+  const factors = (email: string) => factorsOf.get(email) ?? [];
+  const verified = (email: string) => factors(email).filter((f) => f.status === 'verified');
+  const signedIn = (email: string, aal: 'aal1' | 'aal2') => {
+    current = email;
+    currentAal = aal;
+    return sessionFor(email, aal, verified(email));
+  };
 
   const reply = (route: Route, status: number, json?: unknown) =>
     route.fulfill(json === undefined ? { status, headers: CORS } : { status, headers: CORS, json });
@@ -81,13 +110,71 @@ export async function mockSupabaseAuth(page: Page, accounts: Record<string, stri
         return reply(route, 422, { error_code: 'user_already_exists', msg: 'User already registered' });
       }
       passwords.set(email, password);
-      return reply(route, 200, sessionFor(email));
+      return reply(route, 200, signedIn(email, 'aal1'));
     }
     if (path === '/token' && url.searchParams.get('grant_type') === 'password') {
-      if (email !== undefined && passwords.get(email) === password) return reply(route, 200, sessionFor(email));
+      // The password alone: aal1, with the account's confirmed authenticators listed, as Supabase Auth does.
+      if (email !== undefined && passwords.get(email) === password) return reply(route, 200, signedIn(email, 'aal1'));
       return reply(route, 400, { error_code: 'invalid_credentials', msg: 'Invalid login credentials' });
     }
-    if (path === '/logout') return reply(route, 204);
+    if (path === '/logout') {
+      current = null;
+      return reply(route, 204);
+    }
+    if (current === null) return reply(route, 401, { error_code: 'no_authorization', msg: 'Not signed in' });
+    const who = current;
+
+    if (path === '/token' && url.searchParams.get('grant_type') === 'refresh_token') {
+      // Still aal2 only while a confirmed authenticator is left.
+      return reply(route, 200, signedIn(who, currentAal === 'aal2' && verified(who).length > 0 ? 'aal2' : 'aal1'));
+    }
+    if (path === '/user' && request.method() === 'GET') return reply(route, 200, userFor(who, factors(who)));
+    if (path === '/factors' && request.method() === 'POST') {
+      const { friendly_name: name = '' } = (body ?? {}) as { friendly_name?: string };
+      if (factors(who).some((f) => f.friendly_name === name)) {
+        return reply(route, 422, { error_code: 'mfa_factor_name_conflict', msg: 'A factor with this name exists' });
+      }
+      created += 1;
+      const factor: MockFactor = { id: `factor-${created}`, friendly_name: name, factor_type: 'totp', status: 'unverified' };
+      factorsOf.set(who, [...factors(who), factor]);
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#000"/></svg>';
+      return reply(route, 200, {
+        id: factor.id,
+        type: 'totp',
+        friendly_name: name,
+        totp: {
+          qr_code: svg,
+          secret: E2E_TOTP_SECRET,
+          uri: `otpauth://totp/StudentsBudget:${encodeURIComponent(who)}?secret=${E2E_TOTP_SECRET}&issuer=StudentsBudget`,
+        },
+      });
+    }
+    const factorPath = path.match(/^\/factors\/([^/]+)(\/challenge|\/verify)?$/);
+    const factor = factorPath === null ? undefined : factors(who).find((f) => f.id === factorPath[1]);
+    if (factorPath !== null && factor === undefined) {
+      return reply(route, 404, { error_code: 'mfa_factor_not_found', msg: 'Factor not found' });
+    }
+    if (factorPath !== null && factor !== undefined) {
+      if (factorPath[2] === '/challenge') {
+        return reply(route, 200, { id: `challenge-${factor.id}`, type: 'totp', expires_at: Math.floor(Date.now() / 1000) + 300 });
+      }
+      if (factorPath[2] === '/verify') {
+        const { code } = (body ?? {}) as { code?: string };
+        if (code !== E2E_TOTP_CODE) {
+          return reply(route, 422, { error_code: 'mfa_verification_failed', msg: 'Invalid TOTP code entered' });
+        }
+        factor.status = 'verified';
+        return reply(route, 200, signedIn(who, 'aal2'));
+      }
+      if (request.method() === 'DELETE') {
+        // A confirmed authenticator can only be removed by a session that gave its code.
+        if (factor.status === 'verified' && currentAal !== 'aal2') {
+          return reply(route, 403, { error_code: 'insufficient_aal', msg: 'AAL2 required' });
+        }
+        factorsOf.set(who, factors(who).filter((f) => f.id !== factor.id));
+        return reply(route, 200, { id: factor.id });
+      }
+    }
     return reply(route, 404, { error_code: 'not_found', msg: `No mock for ${path}` });
   });
 
