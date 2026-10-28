@@ -4,7 +4,9 @@
 
 **Goal:** a local MCP server, so Claude Code and Claude Desktop on Roshan's PC can answer from StudentsBudget's own data: first the sourced Regensburg catalogs, then his budget from the account. Building an MCP server end to end is one of Roshan's main internship tasks.
 
-**Status (2026-10-28):** M1.1 and M1.2 built on `feat/mcp-server`: the server and five read-only tools (`regensburg_costs`, `find_discounts`, `find_tips`, `suggest_swaps`, `semester_info`), with in-memory client tests and tests that hold the server's copies of app helpers to the app's answers.
+**Status (2026-10-28):** M1.1 and M1.2 built on `feat/mcp-server`: the server and five read-only tools (`regensburg_costs`, `find_discounts`, `find_tips`, `suggest_swaps`, `semester_info`), with in-memory client tests and tests that hold the server's copies of app helpers to the app's answers. M1.3's real try in Claude Code found two gaps, both fixed:
+- Claude Code passes only the structured content to the model, so a miss reached it as an empty list. Every result now carries a `note`, and a miss returns the whole list.
+- "room" and "swimming" found nothing. The search now matches words at their start in every field, sources included, and its note points to the full list when a German name may hide a match.
 
 **Builds on:** the catalogs in `src/data/` (every number with a source, a URL and a checked date) and P2.1's account ([[2026-10-23-p2-1-accounts-and-database|P2.1 plan]]). **Spec:** [[Student Budget App - Concept]]: the AI never states prices or advice it can't back up, and always says where they came from. Live sync ([[2026-10-26-p2-2-live-sync|P2.2 plan]]) is paused: reading needs no sync.
 
