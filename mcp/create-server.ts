@@ -3,6 +3,7 @@ import { todayIso, type IsoDate } from '../src/lib/dates.ts';
 import { accountFromEnv, type ReadAccount } from './account.ts';
 import { registerBudgetOverview, registerRecentEntries } from './budget.ts';
 import { registerFindDiscounts } from './discounts.ts';
+import { registerPrompts } from './prompts.ts';
 import { registerRegensburgCosts } from './regensburg-costs.ts';
 import { registerSemesterInfo } from './semesters.ts';
 import { registerSuggestSwaps } from './swaps.ts';
@@ -35,5 +36,6 @@ export function createServer({ today = () => todayIso(), account = accountFromEn
   registerSemesterInfo(server, today);
   registerBudgetOverview(server, account, today);
   registerRecentEntries(server, account, today);
+  registerPrompts(server);
   return server;
 }
