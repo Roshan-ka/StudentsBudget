@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "studentsbudget": {
+      "command": "node",
+      "args": ["mcp/server.ts"]
+    }
+  }
+}

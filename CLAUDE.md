@@ -35,6 +35,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | @types/react | 19.3.0 |
 | @types/react-dom | 19.3.0 |
 | supabase (the CLI, a dev dependency) | 2.121.0 |
+| @modelcontextprotocol/sdk (the MCP server in `mcp/`, a dev dependency) | 1.32.2 |
 
 ## Commands
 
@@ -44,7 +45,8 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `next typegen`, then `tsc --noEmit` |
 | `npm run build` | Production build (`next build`); catches Cache Components errors that dev mode hides |
-| `npm test` | Vitest unit tests (`src/**/*.test.ts`, `scripts/**/*.test.mjs`) |
+| `npm test` | Vitest unit tests (`src/**/*.test.ts`, `scripts/**/*.test.mjs`, `mcp/**/*.test.ts`) |
+| `npm run mcp` | The StudentsBudget MCP server on stdio (`node mcp/server.ts`); Claude Code starts it through `.mcp.json` |
 | `npm run test:e2e` | Playwright on `desktop-chrome` and `iphone` (WebKit); starts the dev server if none is running. `E2E_PORT=3001 npm run test:e2e` (PowerShell: `$env:E2E_PORT=3001; npm run test:e2e`) moves it off port 3000, for a second checkout |
 | `npm run test:offline` | Production build, `next start` on :3100 (the port must be free: it never reuses a server), then the Playwright offline check (`desktop-chrome`) |
 | `npm run cert:https` | mkcert makes the HTTPS certificate for phone testing into `certs/` (git-ignored); it never runs `mkcert -install` |
