@@ -2,11 +2,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { DISCOUNTS } from '../src/data/discounts.ts';
 import { daysBetween, type IsoDate } from '../src/lib/dates.ts';
+// Eight weeks: a discount nobody has confirmed for this long may be outdated, as the app's Discounts list says.
+import { STALE_AFTER_DAYS } from '@/features/discounts/discounts';
 import { categoryIdsOf, categoryInput, categoryName, CITE_NOTE, countNote, ESTIMATE_NOTE, narrowed, orderOf, searchInput } from './catalog.ts';
 import { sourcedFields, sourcedShape, sourceLine } from './sourced.ts';
-
-/** As the app's `STALE_AFTER_DAYS`: a discount nobody has confirmed for eight weeks may be outdated. */
-export const STALE_AFTER_DAYS = 56;
 
 const CATEGORY_IDS = categoryIdsOf(DISCOUNTS);
 

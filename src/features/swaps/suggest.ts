@@ -66,7 +66,7 @@ export function amountText(minor: Minor): string {
  * The saving in the words of the line: whole euros, rounded down so it is never flattering ("about €10" for €10.70),
  * except that a saving under €1 keeps its cents rather than read as €0.
  */
-function savingText(minor: Minor): string {
+export function savingText(minor: Minor): string {
   return minor < 100 ? amountText(minor) : amountText(Math.floor(minor / 100) * 100);
 }
 

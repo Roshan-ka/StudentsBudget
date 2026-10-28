@@ -1,57 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORIES } from '@/data/categories';
 import { DISCOUNTS } from '@/data/discounts';
 import { SWAPS } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
-import { STALE_AFTER_DAYS as APP_STALE_AFTER_DAYS } from '@/features/discounts/discounts';
-import { categoryName as appCategoryName, orderOf as appOrderOf } from '@/features/entries/categories';
-import { semesterOn as appSemesterOn, UNIVERSITIES } from '@/features/profile/profile';
-import { amountText as appAmountText, swapLineText } from '@/features/swaps/suggest';
-import { addDays } from '@/lib/dates';
-import { amountText, categoryName, holds, orderOf } from './catalog.ts';
-import { DISCOUNT_SEARCH_EXAMPLES, findDiscounts, STALE_AFTER_DAYS, type FoundDiscounts } from './discounts.ts';
+import { holds, orderOf } from './catalog.ts';
+import { DISCOUNT_SEARCH_EXAMPLES, findDiscounts, type FoundDiscounts } from './discounts.ts';
 import { COST_SEARCH_EXAMPLES, regensburgCosts } from './regensburg-costs.ts';
-import { semesterOn, SEMESTER_NOTE, UNIVERSITY_NAMES, type UniversityInfo } from './semesters.ts';
-import { findSwaps, savingText, SWAP_SEARCH_EXAMPLES, type FoundSwaps } from './swaps.ts';
+import { SEMESTER_NOTE, type UniversityInfo } from './semesters.ts';
+import { findSwaps, SWAP_SEARCH_EXAMPLES, type FoundSwaps } from './swaps.ts';
 import { findTips, TIP_SEARCH_EXAMPLES, type FoundTips } from './tips.ts';
 import { call, connect } from './test-client.ts';
 
-// The server can't import the app's helpers (they import through `@/`, which Node's type stripping can't resolve),
-// so it keeps its own copies. These hold each copy to the app's answer.
-describe('the server agrees with the app', () => {
-  it('on category names and order', () => {
-    for (const c of CATEGORIES) {
-      expect(categoryName(c.id)).toBe(appCategoryName(c.id));
-      expect(orderOf(c.id)).toBe(appOrderOf(c.id));
-    }
-    expect(orderOf('unknown')).toBe(appOrderOf('unknown'));
-  });
-
-  it('on amounts, savings and when a discount may be outdated', () => {
-    for (const minor of [0, 5, 99, 100, 380, 1070, 1450, 3400]) expect(amountText(minor)).toBe(appAmountText(minor));
-    for (const swap of SWAPS) {
-      const saving = swap.fromMinor - swap.toMinor;
-      expect(swapLineText({ categoryId: swap.categoryId, swap, savingPerUseMinor: saving })).toContain(
-        `save about ${savingText(saving)} per ${swap.per}`,
-      );
-    }
-    expect(STALE_AFTER_DAYS).toBe(APP_STALE_AFTER_DAYS);
-  });
-
-  // About 2,200 days; collected first and checked once, and given room on a busy machine.
-  it('on the semester every day of 2026–2028 falls in, at both universities', { timeout: 20_000 }, () => {
-    const differ: string[] = [];
-    for (const university of ['ur', 'oth'] as const) {
-      expect(UNIVERSITY_NAMES[university]).toBe(UNIVERSITIES.find((u) => u.id === university)?.name);
-      for (let day = '2026-01-01'; day <= '2028-12-31'; day = addDays(day, 1)) {
-        const ours = semesterOn(university, day);
-        const app = appSemesterOn(university, day);
-        if (ours.term !== app.term || ours.start !== app.start || ours.end !== app.end) differ.push(`${university} ${day}`);
-      }
-    }
-    expect(differ).toEqual([]);
-  });
-});
+// The tools use the app's own helpers (category names and order, amounts, savings, staleness, semesters), loaded
+// through the import hook, so there is no copy to keep in step. These tests check what the tools make of them.
 
 describe('the search', () => {
   it('wants every word, in any case, at the start of a word in the texts', () => {

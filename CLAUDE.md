@@ -90,7 +90,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
   - Nothing from `src/` beyond `src/data/*`, `src/lib/money.ts` and `src/lib/dates.ts` may load before `registerAppImports()` (`mcp/app-imports.ts`), which teaches Node the `@/` alias and extensionless imports.
     - `server.ts` registers it, then imports `create-server.ts` with a dynamic `import()`, since static imports resolve before any code runs.
     - Every module behind that import may use `@/` freely.
-  - The M1 copies of app helpers in `mcp/catalog.ts` and `mcp/semesters.ts` are held to the app's functions by `mcp/catalogs.test.ts`.
+  - The tools use the app's own helpers (category names and order, amounts, savings, staleness, semesters), never copies.
   - stdout carries the protocol: log only to stderr.
   - Claude Code hands the model only a tool's structured content, not its text. Whatever the model must know (cite the sources, what a `null` means, that a search missed) goes in the structured `note`, as well as in the text.
   - Every item keeps its source, URL and checked date.
