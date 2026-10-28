@@ -2,7 +2,7 @@
 
 @AGENTS.md
 
-Installable Next.js web app for students new to a city (local-first: the phone's data lives in the browser's IndexedDB; since P2.1 an optional email-and-password account can save it to Supabase and load it onto another phone; no AI yet). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`, P2.1 (email-and-password accounts and a Supabase database, done) in `docs/superpowers/plans/2026-10-23-p2-1-accounts-and-database.md`, and P2.2 (live sync, next) in `docs/superpowers/plans/2026-10-26-p2-2-live-sync.md`; `docs/` is an Obsidian vault and stays notes-only.
+Installable Next.js web app for students new to a city (local-first: the phone's data lives in the browser's IndexedDB; since P2.1 an optional email-and-password account can save it to Supabase and load it onto another phone; no AI yet). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`, P2.1 (email-and-password accounts and a Supabase database, done) in `docs/superpowers/plans/2026-10-23-p2-1-accounts-and-database.md`, P2.2 (live sync, paused after day 1) in `docs/superpowers/plans/2026-10-26-p2-2-live-sync.md`, and the local StudentsBudget MCP server (next) in `docs/superpowers/plans/2026-10-28-mcp-server.md`; `docs/` is an Obsidian vault and stays notes-only.
 
 ## Stack
 
@@ -111,7 +111,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - `.gitattributes` with `* text=auto eol=lf`.
 - Conventional Commits, ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - One branch and one Draft PR per day, from `main`. Nothing is pushed to `main` after the initial commit, and Roshan merges.
-- **Repos (since 2026-10-27):** the main repo is `Roshan-ka/StudentsBudget` (`origin`, Roshan's personal account): PRs are opened, checked and merged there. `origin` has a second push URL, so every `git push origin` also updates `SupportRW/StudentsBudget` (fetch it as `supportrw`), which keeps a copy. After Roshan merges, `main` is pulled from `origin` and pushed once more, so SupportRW's `main` catches up (fast-forward only). Commits use Roshan's personal identity (repo-local git config), and Vercel and Supabase run on his personal accounts.
+- **Repos (since 2026-10-27):** the main repo is `Roshan-ka/StudentsBudget` (`origin`, Roshan's personal account): PRs are opened, checked and merged there. `origin` has a second push URL, so every `git push origin` also updates `SupportRW/StudentsBudget` (fetch it as `supportrw`), a backup copy for Roshan's internship mentor to see: no PRs, CI or deploys there, and merged branches are deleted on both. After Roshan merges, `main` is pulled from `origin` and pushed once more, so SupportRW's `main` catches up (fast-forward only). Commits use Roshan's personal identity (repo-local git config), and Vercel and Supabase run on his personal accounts.
 
 ## Keeping this file honest
 

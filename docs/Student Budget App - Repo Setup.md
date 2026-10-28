@@ -9,7 +9,7 @@ See also: [[Student Budget App - Concept]] · [[2026-10-16-p1-test-project|P1 pl
 
 ## The repo
 - **Since 2026-10-27:** `Roshan-ka/StudentsBudget` (Roshan's personal account), **public**, is the main repo. It holds the full history (`main` and both `chore/` branches, copied over in one push), and pull requests are opened and merged there. Vercel and Supabase run on the personal accounts too.
-- `SupportRW/StudentsBudget` still receives every push as a copy: in the local checkout, `origin` pushes to both. It was the repo from 2026-10-16 to 2026-10-26 (PRs #1–#15).
+- `SupportRW/StudentsBudget` is a backup copy for the internship mentor to see. It receives every push (in the local checkout, `origin` pushes to both), and nothing is worked on there: no PRs, CI or deploys. It was the repo from 2026-10-16 to 2026-10-26 (PRs #1–#15).
 - The settings checklist below was done on `SupportRW/StudentsBudget`; go through it again on `Roshan-ka/StudentsBudget`.
 - `SupportRW/StudentsBudget`, **public**, created 2026-10-16 with GitHub's README.
 - Public, because on a free personal account branch rules, unlimited Actions minutes and free secret scanning only apply to public repos. P1 has no secrets, and real spending data never enters the repo; it stays on the phone.
