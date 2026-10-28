@@ -58,10 +58,12 @@ select is(
   'authenticated can execute only has_verified_factor in private'
 );
 
+-- By oid, not by a name built from text: the planner may test the privilege before it filters on the schema, and a
+-- name like 'private.instances' (from auth.instances) does not exist.
 select is_empty(
-  $$ select tablename from pg_tables
-     where schemaname = 'private'
-       and has_table_privilege('authenticated', 'private.' || tablename, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE') $$,
+  $$ select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'private' and c.relkind in ('r', 'p', 'v', 'm')
+       and has_table_privilege('authenticated', c.oid, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE') $$,
   'authenticated has no privilege on any table in private'
 );
 
