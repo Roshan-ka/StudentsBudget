@@ -4,11 +4,12 @@ import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
 import type { Account } from '@/db/types';
 import { accountBalance, sortAccounts, totalInEur } from '@/features/accounts/balances';
-import { monthStatus, weekToSpend } from '@/lib/budget';
+import { monthStatus, planSummary, weekToSpend } from '@/lib/budget';
 import { formatDate, monthOf, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
 import type { RateMap } from '@/lib/fx';
 import { formatMoney, type Minor } from '@/lib/money';
 import { planDownload } from '@/sync/download';
+import { StoreError } from '@/sync/store';
 import { AccountProblem, type ReadAccount } from './account.ts';
 import { categoryName } from './catalog.ts';
 
@@ -67,13 +68,26 @@ const budgetSchema = z.object({
       spentMinor: z.number().int(),
     }),
   ),
+  /** The plan against what the month brings in, as Home's suggested-budget card weighs it (`planSummary`). */
+  plan: z.object({ available: z.object(amountShape), envelopes: z.object(amountShape), overBy: z.object(amountShape) }),
   accounts: z.array(
     z.object({ name: z.string(), kind: z.string(), currency: z.string(), balance: z.string(), balanceMinor: z.number().int() }),
   ),
-  totalInEur: z.object({ ...amountShape, missingRates: z.array(z.string()) }),
+  /** Null when no account's currency could be converted: Home and Settings then show no total, not €0. */
+  totalInEur: z.object({ amount: z.string().nullable(), minor: z.number().int().nullable(), missingRates: z.array(z.string()) }),
 });
 /** Every state a budget tool can end in; only `ready` carries figures. */
-const stateSchema = z.enum(['ready', 'empty', 'unfinished', 'invalid', 'not-set-up', 'sign-in-failed', 'unreachable']);
+const stateSchema = z.enum([
+  'ready',
+  'empty',
+  'unfinished',
+  'invalid',
+  'not-set-up',
+  'sign-in-failed',
+  'unreachable',
+  'refused',
+  'error',
+]);
 type State = z.infer<typeof stateSchema>;
 
 const overviewShape = {
@@ -102,14 +116,20 @@ const READING_NOTE =
   'These are the user’s own figures, read from their StudentsBudget account: as of their last Save from the phone ' +
   '(savedAt), so anything entered on the phone since is missing; say so. Budget figures are in euros, each account ' +
   'balance in its own currency. Write a figure below zero as "€12 over", never as failed or a warning. thisWeek is ' +
-  'Home’s "This week": the week’s share of what is left this month, less this week’s spending. totalInEur leaves ' +
-  'out the currencies in missingRates: the account keeps only manual rates. Write dates as DD-MM-YYYY.';
+  'Home’s "This week": the week’s share of what is left this month, less this week’s spending. plan.overBy above ' +
+  'zero means the envelopes plan more than the month brings in after fixed costs and money set aside (plan.available): ' +
+  'mention it, as Home does. totalInEur leaves out the currencies in missingRates, since the account keeps only ' +
+  'manual rates; its amount is null when nothing could be converted: then give no total. Write dates as DD-MM-YYYY.';
 
 function budgetOf(data: BackupData, today: IsoDate): z.infer<typeof budgetSchema> | null {
   const figures = budgetFigures(data, today);
-  if (figures === null) return null;
+  if (figures === null || data.plan === null) return null;
   const rates = ratesOf(data);
   const total = totalInEur(data.accounts, data.entries, rates);
+  // As Home and Settings: without a rate for any account's currency nothing was converted, and €0 would read as real.
+  const nothingConverted = data.accounts.every((a) => total.missingRates.includes(a.currency));
+  const summary = planSummary(data.plan, figures.month);
+  const amount = (minor: Minor) => ({ amount: formatMoney(minor, 'EUR'), minor });
   return {
     month: figures.month,
     leftThisMonth: { amount: leftText(figures.leftMinor), minor: figures.leftMinor },
@@ -126,11 +146,18 @@ function budgetOf(data: BackupData, today: IsoDate): z.infer<typeof budgetSchema
         plannedMinor: e.plannedMinor,
         spentMinor: e.spentMinor,
       })),
+    plan: {
+      available: amount(summary.availableMinor),
+      envelopes: amount(summary.envelopesMinor),
+      overBy: amount(summary.overByMinor),
+    },
     accounts: sortAccounts(data.accounts).map((a: Account) => {
       const balance = accountBalance(a, data.entries);
       return { name: a.name, kind: a.kind, currency: a.currency, balance: formatMoney(balance, a.currency), balanceMinor: balance };
     }),
-    totalInEur: { amount: formatMoney(total.totalMinor, 'EUR'), minor: total.totalMinor, missingRates: total.missingRates },
+    totalInEur: nothingConverted
+      ? { amount: null, minor: null, missingRates: total.missingRates }
+      : { amount: formatMoney(total.totalMinor, 'EUR'), minor: total.totalMinor, missingRates: total.missingRates },
   };
 }
 
@@ -163,7 +190,18 @@ async function readSaved(read: ReadAccount): Promise<Saved> {
     });
   } catch (error) {
     if (error instanceof AccountProblem) return { ok: false, state: error.state, note: error.message };
-    return { ok: false, state: 'unreachable', note: "Couldn't read the account. Check the connection and try again." };
+    // A trace for whoever runs the server (stderr; stdout carries the protocol). Nothing in it holds the password.
+    console.error('StudentsBudget MCP server: reading the account:', error);
+    // Status 0 is a request that never got an answer; any other status is the account answering no.
+    if (error instanceof StoreError && error.status === 0) {
+      return { ok: false, state: 'unreachable', note: "Couldn't reach the account. Check the connection and try again." };
+    }
+    if (error instanceof StoreError) {
+      const code = error.code === '' ? '' : `, ${error.code}`;
+      return { ok: false, state: 'refused', note: `The account refused the read (HTTP ${error.status}${code}): ${error.message}.` };
+    }
+    const detail = error instanceof Error ? error.message : String(error);
+    return { ok: false, state: 'error', note: `Couldn't read the account: ${detail}` };
   }
 }
 
@@ -186,9 +224,14 @@ export function overviewText(o: BudgetOverview): string {
       ...b.envelopes.map(
         (e) => `- ${e.category}: ${e.spent} of ${e.planned}, ${e.plannedMinor < e.spentMinor ? e.left : `${e.left} left`}`,
       ),
+      ...(b.plan.overBy.minor > 0
+        ? [`The envelopes plan ${b.plan.envelopes.amount}, ${b.plan.overBy.amount} more than the ${b.plan.available.amount} the month brings in.`]
+        : []),
       'Accounts:',
       ...b.accounts.map((a) => `- ${a.name}: ${a.balance}`),
-      `Total in euros: ${b.totalInEur.amount}${b.totalInEur.missingRates.length > 0 ? ` (without ${b.totalInEur.missingRates.join(', ')}: no rate in the account)` : ''}.`,
+      b.totalInEur.amount === null
+        ? 'No total in euros: the account has no rate for any account’s currency.'
+        : `Total in euros: ${b.totalInEur.amount}${b.totalInEur.missingRates.length > 0 ? ` (without ${b.totalInEur.missingRates.join(', ')}: no rate in the account)` : ''}.`,
     );
   }
   return lines.join('\n');
@@ -232,6 +275,8 @@ const entrySchema = z.object({
   toAmount: z.string().nullable(),
   note: z.string(),
   automatic: z.boolean(),
+  /** An expense from before the plan was set up, in the setup month: Home's budget doesn't count it. */
+  beforeSetup: z.boolean(),
 });
 const entriesShape = {
   note: z.string(),
@@ -250,8 +295,9 @@ const ENTRIES_NOTE =
   'so entries made on the phone since are missing; say so. Newest first. amount is in the account’s own currency, ' +
   'eur the euro figure saved with the entry: add up eurMinor, never amountMinor, since accounts can differ in ' +
   'currency. A transfer moves money between two accounts and is no spending. ' +
-  'automatic: true means a recurring plan line posted it. note is the user’s own text: use it to answer, and quote ' +
-  'it only when that helps. Write dates as DD-MM-YYYY.';
+  'automatic: true means a recurring plan line posted it. beforeSetup: true marks an expense from before the plan ' +
+  'was set up: budget_overview’s spending leaves it out, so leave it out of any budget sum too. note is the user’s ' +
+  'own text: use it to answer, and quote it only when that helps. Write dates as DD-MM-YYYY.';
 
 /** A month's entries, newest first (latest made first within a day), at most `limit`; a category leaves out transfers. */
 export async function recentEntries(
@@ -262,6 +308,8 @@ export async function recentEntries(
   if (!saved.ok) return { note: saved.note, state: saved.state, savedAt: null, month, found: 0, entries: [] };
   const { data } = saved;
   const accounts = new Map(data.accounts.map((a) => [a.id, a]));
+  // As monthStatus: in the month the plan was set up, spending counts from the setup day on.
+  const setupDay = data.plan !== null && monthOf(data.plan.createdOn) === month ? data.plan.createdOn : null;
   const matching = data.entries
     .filter((e) => monthOf(e.date) === month)
     .filter((e) => category === undefined || (e.type !== 'transfer' && e.categoryId === category))
@@ -284,6 +332,7 @@ export async function recentEntries(
       toAmount: e.type === 'transfer' ? formatMoney(e.toAmountMinor, to?.currency ?? 'EUR') : null,
       note: e.note,
       automatic: e.type !== 'transfer' && e.recurring !== undefined,
+      beforeSetup: e.type === 'expense' && setupDay !== null && e.date < setupDay,
     };
   });
   const what = category === undefined ? 'entries' : `${categoryName(category)} entries`;

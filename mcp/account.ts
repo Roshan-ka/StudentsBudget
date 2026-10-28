@@ -10,7 +10,10 @@ import { listed } from '@/sync/summary';
 /** The account as the budget tools read it. */
 export type AccountReader = {
   store: UserDataStore;
-  /** When the plan row was last written, which a save does last: the time of the last complete save. */
+  /**
+   * When the plan row was last written. A save writes it after every other row but before deleting what the phone no
+   * longer has, so this is the last save that got as far as the plan.
+   */
   lastSavedAt(): Promise<string | null>;
 };
 
@@ -65,9 +68,17 @@ async function signIn(settings: AccountSettings): Promise<SupabaseClient> {
   return client;
 }
 
+/** The store with its writes taken away: the server only reads, whatever a caller tries. */
+export function readOnly(store: UserDataStore): UserDataStore {
+  const refuse = async () => {
+    throw new Error('The StudentsBudget MCP server only reads the account.');
+  };
+  return { listIds: store.listIds, listRows: store.listRows, upsert: refuse, tombstone: refuse };
+}
+
 function readerOf(client: SupabaseClient): AccountReader {
   return {
-    store: supabaseStore(client),
+    store: readOnly(supabaseStore(client)),
     async lastSavedAt() {
       const answer = await client.from('plans').select('updated_at').eq('id', 'current').is('deleted_at', null).maybeSingle();
       if (answer.error) throw new StoreError('plans', answer.status, answer.error.code ?? '', answer.error.message);
@@ -77,32 +88,43 @@ function readerOf(client: SupabaseClient): AccountReader {
   };
 }
 
-/**
- * Hands out a signed-in reader, signing in on first use and keeping the session. `read` runs once more on a fresh
- * sign-in when the session has run out (401).
- */
-export function accountFromSettings(settings: AccountSettings) {
-  let client: Promise<SupabaseClient> | null = null;
-  const connected = () => {
-    client ??= signIn(settings).catch((error: unknown) => {
-      client = null;
-      throw error;
-    });
-    return client;
-  };
-  return async function read<T>(task: (reader: AccountReader) => Promise<T>): Promise<T> {
-    try {
-      return await task(readerOf(await connected()));
-    } catch (error) {
-      if (!(error instanceof StoreError && error.status === 401)) throw error;
-      client = null;
-      return task(readerOf(await connected()));
-    }
-  };
+/** Signs in with supabase-js and hands back the account as the tools read it. */
+async function signedInReader(settings: AccountSettings): Promise<AccountReader> {
+  return readerOf(await signIn(settings));
 }
 
 /** Reads the account with whatever is to hand to `task`; throws an AccountProblem when it can't. */
 export type ReadAccount = <T>(task: (reader: AccountReader) => Promise<T>) => Promise<T>;
+
+/**
+ * Signs in on first use and keeps the session. A failed sign-in is not kept, so the next call tries again. A read
+ * that gets a 401 (the session ran out) signs in afresh and runs once more; any other error is passed on as it is.
+ * `connect` is replaceable for tests.
+ */
+export function accountFromSettings(
+  settings: AccountSettings,
+  connect: (settings: AccountSettings) => Promise<AccountReader> = signedInReader,
+): ReadAccount {
+  let session: Promise<AccountReader> | null = null;
+  const connected = () => {
+    session ??= connect(settings).catch((error: unknown) => {
+      session = null;
+      throw error;
+    });
+    return session;
+  };
+  return async <T>(task: (reader: AccountReader) => Promise<T>): Promise<T> => {
+    const current = connected();
+    try {
+      return await task(await current);
+    } catch (error) {
+      if (!(error instanceof StoreError && error.status === 401)) throw error;
+      // Only this session is dropped: another call may already have signed in afresh.
+      if (session === current) session = null;
+      return task(await connected());
+    }
+  };
+}
 
 /** The account the settings name, or one that explains which settings are missing. */
 export function accountFromEnv(env: Env = process.env): ReadAccount {

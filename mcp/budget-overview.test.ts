@@ -1,13 +1,20 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { BackupData } from '@/db/bulk';
 import { sortAccounts } from '@/features/accounts/balances';
 import { parseBackup } from '@/features/backup/backup';
-import { weekToSpend } from '@/lib/budget';
+import { planSummary, weekToSpend } from '@/lib/budget';
 import { StoreError, type UserDataStore } from '@/sync/store';
 import { fakeStore, snapshot } from '@/sync/test-helpers';
 import { applyUpload, planUpload } from '@/sync/upload';
-import { AccountProblem, accountFromEnv, readAccountSettings, type ReadAccount } from './account.ts';
+import {
+  AccountProblem,
+  accountFromEnv,
+  accountFromSettings,
+  readAccountSettings,
+  readOnly,
+  type ReadAccount,
+} from './account.ts';
 import type { BudgetOverview, RecentEntries } from './budget.ts';
 import { call, connect } from './test-client.ts';
 
@@ -107,13 +114,128 @@ describe('budget_overview', () => {
     };
     expect((await overview(signInFailed)).data).toMatchObject({ state: 'sign-in-failed', note: 'Email or password is wrong.' });
 
-    const down: ReadAccount = async () => {
-      throw new StoreError('plans', 0, '', 'fetch failed');
+    // The rest also leaves a trace on stderr, which stays quiet here.
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failing = (error: unknown): ReadAccount => async () => {
+      throw error;
     };
-    expect((await overview(down)).data).toMatchObject({
+    expect((await overview(failing(new StoreError('plans', 0, '', 'fetch failed')))).data).toMatchObject({
       state: 'unreachable',
-      note: "Couldn't read the account. Check the connection and try again.",
+      note: "Couldn't reach the account. Check the connection and try again.",
     });
+    // An answer that says no is not a connection problem.
+    expect((await overview(failing(new StoreError('plans', 403, '42501', 'permission denied')))).data).toMatchObject({
+      state: 'refused',
+      note: 'The account refused the read (HTTP 403, 42501): plans: permission denied.',
+    });
+    expect((await overview(failing(new TypeError('x is not a function')))).data).toMatchObject({
+      state: 'error',
+      note: "Couldn't read the account: x is not a function",
+    });
+    expect(quiet).toHaveBeenCalledTimes(3);
+    quiet.mockRestore();
+  });
+
+  it('gives no total when no account’s currency could be converted, as Home and Settings', async () => {
+    const data = demo();
+    const allInRupees = { ...data, accounts: data.accounts.map((a) => ({ ...a, currency: 'INR' as const })), fxRates: [] };
+    const { text, data: o } = await overview((await savedAccount(allInRupees)).read);
+    expect(o.budget!.totalInEur).toEqual({ amount: null, minor: null, missingRates: ['INR'] });
+    expect(text).toContain('No total in euros');
+    expect(o.note).toContain('its amount is null when nothing could be converted');
+  });
+
+  it('weighs the plan against what the month brings in, and says when the envelopes plan more', async () => {
+    const data = demo();
+    const plain = await overview((await savedAccount(data)).read);
+    const summary = planSummary(data.plan!, '2026-10');
+    expect(plain.data.budget!.plan).toEqual({
+      available: { amount: expect.any(String), minor: summary.availableMinor },
+      envelopes: { amount: expect.any(String), minor: summary.envelopesMinor },
+      overBy: { amount: expect.any(String), minor: summary.overByMinor },
+    });
+
+    const plan = { ...data.plan!, envelopes: data.plan!.envelopes.map((e) => ({ ...e, monthlyMinor: e.monthlyMinor + 100_000 })) };
+    const over = await overview((await savedAccount({ ...data, plan })).read);
+    const overBy = over.data.budget!.plan.overBy;
+    expect(overBy.minor).toBe(planSummary(plan, '2026-10').overByMinor);
+    expect(overBy.minor).toBeGreaterThan(0);
+    expect(over.text).toContain(`, ${overBy.amount} more than the `);
+  });
+});
+
+describe('the account session', () => {
+  const settings = { url: 'https://x.supabase.co', publishableKey: 'sb_publishable_x', email: 'a@example.com', password: 'p' };
+  const reader = { store: fakeStore().store, lastSavedAt: async () => null };
+
+  it('signs in once for many reads, and doesn’t keep a sign-in that failed', async () => {
+    let signIns = 0;
+    const read = accountFromSettings(settings, async () => {
+      signIns += 1;
+      if (signIns === 1) throw new AccountProblem('unreachable', 'The account server can’t be reached.');
+      return reader;
+    });
+    await expect(read(async () => 'x')).rejects.toThrow('can’t be reached');
+    expect(await read(async () => 'a')).toBe('a');
+    expect(await read(async () => 'b')).toBe('b');
+    expect(signIns).toBe(2);
+  });
+
+  it('signs in afresh and tries once more after a 401, and never loops', async () => {
+    let signIns = 0;
+    const read = accountFromSettings(settings, async () => {
+      signIns += 1;
+      return reader;
+    });
+    let tries = 0;
+    expect(
+      await read(async () => {
+        tries += 1;
+        if (tries === 1) throw new StoreError('plans', 401, 'PGRST301', 'JWT expired');
+        return 'read';
+      }),
+    ).toBe('read');
+    expect([tries, signIns]).toEqual([2, 2]);
+
+    tries = 0;
+    await expect(
+      read(async () => {
+        tries += 1;
+        throw new StoreError('plans', 401, 'PGRST301', 'JWT expired');
+      }),
+    ).rejects.toThrow('JWT expired');
+    expect(tries).toBe(2);
+  });
+
+  it('passes any other error on without signing in again', async () => {
+    for (const error of [new StoreError('plans', 403, '42501', 'no'), new StoreError('plans', 0, '', 'fetch failed')]) {
+      let signIns = 0;
+      let tries = 0;
+      const read = accountFromSettings(settings, async () => {
+        signIns += 1;
+        return reader;
+      });
+      await expect(
+        read(async () => {
+          tries += 1;
+          throw error;
+        }),
+      ).rejects.toBe(error);
+      expect([tries, signIns]).toEqual([1, 1]);
+    }
+  });
+
+  it('only ever reads: the tools list and read, and the store refuses writes', async () => {
+    const { store, calls } = fakeStore();
+    await applyUpload(store, await planUpload(store, demo()));
+    calls.length = 0;
+    const read: ReadAccount = (task) => task({ store: readOnly(store), lastSavedAt: async () => SAVED_AT });
+    await overview(read);
+    await call(await connect(DEMO_DAY, read), 'recent_entries');
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls.every((c) => c.startsWith('read ') || c.startsWith('list '))).toBe(true);
+    await expect(readOnly(store).upsert('entries', [])).rejects.toThrow('only reads the account');
+    await expect(readOnly(store).tombstone('entries', ['x'])).rejects.toThrow('only reads the account');
   });
 });
 
@@ -204,5 +326,21 @@ describe('recent_entries', () => {
 
     const { data: r } = await entries((await savedAccount(null)).read);
     expect(r).toMatchObject({ state: 'empty', found: 0, entries: [], savedAt: null });
+  });
+
+  it('marks the expenses from before the setup day, which the budget leaves out', async () => {
+    const data = demo();
+    // As if the plan had been set up on 10 October: October spending counts from that day on.
+    const plan = { ...data.plan!, createdOn: '2026-10-10' };
+    const { read } = await savedAccount({ ...data, plan });
+    const { data: r } = await entries(read, { category: 'shopping' });
+    expect(r.entries.map((e) => [e.date, e.beforeSetup])).toEqual([
+      ['2026-10-17', false],
+      ['2026-10-08', true],
+    ]);
+    const { data: o } = await overview(read);
+    const counted = r.entries.filter((e) => !e.beforeSetup).reduce((n, e) => n + e.eurMinor, 0);
+    expect(counted).toBe(o.budget!.envelopes.find((e) => e.categoryId === 'shopping')!.spentMinor);
+    expect(r.note).toContain('beforeSetup: true marks an expense from before the plan was set up');
   });
 });

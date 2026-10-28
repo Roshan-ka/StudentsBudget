@@ -154,7 +154,7 @@ With Docker running, `npm run supabase:start` starts a local Supabase stack with
   - `budget_overview` runs the app's own maths on it: what is left this month and this week, each envelope, and the account balances.
   - `recent_entries` lists a month's entries, newest first, optionally for one category.
   - The data is as of your last **Save to my account** on the phone.
-  - It signs in with two more lines in `.env.local`: `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD` (see `.env.example`). Use a test account first.
+  - It signs in with two more lines in `.env.local`: `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD` (see `.env.example`). The password sits there in plain text; the file is git-ignored. Use a test account first.
   - Your figures and entry notes go into the Claude chat.
 - Claude reads every answer into the chat.
 

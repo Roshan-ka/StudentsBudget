@@ -12,6 +12,14 @@ M2.1–M2.3 are built on `feat/mcp-budget`.
 - `budget_overview` reads the account and runs the app's own maths. `recent_entries` lists a month's entries.
 - Both are tested with the fake store, and were tried for real over stdio signed in as test account A (saved 28-10-2026). Home showed the same €138 left for the month and the week, and Shopping's entries add up to its €95 spent.
 - That real data caught a currency mix-up: one Shopping entry was paid in rupees. Entries now carry `eurMinor`, and the note says to add up euros.
+- **Two parallel reviews** (code, and data with docs) found no high-severity defects. Fixed after them:
+  - no EUR total when nothing converts, as Home does;
+  - the plan weighed against what is available (`planSummary`);
+  - `beforeSetup` on entries the budget leaves out;
+  - the store wrapped so it refuses writes;
+  - tests for the session (one sign-in, no kept failure, exactly one retry on a 401);
+  - errors split into unreachable, refused and error, each logged to stderr.
+- The Draft PR is next.
 
 **M2.1 result: a resolve hook, not `tsx`.**
 - `mcp/app-imports.ts` registers a synchronous Node resolve hook (`module.registerHooks`). For files in `src/` only, it maps `@/…` to `src/…` and tries an extensionless path with `.ts`, then as a folder.
