@@ -10,7 +10,10 @@ export default defineConfig({
   // Needs a production build, which has the service worker; playwright.offline.config.ts runs it.
   testIgnore: '**/offline.spec.ts',
   forbidOnly: !!process.env.CI,
-  use: { baseURL },
+  // On CI an HTML report sits next to the dot output; ci.yml uploads it with test-results/ when a run fails.
+  reporter: process.env.CI ? [['dot'], ['html', { open: 'never' }]] : 'list',
+  // Kept only for failed tests: `npx playwright show-trace test-results/<test>/trace.zip`.
+  use: { baseURL, trace: 'retain-on-failure' },
   projects: [
     { name: 'desktop-chrome', use: { ...devices['Desktop Chrome'] } },
     { name: 'iphone', use: { ...devices['iPhone 15'] } },

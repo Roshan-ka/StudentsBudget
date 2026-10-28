@@ -53,7 +53,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | `npm run test:db` | pgTAP tests in `supabase/tests` against the running local stack |
 | `npm run test:contract` | The account store (`src/sync/store.ts`) against the running local stack, as signed-in users; needs `SUPABASE_TEST_URL` and `SUPABASE_TEST_KEY`, which `node scripts/supabase-test-env.mjs` prints. Skipped in `npm test` without them |
 
-CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and the offline check on every pull request, and in a second job (`db`) the migrations, `test:db` and `test:contract` on a local Supabase stack.
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and the offline check on every pull request (a failed Playwright run uploads its HTML report and traces as the `playwright-report` artifact), and in a second job (`db`) the migrations, `test:db` and `test:contract` on a local Supabase stack.
 
 ## Framework rules
 
