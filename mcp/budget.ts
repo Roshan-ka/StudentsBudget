@@ -77,7 +77,7 @@ const budgetSchema = z.object({
   totalInEur: z.object({ amount: z.string().nullable(), minor: z.number().int().nullable(), missingRates: z.array(z.string()) }),
 });
 /** Every state a budget tool can end in; only `ready` carries figures. */
-const stateSchema = z.enum([
+export const stateSchema = z.enum([
   'ready',
   'empty',
   'unfinished',
@@ -162,12 +162,12 @@ function budgetOf(data: BackupData, today: IsoDate): z.infer<typeof budgetSchema
 }
 
 /** The account's data, checked as a load checks it, or why there is none to read. */
-type Saved =
+export type Saved =
   | { ok: true; data: BackupData; savedAt: string | null; savedNote: string }
   | { ok: false; state: Exclude<State, 'ready'>; note: string };
 
 /** Reads and checks everything the account holds; a problem reading it is a state with a note, not an error. */
-async function readSaved(read: ReadAccount): Promise<Saved> {
+export async function readSaved(read: ReadAccount): Promise<Saved> {
   try {
     return await read(async (reader): Promise<Saved> => {
       const download = await planDownload(reader.store, NO_PHONE);

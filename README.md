@@ -150,20 +150,21 @@ With Docker running, `npm run supabase:start` starts a local Supabase stack with
 - Five read-only tools over the Regensburg data: `regensburg_costs`, `find_discounts`, `find_tips`, `suggest_swaps` and `semester_info`.
   - Every figure comes with its source, URL and checked date, and the tools tell Claude to cite them. A fee no page states is never guessed.
   - They need no account and send nothing anywhere.
-- `budget_overview` and `recent_entries`, also read-only, read your StudentsBudget account:
+- `budget_overview`, `recent_entries` and `week_check_in`, also read-only, read your StudentsBudget account:
   - `budget_overview` runs the app's own maths on it: what is left this month and this week, each envelope, and the account balances.
   - `recent_entries` lists a month's entries, newest first, optionally for one category.
+  - `week_check_in` builds your week as the app's check-in does: each envelope against its share of the week, and a sourced swap for each one over it.
   - The data is as of your last **Save to my account** on the phone.
   - It signs in with two more lines in `.env.local`: `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD` (see `.env.example`). The password sits there in plain text; the file is git-ignored. Use a test account first.
   - Your figures and entry notes go into the Claude chat.
 - Two prompts, ready-made requests that run those tools for you:
-  - `weekly_check_in`: your week and month so far, what is over, your biggest expenses and a sourced swap or two.
+  - `weekly_check_in`: the app's Sunday check-in in a chat, your week envelope by envelope with its swaps, then the month.
   - `new_in_regensburg`, optionally for `ur` or `oth`: a first month for a new student, from costs and the semester fee to tips and discounts.
 - Claude reads every answer into the chat.
 
 **Claude Code:** open this repo, and Claude Code offers the `studentsbudget` server from `.mcp.json`. Approve it, or use `/mcp`. Then:
 - ask something like "What does a room cost in Regensburg?" or "Which student discounts are there for swimming?";
-- or type `/mcp__studentsbudget__weekly_check_in`, or `/mcp__studentsbudget__new_in_regensburg ur`, to run a prompt.
+- or run a prompt: pick it from the `/` menu, or type `/mcp__studentsbudget__weekly_check_in`, or `/mcp__studentsbudget__new_in_regensburg ur` (an argument follows the name after a space).
 
 A session started before a change to `mcp/` keeps the old server: reconnect it in `/mcp`, or start a new session.
 

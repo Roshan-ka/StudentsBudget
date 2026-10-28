@@ -17,45 +17,57 @@ function userMessage(text: string): GetPromptResult {
   return { messages: [{ role: 'user', content: { type: 'text', text } }] };
 }
 
-/** The app's Sunday check-in, in a chat: the week and month so far, what is over, and a sourced swap or two. */
+/**
+ * The app's Sunday check-in, in a chat. week_check_in builds the week the way the app's check-in does (each envelope
+ * against its share of the week, swaps only for those over it); budget_overview adds the month.
+ */
 export function weeklyCheckIn(): GetPromptResult {
   return userMessage(
     [
       'Do my StudentsBudget weekly check-in.',
-      '1. Call budget_overview. If its state isn’t ready, tell me its note and stop there.',
-      '2. Call recent_entries for this month.',
-      '3. For each envelope that is over its plan, call suggest_swaps with that category. Skip it when the tool has no swap for it.',
-      'Then write the check-in:',
-      '- what is left this week and this month;',
-      '- the envelopes that are over, and by how much;',
-      '- this week’s biggest few expenses from recent_entries, with their dates (leave out transfers and anything marked beforeSetup);',
-      '- if plan.overBy is above zero, that the envelopes plan more than the month brings in;',
-      '- one or two swaps that fit, each with what it saves and its sources.',
-      'Say that the figures are as of my last Save from the phone (savedAt), so anything I entered since is missing.',
+      '1. Call week_check_in. If its state isn’t ready, tell me its note and stop there.',
+      '2. Call budget_overview, for the month as a whole.',
+      'Then write the check-in, one part of the week after the other (an earlier part first, when there is one):',
+      '- each envelope’s line as week_check_in gives it, the ones over their share of the week first;',
+      '- the week’s total line;',
+      '- the swaps week_check_in gives, each with what it saves and its sources, and no others;',
+      '- the week’s three biggest expenses by eurMinor, with their dates (a transfer is no spending).',
+      'Then the month: what is left this month, and if plan.overBy is above zero, that the envelopes plan more than the month brings in.',
+      'Say that the figures are as of my last Save from the phone (savedAt), so anything I entered since is missing. Quote my entry notes only when they help.',
       HOUSE_RULES,
     ].join('\n'),
   );
 }
 
+/** `ur` or `oth` in any case and spacing; anything else (an empty field included) is no university. */
+function universityOf(given: string | undefined): 'ur' | 'oth' | undefined {
+  const id = given?.trim().toLowerCase();
+  return id === 'ur' || id === 'oth' ? id : undefined;
+}
+
 /** A first month in Regensburg for a new student: costs, the semester, tips and discounts, all sourced. */
-export function newInRegensburg(university?: 'ur' | 'oth'): GetPromptResult {
+export function newInRegensburg(given?: string): GetPromptResult {
+  const university = universityOf(given);
   const name = university === undefined ? undefined : UNIVERSITIES.find((u) => u.id === university)?.name;
   const at = name === undefined ? '' : ` at ${name}`;
   const semester =
     university === undefined
       ? 'Call semester_info for both universities, for the current semester, the next one and its fee.'
       : `Call semester_info with university ${university}, for the current semester, the next one and its fee.`;
+  // Typed but not one the tools know: say so, rather than refuse the whole prompt.
+  const unknown = university === undefined && given?.trim() ? ` (I wrote “${given.trim()}”, but the tools only know UR and OTH, so cover both.)` : '';
   return userMessage(
     [
-      `I’m a student new in Regensburg${at}. Help me plan my first month.`,
+      `I’m a student new in Regensburg${at}. Help me plan my first month.${unknown}`,
       '1. Call regensburg_costs without a search, for what a student typically spends a month.',
       `2. ${semester}`,
       '3. Call find_tips without a search, and pick the five most useful for a new student.',
       '4. Call find_discounts without a search, and pick three for everyday life.',
       'Then give me:',
       '- a monthly budget per category as the ranges from regensburg_costs, rent first;',
-      '- the next semester fee and when re-registration opens, if a page states them;',
-      '- the five tips and three discounts, each in a line or two.',
+      '- for what regensburg_costs has no range for (it has none for health insurance, phone or the broadcasting fee), what the tips state, or that there is no figure: never an estimate of your own;',
+      '- the next semester fee and when re-registration is expected to open, if a page states them;',
+      '- the five tips, each in a line or two, and the three discounts, each with who gets it and the proof it needs.',
       HOUSE_RULES,
     ].join('\n'),
   );
@@ -67,8 +79,9 @@ export function registerPrompts(server: McpServer): void {
     {
       title: 'Weekly check-in',
       description:
-        'Your StudentsBudget check-in for the week: what is left this week and this month, what is over, your ' +
-        'biggest expenses and a sourced swap or two. Reads your account, as of your last Save.',
+        'Your StudentsBudget check-in for the week, as the app’s: each envelope against its share of the week, ' +
+        'the week’s total, a sourced swap for what is over, your biggest expenses, and the month. Reads your ' +
+        'account, as of your last Save.',
     },
     () => weeklyCheckIn(),
   );
@@ -80,7 +93,8 @@ export function registerPrompts(server: McpServer): void {
         'A first month in Regensburg for a new student: typical costs, the semester and its fee, money tips and ' +
         'student discounts, every figure with its source.',
       argsSchema: {
-        university: z.enum(['ur', 'oth']).optional().describe('ur (Universität Regensburg) or oth (OTH Regensburg). Leave it out if unsure.'),
+        // Prompt arguments arrive as typed, so any text is taken and read leniently (see universityOf).
+        university: z.string().optional().describe('ur (Universität Regensburg) or oth (OTH Regensburg). Leave it out if unsure.'),
       },
     },
     ({ university }) => newInRegensburg(university),

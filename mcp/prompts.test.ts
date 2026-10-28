@@ -44,27 +44,60 @@ describe('the prompts', () => {
     }
   });
 
-  it('runs the check-in from the account, then sourced swaps for what is over', async () => {
+  it('name only fields the tools return', async () => {
+    const client = await connect();
+    // Every property name anywhere in the tools' output schemas.
+    const fields = new Set<string>();
+    const collect = (schema: unknown): void => {
+      if (typeof schema !== 'object' || schema === null) return;
+      for (const [key, value] of Object.entries(schema)) {
+        if (key === 'properties' && typeof value === 'object' && value !== null) {
+          for (const name of Object.keys(value)) fields.add(name);
+        }
+        collect(value);
+      }
+    };
+    for (const tool of (await client.listTools()).tools) collect(tool.outputSchema);
+    const text = await promptText(client, 'weekly_check_in');
+    // camelCase words, such as plan.overBy, savedAt and eurMinor.
+    const named = [...new Set(text.match(/\b[a-z]+[A-Z][A-Za-z]*\b/g) ?? [])];
+    expect(named).toEqual(expect.arrayContaining(['overBy', 'savedAt', 'eurMinor']));
+    for (const field of named) expect(fields.has(field), `weekly_check_in names ${field}`).toBe(true);
+  });
+
+  it('builds the check-in on week_check_in, the app’s week, and adds the month from budget_overview', async () => {
     const text = await promptText(await connect(), 'weekly_check_in');
-    expect(text.indexOf('budget_overview')).toBeLessThan(text.indexOf('recent_entries'));
-    expect(text.indexOf('recent_entries')).toBeLessThan(text.indexOf('suggest_swaps'));
+    expect(text.indexOf('week_check_in')).toBeLessThan(text.indexOf('budget_overview'));
+    // The week's swaps come from week_check_in alone: suggest_swaps would measure nothing against the week.
+    expect(text).not.toContain('suggest_swaps');
+    expect(text).toContain('the swaps week_check_in gives, each with what it saves and its sources, and no others');
     expect(text).toContain('If its state isn’t ready, tell me its note and stop there.');
     expect(text).toContain('as of my last Save from the phone');
-    expect(text).toContain('beforeSetup');
   });
 
-  it('names the university when one is given, and asks about both otherwise', async () => {
+  it('names the university when one is given, in any case, and asks about both otherwise', async () => {
     const client = await connect();
-    const oth = await promptText(client, 'new_in_regensburg', { university: 'oth' });
-    expect(oth).toContain('I’m a student new in Regensburg at OTH Regensburg.');
-    expect(oth).toContain('Call semester_info with university oth');
-
-    const either = await promptText(client, 'new_in_regensburg');
-    expect(either).toContain('I’m a student new in Regensburg. Help me plan my first month.');
-    expect(either).toContain('Call semester_info for both universities');
+    for (const given of ['oth', 'OTH', ' Oth ']) {
+      const oth = await promptText(client, 'new_in_regensburg', { university: given });
+      expect(oth, given).toContain('I’m a student new in Regensburg at OTH Regensburg. Help me plan my first month.');
+      expect(oth, given).toContain('Call semester_info with university oth');
+    }
+    for (const args of [undefined, { university: '' }]) {
+      const either = await promptText(client, 'new_in_regensburg', args);
+      expect(either).toContain('I’m a student new in Regensburg. Help me plan my first month.\n');
+      expect(either).toContain('Call semester_info for both universities');
+    }
   });
 
-  it('refuses a university it doesn’t know', async () => {
-    await expect((await connect()).getPrompt({ name: 'new_in_regensburg', arguments: { university: 'tum' } })).rejects.toThrow();
+  it('covers both universities, and says why, for one the tools don’t know', async () => {
+    const text = await promptText(await connect(), 'new_in_regensburg', { university: 'TUM' });
+    expect(text).toContain('(I wrote “TUM”, but the tools only know UR and OTH, so cover both.)');
+    expect(text).toContain('Call semester_info for both universities');
+  });
+
+  it('asks for what the costs don’t cover, and each discount’s conditions, instead of guesses', async () => {
+    const text = await promptText(await connect(), 'new_in_regensburg');
+    expect(text).toContain('never an estimate of your own');
+    expect(text).toContain('each with who gets it and the proof it needs');
   });
 });

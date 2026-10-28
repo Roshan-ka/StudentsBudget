@@ -17,7 +17,7 @@ const GERMAN_NAMES = 'Mensa is the university canteen, Kinos a cinema';
 const SWAP_ESTIMATE_NOTE =
   'estimate: true means the saving rests on an assumption no page states (both prices are stated), so call the saving an estimate.';
 
-const swapSchema = z.object({
+export const swapSchema = z.object({
   id: z.string(),
   title: z.string(),
   body: z.string(),
@@ -37,7 +37,7 @@ const swapSchema = z.object({
 
 export type FoundSwap = z.infer<typeof swapSchema>;
 
-function foundSwap(s: Swap): FoundSwap {
+export function foundSwap(s: Swap): FoundSwap {
   return {
     id: s.id,
     title: s.title,

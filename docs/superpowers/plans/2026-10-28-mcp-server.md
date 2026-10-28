@@ -23,6 +23,14 @@ M2.1–M2.3 are built on `feat/mcp-budget`.
 
 M3 (prompts and the clean-up) is under way on `feat/mcp-prompts`: M3.1 done (the server uses the app's own helpers; the copies and their parity tests are gone). M3.2 done: the `weekly_check_in` and `new_in_regensburg` prompts (`mcp/prompts.ts`).
 
+**M3.3 reviews (two in parallel)** found that the check-in prompt measured the month, while the app's Sunday check-in measures each envelope against its share of the **week** and offers swaps only for those over it. Fixed:
+- a `week_check_in` tool builds the week with the app's own check-in functions (`weekToSpend`, `weekRows`, `weekLine`, `weekSwaps`), including the earlier days on the Sunday after a month began mid-week;
+- the prompt reads it, so it no longer calls `suggest_swaps` for categories that tool rejects;
+- `new_in_regensburg` asks for what the costs don't cover instead of guesses, and for each discount's conditions;
+- the university argument is read in any case, and an unknown one covers both;
+- `mcp/server.test.ts` starts the real server in plain Node, which is the only test that catches a type imported without `type`;
+- the prompts' field names are tested against the tools' output schemas.
+
 **M2.1 result: a resolve hook, not `tsx`.**
 - `mcp/app-imports.ts` registers a synchronous Node resolve hook (`module.registerHooks`). For files in `src/` only, it maps `@/…` to `src/…` and tries an extensionless path with `.ts`, then as a folder.
 - A file that imports the app through `@/` must be loaded with a dynamic `import()` after the hook is registered: static imports are resolved before any code runs.
