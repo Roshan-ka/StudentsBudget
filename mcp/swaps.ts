@@ -10,6 +10,13 @@ const CATEGORY_IDS = categoryIdsOf(SWAPS);
 /** Words that find a swap; a test holds them to it, since the search input offers them as examples. */
 export const SWAP_SEARCH_EXAMPLES = ['Mensa', 'cinema', 'Deutschlandticket'];
 
+/** German names in the swaps, for the search's hints. */
+const GERMAN_NAMES = 'Mensa is the university canteen, Kinos a cinema';
+
+/** A swap's `estimate` is about its saving: both of its prices are stated on pages. */
+const SWAP_ESTIMATE_NOTE =
+  'estimate: true means the saving rests on an assumption no page states (both prices are stated), so call the saving an estimate.';
+
 /**
  * The saving as the app's swap line says it: whole euros rounded down, so it never flatters ("about €10" for
  * €10.70), except that a saving under €1 keeps its cents.
@@ -72,9 +79,9 @@ export function findSwaps(category?: string, search?: string): FoundSwaps {
   const inCategory = SWAPS.filter((s) => category === undefined || s.categoryId === category)
     .map(foundSwap)
     .sort((a, b) => orderOf(a.categoryId) - orderOf(b.categoryId) || b.savingPerUseMinor - a.savingPerUseMinor);
-  const found = narrowed(inCategory, search, (s) => [s.title, s.body, s.category, s.source, s.toSource ?? '']);
+  const found = narrowed(inCategory, search, (s) => [s.title, s.body, s.categoryId, s.category, s.source, s.toSource ?? '']);
   const note =
-    `${countNote(found, ['cheaper swap in Regensburg', 'cheaper swaps in Regensburg'], { search, category })} ${CITE_NOTE} ` +
+    `${countNote(found, ['cheaper swap in Regensburg', 'cheaper swaps in Regensburg'], { search, category, germanNames: GERMAN_NAMES })} ${CITE_NOTE} ${SWAP_ESTIMATE_NOTE} ` +
     'source and url state the usual price; toSource and toUrl, where given, state the cheaper one.';
   return { note, swaps: found.items };
 }
@@ -104,7 +111,7 @@ export function registerSuggestSwaps(server: McpServer): void {
         'Cheaper alternatives for students in Regensburg, Germany, such as the Mensa instead of a restaurant: the ' +
         'usual price, the cheaper price and the saving per use. Both prices are sourced: cite the sources and the ' +
         'date they were checked, and call a saving marked as an estimate an estimate. Regensburg only.',
-      inputSchema: { category: categoryInput(CATEGORY_IDS), search: searchInput(SWAP_SEARCH_EXAMPLES) },
+      inputSchema: { category: categoryInput(CATEGORY_IDS), search: searchInput(SWAP_SEARCH_EXAMPLES, GERMAN_NAMES) },
       outputSchema: { note: z.string(), swaps: z.array(swapSchema) },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },

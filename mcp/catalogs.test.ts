@@ -38,15 +38,18 @@ describe('the server agrees with the app', () => {
     expect(STALE_AFTER_DAYS).toBe(APP_STALE_AFTER_DAYS);
   });
 
-  it('on the semester every day of 2026–2028 falls in, at both universities', () => {
+  // About 2,200 days; collected first and checked once, and given room on a busy machine.
+  it('on the semester every day of 2026–2028 falls in, at both universities', { timeout: 20_000 }, () => {
+    const differ: string[] = [];
     for (const university of ['ur', 'oth'] as const) {
       expect(UNIVERSITY_NAMES[university]).toBe(UNIVERSITIES.find((u) => u.id === university)?.name);
       for (let day = '2026-01-01'; day <= '2028-12-31'; day = addDays(day, 1)) {
-        const { term, start, end } = semesterOn(university, day);
+        const ours = semesterOn(university, day);
         const app = appSemesterOn(university, day);
-        expect({ term, start, end }, `${university} ${day}`).toEqual({ term: app.term, start: app.start, end: app.end });
+        if (ours.term !== app.term || ours.start !== app.start || ours.end !== app.end) differ.push(`${university} ${day}`);
       }
     }
+    expect(differ).toEqual([]);
   });
 });
 
@@ -107,11 +110,20 @@ describe('find_discounts', () => {
     expect(orders).toEqual([...orders].sort((a, b) => a - b));
   });
 
-  it('flags a discount nobody has confirmed for 8 weeks', async () => {
-    expect((await discounts()).data.discounts.some((d) => d.mayBeOutdated)).toBe(false);
-    const later = await discounts({ search: 'westbad' }, '2027-01-15');
-    expect(later.data.discounts[0].mayBeOutdated).toBe(true);
+  it('flags a discount from the 56th day after its source check', async () => {
+    // Every discount was checked on 2026-10-20, so the whole list turns on the same day.
+    expect(new Set(DISCOUNTS.map((d) => d.checked))).toEqual(new Set(['2026-10-20']));
+    expect(findDiscounts('2026-12-14').discounts.filter((d) => d.mayBeOutdated)).toEqual([]);
+    expect(findDiscounts('2026-12-15').discounts.every((d) => d.mayBeOutdated)).toBe(true);
+
+    const later = await discounts({ search: 'westbad' }, '2026-12-15');
+    expect(later.data.discounts.map((d) => d.place)).toEqual(['Westbad']);
     expect(later.text).toContain('Nobody has confirmed it for 8 weeks, so it may be outdated.');
+  });
+
+  it('finds a category by its id as well as its name', () => {
+    const eatingOut = findDiscounts('2026-10-28', undefined, 'eating-out').discounts;
+    expect(eatingOut.length).toBe(DISCOUNTS.filter((d) => d.categoryId === 'eating-out').length);
   });
 
   it('lists the whole category, and says so, when no discount in it matches', async () => {
@@ -137,7 +149,9 @@ describe('find_tips', () => {
     const food = await tips({ category: 'food' });
     expect(food.data.tips.every((t) => t.categoryId === 'food')).toBe(true);
     const mensa = await tips({ search: 'MENSA' });
+    expect(mensa.data.tips.length).toBeLessThan(TIPS.length);
     expect(mensa.data.tips.map((t) => t.id)).toContain('eat-at-the-mensa');
+    expect(mensa.data.note).toMatch(new RegExp(`^${mensa.data.tips.length} of the ${TIPS.length} Regensburg money tips match "MENSA"\\.`));
   });
 
   it('lists every tip, and says so, when none matches', async () => {
@@ -165,6 +179,8 @@ describe('suggest_swaps', () => {
       estimate: false,
     });
     expect(data.note).toContain('toSource and toUrl, where given, state the cheaper one.');
+    expect(data.note).toContain('estimate: true means the saving rests on an assumption no page states (both prices are stated)');
+    expect(data.note).not.toContain('no page states the number');
     expect(text).toContain('€3.80 instead of €14.50 per meal, about €10 less.');
     expect(text).toContain('Usual price: Source: Numbeo');
     expect(text).toContain('Cheaper price: Studierendenwerk Niederbayern/Oberpfalz');
@@ -192,6 +208,15 @@ describe('suggest_swaps', () => {
     expect(data.swaps).toHaveLength(SWAPS.length);
     expect(data.note).toMatch(/^Nothing matched "taxi", so all \d+ cheaper swaps in Regensburg are listed instead/);
   });
+
+  it('words the note for a list of one, and doesn’t send the model back when everything matched', () => {
+    expect(findSwaps('transport', 'taxi').note).toMatch(
+      /^Nothing matched "taxi", so the only cheaper swap in Regensburg in Transport is listed instead/,
+    );
+    const all = findSwaps('transport', 'deutschlandticket').note;
+    expect(all).toMatch(/^The only cheaper swap in Regensburg in Transport matches "deutschlandticket"\. Cite/);
+    expect(all).not.toContain('call again');
+  });
 });
 
 describe('semester_info', () => {
@@ -216,7 +241,7 @@ describe('semester_info', () => {
     expect(text).toContain('Universität Regensburg on 28-10-2026: winter semester 2026/27, 01-10-2026 to 31-03-2027.');
     expect(text).toContain('Fee for the summer semester 2027: €215, paid with the re-registration');
     expect(text).toContain("Universität Regensburg hasn't published when re-registration for the summer semester 2027 opens.");
-    expect(text).toContain('Re-registration opens in January 2027.');
+    expect(text).toContain('Re-registration is expected to open in January 2027.');
   });
 
   it('knows a day can fall in different semesters at the two universities', async () => {
@@ -234,7 +259,18 @@ describe('semester_info', () => {
   it('never guesses a fee no page states, and its note says not to', async () => {
     const { text, data } = await semesters({ university: 'ur', date: '2028-05-01' });
     expect(data.universities[0].next.fee).toBeNull();
-    expect(data.note).toContain('fee: null means no page states that fee yet: say so, and never estimate it');
+    expect(data.note).toContain('On next, fee: null (or a total of null) means no page in this data states that fee yet: say so, and never estimate it');
+    expect(data.note).toContain('fee: null there says nothing about what that fee was or whether it is paid');
     expect(text).toContain("No page states the fee for the winter semester 2028/29 yet. It changes every semester, so it isn't guessed.");
+  });
+
+  it('takes days in the years its maths can build semesters around, and refuses the rest', async () => {
+    for (const date of ['0000-01-15', '0999-12-31', '9999-10-01']) {
+      expect((await semesters({ date })).isError, date).toBe(true);
+    }
+    const first = await semesters({ university: 'ur', date: '1000-01-01' });
+    expect(first.data.universities[0].current).toMatchObject({ label: 'winter semester 999/00', start: '0999-10-01' });
+    const last = await semesters({ university: 'ur', date: '9998-12-31' });
+    expect(last.data.universities[0].next).toMatchObject({ start: '9999-04-01', end: '9999-09-30' });
   });
 });

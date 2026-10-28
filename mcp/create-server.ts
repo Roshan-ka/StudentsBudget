@@ -10,7 +10,8 @@ import { registerFindTips } from './tips.ts';
 const INSTRUCTIONS =
   "StudentsBudget's data for students in Regensburg, Germany. Every figure the tools return carries its source, " +
   'URL and the date it was checked. Cite them when you use a figure, call estimates estimates, and say so when ' +
-  'the tools have nothing on a question instead of guessing a price.';
+  'the tools have nothing on a question instead of guessing a price. Each result has a note on how to read it. ' +
+  'Dates come as YYYY-MM-DD: write them as DD-MM-YYYY.';
 
 export type ServerOptions = {
   /** Today's local date; tests pin it. */

@@ -63,8 +63,9 @@ function monthLabel(month: IsoMonth): string {
 
 const partSchema = z.object({ label: z.string(), amount: z.string(), minor: z.number().int(), ...sourcedShape });
 const feeSchema = z.object({
-  total: z.string(),
-  totalMinor: z.number().int(),
+  /** Null while a page states the re-registration month but no part of the fee yet. */
+  total: z.string().nullable(),
+  totalMinor: z.number().int().nullable(),
   parts: z.array(partSchema),
   reRegistration: z.object({ month: z.string(), ...sourcedShape }).nullable(),
 });
@@ -91,9 +92,10 @@ function feeOf(university: University, s: SemesterDates): SemesterInfo['fee'] {
   const fee = SEMESTER_FEES.find((f) => f.university === university && f.starts === s.start);
   const parts = fee?.parts ?? [];
   if (parts.length === 0 && fee?.reRegistration === undefined) return null;
-  const totalMinor = parts.reduce((sum, p) => sum + p.minor, 0);
+  // No parts stated yet is no total, never €0.
+  const totalMinor = parts.length === 0 ? null : parts.reduce((sum, p) => sum + p.minor, 0);
   return {
-    total: amountText(totalMinor),
+    total: totalMinor === null ? null : amountText(totalMinor),
     totalMinor,
     parts: parts.map((p) => ({ label: p.label, amount: amountText(p.minor), minor: p.minor, ...sourcedFields(p) })),
     reRegistration:
@@ -117,25 +119,30 @@ export function semesterInfo(date: IsoDate, universities: readonly University[])
 }
 
 function feeLines(s: SemesterInfo, name: string): string[] {
-  if (s.fee === null) {
-    return [`  No page states the fee for the ${s.label} yet. It changes every semester, so it isn't guessed.`];
-  }
-  const lines = [`  Fee for the ${s.label}: ${s.fee.total}, paid with the re-registration (Rückmeldung) before the semester:`];
+  const unstated = `  No page states the fee for the ${s.label} yet. It changes every semester, so it isn't guessed.`;
+  if (s.fee === null) return [unstated];
+  const lines =
+    s.fee.total === null
+      ? [unstated]
+      : [`  Fee for the ${s.label}: ${s.fee.total}, paid with the re-registration (Rückmeldung) before the semester:`];
   for (const p of s.fee.parts) lines.push(`  - ${p.label}: ${p.amount}. ${sourceLine(p)}.`);
   lines.push(
     s.fee.reRegistration === null
       ? `  ${name} hasn't published when re-registration for the ${s.label} opens.`
-      : `  Re-registration opens in ${monthLabel(s.fee.reRegistration.month)}. ${sourceLine(s.fee.reRegistration)}.`,
+      : // The pages give an expected month (OTH: "vorauss."), as the app's profile says.
+        `  Re-registration is expected to open in ${monthLabel(s.fee.reRegistration.month)}. ${sourceLine(s.fee.reRegistration)}.`,
   );
   return lines;
 }
 
 /** How to read the result: what the model sees in a client that passes only the structured content on. */
 export const SEMESTER_NOTE =
-  'current is the semester the date falls in, next the one after it. Cite the sources and checked dates. fee: null ' +
-  'means no page states that fee yet: say so, and never estimate it, because it changes every semester. A fee is ' +
-  'paid with the re-registration (Rückmeldung) before its semester; reRegistration: null means the university has ' +
-  "not published when that opens. The current semester's fee is shown only while a page still states it.";
+  'current is the semester the date falls in, next the one after it. Cite the sources and checked dates, and write ' +
+  'dates as DD-MM-YYYY. A fee is paid with the re-registration (Rückmeldung) before its semester. On next, fee: null ' +
+  '(or a total of null) means no page in this data states that fee yet: say so, and never estimate it, because it ' +
+  'changes every semester. On current, the fee was already due before the semester began, and this data may no ' +
+  'longer hold it: fee: null there says nothing about what that fee was or whether it is paid. ' +
+  'reRegistration.month is when re-registration is expected to open; null means the university has not published it.';
 
 export function semesterText(date: IsoDate, found: UniversityInfo[]): string {
   const lines: string[] = [SEMESTER_NOTE];
@@ -153,11 +160,15 @@ export function semesterText(date: IsoDate, found: UniversityInfo[]): string {
   return lines.join('\n');
 }
 
-/** A real day as `YYYY-MM-DD`. */
-const isoDate = z
+/**
+ * A real day as `YYYY-MM-DD`, in a year the semester maths can build dates around: from 1000 (as the app's profile
+ * allows) to 9998, since a late-9999 day's next semester ends in year 10000.
+ */
+export const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD.')
-  .refine((d) => new Date(`${d}T12:00:00Z`).toISOString().slice(0, 10) === d, 'Not a real day.');
+  .refine((d) => new Date(`${d}T12:00:00Z`).toISOString().slice(0, 10) === d, 'Not a real day.')
+  .refine((d) => d >= '1000-01-01' && d <= '9998-12-31', 'Use a year from 1000 to 9998.');
 
 export function registerSemesterInfo(server: McpServer, today: () => IsoDate): void {
   server.registerTool(

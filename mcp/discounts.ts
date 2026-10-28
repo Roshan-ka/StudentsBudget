@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { DISCOUNTS } from '../src/data/discounts.ts';
 import { daysBetween, type IsoDate } from '../src/lib/dates.ts';
-import { categoryIdsOf, categoryInput, categoryName, CITE_NOTE, countNote, narrowed, orderOf, searchInput } from './catalog.ts';
+import { categoryIdsOf, categoryInput, categoryName, CITE_NOTE, countNote, ESTIMATE_NOTE, narrowed, orderOf, searchInput } from './catalog.ts';
 import { sourcedFields, sourcedShape, sourceLine } from './sourced.ts';
 
 /** As the app's `STALE_AFTER_DAYS`: a discount nobody has confirmed for eight weeks may be outdated. */
@@ -12,6 +12,9 @@ const CATEGORY_IDS = categoryIdsOf(DISCOUNTS);
 
 /** Words that find a discount; a test holds them to it, since the search input offers them as examples. */
 export const DISCOUNT_SEARCH_EXAMPLES = ['pool', 'museum', 'Mensa'];
+
+/** German names in the discounts, for the search's hints. */
+const GERMAN_NAMES = 'Westbad is a pool, Kinos a cinema, Stadtbücherei the city library';
 
 const discountSchema = z.object({
   id: z.string(),
@@ -42,6 +45,7 @@ export function findDiscounts(today: IsoDate, category?: string, search?: string
     d.offer,
     d.conditions,
     d.address,
+    d.categoryId,
     categoryName(d.categoryId),
     d.source,
   ]);
@@ -57,7 +61,7 @@ export function findDiscounts(today: IsoDate, category?: string, search?: string
     ...sourcedFields(d),
   }));
   const note =
-    `${countNote(found, ['student discount in Regensburg', 'student discounts in Regensburg'], { search, category })} ${CITE_NOTE} ` +
+    `${countNote(found, ['student discount in Regensburg', 'student discounts in Regensburg'], { search, category, germanNames: GERMAN_NAMES })} ${CITE_NOTE} ${ESTIMATE_NOTE} ` +
     'Pass on the conditions (who gets it, when, what proof). mayBeOutdated: true means the source was last checked 8 or more weeks ago, so say it may have changed.';
   return { note, discounts };
 }
@@ -83,7 +87,7 @@ export function registerFindDiscounts(server: McpServer, today: () => IsoDate): 
         'more): the offer, who gets it and when, and the address. Each one is stated on the place’s own page or a ' +
         'Studierendenwerk or university page: cite that source and the date it was checked, and pass on the ' +
         'conditions. No alcohol deals. Regensburg only.',
-      inputSchema: { category: categoryInput(CATEGORY_IDS), search: searchInput(DISCOUNT_SEARCH_EXAMPLES) },
+      inputSchema: { category: categoryInput(CATEGORY_IDS), search: searchInput(DISCOUNT_SEARCH_EXAMPLES, GERMAN_NAMES) },
       outputSchema: { note: z.string(), discounts: z.array(discountSchema) },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },

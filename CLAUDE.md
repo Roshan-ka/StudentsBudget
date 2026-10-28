@@ -85,6 +85,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
   - stdout carries the protocol: log only to stderr.
   - Claude Code hands the model only a tool's structured content, not its text. Whatever the model must know (cite the sources, what a `null` means, that a search missed) goes in the structured `note`, as well as in the text.
   - Every item keeps its source, URL and checked date.
+  - What the app never shows, the server leaves out too (`HIDDEN_PRICE_LABELS`: the Deutschlandticket price).
   - A search that finds nothing returns the whole list with a note. A search's example words must find something (tested).
   - `.mcp.json` holds no secrets.
 - **Service worker** (`public/sw.js`, registered by `AppInit`):

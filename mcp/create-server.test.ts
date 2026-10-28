@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { CITIES } from '../src/data/cities.ts';
-import type { RegensburgCosts } from './regensburg-costs.ts';
+import { HIDDEN_PRICE_LABELS, type RegensburgCosts } from './regensburg-costs.ts';
 import { call, connect } from './test-client.ts';
 
 const city = CITIES.regensburg;
+const shownPrices = city.prices.filter((p) => !HIDDEN_PRICE_LABELS.includes(p.label));
 const TOOLS = ['find_discounts', 'find_tips', 'regensburg_costs', 'semester_info', 'suggest_swaps'];
 
 describe('the StudentsBudget MCP server', () => {
@@ -38,7 +39,7 @@ describe('regensburg_costs', () => {
     const { isError, text, data } = await costs();
     expect(isError).toBe(false);
     expect(data.ranges).toHaveLength(city.ranges.length);
-    expect(data.prices).toHaveLength(city.prices.length);
+    expect(data.prices).toHaveLength(shownPrices.length);
     for (const item of [...data.ranges, ...data.prices]) {
       expect(item.source).not.toBe('');
       expect(item.url).toMatch(/^https:\/\//);
@@ -62,12 +63,20 @@ describe('regensburg_costs', () => {
     expect(text).toMatch(/- Eating out: €30–135 a month\. Estimate: no page states this number/);
   });
 
+  it('leaves out the Deutschlandticket price, which the app never shows either', async () => {
+    expect(city.prices.map((p) => p.label)).toEqual(expect.arrayContaining([...HIDDEN_PRICE_LABELS]));
+    const { text, data } = await costs('Deutschlandticket');
+    expect(data.prices.map((p) => p.label)).not.toContain('Deutschlandticket per month');
+    expect(text).not.toContain('€63');
+  });
+
   it('narrows the list to a word, in any case, and finds it in a source too', async () => {
     const rent = await costs('RENT');
     expect(rent.data.ranges.map((r) => r.categoryId)).toEqual(['rent']);
     expect(rent.data.prices).toEqual([]);
-    expect(rent.data.note).toMatch(/^1 of the 12 Regensburg cost figures matches "RENT"\. Names are often German/);
-    expect(rent.data.note).toContain('call again without search and look through all 12. Cite each item’s source');
+    expect(rent.data.note).toMatch(/^1 of the 11 Regensburg cost figures matches "RENT"\. To be sure nothing is missed/);
+    expect(rent.data.note).not.toContain('German');
+    expect(rent.data.note).toContain('call again without search and look through all 11. Cite each item’s source');
     expect(rent.text).not.toContain('Single prices');
 
     // "WG room" is in the rent range's source.
@@ -82,8 +91,8 @@ describe('regensburg_costs', () => {
     const { isError, text, data } = await costs('parking');
     expect(isError).toBe(false);
     expect(data.ranges).toHaveLength(city.ranges.length);
-    expect(data.prices).toHaveLength(city.prices.length);
-    expect(data.note).toMatch(/^Nothing matched "parking", so all 12 Regensburg cost figures are listed instead/);
+    expect(data.prices).toHaveLength(shownPrices.length);
+    expect(data.note).toMatch(/^Nothing matched "parking", so all 11 Regensburg cost figures are listed instead/);
     expect(text.startsWith(data.note)).toBe(true);
   });
 });

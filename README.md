@@ -167,5 +167,5 @@ It needs Node 24 on the PATH and `npm install` done in the checkout.
 
 **By hand:**
 - `npm run mcp` starts the server on stdio. It waits for a client and logs to stderr.
-- `npx @modelcontextprotocol/inspector node mcp/server.ts` opens the official MCP Inspector, where you can call each tool.
+- `npx @modelcontextprotocol/inspector@0.22.0 node mcp/server.ts` opens the official MCP Inspector (pinned, like everything else here), where you can call each tool.
 - `npm test` includes the server's tests: a real MCP client over the SDK's in-memory transport.

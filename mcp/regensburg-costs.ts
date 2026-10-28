@@ -2,10 +2,17 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { CITIES } from '../src/data/cities.ts';
 import { formatMoney, formatRange } from '../src/lib/money.ts';
-import { categoryName, CITE_NOTE, countNote, narrowed, searchInput } from './catalog.ts';
+import { categoryName, CITE_NOTE, countNote, ESTIMATE_NOTE, narrowed, searchInput } from './catalog.ts';
 import { sourcedFields, sourcedShape, sourceLine } from './sourced.ts';
 
 const city = CITIES.regensburg;
+
+/**
+ * Prices the app keeps but never shows (see cities.ts), so the server leaves them out too. The Deutschlandticket's
+ * €63 holds only until 31 Dec 2026, and isn't what a UR or OTH student pays: the semester ticket is credited, so the
+ * upgrade costs the difference (suggest_swaps and find_tips carry it).
+ */
+export const HIDDEN_PRICE_LABELS: readonly string[] = ['Deutschlandticket per month'];
 
 /** Words that find a cost figure; a test holds them to it, since the search input offers them as examples. */
 export const COST_SEARCH_EXAMPLES = ['rent', 'room', 'gym'];
@@ -33,12 +40,9 @@ const RANGES: CostRange[] = city.ranges.map((r) => ({
   maxMinor: r.maxMinor,
   ...sourcedFields(r),
 }));
-const PRICES: CostPrice[] = city.prices.map((p) => ({
-  label: p.label,
-  price: formatMoney(p.minor, 'EUR'),
-  minor: p.minor,
-  ...sourcedFields(p),
-}));
+const PRICES: CostPrice[] = city.prices
+  .filter((p) => !HIDDEN_PRICE_LABELS.includes(p.label))
+  .map((p) => ({ label: p.label, price: formatMoney(p.minor, 'EUR'), minor: p.minor, ...sourcedFields(p) }));
 
 /**
  * The monthly ranges and single prices holding every word of `search` (in a name or a source). When nothing does,
@@ -52,7 +56,7 @@ export function regensburgCosts(search?: string): RegensburgCosts {
   const ranges = found.items.filter((item): item is CostRange => 'range' in item);
   const prices = found.items.filter((item): item is CostPrice => 'price' in item);
   const note = countNote(found, ['Regensburg cost figure', 'Regensburg cost figures'], { search });
-  return { note: `${note} ${CITE_NOTE}`, ranges, prices };
+  return { note: `${note} ${CITE_NOTE} ${ESTIMATE_NOTE}`, ranges, prices };
 }
 
 /** The same as text, one figure per line with where it comes from. */
