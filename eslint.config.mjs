@@ -16,6 +16,10 @@ const eslintConfig = defineConfig([
     ".superpowers/**",
     // Agent worktrees are full checkouts with their own node_modules: not part of this one.
     ".claude/worktrees/**",
+    // Playwright's output: failed tests keep traces, and the HTML report bundles the trace viewer's scripts.
+    "test-results/**",
+    "playwright-report/**",
+    "blob-report/**",
   ]),
   {
     rules: {

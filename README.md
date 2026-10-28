@@ -142,3 +142,30 @@ Without Supabase settings the app runs local-only and hides the account UI. To t
 3. Apply the migrations in `supabase/migrations`: `npx supabase login`, `npx supabase link --project-ref <ref>`, then `npx supabase db push`, or paste each file into the SQL editor.
 
 With Docker running, `npm run supabase:start` starts a local Supabase stack with the migrations applied (Studio on http://127.0.0.1:54323), `npm run test:db` runs the database tests (pgTAP, in `supabase/tests`) against it, `npm run test:contract` checks the app's account store against it (after `node scripts/supabase-test-env.mjs` has printed the two settings it needs), and `npm run supabase:stop` stops it. CI runs them on every pull request.
+
+### StudentsBudget in Claude (MCP server)
+`mcp/` is a local [MCP](https://modelcontextprotocol.io) server. It lets Claude answer from the app's own Regensburg data, and it isn't part of the web app.
+
+**What it does:**
+- It has five read-only tools: `regensburg_costs`, `find_discounts`, `find_tips`, `suggest_swaps` and `semester_info`.
+- Every figure comes with its source, URL and checked date, and the tools tell Claude to cite them. A fee no page states is never guessed.
+- It needs no account and sends nothing anywhere. Claude reads its answers into the chat.
+
+**Claude Code:** open this repo, and Claude Code offers the `studentsbudget` server from `.mcp.json`. Approve it, or use `/mcp`. Then ask something like "What does a room cost in Regensburg?" or "Which student discounts are there for swimming?".
+
+**Claude Desktop:** in Settings → Developer → Edit Config, add the server to `claude_desktop_config.json` with the full path to this checkout, then restart Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "studentsbudget": { "command": "node", "args": ["C:\\path\\to\\StudentsBudget\\mcp\\server.ts"] }
+  }
+}
+```
+
+It needs Node 24 on the PATH and `npm install` done in the checkout.
+
+**By hand:**
+- `npm run mcp` starts the server on stdio. It waits for a client and logs to stderr.
+- `npx @modelcontextprotocol/inspector@0.22.0 node mcp/server.ts` opens the official MCP Inspector (pinned, like everything else here), where you can call each tool.
+- `npm test` includes the server's tests: a real MCP client over the SDK's in-memory transport.

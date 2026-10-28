@@ -20,7 +20,8 @@
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "test:db": "supabase test db",
-    "test:contract": "vitest run src/sync/store.contract.test.ts"
+    "test:contract": "vitest run src/sync/store.contract.test.ts",
+    "mcp": "node mcp/server.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
@@ -41,6 +42,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@playwright/test": "1.64.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "24.19.2",

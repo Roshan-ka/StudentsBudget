@@ -2,7 +2,7 @@
 
 @AGENTS.md
 
-Installable Next.js web app for students new to a city (local-first: the phone's data lives in the browser's IndexedDB; since P2.1 an optional email-and-password account can save it to Supabase and load it onto another phone; no AI yet). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`, P2.1 (email-and-password accounts and a Supabase database, done) in `docs/superpowers/plans/2026-10-23-p2-1-accounts-and-database.md`, and P2.2 (live sync, next) in `docs/superpowers/plans/2026-10-26-p2-2-live-sync.md`; `docs/` is an Obsidian vault and stays notes-only.
+Installable Next.js web app for students new to a city (local-first: the phone's data lives in the browser's IndexedDB; since P2.1 an optional email-and-password account can save it to Supabase and load it onto another phone; no AI yet). The plan is in `docs/superpowers/plans/2026-10-16-p1-test-project.md`, P2.1 (email-and-password accounts and a Supabase database, done) in `docs/superpowers/plans/2026-10-23-p2-1-accounts-and-database.md`, P2.2 (live sync, paused after day 1) in `docs/superpowers/plans/2026-10-26-p2-2-live-sync.md`, and the local StudentsBudget MCP server (next) in `docs/superpowers/plans/2026-10-28-mcp-server.md`; `docs/` is an Obsidian vault and stays notes-only.
 
 ## Stack
 
@@ -35,6 +35,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | @types/react | 19.3.0 |
 | @types/react-dom | 19.3.0 |
 | supabase (the CLI, a dev dependency) | 2.121.0 |
+| @modelcontextprotocol/sdk (the MCP server in `mcp/`, a dev dependency) | 1.32.2 |
 
 ## Commands
 
@@ -44,7 +45,8 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `next typegen`, then `tsc --noEmit` |
 | `npm run build` | Production build (`next build`); catches Cache Components errors that dev mode hides |
-| `npm test` | Vitest unit tests (`src/**/*.test.ts`, `scripts/**/*.test.mjs`) |
+| `npm test` | Vitest unit tests (`src/**/*.test.ts`, `scripts/**/*.test.mjs`, `mcp/**/*.test.ts`) |
+| `npm run mcp` | The StudentsBudget MCP server on stdio (`node mcp/server.ts`); Claude Code starts it through `.mcp.json` |
 | `npm run test:e2e` | Playwright on `desktop-chrome` and `iphone` (WebKit); starts the dev server if none is running. `E2E_PORT=3001 npm run test:e2e` (PowerShell: `$env:E2E_PORT=3001; npm run test:e2e`) moves it off port 3000, for a second checkout |
 | `npm run test:offline` | Production build, `next start` on :3100 (the port must be free: it never reuses a server), then the Playwright offline check (`desktop-chrome`) |
 | `npm run cert:https` | mkcert makes the HTTPS certificate for phone testing into `certs/` (git-ignored); it never runs `mkcert -install` |
@@ -76,6 +78,16 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Week results:** each Monday–Sunday week is recorded once, keyed by its Monday, from the Wednesday after it ends (`GRACE_DAYS`), and never rewritten, so a plan edit never changes a past week. The three weekly badges read only these rows; Latte Survivor reads the entries, so editing an old month can change it.
 - **Quick add:** `QuickAddField` reads every line through a `QuickAddProvider` (default `localQuickAddProvider`), and every reading passes `checkReading` before it is saved. Don't call `parseQuickAdd` or `suggestCategory` from the field.
 - **Default account:** new entries, quick add, a transfer's From and new recurring lines (in Settings, setup and Edit plan) start on `defaultAccount` (`balances.ts`) over accounts in `sortAccounts` order (setup: draft order): the account marked `isDefault`, else the first euro bank account, else any euro account, else the first bank account, else the first account. Never `accounts[0]`. A quick-add line written with a euro marker (€, eur, euro) goes to `euroAccount` (the euro part of that rule) when the default is not in euros.
+- **MCP server** (`mcp/`, plan in `docs/superpowers/plans/2026-10-28-mcp-server.md`):
+  - A local stdio server with read-only tools over `src/data`. It isn't part of the web app: nothing in `src/` imports it.
+  - Node 24 runs the `.ts` files directly with type stripping. So `mcp/` imports app files by relative path with `.ts` (tsconfig `allowImportingTsExtensions`), and only files whose runtime imports avoid `@/`: `src/data/*`, `src/lib/money.ts`, `src/lib/dates.ts`.
+  - An app helper that imports through `@/` gets a copy in `mcp/`. `mcp/catalogs.test.ts` holds each copy to the app's function.
+  - stdout carries the protocol: log only to stderr.
+  - Claude Code hands the model only a tool's structured content, not its text. Whatever the model must know (cite the sources, what a `null` means, that a search missed) goes in the structured `note`, as well as in the text.
+  - Every item keeps its source, URL and checked date.
+  - What the app never shows, the server leaves out too (`HIDDEN_PRICE_LABELS`: the Deutschlandticket price).
+  - A search that finds nothing returns the whole list with a note. A search's example words must find something (tested).
+  - `.mcp.json` holds no secrets.
 - **Service worker** (`public/sw.js`, registered by `AppInit`):
   - Production only: `next dev` never registers it.
   - Never run `next start` on port 3000, or a production worker sits in front of `next dev` there; `npm run test:offline` uses 3100.
@@ -111,7 +123,7 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - `.gitattributes` with `* text=auto eol=lf`.
 - Conventional Commits, ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - One branch and one Draft PR per day, from `main`. Nothing is pushed to `main` after the initial commit, and Roshan merges.
-- **Repos (since 2026-10-27):** the main repo is `Roshan-ka/StudentsBudget` (`origin`, Roshan's personal account): PRs are opened, checked and merged there. `origin` has a second push URL, so every `git push origin` also updates `SupportRW/StudentsBudget` (fetch it as `supportrw`), which keeps a copy. After Roshan merges, `main` is pulled from `origin` and pushed once more, so SupportRW's `main` catches up (fast-forward only). Commits use Roshan's personal identity (repo-local git config), and Vercel and Supabase run on his personal accounts.
+- **Repos (since 2026-10-27):** the main repo is `Roshan-ka/StudentsBudget` (`origin`, Roshan's personal account): PRs are opened, checked and merged there. `origin` has a second push URL, so every `git push origin` also updates `SupportRW/StudentsBudget` (fetch it as `supportrw`), a backup copy for Roshan's internship mentor to see: no PRs, CI or deploys there, and merged branches are deleted on both. After Roshan merges, `main` is pulled from `origin` and pushed once more, so SupportRW's `main` catches up (fast-forward only). Commits use Roshan's personal identity (repo-local git config), and Vercel and Supabase run on his personal accounts.
 
 ## Keeping this file honest
 
