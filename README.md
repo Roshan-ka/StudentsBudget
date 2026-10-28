@@ -144,12 +144,19 @@ Without Supabase settings the app runs local-only and hides the account UI. To t
 With Docker running, `npm run supabase:start` starts a local Supabase stack with the migrations applied (Studio on http://127.0.0.1:54323), `npm run test:db` runs the database tests (pgTAP, in `supabase/tests`) against it, `npm run test:contract` checks the app's account store against it (after `node scripts/supabase-test-env.mjs` has printed the two settings it needs), and `npm run supabase:stop` stops it. CI runs them on every pull request.
 
 ### StudentsBudget in Claude (MCP server)
-`mcp/` is a local [MCP](https://modelcontextprotocol.io) server. It lets Claude answer from the app's own Regensburg data, and it isn't part of the web app.
+`mcp/` is a local [MCP](https://modelcontextprotocol.io) server. It lets Claude answer from the app's own Regensburg data and from your own budget, and it isn't part of the web app.
 
 **What it does:**
-- It has five read-only tools: `regensburg_costs`, `find_discounts`, `find_tips`, `suggest_swaps` and `semester_info`.
-- Every figure comes with its source, URL and checked date, and the tools tell Claude to cite them. A fee no page states is never guessed.
-- It needs no account and sends nothing anywhere. Claude reads its answers into the chat.
+- Five read-only tools over the Regensburg data: `regensburg_costs`, `find_discounts`, `find_tips`, `suggest_swaps` and `semester_info`.
+  - Every figure comes with its source, URL and checked date, and the tools tell Claude to cite them. A fee no page states is never guessed.
+  - They need no account and send nothing anywhere.
+- `budget_overview` and `recent_entries`, also read-only, read your StudentsBudget account:
+  - `budget_overview` runs the app's own maths on it: what is left this month and this week, each envelope, and the account balances.
+  - `recent_entries` lists a month's entries, newest first, optionally for one category.
+  - The data is as of your last **Save to my account** on the phone.
+  - It signs in with two more lines in `.env.local`: `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD` (see `.env.example`). The password sits there in plain text; the file is git-ignored. Use a test account first.
+  - Your figures and entry notes go into the Claude chat.
+- Claude reads every answer into the chat.
 
 **Claude Code:** open this repo, and Claude Code offers the `studentsbudget` server from `.mcp.json`. Approve it, or use `/mcp`. Then ask something like "What does a room cost in Regensburg?" or "Which student discounts are there for swimming?".
 

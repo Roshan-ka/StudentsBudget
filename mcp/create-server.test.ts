@@ -5,20 +5,21 @@ import { call, connect } from './test-client.ts';
 
 const city = CITIES.regensburg;
 const shownPrices = city.prices.filter((p) => !HIDDEN_PRICE_LABELS.includes(p.label));
-const TOOLS = ['find_discounts', 'find_tips', 'regensburg_costs', 'semester_info', 'suggest_swaps'];
+/** The tools over the sourced Regensburg catalogs; budget_overview and recent_entries read the user's own account. */
+const CATALOG_TOOLS = ['find_discounts', 'find_tips', 'regensburg_costs', 'semester_info', 'suggest_swaps'];
 
 describe('the StudentsBudget MCP server', () => {
-  it('introduces itself and lists its tools, all read-only, each asking for the sources to be cited', async () => {
+  it('introduces itself and lists its tools, all read-only, the catalog ones asking for sources to be cited', async () => {
     const client = await connect();
     expect(client.getServerVersion()?.name).toBe('studentsbudget');
     expect(client.getInstructions()).toContain('Cite them');
 
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(TOOLS);
+    expect(tools.map((t) => t.name).sort()).toEqual(['budget_overview', ...CATALOG_TOOLS, 'recent_entries'].sort());
     for (const tool of tools) {
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
-      expect(tool.description, tool.name).toMatch(/[Cc]ite/);
       expect(tool.outputSchema, tool.name).toBeDefined();
+      if (CATALOG_TOOLS.includes(tool.name)) expect(tool.description, tool.name).toMatch(/[Cc]ite/);
     }
   });
 

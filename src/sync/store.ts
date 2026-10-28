@@ -23,14 +23,17 @@ export type UserDataStore = {
 
 /** A request the account's database refused or never answered. `status` is the HTTP status, 0 without an answer. */
 export class StoreError extends Error {
-  constructor(
-    readonly table: ServerTable,
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
+  // Written out rather than as parameter properties, so Node can strip this file's types (tsconfig erasableSyntaxOnly).
+  readonly table: ServerTable;
+  readonly status: number;
+  readonly code: string;
+
+  constructor(table: ServerTable, status: number, code: string, message: string) {
     super(`${table}: ${message}`);
     this.name = 'StoreError';
+    this.table = table;
+    this.status = status;
+    this.code = code;
   }
 }
 

@@ -79,9 +79,18 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and
 - **Quick add:** `QuickAddField` reads every line through a `QuickAddProvider` (default `localQuickAddProvider`), and every reading passes `checkReading` before it is saved. Don't call `parseQuickAdd` or `suggestCategory` from the field.
 - **Default account:** new entries, quick add, a transfer's From and new recurring lines (in Settings, setup and Edit plan) start on `defaultAccount` (`balances.ts`) over accounts in `sortAccounts` order (setup: draft order): the account marked `isDefault`, else the first euro bank account, else any euro account, else the first bank account, else the first account. Never `accounts[0]`. A quick-add line written with a euro marker (€, eur, euro) goes to `euroAccount` (the euro part of that rule) when the default is not in euros.
 - **MCP server** (`mcp/`, plan in `docs/superpowers/plans/2026-10-28-mcp-server.md`):
-  - A local stdio server with read-only tools over `src/data`. It isn't part of the web app: nothing in `src/` imports it.
-  - Node 24 runs the `.ts` files directly with type stripping. So `mcp/` imports app files by relative path with `.ts` (tsconfig `allowImportingTsExtensions`), and only files whose runtime imports avoid `@/`: `src/data/*`, `src/lib/money.ts`, `src/lib/dates.ts`.
-  - An app helper that imports through `@/` gets a copy in `mcp/`. `mcp/catalogs.test.ts` holds each copy to the app's function.
+  - A local stdio server with read-only tools over `src/data`, plus `budget_overview` and `recent_entries`. It isn't part of the web app: nothing in `src/` imports it.
+  - `budget_overview` and `recent_entries` read the user's account with the app's own `supabaseStore` and `planDownload`, signed in as the user (`mcp/account.ts`).
+    - `server.ts` loads `.env.local`: the app's two Supabase values, plus `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD`.
+    - The store they get refuses writes (`readOnly`).
+    - Summing entries across accounts uses `eurMinor`, never `amountMinor`; balances are converted at the account's rates (`totalInEur`), with no total when nothing converts, as Home does.
+    - A problem reading the account is a `state` with a note, not an error. Anything but a missing setting or a failed sign-in is also logged to stderr.
+  - Node 24 runs the `.ts` files directly with type stripping (tsconfig `allowImportingTsExtensions`; `erasableSyntaxOnly` refuses enums and parameter properties in `src/`).
+    - Typecheck can't catch a type imported without `type`, which fails in Node. `mcp/budget.test.ts` loads the server's graph in plain Node and does.
+  - Nothing from `src/` beyond `src/data/*`, `src/lib/money.ts` and `src/lib/dates.ts` may load before `registerAppImports()` (`mcp/app-imports.ts`), which teaches Node the `@/` alias and extensionless imports.
+    - `server.ts` registers it, then imports `create-server.ts` with a dynamic `import()`, since static imports resolve before any code runs.
+    - Every module behind that import may use `@/` freely.
+  - The M1 copies of app helpers in `mcp/catalog.ts` and `mcp/semesters.ts` are held to the app's functions by `mcp/catalogs.test.ts`.
   - stdout carries the protocol: log only to stderr.
   - Claude Code hands the model only a tool's structured content, not its text. Whatever the model must know (cite the sources, what a `null` means, that a search missed) goes in the structured `note`, as well as in the text.
   - Every item keeps its source, URL and checked date.
