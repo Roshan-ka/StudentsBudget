@@ -31,6 +31,8 @@ M3 (prompts and the clean-up) is under way on `feat/mcp-prompts`: M3.1 done (the
 - `mcp/server.test.ts` starts the real server in plain Node, which is the only test that catches a type imported without `type`;
 - the prompts' field names are tested against the tools' output schemas.
 
+Roshan ran both slash commands in a new Claude Code session on 28-10-2026, signed in as test account A. The check-in showed the week lines and €138 as the app does, and the Regensburg answer cited its sources. The Draft PR is next.
+
 **M2.1 result: a resolve hook, not `tsx`.**
 - `mcp/app-imports.ts` registers a synchronous Node resolve hook (`module.registerHooks`). For files in `src/` only, it maps `@/…` to `src/…` and tries an extensionless path with `.ts`, then as a folder.
 - A file that imports the app through `@/` must be loaded with a dynamic `import()` after the hook is registered: static imports are resolved before any code runs.
@@ -77,7 +79,7 @@ After tools, MCP's other main building block is the **prompt**: a named template
 |---|---|---|
 | M3.1 ✓ | **Clean-up.** The M1 copies of app helpers become imports of the app's own code, through the import hook that M2 brought:<br>• `categoryName` and `orderOf` (`src/features/entries/categories.ts`);<br>• `amountText`, and the saving wording (`src/features/swaps/suggest.ts`, which exports its `savingText` for this);<br>• `STALE_AFTER_DAYS` (`src/features/discounts/discounts.ts`);<br>• `semesterOn` and `UNIVERSITIES` (`src/features/profile/profile.ts`).<br>The parity tests in `mcp/catalogs.test.ts` go; the behaviour tests stay. | One copy of each rule. The plain-Node smoke test loads the new graph. Lint, typecheck and unit tests pass, and the server answers over stdio as before |
 | M3.2 ✓ | **Two prompts:**<br>• `weekly_check_in`: the app's Sunday check-in, in a chat. Claude calls `budget_overview` and `recent_entries`, then `suggest_swaps` for envelopes that are over, and writes it the calm way, as of the last Save;<br>• `new_in_regensburg`, with an optional university: the first month for a new student, through `regensburg_costs`, `semester_info`, `find_tips` and `find_discounts`, all cited. | The in-memory client lists both and gets their messages; the steps name only tools that exist |
-| M3.3 | **Try it for real** in Claude Code: reconnect the server and run both slash commands. Then README and CLAUDE.md, two parallel reviewers, push after Roshan's go, and the Draft PR | The check-in matches Home's figures; CI green |
+| M3.3 ✓ | **Try it for real** in Claude Code: reconnect the server and run both slash commands. Then README and CLAUDE.md, two parallel reviewers, push after Roshan's go, and the Draft PR | The check-in matches Home's figures; CI green |
 
 ## Later, each a plan of its own
 
