@@ -4,7 +4,7 @@
 
 **Goal:** an account owner can turn on a second sign-in step: after the password, a 6-digit code from an authenticator app (TOTP). With it on, a stolen password alone no longer opens that account's data, because the database refuses it until the code is given.
 
-**Status (2026-10-28):** 2FA.1 written on `feat/two-step-sign-in` (migration, pgTAP, local config, MCP state). Its pgTAP tests run in the CI `db` job once the branch has a PR; this machine has no Docker.
+**Status (2026-10-28):** 2FA.1 (migration, pgTAP, local config, MCP state) and 2FA.2 (the code step at sign-in) written on `feat/two-step-sign-in`. Its pgTAP tests run in the CI `db` job once the branch has a PR; this machine has no Docker.
 
 **Cost:**
 - Supabase's authenticator-app factor (TOTP) is "free to use and is enabled on all Supabase projects by default" (supabase.com/docs/guides/auth/auth-mfa/totp, checked 28-10-2026).

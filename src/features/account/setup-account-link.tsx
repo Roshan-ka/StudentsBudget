@@ -19,7 +19,11 @@ export function SetupAccountLink() {
       Saved your data from another phone?{' '}
       <Link href="/settings/account" className="font-medium text-primary underline underline-offset-4">
         {/* Signed in already, for example after Delete everything, which keeps the sign-in. */}
-        {auth.status === 'signed-in' ? 'Load it from your account' : 'Sign in to load it'}
+        {auth.status === 'signed-in'
+          ? 'Load it from your account'
+          : auth.status === 'second-step'
+            ? 'Finish signing in to load it'
+            : 'Sign in to load it'}
       </Link>
     </p>
   );
