@@ -11,7 +11,6 @@ import {
   AccountProblem,
   accountFromEnv,
   accountFromSettings,
-  needsSecondStep,
   readAccountSettings,
   readOnly,
   type ReadAccount,
@@ -180,15 +179,6 @@ describe('budget_overview', () => {
 describe('the account session', () => {
   const settings = { url: 'https://x.supabase.co', publishableKey: 'sb_publishable_x', email: 'a@example.com', password: 'p' };
   const reader = { store: fakeStore().store, lastSavedAt: async () => null, checkSecondStep: noSecondStep };
-
-  it('knows a session that still owes the second step', () => {
-    // The account has a verified factor, and only the password was given.
-    expect(needsSecondStep({ currentLevel: 'aal1', nextLevel: 'aal2' })).toBe(true);
-    // The code was given; or the account has no factor; or an unconfirmed one only (next level stays aal1).
-    expect(needsSecondStep({ currentLevel: 'aal2', nextLevel: 'aal2' })).toBe(false);
-    expect(needsSecondStep({ currentLevel: 'aal1', nextLevel: 'aal1' })).toBe(false);
-    expect(needsSecondStep(null)).toBe(false);
-  });
 
   it('signs in once for many reads, and doesn’t keep a sign-in that failed', async () => {
     let signIns = 0;

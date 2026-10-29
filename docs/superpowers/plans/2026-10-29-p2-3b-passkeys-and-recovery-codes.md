@@ -6,7 +6,11 @@
 - a **passkey** (Face ID, fingerprint or the phone's PIN) signs in instead of the password;
 - **recovery codes** open the account when the authenticator app is lost.
 
-**Status (2026-10-29):** 3b.0 (the spike) done on `feat/passkeys-and-recovery-codes`, PR #9: passkeys work on the local stack; recovery codes are switched off on the server and have no config switch (see Findings). Its contract tests run in the CI `db` job (this machine has no Docker) and report their findings as notices on the run.
+**Status (2026-10-29):** on `feat/passkeys-and-recovery-codes`, PR #9.
+- 3b.0 (the spike) done: passkeys work on the local stack; recovery codes are switched off on the server and have no config switch (see Findings).
+- Recovery codes (3b.2) are **parked** (Roshan, 29-10-2026). A contract test fails the day the server allows them. Until then the recovery path is the key written down at set-up.
+- 3b.1 done: only an authenticator app's factor is the second step, in the database and the MCP server; the spike became two lasting contract tests.
+- Next: 3b.3, passkeys.
 
 **Roshan's choices (29-10-2026):**
 - passkey + recovery codes;
@@ -43,7 +47,7 @@
 |---|---|---|
 | 3b.0 | Spike: contract tests that report findings as notices; local `[auth.passkey]` and `[auth.webauthn]` on; the answers above | Every question answered with its source |
 | 3b.1 | Migration: `private.has_verified_factor()` counts only verified `totp` factors; pgTAP (a recovery-code factor alone hides nothing); the MCP server's `needsSecondStep` counts only TOTP too; the spike's notices become assertions | CI `db` job green |
-| 3b.2 | Recovery codes: offered once after turning two-step on (grouped, Copy, Download as .txt, "8 of 10 unused"); "Make new codes" asks first; the code step gets "Use a recovery code instead"; a note after a recovery sign-in; removed with two-step sign-in where the API allows | Unit tests; e2e with the endpoints mocked |
+| 3b.2 | **Parked** until the server allows them. Recovery codes: offered once after turning two-step on (grouped, Copy, Download as .txt, "8 of 10 unused"); "Make new codes" asks first; the code step gets "Use a recovery code instead"; a note after a recovery sign-in; removed with two-step sign-in where the API allows | Unit tests; e2e with the endpoints mocked |
 | 3b.3 | Passkeys: a Passkeys card (add, list with the date added, remove with a confirm); "Sign in with a passkey" on the sign-in form where the browser has `PublicKeyCredential`; a cancelled prompt shows nothing | e2e on `desktop-chrome` with Chrome's virtual authenticator and the `/passkeys/*` endpoints mocked; `iphone` checks the password path |
 | 3b.4 | "Sign-in and security" layout; Roshan turns passkeys on in the Dashboard (RP ID `students-budget.vercel.app`); real try on the iPhone (Safari and the Home Screen app) with test account B; README and CLAUDE.md; two reviewers; Draft PR | Works on the phone; CI green |
 

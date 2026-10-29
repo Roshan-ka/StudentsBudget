@@ -65,6 +65,13 @@ describe('the account session with two-step sign-in', () => {
     expect(server.calls.filter((c) => c === 'GET /auth/v1/user')).toHaveLength(2);
   });
 
+  it('counts only an authenticator app, as the app and the database do: another kind of factor asks for no code', async () => {
+    const server = fakeServer();
+    // A passkey or a security key, say: Supabase Auth's next level is aal2, but the app's second step never asks for it.
+    server.factors = [{ ...verified, id: 'f2', factor_type: 'webauthn' }];
+    expect(await overview(accountFromSettings(settings))).toMatchObject({ state: 'empty', budget: null });
+  });
+
   it('says so at sign-in, before reading anything, when the account already has the step', async () => {
     const server = fakeServer();
     server.factors = [verified];

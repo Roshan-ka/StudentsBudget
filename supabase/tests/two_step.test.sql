@@ -1,7 +1,9 @@
--- Optional two-step sign-in (migration 20261028150013_two_step_sign_in.sql). Run with `npm run test:db`.
--- Everything happens in one transaction that is rolled back. Users are played as in user_data.test.sql, with the JWT's
--- `aal` claim added: 'aal1' after the password alone, 'aal2' once the authenticator code was given.
---   A has a verified authenticator factor, B has none, C started adding one and never confirmed it.
+-- Optional two-step sign-in (migrations 20261028150013_two_step_sign_in.sql, 20261029103500_two_step_totp_only.sql).
+-- Run with `npm run test:db`. Everything happens in one transaction that is rolled back. Users are played as in
+-- user_data.test.sql, with the JWT's `aal` claim added: 'aal1' after the password alone, 'aal2' once the authenticator
+-- code was given.
+--   A has a verified authenticator factor, B has none, C started adding one and never confirmed it, and D has a
+--   verified factor of another kind (WebAuthn): only an authenticator app's code is a step the app asks for.
 
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -18,12 +20,14 @@ insert into auth.users (id, email)
 values
   ('00000000-0000-4000-8000-00000000000a', 'a@example.com'),
   ('00000000-0000-4000-8000-00000000000b', 'b@example.com'),
-  ('00000000-0000-4000-8000-00000000000c', 'c@example.com');
+  ('00000000-0000-4000-8000-00000000000c', 'c@example.com'),
+  ('00000000-0000-4000-8000-00000000000d', 'd@example.com');
 
 insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
 values
   ('10000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000a', 'phone', 'totp', 'verified', now(), now()),
-  ('10000000-0000-4000-8000-00000000000c', '00000000-0000-4000-8000-00000000000c', 'phone', 'totp', 'unverified', now(), now());
+  ('10000000-0000-4000-8000-00000000000c', '00000000-0000-4000-8000-00000000000c', 'phone', 'totp', 'unverified', now(), now()),
+  ('10000000-0000-4000-8000-00000000000d', '00000000-0000-4000-8000-00000000000d', 'key', 'webauthn', 'verified', now(), now());
 
 -- Plays user `who` at assurance level `aal` until the role is reset. Only called inside the DO blocks below.
 create function pg_temp.act_as(who text, aal text)
@@ -72,7 +76,7 @@ select ok(
   'anon cannot execute has_verified_factor'
 );
 
--- 3. The check itself: only a verified factor counts.
+-- 3. The check itself: only a verified authenticator-app factor counts.
 select lives_ok(
   $$
   do $do$
@@ -83,11 +87,13 @@ select lives_ok(
     if private.has_verified_factor() then raise exception 'B has no factor'; end if;
     perform pg_temp.act_as('c', 'aal1');
     if private.has_verified_factor() then raise exception 'C''s factor was never confirmed'; end if;
+    perform pg_temp.act_as('d', 'aal1');
+    if private.has_verified_factor() then raise exception 'D''s factor is not an authenticator app''s'; end if;
     execute 'reset role';
   end
   $do$
   $$,
-  'has_verified_factor is true for a verified factor only'
+  'has_verified_factor is true for a verified authenticator-app factor only'
 );
 
 -- 4. A, with the code given, uses the account as before: adds, changes and reads rows on every table.
@@ -163,7 +169,7 @@ select lives_ok(
   'sync_pull gives A nothing with the password alone, and every row with the code'
 );
 
--- 7. Accounts without a verified factor are unaffected: the password is enough, as before.
+-- 7. Accounts without a verified authenticator-app factor are unaffected: the password is enough, as before.
 select lives_ok(
   $$
   do $do$
@@ -172,7 +178,7 @@ select lives_ok(
     who text;
     n bigint;
   begin
-    foreach who in array array['b', 'c'] loop
+    foreach who in array array['b', 'c', 'd'] loop
       for t in select name from user_tables loop
         perform pg_temp.act_as(who, 'aal1');
         execute format('insert into public.%I (id, data) values (%L, %L)', t, 'row-' || who, '{}');
@@ -184,7 +190,7 @@ select lives_ok(
   end
   $do$
   $$,
-  'B (no factor) and C (an unconfirmed one) use their accounts with the password alone'
+  'B (no factor), C (an unconfirmed one) and D (another kind) use their accounts with the password alone'
 );
 
 -- 8. The second step never lets anyone past the owner rule: A at aal2 still sees only A's rows.
