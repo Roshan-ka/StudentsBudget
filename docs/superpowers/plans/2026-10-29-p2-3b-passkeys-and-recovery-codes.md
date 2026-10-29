@@ -6,12 +6,12 @@
 - a **passkey** (Face ID, fingerprint or the phone's PIN) signs in instead of the password;
 - **recovery codes** open the account when the authenticator app is lost.
 
-**Status (2026-10-29):** on `feat/passkeys-and-recovery-codes`, PR #9.
+**Status (2026-10-29): done** (recovery codes parked). PR #9 (3b.0, 3b.1) and PR #10 (3b.3, 3b.4) merged; passkeys on in the hosted project (relying party `students-budget.vercel.app`); the real try on the iPhone passed (see Real try).
 - 3b.0 (the spike) done: passkeys work on the local stack; recovery codes are switched off on the server and have no config switch (see Findings).
 - Recovery codes (3b.2) are **parked** (Roshan, 29-10-2026). A contract test fails the day the server allows them. Until then the recovery path is the key written down at set-up.
 - 3b.1 done: only an authenticator app's factor is the second step, in the database and the MCP server; the spike became two lasting contract tests.
 - 3b.3 done: Settings has a Passkeys card (add, list with dates, remove with a confirm), and the sign-in form "Sign in with a passkey" (not when creating an account). e2e on `desktop-chrome` with Chrome's virtual authenticator: real WebAuthn ceremonies against the mocked `/passkeys/*` endpoints.
-- 3b.4 under way: the "Sign-in and security" group (a card each, with an icon and a status badge), README and CLAUDE.md (covering P2.3a too), two reviewers and their fixes (a session refresh after a passkey sign-in, Settings texts of their own, one message on the sign-in form, a contract test that a password alone adds no passkey to a two-step account), then the real try below. Before merging, Roshan runs `npx supabase db push` (migration `20261029103500`) and turns passkeys on in the Dashboard; otherwise the live site's Passkeys card would say passkeys are switched off. The real try follows the merge: passkeys work only on `students-budget.vercel.app`, not on Vercel's preview URL.
+- 3b.4 done: the "Sign-in and security" group (a card each, with an icon and a status badge), README and CLAUDE.md (covering P2.3a too), two reviewers and their fixes (a session refresh after a passkey sign-in, Settings texts of their own, one message on the sign-in form, a contract test that a password alone adds no passkey to a two-step account), then the real try below. Before merging, Roshan runs `npx supabase db push` (migration `20261029103500`) and turns passkeys on in the Dashboard; otherwise the live site's Passkeys card would say passkeys are switched off. The real try follows the merge: passkeys work only on `students-budget.vercel.app`, not on Vercel's preview URL.
 
 **Roshan's choices (29-10-2026):**
 - passkey + recovery codes;
@@ -63,6 +63,13 @@ Before merging: `npx supabase db push` (migration `20261029103500`), and Authent
 5. Cancel the passkey prompt: nothing is shown, and the password still works.
 6. Remove the passkey; sign in with it again: the calm "didn't work" text.
 7. Account A and the MCP server unchanged.
+
+**Result (29-10-2026): all passed** (Roshan, iPhone, test account B; Safari and the Home Screen app).
+- A passkey added with Face ID signs in without the password.
+- With two-step sign-in on, the code step follows a passkey sign-in: on the hosted project a passkey session is aal1, so the lock holds as built.
+- Turning two-step sign-in on with a passkey already there works: a passkey doesn't count as an authenticator factor there.
+- A cancelled prompt shows nothing; a removed passkey gets the calm "didn't work" text.
+- Account A reads as before through the MCP server (`budget_overview`: ready, €138.10 left in October).
 
 ## Risks
 
