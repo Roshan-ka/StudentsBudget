@@ -18,10 +18,16 @@ const PASSWORD = 'contract-test-password';
 /** One row of a pull, as sync_pull returns it. */
 type Change = { tbl: string; id: string; data: unknown; deleted_at: string | null; rev: number };
 
-/** A new user, signed in. The local stack lets anyone sign up, with no email confirmation (supabase/config.toml). */
-async function newUser(email = `contract-${newId()}@example.com`): Promise<SupabaseClient> {
+/**
+ * A new user, signed in. The local stack lets anyone sign up, with no email confirmation (supabase/config.toml).
+ * `experimental` turns on supabase-js's experimental auth APIs, such as recovery codes.
+ */
+async function newUser(
+  email = `contract-${newId()}@example.com`,
+  experimental: { recoveryCodes?: boolean } = {},
+): Promise<SupabaseClient> {
   const client = createClient(STACK_URL ?? '', STACK_KEY ?? '', {
-    auth: { persistSession: false, autoRefreshToken: false },
+    auth: { persistSession: false, autoRefreshToken: false, experimental },
   });
   const { data, error } = await client.auth.signUp({ email, password: PASSWORD });
   if (error || !data.session) throw error ?? new Error('sign-up gave no session');
@@ -169,4 +175,95 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('two-step sign-in against a real
     expect((await client.auth.mfa.getAuthenticatorAssuranceLevel()).data?.currentLevel).toBe('aal2');
     expect(await supabaseStore(client).listIds('entries')).toEqual(['e1']);
   }, 90_000);
+});
+
+// P2.3b spike: how a real stack answers recovery codes and a passkey registration. Each finding goes out as a GitHub
+// Actions notice, an annotation on the run that the public API shows without the job's log, and an unexpected answer is
+// recorded rather than failed, so one run answers every question. Real assertions replace this once the answers are in
+// docs/superpowers/plans/2026-10-29-p2-3b-passkeys-and-recovery-codes.md.
+
+/** A GitHub Actions notice; outside CI, just a line in the output. */
+function notice(title: string, message: string) {
+  const escape = (text: string) => text.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+  console.log(`::notice title=${escape(title).replace(/:/g, '%3A').replace(/,/g, '%2C')}::${escape(message)}`);
+}
+
+/** What an auth call answered, in one line: its error's code, status and name, or the start of its data. */
+function answer(result: { data: unknown; error: unknown }): string {
+  if (result.error) {
+    const { code, status, name, message } = result.error as { code?: string; status?: number; name?: string; message?: string };
+    return `error code=${code} status=${status} name=${name} message=${message}`;
+  }
+  // Codes and tokens are summarised: the run's annotations are public.
+  const brief = JSON.stringify(result.data, (key, value: unknown) => {
+    if (key === 'codes' && Array.isArray(value)) return `${value.length} codes like ${String(value[0]).replace(/[a-z0-9]/gi, 'x')}`;
+    if (key === 'access_token' || key === 'refresh_token' || key === 'challenge') return '…';
+    return value;
+  });
+  return `ok ${brief.slice(0, 600)}`;
+}
+
+describe.runIf(Boolean(STACK_URL && STACK_KEY))('P2.3b spike: recovery codes and passkeys on a real stack', () => {
+  it('records the Auth version and how recovery codes behave', async () => {
+    const health = (await (await fetch(`${STACK_URL}/auth/v1/health`, { headers: { apikey: STACK_KEY ?? '' } })).json()) as {
+      name?: string;
+      version?: string;
+    };
+    notice('spike auth version', `${health.name} ${health.version}`);
+
+    const email = `contract-${newId()}@example.com`;
+    const client = await newUser(email, { recoveryCodes: true });
+    const mfa = client.auth.mfa;
+    await supabaseStore(client).upsert('entries', [{ id: 'e1', data: { n: 1 } }]);
+    const factorsNow = async () => {
+      const listed = await mfa.listFactors();
+      if (listed.error) return answer(listed);
+      return listed.data.all.map((f) => `${f.factor_type}:${f.status}`).join(' ') || 'none';
+    };
+    const rowsAndLevel = async () =>
+      `${(await supabaseStore(client).listIds('entries')).length} rows; level ${JSON.stringify((await mfa.getAuthenticatorAssuranceLevel()).data)}`;
+    const passwordOnly = async () => {
+      await client.auth.signOut();
+      const signedIn = await client.auth.signInWithPassword({ email, password: PASSWORD });
+      if (signedIn.error) throw signedIn.error;
+    };
+
+    notice('spike generate without an authenticator', answer(await mfa.recoveryCodes.generate()));
+
+    const enrolled = await mfa.enroll({ factorType: 'totp', friendlyName: 'Phone' });
+    if (enrolled.error) throw enrolled.error;
+    const { id: factorId, totp } = enrolled.data;
+    expect((await mfa.challengeAndVerify({ factorId, code: totpCode(totp.secret) })).error).toBeNull();
+
+    const generated = await mfa.recoveryCodes.generate();
+    notice('spike generate at aal2', answer(generated));
+    notice('spike status after generate', answer(await mfa.recoveryCodes.getStatus()));
+    notice('spike factors with codes', await factorsNow());
+    const codes = generated.data?.codes ?? [];
+
+    await passwordOnly();
+    notice('spike generate at aal1', answer(await mfa.recoveryCodes.generate()));
+    notice('spike at aal1 with an authenticator and codes', await rowsAndLevel());
+    if (codes.length < 2) return;
+
+    notice('spike verify a code at aal1', answer(await mfa.recoveryCodes.verify({ code: codes[0] })));
+    notice('spike after verify', `${await rowsAndLevel()}; status ${answer(await mfa.recoveryCodes.getStatus())}`);
+    await passwordOnly();
+    notice('spike the same code again', answer(await mfa.recoveryCodes.verify({ code: codes[0] })));
+    notice('spike verify another code', answer(await mfa.recoveryCodes.verify({ code: codes[1] })));
+
+    // At aal2 again: the authenticator goes. What happens to the codes, and to the rows at aal1?
+    notice('spike unenroll the authenticator', answer(await mfa.unenroll({ factorId })));
+    notice('spike factors after unenroll', await factorsNow());
+    notice('spike status after unenroll', answer(await mfa.recoveryCodes.getStatus()));
+    await passwordOnly();
+    notice('spike at aal1 with codes but no authenticator', `${await rowsAndLevel()}; factors ${await factorsNow()}`);
+  }, 90_000);
+
+  it('records whether a new, auto-confirmed user can start a passkey registration', async () => {
+    const client = await newUser();
+    notice('spike passkey registration options', answer(await client.auth.passkey.startRegistration()));
+    notice('spike passkey list', answer(await client.auth.passkey.list()));
+    notice('spike factors of a new user', await client.auth.mfa.listFactors().then(answer));
+  });
 });
