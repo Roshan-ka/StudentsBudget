@@ -12,11 +12,16 @@ import { checkAuthenticatorCode } from './credentials';
 /** The name the factor carries in the account, and in the authenticator app's list. */
 const FACTOR_NAME = 'StudentsBudget';
 
-/** An authenticator being added: what the app shows to add it, until its first code confirms it. */
-type Setup = { factorId: string; qrCode: string; uri: string; secret: string };
+/**
+ * An authenticator being added: what the app shows to add it, until its first code confirms it. `restarted`: an earlier
+ * set-up that was never confirmed was removed first, so its entry in the authenticator app no longer works.
+ */
+type Setup = { factorId: string; qrCode: string; uri: string; secret: string; restarted: boolean };
 
 type View =
   | { kind: 'loading' }
+  // The account's authenticators couldn't be read, so whether it is on is not known.
+  | { kind: 'unknown' }
   | { kind: 'off' }
   | { kind: 'setting-up'; setup: Setup }
   | { kind: 'on'; factorId: string }
@@ -34,6 +39,8 @@ export function TwoStepSection() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
+  // Counts "Try again" taps: each one reads the account's authenticators once more.
+  const [attempt, setAttempt] = useState(0);
 
   // Read when the page shows, and again when it shows after being hidden: the router keeps it mounted, and the
   // factors may have changed in the meantime (another tab, another phone).
@@ -45,18 +52,29 @@ export function TwoStepSection() {
       if (!current) return;
       if (listError || data === null) {
         setError(authErrorMessage(listError));
-        setView({ kind: 'off' });
+        setView({ kind: 'unknown' });
         return;
       }
       const verified = data.totp[0];
-      setView(verified === undefined ? { kind: 'off' } : { kind: 'on', factorId: verified.id });
+      setView((shown) => {
+        if (verified !== undefined) return { kind: 'on', factorId: verified.id };
+        // Back mid set-up: it goes on while its authenticator still waits for its first code.
+        const waiting = (id: string) => data.all.some((f) => f.id === id && f.status === 'unverified');
+        return shown.kind === 'setting-up' && waiting(shown.setup.factorId) ? shown : { kind: 'off' };
+      });
     });
     return () => {
       current = false;
       setCode('');
       setError(null);
     };
-  }, []);
+  }, [attempt]);
+
+  function checkAgain() {
+    setError(null);
+    setView({ kind: 'loading' });
+    setAttempt((count) => count + 1);
+  }
 
   /** Runs one step against the account, one at a time, with the offline check and the calm error texts. */
   async function run(step: (supabase: NonNullable<ReturnType<typeof getSupabase>>) => Promise<void>) {
@@ -83,11 +101,23 @@ export function TwoStepSection() {
 
   const turnOn = () =>
     run(async (supabase) => {
-      // A set-up left unfinished (the page closed before its first code) would block the name: it goes first.
       const listed = await supabase.auth.mfa.listFactors();
-      for (const factor of listed.data?.all ?? []) {
+      if (listed.error) {
+        setError(authErrorMessage(listed.error));
+        return;
+      }
+      // Already on, from another tab or phone: nothing to set up.
+      const verified = listed.data.totp[0];
+      if (verified !== undefined) {
+        setView({ kind: 'on', factorId: verified.id });
+        return;
+      }
+      // A set-up left unfinished (the page closed before its first code) would block the name: it goes first.
+      let restarted = false;
+      for (const factor of listed.data.all) {
         if (factor.factor_type === 'totp' && factor.status === 'unverified') {
           await supabase.auth.mfa.unenroll({ factorId: factor.id });
+          restarted = true;
         }
       }
       const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: FACTOR_NAME });
@@ -98,7 +128,13 @@ export function TwoStepSection() {
       setCode('');
       setView({
         kind: 'setting-up',
-        setup: { factorId: data.id, qrCode: qrImageSource(data.totp.qr_code), uri: data.totp.uri, secret: data.totp.secret },
+        setup: {
+          factorId: data.id,
+          qrCode: qrImageSource(data.totp.qr_code),
+          uri: data.totp.uri,
+          secret: data.totp.secret,
+          restarted,
+        },
       });
     });
 
@@ -148,6 +184,15 @@ export function TwoStepSection() {
 
       {view.kind === 'loading' && <p className="text-muted-foreground">Checking two-step sign-in…</p>}
 
+      {view.kind === 'unknown' && (
+        <>
+          <p className="text-muted-foreground">Couldn&apos;t check whether two-step sign-in is on.</p>
+          <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={checkAgain}>
+            Try again
+          </Button>
+        </>
+      )}
+
       {view.kind === 'off' && (
         <>
           <p className="text-muted-foreground">
@@ -163,6 +208,12 @@ export function TwoStepSection() {
       {view.kind === 'setting-up' && (
         <>
           <p>Add StudentsBudget to your authenticator app, then enter the code it shows.</p>
+          {view.setup.restarted && (
+            <p className="text-sm text-muted-foreground">
+              This starts the set-up again. If your authenticator app already has a StudentsBudget entry from the
+              unfinished one, delete it: its codes won&apos;t work.
+            </p>
+          )}
           {/* The app usually runs on the phone that would scan, so the link and the key come first. */}
           <a href={view.setup.uri} className="self-start font-medium text-primary underline underline-offset-4">
             Open in authenticator app

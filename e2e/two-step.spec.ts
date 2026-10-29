@@ -1,5 +1,14 @@
-import { expect, test, type Page } from '@playwright/test';
-import { E2E_TOTP_CODE, mockSupabaseAuth, skipUnlessAccountsShow, type AuthCall } from './helpers/supabase';
+import { expect, test, type Browser, type Page, type Route } from '@playwright/test';
+import { completeSetup } from './helpers/setup';
+import {
+  E2E_TOTP_CODE,
+  mockSupabaseAuth,
+  mockSupabaseData,
+  skipUnlessAccountsShow,
+  SUPABASE_REST,
+  type AuthCall,
+  type AuthFactors,
+} from './helpers/supabase';
 
 // Two-step sign-in (P2.3a) at 375 px, the narrowest phone the app is made for. Supabase Auth is mocked, with an
 // authenticator that accepts only E2E_TOTP_CODE.
@@ -45,6 +54,19 @@ async function signInAndTurnOn(page: Page) {
 }
 
 const removed = (calls: AuthCall[]) => calls.filter((c) => c.method === 'DELETE' && c.path.startsWith('/factors/'));
+
+function restartNote(page: Page) {
+  return twoStep(page).getByText('This starts the set-up again.', { exact: false });
+}
+
+/** Phone B: a new browser on the same account, which turns two-step sign-in on there. */
+async function turnOnFromAnotherPhone(browser: Browser, factors: AuthFactors) {
+  const phoneB = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const pageB = await phoneB.newPage();
+  await mockSupabaseAuth(pageB, { [EMAIL]: PASSWORD }, { factors });
+  await signInAndTurnOn(pageB);
+  await phoneB.close();
+}
 
 test('turning it on shows the ways to add the app, and takes only a right first code', async ({ page }) => {
   await skipUnlessAccountsShow(page);
@@ -149,14 +171,108 @@ test('a set-up cancelled, or left open, never blocks the next one', async ({ pag
   await expect(twoStep(page).getByText('Off.', { exact: false })).toBeVisible();
   expect(removed(calls)).toHaveLength(1);
 
-  // Left open: the page reloads mid-way, and the next Turn on clears the old set-up before it starts again.
+  // Left open: the page reloads mid-way, and the next Turn on clears the old set-up before it starts again, saying so.
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await expect(codeField(page)).toBeVisible();
+  await expect(restartNote(page)).toHaveCount(0);
   await page.reload();
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await expect(codeField(page)).toBeVisible();
+  await expect(restartNote(page)).toBeVisible();
   expect(removed(calls)).toHaveLength(2);
   await codeField(page).fill(E2E_TOTP_CODE);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+});
+
+test('leaving the page mid set-up and coming back keeps the set-up', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  const calls = await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await page.goto('/settings/account');
+  await signIn(page);
+  await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
+  await expect(codeField(page)).toBeVisible();
+
+  // Off to setup and back: the router keeps the account page mounted but hidden, and reads the account again.
+  await page.getByRole('link', { name: 'Set up this phone', exact: true }).click();
+  await expect(page).toHaveURL('/setup');
+  await page.goBack();
+  await expect(page).toHaveURL('/settings/account');
+  await expect(codeField(page)).toBeVisible();
+  await expect(twoStep(page).getByText('JBSW Y3DP EHPK 3PXP', { exact: true })).toBeVisible();
+  expect(removed(calls)).toHaveLength(0);
+
+  await codeField(page).fill(E2E_TOTP_CODE);
+  await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
+  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+});
+
+test('when the account can’t be checked, it says so instead of "Off", and Try again checks once more', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await signInAndTurnOn(page);
+
+  // The next read of the account's authenticators doesn't reach the server.
+  const unreachable = (route: Route) => route.abort();
+  await page.route('**/auth/v1/user', unreachable);
+  await page.reload();
+  await expect(twoStep(page).getByText('Couldn\'t check whether two-step sign-in is on.', { exact: true })).toBeVisible();
+  await expect(twoStep(page).getByRole('button', { name: 'Turn on', exact: true })).toHaveCount(0);
+  await expect(alert(page)).toHaveText("The account server can't be reached. Check your connection and try again.");
+
+  await page.unroute('**/auth/v1/user', unreachable);
+  await twoStep(page).getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(alert(page)).toHaveCount(0);
+});
+
+test('a phone signed in before another turned it on asks for the code on Load, not "nothing saved"', async ({ page, browser }) => {
+  // Two phones: WebKit needs more than the default 30 s.
+  test.setTimeout(60_000);
+  await skipUnlessAccountsShow(page);
+  const factors: AuthFactors = new Map();
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
+  await mockSupabaseData(page);
+  await page.goto('/settings/account');
+  await signIn(page);
+  await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
+
+  await turnOnFromAnotherPhone(browser, factors);
+
+  // Phone A still holds its password-only session, so the account shows it nothing: the code step takes over.
+  await page.getByRole('button', { name: 'Load from my account', exact: true }).click();
+  await expect(codeField(page)).toBeVisible();
+  await expect(page.getByText('Your account has nothing saved yet.', { exact: true })).toHaveCount(0);
+  await codeField(page).fill(E2E_TOTP_CODE);
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Load from my account', exact: true })).toBeVisible();
+});
+
+test('a phone signed in before another turned it on asks for the code on Save, not "couldn’t take"', async ({ page, browser }) => {
+  // Two phones, the first set up in full: WebKit needs more than the default 30 s.
+  test.setTimeout(60_000);
+  await skipUnlessAccountsShow(page);
+  const factors: AuthFactors = new Map();
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
+  await mockSupabaseData(page);
+  await completeSetup(page);
+  await page.goto('/settings/account');
+  await signIn(page);
+  await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
+
+  await turnOnFromAnotherPhone(browser, factors);
+
+  // Row-level security now refuses this session's rows, as the database does (Postgres insufficient_privilege).
+  await page.route(SUPABASE_REST, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 403,
+          headers: { 'access-control-allow-origin': '*' },
+          json: { code: '42501', message: 'new row violates row-level security policy' },
+        })
+      : route.fallback(),
+  );
+  await page.getByRole('button', { name: 'Save to my account', exact: true }).click();
+  await expect(codeField(page)).toBeVisible();
+  await expect(alert(page)).toHaveCount(0);
 });

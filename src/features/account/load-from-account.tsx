@@ -6,6 +6,7 @@ import { exportAll, replaceAll, type BackupData } from '@/db/bulk';
 import { getSupabase } from '@/lib/supabase/client';
 import { downloadContents, loadErrorMessage, planDownload } from '@/sync/download';
 import { supabaseStore } from '@/sync/store';
+import { accountWantsCode } from './code-check';
 import { useAccountTask, type Show } from './use-account-task';
 
 /** Loaded and checked, waiting for "Load": the account's data, and what it holds in words. */
@@ -60,6 +61,8 @@ export function LoadFromAccount({ hasPlan }: { hasPlan: boolean }) {
       if (supabase === null) return;
       const result = await planDownload(supabaseStore(supabase), await exportAll());
       if (result.kind === 'empty') {
+        // Or the account hides its rows until this session gives its code: then the code step takes over instead.
+        if (await accountWantsCode(supabase.auth)) return;
         show(() => setMessage('Your account has nothing saved yet.'));
       } else if (result.kind === 'unfinished') {
         show(() =>
