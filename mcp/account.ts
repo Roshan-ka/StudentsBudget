@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { authErrorMessage } from '@/features/account/auth-errors';
+import { authStateOf } from '@/features/account/auth-state';
 import { parseSupabaseEnv, type SupabaseEnv } from '@/lib/supabase/env';
 import { StoreError, supabaseStore, type UserDataStore } from '@/sync/store';
 import { listed } from '@/sync/summary';
@@ -60,23 +61,21 @@ const SECOND_STEP_NOTE =
   'code, and the account shows it nothing. Use an account without two-step sign-in, such as a test account.';
 
 /**
- * Whether a session still owes the second step: the account has a verified factor (next level aal2) and the session
- * hasn't given its code yet. Checked right after signing in, and again when a read finds nothing.
+ * Throws when the session still owes the second step, by the app's own rule (authStateOf): a confirmed
+ * authenticator-app factor, and a token that hasn't given its code. Passkeys and other kinds of factor don't count, as
+ * in the database (20261029103500_two_step_totp_only.sql). Checked right after signing in, with the factors the sign-in
+ * handed over, and again when a read finds nothing: then `fresh` asks the account server for today's (`GET /user`).
  */
-export function needsSecondStep(level: { currentLevel: string | null; nextLevel: string | null } | null): boolean {
-  return level !== null && level.nextLevel === 'aal2' && level.currentLevel !== 'aal2';
-}
-
-/**
- * Throws when the account wants the second step and the session hasn't given it. Without `accessToken` the factors
- * are the ones the session was handed at sign-in; with it, supabase-js asks the account server for today's (`GET /user`).
- */
-async function checkSecondStep(client: SupabaseClient, accessToken?: string): Promise<void> {
-  const level = await client.auth.mfa.getAuthenticatorAssuranceLevel(accessToken);
-  if (level.error !== null) {
-    throw new AccountProblem('sign-in-failed', 'Couldn’t check how this account signs in. Restart the server and try again.');
+async function checkSecondStep(client: SupabaseClient, fresh: boolean): Promise<void> {
+  let { session } = (await client.auth.getSession()).data;
+  if (session !== null && fresh) {
+    const answer = await client.auth.getUser();
+    if (answer.error !== null) {
+      throw new AccountProblem('sign-in-failed', 'Couldn’t check how this account signs in. Restart the server and try again.');
+    }
+    session = { ...session, user: answer.data.user };
   }
-  if (needsSecondStep(level.data)) throw new AccountProblem('needs-second-step', SECOND_STEP_NOTE);
+  if (authStateOf(session).status === 'second-step') throw new AccountProblem('needs-second-step', SECOND_STEP_NOTE);
 }
 
 async function signIn(settings: AccountSettings): Promise<SupabaseClient> {
@@ -97,7 +96,7 @@ async function signIn(settings: AccountSettings): Promise<SupabaseClient> {
   }
   // An account with two-step sign-in answers a password-only session with no rows at all (the database's rule), which
   // would read as "nothing saved yet". Say what it is instead. The sign-in has just listed the factors.
-  await checkSecondStep(client);
+  await checkSecondStep(client, false);
   return client;
 }
 
@@ -119,9 +118,8 @@ function readerOf(client: SupabaseClient): AccountReader {
       return typeof row?.updated_at === 'string' ? row.updated_at : null;
     },
     async checkSecondStep() {
-      // The session's own factors are the ones it signed in with, maybe an hour ago: ask with its token instead.
-      const { data } = await client.auth.getSession();
-      await checkSecondStep(client, data.session?.access_token);
+      // The session's own factors are the ones it signed in with, maybe an hour ago: ask the account server instead.
+      await checkSecondStep(client, true);
     },
   };
 }

@@ -18,10 +18,16 @@ const PASSWORD = 'contract-test-password';
 /** One row of a pull, as sync_pull returns it. */
 type Change = { tbl: string; id: string; data: unknown; deleted_at: string | null; rev: number };
 
-/** A new user, signed in. The local stack lets anyone sign up, with no email confirmation (supabase/config.toml). */
-async function newUser(email = `contract-${newId()}@example.com`): Promise<SupabaseClient> {
+/**
+ * A new user, signed in. The local stack lets anyone sign up, with no email confirmation (supabase/config.toml).
+ * `experimental` turns on supabase-js's experimental auth APIs, such as recovery codes.
+ */
+async function newUser(
+  email = `contract-${newId()}@example.com`,
+  experimental: { recoveryCodes?: boolean } = {},
+): Promise<SupabaseClient> {
   const client = createClient(STACK_URL ?? '', STACK_KEY ?? '', {
-    auth: { persistSession: false, autoRefreshToken: false },
+    auth: { persistSession: false, autoRefreshToken: false, experimental },
   });
   const { data, error } = await client.auth.signUp({ email, password: PASSWORD });
   if (error || !data.session) throw error ?? new Error('sign-up gave no session');
@@ -169,4 +175,25 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('two-step sign-in against a real
     expect((await client.auth.mfa.getAuthenticatorAssuranceLevel()).data?.currentLevel).toBe('aal2');
     expect(await supabaseStore(client).listIds('entries')).toEqual(['e1']);
   }, 90_000);
+});
+
+
+describe.runIf(Boolean(STACK_URL && STACK_KEY))('passkeys and recovery codes against a real Supabase stack (P2.3b)', () => {
+  it('lets a new, auto-confirmed user start a passkey registration for StudentsBudget', async () => {
+    const client = await newUser();
+    const started = await client.auth.passkey.startRegistration();
+    expect(started.error).toBeNull();
+    expect(started.data?.options.rp).toEqual({ name: 'StudentsBudget', id: 'localhost' });
+    expect((await client.auth.passkey.list()).data).toEqual([]);
+  });
+
+  // Parked in P2.3b: supabase-js has the API (experimental), but the server keeps recovery codes off, and the CLI has no
+  // switch for them. When this fails, they can be turned on: see the Findings in
+  // docs/superpowers/plans/2026-10-29-p2-3b-passkeys-and-recovery-codes.md.
+  it('still refuses recovery codes', async () => {
+    const client = await newUser(undefined, { recoveryCodes: true });
+    const { data, error } = await client.auth.mfa.recoveryCodes.generate();
+    expect(data).toBeNull();
+    expect(error?.code).toBe('mfa_recovery_codes_enroll_not_enabled');
+  });
 });
