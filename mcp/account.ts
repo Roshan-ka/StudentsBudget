@@ -19,7 +19,7 @@ export type AccountReader = {
 
 /** Why the account couldn't be read, in words the model can pass on. */
 export class AccountProblem extends Error {
-  readonly state: 'not-set-up' | 'sign-in-failed' | 'unreachable';
+  readonly state: 'not-set-up' | 'sign-in-failed' | 'unreachable' | 'needs-second-step';
 
   constructor(state: AccountProblem['state'], message: string) {
     super(message);
@@ -49,6 +49,18 @@ export function readAccountSettings(env: Env = process.env): AccountSettings | {
   return project === null || missing.length > 0 ? { missing } : { ...project, email, password };
 }
 
+const SECOND_STEP_NOTE =
+  'This account uses two-step sign-in. The local server signs in with the password alone, so it can’t give the ' +
+  'code, and the account shows it nothing. Use an account without two-step sign-in, such as a test account.';
+
+/**
+ * Whether a session still owes the second step: the account has a verified factor (next level aal2) and the session
+ * hasn't given its code yet. Checked once, right after signing in; restart the server after turning the step on.
+ */
+export function needsSecondStep(level: { currentLevel: string | null; nextLevel: string | null } | null): boolean {
+  return level !== null && level.nextLevel === 'aal2' && level.currentLevel !== 'aal2';
+}
+
 async function signIn(settings: AccountSettings): Promise<SupabaseClient> {
   // No storage and no refresh timer: the session lives in this process, and an expired one is replaced by signing in
   // again (see accountFromSettings).
@@ -65,6 +77,13 @@ async function signIn(settings: AccountSettings): Promise<SupabaseClient> {
     const unreachable = result.error.name === 'AuthRetryableFetchError';
     throw new AccountProblem(unreachable ? 'unreachable' : 'sign-in-failed', authErrorMessage(result.error));
   }
+  // An account with two-step sign-in answers a password-only session with no rows at all (the database's rule), which
+  // would read as "nothing saved yet". Say what it is instead.
+  const level = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (level.error !== null) {
+    throw new AccountProblem('sign-in-failed', 'Couldn’t check how this account signs in. Restart the server and try again.');
+  }
+  if (needsSecondStep(level.data)) throw new AccountProblem('needs-second-step', SECOND_STEP_NOTE);
   return client;
 }
 

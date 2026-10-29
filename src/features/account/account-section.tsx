@@ -17,10 +17,12 @@ export function AccountSection() {
       <p className="break-words text-muted-foreground">
         {auth.status === 'signed-in'
           ? `Signed in as ${auth.email}.`
-          : 'Optional: sign in or create an account. Without one, everything stays on this phone.'}
+          : auth.status === 'second-step'
+            ? `${auth.email}: the code from your authenticator app is still to come.`
+            : 'Optional: sign in or create an account. Without one, everything stays on this phone.'}
       </p>
       <Link href="/settings/account" className={buttonVariants({ variant: 'outline', className: 'h-10 self-start px-4' })}>
-        {auth.status === 'signed-in' ? 'Manage account' : 'Sign in'}
+        {auth.status === 'signed-in' ? 'Manage account' : auth.status === 'second-step' ? 'Finish signing in' : 'Sign in'}
       </Link>
     </section>
   );

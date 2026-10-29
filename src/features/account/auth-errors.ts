@@ -20,6 +20,14 @@ const BY_CODE: Record<string, string> = {
   email_provider_disabled: 'Signing in with email is switched off right now.',
   email_not_confirmed: 'This account still has to be confirmed by email.',
   over_request_rate_limit: 'Too many tries. Wait a minute, then try again.',
+  // Two-step sign-in (the authenticator code).
+  mfa_verification_failed: 'That code didn’t work. Codes change every 30 seconds: enter the newest one.',
+  mfa_verification_rejected: 'That code didn’t work. Codes change every 30 seconds: enter the newest one.',
+  mfa_challenge_expired: 'That took a little long. Enter the newest code from your authenticator app.',
+  mfa_factor_not_found: 'Two-step sign-in was turned off for this account. Sign out, then sign in again.',
+  mfa_factor_name_conflict: 'An earlier set-up is still open. Try again.',
+  mfa_totp_enroll_not_enabled: 'Two-step sign-in can’t be turned on right now.',
+  insufficient_aal: 'Sign out, sign in again with your code, then try once more.',
 };
 
 /** Calm text for an error from signing in, creating an account or signing out. */

@@ -1,8 +1,8 @@
 import type { Session } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
 import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
-import { authStateOf } from './auth-state';
-import { checkCredentials, MIN_PASSWORD_LENGTH } from './credentials';
+import { assuranceLevelOf, authStateOf } from './auth-state';
+import { checkAuthenticatorCode, checkCredentials, MIN_PASSWORD_LENGTH } from './credentials';
 
 describe('authStateOf', () => {
   it('is signed out without a session', () => {
@@ -17,6 +17,44 @@ describe('authStateOf', () => {
   it('keeps an empty email when the user has none', () => {
     const session = { user: {} } as Session;
     expect(authStateOf(session)).toEqual({ status: 'signed-in', email: '' });
+  });
+});
+
+describe('two-step sign-in in authStateOf', () => {
+  /** An access token as supabase-js holds it: header.claims.signature, each base64url, the claims carrying `aal`. */
+  function token(claims: object): string {
+    const part = (value: object) => btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return `${part({ alg: 'HS256' })}.${part(claims)}.signature`;
+  }
+  const factor = (status: 'verified' | 'unverified') => ({
+    id: 'factor-1',
+    factor_type: 'totp' as const,
+    status,
+    created_at: 'x',
+    updated_at: 'x',
+  });
+  const session = (aal: string, factors: ReturnType<typeof factor>[]) =>
+    ({ access_token: token({ sub: 'u', aal }), user: { email: 'a@example.com', factors } }) as unknown as Session;
+
+  it('asks for the code when the account has a confirmed authenticator and only the password was given', () => {
+    expect(authStateOf(session('aal1', [factor('verified')]))).toEqual({
+      status: 'second-step',
+      email: 'a@example.com',
+      factorId: 'factor-1',
+    });
+  });
+
+  it('is signed in once the code was given, without an authenticator, or with one never confirmed', () => {
+    for (const s of [session('aal2', [factor('verified')]), session('aal1', []), session('aal1', [factor('unverified')])]) {
+      expect(authStateOf(s)).toEqual({ status: 'signed-in', email: 'a@example.com' });
+    }
+  });
+
+  it('asks for the code when the token can’t be read, rather than open the account', () => {
+    const unreadable = { access_token: 'not-a-token', user: { email: 'a@example.com', factors: [factor('verified')] } };
+    expect(authStateOf(unreadable as unknown as Session).status).toBe('second-step');
+    expect(assuranceLevelOf('not-a-token')).toBeNull();
+    expect(assuranceLevelOf(token({ aal: 'aal2' }))).toBe('aal2');
   });
 });
 
@@ -54,7 +92,31 @@ describe('checkCredentials', () => {
   });
 });
 
+describe('checkAuthenticatorCode', () => {
+  it('takes six digits, with the gap an app shows or a paste keeps', () => {
+    for (const typed of ['123456', '123 456', ' 123-456 ']) expect(checkAuthenticatorCode(typed)).toEqual({ ok: true, code: '123456' });
+  });
+
+  it('asks for six digits otherwise, before anything is sent', () => {
+    for (const typed of ['', '12345', '1234567', '12a456']) {
+      expect(checkAuthenticatorCode(typed)).toEqual({ ok: false, error: 'Enter the 6-digit code from your authenticator app.' });
+    }
+  });
+});
+
 describe('authErrorMessage', () => {
+  it('says calmly what went wrong with an authenticator code', () => {
+    expect(authErrorMessage({ code: 'mfa_verification_failed', status: 422 })).toBe(
+      'That code didn’t work. Codes change every 30 seconds: enter the newest one.',
+    );
+    expect(authErrorMessage({ code: 'mfa_challenge_expired', status: 422 })).toBe(
+      'That took a little long. Enter the newest code from your authenticator app.',
+    );
+    expect(authErrorMessage({ code: 'mfa_factor_not_found', status: 404 })).toBe(
+      'Two-step sign-in was turned off for this account. Sign out, then sign in again.',
+    );
+  });
+
   it('says calmly what went wrong for the known error codes', () => {
     expect(authErrorMessage({ code: 'invalid_credentials', status: 400 })).toBe('Email or password is wrong.');
     expect(authErrorMessage({ code: 'user_already_exists', status: 422 })).toBe(
