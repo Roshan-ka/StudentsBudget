@@ -1,12 +1,12 @@
 # StudentsBudget
-Budget app for students new to a city: see where your money goes across all your accounts and cash, check whether your budget is realistic for your city, and log spending in seconds. Installable web app; data stays on your phone unless you save it to your account.
+Budget app for students new to a city: see where your money goes across all your accounts and cash, check whether your budget is realistic for your city, and log spending in seconds. Installable web app; data stays on your phone unless you link it to your account.
 
 ## What it is
 StudentsBudget helps you through your first months in a new city. You set up your rent, your income, what you want to spend each month and your accounts once, for example a local bank, a bank back home and some cash. The app compares your plan with typical costs in Regensburg, the only city it knows so far.
 
 After that you log spending in a few seconds, with a line like "döner 6". The home screen shows how much is left to spend this month, and under it how much is safe to spend this week. Charts show where the money went. On Sundays, a short check-in looks back at the week.
 
-You don't need an account: everything is stored on your device. If you want, create one with an email and a password, save your data to it, and load it onto another phone (see **Account** below).
+You don't need an account: everything is stored on your device. If you want, create one with an email and a password, link your phone to it, and sync your data with another phone (see **Account** below).
 
 ## Install on iPhone
 Install the app first, then set up. A Safari tab and the Home Screen app keep their data apart, so anything you enter in Safari stays in Safari.
@@ -43,7 +43,13 @@ Each week (Monday to Sunday) is saved from the Wednesday after it ends, the next
 
 **Discounts.** The Tips tab has a second view, Discounts: student discounts in Regensburg, with no alcohol deals. Each shows the place, what you get, the conditions, the address and the page it comes from, with the date it was checked. Tried one? Tap "Still works" or "Doesn't work anymore". Your answer is saved on your phone, and tapping again changes it. "Last confirmed" is the later of the check date and your last "Still works". A discount last confirmed 8 or more weeks ago reads "May be outdated" and moves down the list; one you marked as not working goes to the end.
 
-**Account.** Optional. Settings starts with **Your account** (when the app has an account server set up): create an account with an email and a password of 8 or more characters, or sign in. Signed in, **Save to my account** copies everything on the phone to your account. If your account holds something this phone doesn't (saved from another phone, or deleted here since), the app says how much would go and asks first. On a second phone, **Sign in to load it** at the top of setup leads to **Load from my account**, which replaces that phone's data with your account's once you confirm. Nothing updates by itself yet: save again after changes. Using two phones? Load on one before you change anything there, or its next save replaces what the other one saved. Signing out keeps the data on the phone. On iPhone, sign in inside the Home Screen app.
+**Account.** Optional. Settings starts with **Your account** (when the app has an account server set up): create an account with an email and a password of 8 or more characters, or sign in. Signed in on that page, the phone **links** to your account:
+- A phone with data and an empty account: the phone's data goes to the account.
+- An empty phone, such as a second phone (**Sign in to load it** at the top of setup leads there): it gets the account's data.
+- Both hold data: the app says what each holds and asks which to keep, **Keep this phone's data** or **Use my account's data**. The other side is replaced.
+- A phone linked to one account stays apart from another account: sign out and back in with the first, or delete everything on the phone first.
+
+Once linked, the account page shows how sync stands ("Synced 2 min ago. 3 changes waiting."), and so does the Settings card. **Sync now** sends this phone's changes and brings the other phone's: nothing syncs by itself yet, so tap it after changes, and on the other phone before you change things there. When both phones changed the same thing, the last one to sync wins. Signing out syncs first, then keeps the data and the link on the phone. On iPhone, sign in inside the Home Screen app.
 
 **Sign-in and security.** Both optional, under **Your account → Sign-in and security** once signed in. You can always sign in with your password.
 - **Passkeys:** **Add a passkey**, and from then on **Sign in with a passkey** signs you in with Face ID, a fingerprint or the phone's PIN instead of your password. Each passkey shows when it was added and the day it was last used; **Remove** asks first. Passkeys are a beta in Supabase.
@@ -56,12 +62,12 @@ Each week (Monday to Sunday) is saved from the Wednesday after it ends, the next
 **Dates.** Full dates read DD-MM-YYYY. When you add or edit an entry, Today and Yesterday are one tap away.
 
 ## Privacy
-- Your data stays in this browser's IndexedDB, on this device. Until you save to an account, there is no server copy.
-- An account is optional (email and password). When you save to it, a copy of your accounts, entries, plan, guesses, manual exchange rates, weekly records, discount answers and profile is kept in a Supabase database in Frankfurt (EU). Row-level security lets each account read and change only its own rows. The copy is not encrypted end to end: whoever runs the Supabase project could technically read it.
+- Your data stays in this browser's IndexedDB, on this device. Until you link it to an account, there is no server copy.
+- An account is optional (email and password). Once the phone is linked, a copy of your accounts, entries, plan, guesses, manual exchange rates, weekly records, discount answers and profile is kept in a Supabase database in Frankfurt (EU). It changes when the phone links and with each **Sync now**: a deleted item stays in the account as a marker without its data, so another phone learns of the delete. Row-level security lets each account read and change only its own rows. The copy is not encrypted end to end: whoever runs the Supabase project could technically read it.
 - Sign-in extras: a passkey's private key stays with you, on your phone or in your password manager; the account keeps its public key, which can't sign anyone in, along with what it needs to recognise the passkey and when it was added and last used. With two-step sign-in, the account keeps the authenticator's key, which it needs to check your codes.
-- Your profile (name, university and semester dates, all optional), the weekly records behind your badges and your discount answers are stored on this device, go into any backup you export, and go into your account only when you save to it.
+- Your profile (name, university and semester dates, all optional), the weekly records behind your badges and your discount answers are stored on this device, go into any backup you export, and go into your account only once the phone is linked.
 - No analytics and no third-party scripts. The fonts come from the app itself.
-- Signed out, the only outgoing request is to `api.frankfurter.dev`, for exchange rates. It names the foreign currencies your accounts use. It carries none of your entries or amounts. Like any web request, it shows your IP address to that service. Signed in, the app also talks to the Supabase project: to sign in (password, passkey, authenticator code), to keep the sign-in fresh in the background, to show and change your passkeys and two-step sign-in, and when you save or load.
+- Signed out, the only outgoing request is to `api.frankfurter.dev`, for exchange rates. It names the foreign currencies your accounts use. It carries none of your entries or amounts. Like any web request, it shows your IP address to that service. Signed in, the app also talks to the Supabase project: to sign in (password, passkey, authenticator code), to keep the sign-in fresh in the background, to show and change your passkeys and two-step sign-in, when the phone links, and with each **Sync now** (and the last one when you sign out).
 - A backup file is a plain JSON file that you keep. The app never uploads it. Anyone who has the file can read your data, so keep it somewhere you trust.
 - Clearing the site's data in your browser, or removing the app, deletes your data. Export a backup regularly: Settings, then Backup, then Export backup. To get your data back, choose the file under **Restore from a backup** in Settings, or under **Have a backup? Restore it** at the bottom of the setup screen. The app names the file and says when it was saved and what it holds, then asks you to confirm **Replace all data**.
 
@@ -165,7 +171,7 @@ With Docker running, `npm run supabase:start` starts a local Supabase stack with
   - `budget_overview` runs the app's own maths on it: what is left this month and this week, each envelope, and the account balances.
   - `recent_entries` lists a month's entries, newest first, optionally for one category.
   - `week_check_in` builds your week as the app's check-in does: each envelope against its share of the week, and a sourced swap for each one over it.
-  - The data is as of your last **Save to my account** on the phone.
+  - The data is as of the phone's last sync (**Sync now** on the phone).
   - It signs in with two more lines in `.env.local`: `STUDENTSBUDGET_MCP_EMAIL` and `STUDENTSBUDGET_MCP_PASSWORD` (see `.env.example`). The password sits there in plain text; the file is git-ignored. Use a test account first.
   - Your figures and entry notes go into the Claude chat.
 - Two prompts, ready-made requests that run those tools for you:
