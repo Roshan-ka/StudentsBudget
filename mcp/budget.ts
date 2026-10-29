@@ -114,8 +114,8 @@ const NO_PHONE: BackupData = {
 };
 
 const READING_NOTE =
-  'These are the user’s own figures, read from their StudentsBudget account: as of their last Save from the phone ' +
-  '(savedAt), so anything entered on the phone since is missing; say so. Budget figures are in euros, each account ' +
+  'These are the user’s own figures, read from their StudentsBudget account: as of the phone’s last sync ' +
+  '(savedAt: when the account last changed), so anything entered on the phone since is missing; say so. Budget figures are in euros, each account ' +
   'balance in its own currency. Write a figure below zero as "€12 over", never as failed or a warning. thisWeek is ' +
   'Home’s "This week": the week’s share of what is left this month, less this week’s spending. plan.overBy above ' +
   'zero means the envelopes plan more than the month brings in after fixed costs and money set aside (plan.available): ' +
@@ -175,20 +175,20 @@ export async function readSaved(read: ReadAccount): Promise<Saved> {
       if (download.kind === 'empty') {
         // Two-step sign-in turned on since the server signed in hides every row, which looks just like this.
         await reader.checkSecondStep();
-        const note = 'The account has nothing saved yet. On the phone: Settings → Your account → Save to my account.';
+        const note = 'The account holds nothing yet. On the phone with the data: Settings → Your account, sign in; the phone links and sends its data.';
         return { ok: false, state: 'empty', note };
       }
       if (download.kind === 'unfinished') {
-        const note = 'A save to the account stopped before the plan was written, so there is nothing to read. Save again from the phone.';
+        const note = 'A first save to the account stopped before the plan was written, so there is nothing to read. Linking the phone with the data puts it right: Settings → Your account.';
         return { ok: false, state: 'unfinished', note };
       }
       if (download.kind === 'invalid') {
-        const note = `The account holds data the app can't read (${download.problem}), so nothing is shown. Saving again from the phone puts it right.`;
+        const note = `The account holds data the app can't read (${download.problem}), so nothing is shown. An update of the app, and of this server, usually puts it right.`;
         return { ok: false, state: 'invalid', note };
       }
       const savedAt = await reader.lastSavedAt();
       // The server's timestamp, as a local day.
-      const savedNote = savedAt === null ? '' : ` Last saved on ${formatDate(todayIso(new Date(savedAt)))}.`;
+      const savedNote = savedAt === null ? '' : ` Last changed on ${formatDate(todayIso(new Date(savedAt)))}.`;
       return { ok: true, data: download.data, savedAt, savedNote };
     });
   } catch (error) {
@@ -248,7 +248,7 @@ export function registerBudgetOverview(server: McpServer, read: ReadAccount, tod
       description:
         'The user’s own budget from their StudentsBudget account, as Home shows it: what is left this month and this ' +
         'week, each envelope’s spending against its plan, and the account balances. Read-only, and only as fresh as ' +
-        'the last Save from the phone. Use it for questions about the user’s own money ("how much can I still ' +
+        'the phone’s last sync. Use it for questions about the user’s own money ("how much can I still ' +
         'spend this week?"), not for general Regensburg prices.',
       inputSchema: {},
       outputSchema: overviewShape,
@@ -294,7 +294,7 @@ const entriesShape = {
 export type RecentEntries = z.infer<z.ZodObject<typeof entriesShape>>;
 
 const ENTRIES_NOTE =
-  'The user’s own entries, read from their StudentsBudget account: as of their last Save from the phone (savedAt), ' +
+  'The user’s own entries, read from their StudentsBudget account: as of the phone’s last sync (savedAt), ' +
   'so entries made on the phone since are missing; say so. Newest first. amount is in the account’s own currency, ' +
   'eur the euro figure saved with the entry: add up eurMinor, never amountMinor, since accounts can differ in ' +
   'currency. A transfer moves money between two accounts and is no spending. ' +
@@ -369,7 +369,7 @@ export function registerRecentEntries(server: McpServer, read: ReadAccount, toda
       title: 'My StudentsBudget entries',
       description:
         'The user’s own entries (expenses, income and transfers) from their StudentsBudget account for one month, ' +
-        'newest first, optionally one category. Read-only, and only as fresh as the last Save from the phone. Use it ' +
+        'newest first, optionally one category. Read-only, and only as fresh as the phone’s last sync. Use it ' +
         'for "what did I spend on eating out?" or "what were my last purchases?".',
       inputSchema: {
         month: z

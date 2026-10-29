@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { exportAll, replaceAll } from '@/db/bulk';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
-import { applyLink, planLink } from './link';
+import { applyLink, linkPhone, planLink } from './link';
 import { push } from './push';
 import { expense, fakeStore, liveIds, snapshot } from './test-helpers';
 import { applyUpload, planUpload } from './upload';
@@ -146,5 +146,56 @@ describe('once linked', () => {
     await replaceAll(backup);
     await push(store);
     expect(liveIds(tables.entries)).toEqual(['only-in-backup']);
+  });
+});
+
+describe('linkPhone', () => {
+  const noCode = async () => false;
+
+  it('links on its own when one side is empty, and says what moved', async () => {
+    const { store, tables } = fakeStore();
+    await replaceAll(snapshot());
+    expect(await linkPhone(store, USER, noCode)).toEqual({ kind: 'linked', fresh: true, note: "Your account now holds this phone's data." });
+    expect(liveIds(tables.plans)).toEqual(['current']);
+    expect(await linkPhone(store, USER, noCode)).toEqual({ kind: 'linked', fresh: false, note: null });
+
+    await Promise.all(db.tables.map((table) => table.clear()));
+    expect(await linkPhone(store, USER, noCode)).toEqual({
+      kind: 'linked',
+      fresh: true,
+      note: 'Loaded from your account: 2 accounts, 3 entries and your plan.',
+    });
+    expect(await db.entries.count()).toBe(3);
+  });
+
+  it('leaves the choice to the person when both hold data, and writes nothing', async () => {
+    const { store, calls } = fakeStore({ plans: { current: snapshot().plan } });
+    await replaceAll(snapshot());
+    calls.length = 0;
+    expect((await linkPhone(store, USER, noCode)).kind).toBe('choose');
+    expect(calls.filter((call) => !call.startsWith('list') && !call.startsWith('read'))).toEqual([]);
+    expect(await linkedTo()).toBeUndefined();
+  });
+
+  it('writes nothing to an account that may only hide its rows until the code is given', async () => {
+    const { store, calls } = fakeStore();
+    await replaceAll(snapshot());
+    expect(await linkPhone(store, USER, async () => true)).toEqual({ kind: 'code' });
+    expect(calls.filter((call) => call.startsWith('upsert'))).toEqual([]);
+    expect(await linkedTo()).toBeUndefined();
+  });
+
+  it('says calmly why it can’t link, and blocks another account', async () => {
+    const half = fakeStore({ entries: { e1: expense('e1') } });
+    expect(await linkPhone(half.store, USER, noCode)).toMatchObject({ kind: 'problem', problem: expect.stringMatching(/^Your account's last save didn't finish/) });
+    await db.syncState.put({ id: 'current', userId: 'someone-else', cursor: 0, lastSyncedAt: null, problem: null });
+    expect(await linkPhone(fakeStore().store, USER, noCode)).toEqual({ kind: 'other-account' });
+  });
+
+  it('runs one link at a time: a second call gets the first one’s outcome', async () => {
+    const { store } = fakeStore();
+    const first = linkPhone(store, USER, noCode);
+    expect(linkPhone(store, USER, noCode)).toBe(first);
+    await first;
   });
 });

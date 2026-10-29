@@ -67,6 +67,59 @@ export async function planLink(store: UserDataStore, userId: string): Promise<Li
 export type LinkChoice = 'phone' | 'account';
 
 /**
+ * How linking on the account page ended: linked (`fresh` when just now, with a line on what moved, if anything), a choice for the person, a
+ * phone blocked by another account's data, a problem in words, or `code`: the account wants this session's
+ * authenticator code before it shows its rows, so the code step takes over.
+ */
+export type LinkOutcome =
+  | { kind: 'linked'; fresh: boolean; note: string | null }
+  | { kind: 'choose'; plan: Extract<LinkPlan, { kind: 'choose' }> }
+  | { kind: 'other-account' }
+  | { kind: 'problem'; problem: string }
+  | { kind: 'code' };
+
+const UNFINISHED =
+  "Your account's last save didn't finish, and this phone has no data to put in its place, so it isn't linked yet.";
+const UNREADABLE = "Your account holds data this app can't read, so this phone isn't linked. An app update may help.";
+
+let linking: Promise<LinkOutcome> | null = null;
+
+/**
+ * Links this phone to the account of `userId` as far as it can on its own, one run at a time (a call while one runs
+ * gets that one's outcome): an empty side is filled from the other, and only a phone and an account that both hold
+ * data wait for the person's choice. An account that looks empty may only hide its rows until this session gives
+ * its authenticator code (`wantsCode`, which refreshes the session): then nothing is written.
+ */
+export function linkPhone(store: UserDataStore, userId: string, wantsCode: () => Promise<boolean>): Promise<LinkOutcome> {
+  linking ??= linkWhatItCan(store, userId, wantsCode).finally(() => {
+    linking = null;
+  });
+  return linking;
+}
+
+async function linkWhatItCan(store: UserDataStore, userId: string, wantsCode: () => Promise<boolean>): Promise<LinkOutcome> {
+  const plan = await planLink(store, userId);
+  switch (plan.kind) {
+    case 'linked':
+      return { kind: 'linked', fresh: false, note: null };
+    case 'other-account':
+      return { kind: 'other-account' };
+    case 'choose':
+      return { kind: 'choose', plan };
+    case 'unfinished':
+      return { kind: 'problem', problem: UNFINISHED };
+    case 'unreadable':
+      console.error('StudentsBudget: the account holds data the app cannot load:', plan.problem);
+      return { kind: 'problem', problem: UNREADABLE };
+  }
+  if (plan.kind !== 'download' && (await wantsCode())) return { kind: 'code' };
+  await applyLink(store, plan, userId);
+  if (plan.kind === 'upload') return { kind: 'linked', fresh: true, note: "Your account now holds this phone's data." };
+  if (plan.kind === 'download') return { kind: 'linked', fresh: true, note: `Loaded from your account: ${plan.account}.` };
+  return { kind: 'linked', fresh: true, note: null };
+}
+
+/**
  * Carries out a plan from `planLink`, then links the phone: the sync state names the account, with the cursor at 0, so
  * the change tracking starts and the next sync pulls everything once. The data moves before the link, so neither an
  * upload nor a load is recorded as this phone's changes. `choice` is needed for `choose` only.

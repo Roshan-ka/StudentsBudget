@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
-import { downloadContents, loadErrorMessage, planDownload } from './download';
-import { StoreError } from './store';
+import { downloadContents, planDownload } from './download';
 import { ECB, MANUAL, expense, fakeStore, snapshot } from './test-helpers';
 import { applyUpload, planUpload } from './upload';
 
@@ -95,14 +94,5 @@ describe('the lines the load shows', () => {
   it('sums up what the account holds', () => {
     expect(downloadContents(snapshot())).toBe('2 accounts, 3 entries and your plan');
     expect(downloadContents(snapshot({ entries: [expense('e1')], plan: null }))).toBe('2 accounts and 1 entry');
-  });
-
-  it('says calmly why a load did not work', () => {
-    expect(loadErrorMessage(new StoreError('entries', 401, 'PGRST301', 'JWT expired'))).toBe(
-      'Your sign-in has run out. Sign out, sign in again, then load.',
-    );
-    expect(loadErrorMessage(new TypeError('Failed to fetch'))).toBe(
-      "Couldn't load from your account. Check your connection and try again.",
-    );
   });
 });

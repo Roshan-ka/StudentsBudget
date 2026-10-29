@@ -33,7 +33,7 @@ export function weeklyCheckIn(): GetPromptResult {
       '- the swaps week_check_in gives, each with what it saves and its sources, and no others;',
       '- the week’s three biggest expenses by eurMinor, with their dates (a transfer is no spending).',
       'Then the month: what is left this month, and if plan.overBy is above zero, that the envelopes plan more than the month brings in.',
-      'Say that the figures are as of my last Save from the phone (savedAt), so anything I entered since is missing. Quote my entry notes only when they help.',
+      'Say that the figures are as of my phone’s last sync (savedAt), so anything I entered since is missing. Quote my entry notes only when they help.',
       HOUSE_RULES,
     ].join('\n'),
   );
@@ -81,7 +81,7 @@ export function registerPrompts(server: McpServer): void {
       description:
         'Your StudentsBudget check-in for the week, as the app’s: each envelope against its share of the week, ' +
         'the week’s total, a sourced swap for what is over, your biggest expenses, and the month. Reads your ' +
-        'account, as of your last Save.',
+        'account, as of your phone’s last sync.',
     },
     () => weeklyCheckIn(),
   );

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { StoreError, type UserDataStore } from './store';
 import { SERVER_TABLES, serverRowsOf } from './tables';
 import { expense, fakeStore, liveIds, MANUAL, snapshot } from './test-helpers';
-import { applyUpload, planUpload, saveErrorMessage, staleSummary, uploadSummary } from './upload';
+import { applyUpload, planUpload, staleSummary } from './upload';
 
 describe('serverRowsOf', () => {
   it('gives every table its rows, keyed the way Dexie keys them, with the row itself as data', () => {
@@ -111,29 +111,5 @@ describe('planUpload and applyUpload', () => {
     expect(tables.profiles.size).toBe(0);
     // So another phone's load reads this as an unfinished save, not as a phone without a plan.
     expect(tables.plans.size).toBe(0);
-  });
-});
-
-describe('the lines the save shows', () => {
-  it('sums up a save', async () => {
-    const { store } = fakeStore();
-    expect(uploadSummary(await planUpload(store, snapshot()))).toBe(
-      'Saved to your account: 2 accounts, 3 entries and your plan.',
-    );
-    expect(
-      uploadSummary(await planUpload(store, snapshot({ accounts: [snapshot().accounts[0]], entries: [expense('e1')] }))),
-    ).toBe('Saved to your account: 1 account, 1 entry and your plan.');
-  });
-
-  it('says calmly why a save did not work', () => {
-    expect(saveErrorMessage(new StoreError('entries', 401, 'PGRST301', 'JWT expired'))).toBe(
-      'Your sign-in has run out. Sign out, sign in again, then save.',
-    );
-    expect(saveErrorMessage(new StoreError('entries', 400, '22P05', 'unsupported Unicode escape sequence'))).toBe(
-      "Your account couldn't take some of this phone's data, so the save stopped. Nothing on this phone changed.",
-    );
-    for (const other of [new StoreError('entries', 500, 'XX000', 'boom'), new TypeError('Failed to fetch'), null]) {
-      expect(saveErrorMessage(other)).toBe("Couldn't save to your account. Check your connection and try again.");
-    }
   });
 });

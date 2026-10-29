@@ -1,6 +1,6 @@
 import type { BackupData } from '@/db/bulk';
-import { StoreError, type UserDataStore } from './store';
-import { contentsOf, count, listed } from './summary';
+import type { UserDataStore } from './store';
+import { count, listed } from './summary';
 import { byTable, SERVER_TABLES, serverRowsOf, type ServerRow, type ServerTable } from './tables';
 
 /**
@@ -44,12 +44,6 @@ export async function applyUpload(store: UserDataStore, plan: UploadPlan): Promi
   }
 }
 
-/** What a finished save says: "Saved to your account: 3 accounts, 42 entries and your plan." */
-export function uploadSummary(plan: UploadPlan): string {
-  const { accounts, entries, plans } = plan.rows;
-  return `Saved to your account: ${contentsOf(accounts.length, entries.length, plans.length > 0)}.`;
-}
-
 /**
  * What saving would delete from the account, in words ("12 entries and 3 other items"), or null when nothing. Only
  * entries are named; the rest (accounts, weeks, votes and the like) are counted together.
@@ -62,16 +56,4 @@ export function staleSummary(plan: UploadPlan): string | null {
     ...(others > 0 ? [count(others, 'other item', 'other items')] : []),
   ];
   return parts.length === 0 ? null : listed(parts);
-}
-
-/** Calm text for a save that did not work. */
-export function saveErrorMessage(error: unknown): string {
-  if (error instanceof StoreError && error.status === 401) {
-    return 'Your sign-in has run out. Sign out, sign in again, then save.';
-  }
-  // The database refused the rows themselves, so trying again would fail the same way.
-  if (error instanceof StoreError && error.status >= 400 && error.status < 500) {
-    return "Your account couldn't take some of this phone's data, so the save stopped. Nothing on this phone changed.";
-  }
-  return "Couldn't save to your account. Check your connection and try again.";
 }
