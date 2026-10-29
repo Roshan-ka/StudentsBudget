@@ -6,7 +6,7 @@
 - a **passkey** (Face ID, fingerprint or the phone's PIN) signs in instead of the password;
 - **recovery codes** open the account when the authenticator app is lost.
 
-**Status (2026-10-29):** 3b.0 (the spike) under way on `feat/passkeys-and-recovery-codes`. Its contract tests run in the CI `db` job (this machine has no Docker) and report their findings as notices on the run.
+**Status (2026-10-29):** 3b.0 (the spike) done on `feat/passkeys-and-recovery-codes`, PR #9: passkeys work on the local stack; recovery codes are switched off on the server and have no config switch (see Findings). Its contract tests run in the CI `db` job (this machine has no Docker) and report their findings as notices on the run.
 
 **Roshan's choices (29-10-2026):**
 - passkey + recovery codes;
@@ -31,8 +31,11 @@
 | Level of a passkey sign-in | aal1, with `amr` method `passkey`. With two-step sign-in on, the code step still follows, as after a password | supabase/auth issue #2832 (users' reports, no maintainer answer yet) |
 | Are recovery codes a factor? | Yes: a `recovery_code` factor in `user.factors` and `mfa.listFactors()` | supabase-js 2.118 types (`MFARecoveryCodesGenerateParams`) |
 | Does a passkey or recovery-code factor hide rows? | Answered by design, whatever the storage: 3b.1 makes `private.has_verified_factor()` count verified **TOTP** factors only, the only kind the app's second step answers | 3b.1 |
-| Recovery codes on a real stack (made without an authenticator? at aal1? does verify give aal2? one use? left after the authenticator is removed? rows at aal1 then?) | _CI notices_ | contract test "P2.3b spike" |
-| Can a new user start a passkey registration on the local stack? | _CI notices_ | contract test "P2.3b spike" |
+| Local stack's Auth version | GoTrue v2.197.0, the same as hosted | contract test "P2.3b spike", PR #9 run 40857011402 |
+| Recovery codes on a real stack | **Off on the server:** every `generate` (no authenticator, aal1, aal2) answers 422 `mfa_recovery_codes_enroll_not_enabled`. The CLI has no `config.toml` key to turn them on (supabase.com/docs/guides/local-development/cli/config, checked 29-10-2026), and supabase-js's `experimental.recoveryCodes` only lets the client call the API. The rest (one use, aal2, what remains after the authenticator goes) can't be tested until a server allows them | same run |
+| Can a new, auto-confirmed user start a passkey registration? | Yes: the server sends creation options (relying party `StudentsBudget` / `localhost`, user name the email) | same run |
+| A new user's factors | Empty; `listFactors()` keeps `webauthn` and `recovery_code` lists of their own next to `totp` | same run |
+| Password only, with an authenticator on | 0 rows; level aal1, next aal2 (the P2.3a lock holds) | same run |
 
 ## Chunks
 
