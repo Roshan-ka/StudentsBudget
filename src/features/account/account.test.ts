@@ -56,6 +56,14 @@ describe('two-step sign-in in authStateOf', () => {
     expect(assuranceLevelOf('not-a-token')).toBeNull();
     expect(assuranceLevelOf(token({ aal: 'aal2' }))).toBe('aal2');
   });
+
+  it('reads a token whose claims encode to - and _, as Supabase’s tokens often do', () => {
+    // Claims picked so that their base64url holds both characters, which plain base64 (atob) can't read.
+    const withBoth = token({ sub: 'u', aal: 'aal2', n: '~~~?>?>?>3' });
+    expect(withBoth.split('.')[1]).toContain('-');
+    expect(withBoth.split('.')[1]).toContain('_');
+    expect(assuranceLevelOf(withBoth)).toBe('aal2');
+  });
 });
 
 describe('checkCredentials', () => {
@@ -114,6 +122,19 @@ describe('authErrorMessage', () => {
     );
     expect(authErrorMessage({ code: 'mfa_factor_not_found', status: 404 })).toBe(
       'Two-step sign-in was turned off for this account. Sign out, then sign in again.',
+    );
+    expect(authErrorMessage({ code: 'mfa_ip_address_mismatch', status: 422 })).toBe(
+      'Your connection changed while checking the code. Enter the newest code again.',
+    );
+    expect(authErrorMessage({ code: 'mfa_totp_verify_not_enabled', status: 422 })).toBe(
+      'Codes can’t be checked right now. Try again later.',
+    );
+  });
+
+  it('says a sign-in the account server no longer knows has ended', () => {
+    // supabase-js raises it, with no error code, when the server answers session_not_found.
+    expect(authErrorMessage({ name: 'AuthSessionMissingError', status: 400 })).toBe(
+      'This sign-in has ended. Sign out, then sign in again.',
     );
   });
 

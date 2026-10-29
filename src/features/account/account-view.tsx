@@ -167,6 +167,8 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The account server no longer knows this sign-in: only signing in again helps.
+  const [ended, setEnded] = useState(false);
   const inFlight = useRef(false);
 
   // As in SignInForm: the code and the message go when the person leaves the page.
@@ -198,6 +200,11 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
     setBusy(true);
     try {
       const { error: verifyError } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: checked.code });
+      if (verifyError?.name === 'AuthSessionMissingError') {
+        // The account server ended this half sign-in (finished on another device, say): no code can complete it.
+        setEnded(true);
+        return;
+      }
       if (verifyError) {
         setError(authErrorMessage(verifyError));
         return;
@@ -220,6 +227,23 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
     await supabase.auth.signOut({ scope: 'local' }).catch((thrown: unknown) => {
       console.error('StudentsBudget: could not sign out', thrown);
     });
+  }
+
+  if (ended) {
+    return (
+      <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
+        <h3 id={`${id}-heading`} className="text-lg font-semibold">
+          Two-step sign-in
+        </h3>
+        <p role="alert" className="break-words">
+          This sign-in for <span className="font-medium">{email}</span> has ended, maybe because it was finished on
+          another device.
+        </p>
+        <Button type="button" className="h-10 self-start px-4" autoFocus onClick={() => void signOutToSwitch()}>
+          Sign in again
+        </Button>
+      </section>
+    );
   }
 
   return (

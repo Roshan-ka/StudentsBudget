@@ -46,7 +46,7 @@ async function signInAndTurnOn(page: Page) {
   await page.goto('/settings/account');
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await expect(twoStep(page).getByText('Off.', { exact: false })).toBeVisible();
+  await expect(twoStep(page).getByText('Off. Turn it on', { exact: false })).toBeVisible();
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await codeField(page).fill(E2E_TOTP_CODE);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
@@ -68,20 +68,29 @@ async function turnOnFromAnotherPhone(browser: Browser, factors: AuthFactors) {
   await phoneB.close();
 }
 
-test('turning it on shows the ways to add the app, and takes only a right first code', async ({ page }) => {
+test('turning it on shows the ways to add the app, and takes only a right first code', async ({ page, context }) => {
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await page.goto('/settings/account');
   await signIn(page);
+
+  // Offline, nothing is tried, and the message says what needs the connection.
+  await context.setOffline(true);
+  await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
+  await expect(alert(page)).toHaveText("You're offline. Turning two-step sign-in on or off needs a connection.");
+  await context.setOffline(false);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
 
-  // On the phone the app runs on, the link and the key; on another device, the QR code.
+  // On the phone the app runs on, the link (focused: the next step) and the key; on another device, the QR code.
   const link = twoStep(page).getByRole('link', { name: 'Open in authenticator app', exact: true });
-  await expect(link).toHaveAttribute('href', /^otpauth:\/\/totp\/StudentsBudget:/);
+  await expect(link).toBeFocused();
+  // The entry is named StudentsBudget only because the app says so: the mock, like the account server, would name it
+  // after the site's host.
+  await expect(link).toHaveAttribute('href', /^otpauth:\/\/totp\/StudentsBudget:.*&issuer=StudentsBudget$/);
   await expect(twoStep(page).getByText('JBSW Y3DP EHPK 3PXP', { exact: true })).toBeVisible();
   const qr = twoStep(page).getByRole('img', { name: 'QR code for the authenticator app', exact: true });
   await expect(qr).toHaveAttribute('src', /^data:image\/svg\+xml;charset=utf-8,%3Csvg/);
-  await expect(twoStep(page).getByText('Keep the app.', { exact: false })).toBeVisible();
+  await expect(twoStep(page).getByText('Write the key down and keep it somewhere safe', { exact: false })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
 
   await codeField(page).fill('12 34');
@@ -96,6 +105,8 @@ test('turning it on shows the ways to add the app, and takes only a right first 
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
   await expect(alert(page)).toHaveCount(0);
+  await expect(twoStep(page).getByRole('status')).toHaveText('Two-step sign-in is on.');
+  await expect(twoStep(page).getByRole('button', { name: 'Turn off', exact: true })).toBeFocused();
 });
 
 test('with it on, signing in asks for the code before the account opens', async ({ page }) => {
@@ -130,7 +141,7 @@ test('half signed in, the Settings card offers to finish, and a different accoun
 
   await page.goto('/settings');
   const card = page.getByRole('region', { name: 'Your account', exact: true });
-  await expect(card.getByText(`${EMAIL}: the code from your authenticator app is still to come.`)).toBeVisible();
+  await expect(card.getByText(`Almost signed in as ${EMAIL}: enter the code from your authenticator app.`)).toBeVisible();
   await card.getByRole('link', { name: 'Finish signing in', exact: true }).click();
   await expect(codeField(page)).toBeVisible();
 
@@ -143,17 +154,24 @@ test('turning it off asks first, and then the password alone opens the account',
   const calls = await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signInAndTurnOn(page);
 
-  await twoStep(page).getByRole('button', { name: 'Turn off', exact: true }).click();
+  const turnOff = twoStep(page).getByRole('button', { name: 'Turn off', exact: true });
+  await turnOff.click();
   await expect(twoStep(page).getByText('Turn off two-step sign-in? Your password alone will open your account again.')).toBeVisible();
+  // The question's own Turn off has the focus, so a screen reader reads the question with it.
+  await expect(turnOff).toBeFocused();
+  await expect(turnOff).toHaveAccessibleDescription(/^Turn off two-step sign-in\?/);
   await twoStep(page).getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(turnOff).toBeFocused();
   expect(removed(calls)).toHaveLength(0);
 
   await twoStep(page).getByRole('button', { name: 'Turn off', exact: true }).click();
   await expect(twoStep(page).getByText('Turn off two-step sign-in?', { exact: false })).toBeVisible();
   await twoStep(page).getByRole('button', { name: 'Turn off', exact: true }).click();
-  await expect(twoStep(page).getByText('Off.', { exact: false })).toBeVisible();
+  await expect(twoStep(page).getByText('Off. Turn it on', { exact: false })).toBeVisible();
   expect(removed(calls)).toHaveLength(1);
+  await expect(twoStep(page).getByRole('status')).toHaveText('Two-step sign-in is off.');
+  await expect(twoStep(page).getByRole('button', { name: 'Turn on', exact: true })).toBeFocused();
 
   await signOut(page);
   await signIn(page);
@@ -168,8 +186,10 @@ test('a set-up cancelled, or left open, never blocks the next one', async ({ pag
 
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await twoStep(page).getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(twoStep(page).getByText('Off.', { exact: false })).toBeVisible();
+  await expect(twoStep(page).getByText('Off. Turn it on', { exact: false })).toBeVisible();
   expect(removed(calls)).toHaveLength(1);
+  await expect(twoStep(page).getByRole('status')).toHaveText('Set-up cancelled.');
+  await expect(twoStep(page).getByRole('button', { name: 'Turn on', exact: true })).toBeFocused();
 
   // Left open: the page reloads mid-way, and the next Turn on clears the old set-up before it starts again, saying so.
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
@@ -275,4 +295,52 @@ test('a phone signed in before another turned it on asks for the code on Save, n
   await page.getByRole('button', { name: 'Save to my account', exact: true }).click();
   await expect(codeField(page)).toBeVisible();
   await expect(alert(page)).toHaveCount(0);
+});
+
+test('a set-up removed from another phone says so, and Turn on then finds it on', async ({ page, browser }) => {
+  // Two phones: WebKit needs more than the default 30 s.
+  test.setTimeout(60_000);
+  await skipUnlessAccountsShow(page);
+  const factors: AuthFactors = new Map();
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
+  await page.goto('/settings/account');
+  await signIn(page);
+  await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
+  await expect(codeField(page)).toBeVisible();
+
+  // Phone B turns it on meanwhile, which first clears this phone's unfinished set-up.
+  await turnOnFromAnotherPhone(browser, factors);
+
+  await codeField(page).fill(E2E_TOTP_CODE);
+  await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
+  await expect(alert(page)).toHaveText('This set-up was cancelled, maybe from another phone. Turn on to start again.');
+  await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
+  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep(page).getByRole('status')).toHaveText('Two-step sign-in is already on.');
+});
+
+test('a half sign-in the account server has ended asks to sign in again', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await signInAndTurnOn(page);
+  await signOut(page);
+  await signIn(page);
+  await expect(codeField(page)).toBeVisible();
+
+  // The server no longer knows this session (the code was given on another device, which ends password-only ones).
+  await page.route('**/auth/v1/factors/*/challenge', (route) =>
+    route.request().method() === 'OPTIONS'
+      ? route.fallback()
+      : route.fulfill({
+          status: 403,
+          headers: { 'access-control-allow-origin': '*' },
+          json: { error_code: 'session_not_found', msg: 'Session from session_id claim in JWT does not exist' },
+        }),
+  );
+  await codeField(page).fill(E2E_TOTP_CODE);
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(alert(page)).toHaveText(`This sign-in for ${EMAIL} has ended, maybe because it was finished on another device.`);
+  await expect(page.getByRole('button', { name: 'Sign in again', exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'Sign in again', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
 });

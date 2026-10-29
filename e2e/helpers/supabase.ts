@@ -138,7 +138,8 @@ export async function mockSupabaseAuth(
     }
     if (path === '/user' && request.method() === 'GET') return reply(route, 200, userFor(who, factors(who)));
     if (path === '/factors' && request.method() === 'POST') {
-      const { friendly_name: name = '' } = (body ?? {}) as { friendly_name?: string };
+      // Without an issuer from the app, the account server names the authenticator entry after the site's host.
+      const { friendly_name: name = '', issuer = 'localhost' } = (body ?? {}) as { friendly_name?: string; issuer?: string };
       if (factors(who).some((f) => f.friendly_name === name)) {
         return reply(route, 422, { error_code: 'mfa_factor_name_conflict', msg: 'A factor with this name exists' });
       }
@@ -153,7 +154,7 @@ export async function mockSupabaseAuth(
         totp: {
           qr_code: svg,
           secret: E2E_TOTP_SECRET,
-          uri: `otpauth://totp/StudentsBudget:${encodeURIComponent(who)}?secret=${E2E_TOTP_SECRET}&issuer=StudentsBudget`,
+          uri: `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(who)}?secret=${E2E_TOTP_SECRET}&issuer=${encodeURIComponent(issuer)}`,
         },
       });
     }
