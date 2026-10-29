@@ -1,8 +1,8 @@
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
 import type { Entry, Rate } from '@/db/types';
-import type { UserDataStore } from './store';
-import { byTable, type ServerTable } from './tables';
+import type { PulledRow, UserDataStore } from './store';
+import { byTable, SERVER_TABLES, type ServerTable } from './tables';
 
 // Shared by the save and load tests: a phone with a bit of everything, and the account's tables in memory.
 
@@ -81,6 +81,11 @@ export function liveIds(rows: Map<string, unknown>): string[] {
 export function fakeStore(initial: Partial<Record<ServerTable, Record<string, unknown>>> = {}) {
   const tables = byTable((table) => new Map<string, unknown>(Object.entries(initial[table] ?? {})));
   const calls: string[] = [];
+  // Each row's revision, as the database's stamp_sync trigger sets it: the user's next one on every write.
+  let lastRev = 0;
+  const revs = byTable(() => new Map<string, number>());
+  for (const table of SERVER_TABLES) for (const id of tables[table].keys()) revs[table].set(id, ++lastRev);
+  const stamp = (table: ServerTable, id: string) => revs[table].set(id, ++lastRev);
   const store: UserDataStore = {
     async listIds(table) {
       calls.push(`list ${table}`);
@@ -93,12 +98,27 @@ export function fakeStore(initial: Partial<Record<ServerTable, Record<string, un
     async upsert(table, rows) {
       calls.push(`upsert ${table} ${rows.map((row) => row.id).join(',')}`);
       // Stored as JSON would be: a copy, not the phone's own object.
-      for (const row of rows) tables[table].set(row.id, structuredClone(row.data));
+      for (const row of rows) {
+        tables[table].set(row.id, structuredClone(row.data));
+        stamp(table, row.id);
+      }
     },
     async tombstone(table, ids) {
       calls.push(`tombstone ${table} ${ids.join(',')}`);
       // As the database does: an id it never had gets a tombstone too.
-      for (const id of ids) tables[table].set(id, null);
+      for (const id of ids) {
+        tables[table].set(id, null);
+        stamp(table, id);
+      }
+    },
+    async pull(since, limit) {
+      calls.push(`pull ${since}`);
+      const rows: PulledRow[] = SERVER_TABLES.flatMap((table) =>
+        [...revs[table]]
+          .filter(([, rev]) => rev > since)
+          .map(([id, rev]) => ({ table, id, data: structuredClone(tables[table].get(id) ?? null), rev })),
+      );
+      return rows.sort((a, b) => a.rev - b.rev).slice(0, limit);
     },
   };
   return { store, tables, calls };

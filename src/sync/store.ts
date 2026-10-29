@@ -1,9 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import type { ServerRow, ServerTable } from './tables';
+import { SERVER_TABLES, type ServerRow, type ServerTable } from './tables';
 
 /** A row as it comes back from the account: its id, and data that still has to be checked. */
 export type StoredRow = { id: string; data: unknown };
+
+/**
+ * A row from a pull (`sync_pull`): its table, its id, its data still to be checked (null for a tombstone, a deleted
+ * row), and the revision of the write that made it so.
+ */
+export type PulledRow = { table: ServerTable; id: string; data: unknown; rev: number };
 
 /** What saving to and loading from the account need from its database. The app uses `supabaseStore`; tests a fake. */
 export type UserDataStore = {
@@ -19,16 +25,18 @@ export type UserDataStore = {
    * out and a pull applies as a delete of nothing.
    */
   tombstone(table: ServerTable, ids: string[]): Promise<void>;
+  /** At most `limit` rows written after revision `since`, from every table, tombstones included, in revision order. */
+  pull(since: number, limit: number): Promise<PulledRow[]>;
 };
 
 /** A request the account's database refused or never answered. `status` is the HTTP status, 0 without an answer. */
 export class StoreError extends Error {
   // Written out rather than as parameter properties, so Node can strip this file's types (tsconfig erasableSyntaxOnly).
-  readonly table: ServerTable;
+  readonly table: ServerTable | 'sync_pull';
   readonly status: number;
   readonly code: string;
 
-  constructor(table: ServerTable, status: number, code: string, message: string) {
+  constructor(table: ServerTable | 'sync_pull', status: number, code: string, message: string) {
     super(`${table}: ${message}`);
     this.name = 'StoreError';
     this.table = table;
@@ -44,6 +52,15 @@ const PAGE = 1000;
 
 const idRows = z.array(z.object({ id: z.string() }));
 const fullRows = z.array(z.object({ id: z.string(), data: z.unknown() }));
+// sync_pull's rows (supabase/migrations/20261026132206_sync.sql). PostgREST sends a bigint as a JSON number.
+const pulledRows = z.array(
+  z.object({ tbl: z.enum(SERVER_TABLES), id: z.string(), data: z.unknown(), rev: z.number() }).transform((row) => ({
+    table: row.tbl,
+    id: row.id,
+    data: row.data ?? null,
+    rev: row.rev,
+  })),
+);
 
 function batches<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -54,7 +71,7 @@ function batches<T>(items: T[], size: number): T[][] {
 /** What supabase-js gives back for a request, reduced to what a StoreError needs. */
 type Answer = { error: { message: string; code: string } | null; status: number };
 
-function check(table: ServerTable, { error, status }: Answer): void {
+function check(table: ServerTable | 'sync_pull', { error, status }: Answer): void {
   if (error) throw new StoreError(table, status, error.code, error.message);
 }
 
@@ -105,6 +122,11 @@ export function supabaseStore(client: SupabaseClient): UserDataStore {
         const tombstones = batch.map((id) => ({ id, data: null }));
         check(table, await client.from(table).upsert(tombstones, { onConflict: 'user_id,id' }));
       }
+    },
+    async pull(since, limit) {
+      const answer = await client.rpc('sync_pull', { p_since: since, p_limit: limit });
+      check('sync_pull', answer);
+      return pulledRows.parse(answer.data);
     },
   };
 }

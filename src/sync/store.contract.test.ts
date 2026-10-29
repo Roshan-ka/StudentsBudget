@@ -114,6 +114,19 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('the account store against a rea
     expect(next.map((c) => [c.id, c.data])).toEqual([['c2000', { n: 2000, edited: true }]]);
   }, 60_000);
 
+  it('pulls through the store in the shape the app reads: table, id, data or null, and a revision that is a number', async () => {
+    const store = supabaseStore(a);
+    const page = await store.pull(0, 10);
+    expect(page).toHaveLength(10);
+    expect(page.every((row) => row.table === 'entries' && typeof row.rev === 'number')).toBe(true);
+    const revs = page.map((row) => row.rev);
+    expect(revs).toEqual([...revs].sort((x, y) => x - y));
+    const after = await store.pull(revs[9], 5);
+    expect(after[0].rev).toBeGreaterThan(revs[9]);
+    // A tombstone comes with data null.
+    expect((await store.pull(0, 3000)).find((row) => row.id === 'never-saved')?.data).toBeNull();
+  }, 60_000);
+
   it("keeps each user to their own rows: B reads, pulls and changes none of A's", async () => {
     const storeB = supabaseStore(b);
     expect(await storeB.listIds('entries')).toEqual([]);

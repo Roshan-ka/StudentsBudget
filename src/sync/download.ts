@@ -1,20 +1,10 @@
-import type { z } from 'zod';
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
-import {
-  accountRow,
-  discountVoteRow,
-  entryRow,
-  guessRow,
-  planRow,
-  profileRow,
-  rateRow,
-  weekResultRow,
-} from '@/db/schemas';
 import { checkBackupData } from '@/features/backup/backup';
+import { BadRow, ROW_CHECKS } from './rows';
 import { StoreError, type StoredRow, type UserDataStore } from './store';
 import { contentsOf } from './summary';
-import { byTable, SERVER_TABLES, type ServerTable } from './tables';
+import { byTable, SERVER_TABLES } from './tables';
 
 /**
  * What the account holds, read and checked before anything on the phone changes: nothing at all, rows without a plan
@@ -26,21 +16,6 @@ export type DownloadPlan =
   | { kind: 'unfinished' }
   | { kind: 'invalid'; problem: string }
   | { kind: 'ready'; data: BackupData };
-
-/** A row from the account that is not one the app could have saved. */
-class BadRow extends Error {}
-
-/** Checks every row of a table, and that its id is the key the phone files it under. */
-function rowsOf<T>(table: ServerTable, rows: StoredRow[], schema: z.ZodType<T>, keyOf: (row: T) => string): T[] {
-  return rows.map((row) => {
-    const parsed = schema.safeParse(row.data);
-    if (!parsed.success) throw new BadRow(`a row of ${table} isn't the app's data`);
-    if (keyOf(parsed.data) !== row.id) throw new BadRow(`a row of ${table} is filed under the wrong id`);
-    return parsed.data;
-  });
-}
-
-const manualRate = rateRow.refine((rate) => rate.source === 'manual');
 
 /**
  * Reads every table of the account and turns it into the phone's data, checked like a backup file: every row's fields
@@ -55,21 +30,18 @@ export async function planDownload(store: UserDataStore, phone: BackupData): Pro
 
   let data: BackupData;
   try {
-    const plans = rowsOf('plans', rows.plans, planRow, (p) => p.id);
-    const profiles = rowsOf('profiles', rows.profiles, profileRow, (p) => p.id);
+    const plans = rows.plans.map(ROW_CHECKS.plans);
+    const profiles = rows.profiles.map(ROW_CHECKS.profiles);
     data = {
-      accounts: rowsOf('accounts', rows.accounts, accountRow, (a) => a.id),
+      accounts: rows.accounts.map(ROW_CHECKS.accounts),
       // Built into the app, never saved to the account.
       categories: CATEGORIES.map((c) => ({ ...c })),
-      entries: rowsOf('entries', rows.entries, entryRow, (e) => e.id),
+      entries: rows.entries.map(ROW_CHECKS.entries),
       plan: plans[0] ?? null,
-      guesses: rowsOf('guesses', rows.guesses, guessRow, (g) => g.categoryId),
-      fxRates: [
-        ...phone.fxRates.filter((rate) => rate.source === 'ecb'),
-        ...rowsOf('manual_rates', rows.manual_rates, manualRate, (r) => r.currency),
-      ],
-      weekResults: rowsOf('week_results', rows.week_results, weekResultRow, (w) => w.weekStart),
-      discountVotes: rowsOf('discount_votes', rows.discount_votes, discountVoteRow, (v) => v.discountId),
+      guesses: rows.guesses.map(ROW_CHECKS.guesses),
+      fxRates: [...phone.fxRates.filter((rate) => rate.source === 'ecb'), ...rows.manual_rates.map(ROW_CHECKS.manual_rates)],
+      weekResults: rows.week_results.map(ROW_CHECKS.week_results),
+      discountVotes: rows.discount_votes.map(ROW_CHECKS.discount_votes),
       profile: profiles[0] ?? null,
     };
   } catch (error) {
