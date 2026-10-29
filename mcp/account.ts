@@ -105,7 +105,7 @@ export function readOnly(store: UserDataStore): UserDataStore {
   const refuse = async () => {
     throw new Error('The StudentsBudget MCP server only reads the account.');
   };
-  return { listIds: store.listIds, listRows: store.listRows, upsert: refuse, tombstone: refuse };
+  return { listIds: store.listIds, listRows: store.listRows, pull: store.pull, upsert: refuse, tombstone: refuse };
 }
 
 function readerOf(client: SupabaseClient): AccountReader {

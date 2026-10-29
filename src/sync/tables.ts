@@ -77,3 +77,29 @@ const DEXIE_SYNC: Readonly<Record<string, DexieSync>> = {
 export function dexieSync(name: string): DexieSync | null {
   return Object.hasOwn(DEXIE_SYNC, name) ? DEXIE_SYNC[name] : null;
 }
+
+/** Where a server row lives on the phone: its Dexie table, and that table's key for the row's server id. */
+export type DexieHome = { dexie: string; keyOf: (id: string) => string | [string, string] };
+
+/** The other way round from `DEXIE_SYNC`: a manual rate's id is its currency, its Dexie key [currency, 'manual']. */
+const DEXIE_HOME = byTable((table): DexieHome => {
+  switch (table) {
+    case 'plans':
+      return { dexie: 'plan', keyOf: (id) => id };
+    case 'manual_rates':
+      return { dexie: 'fxRates', keyOf: (id) => [id, 'manual'] };
+    case 'week_results':
+      return { dexie: 'weekResults', keyOf: (id) => id };
+    case 'discount_votes':
+      return { dexie: 'discountVotes', keyOf: (id) => id };
+    case 'profiles':
+      return { dexie: 'profile', keyOf: (id) => id };
+    default:
+      return { dexie: table, keyOf: (id) => id };
+  }
+});
+
+/** Where the rows of the server table `table` live on the phone. */
+export function dexieHome(table: ServerTable): DexieHome {
+  return DEXIE_HOME[table];
+}
