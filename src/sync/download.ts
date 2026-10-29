@@ -2,7 +2,7 @@ import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
 import { checkBackupData } from '@/features/backup/backup';
 import { BadRow, ROW_CHECKS } from './rows';
-import { StoreError, type StoredRow, type UserDataStore } from './store';
+import type { StoredRow, UserDataStore } from './store';
 import { contentsOf } from './summary';
 import { byTable, SERVER_TABLES } from './tables';
 
@@ -56,12 +56,4 @@ export async function planDownload(store: UserDataStore, phone: BackupData): Pro
 /** "3 accounts, 128 entries and your plan": what loading brings onto the phone. */
 export function downloadContents(data: BackupData): string {
   return contentsOf(data.accounts.length, data.entries.length, data.plan !== null);
-}
-
-/** Calm text for a load that did not work. */
-export function loadErrorMessage(error: unknown): string {
-  if (error instanceof StoreError && error.status === 401) {
-    return 'Your sign-in has run out. Sign out, sign in again, then load.';
-  }
-  return "Couldn't load from your account. Check your connection and try again.";
 }

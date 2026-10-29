@@ -3,6 +3,7 @@ import {
   addVirtualAuthenticator,
   E2E_TOTP_CODE,
   mockSupabaseAuth,
+  mockSupabaseData,
   skipUnlessAccountsShow,
   type AuthCall,
 } from './helpers/supabase';
@@ -11,6 +12,11 @@ import {
 // authenticator plays the phone that keeps it and says yes, as Face ID would: those run on Chromium only. The others
 // run wherever the browser has passkeys.
 test.use({ viewport: { width: 375, height: 812 } });
+
+// Signing in links the phone to the account (P2.2), which reads the account's tables: an empty account by default.
+test.beforeEach(async ({ page }) => {
+  await mockSupabaseData(page);
+});
 
 const VIRTUAL_ONLY = 'Makes or uses a passkey: needs a virtual authenticator, which only Chromium has.';
 
@@ -125,7 +131,7 @@ test('with two-step sign-in on, a passkey stands in for the password, not for th
   await signOut(page);
   await passkeyButton(page).click();
   await expect(page.getByText(`Enter the code from your authenticator app for ${EMAIL}.`, { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Save to my account', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Sync', exact: true })).toHaveCount(0);
   await code.fill(E2E_TOTP_CODE);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();

@@ -72,7 +72,7 @@ describe('the prompts', () => {
     expect(text).not.toContain('suggest_swaps');
     expect(text).toContain('the swaps week_check_in gives, each with what it saves and its sources, and no others');
     expect(text).toContain('If its state isn’t ready, tell me its note and stop there.');
-    expect(text).toContain('as of my last Save from the phone');
+    expect(text).toContain("as of my phone’s last sync");
   });
 
   it('names the university when one is given, in any case, and asks about both otherwise', async () => {

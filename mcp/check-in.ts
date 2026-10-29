@@ -57,8 +57,8 @@ export type WeekCheckIn = z.infer<z.ZodObject<typeof checkInShape>>;
 type Part = z.infer<typeof partSchema>;
 
 const CHECK_IN_NOTE =
-  'The user’s week as the StudentsBudget check-in shows it, read from their account: as of their last Save from the ' +
-  'phone (savedAt), so anything entered since is missing; say so. Each envelope is measured against its share of ' +
+  'The user’s week as the StudentsBudget check-in shows it, read from their account: as of the phone’s last ' +
+  'sync (savedAt), so anything entered since is missing; say so. Each envelope is measured against its share of ' +
   'the week (what was left of its month when the week began, split over the weeks left), not against the whole ' +
   'month: use its line as it stands. Only envelopes over their share get a swap, and swaps holds exactly those: ' +
   'offer no other. A swap’s source and url state the usual price, toSource and toUrl the cheaper one. When a month ' +
@@ -145,8 +145,8 @@ export function registerWeekCheckIn(server: McpServer, read: ReadAccount, today:
       description:
         'The user’s week as the StudentsBudget check-in shows it: each envelope against its share of the week, ' +
         'the total left this week, a sourced swap for each envelope over its share, and the week’s entries; on a ' +
-        'Sunday when the month began mid-week, the earlier days of the week too. Read-only, as of the last Save ' +
-        'from the phone.',
+        'Sunday when the month began mid-week, the earlier days of the week too. Read-only, as of the phone’s ' +
+        'last sync.',
       inputSchema: {},
       outputSchema: checkInShape,
       annotations: { readOnlyHint: true, openWorldHint: true },

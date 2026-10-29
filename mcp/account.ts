@@ -4,6 +4,7 @@ import { authStateOf } from '@/features/account/auth-state';
 import { parseSupabaseEnv, type SupabaseEnv } from '@/lib/supabase/env';
 import { StoreError, supabaseStore, type UserDataStore } from '@/sync/store';
 import { listed } from '@/sync/summary';
+import { SERVER_TABLES } from '@/sync/tables';
 
 // Reading the user's account from the server: the app's own Supabase settings and store, signed in as the user, so
 // row-level security keeps every read to their own rows. Read-only: nothing here writes.
@@ -11,10 +12,7 @@ import { listed } from '@/sync/summary';
 /** The account as the budget tools read it. */
 export type AccountReader = {
   store: UserDataStore;
-  /**
-   * When the plan row was last written. A save writes it after every other row but before deleting what the phone no
-   * longer has, so this is the last save that got as far as the plan.
-   */
+  /** When the account last changed: the newest write to any of its tables, from the phone's last sync. */
   lastSavedAt(): Promise<string | null>;
   /**
    * Throws the needs-second-step AccountProblem when the account now wants a code this session never gave: two-step
@@ -112,10 +110,16 @@ function readerOf(client: SupabaseClient): AccountReader {
   return {
     store: readOnly(supabaseStore(client)),
     async lastSavedAt() {
-      const answer = await client.from('plans').select('updated_at').eq('id', 'current').is('deleted_at', null).maybeSingle();
-      if (answer.error) throw new StoreError('plans', answer.status, answer.error.code ?? '', answer.error.message);
-      const row = answer.data as { updated_at?: unknown } | null;
-      return typeof row?.updated_at === 'string' ? row.updated_at : null;
+      // The newest write to any table, a delete (tombstone) included: a sync sends only the rows that changed, so the
+      // plan row alone no longer says when the phone last synced.
+      let newest: string | null = null;
+      for (const table of SERVER_TABLES) {
+        const answer = await client.from(table).select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+        if (answer.error) throw new StoreError(table, answer.status, answer.error.code ?? '', answer.error.message);
+        const at = (answer.data as { updated_at?: unknown } | null)?.updated_at;
+        if (typeof at === 'string' && (newest === null || Date.parse(at) > Date.parse(newest))) newest = at;
+      }
+      return newest;
     },
     async checkSecondStep() {
       // The session's own factors are the ones it signed in with, maybe an hour ago: ask the account server instead.

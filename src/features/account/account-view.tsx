@@ -6,12 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useShowInstallHint } from '@/features/setup/install-hint';
 import { getSupabase } from '@/lib/supabase/client';
-import { AccountData } from './account-data';
+import { AccountLink } from './account-link';
 import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
 import { checkAuthenticatorCode, checkCredentials, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
 import { PasskeySignIn } from './passkeys';
 import { SignInSecurity } from './security';
-import { SyncSection } from './sync-status';
+import { syncBeforeSignOut } from './sync-status';
 import { useAuth } from './use-auth';
 
 /** Email and password, to sign in or to create an account. */
@@ -310,6 +310,8 @@ function SignedInPanel({ email }: { email: string }) {
     setBusy(true);
     setError(null);
     try {
+      // This phone's last changes go to the account first; the data and the link stay on the phone, and sync pauses.
+      await syncBeforeSignOut();
       const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
       if (signOutError) {
         // supabase-js drops the session on this phone even when the server can't be told, and useAuth then shows the
@@ -371,9 +373,8 @@ export function AccountView() {
       return (
         <>
           <SignedInPanel email={auth.email} />
-          <SyncSection />
-          <AccountData />
-          {/* Last: saving and loading are what the page is for; passkeys and two-step sign-in are set once. */}
+          <AccountLink />
+          {/* Last: syncing is what the page is for; passkeys and two-step sign-in are set once. */}
           <SignInSecurity />
         </>
       );

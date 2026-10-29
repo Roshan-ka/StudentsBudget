@@ -50,8 +50,8 @@ describe('budget_overview', () => {
     expect(isError).toBe(false);
     expect(o.state).toBe('ready');
     expect(o.savedAt).toBe(SAVED_AT);
-    expect(o.note).toContain('as of their last Save from the phone');
-    expect(o.note).toContain('Last saved on 21-10-2026.');
+    expect(o.note).toContain("as of the phone’s last sync");
+    expect(o.note).toContain('Last changed on 21-10-2026.');
 
     const b = o.budget!;
     expect(b.month).toBe('2026-10');
@@ -96,7 +96,7 @@ describe('budget_overview', () => {
   it('says so when the account has nothing saved, or a save stopped halfway', async () => {
     const empty = await overview((await savedAccount(null)).read);
     expect(empty.data).toMatchObject({ state: 'empty', budget: null, savedAt: null });
-    expect(empty.data.note).toContain('Save to my account');
+    expect(empty.data.note).toContain('Settings → Your account, sign in');
 
     const { store } = fakeStore({ entries: { e1: snapshot().entries[0] } });
     const halfway = await overview((task) => task({ store, lastSavedAt: async () => null, checkSecondStep: noSecondStep }));
@@ -338,7 +338,7 @@ describe('recent_entries', () => {
     const dates = r.entries.map((e) => e.date);
     expect(dates).toEqual([...dates].sort().reverse());
     expect(r.note).toMatch(/^24 entries in 2026-10\. The user’s own entries/);
-    expect(r.note).toContain('Last saved on 21-10-2026.');
+    expect(r.note).toContain('Last changed on 21-10-2026.');
   });
 
   it('adds up to what budget_overview counts as spent, for one category', async () => {

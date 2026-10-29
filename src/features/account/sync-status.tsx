@@ -60,6 +60,27 @@ export function useSyncStatus(): string | null {
   return syncStatusText({ lastSyncedAt: state.lastSyncedAt, problem: state.problem, waiting, online, now: new Date(now) });
 }
 
+/** How long signing out waits for its last sync, so a slow connection never holds the person up for long. */
+const SIGN_OUT_SYNC_MS = 8_000;
+
+/**
+ * Before signing out: a last sync, so the account has this phone's latest changes, while the phone is linked to the
+ * signed-in account and online. It waits at most a few seconds; whatever doesn't make it waits in the outbox for the
+ * next sign-in. Never throws.
+ */
+export async function syncBeforeSignOut(): Promise<void> {
+  const supabase = getSupabase();
+  if (supabase === null || !navigator.onLine) return;
+  try {
+    const userId = (await supabase.auth.getSession()).data.session?.user.id;
+    if (userId === undefined) return;
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, SIGN_OUT_SYNC_MS));
+    await Promise.race([syncNow(supabaseStore(supabase), userId), timeout]);
+  } catch (error) {
+    console.error('StudentsBudget: the last sync before signing out', error);
+  }
+}
+
 /** Settings → Your account → Sync: the status, and Sync now. Nothing while this phone isn't linked. */
 export function SyncSection() {
   const id = useId();

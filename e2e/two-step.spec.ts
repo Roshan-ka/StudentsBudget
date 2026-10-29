@@ -14,6 +14,11 @@ import {
 // authenticator that accepts only E2E_TOTP_CODE.
 test.use({ viewport: { width: 375, height: 812 } });
 
+// Signing in links the phone to the account (P2.2), which reads the account's tables: an empty account by default.
+test.beforeEach(async ({ page }) => {
+  await mockSupabaseData(page);
+});
+
 const EMAIL = 'roshan@example.com';
 const PASSWORD = 'correct horse';
 
@@ -59,11 +64,32 @@ function restartNote(page: Page) {
   return twoStep(page).getByText('This starts the set-up again.', { exact: false });
 }
 
+/** Unlinks this phone, as a phone signed in from before linking existed: its sync state goes, straight in IndexedDB. */
+async function unlink(page: Page) {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('studentsbudget');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const transaction = open.result.transaction('syncState', 'readwrite');
+          transaction.objectStore('syncState').clear();
+          transaction.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+  );
+}
+
 /** Phone B: a new browser on the same account, which turns two-step sign-in on there. */
 async function turnOnFromAnotherPhone(browser: Browser, factors: AuthFactors) {
   const phoneB = await browser.newContext({ viewport: { width: 375, height: 812 } });
   const pageB = await phoneB.newPage();
   await mockSupabaseAuth(pageB, { [EMAIL]: PASSWORD }, { factors });
+  await mockSupabaseData(pageB);
   await signInAndTurnOn(pageB);
   await phoneB.close();
 }
@@ -117,10 +143,8 @@ test('with it on, signing in asks for the code before the account opens', async 
 
   await signIn(page);
   await expect(page.getByText(`Enter the code from your authenticator app for ${EMAIL}.`, { exact: true })).toBeVisible();
-  // Nothing of the account until the code: no save, no load.
-  await expect(page.getByRole('button', { name: 'Save to my account', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Load from my account', exact: true })).toHaveCount(0);
-
+  // Nothing of the account until the code: no linking, no sync.
+  await expect(page.getByRole('region', { name: 'Sync', exact: true })).toHaveCount(0);
   await codeField(page).fill('000000');
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(alert(page)).toHaveText('That code didn’t work. Codes change every 30 seconds: enter the newest one.');
@@ -206,17 +230,20 @@ test('a set-up cancelled, or left open, never blocks the next one', async ({ pag
 });
 
 test('leaving the page mid set-up and coming back keeps the set-up', async ({ page }) => {
+  // A phone set up in full, so the bottom navigation is there to leave by.
+  test.setTimeout(60_000);
   await skipUnlessAccountsShow(page);
   const calls = await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await completeSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await expect(codeField(page)).toBeVisible();
 
-  // Off to setup and back: the router keeps the account page mounted but hidden, and reads the account again.
-  await page.getByRole('link', { name: 'Set up this phone', exact: true }).click();
-  await expect(page).toHaveURL('/setup');
-  await page.goBack();
+  // Off to Settings and back: the router keeps the account page mounted but hidden, and reads the account again.
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
+  await expect(page).toHaveURL('/settings');
+  await page.getByRole('region', { name: 'Your account', exact: true }).getByRole('link', { name: 'Manage account', exact: true }).click();
   await expect(page).toHaveURL('/settings/account');
   await expect(codeField(page)).toBeVisible();
   await expect(twoStep(page).getByText('JBSW Y3DP EHPK 3PXP', { exact: true })).toBeVisible();
@@ -246,45 +273,50 @@ test('when the account can’t be checked, it says so instead of "Off", and Try 
   await expect(alert(page)).toHaveCount(0);
 });
 
-test('a phone signed in before another turned it on asks for the code on Load, not "nothing saved"', async ({ page, browser }) => {
+test('a phone not yet linked, signed in before another turned it on, asks for the code before it links', async ({ page, browser }) => {
   // Two phones: WebKit needs more than the default 30 s.
   test.setTimeout(60_000);
   await skipUnlessAccountsShow(page);
   const factors: AuthFactors = new Map();
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
-  await mockSupabaseData(page);
   await page.goto('/settings/account');
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
 
   await turnOnFromAnotherPhone(browser, factors);
+  // A phone signed in from before linking existed: its password-only session, and no link yet.
+  await unlink(page);
+  await page.reload();
 
-  // Phone A still holds its password-only session, so the account shows it nothing: the code step takes over.
-  await page.getByRole('button', { name: 'Load from my account', exact: true }).click();
+  // The account shows that session nothing, which looks empty: the code step takes over, and nothing is linked.
   await expect(codeField(page)).toBeVisible();
-  await expect(page.getByText('Your account has nothing saved yet.', { exact: true })).toHaveCount(0);
   await codeField(page).fill(E2E_TOTP_CODE);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Load from my account', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Sync', exact: true }).getByText('Synced just now.', { exact: true })).toBeVisible();
 });
 
-test('a phone signed in before another turned it on asks for the code on Save, not "couldn’t take"', async ({ page, browser }) => {
+test('a phone signed in before another turned it on asks for the code on Sync now, not "couldn’t sync"', async ({ page, browser }) => {
   // Two phones, the first set up in full: WebKit needs more than the default 30 s.
   test.setTimeout(60_000);
   await skipUnlessAccountsShow(page);
   const factors: AuthFactors = new Map();
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
-  await mockSupabaseData(page);
   await completeSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
-  await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
+  // Linked: the phone's data went to the account.
+  await expect(page.getByRole('region', { name: 'Sync', exact: true }).getByText('Synced just now.', { exact: true })).toBeVisible();
 
   await turnOnFromAnotherPhone(browser, factors);
+  // A change on this phone, waiting to be sent.
+  await page.goto('/settings');
+  await page.getByRole('region', { name: 'Profile', exact: true }).getByRole('textbox', { name: 'Your name', exact: true }).fill('Changed here');
+  await page.getByRole('region', { name: 'Profile', exact: true }).getByRole('button', { name: 'Save profile', exact: true }).click();
+  await page.goto('/settings/account');
 
   // Row-level security now refuses this session's rows, as the database does (Postgres insufficient_privilege).
   await page.route(SUPABASE_REST, (route) =>
-    route.request().method() === 'POST'
+    route.request().method() === 'POST' && !route.request().url().includes('/rpc/')
       ? route.fulfill({
           status: 403,
           headers: { 'access-control-allow-origin': '*' },
@@ -292,7 +324,7 @@ test('a phone signed in before another turned it on asks for the code on Save, n
         })
       : route.fallback(),
   );
-  await page.getByRole('button', { name: 'Save to my account', exact: true }).click();
+  await page.getByRole('button', { name: 'Sync now', exact: true }).click();
   await expect(codeField(page)).toBeVisible();
   await expect(alert(page)).toHaveCount(0);
 });

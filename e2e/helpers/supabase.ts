@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 /**
@@ -20,9 +20,10 @@ const CORS = {
   'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-/** The mocked account's user id: the one every mocked sign-in belongs to. */
-export const E2E_USER_ID = '00000000-0000-4000-8000-000000000001';
-const USER_ID = E2E_USER_ID;
+/** The mocked user id of an email: a stable one per email, so two emails are two accounts (linking keeps them apart). */
+export function e2eUserIdOf(email: string): string {
+  return `00000000-0000-4000-8000-${createHash('sha1').update(email).digest('hex').slice(0, 12)}`;
+}
 
 /** How the mocked session's access token ends; the data mock checks for it. */
 const SESSION_SIGNATURE = '.e2e-signature';
@@ -47,7 +48,7 @@ type MockPasskey = { id: string; friendly_name?: string; created_at: string; las
 
 function userFor(email: string, factors: MockFactor[]) {
   return {
-    id: USER_ID,
+    id: e2eUserIdOf(email),
     aud: 'authenticated',
     role: 'authenticated',
     email,
@@ -65,7 +66,7 @@ function userFor(email: string, factors: MockFactor[]) {
 function sessionFor(email: string, aal: 'aal1' | 'aal2' = 'aal1', factors: MockFactor[] = []) {
   const now = Math.floor(Date.now() / 1000);
   const user = userFor(email, factors);
-  const claims = { sub: USER_ID, email, role: 'authenticated', aud: 'authenticated', aal, iat: now, exp: now + 3600 };
+  const claims = { sub: e2eUserIdOf(email), email, role: 'authenticated', aud: 'authenticated', aal, iat: now, exp: now + 3600 };
   return {
     access_token: `${base64url({ alg: 'HS256', typ: 'JWT' })}.${base64url(claims)}${SESSION_SIGNATURE}`,
     token_type: 'bearer',
@@ -182,7 +183,7 @@ export async function mockSupabaseAuth(
         challenge_id: `register-${challenges}`,
         options: {
           rp: { name: 'StudentsBudget', id: 'localhost' },
-          user: { id: Buffer.from(USER_ID).toString('base64url'), name: who, displayName: who },
+          user: { id: Buffer.from(e2eUserIdOf(who)).toString('base64url'), name: who, displayName: who },
           challenge: randomBytes(32).toString('base64url'),
           pubKeyCredParams: [
             { type: 'public-key', alg: -7 },
