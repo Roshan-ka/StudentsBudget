@@ -11,6 +11,7 @@ import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
 import { checkAuthenticatorCode, checkCredentials, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
 import { PasskeySignIn } from './passkeys';
 import { SignInSecurity } from './security';
+import { SyncSection } from './sync-status';
 import { useAuth } from './use-auth';
 
 /** Email and password, to sign in or to create an account. */
@@ -370,6 +371,7 @@ export function AccountView() {
       return (
         <>
           <SignedInPanel email={auth.email} />
+          <SyncSection />
           <AccountData />
           {/* Last: saving and loading are what the page is for; passkeys and two-step sign-in are set once. */}
           <SignInSecurity />

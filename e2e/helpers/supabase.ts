@@ -20,7 +20,9 @@ const CORS = {
   'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-const USER_ID = '00000000-0000-4000-8000-000000000001';
+/** The mocked account's user id: the one every mocked sign-in belongs to. */
+export const E2E_USER_ID = '00000000-0000-4000-8000-000000000001';
+const USER_ID = E2E_USER_ID;
 
 /** How the mocked session's access token ends; the data mock checks for it. */
 const SESSION_SIGNATURE = '.e2e-signature';
@@ -273,9 +275,36 @@ export const SUPABASE_REST = '**/rest/v1/**';
 export type ServerTables = Map<string, Map<string, unknown>>;
 
 /**
+ * Each row's revision, as the database's stamp_sync trigger keeps it, per account (the tables object): the user's
+ * next revision on every write. A row a spec seeds straight into the tables gets one when a pull first sees it.
+ */
+const revisions = new WeakMap<ServerTables, { last: number; of: Map<string, number> }>();
+
+function revisionsOf(tables: ServerTables) {
+  let kept = revisions.get(tables);
+  if (kept === undefined) {
+    kept = { last: 0, of: new Map() };
+    revisions.set(tables, kept);
+  }
+  return kept;
+}
+
+function stampRevision(tables: ServerTables, table: string, id: string): number {
+  const kept = revisionsOf(tables);
+  kept.last += 1;
+  kept.of.set(`${table}/${id}`, kept.last);
+  return kept.last;
+}
+
+function revisionOf(tables: ServerTables, table: string, id: string): number {
+  return revisionsOf(tables).of.get(`${table}/${id}`) ?? stampRevision(tables, table, id);
+}
+
+/**
  * Answers the account's tables like PostgREST does for one signed-in user: read ids or whole rows (by id, a page at a
- * time after the last id, tombstones left out when asked), and upsert rows, a tombstone being a row with data null. A
- * hard delete is refused, as the database refuses it. A call without the mocked session's token gets 401, as row-level
+ * time after the last id, tombstones left out when asked), upsert rows, a tombstone being a row with data null, and
+ * pull every change after a revision (`rpc/sync_pull`, revisions kept per account). A hard delete is refused, as the
+ * database refuses it. A call without the mocked session's token gets 401, as row-level
  * security would refuse it, so a spec cannot pass while the app sends its calls signed out. `failWith` makes every call
  * answer with that status instead. `tables` shares the account with another page, a second phone. Returns the tables,
  * to look at and to seed.
@@ -302,7 +331,21 @@ export async function mockSupabaseData(
     }
 
     const url = new URL(request.url());
-    const rows = table(url.pathname.replace(/^.*\/rest\/v1\//, ''));
+    const path = url.pathname.replace(/^.*\/rest\/v1\//, '');
+    // sync_pull: every row written after a revision, from every table, tombstones included, in revision order.
+    if (path === 'rpc/sync_pull' && request.method() === 'POST') {
+      const { p_since: since, p_limit: limit } = request.postDataJSON() as { p_since: number; p_limit: number };
+      const changes = [...tables].flatMap(([tbl, rows]) =>
+        [...rows.keys()].map((id) => ({ tbl, id, data: rows.get(id), rev: revisionOf(tables, tbl, id) })),
+      );
+      const json = changes
+        .filter((change) => change.rev > since)
+        .sort((a, b) => a.rev - b.rev)
+        .slice(0, limit)
+        .map((change) => ({ ...change, deleted_at: change.data === null ? new Date().toISOString() : null }));
+      return route.fulfill({ status: 200, headers: CORS, json });
+    }
+    const rows = table(path);
     if (request.method() === 'GET') {
       const after = url.searchParams.get('id')?.match(/^gt\.(.*)$/)?.[1] ?? null;
       const limit = Number(url.searchParams.get('limit') ?? 1000);
@@ -317,7 +360,10 @@ export async function mockSupabaseData(
       return route.fulfill({ status: 200, headers: CORS, json });
     }
     if (request.method() === 'POST') {
-      for (const row of request.postDataJSON() as { id: string; data: unknown }[]) rows.set(row.id, row.data);
+      for (const row of request.postDataJSON() as { id: string; data: unknown }[]) {
+        rows.set(row.id, row.data);
+        stampRevision(tables, path, row.id);
+      }
       return route.fulfill({ status: 201, headers: CORS });
     }
     if (request.method() === 'DELETE') {
