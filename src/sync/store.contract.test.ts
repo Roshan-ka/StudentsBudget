@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { newId } from '@/lib/new-id';
-import { supabaseStore } from './store';
+import { supabaseStore, type PulledRow } from './store';
 import { totpCode } from './totp';
 
 // The app's account store against a real Supabase stack: the local one that `npm run supabase:start` and the CI `db`
@@ -123,8 +123,20 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('the account store against a rea
     expect(revs).toEqual([...revs].sort((x, y) => x - y));
     const after = await store.pull(revs[9], 5);
     expect(after[0].rev).toBeGreaterThan(revs[9]);
+
+    // The API answers at most its max_rows (1,000) per call, whatever the limit asks for: page as the app's pull does,
+    // after the last revision, until an empty page.
+    expect(await store.pull(0, 3000)).toHaveLength(1000);
+    const all: PulledRow[] = [];
+    for (let since = 0; ; ) {
+      const next = await store.pull(since, 3000);
+      if (next.length === 0) break;
+      all.push(...next);
+      since = next[next.length - 1].rev;
+    }
+    expect(all).toHaveLength(2501);
     // A tombstone comes with data null.
-    expect((await store.pull(0, 3000)).find((row) => row.id === 'never-saved')?.data).toBeNull();
+    expect(all.find((row) => row.id === 'never-saved')?.data).toBeNull();
   }, 60_000);
 
   it("keeps each user to their own rows: B reads, pulls and changes none of A's", async () => {
