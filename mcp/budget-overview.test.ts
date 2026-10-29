@@ -23,6 +23,8 @@ import { call, connect } from './test-client.ts';
 // (21-10-2026) the pack documents €138.10 left in October, and its balances.
 const DEMO_DAY = '2026-10-21';
 const SAVED_AT = '2026-10-21T09:30:00.000Z';
+/** An account that wants no code: the password is all it takes. */
+const noSecondStep = async () => {};
 
 function demo(): BackupData {
   const parsed = parseBackup(readFileSync('fixtures/manual-demo/valid/01-everyday-student.json', 'utf8'));
@@ -33,7 +35,8 @@ function demo(): BackupData {
 async function savedAccount(data: BackupData | null): Promise<{ read: ReadAccount; store: UserDataStore }> {
   const { store } = fakeStore();
   if (data !== null) await applyUpload(store, await planUpload(store, data));
-  const read: ReadAccount = (task) => task({ store, lastSavedAt: async () => (data === null ? null : SAVED_AT) });
+  const read: ReadAccount = (task) =>
+    task({ store, lastSavedAt: async () => (data === null ? null : SAVED_AT), checkSecondStep: noSecondStep });
   return { read, store };
 }
 
@@ -97,14 +100,14 @@ describe('budget_overview', () => {
     expect(empty.data.note).toContain('Save to my account');
 
     const { store } = fakeStore({ entries: { e1: snapshot().entries[0] } });
-    const halfway = await overview((task) => task({ store, lastSavedAt: async () => null }));
+    const halfway = await overview((task) => task({ store, lastSavedAt: async () => null, checkSecondStep: noSecondStep }));
     expect(halfway.data).toMatchObject({ state: 'unfinished', budget: null });
   });
 
   it('shows nothing from an account whose rows aren’t the app’s data', async () => {
     const { store } = await savedAccount(demo());
     await store.upsert('entries', [{ id: 'broken', data: { amountMinor: 'lots' } }]);
-    const { data: o } = await overview((task) => task({ store, lastSavedAt: async () => SAVED_AT }));
+    const { data: o } = await overview((task) => task({ store, lastSavedAt: async () => SAVED_AT, checkSecondStep: noSecondStep }));
     expect(o).toMatchObject({ state: 'invalid', budget: null });
     expect(o.note).toContain("a row of entries isn't the app's data");
   });
@@ -176,7 +179,7 @@ describe('budget_overview', () => {
 
 describe('the account session', () => {
   const settings = { url: 'https://x.supabase.co', publishableKey: 'sb_publishable_x', email: 'a@example.com', password: 'p' };
-  const reader = { store: fakeStore().store, lastSavedAt: async () => null };
+  const reader = { store: fakeStore().store, lastSavedAt: async () => null, checkSecondStep: noSecondStep };
 
   it('knows a session that still owes the second step', () => {
     // The account has a verified factor, and only the password was given.
@@ -244,11 +247,52 @@ describe('the account session', () => {
     }
   });
 
+  it('asks again before calling the account empty: two-step sign-in turned on since the sign-in hides every row', async () => {
+    let signIns = 0;
+    let checks = 0;
+    let wantsCode = false;
+    const { store } = fakeStore();
+    const read = accountFromSettings(settings, async () => {
+      signIns += 1;
+      return {
+        store,
+        lastSavedAt: async () => null,
+        checkSecondStep: async () => {
+          checks += 1;
+          if (wantsCode) throw new AccountProblem('needs-second-step', 'This account uses two-step sign-in.');
+        },
+      };
+    });
+    // Fine at sign-in, and really empty.
+    expect((await overview(read)).data).toMatchObject({ state: 'empty', budget: null });
+
+    // The step is turned on while the server keeps its password-only session: every account tool says so.
+    wantsCode = true;
+    for (const tool of ['budget_overview', 'recent_entries', 'week_check_in']) {
+      const { data } = await call<{ state: string; note: string }>(await connect(DEMO_DAY, read), tool);
+      expect(data, tool).toMatchObject({ state: 'needs-second-step', note: 'This account uses two-step sign-in.' });
+    }
+    expect([signIns, checks]).toEqual([1, 4]);
+
+    // An account with rows never asks.
+    const saved = await savedAccount(demo());
+    const strict: ReadAccount = (task) =>
+      saved.read((reader) =>
+        task({
+          ...reader,
+          checkSecondStep: async () => {
+            throw new Error('asked although the account has rows');
+          },
+        }),
+      );
+    expect((await overview(strict)).data.state).toBe('ready');
+  });
+
   it('only ever reads: the tools list and read, and the store refuses writes', async () => {
     const { store, calls } = fakeStore();
     await applyUpload(store, await planUpload(store, demo()));
     calls.length = 0;
-    const read: ReadAccount = (task) => task({ store: readOnly(store), lastSavedAt: async () => SAVED_AT });
+    const read: ReadAccount = (task) => task({ store: readOnly(store), lastSavedAt: async () => SAVED_AT, checkSecondStep: noSecondStep });
     await overview(read);
     await call(await connect(DEMO_DAY, read), 'recent_entries');
     expect(calls.length).toBeGreaterThan(0);

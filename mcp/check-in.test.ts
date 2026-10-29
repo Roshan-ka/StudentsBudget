@@ -25,7 +25,8 @@ function demo(): BackupData {
 async function checkIn(data: BackupData | null, today = DEMO_DAY) {
   const { store } = fakeStore();
   if (data !== null) await applyUpload(store, await planUpload(store, data));
-  const read: ReadAccount = (task) => task({ store, lastSavedAt: async () => '2026-10-21T09:30:00.000Z' });
+  const read: ReadAccount = (task) =>
+    task({ store, lastSavedAt: async () => '2026-10-21T09:30:00.000Z', checkSecondStep: async () => {} });
   return call<WeekCheckIn>(await connect(today, read), 'week_check_in');
 }
 

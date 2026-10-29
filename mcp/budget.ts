@@ -173,6 +173,8 @@ export async function readSaved(read: ReadAccount): Promise<Saved> {
     return await read(async (reader): Promise<Saved> => {
       const download = await planDownload(reader.store, NO_PHONE);
       if (download.kind === 'empty') {
+        // Two-step sign-in turned on since the server signed in hides every row, which looks just like this.
+        await reader.checkSecondStep();
         const note = 'The account has nothing saved yet. On the phone: Settings → Your account → Save to my account.';
         return { ok: false, state: 'empty', note };
       }
