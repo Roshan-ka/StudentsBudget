@@ -97,7 +97,7 @@ test('with two-step sign-in on, a passkey stands in for the password, not for th
   await twoStep.getByRole('button', { name: 'Turn on', exact: true }).click();
   await code.fill(E2E_TOTP_CODE);
   await twoStep.getByRole('button', { name: 'Turn on', exact: true }).click();
-  await expect(twoStep.getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep.getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
   await passkeys(page).getByRole('button', { name: 'Add a passkey', exact: true }).click();
   await expect(passkeys(page).getByRole('listitem')).toHaveCount(1);
 

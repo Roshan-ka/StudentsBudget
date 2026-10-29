@@ -9,8 +9,8 @@ import { getSupabase } from '@/lib/supabase/client';
 import { AccountData } from './account-data';
 import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
 import { checkAuthenticatorCode, checkCredentials, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
-import { PasskeySignIn, PasskeysSection } from './passkeys';
-import { TwoStepSection } from './two-step';
+import { PasskeySignIn } from './passkeys';
+import { SignInSecurity } from './security';
 import { useAuth } from './use-auth';
 
 /** Email and password, to sign in or to create an account. */
@@ -364,8 +364,7 @@ export function AccountView() {
           <SignedInPanel email={auth.email} />
           <AccountData />
           {/* Last: saving and loading are what the page is for; passkeys and two-step sign-in are set once. */}
-          <PasskeysSection />
-          <TwoStepSection />
+          <SignInSecurity />
         </>
       );
     case 'second-step':

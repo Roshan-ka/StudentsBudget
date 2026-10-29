@@ -46,11 +46,11 @@ async function signInAndTurnOn(page: Page) {
   await page.goto('/settings/account');
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await expect(twoStep(page).getByText('Off. Turn it on', { exact: false })).toBeVisible();
+  await expect(twoStep(page).getByText('Turn it on and signing in', { exact: false })).toBeVisible();
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await codeField(page).fill(E2E_TOTP_CODE);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
-  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep(page).getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
 }
 
 const removed = (calls: AuthCall[]) => calls.filter((c) => c.method === 'DELETE' && c.path.startsWith('/factors/'));
@@ -103,7 +103,7 @@ test('turning it on shows the ways to add the app, and takes only a right first 
 
   await codeField(page).fill(E2E_TOTP_CODE);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
-  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep(page).getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
   await expect(alert(page)).toHaveCount(0);
   await expect(twoStep(page).getByRole('status')).toHaveText('Two-step sign-in is on.');
   await expect(twoStep(page).getByRole('button', { name: 'Turn off', exact: true })).toBeFocused();
@@ -128,7 +128,7 @@ test('with it on, signing in asks for the code before the account opens', async 
   await codeField(page).fill(` ${E2E_TOTP_CODE.slice(0, 3)} ${E2E_TOTP_CODE.slice(3)} `);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep(page).getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
 });
 
 test('half signed in, the Settings card offers to finish, and a different account is a tap away', async ({ page }) => {
@@ -161,14 +161,14 @@ test('turning it off asks first, and then the password alone opens the account',
   await expect(turnOff).toBeFocused();
   await expect(turnOff).toHaveAccessibleDescription(/^Turn off two-step sign-in\?/);
   await twoStep(page).getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep(page).getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
   await expect(turnOff).toBeFocused();
   expect(removed(calls)).toHaveLength(0);
 
   await twoStep(page).getByRole('button', { name: 'Turn off', exact: true }).click();
   await expect(twoStep(page).getByText('Turn off two-step sign-in?', { exact: false })).toBeVisible();
   await twoStep(page).getByRole('button', { name: 'Turn off', exact: true }).click();
-  await expect(twoStep(page).getByText('Off. Turn it on', { exact: false })).toBeVisible();
+  await expect(twoStep(page).getByText('Turn it on and signing in', { exact: false })).toBeVisible();
   expect(removed(calls)).toHaveLength(1);
   await expect(twoStep(page).getByRole('status')).toHaveText('Two-step sign-in is off.');
   await expect(twoStep(page).getByRole('button', { name: 'Turn on', exact: true })).toBeFocused();
@@ -186,7 +186,7 @@ test('a set-up cancelled, or left open, never blocks the next one', async ({ pag
 
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await twoStep(page).getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(twoStep(page).getByText('Off. Turn it on', { exact: false })).toBeVisible();
+  await expect(twoStep(page).getByText('Turn it on and signing in', { exact: false })).toBeVisible();
   expect(removed(calls)).toHaveLength(1);
   await expect(twoStep(page).getByRole('status')).toHaveText('Set-up cancelled.');
   await expect(twoStep(page).getByRole('button', { name: 'Turn on', exact: true })).toBeFocused();
@@ -202,7 +202,7 @@ test('a set-up cancelled, or left open, never blocks the next one', async ({ pag
   expect(removed(calls)).toHaveLength(2);
   await codeField(page).fill(E2E_TOTP_CODE);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
-  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep(page).getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
 });
 
 test('leaving the page mid set-up and coming back keeps the set-up', async ({ page }) => {
@@ -224,7 +224,7 @@ test('leaving the page mid set-up and coming back keeps the set-up', async ({ pa
 
   await codeField(page).fill(E2E_TOTP_CODE);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
-  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep(page).getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
 });
 
 test('when the account can’t be checked, it says so instead of "Off", and Try again checks once more', async ({ page }) => {
@@ -242,7 +242,7 @@ test('when the account can’t be checked, it says so instead of "Off", and Try 
 
   await page.unroute('**/auth/v1/user', unreachable);
   await twoStep(page).getByRole('button', { name: 'Try again', exact: true }).click();
-  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep(page).getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
   await expect(alert(page)).toHaveCount(0);
 });
 
@@ -315,7 +315,7 @@ test('a set-up removed from another phone says so, and Turn on then finds it on'
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await expect(alert(page)).toHaveText('This set-up was cancelled, maybe from another phone. Turn on to start again.');
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
-  await expect(twoStep(page).getByText('On: signing in asks for the code from your authenticator app.')).toBeVisible();
+  await expect(twoStep(page).getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
   await expect(twoStep(page).getByRole('status')).toHaveText('Two-step sign-in is already on.');
 });
 

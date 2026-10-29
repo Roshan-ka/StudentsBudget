@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { formatDate, todayIso } from '@/lib/dates';
 import { getSupabase } from '@/lib/supabase/client';
 import { authErrorMessage, OFFLINE_MESSAGE, passkeyCancelled, passkeyErrorMessage } from './auth-errors';
+import { CardHeading, SECURITY_CARD } from './card-heading';
 
 // Passkeys (P2.3b): a passkey signs in instead of the password, with Face ID, a fingerprint or the phone's PIN. A beta
 // in Supabase Auth; the password always stays. A passkey session is like a password one (aal1), so an account with
@@ -197,21 +198,26 @@ export function PasskeysSection() {
     setRemoving(null);
   }
 
+  const count = Array.isArray(passkeys) ? passkeys.length : null;
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-3">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={SECURITY_CARD}>
+      <CardHeading
+        id={`${id}-heading`}
+        icon={<KeyRoundIcon />}
+        status={count === null ? undefined : count === 0 ? 'None yet' : count === 1 ? '1 passkey' : `${count} passkeys`}
+      >
         Passkeys
-      </h3>
-      <p className="text-muted-foreground">
+      </CardHeading>
+      <p className="text-sm text-muted-foreground">
         Sign in with Face ID, a fingerprint or your phone&apos;s PIN instead of your password. The passkey stays on your
         device: your account keeps only a public key, which can&apos;t sign in by itself.
       </p>
 
-      {passkeys === 'loading' && <p className="text-muted-foreground">Checking your passkeys…</p>}
+      {passkeys === 'loading' && <p className="text-sm text-muted-foreground">Checking your passkeys…</p>}
 
       {passkeys === 'unknown' && (
         <>
-          <p className="text-muted-foreground">Couldn&apos;t load your passkeys.</p>
+          <p className="text-sm text-muted-foreground">Couldn&apos;t load your passkeys.</p>
           <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={checkAgain}>
             Try again
           </Button>

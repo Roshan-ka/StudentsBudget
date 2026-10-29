@@ -277,7 +277,7 @@ test('a second phone signs in from setup and loads what the first one saved', as
   const loadSection = pageB.getByRole('region', { name: 'Load from your account', exact: true });
   await expect(loadSection).toBeVisible();
   const headings = await pageB.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
-  expect(headings.slice(1)).toEqual(['Load from your account', 'Save to your account', 'Passkeys', 'Two-step sign-in']);
+  expect(headings.slice(1)).toEqual(['Load from your account', 'Save to your account', 'Sign-in and security']);
   await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
   await expect(
     loadSection.getByText("This replaces the data on this phone with your account's: 3 accounts, 0 entries and your plan."),
@@ -361,7 +361,7 @@ test("loading onto a phone with its own data replaces it with the account's, aft
   const loadSection = pageB.getByRole('region', { name: 'Load from your account', exact: true });
   await expect(loadSection).toBeVisible();
   const headings = await pageB.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
-  expect(headings.slice(1)).toEqual(['Save to your account', 'Load from your account', 'Passkeys', 'Two-step sign-in']);
+  expect(headings.slice(1)).toEqual(['Save to your account', 'Load from your account', 'Sign-in and security']);
 
   await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
   await expect(
