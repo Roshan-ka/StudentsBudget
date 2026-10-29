@@ -1,3 +1,4 @@
+import { appendFileSync } from 'node:fs';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { newId } from '@/lib/new-id';
@@ -177,15 +178,21 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('two-step sign-in against a real
   }, 90_000);
 });
 
-// P2.3b spike: how a real stack answers recovery codes and a passkey registration. Each finding goes out as a GitHub
+// P2.3b spike: how a real stack answers recovery codes and a passkey registration. Each finding becomes a GitHub
 // Actions notice, an annotation on the run that the public API shows without the job's log, and an unexpected answer is
 // recorded rather than failed, so one run answers every question. Real assertions replace this once the answers are in
 // docs/superpowers/plans/2026-10-29-p2-3b-passkeys-and-recovery-codes.md.
 
-/** A GitHub Actions notice; outside CI, just a line in the output. */
+/**
+ * A GitHub Actions notice. Vitest keeps a test's output from being read as a workflow command, so in CI it goes to the
+ * file SPIKE_NOTES names, which a step of its own prints; elsewhere it is a line in the output.
+ */
 function notice(title: string, message: string) {
   const escape = (text: string) => text.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
-  console.log(`::notice title=${escape(title).replace(/:/g, '%3A').replace(/,/g, '%2C')}::${escape(message)}`);
+  const line = `::notice title=${escape(title).replace(/:/g, '%3A').replace(/,/g, '%2C')}::${escape(message)}`;
+  const file = process.env.SPIKE_NOTES;
+  if (file) appendFileSync(file, `${line}\n`);
+  else console.log(line);
 }
 
 /** What an auth call answered, in one line: its error's code, status and name, or the start of its data. */

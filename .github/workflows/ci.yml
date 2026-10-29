@@ -55,3 +55,9 @@ jobs:
       # The app's account store (src/sync/store.ts) against the same stack, as a signed-in user.
       - run: node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
       - run: npm run test:contract
+        env:
+          SPIKE_NOTES: ${{ runner.temp }}/spike-notes.txt
+      # P2.3b spike (3b.0, removed in 3b.1): the contract test's findings as notices on the run. Vitest keeps a test's
+      # output from being read as workflow commands, so a step of its own prints them.
+      - if: always()
+        run: cat "${{ runner.temp }}/spike-notes.txt" 2>/dev/null || true
