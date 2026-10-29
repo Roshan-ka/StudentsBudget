@@ -1,6 +1,13 @@
 import type { Session } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
-import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
+import {
+  authErrorMessage,
+  OFFLINE_MESSAGE,
+  passkeyCancelled,
+  passkeySettingsMessage,
+  passkeySignInMessage,
+  passkeysUnavailable,
+} from './auth-errors';
 import { assuranceLevelOf, authStateOf } from './auth-state';
 import { checkAuthenticatorCode, checkCredentials, MIN_PASSWORD_LENGTH } from './credentials';
 
@@ -128,6 +135,47 @@ describe('authErrorMessage', () => {
     );
     expect(authErrorMessage({ code: 'mfa_totp_verify_not_enabled', status: 422 })).toBe(
       'Codes can’t be checked right now. Try again later.',
+    );
+  });
+
+  it('reads a closed passkey prompt as nothing to say', () => {
+    // auth-js wraps the browser's answer: a cancel or a timeout keeps its NotAllowedError name; an abort gets a code.
+    expect(passkeyCancelled({ name: 'NotAllowedError', code: 'ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY' })).toBe(true);
+    expect(passkeyCancelled({ name: 'AbortError', code: 'ERROR_CEREMONY_ABORTED' })).toBe(true);
+    expect(passkeyCancelled({ code: 'webauthn_verification_failed', status: 400 })).toBe(false);
+  });
+
+  it('says calmly why a passkey sign-in didn’t work, always pointing back to the password', () => {
+    expect(passkeySignInMessage({ code: 'passkey_disabled', status: 422 })).toBe(
+      'Passkeys are switched off right now. Sign in with your email and password.',
+    );
+    // The browser refuses a passkey made for another address: a preview, or the app on the LAN.
+    for (const code of ['ERROR_INVALID_RP_ID', 'ERROR_INVALID_DOMAIN']) {
+      expect(passkeySignInMessage({ name: 'SecurityError', code })).toBe(
+        'Passkeys don’t work on this copy of the app. Sign in with your email and password.',
+      );
+    }
+    expect(passkeySignInMessage({ code: 'webauthn_verification_failed', status: 400 })).toBe(
+      'That passkey didn’t work. Try again, or sign in with your email and password.',
+    );
+    expect(passkeySignInMessage({ name: 'AuthRetryableFetchError', status: 0 })).toBe(
+      "The account server can't be reached. Check your connection and try again.",
+    );
+  });
+
+  it('says what went wrong with a passkey in Settings, without sending a signed-in person to sign in', () => {
+    expect(passkeySettingsMessage({ code: 'passkey_disabled', status: 422 }, 'fallback')).toBe(
+      'Passkeys are switched off right now.',
+    );
+    expect(passkeysUnavailable({ name: 'SecurityError', code: 'ERROR_INVALID_RP_ID' })).toBe(
+      'Passkeys don’t work on this copy of the app.',
+    );
+    expect(passkeysUnavailable({ code: 'too_many_passkeys', status: 422 })).toBeNull();
+    expect(
+      passkeySettingsMessage({ name: 'InvalidStateError', code: 'ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED' }, 'fallback'),
+    ).toBe('This device already has a passkey for your account.');
+    expect(passkeySettingsMessage(new Error('boom'), 'Couldn’t add the passkey. Try again.')).toBe(
+      'Couldn’t add the passkey. Try again.',
     );
   });
 

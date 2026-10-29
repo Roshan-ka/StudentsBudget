@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 /**
@@ -40,6 +40,9 @@ type MockFactor = { id: string; friendly_name: string; factor_type: 'totp'; stat
 /** Each account's authenticators, by email. Passed to `mockSupabaseAuth` on two pages, they share one account. */
 export type AuthFactors = Map<string, MockFactor[]>;
 
+/** A passkey as the account keeps it: what it lists, plus the credential id the device signs in with. */
+type MockPasskey = { id: string; friendly_name?: string; created_at: string; last_used_at?: string; credentialId: string };
+
 function userFor(email: string, factors: MockFactor[]) {
   return {
     id: USER_ID,
@@ -75,10 +78,12 @@ function sessionFor(email: string, aal: 'aal1' | 'aal2' = 'aal1', factors: MockF
 export type AuthCall = { method: string; path: string; search: string; body: unknown };
 
 /**
- * Answers Supabase Auth like a project with email and password sign-in, "Confirm email" off and authenticator apps on
- * (two-step sign-in): a new account is signed in at once. `accounts` maps each existing email to its password. The
- * authenticator accepts only E2E_TOTP_CODE. `factors` shares the accounts' authenticators with another page, a second
- * phone; each page keeps its own session. Returns every call, in order.
+ * Answers Supabase Auth like a project with email and password sign-in, "Confirm email" off, authenticator apps on
+ * (two-step sign-in) and passkeys on (relying party localhost): a new account is signed in at once. `accounts` maps
+ * each existing email to its password. The authenticator accepts only E2E_TOTP_CODE. A passkey needs a browser that
+ * can make one, such as Chrome with a virtual authenticator (`addVirtualAuthenticator`). `factors` shares the
+ * accounts' authenticators with another page, a second phone; each page keeps its own session. Returns every call, in
+ * order.
  */
 export async function mockSupabaseAuth(
   page: Page,
@@ -98,6 +103,18 @@ export async function mockSupabaseAuth(
     currentAal = aal;
     return sessionFor(email, aal, verified(email));
   };
+  // Each account's passkeys, and which account a passkey's credential (the device's key) signs in.
+  const passkeysOf = new Map<string, MockPasskey[]>();
+  const passkeys = (email: string) => passkeysOf.get(email) ?? [];
+  // What the account lists of a passkey: never the credential id.
+  const listedPasskey = (p: MockPasskey) => ({
+    id: p.id,
+    friendly_name: p.friendly_name,
+    created_at: p.created_at,
+    last_used_at: p.last_used_at,
+  });
+  const owners = new Map<string, string>();
+  let challenges = 0;
 
   const reply = (route: Route, status: number, json?: unknown) =>
     route.fulfill(json === undefined ? { status, headers: CORS } : { status, headers: CORS, json });
@@ -129,6 +146,26 @@ export async function mockSupabaseAuth(
       current = null;
       return reply(route, 204);
     }
+    // Signing in with a passkey: the device picks one of its passkeys for this site (no email asked), and the account
+    // that registered it is signed in at aal1, like the password; one with two-step sign-in still owes the code.
+    if (path === '/passkeys/authentication/options') {
+      challenges += 1;
+      return reply(route, 200, {
+        challenge_id: `sign-in-${challenges}`,
+        options: { challenge: randomBytes(32).toString('base64url'), rpId: 'localhost', userVerification: 'preferred', timeout: 60_000 },
+      });
+    }
+    if (path === '/passkeys/authentication/verify') {
+      const { credential } = (body ?? {}) as { credential?: { id?: string } };
+      const owner = owners.get(credential?.id ?? '');
+      if (owner === undefined) return reply(route, 400, { error_code: 'webauthn_verification_failed', msg: 'Unknown passkey' });
+      const used = passkeys(owner).find((p) => p.credentialId === credential?.id);
+      if (used !== undefined) used.last_used_at = new Date().toISOString();
+      // Without the account's authenticators: the real answer isn't documented (a beta), so the app must find them
+      // itself (a refreshed session lists them) and not rely on this answer to show the code step.
+      signedIn(owner, 'aal1');
+      return reply(route, 200, sessionFor(owner, 'aal1', []));
+    }
     if (current === null) return reply(route, 401, { error_code: 'no_authorization', msg: 'Not signed in' });
     const who = current;
 
@@ -137,6 +174,45 @@ export async function mockSupabaseAuth(
       return reply(route, 200, signedIn(who, currentAal === 'aal2' && verified(who).length > 0 ? 'aal2' : 'aal1'));
     }
     if (path === '/user' && request.method() === 'GET') return reply(route, 200, userFor(who, factors(who)));
+    if (path === '/passkeys/registration/options') {
+      challenges += 1;
+      return reply(route, 200, {
+        challenge_id: `register-${challenges}`,
+        options: {
+          rp: { name: 'StudentsBudget', id: 'localhost' },
+          user: { id: Buffer.from(USER_ID).toString('base64url'), name: who, displayName: who },
+          challenge: randomBytes(32).toString('base64url'),
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7 },
+            { type: 'public-key', alg: -257 },
+          ],
+          timeout: 60_000,
+          attestation: 'none',
+          authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+          // The device refuses a second passkey for an account it already holds one for.
+          excludeCredentials: passkeys(who).map((p) => ({ type: 'public-key', id: p.credentialId })),
+        },
+      });
+    }
+    if (path === '/passkeys/registration/verify') {
+      const { credential } = (body ?? {}) as { credential?: { id?: string } };
+      const credentialId = credential?.id ?? '';
+      if (owners.has(credentialId)) return reply(route, 422, { error_code: 'webauthn_credential_exists', msg: 'Passkey exists' });
+      // No friendly name: the app shows "Passkey".
+      const added: MockPasskey = { id: randomUUID(), created_at: new Date().toISOString(), credentialId };
+      passkeysOf.set(who, [...passkeys(who), added]);
+      owners.set(credentialId, who);
+      return reply(route, 200, listedPasskey(added));
+    }
+    if (path === '/passkeys' && request.method() === 'GET') return reply(route, 200, passkeys(who).map(listedPasskey));
+    const passkeyPath = path.match(/^\/passkeys\/([0-9a-f-]{36})$/);
+    if (passkeyPath !== null && request.method() === 'DELETE') {
+      const gone = passkeys(who).find((p) => p.id === passkeyPath[1]);
+      if (gone === undefined) return reply(route, 404, { error_code: 'passkey_not_found', msg: 'Passkey not found' });
+      passkeysOf.set(who, passkeys(who).filter((p) => p !== gone));
+      owners.delete(gone.credentialId);
+      return reply(route, 200, {});
+    }
     if (path === '/factors' && request.method() === 'POST') {
       // Without an issuer from the app, the account server names the authenticator entry after the site's host.
       const { friendly_name: name = '', issuer = 'localhost' } = (body ?? {}) as { friendly_name?: string; issuer?: string };
@@ -264,4 +340,23 @@ export async function skipUnlessAccountsShow(page: Page) {
   // The first render already says so: without settings the view starts 'off', never 'loading'.
   const isOff = (await page.getByText("Accounts aren't set up in this copy of the app.", { exact: false }).count()) > 0;
   test.skip(isOff, 'The reused dev server has no Supabase settings: stop it, or run with E2E_PORT=3001.');
+}
+
+/**
+ * Gives a Chromium page a device that makes and keeps passkeys and says yes on its own, as Face ID would: Chrome's
+ * virtual authenticator, through the DevTools protocol. WebKit has nothing like it, so passkey specs run on Chromium.
+ */
+export async function addVirtualAuthenticator(page: Page) {
+  const devtools = await page.context().newCDPSession(page);
+  await devtools.send('WebAuthn.enable');
+  await devtools.send('WebAuthn.addVirtualAuthenticator', {
+    options: {
+      protocol: 'ctap2',
+      transport: 'internal',
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  });
 }

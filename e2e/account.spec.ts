@@ -7,6 +7,7 @@ import {
   skipUnlessAccountsShow,
   SUPABASE_AUTH,
   SUPABASE_REST,
+  type AuthCall,
   type ServerTables,
 } from './helpers/supabase';
 
@@ -33,6 +34,11 @@ function alert(page: Page) {
 
 function signedInLine(page: Page, email: string) {
   return page.getByText(`Signed in as ${email}.`, { exact: true });
+}
+
+/** The calls but the reads the signed-in page's passkeys and two-step sections make (GET /passkeys, GET /user). */
+function withoutSectionReads(calls: AuthCall[]): AuthCall[] {
+  return calls.filter((c) => !(c.method === 'GET' && (c.path === '/passkeys' || c.path === '/user')));
 }
 
 async function overflow(page: Page) {
@@ -68,8 +74,8 @@ test('Settings opens with Your account; signing in and out there keeps the plan 
 
   await signIn(page, ` ${EMAIL} `, PASSWORD);
   await expect(signedInLine(page, EMAIL)).toBeVisible();
-  // The last call but the reads of the account's authenticators, which the two-step section makes.
-  expect(calls.filter((c) => c.path !== '/user').at(-1)).toMatchObject({
+  // The last call but the reads the passkeys and two-step sections make.
+  expect(withoutSectionReads(calls).at(-1)).toMatchObject({
     method: 'POST',
     path: '/token',
     search: '?grant_type=password',
@@ -113,8 +119,8 @@ test('a new account is checked first, then signed in at once and still signed in
   await passwordField(page).fill(PASSWORD);
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await expect(signedInLine(page, EMAIL)).toBeVisible();
-  // One sign-up; the reads of the account's authenticators (the two-step section) aside.
-  expect(calls.filter((c) => c.path !== '/user')).toEqual([expect.objectContaining({ method: 'POST', path: '/signup' })]);
+  // One sign-up; the reads the passkeys and two-step sections make aside.
+  expect(withoutSectionReads(calls)).toEqual([expect.objectContaining({ method: 'POST', path: '/signup' })]);
 
   // The session is kept on the phone.
   await page.reload();
@@ -271,7 +277,7 @@ test('a second phone signs in from setup and loads what the first one saved', as
   const loadSection = pageB.getByRole('region', { name: 'Load from your account', exact: true });
   await expect(loadSection).toBeVisible();
   const headings = await pageB.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
-  expect(headings.slice(1)).toEqual(['Load from your account', 'Save to your account', 'Two-step sign-in']);
+  expect(headings.slice(1)).toEqual(['Load from your account', 'Save to your account', 'Sign-in and security']);
   await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
   await expect(
     loadSection.getByText("This replaces the data on this phone with your account's: 3 accounts, 0 entries and your plan."),
@@ -355,7 +361,7 @@ test("loading onto a phone with its own data replaces it with the account's, aft
   const loadSection = pageB.getByRole('region', { name: 'Load from your account', exact: true });
   await expect(loadSection).toBeVisible();
   const headings = await pageB.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
-  expect(headings.slice(1)).toEqual(['Save to your account', 'Load from your account', 'Two-step sign-in']);
+  expect(headings.slice(1)).toEqual(['Save to your account', 'Load from your account', 'Sign-in and security']);
 
   await loadSection.getByRole('button', { name: 'Load from my account', exact: true }).click();
   await expect(

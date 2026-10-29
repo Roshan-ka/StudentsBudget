@@ -31,7 +31,25 @@ const BY_CODE: Record<string, string> = {
   // The challenge and its code must come from the same connection.
   mfa_ip_address_mismatch: 'Your connection changed while checking the code. Enter the newest code again.',
   insufficient_aal: 'Sign out, sign in again with your code, then try once more.',
+  // Passkeys (a beta in Supabase Auth), and the one browser answer worth a text of its own. Switched off and the wrong
+  // site are in PASSKEYS_UNAVAILABLE below, since what to do then depends on where the person is.
+  too_many_passkeys: 'Your account has as many passkeys as it can keep. Remove one first.',
+  webauthn_credential_exists: 'This passkey is already on your account.',
+  webauthn_challenge_expired: 'That took a little long. Try again.',
+  ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED: 'This device already has a passkey for your account.',
 };
+
+/**
+ * Passkeys can't be used here at all: switched off in the account server, or a copy of the app on another address than
+ * the one passkeys are made for (a preview, the LAN), which the browser refuses.
+ */
+const PASSKEYS_UNAVAILABLE: Record<string, string> = {
+  passkey_disabled: 'Passkeys are switched off right now.',
+  ERROR_INVALID_RP_ID: 'Passkeys don’t work on this copy of the app.',
+  ERROR_INVALID_DOMAIN: 'Passkeys don’t work on this copy of the app.',
+};
+
+const GENERAL = 'Something went wrong. Try again.';
 
 /** Calm text for an error from signing in, creating an account or signing out. */
 export function authErrorMessage(error: unknown): string {
@@ -42,7 +60,36 @@ export function authErrorMessage(error: unknown): string {
   if (name === 'AuthRetryableFetchError') return "The account server can't be reached. Check your connection and try again.";
   // The account server no longer knows this session (signed out elsewhere, or ended by a finished second step).
   if (name === 'AuthSessionMissingError') return 'This sign-in has ended. Sign out, then sign in again.';
-  return 'Something went wrong. Try again.';
+  return GENERAL;
+}
+
+/**
+ * Whether the browser's passkey prompt was closed without a passkey: the person cancelled it, it timed out, or the
+ * device has none for this site. Nothing went wrong that needs saying.
+ */
+export function passkeyCancelled(error: unknown): boolean {
+  const { code, name } = fieldsOf(error);
+  return name === 'NotAllowedError' || name === 'AbortError' || code === 'ERROR_CEREMONY_ABORTED';
+}
+
+/** Why passkeys can't be used here at all, or null when they can. */
+export function passkeysUnavailable(error: unknown): string | null {
+  const { code } = fieldsOf(error);
+  return code !== undefined && code in PASSKEYS_UNAVAILABLE ? PASSKEYS_UNAVAILABLE[code] : null;
+}
+
+/** Calm text for a passkey sign-in that didn't work: every path points back to the password, which always does. */
+export function passkeySignInMessage(error: unknown): string {
+  const unavailable = passkeysUnavailable(error);
+  if (unavailable !== null) return `${unavailable} Sign in with your email and password.`;
+  const message = authErrorMessage(error);
+  return message === GENERAL ? 'That passkey didn’t work. Try again, or sign in with your email and password.' : message;
+}
+
+/** Calm text for a passkey that couldn't be listed, added or removed in Settings; `fallback` for anything unknown. */
+export function passkeySettingsMessage(error: unknown, fallback: string): string {
+  const message = passkeysUnavailable(error) ?? authErrorMessage(error);
+  return message === GENERAL ? fallback : message;
 }
 
 /** Shown instead of trying while the phone has no connection. */

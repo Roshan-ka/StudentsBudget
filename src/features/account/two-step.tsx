@@ -1,5 +1,6 @@
 'use client';
 
+import { SmartphoneIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { getSupabase } from '@/lib/supabase/client';
 import { authErrorMessage } from './auth-errors';
 import { groupedSecret, qrImageSource } from './authenticator';
+import { CardHeading, SECURITY_CARD } from './card-heading';
 import { checkAuthenticatorCode } from './credentials';
 
 /** The name the factor carries in the account (Supabase's list of the user's factors). */
@@ -212,17 +214,25 @@ export function TwoStepSection() {
       show({ kind: 'off' }, 'turn-on', 'Two-step sign-in is off.');
     });
 
+  const badge =
+    view.kind === 'on' || view.kind === 'confirm-off'
+      ? 'On'
+      : view.kind === 'off'
+        ? 'Off'
+        : view.kind === 'setting-up'
+          ? 'Setting up'
+          : undefined;
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-3">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={SECURITY_CARD}>
+      <CardHeading id={`${id}-heading`} icon={<SmartphoneIcon />} status={badge} active={badge === 'On'}>
         Two-step sign-in
-      </h3>
+      </CardHeading>
 
-      {view.kind === 'loading' && <p className="text-muted-foreground">Checking two-step sign-in…</p>}
+      {view.kind === 'loading' && <p className="text-sm text-muted-foreground">Checking two-step sign-in…</p>}
 
       {view.kind === 'unknown' && (
         <>
-          <p className="text-muted-foreground">Couldn&apos;t check whether two-step sign-in is on.</p>
+          <p className="text-sm text-muted-foreground">Couldn&apos;t check whether two-step sign-in is on.</p>
           <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={checkAgain}>
             Try again
           </Button>
@@ -231,8 +241,8 @@ export function TwoStepSection() {
 
       {view.kind === 'off' && (
         <>
-          <p className="text-muted-foreground">
-            Off. Turn it on and signing in also asks for a 6-digit code from an authenticator app, such as Google
+          <p className="text-sm text-muted-foreground">
+            Turn it on and signing in also asks for a 6-digit code from an authenticator app, such as Google
             Authenticator, Microsoft Authenticator or 2FAS, so your password alone no longer opens your account.
           </p>
           <Button
@@ -305,7 +315,7 @@ export function TwoStepSection() {
 
       {view.kind === 'on' && (
         <>
-          <p className="text-muted-foreground">On: signing in asks for the code from your authenticator app.</p>
+          <p className="text-sm text-muted-foreground">Signing in asks for the code from your authenticator app.</p>
           <p className="text-sm text-muted-foreground">
             Lost the app? If you wrote the key down, typing it into a new authenticator app gives the same codes.
           </p>

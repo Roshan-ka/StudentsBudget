@@ -10,7 +10,8 @@
 - 3b.0 (the spike) done: passkeys work on the local stack; recovery codes are switched off on the server and have no config switch (see Findings).
 - Recovery codes (3b.2) are **parked** (Roshan, 29-10-2026). A contract test fails the day the server allows them. Until then the recovery path is the key written down at set-up.
 - 3b.1 done: only an authenticator app's factor is the second step, in the database and the MCP server; the spike became two lasting contract tests.
-- Next: 3b.3, passkeys.
+- 3b.3 done: Settings has a Passkeys card (add, list with dates, remove with a confirm), and the sign-in form "Sign in with a passkey" (not when creating an account). e2e on `desktop-chrome` with Chrome's virtual authenticator: real WebAuthn ceremonies against the mocked `/passkeys/*` endpoints.
+- 3b.4 under way: the "Sign-in and security" group (a card each, with an icon and a status badge), README and CLAUDE.md (covering P2.3a too), two reviewers and their fixes (a session refresh after a passkey sign-in, Settings texts of their own, one message on the sign-in form, a contract test that a password alone adds no passkey to a two-step account), then the real try below. Before merging, Roshan runs `npx supabase db push` (migration `20261029103500`) and turns passkeys on in the Dashboard; otherwise the live site's Passkeys card would say passkeys are switched off. The real try follows the merge: passkeys work only on `students-budget.vercel.app`, not on Vercel's preview URL.
 
 **Roshan's choices (29-10-2026):**
 - passkey + recovery codes;
@@ -50,6 +51,18 @@
 | 3b.2 | **Parked** until the server allows them. Recovery codes: offered once after turning two-step on (grouped, Copy, Download as .txt, "8 of 10 unused"); "Make new codes" asks first; the code step gets "Use a recovery code instead"; a note after a recovery sign-in; removed with two-step sign-in where the API allows | Unit tests; e2e with the endpoints mocked |
 | 3b.3 | Passkeys: a Passkeys card (add, list with the date added, remove with a confirm); "Sign in with a passkey" on the sign-in form where the browser has `PublicKeyCredential`; a cancelled prompt shows nothing | e2e on `desktop-chrome` with Chrome's virtual authenticator and the `/passkeys/*` endpoints mocked; `iphone` checks the password path |
 | 3b.4 | "Sign-in and security" layout; Roshan turns passkeys on in the Dashboard (RP ID `students-budget.vercel.app`); real try on the iPhone (Safari and the Home Screen app) with test account B; README and CLAUDE.md; two reviewers; Draft PR | Works on the phone; CI green |
+
+## Real try (after the merge: passkeys work only on `students-budget.vercel.app`)
+
+Before merging: `npx supabase db push` (migration `20261029103500`), and Authentication → Passkeys on (display name `StudentsBudget`, RP ID `students-budget.vercel.app`, origin `https://students-budget.vercel.app`). Then, on the iPhone with test account B, in Safari and in the Home Screen app:
+
+1. Add a passkey (Face ID). Does the card show a name from Supabase, or "Passkey"?
+2. Sign out; Sign in with a passkey. Signed in without the password.
+3. Turn on two-step sign-in; sign out; Sign in with a passkey. **The code step must follow** (a passkey at aal1). If it doesn't, stop: passkeys skip the code, and the lock has to change (the JWT's `amr` must show TOTP).
+4. With only a passkey (two-step off), turn two-step on: does it work, or does Supabase refuse it?
+5. Cancel the passkey prompt: nothing is shown, and the password still works.
+6. Remove the passkey; sign in with it again: the calm "didn't work" text.
+7. Account A and the MCP server unchanged.
 
 ## Risks
 
