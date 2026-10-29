@@ -11,7 +11,7 @@
 - Recovery codes (3b.2) are **parked** (Roshan, 29-10-2026). A contract test fails the day the server allows them. Until then the recovery path is the key written down at set-up.
 - 3b.1 done: only an authenticator app's factor is the second step, in the database and the MCP server; the spike became two lasting contract tests.
 - 3b.3 done: Settings has a Passkeys card (add, list with dates, remove with a confirm), and the sign-in form "Sign in with a passkey" (not when creating an account). e2e on `desktop-chrome` with Chrome's virtual authenticator: real WebAuthn ceremonies against the mocked `/passkeys/*` endpoints.
-- Next: 3b.4. Roshan turns passkeys on in the Dashboard **before** this branch is merged; until then the live site's Passkeys card would say passkeys are switched off.
+- 3b.4 under way: the "Sign-in and security" group (a card each, with an icon and a status badge), README and CLAUDE.md (covering P2.3a too), two reviewers. Before merging, Roshan runs `npx supabase db push` (migration `20261029103500`) and turns passkeys on in the Dashboard; otherwise the live site's Passkeys card would say passkeys are switched off. The real try follows the merge: passkeys work only on `students-budget.vercel.app`, not on Vercel's preview URL.
 
 **Roshan's choices (29-10-2026):**
 - passkey + recovery codes;
