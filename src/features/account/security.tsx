@@ -13,8 +13,8 @@ export function SignInSecurity() {
         Sign-in and security
       </h3>
       <p className="text-muted-foreground">
-        Your password always works. A passkey signs you in without it, and with two-step sign-in a stolen password
-        alone opens nothing.
+        You can always sign in with your password. A passkey is a quicker way in. With two-step sign-in on, a code from
+        your authenticator app follows either, so a stolen password alone opens nothing.
       </p>
       <PasskeysSection />
       <TwoStepSection />

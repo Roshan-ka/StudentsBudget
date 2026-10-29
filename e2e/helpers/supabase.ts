@@ -161,7 +161,10 @@ export async function mockSupabaseAuth(
       if (owner === undefined) return reply(route, 400, { error_code: 'webauthn_verification_failed', msg: 'Unknown passkey' });
       const used = passkeys(owner).find((p) => p.credentialId === credential?.id);
       if (used !== undefined) used.last_used_at = new Date().toISOString();
-      return reply(route, 200, signedIn(owner, 'aal1'));
+      // Without the account's authenticators: the real answer isn't documented (a beta), so the app must find them
+      // itself (a refreshed session lists them) and not rely on this answer to show the code step.
+      signedIn(owner, 'aal1');
+      return reply(route, 200, sessionFor(owner, 'aal1', []));
     }
     if (current === null) return reply(route, 401, { error_code: 'no_authorization', msg: 'Not signed in' });
     const who = current;

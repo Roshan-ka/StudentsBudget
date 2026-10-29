@@ -187,6 +187,23 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('passkeys and recovery codes aga
     expect((await client.auth.passkey.list()).data).toEqual([]);
   });
 
+  // A passkey signs in at aal1 today (reported, not documented). Should that ever become aal2, a password-only session
+  // that could add a passkey would get past two-step sign-in, so this must stay refused.
+  it('lets a password alone add no passkey to an account with two-step sign-in', async () => {
+    const email = `contract-${newId()}@example.com`;
+    const client = await newUser(email);
+    const enrolled = await client.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Owner phone' });
+    if (enrolled.error) throw enrolled.error;
+    const { id: factorId, totp } = enrolled.data;
+    expect((await client.auth.mfa.challengeAndVerify({ factorId, code: totpCode(totp.secret) })).error).toBeNull();
+    expect((await client.auth.signOut()).error).toBeNull();
+
+    expect((await client.auth.signInWithPassword({ email, password: PASSWORD })).error).toBeNull();
+    const started = await client.auth.passkey.startRegistration();
+    expect(started.data).toBeNull();
+    expect(started.error).not.toBeNull();
+  });
+
   // Parked in P2.3b: supabase-js has the API (experimental), but the server keeps recovery codes off, and the CLI has no
   // switch for them. When this fails, they can be turned on: see the Findings in
   // docs/superpowers/plans/2026-10-29-p2-3b-passkeys-and-recovery-codes.md.

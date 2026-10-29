@@ -99,8 +99,16 @@ function SignInForm() {
           On iPhone, sign in inside the Home Screen app: Safari and the app keep separate data and sign-ins.
         </p>
       )}
-      {/* A passkey belongs to an account that exists, so only when signing in. */}
-      {!creating && <PasskeySignIn />}
+      {/* A passkey belongs to an account that exists, so only when signing in. Its message is the form's: one at a time. */}
+      {!creating && (
+        <PasskeySignIn
+          onStart={() => {
+            setError(null);
+            setNotice(null);
+          }}
+          onError={setError}
+        />
+      )}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
