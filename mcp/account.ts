@@ -15,6 +15,12 @@ export type AccountReader = {
    * longer has, so this is the last save that got as far as the plan.
    */
   lastSavedAt(): Promise<string | null>;
+  /**
+   * Throws the needs-second-step AccountProblem when the account now wants a code this session never gave: two-step
+   * sign-in turned on after the server signed in. The database then hides every row, which reads as nothing saved, so
+   * a read that finds nothing asks this first.
+   */
+  checkSecondStep(): Promise<void>;
 };
 
 /** Why the account couldn't be read, in words the model can pass on. */
@@ -55,10 +61,22 @@ const SECOND_STEP_NOTE =
 
 /**
  * Whether a session still owes the second step: the account has a verified factor (next level aal2) and the session
- * hasn't given its code yet. Checked once, right after signing in; restart the server after turning the step on.
+ * hasn't given its code yet. Checked right after signing in, and again when a read finds nothing.
  */
 export function needsSecondStep(level: { currentLevel: string | null; nextLevel: string | null } | null): boolean {
   return level !== null && level.nextLevel === 'aal2' && level.currentLevel !== 'aal2';
+}
+
+/**
+ * Throws when the account wants the second step and the session hasn't given it. Without `accessToken` the factors
+ * are the ones the session was handed at sign-in; with it, supabase-js asks the account server for today's (`GET /user`).
+ */
+async function checkSecondStep(client: SupabaseClient, accessToken?: string): Promise<void> {
+  const level = await client.auth.mfa.getAuthenticatorAssuranceLevel(accessToken);
+  if (level.error !== null) {
+    throw new AccountProblem('sign-in-failed', 'Couldn’t check how this account signs in. Restart the server and try again.');
+  }
+  if (needsSecondStep(level.data)) throw new AccountProblem('needs-second-step', SECOND_STEP_NOTE);
 }
 
 async function signIn(settings: AccountSettings): Promise<SupabaseClient> {
@@ -78,12 +96,8 @@ async function signIn(settings: AccountSettings): Promise<SupabaseClient> {
     throw new AccountProblem(unreachable ? 'unreachable' : 'sign-in-failed', authErrorMessage(result.error));
   }
   // An account with two-step sign-in answers a password-only session with no rows at all (the database's rule), which
-  // would read as "nothing saved yet". Say what it is instead.
-  const level = await client.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (level.error !== null) {
-    throw new AccountProblem('sign-in-failed', 'Couldn’t check how this account signs in. Restart the server and try again.');
-  }
-  if (needsSecondStep(level.data)) throw new AccountProblem('needs-second-step', SECOND_STEP_NOTE);
+  // would read as "nothing saved yet". Say what it is instead. The sign-in has just listed the factors.
+  await checkSecondStep(client);
   return client;
 }
 
@@ -103,6 +117,11 @@ function readerOf(client: SupabaseClient): AccountReader {
       if (answer.error) throw new StoreError('plans', answer.status, answer.error.code ?? '', answer.error.message);
       const row = answer.data as { updated_at?: unknown } | null;
       return typeof row?.updated_at === 'string' ? row.updated_at : null;
+    },
+    async checkSecondStep() {
+      // The session's own factors are the ones it signed in with, maybe an hour ago: ask with its token instead.
+      const { data } = await client.auth.getSession();
+      await checkSecondStep(client, data.session?.access_token);
     },
   };
 }

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 /**
@@ -36,6 +37,9 @@ export const E2E_TOTP_SECRET = 'JBSWY3DPEHPK3PXP';
 /** An authenticator factor as Supabase Auth lists it on the user. */
 type MockFactor = { id: string; friendly_name: string; factor_type: 'totp'; status: 'verified' | 'unverified' };
 
+/** Each account's authenticators, by email. Passed to `mockSupabaseAuth` on two pages, they share one account. */
+export type AuthFactors = Map<string, MockFactor[]>;
+
 function userFor(email: string, factors: MockFactor[]) {
   return {
     id: USER_ID,
@@ -73,16 +77,20 @@ export type AuthCall = { method: string; path: string; search: string; body: unk
 /**
  * Answers Supabase Auth like a project with email and password sign-in, "Confirm email" off and authenticator apps on
  * (two-step sign-in): a new account is signed in at once. `accounts` maps each existing email to its password. The
- * authenticator accepts only E2E_TOTP_CODE. Returns every call, in order.
+ * authenticator accepts only E2E_TOTP_CODE. `factors` shares the accounts' authenticators with another page, a second
+ * phone; each page keeps its own session. Returns every call, in order.
  */
-export async function mockSupabaseAuth(page: Page, accounts: Record<string, string> = {}): Promise<AuthCall[]> {
+export async function mockSupabaseAuth(
+  page: Page,
+  accounts: Record<string, string> = {},
+  options: { factors?: AuthFactors } = {},
+): Promise<AuthCall[]> {
   const passwords = new Map(Object.entries(accounts));
   const calls: AuthCall[] = [];
   // Each account's authenticator factors, the account signed in, and whether its session gave a code.
-  const factorsOf = new Map<string, MockFactor[]>();
+  const factorsOf: AuthFactors = options.factors ?? new Map();
   let current: string | null = null;
   let currentAal: 'aal1' | 'aal2' = 'aal1';
-  let created = 0;
   const factors = (email: string) => factorsOf.get(email) ?? [];
   const verified = (email: string) => factors(email).filter((f) => f.status === 'verified');
   const signedIn = (email: string, aal: 'aal1' | 'aal2') => {
@@ -130,12 +138,13 @@ export async function mockSupabaseAuth(page: Page, accounts: Record<string, stri
     }
     if (path === '/user' && request.method() === 'GET') return reply(route, 200, userFor(who, factors(who)));
     if (path === '/factors' && request.method() === 'POST') {
-      const { friendly_name: name = '' } = (body ?? {}) as { friendly_name?: string };
+      // Without an issuer from the app, the account server names the authenticator entry after the site's host.
+      const { friendly_name: name = '', issuer = 'localhost' } = (body ?? {}) as { friendly_name?: string; issuer?: string };
       if (factors(who).some((f) => f.friendly_name === name)) {
         return reply(route, 422, { error_code: 'mfa_factor_name_conflict', msg: 'A factor with this name exists' });
       }
-      created += 1;
-      const factor: MockFactor = { id: `factor-${created}`, friendly_name: name, factor_type: 'totp', status: 'unverified' };
+      // Unique across pages, which may share the account's factors.
+      const factor: MockFactor = { id: `factor-${randomUUID()}`, friendly_name: name, factor_type: 'totp', status: 'unverified' };
       factorsOf.set(who, [...factors(who), factor]);
       const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#000"/></svg>';
       return reply(route, 200, {
@@ -145,7 +154,7 @@ export async function mockSupabaseAuth(page: Page, accounts: Record<string, stri
         totp: {
           qr_code: svg,
           secret: E2E_TOTP_SECRET,
-          uri: `otpauth://totp/StudentsBudget:${encodeURIComponent(who)}?secret=${E2E_TOTP_SECRET}&issuer=StudentsBudget`,
+          uri: `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(who)}?secret=${E2E_TOTP_SECRET}&issuer=${encodeURIComponent(issuer)}`,
         },
       });
     }

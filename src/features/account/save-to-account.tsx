@@ -5,9 +5,13 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { exportAll } from '@/db/bulk';
 import { getSupabase } from '@/lib/supabase/client';
-import { supabaseStore } from '@/sync/store';
+import { StoreError, supabaseStore } from '@/sync/store';
 import { applyUpload, planUpload, saveErrorMessage, staleSummary, uploadSummary, type UploadPlan } from '@/sync/upload';
+import { accountWantsCode } from './code-check';
 import { useAccountTask, type Show } from './use-account-task';
+
+/** Postgres's insufficient_privilege, which PostgREST sends when row-level security refuses a row. */
+const RLS_REFUSED = '42501';
 
 /** A save waiting for "Save anyway": what would go from the account, and the save itself. */
 type Pending = { plan: UploadPlan; stale: string };
@@ -68,7 +72,14 @@ export function SaveToAccount({ hasPlan }: { hasPlan: boolean }) {
         show(() => setPending({ plan: upload, stale }));
         return;
       }
-      await applyUpload(store, upload);
+      try {
+        await applyUpload(store, upload);
+      } catch (thrown) {
+        // Refused by row-level security: the account may want this session's code (two-step sign-in turned on from
+        // another phone). Then the code step takes over; nothing was written.
+        if (thrown instanceof StoreError && thrown.code === RLS_REFUSED && (await accountWantsCode(supabase.auth))) return;
+        throw thrown;
+      }
       show(() => setMessage(uploadSummary(upload)));
     }, onError);
   }

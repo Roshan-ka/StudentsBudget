@@ -27,6 +27,9 @@ const BY_CODE: Record<string, string> = {
   mfa_factor_not_found: 'Two-step sign-in was turned off for this account. Sign out, then sign in again.',
   mfa_factor_name_conflict: 'An earlier set-up is still open. Try again.',
   mfa_totp_enroll_not_enabled: 'Two-step sign-in can’t be turned on right now.',
+  mfa_totp_verify_not_enabled: 'Codes can’t be checked right now. Try again later.',
+  // The challenge and its code must come from the same connection.
+  mfa_ip_address_mismatch: 'Your connection changed while checking the code. Enter the newest code again.',
   insufficient_aal: 'Sign out, sign in again with your code, then try once more.',
 };
 
@@ -37,6 +40,8 @@ export function authErrorMessage(error: unknown): string {
   if (status === 429) return BY_CODE.over_request_rate_limit;
   // supabase-js raises this when the request never got an answer, or the server failed.
   if (name === 'AuthRetryableFetchError') return "The account server can't be reached. Check your connection and try again.";
+  // The account server no longer knows this session (signed out elsewhere, or ended by a finished second step).
+  if (name === 'AuthSessionMissingError') return 'This sign-in has ended. Sign out, then sign in again.';
   return 'Something went wrong. Try again.';
 }
 

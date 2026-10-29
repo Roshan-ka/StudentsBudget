@@ -18,7 +18,7 @@ export function AccountSection() {
         {auth.status === 'signed-in'
           ? `Signed in as ${auth.email}.`
           : auth.status === 'second-step'
-            ? `${auth.email}: the code from your authenticator app is still to come.`
+            ? `Almost signed in as ${auth.email}: enter the code from your authenticator app.`
             : 'Optional: sign in or create an account. Without one, everything stays on this phone.'}
       </p>
       <Link href="/settings/account" className={buttonVariants({ variant: 'outline', className: 'h-10 self-start px-4' })}>
