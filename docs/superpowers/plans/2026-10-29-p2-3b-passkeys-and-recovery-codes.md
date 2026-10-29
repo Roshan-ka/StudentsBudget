@@ -10,7 +10,8 @@
 - 3b.0 (the spike) done: passkeys work on the local stack; recovery codes are switched off on the server and have no config switch (see Findings).
 - Recovery codes (3b.2) are **parked** (Roshan, 29-10-2026). A contract test fails the day the server allows them. Until then the recovery path is the key written down at set-up.
 - 3b.1 done: only an authenticator app's factor is the second step, in the database and the MCP server; the spike became two lasting contract tests.
-- Next: 3b.3, passkeys.
+- 3b.3 done: Settings has a Passkeys card (add, list with dates, remove with a confirm), and the sign-in form "Sign in with a passkey" (not when creating an account). e2e on `desktop-chrome` with Chrome's virtual authenticator: real WebAuthn ceremonies against the mocked `/passkeys/*` endpoints.
+- Next: 3b.4. Roshan turns passkeys on in the Dashboard **before** this branch is merged; until then the live site's Passkeys card would say passkeys are switched off.
 
 **Roshan's choices (29-10-2026):**
 - passkey + recovery codes;

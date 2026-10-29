@@ -9,6 +9,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import { AccountData } from './account-data';
 import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
 import { checkAuthenticatorCode, checkCredentials, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
+import { PasskeySignIn, PasskeysSection } from './passkeys';
 import { TwoStepSection } from './two-step';
 import { useAuth } from './use-auth';
 
@@ -98,6 +99,8 @@ function SignInForm() {
           On iPhone, sign in inside the Home Screen app: Safari and the app keep separate data and sign-ins.
         </p>
       )}
+      {/* A passkey belongs to an account that exists, so only when signing in. */}
+      {!creating && <PasskeySignIn />}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
@@ -360,7 +363,8 @@ export function AccountView() {
         <>
           <SignedInPanel email={auth.email} />
           <AccountData />
-          {/* Last: saving and loading are what the page is for; two-step sign-in is set once. */}
+          {/* Last: saving and loading are what the page is for; passkeys and two-step sign-in are set once. */}
+          <PasskeysSection />
           <TwoStepSection />
         </>
       );

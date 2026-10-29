@@ -31,7 +31,16 @@ const BY_CODE: Record<string, string> = {
   // The challenge and its code must come from the same connection.
   mfa_ip_address_mismatch: 'Your connection changed while checking the code. Enter the newest code again.',
   insufficient_aal: 'Sign out, sign in again with your code, then try once more.',
+  // Passkeys (a beta in Supabase Auth), and the one browser answer worth a text of its own.
+  passkey_disabled: 'Passkeys are switched off right now. Sign in with your email and password.',
+  too_many_passkeys: 'Your account has as many passkeys as it can keep. Remove one first.',
+  webauthn_credential_exists: 'This passkey is already on your account.',
+  webauthn_challenge_expired: 'That took a little long. Try again.',
+  webauthn_verification_failed: 'That passkey didn’t work. Try again, or sign in with your email and password.',
+  ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED: 'This device already has a passkey for your account.',
 };
+
+const GENERAL = 'Something went wrong. Try again.';
 
 /** Calm text for an error from signing in, creating an account or signing out. */
 export function authErrorMessage(error: unknown): string {
@@ -42,7 +51,22 @@ export function authErrorMessage(error: unknown): string {
   if (name === 'AuthRetryableFetchError') return "The account server can't be reached. Check your connection and try again.";
   // The account server no longer knows this session (signed out elsewhere, or ended by a finished second step).
   if (name === 'AuthSessionMissingError') return 'This sign-in has ended. Sign out, then sign in again.';
-  return 'Something went wrong. Try again.';
+  return GENERAL;
+}
+
+/**
+ * Whether the browser's passkey prompt was closed without a passkey: the person cancelled it, it timed out, or the
+ * device has none for this site. Nothing went wrong that needs saying.
+ */
+export function passkeyCancelled(error: unknown): boolean {
+  const { code, name } = fieldsOf(error);
+  return name === 'NotAllowedError' || name === 'AbortError' || code === 'ERROR_CEREMONY_ABORTED';
+}
+
+/** Calm text for a passkey that couldn't be added or used; anything unknown points back to the password. */
+export function passkeyErrorMessage(error: unknown): string {
+  const message = authErrorMessage(error);
+  return message === GENERAL ? BY_CODE.webauthn_verification_failed : message;
 }
 
 /** Shown instead of trying while the phone has no connection. */
