@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
-import { syncNow, syncResultText, syncStatusText } from './engine';
+import { accountSyncStatus, syncNow, syncResultText, syncStatusText } from './engine';
 import { UPDATE_NEEDED } from './pull';
 import { StoreError } from './store';
 import { expense, fakeStore } from './test-helpers';
@@ -169,5 +169,19 @@ describe('two tabs', () => {
     // One after the other: the first pushed and pulled, then the second found nothing to push and pulled from where
     // the first left the cursor.
     expect(calls).toEqual(['upsert accounts local', 'upsert entries e1', 'pull 0', 'pull 2', 'pull 2']);
+  });
+});
+
+// The Settings card's line, for whoever is signed in (triage row 9, P2.2 chunk 10).
+describe('accountSyncStatus', () => {
+  const input = { lastSyncedAt: '2026-10-29T14:04:40', problem: null, waiting: 0, online: true, now: new Date('2026-10-29T14:05:00') };
+
+  it('shows the status to the account the phone is linked to, and nothing while it isn’t linked', () => {
+    expect(accountSyncStatus(USER, USER, input)).toBe('Synced just now.');
+    expect(accountSyncStatus(null, USER, input)).toBeNull();
+  });
+
+  it('tells another account the phone is linked elsewhere, instead of that account’s status', () => {
+    expect(accountSyncStatus(USER, 'someone-else', input)).toBe('This phone is linked to another account.');
   });
 });

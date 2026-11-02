@@ -86,6 +86,21 @@ export function syncStatusText({ lastSyncedAt, problem, waiting, online, now }: 
   return waiting === 0 ? `${when}.` : `${when}. ${changes} waiting.`;
 }
 
+const OTHER_ACCOUNT_LINKED = 'This phone is linked to another account.';
+
+/**
+ * The sync status for the signed-in user `userId`: null while the phone isn't linked (`linkedTo` is the account it
+ * is linked to), and a line saying so when it is linked to another account, whose status isn't this user's.
+ */
+export function accountSyncStatus(
+  linkedTo: string | null | undefined,
+  userId: string,
+  input: SyncStatusInput,
+): string | null {
+  if (!linkedTo) return null;
+  return linkedTo === userId ? syncStatusText(input) : OTHER_ACCOUNT_LINKED;
+}
+
 /**
  * What a screen reader hears once after Sync now: how the tap ended. The status line isn't announced (its clock moves
  * every half minute), and these words never match it, so the two can be told apart.

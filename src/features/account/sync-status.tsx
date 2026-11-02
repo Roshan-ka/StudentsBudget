@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import { getSupabase } from '@/lib/supabase/client';
-import { syncNow, syncResultText, syncStatusText } from '@/sync/engine';
+import { accountSyncStatus, syncNow, syncResultText, syncStatusText } from '@/sync/engine';
 import { supabaseStore } from '@/sync/store';
 import { accountWantsCode } from './code-check';
 
@@ -50,14 +50,18 @@ function useNow(): number {
   );
 }
 
-/** This phone's sync status in words, or null while it isn't linked to an account (or the time isn't known yet). */
-export function useSyncStatus(): string | null {
+/**
+ * This phone's sync status in words, or null while it isn't linked to an account (or the time isn't known yet). Given
+ * the signed-in user's id, a phone linked to another account says so instead of that account's status.
+ */
+export function useSyncStatus(userId?: string): string | null {
   const state = useLiveQuery(() => db.syncState.get('current'), []);
   const waiting = useLiveQuery(() => db.outbox.count(), [], 0);
   const online = useOnline();
   const now = useNow();
   if (!state?.userId || now === 0) return null;
-  return syncStatusText({ lastSyncedAt: state.lastSyncedAt, problem: state.problem, waiting, online, now: new Date(now) });
+  const input = { lastSyncedAt: state.lastSyncedAt, problem: state.problem, waiting, online, now: new Date(now) };
+  return userId === undefined ? syncStatusText(input) : accountSyncStatus(state.userId, userId, input);
 }
 
 /** How long signing out waits for its last sync, so a slow connection never holds the person up for long. */

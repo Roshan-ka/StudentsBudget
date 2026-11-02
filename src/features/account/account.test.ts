@@ -16,14 +16,14 @@ describe('authStateOf', () => {
     expect(authStateOf(null)).toEqual({ status: 'signed-out' });
   });
 
-  it('is signed in with the session user’s email', () => {
-    const session = { user: { email: 'roshan@example.com' } } as Session;
-    expect(authStateOf(session)).toEqual({ status: 'signed-in', email: 'roshan@example.com' });
+  it('is signed in with the session user’s email and id', () => {
+    const session = { user: { id: 'user-1', email: 'roshan@example.com' } } as Session;
+    expect(authStateOf(session)).toEqual({ status: 'signed-in', email: 'roshan@example.com', userId: 'user-1' });
   });
 
   it('keeps an empty email when the user has none', () => {
-    const session = { user: {} } as Session;
-    expect(authStateOf(session)).toEqual({ status: 'signed-in', email: '' });
+    const session = { user: { id: 'user-1' } } as Session;
+    expect(authStateOf(session)).toEqual({ status: 'signed-in', email: '', userId: 'user-1' });
   });
 });
 
@@ -41,7 +41,7 @@ describe('two-step sign-in in authStateOf', () => {
     updated_at: 'x',
   });
   const session = (aal: string, factors: ReturnType<typeof factor>[]) =>
-    ({ access_token: token({ sub: 'u', aal }), user: { email: 'a@example.com', factors } }) as unknown as Session;
+    ({ access_token: token({ sub: 'u', aal }), user: { id: 'u', email: 'a@example.com', factors } }) as unknown as Session;
 
   it('asks for the code when the account has a confirmed authenticator and only the password was given', () => {
     expect(authStateOf(session('aal1', [factor('verified')]))).toEqual({
@@ -53,7 +53,7 @@ describe('two-step sign-in in authStateOf', () => {
 
   it('is signed in once the code was given, without an authenticator, or with one never confirmed', () => {
     for (const s of [session('aal2', [factor('verified')]), session('aal1', []), session('aal1', [factor('unverified')])]) {
-      expect(authStateOf(s)).toEqual({ status: 'signed-in', email: 'a@example.com' });
+      expect(authStateOf(s)).toEqual({ status: 'signed-in', email: 'a@example.com', userId: 'u' });
     }
   });
 
