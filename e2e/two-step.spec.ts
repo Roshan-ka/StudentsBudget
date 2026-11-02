@@ -46,11 +46,20 @@ async function signOut(page: Page) {
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
 }
 
+/**
+ * Waits until signing in has linked the phone (P2.2): the Sync section then takes the place of "Linking this phone…"
+ * and moves Two-step sign-in down, so a click there before this can land on the wrong spot.
+ */
+async function linked(page: Page) {
+  await expect(page.getByRole('region', { name: 'Sync', exact: true }).getByRole('button', { name: 'Sync now', exact: true })).toBeVisible();
+}
+
 /** Signs in and turns two-step sign-in on, with the authenticator's first code. */
 async function signInAndTurnOn(page: Page) {
   await page.goto('/settings/account');
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
+  await linked(page);
   await expect(twoStep(page).getByText('Turn it on and signing in', { exact: false })).toBeVisible();
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await codeField(page).fill(E2E_TOTP_CODE);
@@ -99,6 +108,7 @@ test('turning it on shows the ways to add the app, and takes only a right first 
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await page.goto('/settings/account');
   await signIn(page);
+  await linked(page);
 
   // Offline, nothing is tried, and the message says what needs the connection.
   await context.setOffline(true);
@@ -207,6 +217,7 @@ test('a set-up cancelled, or left open, never blocks the next one', async ({ pag
   const calls = await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await page.goto('/settings/account');
   await signIn(page);
+  await linked(page);
 
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await twoStep(page).getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -237,6 +248,7 @@ test('leaving the page mid set-up and coming back keeps the set-up', async ({ pa
   await completeSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
+  await linked(page);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await expect(codeField(page)).toBeVisible();
 
@@ -312,6 +324,8 @@ test('a phone signed in before another turned it on asks for the code on Sync no
   await page.goto('/settings');
   await page.getByRole('region', { name: 'Profile', exact: true }).getByRole('textbox', { name: 'Your name', exact: true }).fill('Changed here');
   await page.getByRole('region', { name: 'Profile', exact: true }).getByRole('button', { name: 'Save profile', exact: true }).click();
+  // Saved, and so waiting in the outbox, before the page goes.
+  await expect(page.getByRole('region', { name: 'Profile', exact: true }).getByText('Profile saved.', { exact: true })).toBeVisible();
   await page.goto('/settings/account');
 
   // Row-level security now refuses this session's rows, as the database does (Postgres insufficient_privilege).
@@ -337,6 +351,7 @@ test('a set-up removed from another phone says so, and Turn on then finds it on'
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
   await page.goto('/settings/account');
   await signIn(page);
+  await linked(page);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await expect(codeField(page)).toBeVisible();
 

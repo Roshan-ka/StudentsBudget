@@ -2,12 +2,39 @@ name: CI
 
 on:
   pull_request:
+    # A pull request that changes only notes (Markdown anywhere, docs/) starts no run at all.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
 permissions:
   contents: read
 
+# A new push to a pull request stops the run for the push before it.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
+  # Which jobs this pull request needs, from the files it changes (scripts/ci-areas.mjs). e2e always runs whole when the
+  # app changes: a change in one place can break a spec about another (P2.2's linking broke a two-step spec).
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.areas.outputs.app }}
+      db: ${{ steps.areas.outputs.db }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The merge commit and its parents: HEAD^1 is the base branch as it is now.
+          fetch-depth: 2
+      # The runner's own Node is enough: the script uses only Node's built-ins.
+      - id: areas
+        run: node scripts/ci-changes.mjs >> "$GITHUB_OUTPUT"
+
   check:
+    needs: changes
     runs-on: ubuntu-latest
     # e2e alone has taken 10 to 16 minutes on the same tests, and npm ci up to 4: 20 cut off a run that would pass.
     timeout-minutes: 30
@@ -20,12 +47,17 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run build
+      - if: needs.changes.outputs.app == 'true'
+        run: npm run build
       - run: npm test
-      - run: npx playwright install --with-deps chromium webkit
+      # Only when the pull request changes the app: the database and the MCP server alone have nothing for these.
+      - if: needs.changes.outputs.app == 'true'
+        run: npx playwright install --with-deps chromium webkit
       - id: e2e
+        if: needs.changes.outputs.app == 'true'
         run: npm run test:e2e
       - id: offline
+        if: needs.changes.outputs.app == 'true'
         run: npm run test:offline
       # Only after a failed Playwright run: the HTML report and each failed test's trace. The offline check runs only
       # when e2e passed, so the files on disk always belong to the run that failed.
@@ -39,8 +71,11 @@ jobs:
           retention-days: 14
 
   # The database: the migrations in supabase/migrations on a local Supabase stack (Docker is on the runner), then the
-  # pgTAP tests in supabase/tests. No secrets: the local stack makes its own keys.
+  # pgTAP tests in supabase/tests. No secrets: the local stack makes its own keys. Only when the pull request changes
+  # the database, the account store or what they run on.
   db:
+    needs: changes
+    if: needs.changes.outputs.db == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

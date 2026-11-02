@@ -42,7 +42,11 @@ async function renameProfile(page: Page, name: string) {
 
 async function syncNow(page: Page) {
   await page.goto('/settings/account');
-  await syncRegion(page).getByRole('button', { name: 'Sync now', exact: true }).click();
+  const button = syncRegion(page).getByRole('button', { name: 'Sync now', exact: true });
+  await button.click();
+  // The status may read "Synced just now." before the tap already: the button, disabled while it syncs, says when
+  // this sync is over.
+  await expect(button).toBeEnabled();
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
 }
 
@@ -100,12 +104,13 @@ test('a phone with a plan links by uploading, a second by loading, and Sync now 
   await renameProfile(page, 'Named on phone A');
   await syncNow(page);
   await syncNow(pageB);
-  expect(await profileName(pageB)).toBe('Named on phone A');
+  await expect.poll(() => profileName(pageB)).toBe('Named on phone A');
 
   await renameProfile(pageB, 'Named on phone B');
   await syncNow(pageB);
   await syncNow(page);
-  expect(await profileName(page)).toBe('Named on phone B');
+  await expect.poll(() => profileName(page)).toBe('Named on phone B');
+  await pageB.context().close();
 });
 
 test('when both phones hold data, the person chooses which to keep', async ({ page, browser }) => {
@@ -122,13 +127,19 @@ test('when both phones hold data, the person chooses which to keep', async ({ pa
   const pageB = await secondPhone(browser, account, true);
   const question = linkRegion(pageB).getByText('This phone and your account both hold data.', { exact: false });
   await expect(question).toBeVisible();
+  // The question takes the focus, not a button: neither side is the default.
+  await expect(question).toBeFocused();
+  // Keeping this phone's data would delete the account's own rows, there and on the other phone.
+  await expect(
+    linkRegion(pageB).getByText('from your account, and from your other phones when they next sync.', { exact: false }),
+  ).toBeVisible();
   const useAccount = linkRegion(pageB).getByRole('button', { name: "Use my account's data", exact: true });
-  await expect(linkRegion(pageB).getByRole('button', { name: "Keep this phone's data", exact: true })).toBeFocused();
   await useAccount.click();
   await expect(pageB.getByText(/^Loaded from your account: /)).toBeVisible();
   await expect(syncRegion(pageB).getByText('Synced just now.', { exact: true })).toBeVisible();
   const accountsA = (await readStore<{ id: string }>(page, 'accounts')).map((a) => a.id).sort();
   expect((await readStore<{ id: string }>(pageB, 'accounts')).map((a) => a.id).sort()).toEqual(accountsA);
+  await pageB.context().close();
 });
 
 test('a phone linked to one account stays apart from another account', async ({ page }) => {
