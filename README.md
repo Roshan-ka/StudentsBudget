@@ -151,7 +151,12 @@ CI never starts on its own: start it by hand under Actions → CI → **Run work
 - **browsers**: `auto` (Chromium for changed, Chromium and the iPhone's WebKit for full), `chromium` or `all`.
 - **languages**: `auto`, `default` or `all`. The app is English only, so this has no effect yet.
 
-The run posts its result on the tested commit, where the pull request shows it: `full-gate` for a full run (merging waits for it) and `quick-check` for a changed one. A new route or spec needs a line in `e2e/affected-map.json`, or `npm test` fails.
+The run posts its result on the tested commit, where the pull request shows it:
+- `full-gate` for a full run on every browser and language. Merging waits for it, and it is green only when every job ran and passed.
+- `partial-check` for a full run narrowed to one browser or the default language. It never stands in for `full-gate`.
+- `quick-check` for a changed run.
+
+Starting runs by hand only decides when that wait begins: every new commit on a pull request, an update from `main` included, needs a new full run before it can merge. A new route or spec needs a line in `e2e/affected-map.json`, or `npm test` fails.
 
 ### Accounts and the database (optional)
 Without Supabase settings the app runs local-only and hides the account UI. To try accounts:
