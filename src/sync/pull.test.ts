@@ -2,9 +2,11 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
+import type { Plan } from '@/db/types';
 import { pull, UPDATE_NEEDED } from './pull';
 import { push } from './push';
 import { expense, fakeStore, MANUAL } from './test-helpers';
+import { untracked } from './untracked';
 
 // Pulls into fake-indexeddb, with the real tracking middleware (registered in db.ts), from the fake store. The other
 // phone is played by writing to the store as its push would.
@@ -100,6 +102,30 @@ describe('pull', () => {
     await push(store);
     await pull(store);
     expect(await db.entries.get('e1')).toEqual(expense('e1'));
+    expect(await queued()).toEqual([]);
+  });
+
+  it('takes a pulled plan but keeps each watermark this phone has moved further', async () => {
+    const plan = (postedThrough: string, monthlyMinor: number): Plan => ({
+      id: 'current',
+      cityId: 'regensburg',
+      incomes: [],
+      fixed: [
+        {
+          categoryId: 'rent',
+          monthlyMinor,
+          schedule: { id: 'rent-s', frequency: 'monthly', day: 1, accountId: 'local', amountMinor: monthlyMinor, startOn: '2026-10-17', postedThrough },
+        },
+      ],
+      oneOffs: [],
+      envelopes: [],
+      createdOn: '2026-10-16',
+    });
+    // This phone posted November; the other phone changed the rent before it knew.
+    await untracked([db.plan], () => db.plan.put(plan('2026-11-30', 40_000)));
+    const { store } = fakeStore({ plans: { current: plan('2026-10-31', 41_000) } });
+    await pull(store);
+    expect(await db.plan.get('current')).toEqual(plan('2026-11-30', 41_000));
     expect(await queued()).toEqual([]);
   });
 });

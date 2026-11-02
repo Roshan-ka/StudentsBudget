@@ -103,6 +103,20 @@ export function fakeStore(initial: Partial<Record<ServerTable, Record<string, un
         stamp(table, row.id);
       }
     },
+    async insertNew(table, rows) {
+      calls.push(`insert ${table} ${rows.map((row) => row.id).join(',')}`);
+      // As `on conflict do nothing`: a row the account has, a tombstone too, stays as it is and comes back.
+      const had: PulledRow[] = [];
+      for (const row of rows) {
+        if (tables[table].has(row.id)) {
+          had.push({ table, id: row.id, data: structuredClone(tables[table].get(row.id) ?? null), rev: revs[table].get(row.id) ?? 0 });
+        } else {
+          tables[table].set(row.id, structuredClone(row.data));
+          stamp(table, row.id);
+        }
+      }
+      return had;
+    },
     async tombstone(table, ids) {
       calls.push(`tombstone ${table} ${ids.join(',')}`);
       // As the database does: an id it never had gets a tombstone too.

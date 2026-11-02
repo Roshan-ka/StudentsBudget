@@ -4,8 +4,10 @@ import { db } from '@/db/db';
 import { setManualRate } from '@/db/rates';
 import { deleteEntry, saveEntry } from '@/db/repo';
 import type { Plan } from '@/db/types';
+import { automatic } from './automatic';
 import { push } from './push';
 import { ECB, expense, fakeStore, liveIds } from './test-helpers';
+import { untracked } from './untracked';
 
 // Pushes run over the real tracking middleware (registered in db.ts) on fake-indexeddb, into the fake store.
 
@@ -112,5 +114,80 @@ describe('push', () => {
     await db.outbox.clear();
     expect(await push(store)).toEqual({ sent: 0, deleted: 0 });
     expect(calls).toEqual([]);
+  });
+});
+
+// What the poster adds on its own (recurring entries, and the plan's watermarks) goes to the account only where the
+// account has nothing yet: a phone that hasn't synced posts from what it knew, and must not undo what another phone
+// changed meanwhile (triage row 2, P2.2 chunk 9).
+describe('automatic rows', () => {
+  const RENT_ID = 'rec:rent-s:2026-11';
+  const rent = (amountMinor: number) => ({ ...expense(RENT_ID), amountMinor, eurMinor: amountMinor });
+  const scheduled = (postedThrough: string, monthlyMinor = 40_000): Plan => ({
+    ...PLAN,
+    fixed: [
+      {
+        categoryId: 'rent',
+        monthlyMinor,
+        schedule: { id: 'rent-s', frequency: 'monthly', day: 1, accountId: 'local', amountMinor: monthlyMinor, startOn: '2026-10-17', postedThrough },
+      },
+    ],
+  });
+
+  it('marks what the poster writes, and adds an entry the account doesn’t have yet', async () => {
+    const { store, tables, calls } = fakeStore();
+    await automatic([db.entries], () => db.entries.put(rent(40_000)));
+    expect(await db.outbox.get(['entries', RENT_ID])).toMatchObject({ auto: true });
+    await push(store);
+    expect(calls).toContain(`insert entries ${RENT_ID}`);
+    expect(tables.entries.get(RENT_ID)).toMatchObject({ amountMinor: 40_000 });
+    expect(await queued()).toEqual([]);
+  });
+
+  it('never writes over the account’s copy: an edit made on another phone wins, here too', async () => {
+    const { store, tables } = fakeStore({ entries: { [RENT_ID]: rent(41_000) } });
+    await automatic([db.entries], () => db.entries.put(rent(40_000)));
+    await push(store);
+    expect(tables.entries.get(RENT_ID)).toMatchObject({ amountMinor: 41_000 });
+    expect(await db.entries.get(RENT_ID)).toMatchObject({ amountMinor: 41_000 });
+    expect(await queued()).toEqual([]);
+  });
+
+  it('never brings back an entry deleted on another phone', async () => {
+    const { store, tables } = fakeStore({ entries: { [RENT_ID]: null } });
+    await automatic([db.entries], () => db.entries.put(rent(40_000)));
+    await push(store);
+    expect(tables.entries.get(RENT_ID)).toBeNull();
+    expect(await db.entries.get(RENT_ID)).toBeUndefined();
+    expect(await queued()).toEqual([]);
+  });
+
+  it('sends the person’s edit of a posted entry as an edit', async () => {
+    const { store, tables } = fakeStore({ entries: { [RENT_ID]: rent(41_000) } });
+    await automatic([db.entries], () => db.entries.put(rent(40_000)));
+    await saveEntry(rent(39_000));
+    expect((await db.outbox.get(['entries', RENT_ID]))?.auto).toBeUndefined();
+    await push(store);
+    expect(tables.entries.get(RENT_ID)).toMatchObject({ amountMinor: 39_000 });
+  });
+
+  it('keeps a change the person made first as theirs when the poster writes the row again', async () => {
+    const { store, tables } = fakeStore({ plans: { current: scheduled('2026-10-31', 41_000) } });
+    await db.plan.put(scheduled('2026-10-31', 45_000));
+    await automatic([db.plan], () => db.plan.put(scheduled('2026-11-30', 45_000)));
+    expect((await db.outbox.get(['plans', 'current']))?.auto).toBeUndefined();
+    await push(store);
+    expect(tables.plans.get('current')).toEqual(scheduled('2026-11-30', 45_000));
+  });
+
+  it('never writes the poster’s moved watermark over the account’s plan, and keeps it on the phone', async () => {
+    // Another phone changed the rent; this one only posted November, which moved its watermark.
+    const { store, tables } = fakeStore({ plans: { current: scheduled('2026-10-31', 41_000) } });
+    await untracked([db.plan], () => db.plan.put(scheduled('2026-10-31')));
+    await automatic([db.plan], () => db.plan.put(scheduled('2026-11-30')));
+    await push(store);
+    expect(tables.plans.get('current')).toEqual(scheduled('2026-10-31', 41_000));
+    expect(await db.plan.get('current')).toEqual(scheduled('2026-11-30', 41_000));
+    expect(await queued()).toEqual([]);
   });
 });

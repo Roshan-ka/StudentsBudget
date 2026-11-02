@@ -20,6 +20,12 @@ export type UserDataStore = {
   /** Adds the rows, or replaces the user's rows that have the same ids. */
   upsert(table: ServerTable, rows: ServerRow[]): Promise<void>;
   /**
+   * Adds the rows the user's account doesn't have, and leaves alone those it has, live or deleted: those come back as
+   * the account holds them (a tombstone with data null), for the phone to take instead of its own. For what the poster
+   * wrote (`auto` in the outbox), which must never undo another phone's change.
+   */
+  insertNew(table: ServerTable, rows: ServerRow[]): Promise<PulledRow[]>;
+  /**
    * Deletes the user's rows with these ids by writing tombstones: the row stays with no data, and the database marks it
    * deleted, so other phones learn of the delete. An id the account never had gets a tombstone too, which reads leave
    * out and a pull applies as a delete of nothing.
@@ -49,9 +55,13 @@ export class StoreError extends Error {
 // set lower sends shorter pages, which reading copes with).
 const UPSERT_BATCH = 500;
 const PAGE = 1000;
+// Ids per read by id: they go in the URL (`id=in.(…)`), which servers cap at a few kilobytes.
+const READ_BY_ID = 100;
 
 const idRows = z.array(z.object({ id: z.string() }));
 const fullRows = z.array(z.object({ id: z.string(), data: z.unknown() }));
+// PostgREST sends a bigint as a JSON number.
+const revRows = z.array(z.object({ id: z.string(), data: z.unknown(), rev: z.number() }));
 // sync_pull's rows (supabase/migrations/20261026132206_sync.sql). PostgREST sends a bigint as a JSON number.
 const pulledRows = z.array(
   z.object({ tbl: z.enum(SERVER_TABLES), id: z.string(), data: z.unknown(), rev: z.number() }).transform((row) => ({
@@ -114,6 +124,22 @@ export function supabaseStore(client: SupabaseClient): UserDataStore {
       for (const batch of batches(rows, UPSERT_BATCH)) {
         check(table, await client.from(table).upsert(batch, { onConflict: 'user_id,id' }));
       }
+    },
+    async insertNew(table, rows) {
+      const had: PulledRow[] = [];
+      for (const batch of batches(rows, UPSERT_BATCH)) {
+        // `on conflict do nothing`: the answer lists only the rows it added.
+        const answer = await client.from(table).upsert(batch, { onConflict: 'user_id,id', ignoreDuplicates: true }).select('id');
+        check(table, answer);
+        const added = new Set(idRows.parse(answer.data).map((row) => row.id));
+        const kept = batch.map((row) => row.id).filter((id) => !added.has(id));
+        for (const ids of batches(kept, READ_BY_ID)) {
+          const read = await client.from(table).select('id, data, rev').in('id', ids);
+          check(table, read);
+          had.push(...revRows.parse(read.data).map((row) => ({ table, id: row.id, data: row.data ?? null, rev: row.rev })));
+        }
+      }
+      return had;
     },
     async tombstone(table, ids) {
       // An upsert, not an update: every write then takes the user's revision counter before the row (see the sync

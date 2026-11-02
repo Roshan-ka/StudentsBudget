@@ -135,9 +135,10 @@ export type Profile = {
 /**
  * One row of this phone that changed and still has to reach the account: which server table, the row's server id, and
  * when it was recorded (`seq`, rising). Only the key is kept; a push sends the row as it is then. One entry per row:
- * a later change replaces it.
+ * a later change replaces it. `auto`: only the poster changed the row since it last synced (a recurring entry, the
+ * plan's watermarks), so a push adds it where the account has none and never writes it over the account's copy.
  */
-export type OutboxEntry = { table: ServerTable; id: string; seq: number };
+export type OutboxEntry = { table: ServerTable; id: string; seq: number; auto?: true };
 
 /**
  * This phone's link to an account, one row like the plan. `userId` is the account it syncs with (null: not linked, and

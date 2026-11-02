@@ -1,4 +1,6 @@
 import { db } from '@/db/db';
+import type { Plan } from '@/db/types';
+import { keepWatermarks } from '@/features/recurring/update-plan';
 import { BadRow, ROW_CHECKS } from './rows';
 import type { PulledRow, UserDataStore } from './store';
 import { dexieHome, SERVER_TABLES } from './tables';
@@ -17,7 +19,12 @@ export const UPDATE_NEEDED = 'This app needs an update to sync.';
 export type PullResult = { kind: 'done'; applied: number; cursor: number } | { kind: 'invalid'; problem: string };
 
 /** A pulled row, checked: the row to put on the phone, or null for a tombstone (the row was deleted). */
-type Checked = { row: PulledRow; value: object | null };
+export type Checked = { row: PulledRow; value: object | null };
+
+/** Checks a row from the account like a backup row (src/sync/rows.ts); throws a BadRow when this app can't read it. */
+export function checkRow(row: PulledRow): Checked {
+  return { row, value: row.data === null ? null : ROW_CHECKS[row.table](row) };
+}
 
 /**
  * Brings the account's changes onto this phone (P2.2): every row written after the phone's cursor, a page at a time,
@@ -34,7 +41,7 @@ export async function pull(store: UserDataStore, limit = PULL_PAGE): Promise<Pul
     if (page.length === 0) return { kind: 'done', applied, cursor };
     let checked: Checked[];
     try {
-      checked = page.map((row) => ({ row, value: row.data === null ? null : ROW_CHECKS[row.table](row) }));
+      checked = page.map(checkRow);
     } catch (error) {
       if (error instanceof BadRow) {
         console.error('StudentsBudget: a pulled row this app cannot read:', error.message);
@@ -44,8 +51,13 @@ export async function pull(store: UserDataStore, limit = PULL_PAGE): Promise<Pul
     }
     // Only forward: a page never takes the cursor back.
     cursor = Math.max(cursor, ...page.map((row) => row.rev));
-    applied += await apply(checked, cursor);
+    applied += await applyFromAccount(checked, cursor);
   }
+}
+
+/** The account's plan, with each watermark the phone's own plan has further kept. */
+function withPhoneWatermarks(phone: Plan | undefined, account: Plan): Plan {
+  return phone ? keepWatermarks(phone, account) : account;
 }
 
 /** Every table a pull writes: the synced Dexie tables, the outbox it reads, and the sync state that keeps the cursor. */
@@ -53,18 +65,23 @@ function pulledTables() {
   return [...SERVER_TABLES.map((table) => db.table(dexieHome(table).dexie)), db.outbox, db.syncState];
 }
 
-/** Applies one checked page and saves the cursor, in one untracked transaction; returns how many rows changed. */
-async function apply(rows: Checked[], cursor: number): Promise<number> {
+/**
+ * Puts checked rows from the account on this phone, in one untracked transaction, and saves `cursor` with them when
+ * given; returns how many rows changed. A row still waiting in the outbox is left alone. A plan keeps each watermark
+ * this phone has moved further, as the account's keep_watermarks trigger does: going back would post periods again.
+ */
+export async function applyFromAccount(rows: Checked[], cursor?: number): Promise<number> {
   return untracked(pulledTables(), async () => {
     let applied = 0;
     for (const { row, value } of rows) {
       if ((await db.outbox.get([row.table, row.id])) !== undefined) continue;
       const home = dexieHome(row.table);
       if (value === null) await db.table(home.dexie).delete(home.keyOf(row.id));
+      else if (row.table === 'plans') await db.plan.put(withPhoneWatermarks(await db.plan.get('current'), value as Plan));
       else await db.table(home.dexie).put(value);
       applied += 1;
     }
-    await db.syncState.update('current', { cursor });
+    if (cursor !== undefined) await db.syncState.update('current', { cursor });
     return applied;
   });
 }
