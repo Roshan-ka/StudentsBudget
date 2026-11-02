@@ -33,9 +33,21 @@ export function AccountLink() {
   const [attempt, setAttempt] = useState(0);
   // The choice's question takes the focus, as Restore's does: a screen reader reads it out, and Enter picks no side.
   const questionRef = useRef<HTMLParagraphElement>(null);
+  // After a tap that takes its own button away (a choice, Try again), the focus follows what shows next instead of
+  // falling back to the top of the page: "Linking…", then the line on what moved. An alert is read out by itself.
+  const followFocus = useRef(false);
+  const checkingRef = useRef<HTMLParagraphElement>(null);
+  const noteRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (view.kind === 'choose') questionRef.current?.focus();
+    if (!followFocus.current) return;
+    if (view.kind === 'checking') {
+      checkingRef.current?.focus();
+      return;
+    }
+    if (view.kind === 'linked') noteRef.current?.focus();
+    followFocus.current = false;
   }, [view.kind]);
 
   // Runs when the page shows, and again when it shows after being hidden: signing in, or another account's sign-in
@@ -71,6 +83,7 @@ export function AccountLink() {
   }, [attempt]);
 
   function linkAgain() {
+    followFocus.current = true;
     setView({ kind: 'checking' });
     setAttempt((count) => count + 1);
   }
@@ -88,6 +101,7 @@ export function AccountLink() {
       const store = supabaseStore(supabase);
       await applyLink(store, plan, userId, choice);
       await syncNow(store, userId);
+      followFocus.current = true;
       setView({
         kind: 'linked',
         fresh: true,
@@ -103,14 +117,18 @@ export function AccountLink() {
   }
 
   if (view.kind === 'checking') {
-    return <p className="text-muted-foreground">Linking this phone to your account…</p>;
+    return (
+      <p ref={checkingRef} tabIndex={-1} className="text-muted-foreground outline-none">
+        Linking this phone to your account…
+      </p>
+    );
   }
 
   if (view.kind === 'linked') {
     return (
       <>
         {view.note !== null && (
-          <p aria-live="polite" className="text-sm text-muted-foreground">
+          <p ref={noteRef} tabIndex={-1} aria-live="polite" className="text-sm text-muted-foreground outline-none">
             {view.note}
           </p>
         )}
@@ -157,6 +175,10 @@ export function AccountLink() {
               Use my account&apos;s data
             </Button>
           </div>
+          {/* While the choice is carried out: the data moving, then the first sync. */}
+          <p role="status" className="text-sm text-muted-foreground">
+            {busy ? 'Linking this phone…' : ''}
+          </p>
         </div>
       </section>
     );

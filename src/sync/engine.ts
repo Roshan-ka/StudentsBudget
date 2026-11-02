@@ -85,6 +85,23 @@ export function syncStatusText({ lastSyncedAt, problem, waiting, online, now }: 
   return waiting === 0 ? `${when}.` : `${when}. ${changes} waiting.`;
 }
 
+/**
+ * What a screen reader hears once after Sync now: how the tap ended. The status line isn't announced (its clock moves
+ * every half minute), and these words never match it, so the two can be told apart.
+ */
+export function syncResultText(result: SyncResult): string {
+  switch (result.kind) {
+    case 'synced':
+      return 'Sync finished.';
+    case 'offline':
+      return 'Not synced: you’re offline. Changes wait on this phone.';
+    case 'not-linked':
+      return 'Not synced: this phone is linked to another account.';
+    case 'problem':
+      return `Not synced: ${result.problem}`;
+  }
+}
+
 /** "just now", "2 min ago", or the day and time for anything an hour old or more. */
 function ago(iso: string, now: Date): string {
   const minutes = Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000);

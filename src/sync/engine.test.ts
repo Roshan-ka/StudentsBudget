@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
-import { syncNow, syncStatusText } from './engine';
+import { syncNow, syncResultText, syncStatusText } from './engine';
 import { UPDATE_NEEDED } from './pull';
 import { StoreError } from './store';
 import { expense, fakeStore } from './test-helpers';
@@ -127,5 +127,16 @@ describe('an account still in use', () => {
     expect(tables.accounts.get('local')).toMatchObject({ id: 'local' });
     expect(await db.accounts.get('local')).toEqual(LOCAL);
     expect(await db.outbox.count()).toBe(0);
+  });
+});
+
+// What a screen reader hears once after Sync now (the status line itself is not announced: its clock ticks). Never
+// the same words as the status line, so the two can be told apart (P2.2 chunk 10, row 7).
+describe('syncResultText', () => {
+  it('says how the tap ended, in words the status line never uses', () => {
+    expect(syncResultText({ kind: 'synced', sent: 2, received: 3 })).toBe('Sync finished.');
+    expect(syncResultText({ kind: 'offline' })).toBe('Not synced: you’re offline. Changes wait on this phone.');
+    expect(syncResultText({ kind: 'not-linked' })).toBe('Not synced: this phone is linked to another account.');
+    expect(syncResultText({ kind: 'problem', problem: UPDATE_NEEDED })).toBe(`Not synced: ${UPDATE_NEEDED}`);
   });
 });
