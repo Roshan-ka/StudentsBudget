@@ -45,7 +45,7 @@ Each week (Monday to Sunday) is saved from the Wednesday after it ends, the next
 
 **Account.** Optional. Settings starts with **Your account** (when the app has an account server set up): create an account with an email and a password of 8 or more characters, or sign in. Signed in on that page, the phone **links** to your account:
 - A phone with data and an empty account: the phone's data goes to the account.
-- An empty phone, such as a second phone (**Sign in to load it** at the top of setup leads there): it gets the account's data.
+- An empty phone, such as a second phone (**Sign in to get your data** at the top of setup leads there): it gets the account's data.
 - Both hold data: the app says what each holds and asks which to keep, **Keep this phone's data** or **Use my account's data**. The other side is replaced.
 - A phone linked to one account stays apart from another account: sign out and back in with the first, or delete everything on the phone first.
 

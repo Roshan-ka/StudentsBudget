@@ -1,10 +1,12 @@
 'use client';
 
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { replaceAll, type BackupData } from '@/db/bulk';
+import { db } from '@/db/db';
 import { backupSummary, parseBackup } from './backup';
 
 type Chosen = { fileName: string; data: BackupData; exportedAt: string };
@@ -23,6 +25,8 @@ export function RestoreFromBackup() {
   const [error, setError] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  // A linked phone records the restore as its changes, so the next sync makes the account match the file.
+  const linked = useLiveQuery(async () => Boolean((await db.syncState.get('current'))?.userId), [], false);
 
   useEffect(() => {
     // The router keeps a page it has left mounted but hidden, with its state. A question left open there
@@ -111,6 +115,11 @@ export function RestoreFromBackup() {
               Replace all data with <strong className="font-semibold break-words">{chosen.fileName}</strong>?
             </p>
             <p className="text-sm text-muted-foreground">{backupSummary(chosen.data, chosen.exportedAt)}</p>
+            {linked && (
+              <p className="text-sm text-muted-foreground">
+                This phone is linked to your account: your account and your other phones follow at the next sync.
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
             <Button type="button" className="h-10 px-4" onClick={() => void onReplace()} disabled={restoring}>

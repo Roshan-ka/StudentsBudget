@@ -169,8 +169,9 @@ export function AccountLink() {
       </h3>
       {view.kind === 'other-account' ? (
         <p role="alert" className="text-sm">
-          This phone holds another account&apos;s data, so it stays apart from this one. To use this account here, sign
-          out and sign in with the other one, or delete everything on this phone first (Settings → Backup).
+          This phone holds another account&apos;s data, so it stays apart from this one. To sync it, sign out and sign in
+          with that account. To use this account here instead, delete everything on this phone (Settings → Backup); changes
+          not synced yet are lost.
         </p>
       ) : (
         <>

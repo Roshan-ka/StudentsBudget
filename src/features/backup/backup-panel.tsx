@@ -181,7 +181,8 @@ function DeleteEverything() {
       <h4 className="font-medium">Delete everything</h4>
       <p className="text-sm text-muted-foreground">
         Removes your plan, accounts, entries, saved weeks and badges, discount answers, profile and exchange rates
-        from this phone. If you saved to an account, its copy stays, and you stay signed in.
+        from this phone. A phone linked to your account is unlinked: your account keeps its copy, and you stay signed in.
+        Changes not synced yet are lost.
       </p>
       {open ? (
         <form
@@ -243,7 +244,7 @@ export function BackupPanel() {
         Backup
       </h3>
       <p className="text-muted-foreground">
-        Everything you enter stays on this phone unless you save it to your account. A backup file is a copy you keep
+        Everything you enter stays on this phone unless you link it to your account. A backup file is a copy you keep
         yourself, so export one now and then and keep it somewhere safe.
       </p>
       <ExportBackup />
