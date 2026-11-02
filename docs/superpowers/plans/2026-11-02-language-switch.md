@@ -178,6 +178,10 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
 2. **Formatters take a locale.**
    - Files: `money.ts`, `format.ts`, `summary.ts`, `week-label.ts`, `profile.ts`, and the other `'en-IE'` / `ListFormat` sites.
    - Tests: existing tests unchanged, plus `de-DE` cases.
+   - **As built (2026-11-02), narrowed to the shared core:**
+     - `formatMoney`/`formatRange` (the euro sign where the locale puts it), `weekLabel`, `listed` and the cached `src/i18n/format.ts`.
+     - The ~20 component and builder sites with their own `Intl` instances (charts, check-in, entries, Home, setup envelopes, rates, badges, profile, reveal) move to `format.ts` with the chunk that extracts their area, which touches them anyway.
+     - English `weekLabel` and `listed` stay hand-built, so they read the same in every browser engine (the e2e checks them word for word); other locales use Intl.
 3. **Extract Home, entries and categories**, plus the note display rule.
    - From this chunk on, each area joins a `react/jsx-no-literals` override in `eslint.config.mjs`.
 4. **Extract setup and `draft.ts`**: validation, prefilled names, the estimate label, the semester fee.

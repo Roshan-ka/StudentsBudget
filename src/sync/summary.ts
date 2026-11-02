@@ -1,10 +1,16 @@
+import { listFormat } from '@/i18n/format';
+
 /** "1 entry", "42 entries". */
 export function count(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-/** "a", "a and b", "a, b and c". */
-export function listed(parts: string[]): string {
+/**
+ * "a", "a and b", "a, b and c" in English (the default locale), built by hand so it reads the same in every browser
+ * engine; another locale joins with its own "and" (Intl.ListFormat).
+ */
+export function listed(parts: string[], locale: string = 'en-IE'): string {
+  if (locale !== 'en-IE') return listFormat(locale).format(parts);
   return parts.length <= 1 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
 }
 
