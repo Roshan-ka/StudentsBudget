@@ -35,6 +35,15 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // Text a person reads comes from the dictionaries (src/i18n/messages), so every language has it. An area joins
+    // this list once its text has moved there (docs/superpowers/plans/2026-11-02-language-switch.md). Props are not
+    // checked (class names): a translated aria-label is the reviewer's to see.
+    files: ["src/features/home/**/*.tsx"],
+    rules: {
+      "react/jsx-no-literals": ["error", { noStrings: true, ignoreProps: true }],
+    },
+  },
+  {
     // The scripts run in Node, not in the browser.
     files: ["scripts/**/*.mjs"],
     languageOptions: {

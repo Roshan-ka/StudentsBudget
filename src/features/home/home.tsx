@@ -10,20 +10,15 @@ import { BadgesCard } from '@/features/badges/badges-card';
 import { CheckInCard } from '@/features/check-in/check-in-card';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RevealCard } from '@/features/reveal/reveal-view';
+import { listFormat } from '@/i18n/format';
+import { useT } from '@/i18n/use-t';
 import { monthStatus, weekToSpend } from '@/lib/budget';
 import { monthOf } from '@/lib/dates';
-import { formatMoney, type CurrencyCode } from '@/lib/money';
+import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { EnvelopeList, type EnvelopeRow } from './envelope-list';
 import { LeftThisMonthCard } from './left-this-month-card';
 import { SuggestedBudget } from './suggested-budget';
-
-const currencyList = new Intl.ListFormat('en-IE', { style: 'long', type: 'conjunction' });
-
-/** "INR rate missing", or "INR and USD rates missing". */
-function missingRatesNote(currencies: CurrencyCode[]): string {
-  return `${currencyList.format(currencies)} ${currencies.length === 1 ? 'rate' : 'rates'} missing`;
-}
 
 /**
  * The main screen: log a spending, see what is left to spend this month (and this week), how the envelopes are
@@ -38,6 +33,7 @@ export function HomeScreen({
   /** Read with the plan: its name is the greeting, and its semester sets gold Under-Budget Week. */
   profile: Profile | null;
 }) {
+  const { t, locale } = useT();
   const name = profile?.name.trim() ?? '';
   // The date follows the clock, so the week turns over on its own when the app comes back or midnight passes,
   // with no entry saved in between. It is null until the browser runs this (never a date from the prerender).
@@ -83,10 +79,14 @@ export function HomeScreen({
         {guessCount > 0 && <RevealCard startedOn={plan.createdOn} today={today} />}
         <div className="flex flex-col gap-1">
           <p className="font-medium">
-            {`Across all accounts: ${nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { whole: true })}`}
+            {t.home.acrossAccounts(
+              nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { whole: true, locale }),
+            )}
           </p>
           {total.missingRates.length > 0 && (
-            <p className="text-sm text-muted-foreground">{missingRatesNote(total.missingRates)}</p>
+            <p className="text-sm text-muted-foreground">
+              {t.home.missingRates(listFormat(locale).format(total.missingRates), total.missingRates.length)}
+            </p>
           )}
         </div>
       </>
@@ -95,7 +95,7 @@ export function HomeScreen({
 
   return (
     <div className="flex flex-col gap-6">
-      {name !== '' && <p className="text-lg font-semibold break-words">{`Hi ${name}`}</p>}
+      {name !== '' && <p className="text-lg font-semibold break-words">{t.home.greeting(name)}</p>}
       <QuickAddField />
       {content}
     </div>

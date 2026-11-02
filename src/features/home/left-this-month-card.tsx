@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useT } from '@/i18n/use-t';
 import type { Minor } from '@/lib/money';
 import { formatWeekAmount } from '@/lib/week-amount';
 
@@ -9,24 +10,26 @@ import { formatWeekAmount } from '@/lib/week-amount';
  */
 export function LeftThisMonthCard({ leftMinor, weekMinor }: { leftMinor: Minor; weekMinor: Minor }) {
   const headingId = useId();
-  const month = formatWeekAmount(leftMinor);
-  const week = formatWeekAmount(weekMinor);
+  const { t, locale } = useT();
+  const text = t.home.leftThisMonth;
+  const month = formatWeekAmount(leftMinor, locale);
+  const week = formatWeekAmount(weekMinor, locale);
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-1 rounded-lg bg-muted px-4 py-4">
       <h2 id={headingId} className="text-sm font-medium text-muted-foreground">
-        Left to spend this month
+        {text.heading}
       </h2>
       {month.over ? (
         <p className="tabular-nums">
           <span className="text-4xl font-semibold">{month.text}</span>
-          <span className="text-xl font-medium"> over this month</span>
+          <span className="text-xl font-medium">{text.overThisMonth}</span>
         </p>
       ) : (
         <p className="text-4xl font-semibold tabular-nums">{month.text}</p>
       )}
       <p className="text-sm text-muted-foreground tabular-nums">
-        {week.over ? `This week: ${week.text} over` : `This week: ${week.text} safe to spend`}
+        {week.over ? text.weekOver(week.text) : text.weekSafe(week.text)}
       </p>
     </section>
   );

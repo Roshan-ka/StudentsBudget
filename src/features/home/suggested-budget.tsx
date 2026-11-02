@@ -6,64 +6,70 @@ import { Button } from '@/components/ui/button';
 import { CITIES } from '@/data/cities';
 import { db } from '@/db/db';
 import type { Amount, Entry, Plan } from '@/db/types';
-import { categoryName } from '@/features/entries/categories';
 import { budgetLine, rangeLine } from '@/features/setup/draft';
 import { AmountField } from '@/features/setup/steps/amount-field';
 import { RangeSource } from '@/features/setup/steps/range-source';
+import { categoryNameIn } from '@/i18n/category-name';
+import { dateFormat } from '@/i18n/format';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
 import { suggestBudget, suggestionIsProminent, type Suggestion } from './suggest-budget';
 
-const monthFormatter = new Intl.DateTimeFormat('en-IE', { month: 'long' });
-
 /** "September". */
-const monthName = (month: IsoMonth): string => monthFormatter.format(parseISO(`${month}-01`));
+const monthName = (month: IsoMonth, locale: string): string =>
+  dateFormat(locale, { month: 'long' }).format(parseISO(`${month}-01`));
 
-const whole = (minor: Minor): string => formatMoney(minor, 'EUR', { whole: true });
+const whole = (minor: Minor, locale: string): string => formatMoney(minor, 'EUR', { whole: true, locale });
 
 const isAmount = (minor: Minor): boolean => Number.isSafeInteger(minor) && minor >= 0;
 
 /** Where a suggested amount comes from, in the words under its field. */
-function basisLine(row: Suggestion[number], lastMonth: IsoMonth): string {
-  if (row.basis === 'city' && row.range) return rangeLine('Students here', row.range);
-  if (row.basis === 'last-month') return `Your spending in ${monthName(lastMonth)}`;
-  return 'Nothing to go on yet';
+function basisLine(row: Suggestion[number], lastMonth: IsoMonth, t: Messages, locale: string): string {
+  const text = t.home.suggestedBudget;
+  if (row.basis === 'city' && row.range) return rangeLine(text.studentsHere, row.range);
+  if (row.basis === 'last-month') return text.lastMonth(monthName(lastMonth, locale));
+  return text.nothingToGoOn;
 }
 
 /** Whole euros, rounded down: an amount to spend never reads as more than it is. */
-const wholeDown = (minor: Minor): string => whole(Math.floor(minor / 100) * 100);
+const wholeDown = (minor: Minor, locale: string): string => whole(Math.floor(minor / 100) * 100, locale);
 
 /**
  * What is available, and with an everyday budget (`budgetMinor` above €0) which of the two the amounts keep to: the
  * budget, or what is available when that is less. Compared in the whole euros shown, so the line never reads
  * "€600 is less than your budget of €600".
  */
-function availableLine(availableMinor: Minor, budgetMinor: Minor): string {
-  if (availableMinor <= 0) {
-    return (
-      'Nothing is available to budget yet: your income leaves nothing after fixed costs and set-asides. ' +
-      'You can change your plan in Settings.'
-    );
-  }
-  const available = `${wholeDown(availableMinor)} a month is available after your fixed costs and set-asides.`;
-  if (!(budgetMinor > 0)) return available;
+function availableLine(availableMinor: Minor, budgetMinor: Minor, t: Messages, locale: string): string {
+  const text = t.home.suggestedBudget;
+  if (availableMinor <= 0) return text.nothingAvailable;
+  const available = wholeDown(availableMinor, locale);
+  if (!(budgetMinor > 0)) return text.available(available);
+  const budget = wholeDown(budgetMinor, locale);
   if (Math.floor(budgetMinor / 100) <= Math.floor(availableMinor / 100)) {
-    return `${available} These amounts keep to your everyday budget of ${wholeDown(budgetMinor)}.`;
+    return text.availableWithinBudget(available, budget);
   }
-  return (
-    `${available} That is less than your everyday budget of ${wholeDown(budgetMinor)}, ` +
-    `so these amounts keep to ${wholeDown(availableMinor)}.`
-  );
+  return text.availableBelowBudget(available, budget);
 }
 
 /**
  * What is left over, or by how much the amounts pass what is available, after setup's "€600 of your €600 budget"
  * when there is an everyday budget. Whole euros, never flattering.
  */
-function leftoverLine(availableMinor: Minor, totalMinor: Minor, budgetMinor: Minor): string {
+function leftoverLine(
+  availableMinor: Minor,
+  totalMinor: Minor,
+  budgetMinor: Minor,
+  t: Messages,
+  locale: string,
+): string {
+  const text = t.home.suggestedBudget;
   const left = availableMinor - totalMinor;
   const savings =
-    left >= 0 ? `${wholeDown(left)} left for savings` : `${whole(Math.ceil(-left / 100) * 100)} over what is available`;
+    left >= 0
+      ? text.leftForSavings(wholeDown(left, locale))
+      : text.overAvailable(whole(Math.ceil(-left / 100) * 100, locale));
   const budget = budgetLine(totalMinor, budgetMinor);
   return budget ? `${budget} · ${savings}` : savings;
 }
@@ -76,6 +82,8 @@ function leftoverLine(availableMinor: Minor, totalMinor: Minor, budgetMinor: Min
  */
 export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries: Entry[]; today: IsoDate }) {
   const headingId = useId();
+  const { t, locale } = useT();
+  const text = t.home.suggestedBudget;
   // null follows the date and the plan; a choice made here overrides it.
   const [expanded, setExpanded] = useState<boolean | null>(null);
   // Only the rows the person has typed in; every other row follows the suggestion.
@@ -113,7 +121,11 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   if (!shown) {
     return (
       <div className="flex flex-col items-start">
-        {outcome === 'saved' && <p role="status" className="text-sm text-muted-foreground">Envelopes updated.</p>}
+        {outcome === 'saved' && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {text.updated}
+          </p>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -122,7 +134,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
           }}
           className="inline-flex min-h-11 cursor-pointer items-center text-sm text-primary underline underline-offset-4"
         >
-          See a suggested budget
+          {text.show}
         </button>
       </div>
     );
@@ -135,9 +147,9 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
     <section aria-labelledby={headingId} className="flex flex-col gap-4 rounded-lg border px-4 py-4">
       <div className="flex flex-col gap-1">
         <h2 id={headingId} className="text-lg font-semibold">
-          Suggested budget
+          {text.heading}
         </h2>
-        <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor)}</p>
+        <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor, t, locale)}</p>
       </div>
 
       {rows.map((row) => {
@@ -145,10 +157,10 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
         return (
           <div key={row.categoryId} className="grid gap-1.5">
             <AmountField
-              label={`${categoryName(row.categoryId)} per month`}
+              label={text.perMonth(categoryNameIn(t, row.categoryId))}
               value={value}
               onChange={(minor) => setEdits((current) => ({ ...current, [row.categoryId]: minor ?? 0 }))}
-              hint={<p>{basisLine(row, lastMonth)}</p>}
+              hint={<p>{basisLine(row, lastMonth, t, locale)}</p>}
             />
             {row.basis === 'city' && row.range && <RangeSource range={row.range} />}
           </div>
@@ -157,7 +169,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
 
       {availableMinor > 0 && (
         <p aria-live="polite" className="rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
-          {leftoverLine(availableMinor, total, budgetMinor)}
+          {leftoverLine(availableMinor, total, budgetMinor, t, locale)}
         </p>
       )}
 
@@ -170,20 +182,20 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
             disabled={saving || invalid || total === 0}
             onClick={() => void applyBudget()}
           >
-            Use this budget
+            {text.use}
           </Button>
           <Button type="button" variant="outline" className="h-10 px-4" onClick={() => setExpanded(false)}>
-            Not now
+            {text.notNow}
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">Using it replaces the amounts in your envelopes.</p>
-        {invalid && <p className="text-sm text-muted-foreground">Fix the amounts marked above to use this budget.</p>}
+        <p className="text-sm text-muted-foreground">{text.replaces}</p>
+        {invalid && <p className="text-sm text-muted-foreground">{text.fixAmounts}</p>}
         {!invalid && total === 0 && availableMinor > 0 && (
-          <p className="text-sm text-muted-foreground">Enter at least one amount to use this budget.</p>
+          <p className="text-sm text-muted-foreground">{text.enterOne}</p>
         )}
         {outcome === 'failed' && (
           <p role="status" className="text-sm text-muted-foreground">
-            That did not save. Try again.
+            {text.failed}
           </p>
         )}
       </div>
