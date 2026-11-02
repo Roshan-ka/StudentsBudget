@@ -14,6 +14,8 @@ import { saveEntry } from '@/db/repo';
 import type { Entry } from '@/db/types';
 import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
 import { TransferForm } from '@/features/accounts/transfer-form';
+import { categoryNameIn } from '@/i18n/category-name';
+import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
@@ -22,11 +24,7 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './categories';
 
 type EntryType = Entry['type'];
 
-const TABS: { type: EntryType; label: string }[] = [
-  { type: 'expense', label: 'Expense' },
-  { type: 'income', label: 'Income' },
-  { type: 'transfer', label: 'Transfer' },
-];
+const TABS: readonly EntryType[] = ['expense', 'income', 'transfer'];
 
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
@@ -46,6 +44,8 @@ function MoneyEntryForm({
   onSaved?: (saved: Entry) => void;
 }) {
   const id = useId();
+  const { t, lang } = useT();
+  const text = t.entries.form;
   const editing = entry?.type === 'transfer' ? undefined : entry;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
   // Today's date, kept current: null until the browser runs this (never the date of the prerender).
@@ -62,7 +62,7 @@ function MoneyEntryForm({
 
   if (accounts === undefined || today === null) return null;
   if (accounts.length === 0) {
-    return <p className="text-muted-foreground">Add an account in Settings first.</p>;
+    return <p className="text-muted-foreground">{t.entries.noAccount}</p>;
   }
 
   const account = accounts.find((a) => a.id === accountChoice) ?? defaultAccount(accounts) ?? accounts[0];
@@ -73,7 +73,7 @@ function MoneyEntryForm({
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (date === '') return setError('Pick a date.');
+    if (date === '') return setError(text.pickDate);
 
     setSaving(true);
     setError(null);
@@ -93,6 +93,7 @@ function MoneyEntryForm({
         await loadRates(),
         new Date(),
         editing,
+        lang,
       );
       if (!result.ok) {
         setError(result.error);
@@ -102,7 +103,7 @@ function MoneyEntryForm({
       saved = result.entry;
     } catch (saveError) {
       console.error('StudentsBudget: could not save the entry', saveError);
-      setError('Could not save the entry.');
+      setError(t.entries.saveFailed);
       return;
     } finally {
       setSaving(false);
@@ -118,7 +119,7 @@ function MoneyEntryForm({
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-amount`}>Amount</Label>
+        <Label htmlFor={`${id}-amount`}>{text.amount}</Label>
         <div className="flex items-center gap-2">
           <Input
             id={`${id}-amount`}
@@ -132,7 +133,7 @@ function MoneyEntryForm({
         </div>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-account`}>Account</Label>
+        <Label htmlFor={`${id}-account`}>{text.account}</Label>
         <NativeSelect
           id={`${id}-account`}
           className="w-full"
@@ -141,13 +142,13 @@ function MoneyEntryForm({
         >
           {accounts.map((a) => (
             <NativeSelectOption key={a.id} value={a.id}>
-              {a.name} ({a.currency})
+              {text.accountOption(a.name, a.currency)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-category`}>Category</Label>
+        <Label htmlFor={`${id}-category`}>{text.category}</Label>
         <NativeSelect
           id={`${id}-category`}
           className="w-full"
@@ -156,14 +157,14 @@ function MoneyEntryForm({
         >
           {categories.map((c) => (
             <NativeSelectOption key={c.id} value={c.id}>
-              {c.name}
+              {categoryNameIn(t, c.id)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
       </div>
       <DateField value={date} onChange={setDateChoice} />
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-note`}>Note</Label>
+        <Label htmlFor={`${id}-note`}>{text.note}</Label>
         <Input
           id={`${id}-note`}
           className="h-10"
@@ -178,7 +179,7 @@ function MoneyEntryForm({
         </p>
       )}
       <Button type="submit" className="h-10 px-4" disabled={saving}>
-        {editing ? 'Save changes' : type === 'income' ? 'Save income' : 'Save expense'}
+        {editing ? text.saveChanges : type === 'income' ? text.saveIncome : text.saveExpense}
       </Button>
     </form>
   );
@@ -189,23 +190,26 @@ function MoneyEntryForm({
  * (an edit): only the form for that entry's type, filled in. `onSaved` runs after a save, with the entry that was saved.
  */
 export function EntryForm({ entry, onSaved }: { entry?: Entry; onSaved?: (saved: Entry) => void }) {
+  const { t } = useT();
   const [tab, setTab] = useState<EntryType>('expense');
 
   if (entry?.type === 'transfer') return <TransferForm entry={entry} onSaved={onSaved} />;
   if (entry) return <MoneyEntryForm type={entry.type} entry={entry} onSaved={onSaved} />;
 
+  const tabLabel = (type: EntryType) => (type === 'transfer' ? t.entries.transfer : t.entries.form[type]);
+
   return (
     <Tabs
       value={tab}
       onValueChange={(value) => {
-        const next = TABS.find((t) => t.type === value);
-        if (next) setTab(next.type);
+        const next = TABS.find((type) => type === value);
+        if (next) setTab(next);
       }}
     >
-      <TabsList aria-label="Entry type" className="w-full group-data-horizontal/tabs:h-10">
-        {TABS.map(({ type, label }) => (
+      <TabsList aria-label={t.entries.form.typeLabel} className="w-full group-data-horizontal/tabs:h-10">
+        {TABS.map((type) => (
           <TabsTrigger key={type} value={type}>
-            {label}
+            {tabLabel(type)}
           </TabsTrigger>
         ))}
       </TabsList>

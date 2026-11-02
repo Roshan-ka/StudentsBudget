@@ -23,4 +23,9 @@ describe('formatWeekAmount', () => {
   it('shows exactly zero as €0, never as over', () => {
     expect(formatWeekAmount(0)).toEqual({ text: '€0', over: false });
   });
+
+  it('writes the amount in the given locale', () => {
+    expect(formatWeekAmount(4200, 'de-DE')).toEqual({ text: '42 €', over: false });
+    expect(formatWeekAmount(-40, 'de-DE')).toEqual({ text: '0,40 €', over: true });
+  });
 });

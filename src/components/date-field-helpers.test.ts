@@ -3,7 +3,7 @@ import { DATE_CHIPS, DATE_PLACEHOLDER, chipDate, dateText, selectedChip } from '
 
 describe('DATE_CHIPS', () => {
   it('offers Today first, then Yesterday', () => {
-    expect(DATE_CHIPS.map((chip) => chip.label)).toEqual(['Today', 'Yesterday']);
+    expect(DATE_CHIPS).toEqual(['today', 'yesterday']);
   });
 });
 

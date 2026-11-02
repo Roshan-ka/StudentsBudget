@@ -184,6 +184,12 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
      - English `weekLabel` and `listed` stay hand-built, so they read the same in every browser engine (the e2e checks them word for word); other locales use Intl.
 3. **Extract Home, entries and categories**, plus the note display rule.
    - From this chunk on, each area joins a `react/jsx-no-literals` override in `eslint.config.mjs`.
+   - **As built (2026-11-02), in two commits (3a Home and categories, 3b entries):**
+     - Dictionary areas `categories`, `home`, `entries` and `common` (the date field, shared by every form that has one). `categoryNameIn(t, id)` names a category; a test keeps `en.categories` equal to `CATEGORIES`.
+     - The note rule is `entryTitle` (`src/features/entries/entry-title.ts`), used by Entries and the check-in's entry rows.
+     - `buildEntry` takes `lang` last; `buildTransfer`'s errors stay English until chunk 5.
+     - The lint guard (`noStrings`, props not checked, `·` allowed) covers Home, entries, `src/app/entries` and `DateField`. The `.ts` files of the areas were grepped for sentences.
+     - Still English inside these areas until their own chunks: setup's `rangeLine` and `budgetLine` in the suggested budget, `AmountField` and `RangeSource` (4), the transfer form (5), the swap line (9), and check-in's own rows (8).
 4. **Extract setup and `draft.ts`**: validation, prefilled names, the estimate label, the semester fee.
 5. **Extract profile, edit plan, recurring, accounts, transfer and rates.**
 6. **Extract backup and restore, `summary`, and sync** (`engine.ts`, `link.ts`, `sync-status.tsx`, `account-view.tsx`, `account-link.tsx`).

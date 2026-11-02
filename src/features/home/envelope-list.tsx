@@ -1,7 +1,9 @@
 import { useId } from 'react';
-import { categoryName } from '@/features/entries/categories';
 import { localSuggestions, type Suggestion } from '@/features/swaps/suggest';
 import { SwapLine } from '@/features/swaps/swap-line';
+import { categoryNameIn } from '@/i18n/category-name';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
 import { formatWeekAmount } from '@/lib/week-amount';
@@ -20,15 +22,16 @@ function percentUsed(plannedMinor: Minor, spentMinor: Minor): number {
 }
 
 /** "€58 left of €64 this month", or "€42 over the €64 planned this month" once more has gone out than was planned. */
-function monthLine(plannedMinor: Minor, spentMinor: Minor): string {
-  const { text, over } = formatWeekAmount(plannedMinor - spentMinor);
-  const planned = formatMoney(plannedMinor, 'EUR', { whole: true });
-  return over ? `${text} over the ${planned} planned this month` : `${text} left of ${planned} this month`;
+function monthLine(plannedMinor: Minor, spentMinor: Minor, t: Messages, locale: string): string {
+  const { text, over } = formatWeekAmount(plannedMinor - spentMinor, locale);
+  const planned = formatMoney(plannedMinor, 'EUR', { whole: true, locale });
+  return over ? t.home.envelopes.over(text, planned) : t.home.envelopes.left(text, planned);
 }
 
 function EnvelopeItem({ row, suggestion }: { row: EnvelopeRow; suggestion: Suggestion | undefined }) {
-  const name = categoryName(row.categoryId);
-  const line = monthLine(row.plannedMinor, row.spentMinor);
+  const { t, locale } = useT();
+  const name = categoryNameIn(t, row.categoryId);
+  const line = monthLine(row.plannedMinor, row.spentMinor, t, locale);
   const percent = percentUsed(row.plannedMinor, row.spentMinor);
 
   return (
@@ -38,7 +41,7 @@ function EnvelopeItem({ row, suggestion }: { row: EnvelopeRow; suggestion: Sugge
       <div
         role="progressbar"
         // Not the bare name: a hidden home page stays mounted, and the plan wizard's inputs are labelled with it.
-        aria-label={`${name} this month`}
+        aria-label={t.home.envelopes.barLabel(name)}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
@@ -62,13 +65,14 @@ function EnvelopeItem({ row, suggestion }: { row: EnvelopeRow; suggestion: Sugge
  */
 export function EnvelopeList({ rows, today }: { rows: EnvelopeRow[]; today: IsoDate }) {
   const headingId = useId();
+  const { t } = useT();
   if (rows.length === 0) return null;
   const suggestions = new Map(localSuggestions.suggest({ rows, today }).map((s) => [s.categoryId, s]));
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
       <h2 id={headingId} className="text-lg font-semibold">
-        Envelopes
+        {t.home.envelopes.heading}
       </h2>
       <ul aria-labelledby={headingId} className="flex flex-col gap-4">
         {rows.map((row) => (
