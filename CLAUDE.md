@@ -55,7 +55,10 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | `npm run test:db` | pgTAP tests in `supabase/tests` against the running local stack |
 | `npm run test:contract` | The account store (`src/sync/store.ts`) against the running local stack, as signed-in users; needs `SUPABASE_TEST_URL` and `SUPABASE_TEST_KEY`, which `node scripts/supabase-test-env.mjs` prints. Skipped in `npm test` without them |
 
-CI (`.github/workflows/ci.yml`) runs lint, typecheck, build, unit tests, e2e and the offline check on every pull request (a failed Playwright run uploads its HTML report and traces as the `playwright-report` artifact), and in a second job (`db`) the migrations, `test:db` and `test:contract` on a local Supabase stack.
+CI (`.github/workflows/ci.yml`) runs on every pull request that changes more than notes (Markdown anywhere, `docs/`), and a new push cancels the run before it. What runs follows the files the pull request changes (`scripts/ci-areas.mjs`, which counts a path no rule names as app code):
+- Lint, typecheck and unit tests always.
+- The build, e2e and the offline check when the app changes (not for `supabase/`, `mcp/` or `.claude/` alone). e2e always runs whole: a change in one place can break a spec about another. A failed Playwright run uploads its HTML report and traces as the `playwright-report` artifact.
+- The `db` job (the migrations, `test:db` and `test:contract` on a local Supabase stack) when `supabase/`, the account store (`src/sync/`, `src/db/`, `src/lib/`) or what they run on changes.
 
 ## Framework rules
 

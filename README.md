@@ -158,7 +158,7 @@ Without Supabase settings the app runs local-only and hides the account UI. To t
    - Someone who lost their authenticator app and its key: remove the factor in the SQL editor (`delete from auth.mfa_factors where user_id = '<their id>' and factor_type = 'totp';`), and they sign in with the password again.
    - Recovery codes are parked: Supabase's server keeps them off for now (see the [P2.3b plan](docs/superpowers/plans/2026-10-29-p2-3b-passkeys-and-recovery-codes.md)).
 
-With Docker running, `npm run supabase:start` starts a local Supabase stack with the migrations applied (Studio on http://127.0.0.1:54323), `npm run test:db` runs the database tests (pgTAP, in `supabase/tests`) against it, `npm run test:contract` checks the app's account store against it (after `node scripts/supabase-test-env.mjs` has printed the two settings it needs), and `npm run supabase:stop` stops it. CI runs them on every pull request.
+With Docker running, `npm run supabase:start` starts a local Supabase stack with the migrations applied (Studio on http://127.0.0.1:54323), `npm run test:db` runs the database tests (pgTAP, in `supabase/tests`) against it, `npm run test:contract` checks the app's account store against it (after `node scripts/supabase-test-env.mjs` has printed the two settings it needs), and `npm run supabase:stop` stops it. CI runs them on every pull request that changes the database or the account store; a pull request that changes only Markdown or `docs/` starts no CI at all.
 
 ### StudentsBudget in Claude (MCP server)
 `mcp/` is a local [MCP](https://modelcontextprotocol.io) server. It lets Claude answer from the app's own Regensburg data and from your own budget, and it isn't part of the web app.
