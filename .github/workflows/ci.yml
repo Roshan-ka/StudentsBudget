@@ -1,12 +1,17 @@
 name: CI
 
-# Never starts on its own: only by hand (Actions → CI → Run workflow, or `gh workflow run ci.yml --ref <branch>`), and
-# Claude asks Roshan before starting it. A `changed` run tests what the branch changes against main
-# (scripts/ci-affected.mjs, which says why in the job summary); a `full` run tests everything, after Roshan's approval.
-# The last job posts the verdict on the tested commit: `full-gate` (the check merging waits for), `partial-check` (a
-# full run narrowed by an option) or `quick-check`. Starting runs by hand decides when that wait begins; it doesn't
-# remove it: merging still waits for a green full-gate on the pull request's latest commit.
+# A pull request that is ready for review (never a draft) runs the quick checks by itself, on opening, on Ready for
+# review and on each push after (Roshan, 2026-11-02): lint, types, build, unit tests, and the db job when the change
+# reaches it; no e2e and no offline check. Those run only by hand (Actions → CI → Run workflow, or
+# `gh workflow run ci.yml --ref <branch>`), and Claude asks Roshan before starting one. A `changed` run tests what the
+# branch changes against main (scripts/ci-affected.mjs, which says why in the job summary); a `full` run tests
+# everything, after Roshan's approval.
+# The last job posts the verdict on the tested commit: `full-gate` (a full run on every browser and language),
+# `partial-check` (a full run narrowed by an option) or `quick-check` (a changed or quick run). Before merging, a ready
+# pull request's quick-check is the check; a full run is optional and by hand. No branch protection requires one yet.
 on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
   workflow_dispatch:
     inputs:
       scope:
@@ -37,6 +42,8 @@ jobs:
   # What this run needs: `run` (anything but notes), `e2e` (none, all, or the specs as Playwright file arguments),
   # `offline`, `db`, the Playwright `projects` argument and the `languages`, plus the commit every later job checks out.
   changes:
+    # A draft runs nothing: the person is still working on it.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -63,7 +70,8 @@ jobs:
       - run: npx vitest run scripts/ci-affected.test.mjs
       - id: affected
         env:
-          CI_SCOPE: ${{ inputs.scope }}
+          # A pull request's own run is `quick`: `changed` without e2e and the offline check.
+          CI_SCOPE: ${{ github.event_name == 'pull_request' && 'quick' || inputs.scope }}
           CI_BROWSERS: ${{ inputs.browsers }}
           CI_LANGUAGES: ${{ inputs.languages }}
         run: node scripts/ci-affected.mjs
@@ -215,15 +223,16 @@ jobs:
 
   # The run's one verdict, posted as a commit status on the commit it tested, where a pull request shows it (check runs
   # of a manual run don't appear there). `node scripts/ci-affected.mjs verdict` decides it (statusContext, verdict):
-  # - `full-gate`, the check branch protection requires before merging, only for a full run on every browser and
-  #   language; a full run narrowed by an option posts `partial-check`, and a changed run `quick-check`.
+  # - `full-gate` only for a full run on every browser and language; a full run narrowed by an option posts
+  #   `partial-check`, and a changed or quick run `quick-check`. No branch protection requires any of them yet.
   # - A full run needs every job, the report merge included, to pass: skipped, cancelled or no result is a failure.
-  # - A changed run passes when every job passed or was skipped.
+  # - A changed or quick run passes when every job passed or was skipped.
   # A job its `if:` skips counts as passed, and a crash in `changes` skips every job after it, so this job reads every
   # result itself.
   gate:
     needs: [changes, checks, e2e, e2e-report, offline, db]
-    if: always()
+    # Not for a draft, whose run was skipped on purpose.
+    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -244,18 +253,21 @@ jobs:
       - id: verdict
         env:
           NEEDS: ${{ toJSON(needs) }}
-          CI_SCOPE: ${{ inputs.scope }}
+          # A pull request's own run is `quick`, as in `changes`.
+          CI_SCOPE: ${{ github.event_name == 'pull_request' && 'quick' || inputs.scope }}
           CI_BROWSERS: ${{ inputs.browsers }}
           CI_LANGUAGES: ${{ inputs.languages }}
         run: node scripts/ci-affected.mjs verdict
       - env:
           GH_TOKEN: ${{ github.token }}
+          # A pull request shows statuses on its head commit, not on the merge commit its run checks out and tests.
+          STATUS_SHA: ${{ github.event.pull_request.head.sha || env.SHA }}
           CONTEXT: ${{ steps.verdict.outputs.context }}
           STATE: ${{ steps.verdict.outputs.state }}
           DESCRIPTION: ${{ steps.verdict.outputs.description }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA" -f state="$STATE" -f context="$CONTEXT" \
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$STATUS_SHA" -f state="$STATE" -f context="$CONTEXT" \
             -f target_url="$RUN_URL" -f description="$DESCRIPTION" > /dev/null
-          echo "Posted $CONTEXT: $STATE on $SHA." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Posted $CONTEXT: $STATE on $STATUS_SHA." | tee -a "$GITHUB_STEP_SUMMARY"
           [ "$STATE" = success ]

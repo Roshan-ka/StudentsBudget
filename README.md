@@ -146,17 +146,17 @@ Needs Node 24 and npm. Run `npm install` once, then:
 
 Playwright needs its browsers once: `npx playwright install chromium webkit`. A failed Playwright test keeps a trace: `npx playwright show-trace test-results/<test>/trace.zip`. In CI, an e2e run uploads one HTML report with each failed test's trace as the `playwright-report-e2e` artifact, and a failed offline check its own as `playwright-report-offline`.
 
-CI never starts on its own: start it by hand under Actions → CI → **Run workflow** (or `gh workflow run ci.yml --ref <branch>`), with three options:
+A pull request that is ready for review runs the quick checks by itself (lint, types, build, unit tests, and the database job when the change reaches it), again on each push; a draft runs nothing. e2e and the offline check run only when started by hand under Actions → CI → **Run workflow** (or `gh workflow run ci.yml --ref <branch>`), with three options:
 - **scope**: `changed` (the default) runs only what the branch's changes against `main` reach (`scripts/ci-affected.mjs`; the job summary says why each spec runs); `full` runs everything, the e2e suite in four shards.
 - **browsers**: `auto` (Chromium for changed, Chromium and the iPhone's WebKit for full), `chromium` or `all`.
 - **languages**: `auto`, `default` or `all`. The app is English only, so this has no effect yet.
 
 The run posts its result on the tested commit, where the pull request shows it:
-- `full-gate` for a full run on every browser and language. Merging waits for it, and it is green only when every job ran and passed.
+- `quick-check` for a pull request's own quick run and for a changed run. Before merging, this is the check.
+- `full-gate` for a full run on every browser and language, green only when every job ran and passed. Optional, started by hand.
 - `partial-check` for a full run narrowed to one browser or the default language. It never stands in for `full-gate`.
-- `quick-check` for a changed run.
 
-Starting runs by hand only decides when that wait begins: every new commit on a pull request, an update from `main` included, needs a new full run before it can merge. A new route or spec needs a line in `e2e/affected-map.json`, or `npm test` fails.
+A new route or spec needs a line in `e2e/affected-map.json`, or `npm test` fails.
 
 ### Accounts and the database (optional)
 Without Supabase settings the app runs local-only and hides the account UI. To try accounts:
