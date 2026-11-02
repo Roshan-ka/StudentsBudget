@@ -294,8 +294,8 @@ const entriesShape = {
 export type RecentEntries = z.infer<z.ZodObject<typeof entriesShape>>;
 
 const ENTRIES_NOTE =
-  'The user’s own entries, read from their StudentsBudget account: as of the phone’s last sync (savedAt), ' +
-  'so entries made on the phone since are missing; say so. Newest first. amount is in the account’s own currency, ' +
+  'The user’s own entries, read from their StudentsBudget account: as of the phone’s last sync (savedAt: when ' +
+  'the account last changed), so entries made on the phone since are missing; say so. Newest first. amount is in the account’s own currency, ' +
   'eur the euro figure saved with the entry: add up eurMinor, never amountMinor, since accounts can differ in ' +
   'currency. A transfer moves money between two accounts and is no spending. ' +
   'automatic: true means a recurring plan line posted it. beforeSetup: true marks an expense from before the plan ' +

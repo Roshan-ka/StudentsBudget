@@ -58,7 +58,7 @@ type Part = z.infer<typeof partSchema>;
 
 const CHECK_IN_NOTE =
   'The user’s week as the StudentsBudget check-in shows it, read from their account: as of the phone’s last ' +
-  'sync (savedAt), so anything entered since is missing; say so. Each envelope is measured against its share of ' +
+  'sync (savedAt: when the account last changed), so anything entered since is missing; say so. Each envelope is measured against its share of ' +
   'the week (what was left of its month when the week began, split over the weeks left), not against the whole ' +
   'month: use its line as it stands. Only envelopes over their share get a swap, and swaps holds exactly those: ' +
   'offer no other. A swap’s source and url state the usual price, toSource and toUrl the cheaper one. When a month ' +
