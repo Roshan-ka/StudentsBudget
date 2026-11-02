@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import { getSupabase } from '@/lib/supabase/client';
-import { syncNow, syncStatusText } from '@/sync/engine';
+import { accountSyncStatus, syncNow, syncResultText, syncStatusText } from '@/sync/engine';
 import { supabaseStore } from '@/sync/store';
 import { accountWantsCode } from './code-check';
 
@@ -50,14 +50,18 @@ function useNow(): number {
   );
 }
 
-/** This phone's sync status in words, or null while it isn't linked to an account (or the time isn't known yet). */
-export function useSyncStatus(): string | null {
+/**
+ * This phone's sync status in words, or null while it isn't linked to an account (or the time isn't known yet). Given
+ * the signed-in user's id, a phone linked to another account says so instead of that account's status.
+ */
+export function useSyncStatus(userId?: string): string | null {
   const state = useLiveQuery(() => db.syncState.get('current'), []);
   const waiting = useLiveQuery(() => db.outbox.count(), [], 0);
   const online = useOnline();
   const now = useNow();
   if (!state?.userId || now === 0) return null;
-  return syncStatusText({ lastSyncedAt: state.lastSyncedAt, problem: state.problem, waiting, online, now: new Date(now) });
+  const input = { lastSyncedAt: state.lastSyncedAt, problem: state.problem, waiting, online, now: new Date(now) };
+  return userId === undefined ? syncStatusText(input) : accountSyncStatus(state.userId, userId, input);
 }
 
 /** How long signing out waits for its last sync, so a slow connection never holds the person up for long. */
@@ -86,15 +90,25 @@ export function SyncSection() {
   const id = useId();
   const status = useSyncStatus();
   const [note, setNote] = useState<string | null>(null);
+  // How the last tap ended, for screen readers only (`syncResultText`).
+  const [announced, setAnnounced] = useState('');
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
 
   // As the other account sections: a note goes when the person leaves the page.
-  useEffect(() => () => setNote(null), []);
+  useEffect(
+    () => () => {
+      setNote(null);
+      setAnnounced('');
+    },
+    [],
+  );
 
   async function sync() {
     if (inFlight.current) return;
     setNote(null);
+    // Emptied first, so the same words twice in a row are announced twice.
+    setAnnounced('');
     const supabase = getSupabase();
     if (supabase === null) return;
     inFlight.current = true;
@@ -103,6 +117,7 @@ export function SyncSection() {
       const userId = (await supabase.auth.getSession()).data.session?.user.id;
       if (userId === undefined) return;
       const result = await syncNow(supabaseStore(supabase), userId);
+      setAnnounced(syncResultText(result));
       if (result.kind === 'not-linked') setNote('This phone is linked to another account.');
       // Refused by the account: it may want this session's authenticator code (turned on from another phone). Then the
       // code step takes over, as with Save and Load.
@@ -119,14 +134,16 @@ export function SyncSection() {
       <h3 id={`${id}-heading`} className="text-lg font-semibold">
         Sync
       </h3>
-      {/* Always rendered while linked, so a screen reader hears a new status. */}
-      <p aria-live="polite" aria-atomic="true" className="text-muted-foreground">
-        {note ?? status}
-      </p>
+      {/* Not a live region: "Synced 2 min ago" moves on every half minute, and would be read out each time. */}
+      <p className="text-muted-foreground">{note ?? status}</p>
       <Button type="button" variant="outline" className="h-10 self-start px-4" disabled={busy} onClick={() => void sync()}>
-        <RefreshCwIcon aria-hidden="true" className={busy ? 'animate-spin' : undefined} />
+        <RefreshCwIcon aria-hidden="true" className={busy ? 'motion-safe:animate-spin' : undefined} />
         Sync now
       </Button>
+      {/* Always rendered, so each tap's result is read out once. */}
+      <p role="status" className="sr-only">
+        {announced}
+      </p>
     </section>
   );
 }

@@ -8,7 +8,8 @@ import { useAuth } from './use-auth';
 /** The first card in Settings: the way to /settings/account. Hidden when the build has no Supabase project. */
 export function AccountSection() {
   const auth = useAuth();
-  const syncStatus = useSyncStatus();
+  // The signed-in user's: a phone linked to another account says so.
+  const syncStatus = useSyncStatus(auth.status === 'signed-in' ? auth.userId : undefined);
   if (auth.status === 'off') return null;
 
   return (

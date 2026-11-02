@@ -1,5 +1,6 @@
 import { db } from '@/db/db';
 import { formatDateTime } from '@/lib/dates';
+import { withSyncLock } from './lock';
 import { pull } from './pull';
 import { push } from './push';
 import { StoreError, type UserDataStore } from './store';
@@ -24,7 +25,7 @@ let running: Promise<SyncResult> | null = null;
  * the person taps Sync now.
  */
 export function syncNow(store: UserDataStore, userId: string): Promise<SyncResult> {
-  running ??= sync(store, userId).finally(() => {
+  running ??= withSyncLock(() => sync(store, userId)).finally(() => {
     running = null;
   });
   return running;
@@ -83,6 +84,38 @@ export function syncStatusText({ lastSyncedAt, problem, waiting, online, now }: 
   if (problem !== null) return problem;
   const when = lastSyncedAt === null ? 'Not synced yet' : `Synced ${ago(lastSyncedAt, now)}`;
   return waiting === 0 ? `${when}.` : `${when}. ${changes} waiting.`;
+}
+
+const OTHER_ACCOUNT_LINKED = 'This phone is linked to another account.';
+
+/**
+ * The sync status for the signed-in user `userId`: null while the phone isn't linked (`linkedTo` is the account it
+ * is linked to), and a line saying so when it is linked to another account, whose status isn't this user's.
+ */
+export function accountSyncStatus(
+  linkedTo: string | null | undefined,
+  userId: string,
+  input: SyncStatusInput,
+): string | null {
+  if (!linkedTo) return null;
+  return linkedTo === userId ? syncStatusText(input) : OTHER_ACCOUNT_LINKED;
+}
+
+/**
+ * What a screen reader hears once after Sync now: how the tap ended. The status line isn't announced (its clock moves
+ * every half minute), and these words never match it, so the two can be told apart.
+ */
+export function syncResultText(result: SyncResult): string {
+  switch (result.kind) {
+    case 'synced':
+      return 'Sync finished.';
+    case 'offline':
+      return 'Not synced: you’re offline. Changes wait on this phone.';
+    case 'not-linked':
+      return 'Not synced: this phone is linked to another account.';
+    case 'problem':
+      return `Not synced: ${result.problem}`;
+  }
 }
 
 /** "just now", "2 min ago", or the day and time for anything an hour old or more. */

@@ -4,10 +4,10 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { getSupabase } from '@/lib/supabase/client';
 import { syncNow } from '@/sync/engine';
-import { applyLink, linkPhone, type LinkChoice, type LinkOutcome } from '@/sync/link';
+import { linkPhone, linkWithChoice, type LinkChoice, type LinkOutcome } from '@/sync/link';
 import { supabaseStore } from '@/sync/store';
 import { staleSummary } from '@/sync/upload';
-import { accountWantsCode } from './code-check';
+import { wantsCodeBeforeLinking } from './code-check';
 import { SyncSection } from './sync-status';
 
 // Linking (P2.2 chunk 7), which replaces P2.1's Save and Load: on the account page, signed in, the phone links to the
@@ -33,9 +33,21 @@ export function AccountLink() {
   const [attempt, setAttempt] = useState(0);
   // The choice's question takes the focus, as Restore's does: a screen reader reads it out, and Enter picks no side.
   const questionRef = useRef<HTMLParagraphElement>(null);
+  // After a tap that takes its own button away (a choice, Try again), the focus follows what shows next instead of
+  // falling back to the top of the page: "Linking…", then the line on what moved. An alert is read out by itself.
+  const followFocus = useRef(false);
+  const checkingRef = useRef<HTMLParagraphElement>(null);
+  const noteRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (view.kind === 'choose') questionRef.current?.focus();
+    if (!followFocus.current) return;
+    if (view.kind === 'checking') {
+      checkingRef.current?.focus();
+      return;
+    }
+    if (view.kind === 'linked') noteRef.current?.focus();
+    followFocus.current = false;
   }, [view.kind]);
 
   // Runs when the page shows, and again when it shows after being hidden: signing in, or another account's sign-in
@@ -49,7 +61,9 @@ export function AccountLink() {
         const userId = await sessionUserId();
         if (userId === undefined) return;
         const store = supabaseStore(supabase);
-        const outcome = await linkPhone(store, userId, () => accountWantsCode(supabase.auth));
+        // A session that can't be checked stops the link (the catch below says so), rather than link to what may only
+        // be an account hiding its rows.
+        const outcome = await linkPhone(store, userId, () => wantsCodeBeforeLinking(supabase.auth));
         // The account wants this session's authenticator code first: useAuth shows the code step instead of this page.
         if (!current || outcome.kind === 'code') return;
         setView(outcome);
@@ -71,6 +85,7 @@ export function AccountLink() {
   }, [attempt]);
 
   function linkAgain() {
+    followFocus.current = true;
     setView({ kind: 'checking' });
     setAttempt((count) => count + 1);
   }
@@ -86,8 +101,9 @@ export function AccountLink() {
       const userId = await sessionUserId();
       if (userId === undefined) return;
       const store = supabaseStore(supabase);
-      await applyLink(store, plan, userId, choice);
+      await linkWithChoice(store, plan, userId, choice);
       await syncNow(store, userId);
+      followFocus.current = true;
       setView({
         kind: 'linked',
         fresh: true,
@@ -103,14 +119,18 @@ export function AccountLink() {
   }
 
   if (view.kind === 'checking') {
-    return <p className="text-muted-foreground">Linking this phone to your account…</p>;
+    return (
+      <p ref={checkingRef} tabIndex={-1} className="text-muted-foreground outline-none">
+        Linking this phone to your account…
+      </p>
+    );
   }
 
   if (view.kind === 'linked') {
     return (
       <>
         {view.note !== null && (
-          <p aria-live="polite" className="text-sm text-muted-foreground">
+          <p ref={noteRef} tabIndex={-1} aria-live="polite" className="text-sm text-muted-foreground outline-none">
             {view.note}
           </p>
         )}
@@ -157,6 +177,10 @@ export function AccountLink() {
               Use my account&apos;s data
             </Button>
           </div>
+          {/* While the choice is carried out: the data moving, then the first sync. */}
+          <p role="status" className="text-sm text-muted-foreground">
+            {busy ? 'Linking this phone…' : ''}
+          </p>
         </div>
       </section>
     );
@@ -169,8 +193,9 @@ export function AccountLink() {
       </h3>
       {view.kind === 'other-account' ? (
         <p role="alert" className="text-sm">
-          This phone holds another account&apos;s data, so it stays apart from this one. To use this account here, sign
-          out and sign in with the other one, or delete everything on this phone first (Settings → Backup).
+          This phone holds another account&apos;s data, so it stays apart from this one. To sync it, sign out and sign in
+          with that account. To use this account here instead, delete everything on this phone (Settings → Backup); changes
+          not synced yet are lost.
         </p>
       ) : (
         <>
