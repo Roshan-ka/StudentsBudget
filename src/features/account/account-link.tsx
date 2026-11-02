@@ -7,7 +7,7 @@ import { syncNow } from '@/sync/engine';
 import { linkPhone, linkWithChoice, type LinkChoice, type LinkOutcome } from '@/sync/link';
 import { supabaseStore } from '@/sync/store';
 import { staleSummary } from '@/sync/upload';
-import { accountWantsCode } from './code-check';
+import { wantsCodeBeforeLinking } from './code-check';
 import { SyncSection } from './sync-status';
 
 // Linking (P2.2 chunk 7), which replaces P2.1's Save and Load: on the account page, signed in, the phone links to the
@@ -61,7 +61,9 @@ export function AccountLink() {
         const userId = await sessionUserId();
         if (userId === undefined) return;
         const store = supabaseStore(supabase);
-        const outcome = await linkPhone(store, userId, () => accountWantsCode(supabase.auth));
+        // A session that can't be checked stops the link (the catch below says so), rather than link to what may only
+        // be an account hiding its rows.
+        const outcome = await linkPhone(store, userId, () => wantsCodeBeforeLinking(supabase.auth));
         // The account wants this session's authenticator code first: useAuth shows the code step instead of this page.
         if (!current || outcome.kind === 'code') return;
         setView(outcome);

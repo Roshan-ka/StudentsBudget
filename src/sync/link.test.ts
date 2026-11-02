@@ -254,6 +254,17 @@ describe('linkPhone', () => {
     expect(await linkedTo()).toBeUndefined();
   });
 
+  it('writes and links nothing when the session can’t be checked', async () => {
+    const { store, calls } = fakeStore();
+    await replaceAll(snapshot());
+    const unchecked = async (): Promise<boolean> => {
+      throw new Error('Failed to fetch');
+    };
+    await expect(linkPhone(store, USER, unchecked)).rejects.toThrow('Failed to fetch');
+    expect(calls.filter((call) => call.startsWith('upsert'))).toEqual([]);
+    expect(await linkedTo()).toBeUndefined();
+  });
+
   it('says calmly why it can’t link, and blocks another account', async () => {
     const half = fakeStore({ entries: { e1: expense('e1') } });
     expect(await linkPhone(half.store, USER, noCode)).toMatchObject({ kind: 'problem', problem: expect.stringMatching(/^Your account's last save didn't finish/) });
