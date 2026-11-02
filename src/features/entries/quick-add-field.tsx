@@ -8,10 +8,12 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { deleteEntry, saveEntry } from '@/db/repo';
 import type { Account } from '@/db/types';
+import { categoryNameIn } from '@/i18n/category-name';
+import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { buildEntry } from './build-entry';
-import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES, categoryName } from './categories';
+import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES } from './categories';
 import {
   accountFor,
   checkReading,
@@ -47,8 +49,9 @@ const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !GUESS_CATEGORIES.some
  * while the line waits for a category, so every new line starts with the six again.
  */
 function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: string) => void }) {
+  const { t } = useT();
   const [showMore, setShowMore] = useState(false);
-  const chip = (category: { id: string; name: string }) => (
+  const chip = (category: { id: string }) => (
     <Button
       key={category.id}
       type="button"
@@ -57,13 +60,13 @@ function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: s
       disabled={busy}
       onClick={() => onPick(category.id)}
     >
-      {category.name}
+      {categoryNameIn(t, category.id)}
     </Button>
   );
 
   return (
-    <div role="group" aria-label="Category" className="flex flex-col gap-2">
-      <p className="text-sm text-muted-foreground">Which category?</p>
+    <div role="group" aria-label={t.entries.quickAdd.categoryGroup} className="flex flex-col gap-2">
+      <p className="text-sm text-muted-foreground">{t.entries.quickAdd.whichCategory}</p>
       <div className="flex flex-wrap gap-2">
         {GUESS_CATEGORIES.map(chip)}
         <Button
@@ -73,7 +76,7 @@ function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: s
           aria-expanded={showMore}
           onClick={() => setShowMore((open) => !open)}
         >
-          More
+          {t.entries.quickAdd.more}
         </Button>
         {showMore && MORE_CATEGORIES.map(chip)}
       </div>
@@ -91,9 +94,10 @@ function AmountChoice({
   busy: boolean;
   onPick: (amountMinor: Minor) => void;
 }) {
+  const { t, locale } = useT();
   return (
-    <div role="group" aria-label="Amount" className="flex flex-col gap-2">
-      <p className="text-sm text-muted-foreground">Which amount?</p>
+    <div role="group" aria-label={t.entries.quickAdd.amountGroup} className="flex flex-col gap-2">
+      <p className="text-sm text-muted-foreground">{t.entries.quickAdd.whichAmount}</p>
       <div className="flex flex-wrap gap-2">
         {choice.options.map((option) => (
           <Button
@@ -104,7 +108,7 @@ function AmountChoice({
             disabled={busy}
             onClick={() => onPick(option)}
           >
-            {formatMoney(option, choice.currency, { whole: option % 100 === 0 })}
+            {formatMoney(option, choice.currency, { whole: option % 100 === 0, locale })}
           </Button>
         ))}
       </div>
@@ -123,6 +127,8 @@ function AmountChoice({
  */
 export function QuickAddField({ provider = localQuickAddProvider }: { provider?: QuickAddProvider }) {
   const id = useId();
+  const { t, lang, locale } = useT();
+  const words = t.entries.quickAdd;
   const [text, setText] = useState('');
   // Set while the amount buttons are shown: the two readings of the typed line, waiting for a tap.
   const [choice, setChoice] = useState<Choice | null>(null);
@@ -169,7 +175,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
       // Read again rather than taken from the context: the chips can wait while the accounts change in Settings.
       const account = accountFor(await db.accounts.toArray(), line.accountId);
       if (account === undefined) {
-        setError('Add an account in Settings first.');
+        setError(t.entries.noAccount);
         return;
       }
       const now = new Date();
@@ -185,6 +191,8 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         account,
         await loadRates(),
         now,
+        undefined,
+        lang,
       );
       if (!result.ok) {
         setError(result.error);
@@ -192,14 +200,18 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
       }
       await saveEntry(result.entry);
 
-      const parts = [formatMoney(result.entry.amountMinor, account.currency), result.entry.note, categoryName(categoryId)];
-      setSaved({ id: result.entry.id, message: `Saved ${parts.filter((part) => part !== '').join(' · ')}` });
+      const parts = [
+        formatMoney(result.entry.amountMinor, account.currency, { locale }),
+        result.entry.note,
+        categoryNameIn(t, categoryId),
+      ];
+      setSaved({ id: result.entry.id, message: words.saved(parts.filter((part) => part !== '').join(' · ')) });
       setText('');
       setChoice(null);
       setPending(null);
     } catch (saveError) {
       console.error('StudentsBudget: could not save the quick-add entry', saveError);
-      setError('Could not save the entry.');
+      setError(t.entries.saveFailed);
     }
   }
 
@@ -239,11 +251,11 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         reading = checkReading(await provider.read(text, ctx), ctx);
       } catch (readError) {
         console.error('StudentsBudget: could not read the quick-add line', readError);
-        setError('Could not save the entry.');
+        setError(t.entries.saveFailed);
         return;
       }
       if (reading === null) {
-        setError('Add an amount, like “döner 6”');
+        setError(words.noAmount);
         return;
       }
       if (reading.kind === 'choice') {
@@ -261,14 +273,14 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
       setSaved(null);
     } catch (deleteError) {
       console.error('StudentsBudget: could not undo the quick-add entry', deleteError);
-      setError('Could not undo.');
+      setError(words.undoFailed);
     }
   }
 
   return (
     <div className="flex flex-col gap-3">
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-1.5">
-        <Label htmlFor={`${id}-text`}>Quick add</Label>
+        <Label htmlFor={`${id}-text`}>{words.label}</Label>
         <div className="flex gap-2">
           <Input
             id={`${id}-text`}
@@ -281,12 +293,12 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
               setPending(null);
               setError(null);
             }}
-            placeholder="What and how much, like “döner 6”"
+            placeholder={words.placeholder}
             autoComplete="off"
             enterKeyHint="done"
           />
           <Button type="submit" className="h-10 px-4" disabled={busy}>
-            Add
+            {words.add}
           </Button>
         </div>
       </form>
@@ -316,7 +328,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         </p>
         {saved && (
           <Button type="button" variant="ghost" className="h-10 shrink-0 px-3" onClick={() => void undo()}>
-            Undo
+            {words.undo}
           </Button>
         )}
       </div>

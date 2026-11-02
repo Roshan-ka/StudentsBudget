@@ -5,6 +5,7 @@ import { useId, type MouseEvent } from 'react';
 import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
 import { DATE_CHIPS, chipDate, dateText, selectedChip } from './date-field-helpers';
@@ -27,11 +28,12 @@ function openPickerOnMouseClick(event: MouseEvent<HTMLInputElement>) {
  * that is rarely today, like a semester's). The native date input lies over the field, transparent: a tap anywhere on
  * the field opens the picker, and the input carries the label and the ISO value. The text under it is for the eye
  * only. Today follows the clock (`useToday`). `invalid` and `describedBy` mark the field and point at its error.
+ * The label is "Date" in the phone's language unless `label` names it.
  */
 export function DateField({
   value,
   onChange,
-  label = 'Date',
+  label,
   chips = true,
   min,
   invalid = false,
@@ -46,12 +48,14 @@ export function DateField({
   describedBy?: string;
 }) {
   const id = useId();
+  const { t } = useT();
+  const text = t.common.dateField;
   const today = useToday();
   const selected = today === null ? null : selectedChip(value, today);
 
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>{label ?? text.label}</Label>
       <div
         data-slot="date-field"
         className="relative flex h-10 items-center justify-between gap-2 rounded-lg border border-input px-2.5 text-base transition-colors has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 has-[[aria-invalid]]:border-destructive md:text-sm dark:bg-input/30"
@@ -74,20 +78,20 @@ export function DateField({
         />
       </div>
       {chips && (
-        <div role="group" aria-label="Pick a day" className="flex flex-wrap gap-2">
+        <div role="group" aria-label={text.pickDay} className="flex flex-wrap gap-2">
           {DATE_CHIPS.map((chip) => (
             <Button
-              key={chip.id}
+              key={chip}
               type="button"
-              variant={selected === chip.id ? 'default' : 'outline'}
-              aria-pressed={selected === chip.id}
+              variant={selected === chip ? 'default' : 'outline'}
+              aria-pressed={selected === chip}
               className="h-10 px-3"
               disabled={today === null}
               onClick={() => {
-                if (today !== null) onChange(chipDate(chip.id, today));
+                if (today !== null) onChange(chipDate(chip, today));
               }}
             >
-              {chip.label}
+              {text[chip]}
             </Button>
           ))}
         </div>

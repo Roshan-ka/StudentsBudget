@@ -8,9 +8,11 @@ import { db } from '@/db/db';
 import type { Account, Entry, Plan } from '@/db/types';
 import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
 import { categoryName } from '@/features/entries/categories';
+import { entryTitle } from '@/features/entries/entry-title';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
 import { SwapLine } from '@/features/swaps/swap-line';
+import { useT } from '@/i18n/use-t';
 import { weekToSpend } from '@/lib/budget';
 import { previousMonthTail, weekOf, type IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
@@ -41,19 +43,17 @@ function entriesOfWeek(entries: Entry[], start: IsoDate, end: IsoDate): Entry[] 
 }
 
 function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Account[]; planStart: IsoDate }) {
+  const { t } = useT();
   const currency = accounts.find((a) => a.id === entry.accountId)?.currency ?? 'EUR';
-  const label = entry.type === 'transfer' ? 'Transfer' : categoryName(entry.categoryId);
-  // A posted entry's note is its category name: "Rent" over "Rent" would say it twice.
-  const details = [entry.note && entry.note !== label ? label : null, dayLabel(entry.date)].filter(
-    (part) => part !== null,
-  );
+  const { title, label } = entryTitle(entry, t);
+  const details = [label, dayLabel(entry.date)].filter((part) => part !== null);
   const notCounted = notCountedNote(entry, planStart);
 
   return (
     <li className="flex items-center justify-between gap-3 py-2">
       <span className="min-w-0">
         <span className="block">
-          <span className="font-medium break-words">{entry.note || label}</span>
+          <span className="font-medium break-words">{title}</span>
           {isRecurring(entry) && <RecurringTag className="ml-2 align-middle" />}
         </span>
         <span className="block text-sm text-muted-foreground">{details.join(' · ')}</span>

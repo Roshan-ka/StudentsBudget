@@ -10,27 +10,28 @@ import { CATEGORIES } from '@/data/categories';
 import { db } from '@/db/db';
 import { deleteEntry, entriesInRange } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
+import { categoryNameIn } from '@/i18n/category-name';
+import { dateFormat } from '@/i18n/format';
+import { useT } from '@/i18n/use-t';
 import { daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
-import { categoryName } from './categories';
 import { EntryForm } from './entry-form';
+import { entryTitle } from './entry-title';
 import { RecurringTag, isRecurring } from './recurring-tag';
 
 const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 
 const LINK_CLASS = 'inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline';
 
-const dayHeading = new Intl.DateTimeFormat('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
-const monthLabel = new Intl.DateTimeFormat('en-IE', { month: 'short', year: 'numeric' });
-
 /** "Friday, 16 October". `parseISO` reads a date-only string as local midnight, so the day never shifts. */
-function headingOf(date: IsoDate): string {
-  return dayHeading.format(parseISO(date));
+function headingOf(date: IsoDate, locale: string): string {
+  return dateFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(parseISO(date));
 }
 
-function labelOf(month: IsoMonth): string {
-  return monthLabel.format(parseISO(firstOfMonth(month)));
+/** "Oct 2026". */
+function labelOf(month: IsoMonth, locale: string): string {
+  return dateFormat(locale, { month: 'short', year: 'numeric' }).format(parseISO(firstOfMonth(month)));
 }
 
 /** The list for one month, keeping the category filter when there is one. */
@@ -53,14 +54,14 @@ function groupByDate(entries: Entry[]): { date: IsoDate; entries: Entry[] }[] {
 }
 
 function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account[]; onOpen: () => void }) {
-  const accountName = (accountId: string) => accounts.find((a) => a.id === accountId)?.name ?? 'Unknown account';
+  const { t, locale } = useT();
+  const accountName = (accountId: string) =>
+    accounts.find((a) => a.id === accountId)?.name ?? t.entries.list.unknownAccount;
   const currency = accounts.find((a) => a.id === entry.accountId)?.currency ?? 'EUR';
 
-  const label = entry.type === 'transfer' ? 'Transfer' : categoryName(entry.categoryId);
-  const title = entry.note || label;
+  const { title, label } = entryTitle(entry, t);
   const details = [
-    // A posted entry's note is its category name: "Rent" over "Rent" would say it twice.
-    entry.note && entry.note !== label ? label : null,
+    label,
     entry.type === 'transfer' ? `${accountName(entry.accountId)} → ${accountName(entry.toAccountId)}` : null,
   ].filter((part) => part !== null);
 
@@ -79,7 +80,7 @@ function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account
       </span>
       <span className="shrink-0 font-medium tabular-nums">
         {entry.type === 'income' ? '+' : ''}
-        {formatMoney(entry.amountMinor, currency)}
+        {formatMoney(entry.amountMinor, currency, { locale })}
       </span>
     </button>
   );
@@ -87,6 +88,8 @@ function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account
 
 /** The edit form for one entry, with Delete behind a yes-or-cancel question. */
 function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
+  const { t } = useT();
+  const text = t.entries.edit;
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,15 +99,15 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
       await deleteEntry(entry.id);
     } catch (deleteError) {
       console.error('StudentsBudget: could not delete the entry', deleteError);
-      setError('Could not delete the entry.');
+      setError(text.deleteFailed);
       return;
     }
     onClose();
   }
 
   return (
-    <section aria-label="Edit entry" className="my-2 flex flex-col gap-4 rounded-lg border p-4">
-      <h3 className="text-lg font-semibold">Edit entry</h3>
+    <section aria-label={text.heading} className="my-2 flex flex-col gap-4 rounded-lg border p-4">
+      <h3 className="text-lg font-semibold">{text.heading}</h3>
       <EntryForm entry={entry} onSaved={onClose} />
       {error && (
         <p role="alert" className="text-sm text-destructive">
@@ -112,22 +115,22 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
         </p>
       )}
       {confirming ? (
-        <div role="group" aria-label="Delete this entry?" className="flex flex-wrap items-center gap-2">
-          <p className="mr-auto font-medium">Delete this entry?</p>
+        <div role="group" aria-label={text.deleteQuestion} className="flex flex-wrap items-center gap-2">
+          <p className="mr-auto font-medium">{text.deleteQuestion}</p>
           <Button variant="destructive" className="h-10 px-4" onClick={() => void remove()}>
-            Yes
+            {text.yes}
           </Button>
           <Button variant="outline" className="h-10 px-4" onClick={() => setConfirming(false)}>
-            Cancel
+            {text.cancel}
           </Button>
         </div>
       ) : (
         <div className="flex gap-2">
           <Button variant="outline" className="h-10 px-4" onClick={onClose}>
-            Cancel
+            {text.cancel}
           </Button>
           <Button variant="ghost" className="h-10 px-4" onClick={() => setConfirming(true)}>
-            Delete
+            {text.delete}
           </Button>
         </div>
       )}
@@ -141,6 +144,8 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
  * Reads the search params, so it has to render inside <Suspense>.
  */
 export function EntriesList() {
+  const { t, locale } = useT();
+  const text = t.entries.list;
   const params = useSearchParams();
   const monthParam = params.get('month');
   const categoryParam = params.get('category');
@@ -168,10 +173,12 @@ export function EntriesList() {
   const entries = loaded.entries.filter((e) => category === null || (e.type !== 'transfer' && e.categoryId === category));
   // Clear goes back to the current month with no category, so it is only worth showing when that is a change.
   const filtered = category !== null || loaded.month !== loaded.thisMonth;
-  const summary = [category === null ? null : categoryName(category), labelOf(loaded.month)].filter((p) => p !== null);
+  const summary = [category === null ? null : categoryNameIn(t, category), labelOf(loaded.month, locale)].filter(
+    (p) => p !== null,
+  );
 
   return (
-    <section aria-label="Entries" className="flex flex-col gap-3">
+    <section aria-label={text.label} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 text-sm text-muted-foreground">
         <p className="flex flex-wrap items-center gap-x-2">
           <span>{summary.join(' · ')}</span>
@@ -179,27 +186,27 @@ export function EntriesList() {
             <>
               <span aria-hidden="true">{' · '}</span>
               <Link href="/entries" className={LINK_CLASS}>
-                Clear
+                {text.clear}
               </Link>
             </>
           )}
         </p>
-        <nav aria-label="Month" className="flex items-center gap-4">
+        <nav aria-label={text.monthNav} className="flex items-center gap-4">
           <Link href={listHref(shiftMonth(loaded.month, -1), category)} className={LINK_CLASS}>
-            ‹ Previous
+            {text.previous}
           </Link>
           <Link href={listHref(shiftMonth(loaded.month, 1), category)} className={LINK_CLASS}>
-            Next ›
+            {text.next}
           </Link>
         </nav>
       </div>
 
       {entries.length === 0 ? (
-        <p className="text-muted-foreground">Nothing logged here yet.</p>
+        <p className="text-muted-foreground">{text.nothingYet}</p>
       ) : (
         groupByDate(entries).map((group) => (
           <div key={group.date} className="flex flex-col">
-            <h3 className="text-sm font-medium text-muted-foreground">{headingOf(group.date)}</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{headingOf(group.date, locale)}</h3>
             <ul className="flex flex-col divide-y">
               {group.entries.map((entry) => (
                 <li key={entry.id}>
