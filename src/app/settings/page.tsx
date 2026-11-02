@@ -1,3 +1,4 @@
+import { PageHeading } from '@/components/page-heading';
 import { AccountSection } from '@/features/account/account-section';
 import { AccountsPanel } from '@/features/accounts/accounts-panel';
 import { RatesPanel } from '@/features/accounts/rates-panel';
@@ -10,7 +11,7 @@ import { EditPlanSection } from '@/features/setup/edit-plan-section';
 export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-8">
-      <h2 className="text-lg font-semibold">Settings</h2>
+      <PageHeading id="settings" />
       <AccountSection />
       <ProfileSection />
       <EditPlanSection />

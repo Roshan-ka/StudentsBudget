@@ -4,13 +4,16 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { db } from '@/db/db';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 
-export const NAV_ITEMS: { href: string; label: string }[] = [
-  { href: '/', label: 'Home' },
-  { href: '/entries', label: 'Entries' },
-  { href: '/charts', label: 'Charts' },
-  { href: '/tips', label: 'Tips' },
-  { href: '/settings', label: 'Settings' },
+/** The pages the navigation leads to; each label comes from the dictionary (`shell.nav`). */
+export const NAV_ITEMS: { href: string; key: keyof Messages['shell']['nav'] }[] = [
+  { href: '/', key: 'home' },
+  { href: '/entries', key: 'entries' },
+  { href: '/charts', key: 'charts' },
+  { href: '/tips', key: 'tips' },
+  { href: '/settings', key: 'settings' },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -19,6 +22,7 @@ function isActive(pathname: string, href: string): boolean {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { t } = useT();
   // 'loading' (no answer yet) and null (no plan) both hide the nav: until setup is saved, there is
   // nothing to navigate to, and a tap on Home or Settings would leave a half-finished setup behind.
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
@@ -26,11 +30,11 @@ export function BottomNav() {
 
   return (
     <nav
-      aria-label="Main"
+      aria-label={t.shell.navLabel}
       className="fixed inset-x-0 bottom-0 border-t bg-background pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="flex">
-        {NAV_ITEMS.map(({ href, label }) => {
+        {NAV_ITEMS.map(({ href, key }) => {
           const active = isActive(pathname, href);
           return (
             <li key={href} className="flex-1">
@@ -41,7 +45,7 @@ export function BottomNav() {
                   active ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >
-                {label}
+                {t.shell.nav[key]}
               </Link>
             </li>
           );

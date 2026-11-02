@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { PageHeading } from '@/components/page-heading';
 import { buttonVariants } from '@/components/ui/button';
 import { EntriesList } from '@/features/entries/entries-list';
 import { QuickAddField } from '@/features/entries/quick-add-field';
@@ -9,7 +10,7 @@ export default function EntriesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Entries</h2>
+        <PageHeading id="entries" />
         <Link href="/entries/new" className={cn(buttonVariants({ variant: 'outline' }), 'h-10 px-4')}>
           Add entry
         </Link>
