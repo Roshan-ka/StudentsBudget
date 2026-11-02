@@ -9,7 +9,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // As in playwright.config.ts: an HTML report on CI, and a trace for each failed test.
   reporter: process.env.CI ? [['dot'], ['html', { open: 'never' }]] : 'list',
-  use: { baseURL: 'http://localhost:3100', trace: 'retain-on-failure' },
+  // English, whatever the machine's own locale, as in playwright.config.ts.
+  use: { baseURL: 'http://localhost:3100', trace: 'retain-on-failure', locale: 'en-GB' },
   projects: [{ name: 'desktop-chrome', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'npm run build && npm run start -- -p 3100',

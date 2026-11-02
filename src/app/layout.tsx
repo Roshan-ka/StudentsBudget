@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { AppInit } from '@/components/app-init';
 import { BottomNav } from '@/components/bottom-nav';
+import { LanguageAttributes } from '@/components/language-attributes';
+import { languageHeadScript } from '@/i18n/head-script';
+import { DEFAULT_LANGUAGE, LANGUAGES } from '@/i18n/languages';
 import './globals.css';
 
 const geistSans = Geist({
@@ -28,10 +31,21 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
+  // Prerendered in the default language; the head script sets <html lang> and dir to this phone's before the first
+  // paint, so <html> may differ from the HTML (suppressHydrationWarning, on <html> only).
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html
+      lang={DEFAULT_LANGUAGE}
+      dir={LANGUAGES[DEFAULT_LANGUAGE].dir}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: languageHeadScript() }} />
+      </head>
       <body className="flex min-h-full flex-col">
         <AppInit />
+        <LanguageAttributes />
         <header className="bg-primary pt-[env(safe-area-inset-top)] text-primary-foreground">
           <h1 className="flex h-12 items-center px-4 text-lg font-semibold">StudentsBudget</h1>
         </header>

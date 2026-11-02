@@ -13,7 +13,9 @@ export default defineConfig({
   // On CI an HTML report sits next to the dot output; ci.yml uploads it with test-results/ when a run fails.
   reporter: process.env.CI ? [['dot'], ['html', { open: 'never' }]] : 'list',
   // Kept only for failed tests: `npx playwright show-trace test-results/<test>/trace.zip`.
-  use: { baseURL, trace: 'retain-on-failure' },
+  // English, whatever the machine's own locale: the app follows the browser's language (src/i18n), and the specs read
+  // English. A spec about another language sets its own (test.use({ locale })).
+  use: { baseURL, trace: 'retain-on-failure', locale: 'en-GB' },
   projects: [
     { name: 'desktop-chrome', use: { ...devices['Desktop Chrome'] } },
     { name: 'iphone', use: { ...devices['iPhone 15'] } },
