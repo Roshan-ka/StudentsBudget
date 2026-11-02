@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   e2eArgs,
+  forScope,
   githubOutput,
   importsOf,
   readRepo,
@@ -276,6 +277,7 @@ describe('runOptions', () => {
     expect(runOptions({})).toEqual({
       scope: 'changed',
       full: false,
+      e2e: true,
       browsers: 'chromium',
       languages: 'default',
       projectArgs: '--project=desktop-chrome',
@@ -305,6 +307,10 @@ describe('runOptions', () => {
       projectArgs: '--project=desktop-chrome',
       languages: 'default',
     });
+  });
+
+  it('runs no e2e in a pull request’s automatic run (quick), on Chromium otherwise as a changed run', () => {
+    expect(runOptions({ scope: 'quick' })).toMatchObject({ scope: 'quick', full: false, e2e: false, browsers: 'chromium' });
   });
 
   it('refuses a value the inputs do not offer', () => {
@@ -391,5 +397,29 @@ describe('the real app', () => {
   it('names only specs that exist, never offline.spec.ts, and none both on a route and in allOnly', () => {
     expect([...listed, ...map.allOnly].filter((spec) => !specs.includes(spec) || spec === 'offline')).toEqual([]);
     expect(map.allOnly.filter((spec) => listed.includes(spec))).toEqual([]);
+  });
+});
+
+// A pull request that is ready for review runs by itself, without e2e (Roshan, 2026-11-02): lint, types, build, unit
+// tests and the db job when reached. e2e and the offline check run only when started by hand.
+describe('forScope', () => {
+  const picked = () => select(['src/features/check-in/week-rows.ts', 'src/sync/push.ts', 'public/sw.js']);
+
+  it('leaves a changed or full run as picked', () => {
+    const selection = picked();
+    expect(forScope(selection, runOptions({}))).toBe(selection);
+    expect(forScope(selection, runOptions({ scope: 'full' }))).toBe(selection);
+  });
+
+  it('drops e2e and the offline check from a quick run, and keeps the db job', () => {
+    const quick = forScope(picked(), runOptions({ scope: 'quick' }));
+    expect(quick).toMatchObject({ run: true, e2e: 'none', offline: false, db: true });
+    expect(githubOutput(quick, runOptions({ scope: 'quick' }))).toContain('e2e=none\noffline=false\ndb=true\n');
+  });
+
+  it('says in the summary why no e2e ran, and how to get it', () => {
+    const text = summary(forScope(picked(), runOptions({ scope: 'quick' })), runOptions({ scope: 'quick' }));
+    expect(text).toContain('Scope **quick**');
+    expect(text).toContain('| no e2e spec | a pull request’s automatic run has no e2e: start a changed or full run by hand |');
   });
 });

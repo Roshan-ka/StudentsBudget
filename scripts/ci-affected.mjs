@@ -16,7 +16,7 @@ const MANIFEST = 'src/app/manifest.ts';
 /** playwright.config.ts's Chromium project. Every project is Chromium plus the iPhone's WebKit. */
 const CHROMIUM_PROJECT = 'desktop-chrome';
 /** What ci.yml's Run workflow inputs offer. */
-const CHOICES = { scope: ['changed', 'full'], browsers: ['auto', 'chromium', 'all'], languages: ['auto', 'default', 'all'] };
+const CHOICES = { scope: ['changed', 'full', 'quick'], browsers: ['auto', 'chromium', 'all'], languages: ['auto', 'default', 'all'] };
 
 /** Notes only: nothing to check. */
 const DOCS = /^(docs|\.claude)\/|\.md$/;
@@ -217,7 +217,8 @@ export function selectAffected({ changed, repo, map, full = false }) {
 }
 
 /**
- * What a run's inputs mean. `scope`: what the branch changes against main (`changed`), or everything (`full`).
+ * What a run's inputs mean. `scope`: what the branch changes against main (`changed`), or everything (`full`), or
+ * `quick`, a pull request's automatic run: `changed` without e2e and the offline check (`e2e` false; see forScope).
  * `browsers` and `languages`: `auto` is Chromium and the default language for a changed run, everything for a full one.
  * StudentsBudget is English only, so `languages` is passed on to e2e (E2E_LANGUAGES) and no spec reads it yet.
  * Throws on a value the inputs don't offer. `auto` lists the options that were left on auto.
@@ -233,6 +234,7 @@ export function runOptions({ scope = 'changed', browsers = 'auto', languages = '
   return {
     scope,
     full,
+    e2e: scope !== 'quick',
     browsers: chosenBrowsers,
     languages: languages === 'auto' ? (full ? 'all' : 'default') : languages,
     projectArgs: chosenBrowsers === 'chromium' ? `--project=${CHROMIUM_PROJECT}` : '',
@@ -240,6 +242,17 @@ export function runOptions({ scope = 'changed', browsers = 'auto', languages = '
       .filter(([, value]) => value === 'auto')
       .map(([name]) => name),
   };
+}
+
+const QUICK_REASON = 'a pull request’s automatic run has no e2e: start a changed or full run by hand';
+
+/**
+ * The selection a run's scope allows. A pull request's automatic run (`quick`, Roshan 2026-11-02) leaves out e2e and
+ * the offline check, which only runs started by hand test; the checks and the db job stay as picked.
+ */
+export function forScope(selection, options) {
+  if (options.e2e) return selection;
+  return { ...selection, e2e: 'none', offline: false, why: { ...selection.why, quick: [QUICK_REASON] } };
 }
 
 /** The specs as Playwright file arguments: each a regex over the path, anchored so `account` never runs `accounts`. */
@@ -269,7 +282,7 @@ export function summary({ run, e2e, offline, db, why }, options = runOptions({})
   if (!run) return `${head}No checks run: ${why.skip[0]}.\n`;
   const rows = [];
   if (e2e === 'all') rows.push(['every e2e spec', why.all]);
-  else if (e2e === 'none') rows.push(['no e2e spec', ['no changed file reaches a page or a spec']]);
+  else if (e2e === 'none') rows.push(['no e2e spec', why.quick ?? ['no changed file reaches a page or a spec']]);
   else for (const spec of e2e) rows.push([`\`${spec}\``, why[spec]]);
   if (offline) rows.push(['offline check', why.offline]);
   if (db) rows.push(['db job', why.db]);
@@ -308,7 +321,7 @@ function main() {
     .split('\0')
     .filter(Boolean);
   const map = JSON.parse(readFileSync(path.join(root, MAP_FILE), 'utf8'));
-  const selection = selectAffected({ changed, repo: readRepo(root), map, full: options.full });
+  const selection = forScope(selectAffected({ changed, repo: readRepo(root), map, full: options.full }), options);
   const output = githubOutput(selection, options);
   const table = summary(selection, options);
   process.stdout.write(`${changed.length} changed files\n${output}\n${table}`);
