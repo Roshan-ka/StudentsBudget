@@ -3,8 +3,8 @@
 // that reaches the root layout, or a route every spec passes through, runs them all. A path no rule matches runs
 // everything. Run by ci.yml: `node scripts/ci-affected.mjs`, with the run's options in CI_SCOPE, CI_BROWSERS and
 // CI_LANGUAGES (see runOptions), writes `run`, `e2e`, `offline`, `db`, `projects` and `languages` to $GITHUB_OUTPUT, and
-// the options and why each spec was picked to the job summary. The pure helpers take made-up input, so the unit tests
-// can run them.
+// the options and why each spec was picked to the job summary. `node scripts/ci-affected.mjs verdict` gives the gate job
+// the commit status to post (see gate). The pure helpers take made-up input, so the unit tests can run them.
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -242,6 +242,48 @@ export function runOptions({ scope = 'changed', browsers = 'auto', languages = '
   };
 }
 
+/**
+ * The commit status a run posts. `full-gate`, the check merging waits for, only for a full run on every browser and
+ * language; a full run narrowed by an option posts `partial-check`, so it can never stand in for the full test. A
+ * changed run posts `quick-check`.
+ */
+export function statusContext(inputs) {
+  const options = runOptions(inputs);
+  if (!options.full) return 'quick-check';
+  return options.browsers === 'all' && options.languages === 'all' ? 'full-gate' : 'partial-check';
+}
+
+/** The status's description: the tested commit, short, and the options the run used. */
+export function statusDescription(sha, options) {
+  return `${sha.slice(0, 7)} · ${options.scope} · browsers ${options.browsers} · languages ${options.languages}`;
+}
+
+/** The jobs after `changes`, as ci.yml names them. */
+const JOBS = ['checks', 'e2e', 'e2e-report', 'offline', 'db'];
+
+/**
+ * The run's verdict, from what `toJSON(needs)` gives the gate job. `changes` must always pass. A full run needs every
+ * job to pass: one that was skipped, cancelled or left no result is coverage the run doesn't have. A changed run
+ * passes when every job passed or was skipped, and its report merge doesn't count. Returns `state` ('success' or
+ * 'failure') and the `problems` behind a failure.
+ */
+export function verdict(scope, needs) {
+  const problems = [];
+  const changes = needs.changes?.result ?? 'no result';
+  if (changes !== 'success') problems.push(`changes: ${changes}`);
+  for (const job of JOBS) {
+    const result = needs[job]?.result;
+    if (scope === 'full') {
+      if (changes === 'success' && result !== 'success') {
+        problems.push(`${job}: ${result ?? 'no result'}, but this full run needs it`);
+      }
+    } else if (job !== 'e2e-report' && result !== undefined && result !== 'success' && result !== 'skipped') {
+      problems.push(`${job}: ${result}`);
+    }
+  }
+  return { state: problems.length === 0 ? 'success' : 'failure', problems };
+}
+
 /** The specs as Playwright file arguments: each a regex over the path, anchored so `account` never runs `accounts`. */
 export function e2eArgs(specs) {
   return specs.map((spec) => `e2e/${spec.replaceAll('.', '\\.')}$`).join(' ');
@@ -292,13 +334,24 @@ export function readRepo(root) {
   return repo;
 }
 
-function main() {
-  const root = fileURLToPath(new URL('..', import.meta.url));
-  const options = runOptions({
+/** The run's Run workflow inputs, as ci.yml passes them on. */
+function inputsFromEnv() {
+  return {
     scope: process.env.CI_SCOPE || undefined,
     browsers: process.env.CI_BROWSERS || undefined,
     languages: process.env.CI_LANGUAGES || undefined,
-  });
+  };
+}
+
+/** Appends lines to $GITHUB_OUTPUT and the job summary, when the run has them. */
+function report(output, table) {
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, output);
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, table);
+}
+
+function main() {
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  const options = runOptions(inputsFromEnv());
   // What the checked-out branch changes since it left main (three dots: newer commits on main don't count). CI checks
   // out the whole history (fetch-depth: 0), so origin/main is there.
   const changed = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', 'origin/main...HEAD'], {
@@ -312,8 +365,23 @@ function main() {
   const output = githubOutput(selection, options);
   const table = summary(selection, options);
   process.stdout.write(`${changed.length} changed files\n${output}\n${table}`);
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, output);
-  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, table);
+  report(output, table);
 }
 
-if (import.meta.main) main();
+/**
+ * `node scripts/ci-affected.mjs verdict`, for the gate job: reads every job's result (NEEDS, `toJSON(needs)`), the
+ * inputs and the tested commit (SHA), and writes the status to post: `context`, `state` and `description`.
+ */
+function gate() {
+  const inputs = inputsFromEnv();
+  const options = runOptions(inputs);
+  const context = statusContext(inputs);
+  const { state, problems } = verdict(options.scope, JSON.parse(process.env.NEEDS ?? '{}'));
+  const description = statusDescription(process.env.SHA ?? '', options);
+  const output = `context=${context}\nstate=${state}\ndescription=${description}\n`;
+  const table = [`### ${context}: ${state}`, '', description, '', ...problems.map((problem) => `- ${problem}`), ''].join('\n');
+  process.stdout.write(`${output}\n${table}`);
+  report(output, table);
+}
+
+if (import.meta.main) (process.argv[2] === 'verdict' ? gate : main)();
