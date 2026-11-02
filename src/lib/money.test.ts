@@ -77,3 +77,21 @@ describe('CURRENCIES', () => {
     expect(CURRENCIES).toEqual(['EUR', 'INR', 'USD', 'GBP', 'CHF', 'CNY', 'TRY']);
   });
 });
+
+// The language switch (plan 1, chunk 2): money follows the chosen language; English, the default, stays as it was.
+describe('formatMoney and formatRange in another language', () => {
+  it('formats in the given locale', () => {
+    expect(formatMoney(650, 'EUR', { locale: 'de-DE' })).toBe('6,50\u00a0€');
+    expect(formatMoney(6300, 'EUR', { whole: true, locale: 'de-DE' })).toBe('63\u00a0€');
+    expect(formatMoney(126350, 'EUR', { locale: 'fr-FR' })).toBe('1\u202f263,50\u00a0€');
+  });
+
+  it('keeps a whole figure that rounds to nothing at zero, in any locale', () => {
+    expect(formatMoney(-30, 'EUR', { whole: true, locale: 'de-DE' })).toBe('0\u00a0€');
+  });
+
+  it('puts the euro sign where the locale puts it, once, on a range', () => {
+    expect(formatRange(20000, 26000, 'de-DE')).toBe('200–260\u00a0€');
+    expect(formatRange(20000, 26000)).toBe('€200–260');
+  });
+});

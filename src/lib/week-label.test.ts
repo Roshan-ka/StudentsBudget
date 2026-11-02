@@ -19,3 +19,11 @@ describe('weekLabel', () => {
     expect(weekLabel('2026-11-01', '2026-11-01')).toBe('Sun 1 Nov');
   });
 });
+
+describe('weekLabel in another language', () => {
+  it('uses the locale’s day and month names, with English unchanged by default', () => {
+    expect(weekLabel('2026-10-12', '2026-10-18', 'de-DE')).toBe('Mo., 12. – So., 18. Okt.');
+    expect(weekLabel('2026-11-01', '2026-11-01', 'fr-FR')).toBe('dim. 1 nov.');
+    expect(weekLabel('2026-10-12', '2026-10-18')).toBe('Mon 12 – Sun 18 Oct');
+  });
+});
