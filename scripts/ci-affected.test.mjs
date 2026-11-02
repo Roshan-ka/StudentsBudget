@@ -1,0 +1,330 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+import {
+  e2eArgs,
+  githubOutput,
+  importsOf,
+  readRepo,
+  routePages,
+  selectAffected,
+  summary,
+  unresolvedImports,
+} from './ci-affected.mjs';
+
+/**
+ * A small made-up app, shaped like the real one: the root layout loads app-init (and through it the database), Home
+ * holds the check-in card, the check-in page and the entries page share the entries list, and two specs import data.
+ * Only code files need their text; everything else is ''.
+ */
+const REPO = {
+  'src/app/layout.tsx': "import { AppInit } from '@/components/app-init';\nimport './globals.css';\n",
+  'src/app/globals.css': '',
+  'src/app/favicon.ico': '',
+  'src/app/manifest.ts': '',
+  'src/components/app-init.tsx': "import { db } from '@/db/db';\nimport { registerServiceWorker } from '@/lib/sw-register';\n",
+  'src/db/db.ts': "import type { Plan } from './types';\n",
+  'src/db/types.ts': '',
+  'src/lib/sw-register.ts': '',
+  'src/lib/money.ts': '',
+  'src/lib/money.test.ts': "import { formatMoney } from './money';\n",
+  'src/lib/orphan.ts': '',
+  'src/data/notes.json': '',
+  'src/app/page.tsx': "import { db } from '@/db/db';\nimport { HomeScreen } from '@/features/home/home';\n",
+  'src/features/home/home.tsx': "import {\n  CheckInCard,\n  type CardProps,\n} from '@/features/check-in/check-in-card';\n",
+  'src/features/check-in/check-in-card.tsx': "import { formatMoney } from '@/lib/money';\n",
+  'src/app/check-in/page.tsx': "import { CheckInView } from '@/features/check-in/check-in-view';\n",
+  'src/app/check-in/loading.tsx': '',
+  'src/features/check-in/check-in-view.tsx':
+    "import { weekRows } from './week-rows';\nexport { EntriesList } from '@/features/entries/entries-list';\n",
+  'src/features/check-in/week-rows.ts': '',
+  'src/features/entries/entries-list.tsx': "import { formatMoney } from '../../lib/money';\n",
+  'src/app/entries/page.tsx': "const list = await import('@/features/entries/entries-list');\n",
+  'src/app/setup/page.tsx': "import { Wizard } from '@/features/setup/wizard';\n",
+  'src/features/setup/wizard.tsx': '',
+  'src/app/settings/page.tsx': "import { PushButton } from '@/sync/push';\n",
+  'src/sync/push.ts': '',
+  'src/sync/store.ts': "import { checkRow } from '@/db/schemas';\n",
+  'src/sync/store.contract.test.ts': "import { supabaseStore } from './store';\n",
+  'src/db/schemas.ts': '',
+  'src/app/tips/page.tsx': "import { TipsView } from '../../features/tips/tips-view';\n",
+  'src/features/tips/tips-view.tsx': "import { TIPS } from '@/data/tips';\n",
+  'src/data/tips.ts': '',
+  'src/app/charts/page.tsx': '',
+  'e2e/helpers/setup.ts': '',
+  'e2e/smoke.spec.ts': '',
+  'e2e/check-in.spec.ts': "import { completeSetup } from './helpers/setup';\n",
+  'e2e/entries.spec.ts': '',
+  'e2e/tips.spec.ts': "import { TIPS } from '../src/data/tips';\n",
+  'e2e/swaps.spec.ts': "import { TIPS } from '../src/data/tips';\nimport type { Plan } from '../src/db/types';\n",
+  'e2e/setup.spec.ts': '',
+  'e2e/offline.spec.ts': '',
+  'docs/plan.md': '',
+  'README.md': '',
+  '.claude/settings.json': '',
+  'public/sw.js': '',
+  'public/icon-192.png': '',
+  'supabase/migrations/1_init.sql': '',
+  'next.config.ts': '',
+  'package.json': '',
+  'package-lock.json': '',
+  'fixtures/demo.json': '',
+  'mcp/server.ts': '',
+  'scripts/supabase-test-env.mjs': '',
+  '.github/workflows/ci.yml': '',
+};
+
+/** Route → the specs that open it; the charts route is left out on purpose. */
+const MAP = {
+  routes: {
+    '/': 'all',
+    '/check-in': ['check-in'],
+    '/entries': ['check-in', 'entries'],
+    '/manifest.webmanifest': ['smoke'],
+    '/settings': 'all',
+    '/setup': 'all',
+    '/tips': ['tips'],
+  },
+  allOnly: ['setup'],
+};
+
+const select = (changed, more = {}) => selectAffected({ changed, repo: REPO, map: MAP, ...more });
+
+describe('importsOf', () => {
+  it('finds static, type-only, side-effect, re-exported, multi-line and dynamic imports', () => {
+    const source = [
+      "import { a } from '@/lib/a';",
+      "import type { B } from './b';",
+      "import './globals.css';",
+      "export { c } from '../c';",
+      "export * from '@/lib/d';",
+      'import {',
+      '  e,',
+      '  type E,',
+      "} from '@/lib/e';",
+      "const f = await import('@/lib/f');",
+      "import { useState } from 'react';",
+    ].join('\n');
+    expect(importsOf(source)).toEqual(['@/lib/a', './b', './globals.css', '../c', '@/lib/d', '@/lib/e', '@/lib/f', 'react']);
+  });
+});
+
+describe('selectAffected', () => {
+  it('runs nothing for docs-only changes', () => {
+    expect(select(['docs/plan.md', 'README.md', '.claude/settings.json'])).toMatchObject({
+      run: false,
+      e2e: 'none',
+      offline: false,
+      db: false,
+    });
+  });
+
+  it('runs the checks but no e2e spec for a unit test', () => {
+    expect(select(['src/lib/money.test.ts'])).toMatchObject({ run: true, e2e: 'none', offline: false, db: false });
+  });
+
+  it("picks a leaf module's route specs, plus smoke", () => {
+    expect(select(['src/features/check-in/week-rows.ts'])).toMatchObject({
+      run: true,
+      e2e: ['check-in.spec.ts', 'smoke.spec.ts'],
+      offline: false,
+      db: false,
+    });
+  });
+
+  it('picks every route that imports a shared module, through re-exports and dynamic imports', () => {
+    expect(select(['src/features/entries/entries-list.tsx']).e2e).toEqual([
+      'check-in.spec.ts',
+      'entries.spec.ts',
+      'smoke.spec.ts',
+    ]);
+  });
+
+  it('resolves relative imports, as well as @/', () => {
+    expect(select(['src/features/tips/tips-view.tsx']).e2e).toEqual(['smoke.spec.ts', 'tips.spec.ts']);
+  });
+
+  it('picks a spec that imports the changed module itself', () => {
+    expect(select(['src/data/tips.ts']).e2e).toEqual(['smoke.spec.ts', 'swaps.spec.ts', 'tips.spec.ts']);
+  });
+
+  it('gives a file in a route folder that nothing imports to that route', () => {
+    expect(select(['src/app/check-in/loading.tsx']).e2e).toEqual(['check-in.spec.ts', 'smoke.spec.ts']);
+  });
+
+  it('runs everything when a change reaches the root layout', () => {
+    for (const file of ['src/app/layout.tsx', 'src/components/app-init.tsx', 'src/db/types.ts', 'src/app/globals.css']) {
+      expect(select([file]), file).toMatchObject({ e2e: 'all', offline: true });
+    }
+  });
+
+  it('runs everything when a change reaches a route mapped to all: setup, Home or Settings', () => {
+    for (const file of ['src/features/setup/wizard.tsx', 'src/features/check-in/check-in-card.tsx', 'src/lib/money.ts']) {
+      expect(select([file]).e2e, file).toBe('all');
+    }
+  });
+
+  it('runs everything for a route the map does not list', () => {
+    expect(select(['src/app/charts/page.tsx']).e2e).toBe('all');
+  });
+
+  it('runs everything, the offline check and the db job for a path no rule matches', () => {
+    for (const file of [
+      'fixtures/demo.json',
+      'scripts/supabase-test-env.mjs',
+      '.github/workflows/ci.yml',
+      'next.config.ts',
+      'package.json',
+      'package-lock.json',
+      'public/icon-192.png',
+      'src/app/favicon.ico',
+      'e2e/helpers/setup.ts',
+      'src/data/notes.json',
+    ]) {
+      expect(select([file]), file).toMatchObject({ run: true, e2e: 'all', offline: true, db: true });
+    }
+  });
+
+  it('runs only the checks for the MCP server, which the web app never loads', () => {
+    expect(select(['mcp/server.ts', '.mcp.json'])).toMatchObject({ run: true, e2e: 'none', offline: false, db: false });
+  });
+
+  it('runs no e2e spec for a module that no page or spec imports', () => {
+    expect(select(['src/lib/orphan.ts'])).toMatchObject({ run: true, e2e: 'none' });
+  });
+
+  it('drops a deleted module from the walk', () => {
+    expect(select(['src/features/old.tsx', 'src/features/check-in/week-rows.ts']).e2e).toEqual([
+      'check-in.spec.ts',
+      'smoke.spec.ts',
+    ]);
+    expect(select(['src/features/old.tsx'])).toMatchObject({ run: true, e2e: 'none' });
+  });
+
+  it('still runs everything when a deleted path is one no rule matches', () => {
+    expect(select(['vitest.config.ts'])).toMatchObject({ e2e: 'all', offline: true, db: true });
+  });
+
+  it('runs a changed spec, plus smoke', () => {
+    expect(select(['e2e/tips.spec.ts']).e2e).toEqual(['smoke.spec.ts', 'tips.spec.ts']);
+  });
+
+  it('never lists offline.spec.ts: a change to it turns on the offline check', () => {
+    expect(select(['e2e/offline.spec.ts'])).toMatchObject({ run: true, e2e: 'none', offline: true });
+    expect(select(['e2e/offline.spec.ts', 'e2e/tips.spec.ts']).e2e).toEqual(['smoke.spec.ts', 'tips.spec.ts']);
+  });
+
+  it('turns on the offline check for the service worker and the manifest', () => {
+    expect(select(['public/sw.js'])).toMatchObject({ run: true, e2e: 'none', offline: true, db: false });
+    expect(select(['src/app/manifest.ts'])).toMatchObject({ e2e: ['smoke.spec.ts'], offline: true });
+    expect(select(['src/lib/sw-register.ts'])).toMatchObject({ e2e: 'all', offline: true });
+  });
+
+  it('turns on the db job for the database, the account store and its test env', () => {
+    expect(select(['supabase/migrations/1_init.sql'])).toMatchObject({ run: true, e2e: 'none', offline: false, db: true });
+    expect(select(['src/sync/push.ts'])).toMatchObject({ e2e: 'all', db: true });
+    expect(select(['src/lib/supabase/client.ts'])).toMatchObject({ db: true });
+  });
+
+  it('turns on the db job for a module the contract tests import', () => {
+    const selection = select(['src/db/schemas.ts']);
+    expect(selection).toMatchObject({ run: true, e2e: 'none', db: true });
+    expect(selection.why.db).toEqual(['`src/db/schemas.ts` is imported by the contract tests']);
+  });
+
+  it('runs everything for a scheduled or manual run and for the ci:full label', () => {
+    for (const more of [{ event: 'schedule' }, { event: 'workflow_dispatch' }, { labels: ['ci:full'] }]) {
+      expect(select(['docs/plan.md'], more), JSON.stringify(more)).toMatchObject({
+        run: true,
+        e2e: 'all',
+        offline: true,
+        db: true,
+      });
+    }
+    expect(select(['docs/plan.md'], { labels: ['documentation'] }).run).toBe(false);
+  });
+
+  it('says why each spec was picked', () => {
+    const { why } = select(['src/features/check-in/week-rows.ts', 'src/data/tips.ts']);
+    expect(why['check-in.spec.ts']).toEqual(['`src/features/check-in/week-rows.ts` → /check-in']);
+    expect(why['swaps.spec.ts']).toEqual(['`src/data/tips.ts` is imported by the spec']);
+    expect(why['smoke.spec.ts']).toEqual(['runs with every list']);
+    expect(select(['src/db/types.ts']).why.all).toEqual(['`src/db/types.ts` reaches the root layout']);
+    expect(select(['src/features/setup/wizard.tsx']).why.all).toEqual(['`src/features/setup/wizard.tsx` → /setup']);
+    expect(select(['fixtures/demo.json']).why.all).toEqual(['`fixtures/demo.json`: no rule matches it']);
+    expect(select(['README.md'], { labels: ['ci:full'] }).why.all).toEqual(['the `ci:full` label']);
+  });
+});
+
+describe('e2eArgs', () => {
+  it('anchors each file, so a name never matches a longer one', () => {
+    expect(e2eArgs(['account.spec.ts', 'smoke.spec.ts'])).toBe('e2e/account\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$');
+    // Playwright reads each argument as a case-insensitive regex over the absolute path.
+    const [account] = e2eArgs(['account.spec.ts']).split(' ').map((arg) => new RegExp(arg, 'gi'));
+    expect(account.test('/home/runner/work/app/e2e/account.spec.ts')).toBe(true);
+    account.lastIndex = 0;
+    expect(account.test('/home/runner/work/app/e2e/accounts.spec.ts')).toBe(false);
+  });
+});
+
+describe('githubOutput', () => {
+  it('writes run, e2e, offline and db, with the list as Playwright arguments', () => {
+    expect(githubOutput(select(['src/features/check-in/week-rows.ts']))).toBe(
+      'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\n',
+    );
+    expect(githubOutput(select(['README.md']))).toBe('run=false\ne2e=none\noffline=false\ndb=false\n');
+  });
+});
+
+describe('summary', () => {
+  it('has a row for each picked spec and each extra job, with the reasons', () => {
+    const text = summary(select(['src/features/check-in/week-rows.ts', 'src/sync/push.ts', 'public/sw.js']));
+    expect(text).toContain('| every e2e spec | `src/sync/push.ts` → /settings |');
+    expect(text).toContain('| offline check | `public/sw.js`; every e2e spec runs |');
+    expect(text).toContain('| db job | `src/sync/push.ts` |');
+  });
+
+  it('lists the specs of a subset, and shortens a long list of reasons', () => {
+    const text = summary(select(['src/features/entries/entries-list.tsx']));
+    expect(text).toContain('| `entries.spec.ts` | `src/features/entries/entries-list.tsx` → /entries |');
+    expect(text).toContain('| `smoke.spec.ts` | runs with every list |');
+    const changed = ['a', 'b', 'c', 'd', 'e'].map((name) => `src/features/check-in/${name}.ts`);
+    const repo = { ...REPO, ...Object.fromEntries(changed.map((file) => [file, ''])) };
+    repo['src/features/check-in/check-in-view.tsx'] += changed.map((file) => `import '@/${file.slice(4, -3)}';\n`).join('');
+    const long = summary(selectAffected({ changed, repo, map: MAP }));
+    expect(long).toContain('`src/features/check-in/c.ts` → /check-in, and 2 more |');
+  });
+
+  it('says so when no e2e spec runs', () => {
+    expect(summary(select(['src/lib/money.test.ts']))).toContain('| no e2e spec |');
+    expect(summary(select(['docs/plan.md']))).toContain('Docs only: no checks run.');
+  });
+});
+
+describe('the real app', () => {
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  const repo = readRepo(root);
+  const map = JSON.parse(readFileSync(new URL('../e2e/affected-map.json', import.meta.url), 'utf8'));
+  const specs = Object.keys(repo)
+    .filter((file) => /^e2e\/[^/]+\.spec\.ts$/.test(file))
+    .map((file) => file.slice('e2e/'.length, -'.spec.ts'.length));
+  const listed = Object.values(map.routes).filter(Array.isArray).flat();
+
+  it('resolves every @/ and relative import in src/ and e2e/', () => {
+    expect(unresolvedImports(repo)).toEqual([]);
+  });
+
+  it('maps every route, and only routes that exist', () => {
+    expect(Object.keys(map.routes).sort()).toEqual([...routePages(repo).keys()].sort());
+  });
+
+  it('maps every spec but offline.spec.ts, through a route or allOnly', () => {
+    const mapped = new Set([...listed, ...map.allOnly]);
+    expect(specs.filter((spec) => spec !== 'offline' && !mapped.has(spec))).toEqual([]);
+  });
+
+  it('names only specs that exist, never offline.spec.ts, and none both on a route and in allOnly', () => {
+    expect([...listed, ...map.allOnly].filter((spec) => !specs.includes(spec) || spec === 'offline')).toEqual([]);
+    expect(map.allOnly.filter((spec) => listed.includes(spec))).toEqual([]);
+  });
+});

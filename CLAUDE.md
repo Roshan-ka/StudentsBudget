@@ -55,10 +55,12 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | `npm run test:db` | pgTAP tests in `supabase/tests` against the running local stack |
 | `npm run test:contract` | The account store (`src/sync/store.ts`) against the running local stack, as signed-in users; needs `SUPABASE_TEST_URL` and `SUPABASE_TEST_KEY`, which `node scripts/supabase-test-env.mjs` prints. Skipped in `npm test` without them |
 
-CI (`.github/workflows/ci.yml`) runs on every pull request that changes more than notes (Markdown anywhere, `docs/`), and a new push cancels the run before it. What runs follows the files the pull request changes (`scripts/ci-areas.mjs`, which counts a path no rule names as app code):
-- Lint, typecheck and unit tests always.
-- The build, e2e and the offline check when the app changes (not for `supabase/`, `mcp/` or `.claude/` alone). e2e always runs whole: a change in one place can break a spec about another. A failed Playwright run uploads its HTML report and traces as the `playwright-report` artifact.
-- The `db` job (the migrations, `test:db` and `test:contract` on a local Supabase stack) when `supabase/`, the account store (`src/sync/`, `src/db/`, `src/lib/`) or what they run on changes.
+CI (`.github/workflows/ci.yml`) runs on a pull request what its changes need, as `scripts/ci-affected.mjs` picks it (the job summary says why), and a new push cancels the run before it:
+- `checks`: lint, typecheck, build and the whole unit suite, for anything but notes (`docs/`, Markdown, `.claude/`).
+- `e2e`: the specs of every route whose page imports a changed module, directly or through others (`e2e/affected-map.json`), plus smoke. A change that reaches the root layout, setup, Home or Settings runs every spec, in four shards, and so does a path no rule matches. `supabase/`, `mcp/` and unit tests alone run no spec. A new route or spec needs an entry in the map, or the unit tests fail.
+- `offline` (the service worker, the manifest, `public/`, `next.config.*`) and `db` (the migrations, `test:db` and `test:contract` on a local Supabase stack, for `supabase/`, `src/sync/`, the lockfile and what the contract tests import) run only when flagged.
+- The `ci:full` label, a manual run (`ref` input) and the nightly run (02:17 UTC, skipped when `main` hasn't moved since the last one that passed) run everything.
+- `gate` is the only required check: it fails when any job failed or was cancelled. A failed Playwright run uploads its HTML report and traces as a `playwright-report-…` artifact.
 
 ## Framework rules
 
