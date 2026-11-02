@@ -39,14 +39,27 @@ async function sync(store: UserDataStore, userId: string): Promise<SyncResult> {
     const pushed = await push(store);
     const pulled = await pull(store);
     if (pulled.kind === 'invalid') return await stopped(pulled.problem);
-    // A pull can queue a row to go back (an account another phone deleted while this one still uses it): sent now.
-    const again = (await db.outbox.count()) > 0 ? await push(store) : { sent: 0, deleted: 0 };
-    await db.syncState.update('current', { lastSyncedAt: new Date().toISOString(), problem: null });
-    return { kind: 'synced', sent: pushed.sent + pushed.deleted + again.sent + again.deleted, received: pulled.applied };
+    // A pull can queue a row to go back (an account another phone deleted while this one still uses it): sent now. The
+    // rows push held back stay queued, so only more than those means the pull queued something.
+    const again = (await db.outbox.count()) > pushed.held ? await push(store) : null;
+    const held = again?.held ?? pushed.held;
+    // Synced, but a change this app's own checks refuse stays on the phone: said, so it isn't lost unnoticed.
+    const problem = held > 0 ? heldBackText(held) : null;
+    await db.syncState.update('current', { lastSyncedAt: new Date().toISOString(), problem });
+    if (problem !== null) return { kind: 'problem', problem };
+    const sent = pushed.sent + pushed.deleted + (again ? again.sent + again.deleted : 0);
+    return { kind: 'synced', sent, received: pulled.applied };
   } catch (error) {
     console.error('StudentsBudget: sync', error);
     return stopped(syncErrorMessage(error));
   }
+}
+
+/** The problem a sync reports when push held back changes this app's own row checks refuse (see push). */
+export function heldBackText(held: number): string {
+  return held === 1
+    ? '1 change can’t be synced: this app refuses it. It stays on this phone.'
+    : `${held} changes can’t be synced: this app refuses them. They stay on this phone.`;
 }
 
 async function stopped(problem: string): Promise<SyncResult> {

@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
-import { accountSyncStatus, syncNow, syncResultText, syncStatusText } from './engine';
+import { accountSyncStatus, heldBackText, syncNow, syncResultText, syncStatusText } from './engine';
 import { UPDATE_NEEDED } from './pull';
 import { StoreError } from './store';
 import { expense, fakeStore } from './test-helpers';
@@ -183,5 +183,19 @@ describe('accountSyncStatus', () => {
 
   it('tells another account the phone is linked elsewhere, instead of that account’s status', () => {
     expect(accountSyncStatus(USER, 'someone-else', input)).toBe('This phone is linked to another account.');
+  });
+});
+
+describe('a change the app refuses', () => {
+  it('syncs the rest, and says what stays on this phone', async () => {
+    const { store, tables } = fakeStore();
+    await db.entries.put({ ...expense('bad'), amountMinor: 1.5 });
+    await saveEntry(expense('good'));
+    expect(await syncNow(store, USER)).toEqual({ kind: 'problem', problem: heldBackText(1) });
+    expect(tables.entries.has('good')).toBe(true);
+    expect((await state())?.problem).toBe(heldBackText(1));
+    expect((await state())?.lastSyncedAt).not.toBeNull();
+    expect(heldBackText(1)).toBe('1 change can’t be synced: this app refuses it. It stays on this phone.');
+    expect(heldBackText(2)).toBe('2 changes can’t be synced: this app refuses them. They stay on this phone.');
   });
 });

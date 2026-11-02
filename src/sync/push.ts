@@ -1,13 +1,16 @@
 import { db } from '@/db/db';
 import type { OutboxEntry } from '@/db/types';
 import { applyFromAccount, checkRow, type Checked } from './pull';
-import { BadRow } from './rows';
+import { BadRow, ROW_CHECKS } from './rows';
 import type { PulledRow, UserDataStore } from './store';
 import { dexieHome, type ServerRow, type ServerTable } from './tables';
 import { DELETE_ORDER, WRITE_ORDER } from './upload';
 
-/** What a push sent: rows written to the account, and rows it now holds as deleted. */
-export type PushResult = { sent: number; deleted: number };
+/**
+ * What a push sent: rows written to the account, and rows it now holds as deleted; and `held`, the rows it kept back
+ * because this app's own row checks refuse them (they stay queued on the phone).
+ */
+export type PushResult = { sent: number; deleted: number; held: number };
 
 /**
  * Sends this phone's changes to the account (P2.2): every row in the outbox as it is now. A row still on the phone goes
@@ -19,7 +22,7 @@ export type PushResult = { sent: number; deleted: number };
  */
 export async function push(store: UserDataStore): Promise<PushResult> {
   const queue = await db.outbox.toArray();
-  const result: PushResult = { sent: 0, deleted: 0 };
+  const result: PushResult = { sent: 0, deleted: 0, held: 0 };
   const gone = new Map<ServerTable, OutboxEntry[]>();
   for (const table of WRITE_ORDER) {
     const queued = queue.filter((entry) => entry.table === table);
@@ -33,6 +36,8 @@ export async function push(store: UserDataStore): Promise<PushResult> {
     queued.forEach((entry, i) => {
       const row = rows[i];
       if (typeof row !== 'object' || row === null) return deletes.push(entry);
+      // Checked as a pull would check it: a row every phone's pull would stop at stays here, queued.
+      if (!passesRowCheck(table, entry.id, row)) return (result.held += 1);
       (entry.auto ? automatic : upserts).push({ id: entry.id, data: row });
       written.push(entry);
     });
@@ -53,6 +58,18 @@ export async function push(store: UserDataStore): Promise<PushResult> {
     result.deleted += deletes.length;
   }
   return result;
+}
+
+/** Whether a row passes the checks a pull applies to it (`ROW_CHECKS`); a refused one is logged with its table and id. */
+function passesRowCheck(table: ServerTable, id: string, data: object): boolean {
+  try {
+    ROW_CHECKS[table]({ id, data });
+    return true;
+  } catch (error) {
+    if (!(error instanceof BadRow)) throw error;
+    console.error(`StudentsBudget: not syncing ${table} ${id}, which this app refuses:`, error.message);
+    return false;
+  }
 }
 
 /**
