@@ -1,45 +1,91 @@
 name: CI
 
+# A pull request runs what its changes need (scripts/ci-affected.mjs, which says why in the job summary). The nightly
+# run, a manual run and the `ci:full` label run everything. `gate` is the only check branch protection requires.
 on:
   pull_request:
-    # A pull request that changes only notes (Markdown anywhere, docs/) starts no run at all.
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
+    # `labeled`, so adding `ci:full` starts a full run on the same commit.
+    types: [opened, synchronize, reopened, labeled]
+  schedule:
+    # 02:17 UTC (about 04:17 in Germany), off the full hour when GitHub's scheduler is busiest.
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to test, all of it
+        default: main
 
 permissions:
   contents: read
 
-# A new push to a pull request stops the run for the push before it.
+# A new push to a pull request stops the run for the push before it. Nightly and manual runs each get a group of their
+# own, so neither stops the other.
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  # Which jobs this pull request needs, from the files it changes (scripts/ci-areas.mjs). e2e always runs whole when the
-  # app changes: a change in one place can break a spec about another (P2.2's linking broke a two-step spec).
+  # What this run needs: `run` (anything but notes), `e2e` (none, all, or the specs as Playwright file arguments),
+  # `offline` and `db`, plus the commit every later job checks out.
   changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # The nightly run reads the workflow's earlier runs.
+      actions: read
     outputs:
-      app: ${{ steps.areas.outputs.app }}
-      db: ${{ steps.areas.outputs.db }}
+      sha: ${{ steps.head.outputs.sha }}
+      run: ${{ steps.affected.outputs.run || 'false' }}
+      e2e: ${{ steps.affected.outputs.e2e || 'none' }}
+      offline: ${{ steps.affected.outputs.offline || 'false' }}
+      db: ${{ steps.affected.outputs.db || 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The merge commit and its parents: HEAD^1 is the base branch as it is now.
+          # Empty except on a manual run: then the event's own commit.
+          ref: ${{ inputs.ref }}
+          # On a pull request HEAD is the merge commit, and HEAD^1 the base branch as it is now.
           fetch-depth: 2
-      # The runner's own Node is enough: the script uses only Node's built-ins.
-      - id: areas
-        run: node scripts/ci-changes.mjs >> "$GITHUB_OUTPUT"
+      - id: head
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      # GitHub starts the nightly run whether main changed or not. When the last nightly run that passed tested this
+      # same commit, there is nothing new to test, and every later job is skipped.
+      - id: nightly
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.head.outputs.sha }}
+        run: |
+          last=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --event schedule --branch main \
+            --status success --limit 1 --json headSha --jq '.[0].headSha // ""')
+          if [ "$last" = "$SHA" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "main is still at $SHA, which the last nightly run tested: nothing to run." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+      - if: steps.nightly.outputs.skip != 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - if: steps.nightly.outputs.skip != 'true'
+        run: npm ci
+      # The selection's own tests first, with the map's: a broken selection must fail the run, not pick too little.
+      - if: steps.nightly.outputs.skip != 'true'
+        run: npx vitest run scripts/ci-affected.test.mjs
+      - id: affected
+        if: steps.nightly.outputs.skip != 'true'
+        run: node scripts/ci-affected.mjs
 
-  check:
+  checks:
     needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
-    # e2e alone has taken 10 to 16 minutes on the same tests, and npm ci up to 4: 20 cut off a run that would pass.
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -47,32 +93,81 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - if: needs.changes.outputs.app == 'true'
-        run: npm run build
+      - run: npm run build
+      # The whole unit suite, never `vitest --changed`: that misses changed fixtures, the lockfile and the map's tests.
       - run: npm test
-      # Only when the pull request changes the app: the database and the MCP server alone have nothing for these.
-      - if: needs.changes.outputs.app == 'true'
-        run: npx playwright install --with-deps chromium webkit
+
+  # The picked specs on one runner, or the whole suite in four shards.
+  e2e:
+    needs: changes
+    if: needs.changes.outputs.e2e != 'none'
+    runs-on: ubuntu-latest
+    # The whole suite has taken 10 to 16 minutes on one runner, and npm ci up to 4.
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.changes.outputs.e2e == 'all' && '["1/4", "2/4", "3/4", "4/4"]' || '["1/1"]') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
       - id: e2e
-        if: needs.changes.outputs.app == 'true'
-        run: npm run test:e2e
-      - id: offline
-        if: needs.changes.outputs.app == 'true'
-        run: npm run test:offline
-      # Only after a failed Playwright run: the HTML report and each failed test's trace. The offline check runs only
-      # when e2e passed, so the files on disk always belong to the run that failed.
-      - if: failure() && (steps.e2e.outcome == 'failure' || steps.offline.outcome == 'failure')
+        env:
+          SPECS: ${{ needs.changes.outputs.e2e }}
+          SHARD: ${{ matrix.shard }}
+        # $SPECS stays unquoted: each spec is an argument of its own.
+        run: |
+          if [ "$SPECS" = all ]; then
+            npx playwright test --shard="$SHARD"
+          else
+            npx playwright test $SPECS
+          fi
+      # Only after a failed run: the HTML report and each failed test's trace.
+      - if: failure() && steps.e2e.outcome == 'failure'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report
+          name: playwright-report-e2e-${{ strategy.job-index }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  # The service worker in a production build (playwright.offline.config.ts builds and starts it).
+  offline:
+    needs: changes
+    if: needs.changes.outputs.offline == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - id: offline
+        run: npm run test:offline
+      - if: failure() && steps.offline.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-offline
           path: |
             playwright-report/
             test-results/
           retention-days: 14
 
   # The database: the migrations in supabase/migrations on a local Supabase stack (Docker is on the runner), then the
-  # pgTAP tests in supabase/tests. No secrets: the local stack makes its own keys. Only when the pull request changes
-  # the database, the account store or what they run on.
+  # pgTAP tests in supabase/tests. No secrets: the local stack makes its own keys.
   db:
     needs: changes
     if: needs.changes.outputs.db == 'true'
@@ -80,6 +175,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -90,3 +187,17 @@ jobs:
       # The app's account store (src/sync/store.ts) against the same stack, as a signed-in user.
       - run: node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
       - run: npm run test:contract
+
+  # The only required check. A job its `if:` skips counts as passed, and a crash in `changes` skips every job after
+  # it, so this job reads every result itself: `changes` must pass, and the rest must pass or be skipped.
+  gate:
+    needs: [changes, checks, e2e, offline, db]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$RESULTS" | jq -e '.changes.result == "success" and all(.[]; .result == "success" or .result == "skipped")' > /dev/null
