@@ -1,10 +1,12 @@
 import { exportAll, replaceAll, type BackupData } from '@/db/bulk';
 import { db } from '@/db/db';
+import type { OutboxEntry } from '@/db/types';
 import { downloadContents, planDownload } from './download';
+import { push } from './push';
 import type { UserDataStore } from './store';
 import { contentsOf } from './summary';
-import { SERVER_TABLES, serverRowsOf } from './tables';
-import { applyUpload, planUpload, type UploadPlan } from './upload';
+import { dexieHome, dexieSync, SERVER_TABLES, serverRowsOf, type ServerTable } from './tables';
+import { planUpload, type UploadPlan } from './upload';
 
 /**
  * What linking this phone to the signed-in account will do (P2.2), worked out before anything is written. Linking
@@ -123,9 +125,15 @@ async function linkWhatItCan(store: UserDataStore, userId: string, wantsCode: ()
 }
 
 /**
- * Carries out a plan from `planLink`, then links the phone: the sync state names the account, with the cursor at 0, so
- * the change tracking starts and the next sync pulls everything once. The data moves before the link, so neither an
- * upload nor a load is recorded as this phone's changes. `choice` is needed for `choose` only.
+ * Carries out a plan from `planLink` and links the phone: the sync state names the account, with the cursor at 0, so
+ * the change tracking starts and the next sync pulls everything once. `choice` is needed for `choose` only. A phone
+ * linked to this account already changes nothing (a second tap on a choice shown before, another tab that linked).
+ *
+ * - The phone's data (`upload`, or `choose` with `phone`) goes as the phone is now, not as it was planned: the link
+ *   and a queued send of every row it has, and a delete of each row only the account had, are one transaction, then a
+ *   push sends them. A push that stops halfway leaves the rest queued for the next sync.
+ * - The account's data (`download`, or `choose` with `account`) replaces the phone's before the link, so the load is
+ *   not recorded as this phone's change.
  */
 export async function applyLink(
   store: UserDataStore,
@@ -133,8 +141,31 @@ export async function applyLink(
   userId: string,
   choice?: LinkChoice,
 ): Promise<void> {
-  if (plan.kind === 'upload' || (plan.kind === 'choose' && choice === 'phone')) await applyUpload(store, plan.upload);
-  else if (plan.kind === 'download' || (plan.kind === 'choose' && choice === 'account')) await replaceAll(plan.data);
+  if ((await db.syncState.get('current'))?.userId === userId) return;
+  if (plan.kind === 'upload' || (plan.kind === 'choose' && choice === 'phone')) {
+    await linkAndQueue(plan.upload.stale, userId);
+    await push(store);
+    return;
+  }
+  if (plan.kind === 'download' || (plan.kind === 'choose' && choice === 'account')) await replaceAll(plan.data);
   else if (plan.kind === 'choose') throw new Error('Linking needs a choice: keep the phone’s data or the account’s.');
   await db.syncState.put({ id: 'current', userId, cursor: 0, lastSyncedAt: null, problem: null });
+}
+
+/** Links the phone, and in the same transaction queues every row it has and a delete of each `stale` id. */
+async function linkAndQueue(stale: Record<ServerTable, string[]>, userId: string): Promise<void> {
+  const homes = SERVER_TABLES.map((table) => ({ table, home: dexieHome(table) }));
+  await db.transaction('rw', [...homes.map(({ home }) => db.table(home.dexie)), db.outbox, db.syncState], async () => {
+    const seq = Date.now();
+    const queue: OutboxEntry[] = [];
+    for (const { table, home } of homes) {
+      const sync = dexieSync(home.dexie);
+      if (sync === null) continue;
+      const here = (await db.table(home.dexie).toCollection().primaryKeys()).map(sync.idOf);
+      const ids = new Set([...here.filter((id): id is string => id !== null), ...stale[table]]);
+      for (const id of ids) queue.push({ table, id, seq });
+    }
+    await db.outbox.bulkPut(queue);
+    await db.syncState.put({ id: 'current', userId, cursor: 0, lastSyncedAt: null, problem: null });
+  });
 }

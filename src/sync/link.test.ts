@@ -2,9 +2,10 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { exportAll, replaceAll } from '@/db/bulk';
 import { db } from '@/db/db';
-import { saveEntry } from '@/db/repo';
+import { deleteEntry, saveEntry } from '@/db/repo';
 import { applyLink, linkPhone, planLink } from './link';
 import { push } from './push';
+import type { UserDataStore } from './store';
 import { expense, fakeStore, liveIds, snapshot } from './test-helpers';
 import { applyUpload, planUpload } from './upload';
 
@@ -141,6 +142,62 @@ describe('planLink', () => {
     expect(outcome).toEqual({ kind: 'problem', problem: expect.stringContaining("can't read") });
     expect(odd.tables.entries.get('e1')).toEqual({ nonsense: true });
     expect(await linkedTo()).toBeUndefined();
+  });
+});
+
+// The data moves as the phone is when the link is made, not as it was planned (triage row 4, P2.2 chunk 9): the choice
+// may wait while the person, the poster or another tab changes the phone.
+describe('applyLink', () => {
+  it('makes the account match the phone as it is when linking: an entry added and one deleted since the plan count', async () => {
+    const { store, tables } = fakeStore({
+      accounts: { other: { ...snapshot().accounts[0], id: 'other' } },
+      entries: { x1: { ...expense('x1'), accountId: 'other' } },
+      plans: { current: snapshot().plan },
+    });
+    await replaceAll(snapshot());
+    const plan = await planLink(store, USER);
+    if (plan.kind !== 'choose') throw new Error(`expected choose, got ${plan.kind}`);
+    // While the choice waits.
+    await saveEntry(expense('late'));
+    await deleteEntry('e2');
+    await applyLink(store, plan, USER, 'phone');
+    expect(liveIds(tables.entries)).toEqual(['e1', 'late', 'rec:s1:2026-10-01']);
+    expect(tables.entries.get('e2')).toBeUndefined();
+    expect(tables.entries.get('x1')).toBeNull();
+    expect(await queued()).toEqual([]);
+  });
+
+  it('links before it sends, so an upload that stops halfway finishes with the next sync', async () => {
+    const { store, tables } = fakeStore();
+    await replaceAll(snapshot());
+    const plan = await planLink(store, USER);
+    if (plan.kind !== 'upload') throw new Error(`expected upload, got ${plan.kind}`);
+    const offline: UserDataStore = {
+      ...store,
+      async upsert(table, rows) {
+        if (table === 'entries') throw new Error('offline');
+        return store.upsert(table, rows);
+      },
+    };
+    await expect(applyLink(offline, plan, USER)).rejects.toThrow('offline');
+    expect(await linkedTo()).toBe(USER);
+    await push(store);
+    expect(liveIds(tables.entries)).toEqual(['e1', 'e2', 'rec:s1:2026-10-01']);
+    expect(liveIds(tables.plans)).toEqual(['current']);
+    expect(await queued()).toEqual([]);
+  });
+
+  it('changes nothing when the phone is linked already, as a second tap on a stale choice would', async () => {
+    const { store, calls } = fakeStore();
+    await replaceAll(snapshot());
+    const plan = await planLink(store, USER);
+    if (plan.kind !== 'upload') throw new Error(`expected upload, got ${plan.kind}`);
+    await applyLink(store, plan, USER);
+    await db.syncState.update('current', { cursor: 7 });
+    calls.length = 0;
+    await applyLink(store, plan, USER);
+    expect(calls).toEqual([]);
+    expect((await db.syncState.get('current'))?.cursor).toBe(7);
   });
 });
 
