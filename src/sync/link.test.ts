@@ -118,7 +118,7 @@ describe('planLink', () => {
     expect(await linkedTo()).toBeUndefined();
   });
 
-  it('won’t link an empty phone to an account it can’t take, but a phone with data replaces it', async () => {
+  it('won’t link an empty phone to an account it can’t take, but a phone with data replaces a half-finished upload', async () => {
     // A save that stopped before the plan was written.
     const half = fakeStore({ entries: { e1: expense('e1') } });
     expect(await planLink(half.store, USER)).toEqual({ kind: 'unfinished' });
@@ -128,6 +128,18 @@ describe('planLink', () => {
 
     await replaceAll(snapshot());
     expect((await planLink(half.store, USER)).kind).toBe('upload');
+    expect(await linkedTo()).toBeUndefined();
+  });
+
+  it('never replaces an account it can’t read, even from a phone with data', async () => {
+    // Another phone's rows, from a version of the app that writes what this one can't read yet.
+    const odd = fakeStore({ plans: { current: snapshot().plan }, entries: { e1: { nonsense: true } } });
+    await replaceAll(snapshot());
+    expect(await planLink(odd.store, USER)).toEqual({ kind: 'unreadable', problem: "a row of entries isn't the app's data" });
+
+    const outcome = await linkPhone(odd.store, USER, async () => false);
+    expect(outcome).toEqual({ kind: 'problem', problem: expect.stringContaining("can't read") });
+    expect(odd.tables.entries.get('e1')).toEqual({ nonsense: true });
     expect(await linkedTo()).toBeUndefined();
   });
 });

@@ -47,10 +47,13 @@ export async function planLink(store: UserDataStore, userId: string): Promise<Li
   const phoneHasData = hasData(phone);
   const download = await planDownload(store, phone);
   if (download.kind === 'empty') return phoneHasData ? { kind: 'upload', upload: await planUpload(store, phone) } : { kind: 'link' };
+  // Data this app can't read may be another phone's, from a newer version: never replaced, whatever this phone holds.
+  if (download.kind === 'invalid') return { kind: 'unreadable', problem: download.problem };
   if (download.kind !== 'ready') {
-    // Nothing on the account to load. A phone with data replaces it; an empty phone has nothing to offer instead.
+    // A first upload that stopped before the plan: its rows are a part copy, so a phone with data replaces them; an
+    // empty phone has nothing to offer instead.
     if (phoneHasData) return { kind: 'upload', upload: await planUpload(store, phone) };
-    return download.kind === 'unfinished' ? { kind: 'unfinished' } : { kind: 'unreadable', problem: download.problem };
+    return { kind: 'unfinished' };
   }
   const account = downloadContents(download.data);
   if (!phoneHasData) return { kind: 'download', data: download.data, account };

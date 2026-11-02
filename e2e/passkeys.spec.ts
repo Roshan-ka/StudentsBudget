@@ -55,6 +55,8 @@ async function signIn(page: Page) {
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
+  // Linked (P2.2): the Sync section has taken the place of "Linking this phone…", so the sections below stay put.
+  await expect(page.getByRole('region', { name: 'Sync', exact: true }).getByRole('button', { name: 'Sync now', exact: true })).toBeVisible();
 }
 
 async function signOut(page: Page) {

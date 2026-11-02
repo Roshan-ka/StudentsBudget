@@ -31,6 +31,12 @@ export function AccountLink() {
   const inFlight = useRef(false);
   // Counts "Try again" taps: each one links once more.
   const [attempt, setAttempt] = useState(0);
+  // The choice's question takes the focus, as Restore's does: a screen reader reads it out, and Enter picks no side.
+  const questionRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (view.kind === 'choose') questionRef.current?.focus();
+  }, [view.kind]);
 
   // Runs when the page shows, and again when it shows after being hidden: signing in, or another account's sign-in
   // elsewhere in this browser, may have changed what there is to link.
@@ -121,21 +127,21 @@ export function AccountLink() {
           Link this phone
         </h3>
         <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
-          <p id={`${id}-question`} className="text-sm">
+          <p ref={questionRef} tabIndex={-1} className="text-sm outline-none">
             {`This phone and your account both hold data. This phone: ${view.plan.phone}. Your account: ${view.plan.account}. Which should both keep?`}
           </p>
           <p className="text-sm text-muted-foreground">
-            {stale !== null && `Keeping this phone's data deletes what only your account has: ${stale}. `}
+            {stale !== null &&
+              `Keeping this phone's data deletes what only your account has (${stale}) from your account, and from your other phones when they next sync. `}
             Using your account&apos;s data replaces everything on this phone. Want a copy first? Export a backup under
             Settings → Backup.
           </p>
+          {/* Neither side is the default: both buttons look alike. */}
           <div className="flex flex-wrap gap-2">
-            {/* Focused when the question opens, and described by it, so a screen reader reads the question out. */}
             <Button
               type="button"
+              variant="outline"
               className="h-10 px-4"
-              autoFocus
-              aria-describedby={`${id}-question`}
               disabled={busy}
               onClick={() => void choose(view.plan, 'phone')}
             >
