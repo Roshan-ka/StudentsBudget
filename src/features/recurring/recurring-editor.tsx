@@ -9,14 +9,13 @@ import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '@/compon
 import { db } from '@/db/db';
 import type { Account, Category, Plan, PlanLine } from '@/db/types';
 import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
-import { INCOME_CATEGORIES, categoryName } from '@/features/entries/categories';
+import { INCOME_CATEGORIES } from '@/features/entries/categories';
+import { categoryNameIn } from '@/i18n/category-name';
+import { useT } from '@/i18n/use-t';
 import { monthOf, todayIso, type IsoDate } from '@/lib/dates';
 import { formatMoney, parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
-import { AUTO_HINT } from './draft-schedule-fields';
 import {
-  ADDED_AGAIN,
-  PICK_ACCOUNT,
   addableCategories,
   applyLineChange,
   describeLine,
@@ -36,9 +35,6 @@ type Change = (mutate: (plan: Plan) => Plan) => Promise<boolean>;
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
 }
-
-const AMOUNT_ERROR = 'Enter an amount above 0, like 250 or 12.50.';
-const NO_ACCOUNT = 'Add an account below to have this added automatically.';
 
 /**
  * The form for one line: whether it is added automatically, when, from or into which account and how much. With
@@ -61,6 +57,8 @@ function LineForm({
   onDone: () => void;
 }) {
   const id = useId();
+  const { t, lang, locale } = useT();
+  const text = t.recurring;
   const s = line?.schedule;
   const [categoryId, setCategoryId] = useState(line?.categoryId ?? addable[0]?.id ?? '');
   const [auto, setAuto] = useState(line ? s !== undefined : true);
@@ -84,7 +82,7 @@ function LineForm({
     account?.currency === 'EUR' && eachMinor !== null
       ? monthlyEquivalent({ frequency: timing.frequency, amountMinor: eachMinor })
       : null;
-  const name = line ? categoryName(line.categoryId) : null;
+  const name = line ? categoryNameIn(t, line.categoryId) : null;
   // A new or turned-on line starts tomorrow, as does one whose account was gone once one is picked; a resumed one has
   // not started either. Each says when its first entry comes, past a period the line already has an automatic entry
   // in, as the poster passes over it.
@@ -100,11 +98,11 @@ function LineForm({
     let lineChange: LineChange;
     if (auto) {
       // Without an account nothing can be added automatically, and a schedule the line has must not be dropped.
-      if (accounts.length === 0) return setError(NO_ACCOUNT);
-      if (!account) return setError(`${PICK_ACCOUNT}.`);
-      if (eachMinor === null) return setError(AMOUNT_ERROR);
+      if (accounts.length === 0) return setError(text.noAccountBelow);
+      if (!account) return setError(text.pickAccountError);
+      if (eachMinor === null) return setError(t.common.amountField.positive);
       const monthlyMinor = account.currency === 'EUR' ? 0 : parseAmount(monthly);
-      if (monthlyMinor === null) return setError('Enter what it comes to in euros a month, like 400.');
+      if (monthlyMinor === null) return setError(text.monthlyError);
       lineChange = {
         categoryId,
         auto: { ...timing, accountId: account.id, amountMinor: eachMinor, currency: account.currency },
@@ -112,7 +110,7 @@ function LineForm({
       };
     } else {
       const monthlyMinor = parseAmount(monthly);
-      if (monthlyMinor === null) return setError(AMOUNT_ERROR);
+      if (monthlyMinor === null) return setError(t.common.amountField.positive);
       lineChange = { categoryId, auto: null, monthlyMinor };
     }
 
@@ -128,14 +126,14 @@ function LineForm({
 
   return (
     <form
-      aria-label={name ? `Change ${name}` : 'New fixed cost or income'}
+      aria-label={name ? text.change(name) : text.newLine}
       onSubmit={onSubmit}
       noValidate
       className="flex flex-col gap-4 rounded-lg border p-4"
     >
       {!line && (
         <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-category`}>Fixed cost or income</Label>
+          <Label htmlFor={`${id}-category`}>{text.lineKind}</Label>
           <NativeSelect
             id={`${id}-category`}
             className="w-full"
@@ -143,19 +141,19 @@ function LineForm({
             onChange={(event) => setCategoryId(event.target.value)}
           >
             {fixedChoices.length > 0 && (
-              <NativeSelectOptGroup label="Fixed costs">
+              <NativeSelectOptGroup label={text.fixedCosts}>
                 {fixedChoices.map((c) => (
                   <NativeSelectOption key={c.id} value={c.id}>
-                    {c.name}
+                    {categoryNameIn(t, c.id)}
                   </NativeSelectOption>
                 ))}
               </NativeSelectOptGroup>
             )}
             {incomeChoices.length > 0 && (
-              <NativeSelectOptGroup label="Income">
+              <NativeSelectOptGroup label={text.income}>
                 {incomeChoices.map((c) => (
                   <NativeSelectOption key={c.id} value={c.id}>
-                    {c.name}
+                    {categoryNameIn(t, c.id)}
                   </NativeSelectOption>
                 ))}
               </NativeSelectOptGroup>
@@ -171,43 +169,43 @@ function LineForm({
           checked={auto}
           onChange={(event) => setAuto(event.target.checked)}
         />
-        Add it automatically
+        {text.automatic}
       </label>
 
-      {auto && accounts.length === 0 && <p className="text-sm text-muted-foreground">{NO_ACCOUNT}</p>}
+      {auto && accounts.length === 0 && <p className="text-sm text-muted-foreground">{text.noAccountBelow}</p>}
 
       {auto && accounts.length > 0 && (
         <>
-          <p className="text-sm text-muted-foreground">{AUTO_HINT}</p>
+          <p className="text-sm text-muted-foreground">{text.autoHint}</p>
           <RepeatFields timing={timing} onChange={setTiming} />
           {/* The watermark stays, so the change applies from the first period not handled yet. */}
           {s && timing.frequency !== s.frequency && (
-            <p className="text-sm text-muted-foreground">A new frequency starts with the next period.</p>
+            <p className="text-sm text-muted-foreground">{text.newFrequency}</p>
           )}
           {expectsFirst && (
-            <p className="min-h-5 text-sm text-muted-foreground">{firstOn ? firstAddedLine(firstOn) : null}</p>
+            <p className="min-h-5 text-sm text-muted-foreground">{firstOn ? firstAddedLine(firstOn, lang) : null}</p>
           )}
           <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-account`}>Account</Label>
+            <Label htmlFor={`${id}-account`}>{text.account}</Label>
             <NativeSelect
               id={`${id}-account`}
               className="w-full"
               value={accountId}
               onChange={(event) => setAccountId(event.target.value)}
             >
-              {account === undefined && <NativeSelectOption value="">Pick an account</NativeSelectOption>}
+              {account === undefined && <NativeSelectOption value="">{text.pickAccountOption}</NativeSelectOption>}
               {accounts.map((a) => (
                 <NativeSelectOption key={a.id} value={a.id}>
-                  {a.name} ({a.currency})
+                  {t.common.accountOption(a.name, a.currency)}
                 </NativeSelectOption>
               ))}
             </NativeSelect>
-            {account === undefined && <p className="text-sm text-muted-foreground">{PICK_ACCOUNT}</p>}
-            {orphaned && account && <p className="text-sm text-muted-foreground">{ADDED_AGAIN}</p>}
+            {account === undefined && <p className="text-sm text-muted-foreground">{text.pickAccount}</p>}
+            {orphaned && account && <p className="text-sm text-muted-foreground">{text.addedAgain}</p>}
           </div>
           {account && (
             <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-amount`}>Amount in {account.currency}</Label>
+              <Label htmlFor={`${id}-amount`}>{text.amountIn(account.currency)}</Label>
               <Input
                 id={`${id}-amount`}
                 className="h-10"
@@ -219,8 +217,8 @@ function LineForm({
               />
               <p id={`${id}-amount-hint`} className="text-sm text-muted-foreground">
                 {planMinor !== null
-                  ? `Each time it's added. In your plan: ${formatMoney(planMinor, 'EUR')} a month.`
-                  : "Each time it's added."}
+                  ? text.eachTimeInPlan(formatMoney(planMinor, 'EUR', { locale }))
+                  : text.eachTime}
               </p>
             </div>
           )}
@@ -229,7 +227,7 @@ function LineForm({
 
       {askMonthly && (
         <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-monthly`}>Per month in your plan, in €</Label>
+          <Label htmlFor={`${id}-monthly`}>{text.perMonth}</Label>
           <Input
             id={`${id}-monthly`}
             className="h-10"
@@ -248,10 +246,10 @@ function LineForm({
       )}
       <div className="flex gap-2">
         <Button type="submit" className="h-10 px-4" disabled={saving}>
-          Save
+          {text.save}
         </Button>
         <Button type="button" variant="outline" className="h-10 px-4" onClick={onDone}>
-          Cancel
+          {text.cancel}
         </Button>
       </div>
     </form>
@@ -269,7 +267,9 @@ function LineRow({
   change: Change;
   onEdit: () => void;
 }) {
-  const name = categoryName(line.categoryId);
+  const { t, lang } = useT();
+  const text = t.recurring;
+  const name = categoryNameIn(t, line.categoryId);
   const s = line.schedule;
   // Delete asks first, as deleting an entry does.
   const [confirming, setConfirming] = useState(false);
@@ -278,41 +278,46 @@ function LineRow({
     <li className="flex flex-col gap-2 border-b py-3 last:border-b-0">
       <div>
         <p className="font-medium">{name}</p>
-        <p className="text-sm text-muted-foreground">{describeLine(line, accounts)}</p>
+        <p className="text-sm text-muted-foreground">{describeLine(line, accounts, lang)}</p>
       </div>
       {confirming ? (
-        <div role="group" aria-label={`Delete ${name}?`} className="flex flex-col gap-2">
-          <p className="text-sm font-medium">{`Delete ${name}? Entries already added stay.`}</p>
+        <div role="group" aria-label={text.deleteQuestion(name)} className="flex flex-col gap-2">
+          <p className="text-sm font-medium">{text.deleteNote(name)}</p>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="destructive"
               className="h-10 px-4"
               onClick={() => void change((plan) => removeLine(plan, line.categoryId))}
             >
-              Delete
+              {text.delete}
             </Button>
             <Button variant="outline" className="h-10 px-4" onClick={() => setConfirming(false)}>
-              Cancel
+              {text.cancel}
             </Button>
           </div>
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="h-10 px-4" aria-label={`Edit ${name}`} onClick={onEdit}>
-            Edit
+          <Button variant="outline" className="h-10 px-4" aria-label={text.editLine(name)} onClick={onEdit}>
+            {text.edit}
           </Button>
           {s && (
             <Button
               variant="outline"
               className="h-10 px-4"
-              aria-label={`${s.paused ? 'Resume' : 'Pause'} ${name}`}
+              aria-label={s.paused ? text.resumeLine(name) : text.pauseLine(name)}
               onClick={() => void change((plan) => setLinePaused(plan, line.categoryId, !s.paused, todayIso()))}
             >
-              {s.paused ? 'Resume' : 'Pause'}
+              {s.paused ? text.resume : text.pause}
             </Button>
           )}
-          <Button variant="ghost" className="h-10 px-4" aria-label={`Delete ${name}`} onClick={() => setConfirming(true)}>
-            Delete
+          <Button
+            variant="ghost"
+            className="h-10 px-4"
+            aria-label={text.deleteLine(name)}
+            onClick={() => setConfirming(true)}
+          >
+            {text.delete}
           </Button>
         </div>
       )}
@@ -322,10 +327,13 @@ function LineRow({
 
 function LineList({
   title,
+  empty,
   lines,
   render,
 }: {
   title: string;
+  /** Specific, not "None yet": Settings stays in the page while hidden, and its text with it. */
+  empty: string;
   lines: PlanLine[];
   render: (line: PlanLine) => ReactNode;
 }) {
@@ -336,8 +344,7 @@ function LineList({
         {title}
       </h4>
       {lines.length === 0 ? (
-        // Specific, not "None yet": Settings stays in the page while hidden, and its text with it.
-        <p className="text-sm text-muted-foreground">No {title.toLowerCase()} yet.</p>
+        <p className="text-sm text-muted-foreground">{empty}</p>
       ) : (
         <ul aria-labelledby={id}>{lines.map(render)}</ul>
       )}
@@ -351,6 +358,8 @@ function LineList({
  * for a category the plan does not have yet. Every change goes through `updatePlan`. Shown once a plan exists.
  */
 export function RecurringEditor() {
+  const { t, lang } = useT();
+  const text = t.recurring;
   // 'loading' (no answer yet) and null (no plan) both render nothing.
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
@@ -362,7 +371,7 @@ export function RecurringEditor() {
   if (plan === 'loading' || plan === null || accounts === undefined || today === null) return null;
 
   const addable = addableCategories(plan);
-  const overBy = overBudgetLine(plan, monthOf(today));
+  const overBy = overBudgetLine(plan, monthOf(today), lang);
 
   const change: Change = async (mutate) => {
     setError(null);
@@ -371,7 +380,7 @@ export function RecurringEditor() {
       return true;
     } catch (saveError) {
       console.error('StudentsBudget: could not change the plan', saveError);
-      setError('Could not save the change. Try again.');
+      setError(text.saveFailed);
       return false;
     }
   };
@@ -401,14 +410,12 @@ export function RecurringEditor() {
   return (
     <section aria-labelledby="recurring-heading" className="flex flex-col gap-3">
       <h3 id="recurring-heading" className="text-lg font-semibold">
-        Fixed costs and income
+        {text.heading}
       </h3>
-      <p className="text-muted-foreground">
-        Rent, income and other money that comes or goes on a set day. Envelopes and one-off costs are under Plan.
-      </p>
+      <p className="text-muted-foreground">{text.intro}</p>
       {overBy && <p className="rounded-lg bg-muted px-4 py-3 text-sm font-medium">{overBy}</p>}
-      <LineList title="Income" lines={plan.incomes} render={render} />
-      <LineList title="Fixed costs" lines={plan.fixed} render={render} />
+      <LineList title={text.income} empty={text.noIncome} lines={plan.incomes} render={render} />
+      <LineList title={text.fixedCosts} empty={text.noFixedCosts} lines={plan.fixed} render={render} />
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -419,7 +426,7 @@ export function RecurringEditor() {
       ) : (
         addable.length > 0 && (
           <Button variant="outline" className="h-10 self-start px-4" onClick={() => setOpen('new')}>
-            Add a fixed cost or income
+            {text.add}
           </Button>
         )
       )}

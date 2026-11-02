@@ -29,8 +29,6 @@ export const entries = {
     income: 'Income',
     amount: 'Amount',
     account: 'Account',
-    /** An account in the picker: "Wise (INR)". */
-    accountOption: (name: string, currency: string) => `${name} (${currency})`,
     category: 'Category',
     note: 'Note',
     pickDate: 'Pick a date.',

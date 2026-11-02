@@ -111,7 +111,6 @@ export const setup = {
     estimates: (list: string, count: number) =>
       `${list.charAt(0).toUpperCase()}${list.slice(1)} ${count === 1 ? 'is an estimate' : 'are estimates'}.`,
     whereFrom: 'Where this comes from',
-    sourceFor: (category: string) => `Source: ${category}`,
     askEdit:
       'How much do you want to allow yourself for each of these a month, in euros? You can change these any time.',
     askNew:

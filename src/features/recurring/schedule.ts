@@ -1,5 +1,8 @@
 import { getISODay, isValid, parseISO } from 'date-fns';
 import type { Entry, Schedule } from '@/db/types';
+import { dateFormat } from '@/i18n/format';
+import { LANGUAGES, type Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import { addDays, daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoDate } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 import { newId } from '@/lib/new-id';
@@ -7,7 +10,12 @@ import { newId } from '@/lib/new-id';
 type Timing = Pick<Schedule, 'frequency' | 'day'>;
 
 /** Weekly days, 1 = Monday … 7 = Sunday. */
-export const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
+export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+
+/** A weekly day's name, 1 = Monday … 7 = Sunday: "Friday", "Freitag". 1 January 2024 was a Monday. */
+export function weekdayName(day: number, locale: string): string {
+  return dateFormat(locale, { weekday: 'long' }).format(new Date(2024, 0, day));
+}
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -170,9 +178,12 @@ export function resumeSchedule(s: Schedule, today: IsoDate): Schedule {
   return resumed;
 }
 
-/** "Monthly on day 3", "Weekly on Friday". */
-export function describeTiming(s: Timing): string {
-  return s.frequency === 'monthly' ? `Monthly on day ${s.day}` : `Weekly on ${WEEKDAYS[s.day - 1]}`;
+/** "Monthly on day 3", "Weekly on Friday", in `lang`. */
+export function describeTiming(s: Timing, lang: Language = 'en'): string {
+  const text = MESSAGES[lang].recurring;
+  return s.frequency === 'monthly'
+    ? text.timingMonthly(s.day)
+    : text.timingWeekly(weekdayName(s.day, LANGUAGES[lang].locale));
 }
 
 /** Whether the poster can work with a schedule. One from a damaged or hand-edited file is left alone. */

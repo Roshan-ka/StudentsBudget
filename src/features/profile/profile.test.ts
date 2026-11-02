@@ -124,6 +124,7 @@ describe('labels', () => {
     expect(termName('summer')).toBe('Summer semester');
     expect(monthLabel('2027-03')).toBe('March 2027');
     expect(monthLabel('2027-03', 'de-DE')).toBe('März 2027');
+    expect(periodLabel(semesterOn('ur', '2026-10-20').period, 'de-DE')).toBe('1. Okt. – 31. März');
   });
 });
 

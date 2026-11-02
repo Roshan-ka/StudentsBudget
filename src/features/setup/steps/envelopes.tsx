@@ -101,7 +101,7 @@ export function EnvelopesStep({
               <RangeSource
                 key={range.categoryId}
                 range={range}
-                label={text.sourceFor(categoryNameIn(t, range.categoryId))}
+                label={t.common.source.of(categoryNameIn(t, range.categoryId))}
               />
             ))}
           </div>

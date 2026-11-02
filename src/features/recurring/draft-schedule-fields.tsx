@@ -5,15 +5,13 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { draftAccountOf, isRepaired, type AccountOption, type DraftSchedule } from '@/features/setup/draft';
 import { AmountField } from '@/features/setup/steps/amount-field';
+import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
-import { ADDED_AGAIN, PICK_ACCOUNT, firstAddedLine } from './lines';
+import { firstAddedLine } from './lines';
 import { RepeatFields } from './repeat-fields';
 import { firstAddedOn, perOccurrence, type LineType } from './schedule';
 import { useLineEntries } from './use-line-entries';
-
-/** Shown wherever a line is set to be added automatically. */
-export const AUTO_HINT = "It's added on its day — don't log it by hand.";
 
 /**
  * "Add it automatically" for one line of the setup wizard, with when it repeats and the account it uses. The euro
@@ -44,6 +42,8 @@ export function DraftScheduleFields({
   onChange: (next: DraftSchedule) => void;
 }) {
   const id = useId();
+  const { t, lang, locale } = useT();
+  const text = t.recurring;
   const account = draftAccountOf(schedule, accounts);
   // Saving starts a line without a stored schedule tomorrow, and one whose account was gone again from tomorrow.
   const lineEntries = useLineEntries(type, categoryId);
@@ -54,9 +54,9 @@ export function DraftScheduleFields({
     expectsFirst && lineEntries ? firstAddedOn(schedule, schedule.saved, today, repaired, lineEntries) : null;
 
   return (
-    <div role="group" aria-label={`${name} schedule`} className="flex flex-col gap-3 rounded-lg border p-3">
+    <div role="group" aria-label={text.schedule(name)} className="flex flex-col gap-3 rounded-lg border p-3">
       {accounts.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Add an account in Settings to have this added automatically.</p>
+        <p className="text-sm text-muted-foreground">{text.noAccountSettings}</p>
       ) : (
         <>
           <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
@@ -66,22 +66,20 @@ export function DraftScheduleFields({
               checked={schedule.on}
               onChange={(event) => onChange({ ...schedule, on: event.target.checked })}
             />
-            Add it automatically
+            {text.automatic}
           </label>
           {schedule.on && (
             <>
-              <p className="text-sm text-muted-foreground">{AUTO_HINT}</p>
-              {schedule.saved?.paused && (
-                <p className="text-sm text-muted-foreground">
-                  Paused for now. Resume it under Fixed costs and income in Settings.
-                </p>
-              )}
+              <p className="text-sm text-muted-foreground">{text.autoHint}</p>
+              {schedule.saved?.paused && <p className="text-sm text-muted-foreground">{text.pausedForNow}</p>}
               <RepeatFields timing={schedule} onChange={(timing) => onChange({ ...schedule, ...timing })} />
               {expectsFirst && (
-                <p className="min-h-5 text-sm text-muted-foreground">{firstOn ? firstAddedLine(firstOn) : null}</p>
+                <p className="min-h-5 text-sm text-muted-foreground">
+                  {firstOn ? firstAddedLine(firstOn, lang) : null}
+                </p>
               )}
               <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-account`}>Account</Label>
+                <Label htmlFor={`${id}-account`}>{text.account}</Label>
                 <NativeSelect
                   id={`${id}-account`}
                   className="w-full"
@@ -89,30 +87,30 @@ export function DraftScheduleFields({
                   // An amount typed for one currency means nothing in another.
                   onChange={(event) => onChange({ ...schedule, accountId: event.target.value, foreignMinor: 0 })}
                 >
-                  {account === undefined && <NativeSelectOption value="">Pick an account</NativeSelectOption>}
+                  {account === undefined && <NativeSelectOption value="">{text.pickAccountOption}</NativeSelectOption>}
                   {accounts.map((a) => (
                     <NativeSelectOption key={a.id} value={a.id}>
-                      {a.name} ({a.currency})
+                      {t.common.accountOption(a.name, a.currency)}
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
-                {account === undefined && <p className="text-sm text-muted-foreground">{PICK_ACCOUNT}</p>}
-                {isRepaired(schedule, accounts) && <p className="text-sm text-muted-foreground">{ADDED_AGAIN}</p>}
+                {account === undefined && <p className="text-sm text-muted-foreground">{text.pickAccount}</p>}
+                {isRepaired(schedule, accounts) && <p className="text-sm text-muted-foreground">{text.addedAgain}</p>}
               </div>
               {account && account.currency !== 'EUR' ? (
                 <AmountField
-                  label={`Amount in ${account.currency}`}
+                  label={text.amountIn(account.currency)}
                   unit={account.currency}
                   positive
                   value={schedule.foreignMinor}
                   onChange={(minor) => onChange({ ...schedule, foreignMinor: minor ?? 0 })}
-                  hint="Each time it's added. The euro amount stays your plan."
+                  hint={text.keepsPlan}
                 />
               ) : (
                 account &&
                 schedule.frequency === 'weekly' && (
                   <p className="text-sm text-muted-foreground">
-                    That&apos;s {formatMoney(perOccurrence(monthlyMinor, 'weekly'), 'EUR')} each week.
+                    {text.eachWeek(formatMoney(perOccurrence(monthlyMinor, 'weekly'), 'EUR', { locale }))}
                   </p>
                 )
               )}

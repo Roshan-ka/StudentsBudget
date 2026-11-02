@@ -3,6 +3,7 @@ import type { Entry, Schedule } from '@/db/types';
 import type { IsoDate } from '@/lib/dates';
 import {
   describeTiming,
+  weekdayName,
   duePeriods,
   firstAddedOn,
   firstOccurrence,
@@ -367,6 +368,12 @@ describe('describeTiming', () => {
   it('reads like the setup choice', () => {
     expect(describeTiming({ frequency: 'monthly', day: 3 })).toBe('Monthly on day 3');
     expect(describeTiming({ frequency: 'weekly', day: 5 })).toBe('Weekly on Friday');
+  });
+
+  it("names the weekday in the language's own word", () => {
+    expect(describeTiming({ frequency: 'weekly', day: 5 }, 'de')).toContain('Freitag');
+    expect(weekdayName(1, 'de-DE')).toBe('Montag');
+    expect(weekdayName(7, 'en-IE')).toBe('Sunday');
   });
 });
 
