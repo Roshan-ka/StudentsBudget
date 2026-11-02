@@ -232,16 +232,19 @@ describe('selectAffected', () => {
     expect(selection.why.db).toEqual(['`src/db/schemas.ts` is imported by the contract tests']);
   });
 
-  it('runs everything for a scheduled or manual run and for the ci:full label', () => {
-    for (const more of [{ event: 'schedule' }, { event: 'workflow_dispatch' }, { labels: ['ci:full'] }]) {
-      expect(select(['docs/plan.md'], more), JSON.stringify(more)).toMatchObject({
+  it('runs everything when a full run is asked for, even with nothing changed', () => {
+    for (const changed of [['docs/plan.md'], []]) {
+      expect(select(changed, { full: true }), JSON.stringify(changed)).toMatchObject({
         run: true,
         e2e: 'all',
         offline: true,
         db: true,
       });
     }
-    expect(select(['docs/plan.md'], { labels: ['documentation'] }).run).toBe(false);
+  });
+
+  it('runs nothing when nothing changed', () => {
+    expect(select([])).toMatchObject({ run: false, e2e: 'none', offline: false, db: false });
   });
 
   it('says why each spec was picked', () => {
@@ -252,7 +255,7 @@ describe('selectAffected', () => {
     expect(select(['src/db/types.ts']).why.all).toEqual(['`src/db/types.ts` reaches the root layout']);
     expect(select(['src/features/setup/wizard.tsx']).why.all).toEqual(['`src/features/setup/wizard.tsx` → /setup']);
     expect(select(['fixtures/demo.json']).why.all).toEqual(['`fixtures/demo.json`: no rule matches it']);
-    expect(select(['README.md'], { labels: ['ci:full'] }).why.all).toEqual(['the `ci:full` label']);
+    expect(select(['README.md'], { full: true }).why.all).toEqual(['a full run was asked for']);
   });
 });
 
@@ -297,7 +300,8 @@ describe('summary', () => {
 
   it('says so when no e2e spec runs', () => {
     expect(summary(select(['src/lib/money.test.ts']))).toContain('| no e2e spec |');
-    expect(summary(select(['docs/plan.md']))).toContain('Docs only: no checks run.');
+    expect(summary(select(['docs/plan.md']))).toContain('No checks run: notes only.');
+    expect(summary(select([]))).toContain('No checks run: nothing changed against main.');
   });
 });
 

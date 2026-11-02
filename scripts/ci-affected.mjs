@@ -1,8 +1,9 @@
-// Which tests a pull request's CI runs, from the files it changes. A changed module picks the e2e specs of every route
-// whose page imports it (directly or through other modules), as e2e/affected-map.json lists them; a change that
-// reaches the root layout, or a route every spec passes through, runs them all. A path no rule matches runs everything.
-// Run by ci.yml: `node scripts/ci-affected.mjs` writes `run`, `e2e`, `offline` and `db` to $GITHUB_OUTPUT and a table
-// of why each spec was picked to the job summary. The pure helpers take made-up input, so the unit tests can run them.
+// Which tests a CI run needs, from the files the branch changes against main. A changed module picks the e2e specs of
+// every route whose page imports it (directly or through other modules), as e2e/affected-map.json lists them; a change
+// that reaches the root layout, or a route every spec passes through, runs them all. A path no rule matches runs
+// everything. Run by ci.yml: `node scripts/ci-affected.mjs` (`CI_FULL=true` for everything) writes `run`, `e2e`,
+// `offline` and `db` to $GITHUB_OUTPUT and a table of why each spec was picked to the job summary. The pure helpers take
+// made-up input, so the unit tests can run them.
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -124,11 +125,11 @@ export function unresolvedImports(repo) {
 
 /**
  * What to run for the changed files. `repo` maps every file in the checkout to its text (only code files need it);
- * a changed file that is not in it was deleted. `map` is e2e/affected-map.json.
- * Returns `run` (false for notes only), `e2e` ('none', 'all' or the spec files), `offline`, `db`, and `why`: the
- * reasons for 'all', each spec, 'offline' and 'db'.
+ * a changed file that is not in it was deleted. `map` is e2e/affected-map.json. `full` runs everything.
+ * Returns `run` (false for notes only, or nothing changed), `e2e` ('none', 'all' or the spec files), `offline`, `db`,
+ * and `why`: the reasons for 'all', each spec, 'offline' and 'db', or for 'skip' when nothing runs.
  */
-export function selectAffected({ changed, repo, map, event = 'pull_request', labels = [] }) {
+export function selectAffected({ changed, repo, map, full = false }) {
   const why = {};
   const pick = (target, reason) => {
     why[target] ??= [];
@@ -140,10 +141,8 @@ export function selectAffected({ changed, repo, map, event = 'pull_request', lab
     pick('db', reason);
   };
 
-  let run = false;
-  if (event !== 'pull_request') everything(event === 'schedule' ? 'the nightly run' : 'a manual run');
-  if (labels.includes('ci:full')) everything('the `ci:full` label');
-  if (why.all) run = true;
+  if (full) everything('a full run was asked for');
+  let run = full;
 
   const importers = importersOf(repo);
   const pages = routePages(repo);
@@ -208,6 +207,7 @@ export function selectAffected({ changed, repo, map, event = 'pull_request', lab
       .filter((target) => target.endsWith('.spec.ts'))
       .sort();
   }
+  if (!run) pick('skip', changed.length === 0 ? 'nothing changed against main' : 'notes only');
   return { run, e2e, offline: Boolean(why.offline), db: Boolean(why.db), why };
 }
 
@@ -229,7 +229,7 @@ function reasonsText(reasons) {
 
 /** The job summary: a row for the e2e run (or each picked spec), the offline check and the db job, with why. */
 export function summary({ run, e2e, offline, db, why }) {
-  if (!run) return '### Affected tests\n\nDocs only: no checks run.\n';
+  if (!run) return `### Affected tests\n\nNo checks run: ${why.skip[0]}.\n`;
   const rows = [];
   if (e2e === 'all') rows.push(['every e2e spec', why.all]);
   else if (e2e === 'none') rows.push(['no e2e spec', ['no changed file reaches a page or a spec']]);
@@ -257,19 +257,17 @@ export function readRepo(root) {
 
 function main() {
   const root = fileURLToPath(new URL('..', import.meta.url));
-  const event = process.env.GITHUB_EVENT_NAME ?? 'pull_request';
-  const payload = process.env.GITHUB_EVENT_PATH ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')) : {};
-  const labels = (payload.pull_request?.labels ?? []).map((label) => label.name);
-  // On a pull request, CI checks out the merge commit, whose first parent is the base branch as it is now
-  // (fetch-depth: 2), so this diff is exactly what merging would change. Other runs test everything.
-  const changed =
-    event === 'pull_request'
-      ? execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', 'HEAD^1', 'HEAD'], { cwd: root, encoding: 'utf8' })
-          .split('\0')
-          .filter(Boolean)
-      : [];
+  const full = process.env.CI_FULL === 'true';
+  // What the checked-out branch changes since it left main (three dots: newer commits on main don't count). CI checks
+  // out the whole history (fetch-depth: 0), so origin/main is there.
+  const changed = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', 'origin/main...HEAD'], {
+    cwd: root,
+    encoding: 'utf8',
+  })
+    .split('\0')
+    .filter(Boolean);
   const map = JSON.parse(readFileSync(path.join(root, MAP_FILE), 'utf8'));
-  const selection = selectAffected({ changed, repo: readRepo(root), map, event, labels });
+  const selection = selectAffected({ changed, repo: readRepo(root), map, full });
   const output = githubOutput(selection);
   const table = summary(selection);
   process.stdout.write(`${changed.length} changed files\n${output}\n${table}`);

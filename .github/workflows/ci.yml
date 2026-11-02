@@ -1,27 +1,22 @@
 name: CI
 
-# A pull request runs what its changes need (scripts/ci-affected.mjs, which says why in the job summary). The nightly
-# run, a manual run and the `ci:full` label run everything. `gate` is the only check branch protection requires.
+# Never starts on its own: only by hand (Actions → CI → Run workflow, or `gh workflow run ci.yml --ref <branch>`), and
+# Claude asks Roshan before starting it. It tests what the chosen branch changes against main (scripts/ci-affected.mjs,
+# which says why in the job summary), or everything with `full`.
 on:
-  pull_request:
-    # `labeled`, so adding `ci:full` starts a full run on the same commit.
-    types: [opened, synchronize, reopened, labeled]
-  schedule:
-    # 02:17 UTC (about 04:17 in Germany), off the full hour when GitHub's scheduler is busiest.
-    - cron: '17 2 * * *'
   workflow_dispatch:
     inputs:
-      ref:
-        description: Branch, tag or commit to test, all of it
-        default: main
+      full:
+        description: Run everything, not only what the branch changes against main
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
-# A new push to a pull request stops the run for the push before it. Nightly and manual runs each get a group of their
-# own, so neither stops the other.
+# A new run on the same branch stops the one before it.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -30,51 +25,29 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: read
-      # The nightly run reads the workflow's earlier runs.
-      actions: read
     outputs:
       sha: ${{ steps.head.outputs.sha }}
-      run: ${{ steps.affected.outputs.run || 'false' }}
-      e2e: ${{ steps.affected.outputs.e2e || 'none' }}
-      offline: ${{ steps.affected.outputs.offline || 'false' }}
-      db: ${{ steps.affected.outputs.db || 'false' }}
+      run: ${{ steps.affected.outputs.run }}
+      e2e: ${{ steps.affected.outputs.e2e }}
+      offline: ${{ steps.affected.outputs.offline }}
+      db: ${{ steps.affected.outputs.db }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Empty except on a manual run: then the event's own commit.
-          ref: ${{ inputs.ref }}
-          # On a pull request HEAD is the merge commit, and HEAD^1 the base branch as it is now.
-          fetch-depth: 2
+          # The whole history: the selection diffs against main from where the branch left it.
+          fetch-depth: 0
       - id: head
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      # GitHub starts the nightly run whether main changed or not. When the last nightly run that passed tested this
-      # same commit, there is nothing new to test, and every later job is skipped.
-      - id: nightly
-        if: github.event_name == 'schedule'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ steps.head.outputs.sha }}
-        run: |
-          last=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --event schedule --branch main \
-            --status success --limit 1 --json headSha --jq '.[0].headSha // ""')
-          if [ "$last" = "$SHA" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "main is still at $SHA, which the last nightly run tested: nothing to run." | tee -a "$GITHUB_STEP_SUMMARY"
-          fi
-      - if: steps.nightly.outputs.skip != 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
-      - if: steps.nightly.outputs.skip != 'true'
-        run: npm ci
+      - run: npm ci
       # The selection's own tests first, with the map's: a broken selection must fail the run, not pick too little.
-      - if: steps.nightly.outputs.skip != 'true'
-        run: npx vitest run scripts/ci-affected.test.mjs
+      - run: npx vitest run scripts/ci-affected.test.mjs
       - id: affected
-        if: steps.nightly.outputs.skip != 'true'
+        env:
+          CI_FULL: ${{ inputs.full }}
         run: node scripts/ci-affected.mjs
 
   checks:
@@ -188,8 +161,9 @@ jobs:
       - run: node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
       - run: npm run test:contract
 
-  # The only required check. A job its `if:` skips counts as passed, and a crash in `changes` skips every job after
-  # it, so this job reads every result itself: `changes` must pass, and the rest must pass or be skipped.
+  # The run's one verdict. A job its `if:` skips counts as passed, and a crash in `changes` skips every job after it,
+  # so this job reads every result itself: `changes` must pass, and the rest must pass or be skipped. Not a required
+  # check in branch protection: nothing starts on a pull request, so it would wait there forever.
   gate:
     needs: [changes, checks, e2e, offline, db]
     if: always()
