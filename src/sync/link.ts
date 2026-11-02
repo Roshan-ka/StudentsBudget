@@ -2,6 +2,7 @@ import { exportAll, replaceAll, type BackupData } from '@/db/bulk';
 import { db } from '@/db/db';
 import type { OutboxEntry } from '@/db/types';
 import { downloadContents, planDownload } from './download';
+import { withSyncLock } from './lock';
 import { push } from './push';
 import type { UserDataStore } from './store';
 import { contentsOf } from './summary';
@@ -96,7 +97,7 @@ let linking: Promise<LinkOutcome> | null = null;
  * its authenticator code (`wantsCode`, which refreshes the session): then nothing is written.
  */
 export function linkPhone(store: UserDataStore, userId: string, wantsCode: () => Promise<boolean>): Promise<LinkOutcome> {
-  linking ??= linkWhatItCan(store, userId, wantsCode).finally(() => {
+  linking ??= withSyncLock(() => linkWhatItCan(store, userId, wantsCode)).finally(() => {
     linking = null;
   });
   return linking;
@@ -150,6 +151,16 @@ export async function applyLink(
   if (plan.kind === 'download' || (plan.kind === 'choose' && choice === 'account')) await replaceAll(plan.data);
   else if (plan.kind === 'choose') throw new Error('Linking needs a choice: keep the phone’s data or the account’s.');
   await db.syncState.put({ id: 'current', userId, cursor: 0, lastSyncedAt: null, problem: null });
+}
+
+/** `applyLink` with the person's choice (`choose`), under the sync lock, so no other tab syncs or links meanwhile. */
+export function linkWithChoice(
+  store: UserDataStore,
+  plan: Extract<LinkPlan, { kind: 'choose' }>,
+  userId: string,
+  choice: LinkChoice,
+): Promise<void> {
+  return withSyncLock(() => applyLink(store, plan, userId, choice));
 }
 
 /** Links the phone, and in the same transaction queues every row it has and a delete of each `stale` id. */

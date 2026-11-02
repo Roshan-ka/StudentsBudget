@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
-import { syncNow, syncStatusText } from './engine';
+import { accountSyncStatus, syncNow, syncResultText, syncStatusText } from './engine';
 import { UPDATE_NEEDED } from './pull';
 import { StoreError } from './store';
 import { expense, fakeStore } from './test-helpers';
@@ -127,5 +127,61 @@ describe('an account still in use', () => {
     expect(tables.accounts.get('local')).toMatchObject({ id: 'local' });
     expect(await db.accounts.get('local')).toEqual(LOCAL);
     expect(await db.outbox.count()).toBe(0);
+  });
+});
+
+// What a screen reader hears once after Sync now (the status line itself is not announced: its clock ticks). Never
+// the same words as the status line, so the two can be told apart (P2.2 chunk 10, row 7).
+describe('syncResultText', () => {
+  it('says how the tap ended, in words the status line never uses', () => {
+    expect(syncResultText({ kind: 'synced', sent: 2, received: 3 })).toBe('Sync finished.');
+    expect(syncResultText({ kind: 'offline' })).toBe('Not synced: you’re offline. Changes wait on this phone.');
+    expect(syncResultText({ kind: 'not-linked' })).toBe('Not synced: this phone is linked to another account.');
+    expect(syncResultText({ kind: 'problem', problem: UPDATE_NEEDED })).toBe(`Not synced: ${UPDATE_NEEDED}`);
+  });
+});
+
+// Two tabs of one phone share its database but not their module state: each has its own one-at-a-time guard. A Web
+// Lock keeps their syncs apart too (triage row 8, P2.2 chunk 10). Node has Web Locks, so the lock here is a real one.
+describe('two tabs', () => {
+  it('lets a second tab’s sync start only once the first one has finished', async () => {
+    const { store, calls } = fakeStore();
+    await saveEntry(expense('e1'));
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const slow = { ...store, upsert: async (...args: Parameters<typeof store.upsert>) => (await gate, store.upsert(...args)) };
+
+    // The other tab: the same engine, loaded afresh, with its own module state.
+    vi.resetModules();
+    const otherTab = await import('./engine');
+    const first = syncNow(slow, USER);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const second = otherTab.syncNow(store, USER);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // The first holds the lock while its push waits: the second has sent and read nothing yet.
+    expect(calls).toEqual([]);
+
+    release();
+    expect(await first).toMatchObject({ kind: 'synced' });
+    expect(await second).toMatchObject({ kind: 'synced' });
+    // One after the other: the first pushed and pulled, then the second found nothing to push and pulled from where
+    // the first left the cursor.
+    expect(calls).toEqual(['upsert accounts local', 'upsert entries e1', 'pull 0', 'pull 2', 'pull 2']);
+  });
+});
+
+// The Settings card's line, for whoever is signed in (triage row 9, P2.2 chunk 10).
+describe('accountSyncStatus', () => {
+  const input = { lastSyncedAt: '2026-10-29T14:04:40', problem: null, waiting: 0, online: true, now: new Date('2026-10-29T14:05:00') };
+
+  it('shows the status to the account the phone is linked to, and nothing while it isn’t linked', () => {
+    expect(accountSyncStatus(USER, USER, input)).toBe('Synced just now.');
+    expect(accountSyncStatus(null, USER, input)).toBeNull();
+  });
+
+  it('tells another account the phone is linked elsewhere, instead of that account’s status', () => {
+    expect(accountSyncStatus(USER, 'someone-else', input)).toBe('This phone is linked to another account.');
   });
 });

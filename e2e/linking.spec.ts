@@ -135,7 +135,8 @@ test('when both phones hold data, the person chooses which to keep', async ({ pa
   ).toBeVisible();
   const useAccount = linkRegion(pageB).getByRole('button', { name: "Use my account's data", exact: true });
   await useAccount.click();
-  await expect(pageB.getByText(/^Loaded from your account: /)).toBeVisible();
+  // The button went with the choice: the focus moves to the line on what moved, not to the top of the page.
+  await expect(pageB.getByText(/^Loaded from your account: /)).toBeFocused();
   await expect(syncRegion(pageB).getByText('Synced just now.', { exact: true })).toBeVisible();
   const accountsA = (await readStore<{ id: string }>(page, 'accounts')).map((a) => a.id).sort();
   expect((await readStore<{ id: string }>(pageB, 'accounts')).map((a) => a.id).sort()).toEqual(accountsA);

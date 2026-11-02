@@ -10,8 +10,11 @@ import {
   routePages,
   runOptions,
   selectAffected,
+  statusContext,
+  statusDescription,
   summary,
   unresolvedImports,
+  verdict,
 } from './ci-affected.mjs';
 
 /**
@@ -320,6 +323,82 @@ describe('runOptions', () => {
   });
 });
 
+describe('statusContext', () => {
+  it('posts full-gate only for a full run on every browser and language', () => {
+    for (const [browsers, languages] of [['auto', 'auto'], ['all', 'all'], ['auto', 'all'], ['all', 'auto']]) {
+      expect(statusContext({ scope: 'full', browsers, languages }), `${browsers}/${languages}`).toBe('full-gate');
+    }
+  });
+
+  it('posts partial-check for a full run narrowed to one browser or the default language', () => {
+    expect(statusContext({ scope: 'full', browsers: 'chromium', languages: 'auto' })).toBe('partial-check');
+    expect(statusContext({ scope: 'full', browsers: 'auto', languages: 'default' })).toBe('partial-check');
+  });
+
+  it('posts quick-check for a changed run, whatever its browsers and languages', () => {
+    expect(statusContext({})).toBe('quick-check');
+    expect(statusContext({ scope: 'changed', browsers: 'all', languages: 'all' })).toBe('quick-check');
+  });
+});
+
+describe('statusDescription', () => {
+  it('names the short commit and the options', () => {
+    expect(statusDescription('0123456789abcdef', runOptions({ scope: 'full' }))).toBe(
+      '0123456 · full · browsers all · languages all',
+    );
+    expect(statusDescription('0123456789abcdef', runOptions({}))).toBe(
+      '0123456 · changed · browsers chromium · languages default',
+    );
+  });
+});
+
+describe('verdict', () => {
+  /** What `toJSON(needs)` gives the gate job: each job's result, and the selection as `changes`' outputs. */
+  const needs = (results, selection = { run: 'true', e2e: 'all', offline: 'true', db: 'true' }) => ({
+    changes: { result: results.changes ?? 'success', outputs: results.changes === 'failure' ? {} : selection },
+    ...Object.fromEntries(
+      ['checks', 'e2e', 'e2e-report', 'offline', 'db']
+        .filter((job) => results[job] !== undefined)
+        .map((job) => [job, { result: results[job], outputs: {} }]),
+    ),
+  });
+  const allPassed = { checks: 'success', e2e: 'success', 'e2e-report': 'success', offline: 'success', db: 'success' };
+
+  it('passes a full run only when every job passed', () => {
+    expect(verdict('full', needs(allPassed)).state).toBe('success');
+  });
+
+  it('fails a full run when a needed job was skipped, cancelled, failed or left no result', () => {
+    for (const [job, result] of [
+      ['e2e', 'skipped'],
+      ['db', 'cancelled'],
+      ['offline', 'failure'],
+      ['e2e-report', 'skipped'],
+      ['checks', undefined],
+    ]) {
+      const { state, problems } = verdict('full', needs({ ...allPassed, [job]: result }));
+      expect(state, `${job} ${result}`).toBe('failure');
+      expect(problems, `${job} ${result}`).toEqual([`${job}: ${result ?? 'no result'}, but this full run needs it`]);
+    }
+  });
+
+  it('fails any run whose changes job did not pass', () => {
+    expect(verdict('full', needs({ ...allPassed, changes: 'failure' })).state).toBe('failure');
+    expect(verdict('changed', needs({ changes: 'cancelled' })).state).toBe('failure');
+  });
+
+  it('passes a changed run when every job passed or was skipped', () => {
+    const selection = { run: 'true', e2e: 'e2e/smoke\\.spec\\.ts$', offline: 'false', db: 'false' };
+    const results = { checks: 'success', e2e: 'success', 'e2e-report': 'success', offline: 'skipped', db: 'skipped' };
+    expect(verdict('changed', needs(results, selection))).toEqual({ state: 'success', problems: [] });
+  });
+
+  it('fails a changed run when a job failed or was cancelled, and ignores the report merge', () => {
+    const results = { checks: 'success', e2e: 'cancelled', 'e2e-report': 'failure', offline: 'skipped', db: 'skipped' };
+    expect(verdict('changed', needs(results))).toEqual({ state: 'failure', problems: ['e2e: cancelled'] });
+  });
+});
+
 describe('githubOutput', () => {
   it('writes run, e2e, offline and db, with the list as Playwright arguments, and the browsers and languages', () => {
     expect(githubOutput(select(['src/features/check-in/week-rows.ts']), runOptions({}))).toBe(
@@ -421,5 +500,21 @@ describe('forScope', () => {
     const text = summary(forScope(picked(), runOptions({ scope: 'quick' })), runOptions({ scope: 'quick' }));
     expect(text).toContain('Scope **quick**');
     expect(text).toContain('| no e2e spec | a pull request’s automatic run has no e2e: start a changed or full run by hand |');
+  });
+});
+
+describe('a quick run’s verdict', () => {
+  it('posts quick-check, and passes with e2e, its report and the offline check skipped', () => {
+    expect(statusContext({ scope: 'quick' })).toBe('quick-check');
+    const needs = {
+      changes: { result: 'success' },
+      checks: { result: 'success' },
+      e2e: { result: 'skipped' },
+      'e2e-report': { result: 'skipped' },
+      offline: { result: 'skipped' },
+      db: { result: 'success' },
+    };
+    expect(verdict('quick', needs)).toEqual({ state: 'success', problems: [] });
+    expect(verdict('quick', { ...needs, checks: { result: 'failure' } }).state).toBe('failure');
   });
 });

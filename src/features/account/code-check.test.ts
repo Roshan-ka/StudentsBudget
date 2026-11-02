@@ -1,6 +1,6 @@
 import type { AuthError, Session, SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
-import { accountWantsCode } from './code-check';
+import { accountWantsCode, wantsCodeBeforeLinking } from './code-check';
 
 /** An access token as supabase-js holds it, its claims stating the assurance level. */
 function token(aal: string): string {
@@ -32,5 +32,19 @@ describe('accountWantsCode', () => {
   it('is false when the refresh fails, so the first message stands', async () => {
     const failed = { name: 'AuthRetryableFetchError', message: 'Failed to fetch' } as AuthError;
     expect(await accountWantsCode(authRefreshingTo(null, failed))).toBe(false);
+  });
+});
+
+// Linking must not take an account that looks empty at its word while the session couldn't be checked: it may only
+// hide its rows until this session gives its code (triage row 10, P2.2 chunk 10).
+describe('wantsCodeBeforeLinking', () => {
+  it('answers as accountWantsCode does when the refresh works', async () => {
+    const session = { access_token: token('aal1'), user: { email: 'a@example.com', factors: [verified] } };
+    expect(await wantsCodeBeforeLinking(authRefreshingTo(session))).toBe(true);
+  });
+
+  it('throws when the refresh fails, so the phone doesn’t link', async () => {
+    const failed = { name: 'AuthRetryableFetchError', message: 'Failed to fetch' } as AuthError;
+    await expect(wantsCodeBeforeLinking(authRefreshingTo(null, failed))).rejects.toMatchObject({ message: 'Failed to fetch' });
   });
 });

@@ -6,7 +6,9 @@ name: CI
 # `gh workflow run ci.yml --ref <branch>`), and Claude asks Roshan before starting one. A `changed` run tests what the
 # branch changes against main (scripts/ci-affected.mjs, which says why in the job summary); a `full` run tests
 # everything, after Roshan's approval.
-# The last job posts the verdict on the tested commit: `full-gate` (the check merging waits for) or `quick-check`.
+# The last job posts the verdict on the tested commit: `full-gate` (a full run on every browser and language),
+# `partial-check` (a full run narrowed by an option) or `quick-check` (a changed or quick run). Before merging, a ready
+# pull request's quick-check is the check; a full run is optional and by hand. No branch protection requires one yet.
 on:
   pull_request:
     types: [opened, reopened, ready_for_review, synchronize]
@@ -220,40 +222,52 @@ jobs:
       - run: npm run test:contract
 
   # The run's one verdict, posted as a commit status on the commit it tested, where a pull request shows it (check runs
-  # of a manual run don't appear there): `full-gate` for a full run, the check branch protection requires before
-  # merging, and `quick-check` for a changed run, which never posts full-gate. A job its `if:` skips counts as passed,
-  # and a crash in `changes` skips every job after it, so this job reads every result itself: `changes` must pass, and
-  # the rest must pass or be skipped.
+  # of a manual run don't appear there). `node scripts/ci-affected.mjs verdict` decides it (statusContext, verdict):
+  # - `full-gate` only for a full run on every browser and language; a full run narrowed by an option posts
+  #   `partial-check`, and a changed or quick run `quick-check`. No branch protection requires any of them yet.
+  # - A full run needs every job, the report merge included, to pass: skipped, cancelled or no result is a failure.
+  # - A changed or quick run passes when every job passed or was skipped.
+  # A job its `if:` skips counts as passed, and a crash in `changes` skips every job after it, so this job reads every
+  # result itself.
   gate:
-    needs: [changes, checks, e2e, offline, db]
+    needs: [changes, checks, e2e, e2e-report, offline, db]
     # Not for a draft, whose run was skipped on purpose.
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
+      contents: read
       statuses: write
+    env:
+      # The commit `changes` checked out; the run's own commit when `changes` failed before it knew.
+      SHA: ${{ needs.changes.outputs.sha || github.sha }}
     steps:
+      # Only the script, from the tested commit: the verdict needs Node's built-ins and nothing from npm.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SHA }}
+          sparse-checkout: scripts
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
       - id: verdict
         env:
-          RESULTS: ${{ toJSON(needs) }}
-        run: |
-          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
-          if echo "$RESULTS" | jq -e '.changes.result == "success" and all(.[]; .result == "success" or .result == "skipped")' > /dev/null; then
-            echo "state=success" >> "$GITHUB_OUTPUT"
-          else
-            echo "state=failure" >> "$GITHUB_OUTPUT"
-          fi
+          NEEDS: ${{ toJSON(needs) }}
+          # A pull request's own run is `quick`, as in `changes`.
+          CI_SCOPE: ${{ github.event_name == 'pull_request' && 'quick' || inputs.scope }}
+          CI_BROWSERS: ${{ inputs.browsers }}
+          CI_LANGUAGES: ${{ inputs.languages }}
+        run: node scripts/ci-affected.mjs verdict
       - env:
           GH_TOKEN: ${{ github.token }}
-          # A pull request shows statuses on its head commit, not on the merge commit its run checks out. Otherwise the
-          # commit `changes` checked out, or the run's own when `changes` failed before it knew.
-          SHA: ${{ github.event.pull_request.head.sha || needs.changes.outputs.sha || github.sha }}
-          CONTEXT: ${{ inputs.scope == 'full' && 'full-gate' || 'quick-check' }}
+          # A pull request shows statuses on its head commit, not on the merge commit its run checks out and tests.
+          STATUS_SHA: ${{ github.event.pull_request.head.sha || env.SHA }}
+          CONTEXT: ${{ steps.verdict.outputs.context }}
           STATE: ${{ steps.verdict.outputs.state }}
+          DESCRIPTION: ${{ steps.verdict.outputs.description }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          RUN_NUMBER: ${{ github.run_number }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA" -f state="$STATE" -f context="$CONTEXT" \
-            -f target_url="$RUN_URL" -f description="CI run $RUN_NUMBER: $STATE" > /dev/null
-          echo "Posted $CONTEXT: $STATE on $SHA." | tee -a "$GITHUB_STEP_SUMMARY"
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$STATUS_SHA" -f state="$STATE" -f context="$CONTEXT" \
+            -f target_url="$RUN_URL" -f description="$DESCRIPTION" > /dev/null
+          echo "Posted $CONTEXT: $STATE on $STATUS_SHA." | tee -a "$GITHUB_STEP_SUMMARY"
           [ "$STATE" = success ]

@@ -10,7 +10,7 @@ export type AuthState =
   | { status: 'loading' }
   | { status: 'signed-out' }
   | { status: 'second-step'; email: string; factorId: string }
-  | { status: 'signed-in'; email: string };
+  | { status: 'signed-in'; email: string; userId: string };
 
 /**
  * The assurance level an access token states: 'aal2' once the authenticator code was given, 'aal1' after the password
@@ -39,5 +39,5 @@ export function authStateOf(session: Session | null): AuthState {
   if (factor !== undefined && assuranceLevelOf(session.access_token) !== 'aal2') {
     return { status: 'second-step', email, factorId: factor.id };
   }
-  return { status: 'signed-in', email };
+  return { status: 'signed-in', email, userId: session.user.id };
 }
