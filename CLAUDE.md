@@ -55,12 +55,11 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | `npm run test:db` | pgTAP tests in `supabase/tests` against the running local stack |
 | `npm run test:contract` | The account store (`src/sync/store.ts`) against the running local stack, as signed-in users; needs `SUPABASE_TEST_URL` and `SUPABASE_TEST_KEY`, which `node scripts/supabase-test-env.mjs` prints. Skipped in `npm test` without them |
 
-CI (`.github/workflows/ci.yml`) runs on a pull request what its changes need, as `scripts/ci-affected.mjs` picks it (the job summary says why), and a new push cancels the run before it:
+CI (`.github/workflows/ci.yml`) never starts on its own: only by hand (Actions → CI → Run workflow, or `gh workflow run ci.yml --ref <branch>`), and Claude asks Roshan before every run. A run tests what the branch changes against `main`, as `scripts/ci-affected.mjs` picks it (the job summary says why), or everything with `full`; a new run on the same branch stops the one before it:
 - `checks`: lint, typecheck, build and the whole unit suite, for anything but notes (`docs/`, Markdown, `.claude/`).
 - `e2e`: the specs of every route whose page imports a changed module, directly or through others (`e2e/affected-map.json`), plus smoke. A change that reaches the root layout, setup, Home or Settings runs every spec, in four shards, and so does a path no rule matches. `supabase/`, `mcp/` and unit tests alone run no spec. A new route or spec needs an entry in the map, or the unit tests fail.
 - `offline` (the service worker, the manifest, `public/`, `next.config.*`) and `db` (the migrations, `test:db` and `test:contract` on a local Supabase stack, for `supabase/`, `src/sync/`, the lockfile and what the contract tests import) run only when flagged.
-- The `ci:full` label, a manual run (`ref` input) and the nightly run (02:17 UTC, skipped when `main` hasn't moved since the last one that passed) run everything.
-- `gate` is the only required check: it fails when any job failed or was cancelled. A failed Playwright run uploads its HTML report and traces as a `playwright-report-…` artifact.
+- `gate` is the run's verdict: it fails when any job failed or was cancelled. It is not a required check, since nothing starts on a pull request. A failed Playwright run uploads its HTML report and traces as a `playwright-report-…` artifact.
 
 ## Framework rules
 
