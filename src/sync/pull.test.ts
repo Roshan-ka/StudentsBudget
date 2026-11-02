@@ -129,3 +129,20 @@ describe('pull', () => {
     expect(await queued()).toEqual([]);
   });
 });
+
+// An account deleted on another phone while this one still books on it (triage row 5, P2.2 chunk 9).
+describe('an account still in use', () => {
+  it('keeps an account the other phone deleted while this phone still uses it, and queues it to go back', async () => {
+    const SPARE = { ...LOCAL, id: 'spare', name: 'Spare' };
+    await untracked([db.accounts, db.entries], async () => {
+      await db.accounts.bulkPut([LOCAL, SPARE]);
+      await db.entries.put(expense('e1'));
+    });
+    const { store } = fakeStore({ accounts: { local: null, spare: null } });
+    await pull(store);
+    expect(await db.accounts.get('local')).toEqual(LOCAL);
+    // One nothing uses goes, as the other phone meant.
+    expect(await db.accounts.get('spare')).toBeUndefined();
+    expect(await queued()).toEqual(['accounts:local']);
+  });
+});

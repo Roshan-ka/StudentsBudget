@@ -115,3 +115,17 @@ describe('syncStatusText', () => {
     expect(syncStatusText({ ...base, problem: UPDATE_NEEDED, lastSyncedAt: '2026-10-29T14:04:40' })).toBe(UPDATE_NEEDED);
   });
 });
+
+describe('an account still in use', () => {
+  it('sends it back in the same Sync now when the other phone deleted it while this one still books on it', async () => {
+    const { store, tables } = fakeStore();
+    await saveEntry(expense('e1'));
+    await syncNow(store, USER);
+    // The other phone deletes the account, which it had no entries on.
+    await store.tombstone('accounts', ['local']);
+    expect(await syncNow(store, USER)).toMatchObject({ kind: 'synced' });
+    expect(tables.accounts.get('local')).toMatchObject({ id: 'local' });
+    expect(await db.accounts.get('local')).toEqual(LOCAL);
+    expect(await db.outbox.count()).toBe(0);
+  });
+});

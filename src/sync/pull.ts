@@ -1,4 +1,5 @@
 import { db } from '@/db/db';
+import { accountUse } from '@/db/repo';
 import type { Plan } from '@/db/types';
 import { keepWatermarks } from '@/features/recurring/update-plan';
 import { BadRow, ROW_CHECKS } from './rows';
@@ -75,6 +76,12 @@ export async function applyFromAccount(rows: Checked[], cursor?: number): Promis
     let applied = 0;
     for (const { row, value } of rows) {
       if ((await db.outbox.get([row.table, row.id])) !== undefined) continue;
+      // Deleted on another phone while this one still uses it (an entry booked here meanwhile): kept, and queued to
+      // go back to the account, so no phone is left with entries on a missing account.
+      if (value === null && row.table === 'accounts' && (await accountUse(row.id)) !== null) {
+        await db.outbox.put({ table: 'accounts', id: row.id, seq: Date.now() });
+        continue;
+      }
       const home = dexieHome(row.table);
       if (value === null) await db.table(home.dexie).delete(home.keyOf(row.id));
       else if (row.table === 'plans') await db.plan.put(withPhoneWatermarks(await db.plan.get('current'), value as Plan));

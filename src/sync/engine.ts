@@ -38,8 +38,10 @@ async function sync(store: UserDataStore, userId: string): Promise<SyncResult> {
     const pushed = await push(store);
     const pulled = await pull(store);
     if (pulled.kind === 'invalid') return await stopped(pulled.problem);
+    // A pull can queue a row to go back (an account another phone deleted while this one still uses it): sent now.
+    const again = (await db.outbox.count()) > 0 ? await push(store) : { sent: 0, deleted: 0 };
     await db.syncState.update('current', { lastSyncedAt: new Date().toISOString(), problem: null });
-    return { kind: 'synced', sent: pushed.sent + pushed.deleted, received: pulled.applied };
+    return { kind: 'synced', sent: pushed.sent + pushed.deleted + again.sent + again.deleted, received: pulled.applied };
   } catch (error) {
     console.error('StudentsBudget: sync', error);
     return stopped(syncErrorMessage(error));

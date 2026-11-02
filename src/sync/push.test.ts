@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/db';
 import { setManualRate } from '@/db/rates';
-import { deleteEntry, saveEntry } from '@/db/repo';
+import { deleteAccount, deleteEntry, saveEntry } from '@/db/repo';
 import type { Plan } from '@/db/types';
 import { automatic } from './automatic';
 import { push } from './push';
@@ -189,5 +189,22 @@ describe('automatic rows', () => {
     expect(tables.plans.get('current')).toEqual(scheduled('2026-10-31', 41_000));
     expect(await db.plan.get('current')).toEqual(scheduled('2026-11-30', 41_000));
     expect(await queued()).toEqual([]);
+  });
+});
+
+// Rules between rows (an entry needs its account) hold on the account too, even when a push stops halfway: every row
+// goes before any delete, and entries are deleted before the accounts they were on (triage row 5, P2.2 chunk 9).
+describe('push order', () => {
+  it('sends every row before any delete, and deletes entries before the account they were on', async () => {
+    const { store, calls } = fakeStore();
+    await db.accounts.put({ id: 'old', name: 'Old bank', kind: 'bank', currency: 'EUR', openingMinor: 0, createdAt: 'x' });
+    await saveEntry({ ...expense('on-old'), accountId: 'old' });
+    await push(store);
+    await deleteEntry('on-old');
+    await deleteAccount('old');
+    await saveEntry(expense('new'));
+    calls.length = 0;
+    await push(store);
+    expect(calls).toEqual(['upsert entries new', 'tombstone entries on-old', 'tombstone accounts old']);
   });
 });
