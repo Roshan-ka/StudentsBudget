@@ -1,4 +1,7 @@
+'use client';
+
 import type { CityRange } from '@/data/cities';
+import { useT } from '@/i18n/use-t';
 import { formatDate } from '@/lib/dates';
 
 /** "studierendenwerke.de": enough to see where the link goes, short enough to fit a phone. */
@@ -8,22 +11,24 @@ function hostOf(url: string): string {
 
 /**
  * Where a city range comes from, collapsed under the range line: source text, check date and link. `label` is the
- * words on the collapsed line; a swap with two amounts has two sources, which it tells apart by what each one covers.
+ * words on the collapsed line ("Source" in the phone's language without it); a swap with two amounts has two sources,
+ * which it tells apart by what each one covers.
  */
 export function RangeSource({
   range,
-  label = 'Source',
+  label,
 }: {
   range: Pick<CityRange, 'source' | 'url' | 'checked'>;
   label?: string;
 }) {
+  const { t } = useT();
   return (
     <details className="text-xs text-muted-foreground">
       {/* 16 px of text-xs line and 28 px of padding: a 44 px tap target, as everywhere else in the app. */}
-      <summary className="w-fit cursor-pointer py-3.5">{label}</summary>
+      <summary className="w-fit cursor-pointer py-3.5">{label ?? t.common.source.label}</summary>
       <div className="mt-1 flex flex-col gap-1">
-        <p className="break-words">{range.source}</p>
-        <p>checked {formatDate(range.checked)}</p>
+        <p className="break-words">{range.source === 'Estimate' ? t.common.estimate : range.source}</p>
+        <p>{t.common.source.checked(formatDate(range.checked))}</p>
         <a href={range.url} target="_blank" rel="noopener noreferrer" className="w-fit break-all underline">
           {hostOf(range.url)}
         </a>

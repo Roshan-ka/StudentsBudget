@@ -10,6 +10,7 @@ import {
   tickOverdrawn,
   typeOpening,
 } from '@/features/accounts/opening-balance';
+import { useT } from '@/i18n/use-t';
 import { parseAmount, type Minor } from '@/lib/money';
 
 /** What an empty field means: 0 (income, costs, envelopes), or no answer yet (guesses). */
@@ -70,6 +71,7 @@ export function AmountField({
   inputRef?: Ref<HTMLInputElement>;
 }) {
   const id = useId();
+  const { t } = useT();
   const range: Range = signed ? 'signed' : positive ? 'positive' : 'optional';
   const [text, setText] = useState(() => toText(value, blank));
   // Overdrawn ticked while the field was empty: the first thing typed takes the minus sign.
@@ -127,7 +129,7 @@ export function AmountField({
       )}
       {showError && (
         <p id={`${id}-error`} className="text-sm text-destructive">
-          {positive ? 'Enter an amount above 0, like 250 or 12.50.' : 'Enter a number, like 250 or 12.50.'}
+          {positive ? t.common.amountField.positive : t.common.amountField.number}
         </p>
       )}
       {signed && (
@@ -142,7 +144,7 @@ export function AmountField({
               edit(ticked.text);
             }}
           />
-          Overdrawn (below zero)
+          {t.common.amountField.overdrawn}
         </label>
       )}
     </div>

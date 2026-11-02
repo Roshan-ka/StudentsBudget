@@ -4,6 +4,9 @@ import type { Account, Amount, Category, Guess, OneOff, Plan, PlanLine, Schedule
 import { defaultAccount } from '@/features/accounts/balances';
 import { GUESS_CATEGORIES } from '@/features/entries/categories';
 import { newSchedule, perOccurrence, restartSchedule } from '@/features/recurring/schedule';
+import { categoryNameIn } from '@/i18n/category-name';
+import { LANGUAGES, type Language } from '@/i18n/languages';
+import { MESSAGES, type Messages } from '@/i18n/messages';
 import { planSummary, type PlanSummary } from '@/lib/budget';
 import { monthOf, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, formatRange, type Minor } from '@/lib/money';
@@ -78,10 +81,7 @@ export const INCOME_CATEGORIES = ofKind('income');
 /** The fixed costs step asks for these; rent has its own question in step 1. */
 export const FIXED_CATEGORIES = ofKind('fixed').filter((c) => c.id !== 'rent');
 
-const NAME_OF = new Map(CATEGORIES.map((c) => [c.id, c.name]));
 const ORDER_OF = new Map(CATEGORIES.map((c) => [c.id, c.order]));
-
-const nameOf = (categoryId: string): string => NAME_OF.get(categoryId) ?? categoryId;
 
 /** The amount a list holds for a category, or `undefined` when it has no row for it. */
 export function amountOf(list: Amount[], categoryId: string): Minor | undefined {
@@ -154,13 +154,15 @@ export function withAccountKeys(d: SetupDraft): SetupDraft {
   return { ...d, accounts: keyed };
 }
 
-/** What a line can be added to: the draft accounts in a new setup, the stored ones when the draft has none. */
-export function accountOptions(d: SetupDraft, stored: AccountOption[]): AccountOption[] {
+/**
+ * What a line can be added to: the draft accounts in a new setup, the stored ones when the draft has none. A draft
+ * account still without a name is "Account 2" in `lang`.
+ */
+export function accountOptions(d: SetupDraft, stored: AccountOption[], lang: Language = 'en'): AccountOption[] {
   if (d.accounts.length === 0) return stored;
+  const unnamed = MESSAGES[lang].setup.accounts.account;
   return d.accounts.flatMap((a, i) =>
-    a.key === undefined
-      ? []
-      : [{ id: a.key, name: a.name.trim() || `Account ${i + 1}`, currency: a.currency, kind: a.kind }],
+    a.key === undefined ? [] : [{ id: a.key, name: a.name.trim() || unnamed(i + 1), currency: a.currency, kind: a.kind }],
   );
 }
 
@@ -186,16 +188,20 @@ export function isRepaired(schedule: DraftSchedule, options: AccountOption[]): b
   );
 }
 
-/** The draft for a new setup. With `accountsExist` the prefilled accounts are left out: the ones in Settings stay. */
-export function initialDraft(accountsExist = false): SetupDraft {
+/**
+ * The draft for a new setup, its prefilled accounts named in `lang`. With `accountsExist` the prefilled accounts are
+ * left out: the ones in Settings stay.
+ */
+export function initialDraft(accountsExist = false, lang: Language = 'en'): SetupDraft {
+  const names = MESSAGES[lang].setup.accounts.prefilled;
   return {
     rentMinor: 0,
     accounts: accountsExist
       ? []
       : [
-          { key: 'draft-1', name: 'Local bank', kind: 'bank', currency: 'EUR', openingMinor: 0 },
-          { key: 'draft-2', name: 'Home bank', kind: 'bank', currency: 'INR', openingMinor: 0 },
-          { key: 'draft-3', name: 'Cash', kind: 'cash', currency: 'EUR', openingMinor: 0 },
+          { key: 'draft-1', name: names.localBank, kind: 'bank', currency: 'EUR', openingMinor: 0 },
+          { key: 'draft-2', name: names.homeBank, kind: 'bank', currency: 'INR', openingMinor: 0 },
+          { key: 'draft-3', name: names.cash, kind: 'cash', currency: 'EUR', openingMinor: 0 },
         ],
     incomes: [],
     fixed: [],
@@ -394,10 +400,10 @@ export function isDueMonthProblem(row: SetupDraft['oneOffs'][number], today: Iso
 
 const isAmount = (m: Minor | undefined): boolean => m !== undefined && Number.isSafeInteger(m) && m >= 0;
 
-function amountProblems(list: Amount[], categories: Category[]): string[] {
+function amountProblems(list: Amount[], categories: Category[], t: Messages): string[] {
   return categories.flatMap((c) => {
     const minor = amountOf(list, c.id);
-    return minor === undefined || isAmount(minor) ? [] : [`Check the amount for ${c.name}.`];
+    return minor === undefined || isAmount(minor) ? [] : [t.setup.problems.checkAmount(categoryNameIn(t, c.id))];
   });
 }
 
@@ -405,6 +411,7 @@ function amountProblems(list: Amount[], categories: Category[]): string[] {
 function scheduleProblems(
   lines: { name: string; monthlyMinor: Minor; schedule?: DraftSchedule }[],
   options: AccountOption[],
+  t: Messages,
 ): string[] {
   return lines.flatMap(({ name, monthlyMinor, schedule }) => {
     if (!schedule?.on || !(monthlyMinor > 0)) return [];
@@ -413,20 +420,20 @@ function scheduleProblems(
     const { foreignMinor } = schedule;
     return Number.isSafeInteger(foreignMinor) && foreignMinor > 0
       ? []
-      : [`Enter the amount in ${account.currency} for ${name}.`];
+      : [t.setup.problems.foreignAmount(account.currency, name)];
   });
 }
 
 /** The lines of a list, in category order, with their names. */
-function namedLines(list: DraftLine[], categories: Category[]): (DraftLine & { name: string })[] {
+function namedLines(list: DraftLine[], categories: Category[], t: Messages): (DraftLine & { name: string })[] {
   return categories.flatMap((c) => {
     const line = list.find((l) => l.categoryId === c.id);
-    return line ? [{ ...line, name: c.name }] : [];
+    return line ? [{ ...line, name: categoryNameIn(t, c.id) }] : [];
   });
 }
 
 /**
- * Why the person cannot leave this step yet. Empty when they can. In edit mode pass the saved plan as
+ * Why the person cannot leave this step yet, in `lang`. Empty when they can. In edit mode pass the saved plan as
  * `existing`, so one-offs that are already in it are not held to the due-month rule again. `stored` are the saved
  * accounts, which a line picks from when the draft has none.
  */
@@ -436,37 +443,38 @@ export function validateStep(
   today: IsoDate = todayIso(),
   existing?: Plan,
   stored: AccountOption[] = [],
+  lang: Language = 'en',
 ): string[] {
-  const options = accountOptions(d, stored);
+  const t = MESSAGES[lang];
+  const text = t.setup.problems;
+  const options = accountOptions(d, stored, lang);
   switch (step) {
     case 'city-rent':
-      return isAmount(d.rentMinor) ? [] : [`Check the amount for ${nameOf('rent')}.`];
+      return isAmount(d.rentMinor) ? [] : [text.checkAmount(categoryNameIn(t, 'rent'))];
 
     case 'accounts': {
-      if (d.accounts.length === 0) return ['Add at least one account'];
+      if (d.accounts.length === 0) return [text.addAccount];
       const problems: string[] = [];
-      if (d.accounts.some((a) => a.name.trim() === '')) problems.push('Give every account a name.');
+      if (d.accounts.some((a) => a.name.trim() === '')) problems.push(text.nameAccounts);
       d.accounts.forEach((a, i) => {
         // An opening balance may be below zero: an account can start overdrawn.
-        if (!Number.isSafeInteger(a.openingMinor)) {
-          problems.push(`Check the opening balance for ${a.name.trim() || `account ${i + 1}`}.`);
-        }
+        if (!Number.isSafeInteger(a.openingMinor)) problems.push(text.checkOpening(a.name.trim() || null, i + 1));
       });
       return problems;
     }
 
     case 'income':
       return [
-        ...amountProblems(d.incomes, INCOME_CATEGORIES),
-        ...scheduleProblems(namedLines(d.incomes, INCOME_CATEGORIES), options),
+        ...amountProblems(d.incomes, INCOME_CATEGORIES, t),
+        ...scheduleProblems(namedLines(d.incomes, INCOME_CATEGORIES, t), options, t),
       ];
 
     case 'fixed': {
       // Rent's choices are asked in this step.
-      const rent = { name: nameOf('rent'), monthlyMinor: d.rentMinor, schedule: d.rentSchedule };
+      const rent = { name: categoryNameIn(t, 'rent'), monthlyMinor: d.rentMinor, schedule: d.rentSchedule };
       return [
-        ...amountProblems(d.fixed, FIXED_CATEGORIES),
-        ...scheduleProblems([rent, ...namedLines(d.fixed, FIXED_CATEGORIES)], options),
+        ...amountProblems(d.fixed, FIXED_CATEGORIES, t),
+        ...scheduleProblems([rent, ...namedLines(d.fixed, FIXED_CATEGORIES, t)], options, t),
       ];
     }
 
@@ -476,9 +484,9 @@ export function validateStep(
         // A row without an amount is left out when saving, so it asks nothing: its due month is not needed.
         if (o.amountMinor === 0) return;
         const name = o.name.trim();
-        if (name === '') problems.add('Name every one-off cost.');
-        if (!isAmount(o.amountMinor)) problems.add(`Check the amount for ${name || `one-off cost ${i + 1}`}.`);
-        if (isDueMonthProblem(o, today, existing)) problems.add('Pick a month after this one.');
+        if (name === '') problems.add(text.nameOneOffs);
+        if (!isAmount(o.amountMinor)) problems.add(text.checkOneOff(name || null, i + 1));
+        if (isDueMonthProblem(o, today, existing)) problems.add(text.dueMonth);
       });
       return [...problems];
     }
@@ -487,35 +495,37 @@ export function validateStep(
       // A blank guess is simply not saved: only one that did not parse is a problem.
       return GUESS_CATEGORIES.flatMap((c) => {
         const minor = amountOf(d.guesses, c.id);
-        return minor === undefined || isAmount(minor) ? [] : [`Check the guess for ${c.name}.`];
+        return minor === undefined || isAmount(minor) ? [] : [text.checkGuess(categoryNameIn(t, c.id))];
       });
 
     case 'envelopes':
       return [
         // The everyday budget is asked at the top of this step. Blank, 0 and an amount are all fine.
-        ...(isAmount(d.spendingBudgetMinor) ? [] : ['Check the amount for your everyday budget.']),
+        ...(isAmount(d.spendingBudgetMinor) ? [] : [text.checkBudget]),
         ...FLEXIBLE_CATEGORIES.flatMap((c) => {
           const minor = amountOf(d.envelopes, c.id);
-          if (minor === undefined) return [`Add an amount for ${c.name}`];
-          return isAmount(minor) ? [] : [`Check the amount for ${c.name}.`];
+          if (minor === undefined) return [text.addEnvelope(categoryNameIn(t, c.id))];
+          return isAmount(minor) ? [] : [text.checkAmount(categoryNameIn(t, c.id))];
         }),
       ];
   }
 }
 
-const wholeEuros = (minor: Minor): string => formatMoney(minor, 'EUR', { whole: true });
+const wholeEuros = (minor: Minor, lang: Language): string =>
+  formatMoney(minor, 'EUR', { whole: true, locale: LANGUAGES[lang].locale });
 
 /**
  * The line under the envelopes: "Available €440 · Planned €465 · Over by €25". Whole euros, but a
  * set-aside is rounded up to the cent, so Available can have cents. It is shown rounded down and the
  * overage rounded up: the plan never reads as over by €0, and Available is never shown higher than it is.
  */
-export function envelopesFooter(s: PlanSummary): string {
+export function envelopesFooter(s: PlanSummary, lang: Language = 'en'): string {
+  const text = MESSAGES[lang].setup.lines;
   const parts = [
-    `Available ${wholeEuros(Math.floor(s.availableMinor / 100) * 100)}`,
-    `Planned ${wholeEuros(s.envelopesMinor)}`,
+    text.available(wholeEuros(Math.floor(s.availableMinor / 100) * 100, lang)),
+    text.planned(wholeEuros(s.envelopesMinor, lang)),
   ];
-  if (s.overByMinor > 0) parts.push(`Over by ${wholeEuros(Math.ceil(s.overByMinor / 100) * 100)}`);
+  if (s.overByMinor > 0) parts.push(text.overBy(wholeEuros(Math.ceil(s.overByMinor / 100) * 100, lang)));
   return parts.join(' · ');
 }
 
@@ -524,17 +534,29 @@ export function envelopesFooter(s: PlanSummary): string {
  * budget". Whole euros; the overage is rounded up, so it never reads as less than it is. `null` without a budget
  * (zero or less): there is nothing to compare with.
  */
-export function budgetLine(plannedMinor: Minor, budgetMinor: Minor): string | null {
+export function budgetLine(plannedMinor: Minor, budgetMinor: Minor, lang: Language = 'en'): string | null {
   if (!(budgetMinor > 0)) return null;
-  const budget = wholeEuros(budgetMinor);
-  if (plannedMinor <= budgetMinor) return `${wholeEuros(plannedMinor)} of your ${budget} budget`;
-  return `${wholeEuros(Math.ceil((plannedMinor - budgetMinor) / 100) * 100)} over your ${budget} budget`;
+  const text = MESSAGES[lang].setup.lines;
+  const budget = wholeEuros(budgetMinor, lang);
+  if (plannedMinor <= budgetMinor) return text.ofBudget(wholeEuros(plannedMinor, lang), budget);
+  return text.overBudget(wholeEuros(Math.ceil((plannedMinor - budgetMinor) / 100) * 100, lang), budget);
 }
 
 /** "Students here: €200–260", with "(estimate)" added when no source gives the number. */
-export function rangeLine(prefix: string, range: Pick<CityRange, 'minMinor' | 'maxMinor' | 'source'>): string {
-  const line = `${prefix}: ${formatRange(range.minMinor, range.maxMinor)}`;
-  return range.source === 'Estimate' ? `${line} (estimate)` : line;
+export function rangeLine(
+  prefix: string,
+  range: Pick<CityRange, 'minMinor' | 'maxMinor' | 'source'>,
+  lang: Language = 'en',
+): string {
+  const text = MESSAGES[lang].setup.lines;
+  const amounts = formatRange(range.minMinor, range.maxMinor, LANGUAGES[lang].locale);
+  return range.source === 'Estimate' ? text.rangeEstimate(prefix, amounts) : text.range(prefix, amounts);
+}
+
+/** How a sentence names one of the six guess and envelope categories: "eating out", "other things". */
+export function topicOf(categoryId: string, lang: Language = 'en'): string {
+  const t = MESSAGES[lang];
+  return (t.setup.topics as Record<string, string>)[categoryId] ?? categoryNameIn(t, categoryId);
 }
 
 /** iOS Safari only lets a home-screen app keep its own storage, so setup should happen there. */

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { CITIES } from '@/data/cities';
 import type { Profile } from '@/db/types';
 import { isIsoDate } from '@/features/recurring/schedule';
+import { LANGUAGES, type Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import {
   SEMESTER_FEE_NAME,
   hasSemesterYear,
@@ -121,6 +123,7 @@ describe('labels', () => {
     expect(termName('winter')).toBe('Winter semester');
     expect(termName('summer')).toBe('Summer semester');
     expect(monthLabel('2027-03')).toBe('March 2027');
+    expect(monthLabel('2027-03', 'de-DE')).toBe('März 2027');
   });
 });
 
@@ -348,6 +351,15 @@ describe('semesterFeeOffer', () => {
 
   it('offers nothing without semester dates', () => {
     expect(semesterFeeOffer(undefined, TODAY, [])).toBeNull();
+  });
+
+  it("names the row in the phone's language, and knows a row named in any language", () => {
+    for (const lang of Object.keys(LANGUAGES) as Language[]) {
+      const name = MESSAGES[lang].profile.semesterFee;
+      expect(semesterFeeOffer(winter, TODAY, [], lang)?.row.name).toBe(name);
+      expect(semesterFeeOffer(winter, TODAY, [{ name, dueMonth: '2027-03' }])).toBeNull();
+    }
+    expect(MESSAGES.en.profile.semesterFee).toBe(SEMESTER_FEE_NAME);
   });
 
   it('offers nothing while a semester fee row is still ahead, whatever its month', () => {

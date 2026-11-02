@@ -42,6 +42,8 @@ const eslintConfig = defineConfig([
       "src/features/home/**/*.tsx",
       "src/features/entries/**/*.tsx",
       "src/app/entries/**/*.tsx",
+      "src/features/setup/**/*.tsx",
+      "src/app/setup/**/*.tsx",
       "src/components/date-field.tsx",
     ],
     rules: {

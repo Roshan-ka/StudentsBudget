@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { useT } from '@/i18n/use-t';
 import { shouldShowInstallHint } from './draft';
 
 function detectEnvironment(): { isIos: boolean; standalone: boolean } {
@@ -28,11 +29,8 @@ export function useShowInstallHint(): boolean {
 /** Tells iOS Safari users to install first: Safari and the home-screen app keep separate storage. */
 export function InstallHint() {
   const show = useShowInstallHint();
+  const { t } = useT();
 
   if (!show) return null;
-  return (
-    <p className="rounded-lg bg-muted px-4 py-3 text-sm">
-      Install first: tap Share → Add to Home Screen, then set up there. Data entered in Safari stays in Safari.
-    </p>
-  );
+  return <p className="rounded-lg bg-muted px-4 py-3 text-sm">{t.setup.installHint}</p>;
 }

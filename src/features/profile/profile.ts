@@ -2,6 +2,9 @@ import { parseISO } from 'date-fns';
 import { SEMESTER_FEES, SEMESTER_PERIODS, type FeePart, type SemesterFee, type SemesterPeriod } from '@/data/semesters';
 import type { OneOff, Profile } from '@/db/types';
 import { isIsoDate } from '@/features/recurring/schedule';
+import { dateFormat } from '@/i18n/format';
+import type { Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import { addDays, daysBetween, firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 
 export type University = Exclude<Profile['university'], ''>;
@@ -155,6 +158,11 @@ export function semesterFeeDue(profile: Profile | null | undefined, today: IsoDa
 
 export const SEMESTER_FEE_NAME = 'Semester fee';
 
+/** The fee row's name in every language, lowercase: a row named in any of them is the fee, whatever the phone's now. */
+const FEE_NAMES = new Set(
+  [SEMESTER_FEE_NAME, ...Object.values(MESSAGES).map((m) => m.profile.semesterFee)].map((name) => name.toLowerCase()),
+);
+
 /** What the one-off costs step offers, and where its numbers come from. */
 export type SemesterFeeOffer = {
   /** The one-off row one tap adds. */
@@ -169,29 +177,30 @@ export type SemesterFeeOffer = {
  * The "Semester fee" row the one-off costs step offers, due as `semesterFeeDue` says. Its amount is the sum of the
  * parts `SEMESTER_FEES` states for that university and semester (ruling R13), or empty (0) when no page states the
  * fee: it is never guessed. Null without a due month, or while a "Semester fee" row is still ahead (due after this
- * month), whatever its month: that row is the next fee already. One due this month or earlier has been paid.
+ * month), whatever its month: that row is the next fee already. One due this month or earlier has been paid. The row
+ * is named in `lang`; one named in any language counts as the fee.
  */
 export function semesterFeeOffer(
   profile: Profile | null | undefined,
   today: IsoDate,
   rows: Pick<OneOff, 'name' | 'dueMonth'>[],
+  lang: Language = 'en',
 ): SemesterFeeOffer | null {
   const next = nextFee(profile, today);
   if (next === null) return null;
-  const isFee = (name: string) => name.trim().toLowerCase() === SEMESTER_FEE_NAME.toLowerCase();
+  const isFee = (name: string) => FEE_NAMES.has(name.trim().toLowerCase());
   // 'YYYY-MM' strings sort chronologically; an unset month ('') is never ahead.
   if (rows.some((row) => isFee(row.name) && row.dueMonth > monthOf(today))) return null;
   const parts = next.fee?.parts ?? [];
   const amountMinor = parts.reduce((sum, part) => sum + part.minor, 0);
   return {
-    row: { name: SEMESTER_FEE_NAME, amountMinor, dueMonth: next.dueMonth },
+    row: { name: MESSAGES[lang].profile.semesterFee, amountMinor, dueMonth: next.dueMonth },
     parts,
     reRegistration: next.fee?.reRegistration ?? null,
   };
 }
 
 const dayAndMonth = new Intl.DateTimeFormat('en-IE', { day: 'numeric', month: 'short' });
-const monthAndYear = new Intl.DateTimeFormat('en-IE', { month: 'long', year: 'numeric' });
 
 /** "1 Oct – 31 Mar": a short label, so not DD-MM-YYYY. Any year will do; none of the days is 29 February. */
 export function periodLabel(period: Pick<SemesterPeriod, 'starts' | 'ends'>): string {
@@ -203,7 +212,7 @@ export function termName(term: SemesterPeriod['term']): string {
   return term === 'winter' ? 'Winter semester' : 'Summer semester';
 }
 
-/** "March 2027". */
-export function monthLabel(month: IsoMonth): string {
-  return monthAndYear.format(parseISO(firstOfMonth(month)));
+/** "March 2027", or in another locale: "März 2027". */
+export function monthLabel(month: IsoMonth, locale = 'en-IE'): string {
+  return dateFormat(locale, { month: 'long', year: 'numeric' }).format(parseISO(firstOfMonth(month)));
 }

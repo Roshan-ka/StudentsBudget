@@ -191,6 +191,13 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
      - The lint guard (`noStrings`, props not checked, `·` allowed) covers Home, entries, `src/app/entries` and `DateField`. The `.ts` files of the areas were grepped for sentences.
      - Still English inside these areas until their own chunks: setup's `rangeLine` and `budgetLine` in the suggested budget, `AmountField` and `RangeSource` (4), the transfer form (5), the swap line (9), and check-in's own rows (8).
 4. **Extract setup and `draft.ts`**: validation, prefilled names, the estimate label, the semester fee.
+   - **As built (2026-11-02):**
+     - Dictionary areas `setup` and `profile` (only `semesterFee` so far; chunk 5 adds the rest), and `common.amountField`, `common.source` and `common.estimate` for the amount field and the source line, which other areas share.
+     - `draft.ts`'s `validateStep`, `initialDraft`, `accountOptions`, `envelopesFooter`, `budgetLine` and `rangeLine` take `lang` last, with money in its locale.
+     - Sentences that named a category in lowercase ("What do you think you spend on eating out…", "Eating out, going out and transport are estimates.") use `topicOf`, a per-language topic for each of the six guess categories, since German doesn't lowercase nouns.
+     - `semesterFeeOffer` names its row in `lang` and treats a row named in any language as the fee. `SEMESTER_FEE_NAME` stays English, and `monthLabel` takes a locale.
+     - The prefilled account names are in the language the wizard opens in.
+     - Still English: `DraftScheduleFields` and `SemesterFeeSource` (chunk 5), the account link and restore section on the setup page (chunk 6), and the source text itself (city content).
 5. **Extract profile, edit plan, recurring, accounts, transfer and rates.**
 6. **Extract backup and restore, `summary`, and sync** (`engine.ts`, `link.ts`, `sync-status.tsx`, `account-view.tsx`, `account-link.tsx`).
    - Problem codes are introduced here. `engine.test.ts` and `link.test.ts` change on purpose.
