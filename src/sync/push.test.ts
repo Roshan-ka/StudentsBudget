@@ -46,7 +46,7 @@ describe('push', () => {
     await saveEntry({ ...expense('e1'), note: 'changed' });
     await deleteEntry('e2');
     calls.length = 0;
-    expect(await push(store)).toEqual({ sent: 1, deleted: 1 });
+    expect(await push(store)).toEqual({ sent: 1, deleted: 1, held: 0 });
     expect(calls).toEqual(['upsert entries e1', 'tombstone entries e2']);
     expect(tables.entries.get('e1')).toMatchObject({ note: 'changed' });
     // A tombstone, so another phone learns of the delete.
@@ -112,7 +112,7 @@ describe('push', () => {
   it('sends nothing when nothing changed', async () => {
     const { store, calls } = fakeStore();
     await db.outbox.clear();
-    expect(await push(store)).toEqual({ sent: 0, deleted: 0 });
+    expect(await push(store)).toEqual({ sent: 0, deleted: 0, held: 0 });
     expect(calls).toEqual([]);
   });
 });
@@ -206,5 +206,22 @@ describe('push order', () => {
     calls.length = 0;
     await push(store);
     expect(calls).toEqual(['upsert entries new', 'tombstone entries on-old', 'tombstone accounts old']);
+  });
+});
+
+// A row this app's own checks refuse would stop every phone's pull at "This app needs an update" (triage row 11,
+// P2.2 chunk 11). So push checks each row as a pull would, and holds back the ones that fail.
+describe('rows the app can’t check', () => {
+  it('holds back a row its own checks refuse, keeps it queued, and sends the rest', async () => {
+    const { store, tables, calls } = fakeStore();
+    await push(store);
+    calls.length = 0;
+    // Written past the app's own checks: a fraction of a cent.
+    await db.entries.put({ ...expense('bad'), amountMinor: 1.5 });
+    await saveEntry(expense('good'));
+    expect(await push(store)).toEqual({ sent: 1, deleted: 0, held: 1 });
+    expect(calls).toEqual(['upsert entries good']);
+    expect(tables.entries.has('bad')).toBe(false);
+    expect(await queued()).toEqual(['entries:bad']);
   });
 });

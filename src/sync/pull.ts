@@ -40,15 +40,16 @@ export async function pull(store: UserDataStore, limit = PULL_PAGE): Promise<Pul
   for (;;) {
     const page = await store.pull(cursor, limit);
     if (page.length === 0) return { kind: 'done', applied, cursor };
-    let checked: Checked[];
-    try {
-      checked = page.map(checkRow);
-    } catch (error) {
-      if (error instanceof BadRow) {
-        console.error('StudentsBudget: a pulled row this app cannot read:', error.message);
+    const checked: Checked[] = [];
+    for (const row of page) {
+      try {
+        checked.push(checkRow(row));
+      } catch (error) {
+        if (!(error instanceof BadRow)) throw error;
+        // Named by table and id, so the row can be found in the account.
+        console.error(`StudentsBudget: a pulled row this app cannot read (${row.table} ${row.id}):`, error.message);
         return { kind: 'invalid', problem: UPDATE_NEEDED };
       }
-      throw error;
     }
     // Only forward: a page never takes the cursor back.
     cursor = Math.max(cursor, ...page.map((row) => row.rev));

@@ -350,6 +350,10 @@ function SignedInPanel({ email }: { email: string }) {
       >
         Sign out
       </Button>
+      {/* The last sync can take up to 8 seconds (syncBeforeSignOut): said, so the disabled button doesn't look stuck. */}
+      <p role="status" className="text-sm text-muted-foreground">
+        {busy ? 'Syncing, then signing out…' : ''}
+      </p>
     </section>
   );
 }
