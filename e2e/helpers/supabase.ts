@@ -349,22 +349,37 @@ export async function mockSupabaseData(
     const rows = table(path);
     if (request.method() === 'GET') {
       const after = url.searchParams.get('id')?.match(/^gt\.(.*)$/)?.[1] ?? null;
+      // `id=in.(a,b)`: these ids only, tombstones included unless asked otherwise.
+      const only = url.searchParams.get('id')?.match(/^in\.\((.*)\)$/)?.[1]?.split(',').map((id) => id.replace(/^"|"$/g, ''));
       const limit = Number(url.searchParams.get('limit') ?? 1000);
       const liveOnly = url.searchParams.get('deleted_at') === 'is.null';
       const ids = [...rows.keys()]
         .sort()
         .filter((id) => after === null || id > after)
+        .filter((id) => only === undefined || only.includes(id))
         .filter((id) => !liveOnly || rows.get(id) !== null)
         .slice(0, limit);
-      const withData = (url.searchParams.get('select') ?? '').includes('data');
-      const json = ids.map((id) => (withData ? { id, data: rows.get(id) } : { id }));
+      const columns = url.searchParams.get('select') ?? '';
+      const json = ids.map((id) => ({
+        id,
+        ...(columns.includes('data') ? { data: rows.get(id) } : {}),
+        ...(columns.includes('rev') ? { rev: revisionOf(tables, path, id) } : {}),
+      }));
       return route.fulfill({ status: 200, headers: CORS, json });
     }
     if (request.method() === 'POST') {
+      // `resolution=ignore-duplicates` (insert-only, the poster's rows): a row the account has, a tombstone too, stays.
+      const prefer = request.headers()['prefer'] ?? '';
+      const ignoreDuplicates = prefer.includes('resolution=ignore-duplicates');
+      const added: { id: string }[] = [];
       for (const row of request.postDataJSON() as { id: string; data: unknown }[]) {
+        if (ignoreDuplicates && rows.has(row.id)) continue;
         rows.set(row.id, row.data);
         stampRevision(tables, path, row.id);
+        added.push({ id: row.id });
       }
+      // `return=representation` (a select after the write): the rows written, as PostgREST's RETURNING gives them.
+      if (prefer.includes('return=representation')) return route.fulfill({ status: 201, headers: CORS, json: added });
       return route.fulfill({ status: 201, headers: CORS });
     }
     if (request.method() === 'DELETE') {

@@ -7,7 +7,7 @@ import { laterOf } from './schedule';
  * of the plan read earlier carries the watermark of that moment; the poster may have moved it on since, and moving
  * it back would post those periods again. A change may still move it forward, as a resume does.
  */
-function keepWatermarks(stored: Plan, next: Plan): Plan {
+export function keepWatermarks(stored: Plan, next: Plan): Plan {
   const watermarks = new Map(
     [...stored.incomes, ...stored.fixed].flatMap((l) =>
       l.schedule ? [[l.schedule.id, l.schedule.postedThrough] as const] : [],

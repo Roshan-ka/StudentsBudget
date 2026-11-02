@@ -22,6 +22,14 @@ export function markUntracked(transaction: object): void {
   untrackedTransactions.add(transaction);
 }
 
+/** Transactions of the poster, whose writes are recorded as automatic (see `automatic`). */
+const automaticTransactions = new WeakSet<object>();
+
+/** Marks a Dexie transaction (its `idbtrans`) as the poster's: its writes are recorded with `auto`. */
+export function markAutomatic(transaction: object): void {
+  automaticTransactions.add(transaction);
+}
+
 // Rises with every recorded change in this tab. Across tabs and reloads, `record` also keeps it above the seq a row
 // already has, so a push can tell whether a row changed again while it was being sent.
 let lastSeq = 0;
@@ -52,8 +60,16 @@ function keysOf(table: DBCoreTable, req: Exclude<DBCoreMutateRequest, DBCoreDele
 /**
  * Puts one outbox entry per id, all with one seq: above this tab's last one, and above the seq each row already has
  * (another tab, or a clock that went back, may have set a higher one). A refused outbox write fails the whole write.
+ * The poster's write (`automatic`) marks an entry `auto`, unless the row already waits with the person's own change;
+ * any other write takes the mark away.
  */
-async function record(down: DBCore, trans: DBCoreTransaction, table: ServerTable, ids: string[]): Promise<void> {
+async function record(
+  down: DBCore,
+  trans: DBCoreTransaction,
+  table: ServerTable,
+  ids: string[],
+  automatic: boolean,
+): Promise<void> {
   const existing: unknown[] = await down.table(OUTBOX).getMany({ trans, keys: ids.map((id) => [table, id]) });
   let seq = Math.max(lastSeq + 1, Date.now());
   for (const entry of existing) {
@@ -62,7 +78,10 @@ async function record(down: DBCore, trans: DBCoreTransaction, table: ServerTable
     }
   }
   lastSeq = seq;
-  const values: OutboxEntry[] = ids.map((id) => ({ table, id, seq }));
+  const waitsAsPersons = (entry: unknown) => typeof entry === 'object' && entry !== null && !('auto' in entry);
+  const values: OutboxEntry[] = ids.map((id, i) =>
+    automatic && !waitsAsPersons(existing[i]) ? { table, id, seq, auto: true } : { table, id, seq },
+  );
   const res = await down.table(OUTBOX).mutate({ type: 'put', trans, values });
   if (res.numFailures > 0) throw Object.values(res.failures)[0];
 }
@@ -100,7 +119,7 @@ async function mutateAndRecord(
 /** Records the rows with these Dexie keys, as their server ids; keys that don't sync (ECB rates) are left out. */
 async function recordKeys(down: DBCore, trans: DBCoreTransaction, sync: DexieSync, keys: unknown[]): Promise<void> {
   const ids = [...new Set(keys.map(sync.idOf).filter((id): id is string => id !== null))];
-  if (ids.length > 0) await record(down, trans, sync.server, ids);
+  if (ids.length > 0) await record(down, trans, sync.server, ids, automaticTransactions.has(trans));
 }
 
 /**

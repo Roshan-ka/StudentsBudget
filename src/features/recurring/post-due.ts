@@ -5,6 +5,7 @@ import { buildEntry } from '@/features/entries/build-entry';
 import { categoryName } from '@/features/entries/categories';
 import type { IsoDate } from '@/lib/dates';
 import type { RateMap } from '@/lib/fx';
+import { automatic } from '@/sync/automatic';
 import {
   duePeriods,
   holdsAutomaticEntry,
@@ -106,7 +107,8 @@ async function postLine(
 }
 
 async function postDue(today: IsoDate): Promise<{ posted: number }> {
-  return db.transaction('rw', db.plan, db.entries, db.accounts, db.fxRates, async () => {
+  // The poster's own writes (automatic): a push adds them where the account has none, and never writes them over its copy.
+  return automatic([db.plan, db.entries, db.accounts, db.fxRates], async () => {
     const plan = await db.plan.get('current');
     if (!plan || !isIsoDate(plan.createdOn) || !isIsoDate(today)) return { posted: 0 };
 

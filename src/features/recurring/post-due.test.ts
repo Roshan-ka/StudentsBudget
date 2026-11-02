@@ -70,6 +70,17 @@ describe('recurringEntryId', () => {
 });
 
 describe('postDueRecurring', () => {
+  it('marks what it writes on a linked phone as automatic, so a push never writes it over the account’s copy', async () => {
+    await db.plan.put(plan());
+    await db.syncState.put({ id: 'current', userId: 'user-1', cursor: 0, lastSyncedAt: null, problem: null });
+    expect(await postDueRecurring('2026-11-01')).toEqual({ posted: 1 });
+    const outbox = await db.outbox.toArray();
+    expect(outbox.map((entry) => `${entry.table}:${entry.id}:${entry.auto}`).sort()).toEqual([
+      `entries:${recurringEntryId('rent-s', '2026-11-01')}:true`,
+      'plans:current:true',
+    ]);
+  });
+
   it('posts nothing without a plan', async () => {
     expect(await postDueRecurring('2026-11-01')).toEqual({ posted: 0 });
     expect(await entries()).toEqual([]);

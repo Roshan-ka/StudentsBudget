@@ -88,6 +88,31 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('the account store against a rea
     expect((await store.listRows('entries')).find((row) => row.id === 'c0000')?.data).toEqual({ n: 0, back: true });
   }, 60_000);
 
+  it('adds only the rows the account doesn’t have, and gives back its own copy of the others, a deleted one too', async () => {
+    // What the poster writes goes this way (P2.2 chunk 9): it must never undo another phone's edit or delete.
+    const store = supabaseStore(await newUser());
+    await store.upsert('entries', [
+      { id: 'edited', data: { n: 2 } },
+      { id: 'deleted', data: { n: 3 } },
+    ]);
+    await store.tombstone('entries', ['deleted']);
+    const had = await store.insertNew('entries', [
+      { id: 'new', data: { n: 1 } },
+      { id: 'edited', data: { n: 0 } },
+      { id: 'deleted', data: { n: 0 } },
+    ]);
+    const byId = (x: { id: string }, y: { id: string }) => x.id.localeCompare(y.id);
+    expect(had.map(({ table, id, data }) => ({ table, id, data })).sort(byId)).toEqual([
+      { table: 'entries', id: 'deleted', data: null },
+      { table: 'entries', id: 'edited', data: { n: 2 } },
+    ]);
+    expect(had.every((row) => typeof row.rev === 'number' && row.rev > 0)).toBe(true);
+    expect((await store.listRows('entries')).sort(byId)).toEqual([
+      { id: 'edited', data: { n: 2 } },
+      { id: 'new', data: { n: 1 } },
+    ]);
+  }, 30_000);
+
   it('refuses a hard delete', async () => {
     const { error } = await a.from('entries').delete().eq('id', 'c1000');
     expect(error?.code).toBe('42501');

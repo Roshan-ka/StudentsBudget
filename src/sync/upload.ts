@@ -25,10 +25,10 @@ export async function planUpload(store: UserDataStore, d: BackupData): Promise<U
 
 // The plan goes last: until it is there, a first save that stopped halfway reads as unfinished (see planDownload), not
 // as a phone without a plan.
-const WRITE_ORDER: ServerTable[] = [...SERVER_TABLES.filter((table) => table !== 'plans'), 'plans'];
+export const WRITE_ORDER: ServerTable[] = [...SERVER_TABLES.filter((table) => table !== 'plans'), 'plans'];
 // Rows that point at others go before what they point at: entries before the accounts they use. Deleting (writing
 // tombstones) that stops halfway then leaves accounts with no entries, never entries on a missing account.
-const DELETE_ORDER: ServerTable[] = [...SERVER_TABLES].reverse();
+export const DELETE_ORDER: ServerTable[] = [...SERVER_TABLES].reverse();
 
 /**
  * Writes every row of the plan, then deletes the stale ones (as tombstones). Writing comes first: if a request fails halfway, the

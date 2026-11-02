@@ -64,19 +64,26 @@ export async function saveGuesses(gs: Guess[]): Promise<void> {
 }
 
 /**
- * Rejects with `AccountInUseError` when an entry is booked on the account or transfers into it, and with
- * `AccountHasScheduleError` when an income or fixed cost of the plan is added to it automatically (paused or not).
+ * What still uses the account: `booked` when an entry is booked on it or transfers into it, `scheduled` when an income
+ * or fixed cost of the plan is added to it automatically (paused or not), else null. Reads the entries and the plan, in
+ * the caller's transaction when there is one.
  */
+export async function accountUse(id: string): Promise<'booked' | 'scheduled' | null> {
+  const booked = await db.entries.where('accountId').equals(id).count();
+  // No index on toAccountId; a scan is fine at this data size.
+  const received = await db.entries.filter((e) => e.type === 'transfer' && e.toAccountId === id).count();
+  if (booked + received > 0) return 'booked';
+  const plan = await db.plan.get('current');
+  if (plan && [...plan.incomes, ...plan.fixed].some((line) => line.schedule?.accountId === id)) return 'scheduled';
+  return null;
+}
+
+/** Rejects with `AccountInUseError` or `AccountHasScheduleError` while something still uses the account (`accountUse`). */
 export async function deleteAccount(id: string): Promise<void> {
   await db.transaction('rw', db.accounts, db.entries, db.plan, async () => {
-    const booked = await db.entries.where('accountId').equals(id).count();
-    // No index on toAccountId; a scan is fine at this data size.
-    const received = await db.entries.filter((e) => e.type === 'transfer' && e.toAccountId === id).count();
-    if (booked + received > 0) throw new AccountInUseError();
-    const plan = await db.plan.get('current');
-    if (plan && [...plan.incomes, ...plan.fixed].some((line) => line.schedule?.accountId === id)) {
-      throw new AccountHasScheduleError();
-    }
+    const use = await accountUse(id);
+    if (use === 'booked') throw new AccountInUseError();
+    if (use === 'scheduled') throw new AccountHasScheduleError();
     await db.accounts.delete(id);
   });
 }
