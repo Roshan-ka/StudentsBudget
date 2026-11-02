@@ -1,9 +1,10 @@
 // Which tests a CI run needs, from the files the branch changes against main. A changed module picks the e2e specs of
 // every route whose page imports it (directly or through other modules), as e2e/affected-map.json lists them; a change
 // that reaches the root layout, or a route every spec passes through, runs them all. A path no rule matches runs
-// everything. Run by ci.yml: `node scripts/ci-affected.mjs` (`CI_FULL=true` for everything) writes `run`, `e2e`,
-// `offline` and `db` to $GITHUB_OUTPUT and a table of why each spec was picked to the job summary. The pure helpers take
-// made-up input, so the unit tests can run them.
+// everything. Run by ci.yml: `node scripts/ci-affected.mjs`, with the run's options in CI_SCOPE, CI_BROWSERS and
+// CI_LANGUAGES (see runOptions), writes `run`, `e2e`, `offline`, `db`, `projects` and `languages` to $GITHUB_OUTPUT, and
+// the options and why each spec was picked to the job summary. The pure helpers take made-up input, so the unit tests
+// can run them.
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -12,6 +13,10 @@ import { fileURLToPath } from 'node:url';
 export const MAP_FILE = 'e2e/affected-map.json';
 const LAYOUT = 'src/app/layout.tsx';
 const MANIFEST = 'src/app/manifest.ts';
+/** playwright.config.ts's Chromium project. Every project is Chromium plus the iPhone's WebKit. */
+const CHROMIUM_PROJECT = 'desktop-chrome';
+/** What ci.yml's Run workflow inputs offer. */
+const CHOICES = { scope: ['changed', 'full'], browsers: ['auto', 'chromium', 'all'], languages: ['auto', 'default', 'all'] };
 
 /** Notes only: nothing to check. */
 const DOCS = /^(docs|\.claude)\/|\.md$/;
@@ -211,14 +216,41 @@ export function selectAffected({ changed, repo, map, full = false }) {
   return { run, e2e, offline: Boolean(why.offline), db: Boolean(why.db), why };
 }
 
+/**
+ * What a run's inputs mean. `scope`: what the branch changes against main (`changed`), or everything (`full`).
+ * `browsers` and `languages`: `auto` is Chromium and the default language for a changed run, everything for a full one.
+ * StudentsBudget is English only, so `languages` is passed on to e2e (E2E_LANGUAGES) and no spec reads it yet.
+ * Throws on a value the inputs don't offer. `auto` lists the options that were left on auto.
+ */
+export function runOptions({ scope = 'changed', browsers = 'auto', languages = 'auto' }) {
+  for (const [name, value] of Object.entries({ scope, browsers, languages })) {
+    if (!CHOICES[name].includes(value)) {
+      throw new RangeError(`${name} must be one of ${CHOICES[name].join(', ')}, not "${value}".`);
+    }
+  }
+  const full = scope === 'full';
+  const chosenBrowsers = browsers === 'auto' ? (full ? 'all' : 'chromium') : browsers;
+  return {
+    scope,
+    full,
+    browsers: chosenBrowsers,
+    languages: languages === 'auto' ? (full ? 'all' : 'default') : languages,
+    projectArgs: chosenBrowsers === 'chromium' ? `--project=${CHROMIUM_PROJECT}` : '',
+    auto: Object.entries({ browsers, languages })
+      .filter(([, value]) => value === 'auto')
+      .map(([name]) => name),
+  };
+}
+
 /** The specs as Playwright file arguments: each a regex over the path, anchored so `account` never runs `accounts`. */
 export function e2eArgs(specs) {
   return specs.map((spec) => `e2e/${spec.replaceAll('.', '\\.')}$`).join(' ');
 }
 
-/** The lines for $GITHUB_OUTPUT. */
-export function githubOutput({ run, e2e, offline, db }) {
-  return `run=${run}\ne2e=${Array.isArray(e2e) ? e2eArgs(e2e) : e2e}\noffline=${offline}\ndb=${db}\n`;
+/** The lines for $GITHUB_OUTPUT. `projects` is Playwright's project argument, empty for every project. */
+export function githubOutput({ run, e2e, offline, db }, options = runOptions({})) {
+  const list = Array.isArray(e2e) ? e2eArgs(e2e) : e2e;
+  return `run=${run}\ne2e=${list}\noffline=${offline}\ndb=${db}\nprojects=${options.projectArgs}\nlanguages=${options.languages}\n`;
 }
 
 /** Up to three reasons, then how many more. */
@@ -227,9 +259,14 @@ function reasonsText(reasons) {
   return `${reasons.slice(0, 3).join('; ')}, and ${reasons.length - 3} more`;
 }
 
-/** The job summary: a row for the e2e run (or each picked spec), the offline check and the db job, with why. */
-export function summary({ run, e2e, offline, db, why }) {
-  if (!run) return `### Affected tests\n\nNo checks run: ${why.skip[0]}.\n`;
+/**
+ * The job summary: the options the run used, then a row for the e2e run (or each picked spec), the offline check and
+ * the db job, with why.
+ */
+export function summary({ run, e2e, offline, db, why }, options = runOptions({})) {
+  const chosen = (name) => `${name} **${options[name]}**${options.auto.includes(name) ? ' (auto)' : ''}`;
+  const head = `### Affected tests\n\nScope **${options.scope}** · ${chosen('browsers')} · ${chosen('languages')}\n\n`;
+  if (!run) return `${head}No checks run: ${why.skip[0]}.\n`;
   const rows = [];
   if (e2e === 'all') rows.push(['every e2e spec', why.all]);
   else if (e2e === 'none') rows.push(['no e2e spec', ['no changed file reaches a page or a spec']]);
@@ -237,7 +274,7 @@ export function summary({ run, e2e, offline, db, why }) {
   if (offline) rows.push(['offline check', why.offline]);
   if (db) rows.push(['db job', why.db]);
   const table = rows.map(([what, reasons]) => `| ${what} | ${reasonsText(reasons)} |`);
-  return ['### Affected tests', '', '| Runs | Why |', '|---|---|', ...table, ''].join('\n');
+  return [`${head}| Runs | Why |`, '|---|---|', ...table, ''].join('\n');
 }
 
 /** Every file in the checkout (tracked, or new and not ignored), with the text of the modules the walk follows. */
@@ -257,7 +294,11 @@ export function readRepo(root) {
 
 function main() {
   const root = fileURLToPath(new URL('..', import.meta.url));
-  const full = process.env.CI_FULL === 'true';
+  const options = runOptions({
+    scope: process.env.CI_SCOPE || undefined,
+    browsers: process.env.CI_BROWSERS || undefined,
+    languages: process.env.CI_LANGUAGES || undefined,
+  });
   // What the checked-out branch changes since it left main (three dots: newer commits on main don't count). CI checks
   // out the whole history (fetch-depth: 0), so origin/main is there.
   const changed = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', 'origin/main...HEAD'], {
@@ -267,9 +308,9 @@ function main() {
     .split('\0')
     .filter(Boolean);
   const map = JSON.parse(readFileSync(path.join(root, MAP_FILE), 'utf8'));
-  const selection = selectAffected({ changed, repo: readRepo(root), map, full });
-  const output = githubOutput(selection);
-  const table = summary(selection);
+  const selection = selectAffected({ changed, repo: readRepo(root), map, full: options.full });
+  const output = githubOutput(selection, options);
+  const table = summary(selection, options);
   process.stdout.write(`${changed.length} changed files\n${output}\n${table}`);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, output);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, table);

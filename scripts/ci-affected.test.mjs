@@ -7,6 +7,7 @@ import {
   importsOf,
   readRepo,
   routePages,
+  runOptions,
   selectAffected,
   summary,
   unresolvedImports,
@@ -270,12 +271,58 @@ describe('e2eArgs', () => {
   });
 });
 
+describe('runOptions', () => {
+  it('runs a changed run on Chromium in the default language by default', () => {
+    expect(runOptions({})).toEqual({
+      scope: 'changed',
+      full: false,
+      browsers: 'chromium',
+      languages: 'default',
+      projectArgs: '--project=desktop-chrome',
+      auto: ['browsers', 'languages'],
+    });
+  });
+
+  it('runs a full run on every browser and language by default', () => {
+    expect(runOptions({ scope: 'full', browsers: 'auto', languages: 'auto' })).toMatchObject({
+      full: true,
+      browsers: 'all',
+      languages: 'all',
+      projectArgs: '',
+    });
+  });
+
+  it('takes browsers and languages as chosen, whatever the scope', () => {
+    expect(runOptions({ scope: 'changed', browsers: 'all', languages: 'all' })).toMatchObject({
+      full: false,
+      browsers: 'all',
+      languages: 'all',
+      projectArgs: '',
+      auto: [],
+    });
+    expect(runOptions({ scope: 'full', browsers: 'chromium', languages: 'default' })).toMatchObject({
+      full: true,
+      projectArgs: '--project=desktop-chrome',
+      languages: 'default',
+    });
+  });
+
+  it('refuses a value the inputs do not offer', () => {
+    expect(() => runOptions({ scope: 'everything' })).toThrow(/scope/);
+    expect(() => runOptions({ browsers: 'webkit' })).toThrow(/browsers/);
+    expect(() => runOptions({ languages: 'de' })).toThrow(/languages/);
+  });
+});
+
 describe('githubOutput', () => {
-  it('writes run, e2e, offline and db, with the list as Playwright arguments', () => {
-    expect(githubOutput(select(['src/features/check-in/week-rows.ts']))).toBe(
-      'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\n',
+  it('writes run, e2e, offline and db, with the list as Playwright arguments, and the browsers and languages', () => {
+    expect(githubOutput(select(['src/features/check-in/week-rows.ts']), runOptions({}))).toBe(
+      'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\n' +
+        'projects=--project=desktop-chrome\nlanguages=default\n',
     );
-    expect(githubOutput(select(['README.md']))).toBe('run=false\ne2e=none\noffline=false\ndb=false\n');
+    expect(githubOutput(select(['README.md'], { full: true }), runOptions({ scope: 'full' }))).toBe(
+      'run=true\ne2e=all\noffline=true\ndb=true\nprojects=\nlanguages=all\n',
+    );
   });
 });
 
@@ -303,6 +350,15 @@ describe('summary', () => {
     expect(summary(select(['docs/plan.md']))).toContain('No checks run: notes only.');
     expect(summary(select([]))).toContain('No checks run: nothing changed against main.');
   });
+
+  it('states the options the run used, and which of them were automatic', () => {
+    expect(summary(select([]), runOptions({}))).toContain(
+      'Scope **changed** · browsers **chromium** (auto) · languages **default** (auto)',
+    );
+    expect(summary(select(['README.md'], { full: true }), runOptions({ scope: 'full', browsers: 'chromium' }))).toContain(
+      'Scope **full** · browsers **chromium** · languages **all** (auto)',
+    );
+  });
 });
 
 describe('the real app', () => {
@@ -313,6 +369,11 @@ describe('the real app', () => {
     .filter((file) => /^e2e\/[^/]+\.spec\.ts$/.test(file))
     .map((file) => file.slice('e2e/'.length, -'.spec.ts'.length));
   const listed = Object.values(map.routes).filter(Array.isArray).flat();
+
+  it('names a Playwright project that exists for Chromium', () => {
+    const config = readFileSync(new URL('../playwright.config.ts', import.meta.url), 'utf8');
+    expect(config).toContain(`name: '${runOptions({}).projectArgs.slice('--project='.length)}'`);
+  });
 
   it('resolves every @/ and relative import in src/ and e2e/', () => {
     expect(unresolvedImports(repo)).toEqual([]);
