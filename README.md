@@ -144,9 +144,14 @@ Needs Node 24 and npm. Run `npm install` once, then:
 - `npm run typecheck`: TypeScript check
 - `npm run lint`: ESLint
 
-Playwright needs its browsers once: `npx playwright install chromium webkit`. A failed Playwright test keeps a trace: `npx playwright show-trace test-results/<test>/trace.zip`. In CI, a failed run uploads the HTML report and the traces as a `playwright-report-…` artifact.
+Playwright needs its browsers once: `npx playwright install chromium webkit`. A failed Playwright test keeps a trace: `npx playwright show-trace test-results/<test>/trace.zip`. In CI, an e2e run uploads one HTML report with each failed test's trace as the `playwright-report-e2e` artifact, and a failed offline check its own as `playwright-report-offline`.
 
-CI never starts on its own: start it by hand (Actions → CI → Run workflow, or `gh workflow run ci.yml --ref <branch>`). It runs only the e2e specs the branch's changes against `main` reach (`scripts/ci-affected.mjs`; the job summary says why each spec runs), or everything with **full**. A new route or spec needs a line in `e2e/affected-map.json`, or `npm test` fails.
+CI never starts on its own: start it by hand under Actions → CI → **Run workflow** (or `gh workflow run ci.yml --ref <branch>`), with three options:
+- **scope**: `changed` (the default) runs only what the branch's changes against `main` reach (`scripts/ci-affected.mjs`; the job summary says why each spec runs); `full` runs everything, the e2e suite in four shards.
+- **browsers**: `auto` (Chromium for changed, Chromium and the iPhone's WebKit for full), `chromium` or `all`.
+- **languages**: `auto`, `default` or `all`. The app is English only, so this has no effect yet.
+
+The run posts its result on the tested commit, where the pull request shows it: `full-gate` for a full run (merging waits for it) and `quick-check` for a changed one. A new route or spec needs a line in `e2e/affected-map.json`, or `npm test` fails.
 
 ### Accounts and the database (optional)
 Without Supabase settings the app runs local-only and hides the account UI. To try accounts:
@@ -160,7 +165,7 @@ Without Supabase settings the app runs local-only and hides the account UI. To t
    - Someone who lost their authenticator app and its key: remove the factor in the SQL editor (`delete from auth.mfa_factors where user_id = '<their id>' and factor_type = 'totp';`), and they sign in with the password again.
    - Recovery codes are parked: Supabase's server keeps them off for now (see the [P2.3b plan](docs/superpowers/plans/2026-10-29-p2-3b-passkeys-and-recovery-codes.md)).
 
-With Docker running, `npm run supabase:start` starts a local Supabase stack with the migrations applied (Studio on http://127.0.0.1:54323), `npm run test:db` runs the database tests (pgTAP, in `supabase/tests`) against it, `npm run test:contract` checks the app's account store against it (after `node scripts/supabase-test-env.mjs` has printed the two settings it needs), and `npm run supabase:stop` stops it. A CI run (started by hand) runs them when the branch changes the database, the account store or what its tests import, or with **full**; a branch that changes only Markdown or `docs/` runs no checks.
+With Docker running, `npm run supabase:start` starts a local Supabase stack with the migrations applied (Studio on http://127.0.0.1:54323), `npm run test:db` runs the database tests (pgTAP, in `supabase/tests`) against it, `npm run test:contract` checks the app's account store against it (after `node scripts/supabase-test-env.mjs` has printed the two settings it needs), and `npm run supabase:stop` stops it. A CI run (started by hand) runs them when the branch changes the database, the account store or what its tests import, or with scope **full**; a branch that changes only Markdown or `docs/` runs no checks.
 
 ### StudentsBudget in Claude (MCP server)
 `mcp/` is a local [MCP](https://modelcontextprotocol.io) server. It lets Claude answer from the app's own Regensburg data and from your own budget, and it isn't part of the web app.

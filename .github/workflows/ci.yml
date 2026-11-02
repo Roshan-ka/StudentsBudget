@@ -1,27 +1,39 @@
 name: CI
 
 # Never starts on its own: only by hand (Actions → CI → Run workflow, or `gh workflow run ci.yml --ref <branch>`), and
-# Claude asks Roshan before starting it. It tests what the chosen branch changes against main (scripts/ci-affected.mjs,
-# which says why in the job summary), or everything with `full`.
+# Claude asks Roshan before starting it. A `changed` run tests what the branch changes against main
+# (scripts/ci-affected.mjs, which says why in the job summary); a `full` run tests everything, after Roshan's approval.
+# The last job posts the verdict on the tested commit: `full-gate` (the check merging waits for) or `quick-check`.
 on:
   workflow_dispatch:
     inputs:
-      full:
-        description: Run everything, not only what the branch changes against main
-        type: boolean
-        default: false
+      scope:
+        description: 'changed: what the branch changes against main. full: everything, and the full-gate check'
+        type: choice
+        options: [changed, full]
+        default: changed
+      browsers:
+        description: "auto: Chromium for changed, Chromium and the iPhone's WebKit for full"
+        type: choice
+        options: [auto, chromium, all]
+        default: auto
+      languages:
+        description: 'auto: the default language for changed, all for full (English only so far: no effect yet)'
+        type: choice
+        options: [auto, default, all]
+        default: auto
 
 permissions:
   contents: read
 
-# A new run on the same branch stops the one before it.
+# A new run on the same branch and scope stops the one before it; a changed run never stops a full one.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ inputs.scope }}
   cancel-in-progress: true
 
 jobs:
   # What this run needs: `run` (anything but notes), `e2e` (none, all, or the specs as Playwright file arguments),
-  # `offline` and `db`, plus the commit every later job checks out.
+  # `offline`, `db`, the Playwright `projects` argument and the `languages`, plus the commit every later job checks out.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -31,6 +43,8 @@ jobs:
       e2e: ${{ steps.affected.outputs.e2e }}
       offline: ${{ steps.affected.outputs.offline }}
       db: ${{ steps.affected.outputs.db }}
+      projects: ${{ steps.affected.outputs.projects }}
+      languages: ${{ steps.affected.outputs.languages }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,7 +61,9 @@ jobs:
       - run: npx vitest run scripts/ci-affected.test.mjs
       - id: affected
         env:
-          CI_FULL: ${{ inputs.full }}
+          CI_SCOPE: ${{ inputs.scope }}
+          CI_BROWSERS: ${{ inputs.browsers }}
+          CI_LANGUAGES: ${{ inputs.languages }}
         run: node scripts/ci-affected.mjs
 
   checks:
@@ -70,7 +86,7 @@ jobs:
       # The whole unit suite, never `vitest --changed`: that misses changed fixtures, the lockfile and the map's tests.
       - run: npm test
 
-  # The picked specs on one runner, or the whole suite in four shards.
+  # The picked specs on one runner, or the whole suite in four shards. Each writes a blob report; e2e-report merges them.
   e2e:
     needs: changes
     if: needs.changes.outputs.e2e != 'none'
@@ -90,26 +106,60 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium webkit
-      - id: e2e
-        env:
+      - env:
+          PROJECTS: ${{ needs.changes.outputs.projects }}
+        # Chromium alone when the run is limited to it; WebKit too for the iPhone project.
+        run: |
+          if [ -n "$PROJECTS" ]; then
+            npx playwright install --with-deps chromium
+          else
+            npx playwright install --with-deps chromium webkit
+          fi
+      - env:
           SPECS: ${{ needs.changes.outputs.e2e }}
           SHARD: ${{ matrix.shard }}
-        # $SPECS stays unquoted: each spec is an argument of its own.
+          PROJECTS: ${{ needs.changes.outputs.projects }}
+          # No spec reads it yet: StudentsBudget is English only.
+          E2E_LANGUAGES: ${{ needs.changes.outputs.languages }}
+        # $SPECS and $PROJECTS stay unquoted: each spec is an argument of its own, and no projects means every project.
         run: |
           if [ "$SPECS" = all ]; then
-            npx playwright test --shard="$SHARD"
+            npx playwright test $PROJECTS --shard="$SHARD" --reporter=dot,blob
           else
-            npx playwright test $SPECS
+            npx playwright test $PROJECTS $SPECS --reporter=dot,blob
           fi
-      # Only after a failed run: the HTML report and each failed test's trace.
-      - if: failure() && steps.e2e.outcome == 'failure'
+      - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report-e2e-${{ strategy.job-index }}
-          path: |
-            playwright-report/
-            test-results/
+          name: blob-report-${{ strategy.job-index }}
+          path: blob-report/
+          retention-days: 1
+
+  # One HTML report for the e2e run, with each failed test's trace, merged from every shard's blob report.
+  e2e-report:
+    needs: [changes, e2e]
+    if: ${{ !cancelled() && needs.e2e.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
+      - run: npx playwright merge-reports --reporter html ./all-blob-reports
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-e2e
+          path: playwright-report/
           retention-days: 14
 
   # The service worker in a production build (playwright.offline.config.ts builds and starts it).
@@ -161,17 +211,39 @@ jobs:
       - run: node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
       - run: npm run test:contract
 
-  # The run's one verdict. A job its `if:` skips counts as passed, and a crash in `changes` skips every job after it,
-  # so this job reads every result itself: `changes` must pass, and the rest must pass or be skipped. Not a required
-  # check in branch protection: nothing starts on a pull request, so it would wait there forever.
+  # The run's one verdict, posted as a commit status on the commit it tested, where a pull request shows it (check runs
+  # of a manual run don't appear there): `full-gate` for a full run, the check branch protection requires before
+  # merging, and `quick-check` for a changed run, which never posts full-gate. A job its `if:` skips counts as passed,
+  # and a crash in `changes` skips every job after it, so this job reads every result itself: `changes` must pass, and
+  # the rest must pass or be skipped.
   gate:
     needs: [changes, checks, e2e, offline, db]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      statuses: write
     steps:
-      - env:
+      - id: verdict
+        env:
           RESULTS: ${{ toJSON(needs) }}
         run: |
           echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
-          echo "$RESULTS" | jq -e '.changes.result == "success" and all(.[]; .result == "success" or .result == "skipped")' > /dev/null
+          if echo "$RESULTS" | jq -e '.changes.result == "success" and all(.[]; .result == "success" or .result == "skipped")' > /dev/null; then
+            echo "state=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "state=failure" >> "$GITHUB_OUTPUT"
+          fi
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          # The commit `changes` checked out; the run's own commit when `changes` failed before it knew.
+          SHA: ${{ needs.changes.outputs.sha || github.sha }}
+          CONTEXT: ${{ inputs.scope == 'full' && 'full-gate' || 'quick-check' }}
+          STATE: ${{ steps.verdict.outputs.state }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA" -f state="$STATE" -f context="$CONTEXT" \
+            -f target_url="$RUN_URL" -f description="CI run $RUN_NUMBER: $STATE" > /dev/null
+          echo "Posted $CONTEXT: $STATE on $SHA." | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$STATE" = success ]
