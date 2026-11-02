@@ -140,3 +140,34 @@ describe('syncResultText', () => {
     expect(syncResultText({ kind: 'problem', problem: UPDATE_NEEDED })).toBe(`Not synced: ${UPDATE_NEEDED}`);
   });
 });
+
+// Two tabs of one phone share its database but not their module state: each has its own one-at-a-time guard. A Web
+// Lock keeps their syncs apart too (triage row 8, P2.2 chunk 10). Node has Web Locks, so the lock here is a real one.
+describe('two tabs', () => {
+  it('lets a second tab’s sync start only once the first one has finished', async () => {
+    const { store, calls } = fakeStore();
+    await saveEntry(expense('e1'));
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const slow = { ...store, upsert: async (...args: Parameters<typeof store.upsert>) => (await gate, store.upsert(...args)) };
+
+    // The other tab: the same engine, loaded afresh, with its own module state.
+    vi.resetModules();
+    const otherTab = await import('./engine');
+    const first = syncNow(slow, USER);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const second = otherTab.syncNow(store, USER);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // The first holds the lock while its push waits: the second has sent and read nothing yet.
+    expect(calls).toEqual([]);
+
+    release();
+    expect(await first).toMatchObject({ kind: 'synced' });
+    expect(await second).toMatchObject({ kind: 'synced' });
+    // One after the other: the first pushed and pulled, then the second found nothing to push and pulled from where
+    // the first left the cursor.
+    expect(calls).toEqual(['upsert accounts local', 'upsert entries e1', 'pull 0', 'pull 2', 'pull 2']);
+  });
+});

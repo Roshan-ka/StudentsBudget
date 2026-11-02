@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { exportAll, replaceAll } from '@/db/bulk';
 import { db } from '@/db/db';
 import { deleteEntry, saveEntry } from '@/db/repo';
-import { applyLink, linkPhone, planLink } from './link';
+import { applyLink, linkPhone, linkWithChoice, planLink } from './link';
 import { push } from './push';
 import type { UserDataStore } from './store';
 import { expense, fakeStore, liveIds, snapshot } from './test-helpers';
@@ -266,5 +266,28 @@ describe('linkPhone', () => {
     const first = linkPhone(store, USER, noCode);
     expect(linkPhone(store, USER, noCode)).toBe(first);
     await first;
+  });
+});
+
+describe('linkWithChoice', () => {
+  it('waits while another tab holds the sync lock, then links', async () => {
+    const { store, calls } = fakeStore({ plans: { current: snapshot().plan } });
+    await replaceAll(snapshot());
+    const plan = await planLink(store, USER);
+    if (plan.kind !== 'choose') throw new Error(`expected choose, got ${plan.kind}`);
+    calls.length = 0;
+
+    // Another tab syncing: it holds the lock until `release`.
+    let release = () => {};
+    const held = navigator.locks.request('studentsbudget-sync', () => new Promise<void>((resolve) => (release = resolve)));
+    const linking = linkWithChoice(store, plan, USER, 'account');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(calls).toEqual([]);
+    expect(await linkedTo()).toBeUndefined();
+
+    release();
+    await held;
+    await linking;
+    expect(await linkedTo()).toBe(USER);
   });
 });

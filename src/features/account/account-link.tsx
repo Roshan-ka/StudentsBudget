@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { getSupabase } from '@/lib/supabase/client';
 import { syncNow } from '@/sync/engine';
-import { applyLink, linkPhone, type LinkChoice, type LinkOutcome } from '@/sync/link';
+import { linkPhone, linkWithChoice, type LinkChoice, type LinkOutcome } from '@/sync/link';
 import { supabaseStore } from '@/sync/store';
 import { staleSummary } from '@/sync/upload';
 import { accountWantsCode } from './code-check';
@@ -99,7 +99,7 @@ export function AccountLink() {
       const userId = await sessionUserId();
       if (userId === undefined) return;
       const store = supabaseStore(supabase);
-      await applyLink(store, plan, userId, choice);
+      await linkWithChoice(store, plan, userId, choice);
       await syncNow(store, userId);
       followFocus.current = true;
       setView({

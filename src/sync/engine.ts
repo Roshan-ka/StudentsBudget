@@ -1,5 +1,6 @@
 import { db } from '@/db/db';
 import { formatDateTime } from '@/lib/dates';
+import { withSyncLock } from './lock';
 import { pull } from './pull';
 import { push } from './push';
 import { StoreError, type UserDataStore } from './store';
@@ -24,7 +25,7 @@ let running: Promise<SyncResult> | null = null;
  * the person taps Sync now.
  */
 export function syncNow(store: UserDataStore, userId: string): Promise<SyncResult> {
-  running ??= sync(store, userId).finally(() => {
+  running ??= withSyncLock(() => sync(store, userId)).finally(() => {
     running = null;
   });
   return running;
