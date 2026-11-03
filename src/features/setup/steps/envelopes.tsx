@@ -7,6 +7,7 @@ import { CITIES } from '@/data/cities';
 import type { Plan } from '@/db/types';
 import { liveSuggestions } from '@/features/home/suggest-budget';
 import { categoryNameIn } from '@/i18n/category-name';
+import { rangeIn } from '@/i18n/city';
 import { listFormat } from '@/i18n/format';
 import type { Language } from '@/i18n/languages';
 import type { Messages } from '@/i18n/messages';
@@ -100,7 +101,7 @@ export function EnvelopesStep({
             {RANGES.map((range) => (
               <RangeSource
                 key={range.categoryId}
-                range={range}
+                range={rangeIn(range, lang)}
                 label={t.common.source.of(categoryNameIn(t, range.categoryId))}
               />
             ))}
@@ -150,7 +151,7 @@ export function EnvelopesStep({
                 )
               }
             />
-            {range && <RangeSource range={range} />}
+            {range && <RangeSource range={rangeIn(range, lang)} />}
           </div>
         );
       })}

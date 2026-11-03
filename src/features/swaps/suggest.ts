@@ -1,4 +1,5 @@
 import { SWAPS, type Swap } from '@/data/swaps';
+import { swapIn } from '@/i18n/city';
 import { LANGUAGES, type Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import { daysInMonth, monthOf, type IsoDate } from '@/lib/dates';
@@ -77,11 +78,12 @@ export function savingText(minor: Minor, locale?: string): string {
 
 /**
  * "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal", in `lang`; the swap's title and
- * what it is per are city content and stay as written. A saving that rests on an assumption says "(estimate)" on the
- * line itself, where the number is shown, not only once the swap is opened.
+ * what it is per are city content, in `lang` where translated (`swapIn`). A saving that rests on an assumption says
+ * "(estimate)" on the line itself, where the number is shown, not only once the swap is opened.
  */
 export function swapLineText({ swap, savingPerUseMinor }: Suggestion, lang: Language = 'en'): string {
   const text = MESSAGES[lang].tips.swap;
-  const line = text.line(swap.title, savingText(savingPerUseMinor, LANGUAGES[lang].locale), swap.per);
+  const words = swapIn(swap, lang);
+  const line = text.line(words.title, savingText(savingPerUseMinor, LANGUAGES[lang].locale), words.per);
   return swap.estimate === true ? text.estimate(line) : line;
 }

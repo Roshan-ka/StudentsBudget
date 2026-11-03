@@ -12,6 +12,7 @@ import type { Profile } from '@/db/types';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import type { Messages } from '@/i18n/messages';
+import { periodIn } from '@/i18n/city';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
@@ -45,7 +46,7 @@ function PeriodSource({ draft, today }: { draft: ProfileDraft; today: IsoDate })
       <p className="text-sm text-muted-foreground">
         {t.profile.period(termName(period.term, lang), name, periodLabel(period, locale))}
       </p>
-      <RangeSource range={period} />
+      <RangeSource range={periodIn(period, lang)} />
     </div>
   );
 }

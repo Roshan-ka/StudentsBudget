@@ -10,6 +10,7 @@ import { budgetLine, rangeLine } from '@/features/setup/draft';
 import { AmountField } from '@/features/setup/steps/amount-field';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
+import { rangeIn } from '@/i18n/city';
 import { dateFormat } from '@/i18n/format';
 import { LANGUAGES, type Language } from '@/i18n/languages';
 import type { Messages } from '@/i18n/messages';
@@ -166,7 +167,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
               onChange={(minor) => setEdits((current) => ({ ...current, [row.categoryId]: minor ?? 0 }))}
               hint={<p>{basisLine(row, lastMonth, t, lang)}</p>}
             />
-            {row.basis === 'city' && row.range && <RangeSource range={row.range} />}
+            {row.basis === 'city' && row.range && <RangeSource range={rangeIn(row.range, lang)} />}
           </div>
         );
       })}
