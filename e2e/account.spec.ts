@@ -61,8 +61,9 @@ test('Settings opens with Your account; signing in and out there keeps the plan 
   await completeSetup(page);
 
   await page.goto('/settings');
-  // The first section of Settings, before Profile.
-  await expect(page.getByRole('main').getByRole('heading', { level: 3 }).first()).toHaveText('Your account');
+  // The first section of Settings, before Profile; only Language comes before it, while more than one can be picked.
+  const sections = page.getByRole('main').getByRole('heading', { level: 3 });
+  await expect(sections.filter({ hasNotText: /^Language$/ }).first()).toHaveText('Your account');
   const card = page.getByRole('region', { name: 'Your account', exact: true });
   await expect(card.getByText('everything stays on this phone', { exact: false })).toBeVisible();
   await card.getByRole('link', { name: 'Sign in', exact: true }).click();

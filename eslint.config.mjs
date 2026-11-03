@@ -57,6 +57,7 @@ const eslintConfig = defineConfig([
       "src/features/discounts/**/*.tsx",
       "src/features/swaps/**/*.tsx",
       "src/components/date-field.tsx",
+      "src/components/language-picker.tsx",
     ],
     rules: {
       // The dot between translated parts, and the arrows beside Previous and Next, read the same in every language.

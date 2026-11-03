@@ -37,11 +37,13 @@ export function BottomNav() {
         {NAV_ITEMS.map(({ href, key }) => {
           const active = isActive(pathname, href);
           return (
-            <li key={href} className="flex-1">
+            // min-w-0 and a centred, tight second line: a longer label in another language wraps inside its fifth of
+            // the width instead of pushing the bar wider than the phone (labels are kept to 9 characters, tested).
+            <li key={href} className="min-w-0 flex-1">
               <Link
                 href={href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex min-h-12 items-center justify-center px-1 text-sm font-medium ${
+                className={`flex min-h-12 min-w-0 items-center justify-center px-1 text-center text-sm leading-tight font-medium ${
                   active ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >

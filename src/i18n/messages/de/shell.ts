@@ -1,0 +1,26 @@
+import type { Messages } from '../en';
+
+// Der Rahmen der App auf Deutsch: die Navigation unten und die Seitenüberschriften. Entwurf (Plan 1, Chunk 10); vor
+// dem Anbieten liest ihn eine Muttersprachlerin oder ein Muttersprachler (Chunk 15).
+export const shell: Messages['shell'] = {
+  // Höchstens 9 Zeichen: fünf stehen bei 375 px nebeneinander. "Einstellungen" ist zu lang, daher "Optionen".
+  nav: {
+    home: 'Start',
+    entries: 'Einträge',
+    charts: 'Grafiken',
+    tips: 'Tipps',
+    settings: 'Optionen',
+  },
+  navLabel: 'Hauptmenü',
+  headings: {
+    badges: 'Abzeichen',
+    charts: 'Grafiken',
+    checkIn: 'Wöchentlicher Check-in',
+    entries: 'Einträge',
+    newEntry: 'Neuer Eintrag',
+    reveal: 'Schätzung und Wirklichkeit',
+    account: 'Dein Konto',
+    settings: 'Einstellungen',
+    tips: 'Tipps und Rabatte in Regensburg',
+  },
+};

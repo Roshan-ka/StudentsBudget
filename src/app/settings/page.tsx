@@ -1,3 +1,4 @@
+import { LanguageSection } from '@/components/language-picker';
 import { PageHeading } from '@/components/page-heading';
 import { AccountSection } from '@/features/account/account-section';
 import { AccountsPanel } from '@/features/accounts/accounts-panel';
@@ -12,6 +13,8 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeading id="settings" />
+      {/* First: someone who can't read the current language looks here for theirs. */}
+      <LanguageSection />
       <AccountSection />
       <ProfileSection />
       <EditPlanSection />

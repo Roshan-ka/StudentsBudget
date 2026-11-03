@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LANGUAGES, OFFERED } from '../languages';
+import { LANGUAGES } from '../languages';
 import { MESSAGES } from '.';
 
 /** Every key path in a dictionary, with functions (texts that take values) as leaves. */
@@ -16,8 +16,8 @@ describe('the dictionaries', () => {
     }
   });
 
-  it('keeps every bottom-navigation label short enough for five side by side at 375 px', () => {
-    for (const code of OFFERED) {
+  it('keeps every bottom-navigation label short enough for five side by side at 375 px, drafts included', () => {
+    for (const code of Object.keys(LANGUAGES) as (keyof typeof LANGUAGES)[]) {
       for (const label of Object.values(MESSAGES[code].shell.nav)) {
         expect(label.length, `${code}: ${label}`).toBeLessThanOrEqual(9);
       }

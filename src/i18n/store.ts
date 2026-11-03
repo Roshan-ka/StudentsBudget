@@ -1,4 +1,12 @@
-import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, LANGUAGES, pickLanguage, type Language } from './languages';
+import {
+  DEFAULT_LANGUAGE,
+  LANGUAGE_STORAGE_KEY,
+  LANGUAGES,
+  OFFERED,
+  pickLanguage,
+  SELECTABLE,
+  type Language,
+} from './languages';
 
 // The phone's language as an external store for useSyncExternalStore (see use-t.ts), modelled on use-today.ts: read
 // from localStorage and the browser's languages in the browser, the default on the server, so every page stays
@@ -15,9 +23,12 @@ function storedChoice(): string | null {
   }
 }
 
-/** The language this phone shows. A string, so two equal reads don't re-render. */
+/**
+ * The language this phone shows. A string, so two equal reads don't re-render. A draft this build lists is kept once
+ * chosen; the phone's own languages pick only an offered one.
+ */
 export function getLanguageSnapshot(): Language {
-  return pickLanguage(storedChoice(), navigator.languages ?? [navigator.language]);
+  return pickLanguage(storedChoice(), navigator.languages ?? [navigator.language], OFFERED, SELECTABLE);
 }
 
 /** The server's and the first render's language: the default, which the pages are prerendered in. */

@@ -20,5 +20,5 @@
     "/setup": "all",
     "/tips": ["discounts", "tips"]
   },
-  "allOnly": ["insecure-origin", "overdrawn", "recurring"]
+  "allOnly": ["insecure-origin", "language", "overdrawn", "recurring"]
 }
