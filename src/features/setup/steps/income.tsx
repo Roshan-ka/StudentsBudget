@@ -2,6 +2,8 @@
 
 import { SETUP_INCOME_IDS } from '@/data/categories';
 import { DraftScheduleFields } from '@/features/recurring/draft-schedule-fields';
+import { categoryNameIn } from '@/i18n/category-name';
+import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import {
   INCOME_CATEGORIES,
@@ -28,30 +30,30 @@ export function IncomeStep({
   /** Edit mode asks every income source; a new setup asks the basic ones. */
   edit: boolean;
 }) {
+  const { t } = useT();
+  const text = t.setup.income;
   return (
     <div className="flex flex-col gap-4">
+      <p className="text-muted-foreground">{text.intro}</p>
       <p className="text-muted-foreground">
-        How much comes in each month, in euros? Leave out what you do not get. If it varies, enter a low estimate.
+        {text.savings.before}
+        <em>{text.savings.automatic}</em>
+        {text.savings.after}
       </p>
-      <p className="text-muted-foreground">
-        Living off savings? Add what you use each month under Other income and switch off{' '}
-        <em>Add it automatically</em>, so money already in your account isn&apos;t counted twice.
-      </p>
-      {!edit && (
-        <p className="text-muted-foreground">Get BAföG or a scholarship? Add it later under Edit plan in Settings.</p>
-      )}
+      {!edit && <p className="text-muted-foreground">{text.later}</p>}
       {askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, edit, draft.incomes).map((c) => {
         const line = draft.incomes.find((l) => l.categoryId === c.id);
+        const name = categoryNameIn(t, c.id);
         return (
           <div key={c.id} className="flex flex-col gap-2">
             <AmountField
-              label={c.name}
+              label={name}
               value={line?.monthlyMinor ?? 0}
               onChange={(minor) => update((d) => ({ ...d, incomes: setLineAmount(d.incomes, c.id, minor ?? 0) }))}
             />
             {line?.schedule && line.monthlyMinor > 0 && (
               <DraftScheduleFields
-                name={c.name}
+                name={name}
                 categoryId={c.id}
                 type="income"
                 monthlyMinor={line.monthlyMinor}

@@ -2,6 +2,8 @@
 
 import { SETUP_FIXED_IDS } from '@/data/categories';
 import { DraftScheduleFields } from '@/features/recurring/draft-schedule-fields';
+import { categoryNameIn } from '@/i18n/category-name';
+import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import {
@@ -30,21 +32,17 @@ export function FixedStep({
   /** Edit mode asks every fixed cost; a new setup asks the basic ones. */
   edit: boolean;
 }) {
+  const { t, locale } = useT();
+  const text = t.setup.fixed;
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground">
-        What do you pay every month, in euros? Your rent is already in from step 1. Leave out what you do not pay.
-      </p>
-      {!edit && (
-        <p className="text-muted-foreground">
-          Subscriptions, the gym, utilities and the Rundfunkbeitrag can be added later under Edit plan in Settings.
-        </p>
-      )}
+      <p className="text-muted-foreground">{text.intro}</p>
+      {!edit && <p className="text-muted-foreground">{text.later}</p>}
       {draft.rentSchedule && draft.rentMinor > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">Rent: {formatMoney(draft.rentMinor, 'EUR')} a month</p>
+          <p className="text-sm font-medium">{text.rent(formatMoney(draft.rentMinor, 'EUR', { locale }))}</p>
           <DraftScheduleFields
-            name="Rent"
+            name={categoryNameIn(t, 'rent')}
             categoryId="rent"
             type="expense"
             monthlyMinor={draft.rentMinor}
@@ -57,16 +55,17 @@ export function FixedStep({
       )}
       {askedCategories(FIXED_CATEGORIES, SETUP_FIXED_IDS, edit, draft.fixed).map((c) => {
         const line = draft.fixed.find((l) => l.categoryId === c.id);
+        const name = categoryNameIn(t, c.id);
         return (
           <div key={c.id} className="flex flex-col gap-2">
             <AmountField
-              label={c.name}
+              label={name}
               value={line?.monthlyMinor ?? 0}
               onChange={(minor) => update((d) => ({ ...d, fixed: setLineAmount(d.fixed, c.id, minor ?? 0) }))}
             />
             {line?.schedule && line.monthlyMinor > 0 && (
               <DraftScheduleFields
-                name={c.name}
+                name={name}
                 categoryId={c.id}
                 type="expense"
                 monthlyMinor={line.monthlyMinor}

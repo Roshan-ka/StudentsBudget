@@ -9,6 +9,7 @@ import { saveGuesses } from '@/db/repo';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
 import { keepScheduleState, updatePlan } from '@/features/recurring/update-plan';
+import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import {
   accountOptions,
@@ -37,16 +38,6 @@ const EDIT_STEPS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts' && s !== '
 // Accounts that already exist (added in Settings before setup) are kept, so a new setup skips that step.
 const NEW_STEPS_WITH_ACCOUNTS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts');
 
-const TITLES: Record<StepId, string> = {
-  'city-rent': 'City and rent',
-  accounts: 'Accounts',
-  income: 'Income',
-  fixed: 'Fixed costs',
-  'one-offs': 'One-off costs',
-  guesses: 'Guesses',
-  envelopes: 'Envelopes',
-};
-
 async function persist(records: ReturnType<typeof draftToRecords>, edit: boolean): Promise<void> {
   if (edit) {
     // Accounts and guesses are not part of editing; only the plan changes. `updatePlan` keeps each schedule's
@@ -73,11 +64,14 @@ function Wizard({
   storedAccounts: AccountOption[];
 }) {
   const router = useRouter();
+  const { t, lang } = useT();
+  const text = t.setup;
   const accountsExist = storedAccounts.length > 0;
   const steps = edit ? EDIT_STEPS : accountsExist ? NEW_STEPS_WITH_ACCOUNTS : NEW_STEPS;
   const [today] = useState(() => todayIso());
+  // The prefilled account names are in the language of the moment setup opens; once saved, they are the person's own.
   const [draft, setDraft] = useState<SetupDraft>(() =>
-    edit && stored ? draftFromPlan(stored) : initialDraft(accountsExist),
+    edit && stored ? draftFromPlan(stored) : initialDraft(accountsExist, lang),
   );
   const [index, setIndex] = useState(0);
   // After the first failed Next the messages follow the draft, so they go away as the person fixes things.
@@ -90,8 +84,8 @@ function Wizard({
   const step = steps[index];
   const isLast = index === steps.length - 1;
   const existing = edit && stored ? stored : undefined;
-  const problems = validateStep(step, draft, today, existing, storedAccounts);
-  const accounts = accountOptions(draft, storedAccounts);
+  const problems = validateStep(step, draft, today, existing, storedAccounts, lang);
+  const accounts = accountOptions(draft, storedAccounts, lang);
 
   useEffect(() => {
     // Not on first render: the page just loaded and nothing moved.
@@ -117,7 +111,7 @@ function Wizard({
   }
 
   async function save() {
-    const failing = steps.findIndex((s) => validateStep(s, draft, today, existing, storedAccounts).length > 0);
+    const failing = steps.findIndex((s) => validateStep(s, draft, today, existing, storedAccounts, lang).length > 0);
     if (failing !== -1) {
       setIndex(failing);
       setAttempted(true);
@@ -130,7 +124,7 @@ function Wizard({
       await persist(draftToRecords(draft, today, existing, storedAccounts), edit);
     } catch (error) {
       console.error('StudentsBudget: could not save the plan', error);
-      setSaveError('Could not save your plan. Try again.');
+      setSaveError(text.saveFailed);
       setSaving(false);
       return;
     }
@@ -146,20 +140,18 @@ function Wizard({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{edit ? 'Adjust your plan' : 'Set up your plan'}</h2>
+      <h2 className="text-lg font-semibold">{edit ? text.headingEdit : text.headingNew}</h2>
       <div className="flex flex-col gap-1">
-        <p className="text-sm text-muted-foreground">
-          Step {index + 1} of {steps.length}
-        </p>
+        <p className="text-sm text-muted-foreground">{text.stepOf(index + 1, steps.length)}</p>
         <h3 ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
-          {TITLES[step]}
+          {text.titles[step]}
         </h3>
       </div>
 
       {step === 'city-rent' && <CityRentStep draft={draft} update={update} />}
       {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
       {step === 'income' && !edit && accountsExist && (
-        <p className="text-sm text-muted-foreground">Your accounts are already set up in Settings.</p>
+        <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
       )}
       {step === 'income' && <IncomeStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
       {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
@@ -187,16 +179,16 @@ function Wizard({
       <div className="flex gap-2">
         {index > 0 && (
           <Button type="button" variant="outline" className="h-10 px-4" onClick={back} disabled={saving}>
-            Back
+            {text.back}
           </Button>
         )}
         {isLast ? (
           <Button type="button" className="h-10 px-4" onClick={() => void save()} disabled={saving}>
-            Save plan
+            {text.save}
           </Button>
         ) : (
           <Button type="button" className="h-10 px-4" onClick={next}>
-            Next
+            {text.next}
           </Button>
         )}
       </div>

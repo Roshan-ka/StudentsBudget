@@ -11,6 +11,7 @@ import { AmountField } from '@/features/setup/steps/amount-field';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
 import { dateFormat } from '@/i18n/format';
+import { LANGUAGES, type Language } from '@/i18n/languages';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
@@ -26,9 +27,10 @@ const whole = (minor: Minor, locale: string): string => formatMoney(minor, 'EUR'
 const isAmount = (minor: Minor): boolean => Number.isSafeInteger(minor) && minor >= 0;
 
 /** Where a suggested amount comes from, in the words under its field. */
-function basisLine(row: Suggestion[number], lastMonth: IsoMonth, t: Messages, locale: string): string {
+function basisLine(row: Suggestion[number], lastMonth: IsoMonth, t: Messages, lang: Language): string {
   const text = t.home.suggestedBudget;
-  if (row.basis === 'city' && row.range) return rangeLine(text.studentsHere, row.range);
+  const locale = LANGUAGES[lang].locale;
+  if (row.basis === 'city' && row.range) return rangeLine(text.studentsHere, row.range, lang);
   if (row.basis === 'last-month') return text.lastMonth(monthName(lastMonth, locale));
   return text.nothingToGoOn;
 }
@@ -41,8 +43,9 @@ const wholeDown = (minor: Minor, locale: string): string => whole(Math.floor(min
  * budget, or what is available when that is less. Compared in the whole euros shown, so the line never reads
  * "€600 is less than your budget of €600".
  */
-function availableLine(availableMinor: Minor, budgetMinor: Minor, t: Messages, locale: string): string {
+function availableLine(availableMinor: Minor, budgetMinor: Minor, t: Messages, lang: Language): string {
   const text = t.home.suggestedBudget;
+  const locale = LANGUAGES[lang].locale;
   if (availableMinor <= 0) return text.nothingAvailable;
   const available = wholeDown(availableMinor, locale);
   if (!(budgetMinor > 0)) return text.available(available);
@@ -62,15 +65,16 @@ function leftoverLine(
   totalMinor: Minor,
   budgetMinor: Minor,
   t: Messages,
-  locale: string,
+  lang: Language,
 ): string {
   const text = t.home.suggestedBudget;
+  const locale = LANGUAGES[lang].locale;
   const left = availableMinor - totalMinor;
   const savings =
     left >= 0
       ? text.leftForSavings(wholeDown(left, locale))
       : text.overAvailable(whole(Math.ceil(-left / 100) * 100, locale));
-  const budget = budgetLine(totalMinor, budgetMinor);
+  const budget = budgetLine(totalMinor, budgetMinor, lang);
   return budget ? `${budget} · ${savings}` : savings;
 }
 
@@ -82,7 +86,7 @@ function leftoverLine(
  */
 export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries: Entry[]; today: IsoDate }) {
   const headingId = useId();
-  const { t, locale } = useT();
+  const { t, lang } = useT();
   const text = t.home.suggestedBudget;
   // null follows the date and the plan; a choice made here overrides it.
   const [expanded, setExpanded] = useState<boolean | null>(null);
@@ -149,7 +153,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
         <h2 id={headingId} className="text-lg font-semibold">
           {text.heading}
         </h2>
-        <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor, t, locale)}</p>
+        <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor, t, lang)}</p>
       </div>
 
       {rows.map((row) => {
@@ -160,7 +164,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
               label={text.perMonth(categoryNameIn(t, row.categoryId))}
               value={value}
               onChange={(minor) => setEdits((current) => ({ ...current, [row.categoryId]: minor ?? 0 }))}
-              hint={<p>{basisLine(row, lastMonth, t, locale)}</p>}
+              hint={<p>{basisLine(row, lastMonth, t, lang)}</p>}
             />
             {row.basis === 'city' && row.range && <RangeSource range={row.range} />}
           </div>
@@ -169,7 +173,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
 
       {availableMinor > 0 && (
         <p aria-live="polite" className="rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
-          {leftoverLine(availableMinor, total, budgetMinor, t, locale)}
+          {leftoverLine(availableMinor, total, budgetMinor, t, lang)}
         </p>
       )}
 

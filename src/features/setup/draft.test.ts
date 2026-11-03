@@ -21,6 +21,7 @@ import {
   setRentAmount,
   shouldShowInstallHint,
   summarizeDraft,
+  topicOf,
   validateStep,
   withAccountKeys,
   withAmount,
@@ -624,6 +625,12 @@ describe('envelopesFooter', () => {
       expect(footer(planned(15666 + 2400))).toContain('Over by €24');
     });
   });
+
+  it("writes the amounts the language's way", () => {
+    const line = envelopesFooter(summarizeDraft(draft, TODAY), 'de');
+    expect(line).toContain('440 €');
+    expect(line).toContain('434 €');
+  });
 });
 
 describe('budgetLine', () => {
@@ -650,6 +657,11 @@ describe('budgetLine', () => {
     expect(budgetLine(0, 0)).toBeNull();
     expect(budgetLine(39400, -100)).toBeNull();
   });
+
+  it("writes the amounts the language's way", () => {
+    expect(budgetLine(39400, 60000, 'de')).toContain('394 €');
+    expect(budgetLine(39400, 60000, 'de')).toContain('600 €');
+  });
 });
 
 describe('rangeLine', () => {
@@ -663,6 +675,19 @@ describe('rangeLine', () => {
 
   it('marks a range without a source as an estimate', () => {
     expect(rangeLine('Students here', { ...range, source: 'Estimate' })).toBe('Students here: €30–135 (estimate)');
+  });
+
+  it("writes the range the language's way", () => {
+    expect(rangeLine('Students here', { ...range, source: 'Estimate' }, 'de')).toContain('30–135 €');
+  });
+});
+
+describe('topicOf', () => {
+  it('asks about each guess category by its lowercase name, and about Other as "other things"', () => {
+    const names = new Map(CATEGORIES.map((c) => [c.id, c.name]));
+    for (const id of GUESS_CATEGORY_IDS) {
+      expect(topicOf(id)).toBe(id === 'other' ? 'other things' : names.get(id)?.toLowerCase());
+    }
   });
 });
 

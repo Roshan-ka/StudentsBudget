@@ -10,6 +10,8 @@ import { monthOf, type IsoDate, type IsoMonth } from '@/lib/dates';
 import type { Plan } from '@/db/types';
 import { monthLabel, semesterFeeOffer, type SemesterFeeOffer } from '@/features/profile/profile';
 import { SemesterFeeSource } from '@/features/profile/semester-fee-source';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import { formatMoney } from '@/lib/money';
 import { isDueMonthProblem, type DraftUpdate, type SetupDraft } from '../draft';
 import { AmountField } from './amount-field';
@@ -22,10 +24,10 @@ function monthAfter(today: IsoDate): IsoMonth {
 }
 
 /** "Add semester fee: €215, due March 2027", or without the amount when no page states it. */
-function offerLabel({ row }: SemesterFeeOffer): string {
+function offerLabel({ row }: SemesterFeeOffer, t: Messages, locale: string): string {
   const { amountMinor, dueMonth } = row;
-  const amount = amountMinor > 0 ? `: ${formatMoney(amountMinor, 'EUR', { whole: amountMinor % 100 === 0 })}` : '';
-  return `Add semester fee${amount}, due ${monthLabel(dueMonth)}`;
+  const amount = amountMinor > 0 ? formatMoney(amountMinor, 'EUR', { whole: amountMinor % 100 === 0, locale }) : null;
+  return t.setup.oneOffs.feeOffer(amount, monthLabel(dueMonth, locale));
 }
 
 function OneOffRow({
@@ -47,6 +49,8 @@ function OneOffRow({
   onRemove: () => void;
 }) {
   const id = useId();
+  const { t } = useT();
+  const text = t.setup.oneOffs;
   const [dueTouched, setDueTouched] = useState(false);
   const dueProblem = dueTouched && oneOff.dueMonth !== '' && isDueMonthProblem(oneOff, today, existing);
   const amountRef = useRef<HTMLInputElement>(null);
@@ -62,9 +66,9 @@ function OneOffRow({
   const leftOut = oneOff.name.trim() !== '' && oneOff.amountMinor === 0;
 
   return (
-    <div role="group" aria-label={`One-off cost ${index + 1}`} className="flex flex-col gap-4 rounded-lg border p-4">
+    <div role="group" aria-label={text.oneOff(index + 1)} className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-name`}>Name</Label>
+        <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
           id={`${id}-name`}
           className="h-10"
@@ -74,12 +78,12 @@ function OneOffRow({
         />
       </div>
       <AmountField
-        label="Amount"
+        label={text.amount}
         hint={
           feeSource || leftOut ? (
             <>
               {feeSource}
-              {leftOut && <p>Without an amount, this cost isn&apos;t saved.</p>}
+              {leftOut && <p>{text.leftOut}</p>}
             </>
           ) : undefined
         }
@@ -88,7 +92,7 @@ function OneOffRow({
         onChange={(minor) => onChange({ amountMinor: minor ?? 0 })}
       />
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-due`}>Due month</Label>
+        <Label htmlFor={`${id}-due`}>{text.due}</Label>
         <Input
           id={`${id}-due`}
           className="h-10"
@@ -103,12 +107,12 @@ function OneOffRow({
         />
         {dueProblem && (
           <p id={`${id}-due-error`} className="text-sm text-destructive">
-            Pick a month after this one.
+            {t.setup.problems.dueMonth}
           </p>
         )}
       </div>
       <Button type="button" variant="ghost" className="h-10 self-start px-4" onClick={onRemove}>
-        Remove one-off cost {index + 1}
+        {text.remove(index + 1)}
       </Button>
     </div>
   );
@@ -125,18 +129,17 @@ export function OneOffsStep({
   today: IsoDate;
   existing?: Plan;
 }) {
+  const { t, lang, locale } = useT();
+  const text = t.setup.oneOffs;
   // With semester dates in the profile, one tap adds the next semester fee, with its amount where a page states it.
   const profile = useLiveQuery(() => db.profile.get('current'), []);
-  const feeOffer = semesterFeeOffer(profile, today, draft.oneOffs);
+  const feeOffer = semesterFeeOffer(profile, today, draft.oneOffs, lang);
   // The row the offer added and the offer it came from: that row takes the focus and keeps the source.
   const [added, setAdded] = useState<{ index: number; offer: SemesterFeeOffer } | null>(null);
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground">
-        Big costs that come once, like a semester fee or a deposit. We set a share aside each month until the due
-        month. Skip this if you have none. A cost without an amount isn&apos;t saved.
-      </p>
+      <p className="text-muted-foreground">{text.intro}</p>
       {draft.oneOffs.map((oneOff, index) => (
         <OneOffRow
           // The rows have no id of their own, and removing one shifts the rest, so index is the identity.
@@ -171,7 +174,7 @@ export function OneOffsStep({
               update((d) => ({ ...d, oneOffs: [...d.oneOffs, feeOffer.row] }));
             }}
           >
-            {offerLabel(feeOffer)}
+            {offerLabel(feeOffer, t, locale)}
           </Button>
           <SemesterFeeSource offer={feeOffer} />
         </div>
@@ -184,7 +187,7 @@ export function OneOffsStep({
           update((d) => ({ ...d, oneOffs: [...d.oneOffs, { name: '', amountMinor: 0, dueMonth: '' }] }))
         }
       >
-        Add a one-off cost
+        {text.add}
       </Button>
     </div>
   );

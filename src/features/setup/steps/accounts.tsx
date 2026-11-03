@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import type { Account } from '@/db/types';
+import { useT } from '@/i18n/use-t';
 import { CURRENCIES, type CurrencyCode } from '@/lib/money';
 import type { DraftUpdate, SetupDraft } from '../draft';
 import { AmountField } from './amount-field';
@@ -24,11 +25,13 @@ function AccountRow({
   onRemove: () => void;
 }) {
   const id = useId();
+  const { t } = useT();
+  const text = t.setup.accounts;
 
   return (
-    <div role="group" aria-label={`Account ${index + 1}`} className="flex flex-col gap-4 rounded-lg border p-4">
+    <div role="group" aria-label={text.account(index + 1)} className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-name`}>Name</Label>
+        <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
           id={`${id}-name`}
           className="h-10"
@@ -39,19 +42,19 @@ function AccountRow({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-kind`}>Type</Label>
+          <Label htmlFor={`${id}-kind`}>{text.type}</Label>
           <NativeSelect
             id={`${id}-kind`}
             className="w-full"
             value={account.kind}
             onChange={(event) => onChange({ kind: event.target.value as Account['kind'] })}
           >
-            <NativeSelectOption value="bank">Bank</NativeSelectOption>
-            <NativeSelectOption value="cash">Cash</NativeSelectOption>
+            <NativeSelectOption value="bank">{text.bank}</NativeSelectOption>
+            <NativeSelectOption value="cash">{text.cash}</NativeSelectOption>
           </NativeSelect>
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-currency`}>Currency</Label>
+          <Label htmlFor={`${id}-currency`}>{text.currency}</Label>
           <NativeSelect
             id={`${id}-currency`}
             className="w-full"
@@ -67,25 +70,24 @@ function AccountRow({
         </div>
       </div>
       <AmountField
-        label="Opening balance"
+        label={text.opening}
         unit={account.currency === 'EUR' ? '€' : account.currency}
         signed
         value={account.openingMinor}
         onChange={(minor) => onChange({ openingMinor: minor ?? 0 })}
       />
       <Button type="button" variant="ghost" className="h-10 self-start px-4" onClick={onRemove}>
-        Remove account {index + 1}
+        {text.remove(index + 1)}
       </Button>
     </div>
   );
 }
 
 export function AccountsStep({ draft, update }: { draft: SetupDraft; update: DraftUpdate }) {
+  const { t } = useT();
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground">
-        Where does your money live? The opening balance is what is in each account today.
-      </p>
+      <p className="text-muted-foreground">{t.setup.accounts.intro}</p>
       {draft.accounts.map((account, index) => (
         <AccountRow
           // The draft key follows the account when a row above is removed, so a field's own state (a waiting Overdrawn
@@ -110,7 +112,7 @@ export function AccountsStep({ draft, update }: { draft: SetupDraft; update: Dra
           }))
         }
       >
-        Add account
+        {t.setup.accounts.add}
       </Button>
     </div>
   );
