@@ -63,6 +63,9 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'entries.form.note',
     'setup.accounts.type',
     'setup.editPlan.heading',
+    'accounts.type',
+    'accounts.total',
+    'accounts.rates.rate',
   ]),
 };
 
