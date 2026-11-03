@@ -53,6 +53,11 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
 **Part B: Spanish**
 
 3. **Spanish frame.** The per-language allow-lists, the glossary, and Spanish for shell, language, common and categories.
+   - **As built (2026-11-03):**
+     - `messages.test.ts`: `SAME_AS_ENGLISH` holds one allow-list per language (Spanish: the bare account option and BAföG), and the "own text" test runs for every language with a dictionary of its own, skipping a draft's unwritten areas. A test pins Spanish counting (0 is plural).
+     - `messages/es/`: the glossary in `index.ts` (tú; sobre, registro, cuenta, estimación, revisión semanal, insignia; Regensburg stays Regensburg), `byCount` in `count.ts` for every count, and Spanish for shell, language, common and categories. Nav labels: Inicio, Registros, Gráficos, Consejos, Ajustes.
+     - Category names fit the 16-character chart label (Alimentación, Salud y farmacia, Estudios, Deporte, Cuenta bloqueada); the three with short names use the English charts area until chunk 7.
+     - `MESSAGES.es` is the Spanish draft. It shows only in dev builds, where the picker lists it as a draft.
 4. Home, entries, setup.
 5. Profile, recurring, accounts, backup.
 6. Sync, account, sign-in and security.
