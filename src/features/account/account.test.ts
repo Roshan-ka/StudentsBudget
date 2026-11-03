@@ -1,8 +1,8 @@
 import type { Session } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
+import { MESSAGES } from '@/i18n/messages';
 import {
   authErrorMessage,
-  OFFLINE_MESSAGE,
   passkeyCancelled,
   passkeySettingsMessage,
   passkeySignInMessage,
@@ -220,6 +220,6 @@ describe('authErrorMessage', () => {
   });
 
   it('has a line for being offline', () => {
-    expect(OFFLINE_MESSAGE).toBe("You're offline. Signing in needs a connection.");
+    expect(MESSAGES.en.auth.offline).toBe("You're offline. Signing in needs a connection.");
   });
 });
