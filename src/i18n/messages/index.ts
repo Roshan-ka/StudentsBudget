@@ -2,6 +2,7 @@ import type { Language } from '../languages';
 import { de } from './de';
 import { en, type Messages } from './en';
 import { es } from './es';
+import { fr } from './fr';
 
 export type { Messages } from './en';
 
@@ -14,5 +15,5 @@ export const MESSAGES: Record<Language, Messages> = {
   en,
   de,
   es,
-  fr: en,
+  fr,
 };
