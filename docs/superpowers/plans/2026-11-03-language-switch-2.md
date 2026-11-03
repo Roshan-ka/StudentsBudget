@@ -67,6 +67,7 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
 4. Home, entries, setup.
    - **As built (2026-11-03):** Spanish for `home`, `entries` and `setup`, following the glossary: Disponible este mes, Sobres, Añadir rápido, Añadir automáticamente, calm "de más". Counts (missing rates, the envelope estimates) go through `byCount`. The allow-list gains the bare range format and the Plan heading, as German's did.
 5. Profile, recurring, accounts, backup.
+   - **As built (2026-11-03):** Spanish for `profile` (Cuota semestral, rematriculación), `recurring` (Gastos fijos e ingresos, Añadir automáticamente; weekday names come from the locale: "Cada semana, el lunes"), `accounts` (with moving money and the rates: Tipos de cambio, BCE) and `backup` (Copia de seguridad; the word to type before deleting everything is BORRAR). The allow-list gains Total, the bare rate format and the "?" after the file name in the restore question.
 6. Sync, account, sign-in and security.
 7. Check-in, charts (short names), badges, reveal, tips chrome.
 8. City content in Spanish.
