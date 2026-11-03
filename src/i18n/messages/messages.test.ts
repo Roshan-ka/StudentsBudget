@@ -28,6 +28,10 @@ const SAME_IN_GERMAN = new Set([
   'setup.oneOffs.name',
   'setup.lines.range',
   'setup.editPlan.heading',
+  'accounts.name',
+  'accounts.kinds.bank',
+  'accounts.rates.rate',
+  'backup.heading',
 ]);
 
 describe('the dictionaries', () => {
