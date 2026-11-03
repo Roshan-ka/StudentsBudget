@@ -235,6 +235,11 @@ describe('describeLine', () => {
   it('gives the monthly amount of a line that is not added automatically', () => {
     expect(describeLine(PLAN.fixed[1], ACCOUNTS)).toBe('€25.00 a month · Not added automatically');
   });
+
+  it("writes the amount the language's way", () => {
+    expect(describeLine(PLAN.fixed[0], ACCOUNTS, 'de')).toContain('400,00 €');
+    expect(describeLine(PLAN.fixed[1], ACCOUNTS, 'de')).toContain('25,00 €');
+  });
 });
 
 describe('overBudgetLine', () => {
@@ -246,5 +251,6 @@ describe('overBudgetLine', () => {
     // 900 income - 425 fixed = 475 available; envelopes 480.50.
     const over = { ...PLAN, envelopes: [{ categoryId: 'food', monthlyMinor: 48050 }] };
     expect(overBudgetLine(over, '2026-11')).toBe('Your plan is €6 over your income');
+    expect(overBudgetLine(over, '2026-11', 'de')).toContain('6 €');
   });
 });

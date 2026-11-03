@@ -11,6 +11,7 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { saveEntry } from '@/db/repo';
 import type { Entry } from '@/db/types';
+import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
@@ -27,6 +28,8 @@ function minorToInput(minor: Minor): string {
  */
 export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (saved: Entry) => void }) {
   const id = useId();
+  const { t, lang } = useT();
+  const text = t.accounts.transfer;
   const editing = entry?.type === 'transfer' ? entry : undefined;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
   // Today's date, kept current: null until the browser runs this (never the date of the prerender).
@@ -45,7 +48,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
 
   if (accounts === undefined || today === null) return null;
   if (accounts.length < 2) {
-    return <p className="text-muted-foreground">Add a second account to move money between your accounts.</p>;
+    return <p className="text-muted-foreground">{text.needsTwo}</p>;
   }
 
   // An account deleted while the form is open falls back to the default.
@@ -67,7 +70,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (date === '') return setError('Pick a date.');
+    if (date === '') return setError(t.entries.form.pickDate);
 
     setSaving(true);
     setError(null);
@@ -87,6 +90,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         await loadRates(),
         new Date(),
         editing,
+        lang,
       );
       if (!result.ok) {
         setError(result.error);
@@ -96,7 +100,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
       saved = result.entry;
     } catch (saveError) {
       console.error('StudentsBudget: could not save the transfer', saveError);
-      setError('Could not save the transfer.');
+      setError(text.saveFailed);
       return;
     } finally {
       setSaving(false);
@@ -113,7 +117,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-from`}>From</Label>
+        <Label htmlFor={`${id}-from`}>{text.from}</Label>
         <NativeSelect
           id={`${id}-from`}
           className="w-full"
@@ -126,13 +130,13 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         >
           {accounts.map((account) => (
             <NativeSelectOption key={account.id} value={account.id}>
-              {account.name} ({account.currency})
+              {t.common.accountOption(account.name, account.currency)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-amount`}>Amount</Label>
+        <Label htmlFor={`${id}-amount`}>{t.entries.form.amount}</Label>
         <div className="flex items-center gap-2">
           <Input
             id={`${id}-amount`}
@@ -146,7 +150,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         </div>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-to`}>To</Label>
+        <Label htmlFor={`${id}-to`}>{text.to}</Label>
         <NativeSelect
           id={`${id}-to`}
           className="w-full"
@@ -155,13 +159,13 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         >
           {accounts.map((account) => (
             <NativeSelectOption key={account.id} value={account.id}>
-              {account.name} ({account.currency})
+              {t.common.accountOption(account.name, account.currency)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-received`}>Amount received</Label>
+        <Label htmlFor={`${id}-received`}>{text.received}</Label>
         <div className="flex items-center gap-2">
           <Input
             id={`${id}-received`}
@@ -176,7 +180,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
       </div>
       <DateField value={date} onChange={setDateChoice} />
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-note`}>Note</Label>
+        <Label htmlFor={`${id}-note`}>{t.entries.form.note}</Label>
         <Input
           id={`${id}-note`}
           className="h-10"
@@ -191,7 +195,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         </p>
       )}
       <Button type="submit" className="h-10 px-4" disabled={saving}>
-        {editing ? 'Save changes' : 'Move money'}
+        {editing ? t.entries.form.saveChanges : text.move}
       </Button>
     </form>
   );
@@ -199,6 +203,8 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
 
 /** The settings page's way in: a button that opens the transfer form and closes it again once a transfer is saved. */
 export function TransferSection() {
+  const { t } = useT();
+  const text = t.accounts.transfer;
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -207,7 +213,7 @@ export function TransferSection() {
       <section className="flex flex-col gap-2">
         {saved && (
           <p role="status" className="text-sm text-muted-foreground">
-            Transfer saved.
+            {text.saved}
           </p>
         )}
         <Button
@@ -218,7 +224,7 @@ export function TransferSection() {
             setOpen(true);
           }}
         >
-          Move money between accounts
+          {text.open}
         </Button>
       </section>
     );
@@ -227,7 +233,7 @@ export function TransferSection() {
   return (
     <section aria-labelledby="transfer-heading" className="flex flex-col gap-3 rounded-lg border p-4">
       <h3 id="transfer-heading" className="text-lg font-semibold">
-        Move money between accounts
+        {text.open}
       </h3>
       <TransferForm
         onSaved={() => {
@@ -236,7 +242,7 @@ export function TransferSection() {
         }}
       />
       <Button variant="ghost" className="h-10 px-4" onClick={() => setOpen(false)}>
-        Cancel
+        {text.cancel}
       </Button>
     </section>
   );

@@ -11,6 +11,8 @@ import { db } from '@/db/db';
 import type { Profile } from '@/db/types';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { RangeSource } from '@/features/setup/steps/range-source';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
 import {
@@ -27,8 +29,13 @@ import {
 
 const BLANK: ProfileDraft = { name: '', university: '', semesterStart: '', semesterEnd: '' };
 
+/** A university as the form names it: UR and OTH by their own names, "Other" in the phone's language. */
+const universityName = (university: (typeof UNIVERSITIES)[number], t: Messages): string =>
+  university.id === 'other' ? t.profile.otherUniversity : university.name;
+
 /** Where the semester dates of UR or OTH come from: the period the start date (or today) falls in, and its source. */
 function PeriodSource({ draft, today }: { draft: ProfileDraft; today: IsoDate }) {
+  const { t, lang, locale } = useT();
   const { university } = draft;
   if (university !== 'ur' && university !== 'oth') return null;
   const { period } = semesterOn(university, isIsoDate(draft.semesterStart) ? draft.semesterStart : today);
@@ -36,7 +43,7 @@ function PeriodSource({ draft, today }: { draft: ProfileDraft; today: IsoDate })
   return (
     <div className="flex flex-col gap-1">
       <p className="text-sm text-muted-foreground">
-        {`${termName(period.term)} at ${name}: ${periodLabel(period)}. Change the dates if yours differ.`}
+        {t.profile.period(termName(period.term, lang), name, periodLabel(period, locale))}
       </p>
       <RangeSource range={period} />
     </div>
@@ -56,6 +63,8 @@ function ProfileForm({
   onSaved: (updatedAt: string) => void;
 }) {
   const id = useId();
+  const { t, lang } = useT();
+  const text = t.profile;
   const [draft, setDraft] = useState<ProfileDraft>(() =>
     saved
       ? { name: saved.name, university: saved.university, semesterStart: saved.semesterStart, semesterEnd: saved.semesterEnd }
@@ -89,7 +98,7 @@ function ProfileForm({
     event.preventDefault();
     // Not `disabled` while saving: that would push focus off the button.
     if (saving) return;
-    const found = profileProblems(draft);
+    const found = profileProblems(draft, lang);
     if (found.length > 0) return setProblems(found);
     setSaving(true);
     try {
@@ -99,7 +108,7 @@ function ProfileForm({
       onSaved(profile.updatedAt);
     } catch (saveError) {
       console.error('StudentsBudget: could not save the profile', saveError);
-      setError('Could not save your profile. Try again.');
+      setError(text.saveFailed);
     } finally {
       setSaving(false);
     }
@@ -115,7 +124,7 @@ function ProfileForm({
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-name`}>Your name</Label>
+        <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
           id={`${id}-name`}
           className="h-10"
@@ -129,28 +138,28 @@ function ProfileForm({
           onChange={(event) => change({ name: event.target.value })}
         />
         <p id={`${id}-name-hint`} className="text-sm text-muted-foreground">
-          Optional. Home greets you by this name.
+          {text.nameHint}
         </p>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-university`}>University</Label>
+        <Label htmlFor={`${id}-university`}>{text.university}</Label>
         <NativeSelect
           id={`${id}-university`}
           className="w-full"
           value={draft.university}
           onChange={(event) => chooseUniversity(event.target.value)}
         >
-          <NativeSelectOption value="">Not set</NativeSelectOption>
+          <NativeSelectOption value="">{text.notSet}</NativeSelectOption>
           {UNIVERSITIES.map((u) => (
             <NativeSelectOption key={u.id} value={u.id}>
-              {u.name}
+              {universityName(u, t)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
       </div>
       <DateField
         chips={false}
-        label="Semester start"
+        label={text.semesterStart}
         value={draft.semesterStart}
         invalid={startInvalid}
         describedBy={startInvalid ? problemsId : undefined}
@@ -158,7 +167,7 @@ function ProfileForm({
       />
       <DateField
         chips={false}
-        label="Semester end"
+        label={text.semesterEnd}
         value={draft.semesterEnd}
         min={draft.semesterStart || undefined}
         invalid={endInvalid}
@@ -174,7 +183,7 @@ function ProfileForm({
       )}
       <PeriodSource draft={draft} today={today} />
       {weeks !== null && (
-        <p className="text-sm text-muted-foreground">{`Your semester: ${weeks} ${weeks === 1 ? 'week' : 'weeks'}.`}</p>
+        <p className="text-sm text-muted-foreground">{text.weeks(weeks)}</p>
       )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
@@ -183,7 +192,7 @@ function ProfileForm({
       )}
       <div className="flex flex-wrap gap-2">
         <Button ref={saveRef} type="submit" className="h-10 px-4" aria-disabled={saving || undefined}>
-          Save profile
+          {text.save}
         </Button>
         {/* A date picker has no reliable way to empty a field, and both dates are optional. */}
         {hasDates && (
@@ -196,7 +205,7 @@ function ProfileForm({
               saveRef.current?.focus();
             }}
           >
-            Clear semester dates
+            {text.clearDates}
           </Button>
         )}
       </div>
@@ -209,6 +218,8 @@ function ProfileForm({
  * backup includes; it leaves the phone only when the user saves to their account.
  */
 export function ProfileSection() {
+  const { t } = useT();
+  const text = t.profile;
   // The clock is only read in the browser, and the prefill needs it.
   const today = useToday();
   // 'loading' (no answer yet) and null (nothing saved) differ: the form opens with what was saved.
@@ -237,12 +248,9 @@ export function ProfileSection() {
   return (
     <section aria-labelledby="profile-heading" className="flex flex-col gap-3">
       <h3 id="profile-heading" className="text-lg font-semibold">
-        Profile
+        {text.heading}
       </h3>
-      <p className="text-muted-foreground">
-        Your profile is stored on this phone and goes into any backup you export, and into your account when you save
-        to it.
-      </p>
+      <p className="text-muted-foreground">{text.intro}</p>
       {saved !== 'loading' && today !== null && formKey > 0 && (
         <ProfileForm
           key={formKey}
@@ -258,7 +266,7 @@ export function ProfileSection() {
       {/* Always rendered, so a screen reader is already listening when the text appears. A polite live region
           rather than role="status": Settings has other status lines that tests find by that role on the page. */}
       <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
-        {savedNotice ? 'Profile saved.' : ''}
+        {savedNotice ? text.saved : null}
       </p>
     </section>
   );

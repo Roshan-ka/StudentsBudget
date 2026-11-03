@@ -142,7 +142,7 @@ function MoneyEntryForm({
         >
           {accounts.map((a) => (
             <NativeSelectOption key={a.id} value={a.id}>
-              {text.accountOption(a.name, a.currency)}
+              {t.common.accountOption(a.name, a.currency)}
             </NativeSelectOption>
           ))}
         </NativeSelect>

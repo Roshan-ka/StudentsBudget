@@ -14,8 +14,12 @@ export const common = {
   /** A city range's source, folded under its line. The source text itself is city content and stays English. */
   source: {
     label: 'Source',
+    /** A source line that says what it covers: "Source: Eating out". */
+    of: (what: string) => `Source: ${what}`,
     checked: (date: string) => `checked ${date}`,
   },
+  /** An account in a picker: "Wise (INR)". */
+  accountOption: (name: string, currency: string) => `${name} (${currency})`,
   /** What a number no page states says instead of a source (the data's `source: 'Estimate'`). */
   estimate: 'Estimate',
 };

@@ -1,20 +1,16 @@
 import { CATEGORIES } from '@/data/categories';
 import type { Account, Category, Plan, PlanLine, Schedule } from '@/db/types';
 import { orderOf } from '@/features/entries/categories';
+import { LANGUAGES, type Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import { planSummary } from '@/lib/budget';
 import { formatDate, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { describeTiming, monthlyEquivalent, newSchedule, restartSchedule, resumeSchedule } from './schedule';
 
-/** Shown when a line's account is gone, in the editor's rows and in the wizard. */
-export const PICK_ACCOUNT = 'Pick an account for this';
-
-/** Shown once an account is picked for a line whose account was gone. */
-export const ADDED_AGAIN = "It's added again from tomorrow.";
-
 /** Under the repeat fields of a line that has not started yet: "First added on 01-12-2026." */
-export function firstAddedLine(day: IsoDate): string {
-  return `First added on ${formatDate(day)}.`;
+export function firstAddedLine(day: IsoDate, lang: Language = 'en'): string {
+  return MESSAGES[lang].recurring.firstAdded(formatDate(day));
 }
 
 /** The categories a plan line can have: fixed costs and income, in category order. */
@@ -97,23 +93,30 @@ export function addableCategories(plan: Plan): Category[] {
 
 /**
  * "€400.00 · Monthly on day 1 · Local bank", with "· Paused · not in your plan for now" while paused, or
- * "€25.00 a month · Not added automatically".
+ * "€25.00 a month · Not added automatically", in `lang`.
  */
-export function describeLine(line: PlanLine, accounts: Pick<Account, 'id' | 'name' | 'currency'>[]): string {
+export function describeLine(
+  line: PlanLine,
+  accounts: Pick<Account, 'id' | 'name' | 'currency'>[],
+  lang: Language = 'en',
+): string {
+  const text = MESSAGES[lang].recurring;
+  const { locale } = LANGUAGES[lang];
   const s = line.schedule;
-  if (!s) return `${formatMoney(line.monthlyMinor, 'EUR')} a month · Not added automatically`;
+  if (!s) return text.notAutomatic(formatMoney(line.monthlyMinor, 'EUR', { locale }));
   const account = accounts.find((a) => a.id === s.accountId);
   const parts = account
-    ? [formatMoney(s.amountMinor, account.currency), describeTiming(s), account.name]
-    : [describeTiming(s), PICK_ACCOUNT];
+    ? [formatMoney(s.amountMinor, account.currency, { locale }), describeTiming(s, lang), account.name]
+    : [describeTiming(s, lang), text.pickAccount];
   // A paused line leaves the plan too (`planSummary`), not only the posting.
-  if (s.paused) parts.push('Paused', 'not in your plan for now');
+  if (s.paused) parts.push(text.paused, text.notInPlan);
   return parts.join(' · ');
 }
 
 /** "Your plan is €6 over your income" while the envelopes plan more than is available, in whole euros rounded up. */
-export function overBudgetLine(plan: Plan, month: IsoMonth): string | null {
+export function overBudgetLine(plan: Plan, month: IsoMonth, lang: Language = 'en'): string | null {
   const { overByMinor } = planSummary(plan, month);
   if (overByMinor <= 0) return null;
-  return `Your plan is ${formatMoney(Math.ceil(overByMinor / 100) * 100, 'EUR', { whole: true })} over your income`;
+  const over = formatMoney(Math.ceil(overByMinor / 100) * 100, 'EUR', { whole: true, locale: LANGUAGES[lang].locale });
+  return MESSAGES[lang].recurring.overIncome(over);
 }

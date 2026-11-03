@@ -37,23 +37,24 @@ export function hasSemesterYear(date: string): boolean {
   return year >= 1000 && year <= 9999;
 }
 
-/** Why the profile cannot be saved yet. Empty when it can: every field is optional, but a semester needs both dates. */
-export function profileProblems({ semesterStart, semesterEnd }: SemesterDates): ProfileProblem[] {
+/**
+ * Why the profile cannot be saved yet, in `lang`. Empty when it can: every field is optional, but a semester needs both
+ * dates.
+ */
+export function profileProblems({ semesterStart, semesterEnd }: SemesterDates, lang: Language = 'en'): ProfileProblem[] {
   if (semesterStart === '' && semesterEnd === '') return [];
-  const both = 'Add both semester dates, or leave both empty.';
-  if (semesterStart === '') return [{ field: 'semesterStart', message: both }];
-  if (semesterEnd === '') return [{ field: 'semesterEnd', message: both }];
+  const text = MESSAGES[lang].profile.problems;
+  if (semesterStart === '') return [{ field: 'semesterStart', message: text.both }];
+  if (semesterEnd === '') return [{ field: 'semesterEnd', message: text.both }];
   // A desktop date field takes a year of up to six digits, and keeps the zeros of a year typed half-way ("0026").
-  const full = 'Enter each semester date as a full date.';
-  const year = 'Enter the year of each semester date with four digits, like 2026.';
-  if (!isIsoDate(semesterStart)) return [{ field: 'semesterStart', message: full }];
-  if (!hasSemesterYear(semesterStart)) return [{ field: 'semesterStart', message: year }];
-  if (!isIsoDate(semesterEnd)) return [{ field: 'semesterEnd', message: full }];
-  if (!hasSemesterYear(semesterEnd)) return [{ field: 'semesterEnd', message: year }];
+  if (!isIsoDate(semesterStart)) return [{ field: 'semesterStart', message: text.full }];
+  if (!hasSemesterYear(semesterStart)) return [{ field: 'semesterStart', message: text.year }];
+  if (!isIsoDate(semesterEnd)) return [{ field: 'semesterEnd', message: text.full }];
+  if (!hasSemesterYear(semesterEnd)) return [{ field: 'semesterEnd', message: text.year }];
   // ISO date strings sort chronologically, so plain comparison is enough.
-  if (semesterEnd <= semesterStart) return [{ field: 'semesterEnd', message: 'Pick an end date after the start date.' }];
+  if (semesterEnd <= semesterStart) return [{ field: 'semesterEnd', message: text.endAfterStart }];
   if (daysBetween(semesterStart, semesterEnd) + 1 > MAX_SEMESTER_DAYS) {
-    return [{ field: 'semesterEnd', message: 'A semester lasts a year at most. Pick an earlier end date.' }];
+    return [{ field: 'semesterEnd', message: text.tooLong }];
   }
   return [];
 }
@@ -200,16 +201,19 @@ export function semesterFeeOffer(
   };
 }
 
-const dayAndMonth = new Intl.DateTimeFormat('en-IE', { day: 'numeric', month: 'short' });
-
-/** "1 Oct – 31 Mar": a short label, so not DD-MM-YYYY. Any year will do; none of the days is 29 February. */
-export function periodLabel(period: Pick<SemesterPeriod, 'starts' | 'ends'>): string {
-  const day = (monthDay: string) => dayAndMonth.format(parseISO(`2027-${monthDay}`));
+/**
+ * "1 Oct – 31 Mar" ("1. Okt. – 31. März" in German): a short label, so not DD-MM-YYYY. Any year will do; none of the
+ * days is 29 February.
+ */
+export function periodLabel(period: Pick<SemesterPeriod, 'starts' | 'ends'>, locale = 'en-IE'): string {
+  const format = dateFormat(locale, { day: 'numeric', month: 'short' });
+  const day = (monthDay: string) => format.format(parseISO(`2027-${monthDay}`));
   return `${day(period.starts)} – ${day(period.ends)}`;
 }
 
-export function termName(term: SemesterPeriod['term']): string {
-  return term === 'winter' ? 'Winter semester' : 'Summer semester';
+export function termName(term: SemesterPeriod['term'], lang: Language = 'en'): string {
+  const text = MESSAGES[lang].profile;
+  return term === 'winter' ? text.winter : text.summer;
 }
 
 /** "March 2027", or in another locale: "März 2027". */
