@@ -1,0 +1,58 @@
+import type { Messages } from '../en';
+
+// Los registros en español: la lista, el formulario, Añadir rápido y los errores de buildEntry.
+export const entries: Messages['entries'] = {
+  addEntry: 'Añadir registro',
+  transfer: 'Transferencia',
+  recurring: 'Recurrente',
+  noAccount: 'Primero añade una cuenta en Ajustes.',
+  saveFailed: 'No se ha podido guardar el registro.',
+  list: {
+    label: 'Registros',
+    unknownAccount: 'Cuenta desconocida',
+    clear: 'Quitar',
+    monthNav: 'Mes',
+    previous: '‹ Anterior',
+    next: 'Siguiente ›',
+    nothingYet: 'Aquí aún no hay nada registrado.',
+  },
+  edit: {
+    heading: 'Editar registro',
+    deleteQuestion: '¿Borrar este registro?',
+    yes: 'Sí',
+    cancel: 'Cancelar',
+    delete: 'Borrar',
+    deleteFailed: 'No se ha podido borrar el registro.',
+  },
+  form: {
+    typeLabel: 'Tipo de registro',
+    expense: 'Gasto',
+    income: 'Ingreso',
+    amount: 'Importe',
+    account: 'Cuenta',
+    category: 'Categoría',
+    note: 'Nota',
+    pickDate: 'Elige una fecha.',
+    saveChanges: 'Guardar cambios',
+    saveIncome: 'Guardar ingreso',
+    saveExpense: 'Guardar gasto',
+  },
+  quickAdd: {
+    label: 'Añadir rápido',
+    placeholder: 'Qué y cuánto, como “döner 6”',
+    add: 'Añadir',
+    noAmount: 'Añade un importe, como “döner 6”',
+    whichAmount: '¿Qué importe?',
+    amountGroup: 'Importe',
+    whichCategory: '¿Qué categoría?',
+    categoryGroup: 'Categoría',
+    more: 'Más',
+    saved: (what) => `Guardado: ${what}`,
+    undo: 'Deshacer',
+    undoFailed: 'No se ha podido deshacer.',
+  },
+  errors: {
+    enterAmount: 'Escribe un importe.',
+    noRate: (currency) => `Aún no hay tipo de cambio para ${currency}. Pon uno en Ajustes.`,
+  },
+};
