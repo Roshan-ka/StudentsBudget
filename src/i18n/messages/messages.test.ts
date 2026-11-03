@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED } from '../languages';
+import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, type Language } from '../languages';
 import { MESSAGES, type Messages } from '.';
 
 /** Every key path in a dictionary, with functions (texts that take values) as leaves. */
@@ -19,25 +19,36 @@ function texts(value: unknown, prefix: string): Map<string, string> {
   return new Map(Object.entries(value).flatMap(([key, inner]) => [...texts(inner, `${prefix}.${key}`)]));
 }
 
-/** Texts German shares with English on purpose: words that are the same, a name, and a bare format. */
-const SAME_IN_GERMAN = new Set([
-  'common.accountOption',
-  'categories.income-bafoeg',
-  'setup.accounts.name',
-  'setup.accounts.bank',
-  'setup.oneOffs.name',
-  'setup.lines.range',
-  'setup.editPlan.heading',
-  'accounts.name',
-  'accounts.kinds.bank',
-  'accounts.rates.rate',
-  'backup.heading',
-  'auth.signedIn.as.after',
-  'auth.passkeys.heading',
-  'auth.passkeys.unnamed',
-  'badges.tiers.bronze',
-  'badges.tiers.gold',
-]);
+/**
+ * Texts a language shares with English on purpose, by language: words that are the same, a name, and a bare format.
+ * Every language with a dictionary of its own has an entry, even an empty one.
+ */
+const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
+  de: new Set([
+    'common.accountOption',
+    'categories.income-bafoeg',
+    'setup.accounts.name',
+    'setup.accounts.bank',
+    'setup.oneOffs.name',
+    'setup.lines.range',
+    'setup.editPlan.heading',
+    'accounts.name',
+    'accounts.kinds.bank',
+    'accounts.rates.rate',
+    'backup.heading',
+    'auth.signedIn.as.after',
+    'auth.passkeys.heading',
+    'auth.passkeys.unnamed',
+    'badges.tiers.bronze',
+    'badges.tiers.gold',
+  ]),
+  es: new Set(['common.accountOption', 'categories.income-bafoeg']),
+};
+
+/** Every language besides English with a dictionary of its own; a draft has English underneath its unwritten areas. */
+const WRITTEN = (Object.keys(LANGUAGES) as Language[]).filter(
+  (code) => code !== DEFAULT_LANGUAGE && MESSAGES[code] !== MESSAGES.en,
+);
 
 describe('the dictionaries', () => {
   it('has one for every language in the registry, each with exactly English’s keys', () => {
@@ -56,17 +67,30 @@ describe('the dictionaries', () => {
     }
   });
 
-  it('has German for every text, apart from what is the same in both', () => {
-    const { en, de } = MESSAGES;
-    for (const area of Object.keys(en) as (keyof Messages)[]) {
-      const german = texts(de[area], area);
-      for (const [path, english] of texts(en[area], area)) {
-        if (!SAME_IN_GERMAN.has(path)) expect(german.get(path), path).not.toBe(english);
-      }
-    }
-    // An allow-listed text that no longer exists is a stale entry.
+  it('has its own text for every text of the areas a language has written, apart from what is the same in both', () => {
+    const { en } = MESSAGES;
     const all = new Set([...texts(en, 'x')].map(([path]) => path.slice(2)));
-    for (const path of SAME_IN_GERMAN) expect(all.has(path), path).toBe(true);
+    for (const code of WRITTEN) {
+      const same = SAME_AS_ENGLISH[code];
+      expect(same, `${code} needs an entry in SAME_AS_ENGLISH`).toBeDefined();
+      for (const area of Object.keys(en) as (keyof Messages)[]) {
+        // Not written yet: a draft has English underneath (src/i18n/messages/<code>/index.ts).
+        if (MESSAGES[code][area] === en[area]) continue;
+        const own = texts(MESSAGES[code][area], area);
+        for (const [path, english] of texts(en[area], area)) {
+          if (!same?.has(path)) expect(own.get(path), `${code}: ${path}`).not.toBe(english);
+        }
+      }
+      // An allow-listed text that no longer exists is a stale entry.
+      for (const path of same ?? []) expect(all.has(path), `${code}: ${path}`).toBe(true);
+    }
+  });
+
+  it("counts by each language's own plural rules", () => {
+    // Spanish counts 0 as plural, as English does (French will count it as singular).
+    expect(MESSAGES.es.common.counts.accounts(0)).toBe('0 cuentas');
+    expect(MESSAGES.es.common.counts.accounts(1)).toBe('1 cuenta');
+    expect(MESSAGES.es.common.counts.entries(2)).toBe('2 registros');
   });
 
   it('keeps every bottom-navigation label short enough for five side by side at 375 px, drafts included', () => {
