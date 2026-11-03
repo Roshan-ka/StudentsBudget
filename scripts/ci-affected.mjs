@@ -220,7 +220,8 @@ export function selectAffected({ changed, repo, map, full = false }) {
  * What a run's inputs mean. `scope`: what the branch changes against main (`changed`), or everything (`full`), or
  * `quick`, a pull request's automatic run: `changed` without e2e and the offline check (`e2e` false; see forScope).
  * `browsers` and `languages`: `auto` is Chromium and the default language for a changed run, everything for a full one.
- * StudentsBudget is English only, so `languages` is passed on to e2e (E2E_LANGUAGES) and no spec reads it yet.
+ * `languages` is passed on to e2e (E2E_LANGUAGES): `all` adds the 375 px tour of every page in each offered language
+ * besides English (e2e/language-tour.spec.ts); the language switch runs either way.
  * Throws on a value the inputs don't offer. `auto` lists the options that were left on auto.
  */
 export function runOptions({ scope = 'changed', browsers = 'auto', languages = 'auto' }) {

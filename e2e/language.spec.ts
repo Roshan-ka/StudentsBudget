@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { horizontalOverflow } from './helpers/layout';
 import { completeSetup } from './helpers/setup';
 
-// The language picker (language switch, chunk 10). German is a draft: only the frame (the navigation, the page
-// headings) and the picker are German so far, and `next dev` lists it before it is offered, so these run on a dev build.
+// The language picker (language switch, chunks 10 and 15) and a phone that is set to German. Every page in German at
+// 375 px is language-tour.spec.ts, for a run with every language.
 test.use({ viewport: { width: 375, height: 812 } });
 
 /** The picker, named in the language the page is in. A role, not a label: a hidden page keeps its labels. */
@@ -39,12 +39,30 @@ test('Settings switches the app to German and back, and the choice survives a re
 test('setup offers the language before anything else, each in its own words', async ({ page }) => {
   await page.goto('/setup');
   await expect(picker(page)).toBeVisible();
-  // Each language by its own name; a draft says so.
+  // Each language by its own name.
   await expect(picker(page).locator('option[value="en"]')).toHaveText('English');
-  await expect(picker(page).locator('option[value="de"]')).toHaveText(/^Deutsch/);
+  await expect(picker(page).locator('option[value="de"]')).toHaveText('Deutsch');
   await expect(picker(page).locator('option[value="de"]')).toHaveAttribute('lang', 'de');
 
   await picker(page).selectOption('de');
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   await expect(picker(page)).toHaveAccessibleName('Sprache');
+  await expect(page.getByRole('heading', { level: 2, name: 'Richte deinen Plan ein', exact: true })).toBeVisible();
+});
+
+test.describe('a phone set to German', () => {
+  test.use({ locale: 'de-DE' });
+
+  test('opens in German the first time, and keeps English once it is chosen', async ({ page }) => {
+    await page.goto('/setup');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+    await expect(page.getByRole('heading', { level: 2, name: 'Richte deinen Plan ein', exact: true })).toBeVisible();
+
+    await picker(page).selectOption('en');
+    await expect(page.getByRole('heading', { level: 2, name: 'Set up your plan', exact: true })).toBeVisible();
+    // The choice wins over the phone's language.
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.getByRole('heading', { level: 2, name: 'Set up your plan', exact: true })).toBeVisible();
+  });
 });

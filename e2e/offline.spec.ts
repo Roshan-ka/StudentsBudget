@@ -1,4 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { MESSAGES } from '../src/i18n/messages';
+import { chooseLanguage } from './helpers/languages';
 import { completeSetup } from './helpers/setup';
 
 // Run by playwright.offline.config.ts against a production build: the service worker only exists there.
@@ -92,6 +94,25 @@ test('every page the worker caches opens offline with its scripts', async ({ pag
     // Rendered only after hydration and the plan read: the scripts loaded.
     await expect(mainNav(page), path).toBeVisible();
   }
+
+  expect(failedAssets).toEqual([]);
+});
+
+test('opens in German with no network once German is chosen', async ({ page, context }) => {
+  test.setTimeout(60_000);
+  const failedAssets = trackFailedAssets(page);
+
+  await setUpOnlineThenGoOffline(page, context);
+  // The dictionaries are part of the pages' scripts, never loaded later, so the cached pages hold German too.
+  const t = MESSAGES.de;
+  await chooseLanguage(page, 'de');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(page.getByRole('region', { name: t.home.leftThisMonth.heading, exact: true })).toBeVisible();
+
+  const nav = page.getByRole('navigation', { name: t.shell.navLabel, exact: true });
+  await nav.getByRole('link', { name: t.shell.nav.settings, exact: true }).click();
+  await expect(page).toHaveURL('/settings');
+  await expect(page.getByRole('heading', { level: 2, name: t.shell.headings.settings, exact: true })).toBeVisible();
 
   expect(failedAssets).toEqual([]);
 });

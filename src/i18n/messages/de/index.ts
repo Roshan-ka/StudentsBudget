@@ -1,4 +1,4 @@
-import { en, type Messages } from '../en';
+import type { Messages } from '../en';
 import { account } from './account';
 import { accounts } from './accounts';
 import { auth } from './auth';
@@ -20,9 +20,9 @@ import { sync } from './sync';
 import { tips } from './tips';
 
 /**
- * German, drafted area by area (plan 1, chunks 10–14); since chunk 14 every area is written. Not offered yet: chunk 15
- * offers it, and drops the English underneath, so typecheck then holds every key.
- * A test checks that every written area differs from English, apart from a short allow-list (messages.test.ts).
+ * German, written area by area (plan 1, chunks 10–14) and offered since chunk 15. Every area is its own, with no
+ * English underneath, so typecheck holds every key. A test checks that its texts differ from English, apart from a
+ * short allow-list (messages.test.ts).
  *
  * Glossary, so the areas say the same thing the same way:
  * - du, throughout; calm: "12 € zu viel", never a warning
@@ -39,7 +39,6 @@ import { tips } from './tips';
  * - sync: synchronisieren (the Sync heading: Synchronisierung; the button: Jetzt synchronisieren); link: verknüpfen
  */
 export const de: Messages = {
-  ...en,
   shell,
   language,
   common,

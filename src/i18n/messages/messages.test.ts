@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LANGUAGES } from '../languages';
+import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED } from '../languages';
 import { MESSAGES, type Messages } from '.';
 
 /** Every key path in a dictionary, with functions (texts that take values) as leaves. */
@@ -47,11 +47,18 @@ describe('the dictionaries', () => {
     }
   });
 
-  it('has German for every text of the areas written in German so far, apart from what is the same in both', () => {
+  it('gives every offered language its own text in every area, with no English underneath', () => {
+    for (const code of OFFERED) {
+      if (code === DEFAULT_LANGUAGE) continue;
+      for (const area of Object.keys(MESSAGES.en) as (keyof Messages)[]) {
+        expect(MESSAGES[code][area], `${code}.${area}`).not.toBe(MESSAGES.en[area]);
+      }
+    }
+  });
+
+  it('has German for every text, apart from what is the same in both', () => {
     const { en, de } = MESSAGES;
     for (const area of Object.keys(en) as (keyof Messages)[]) {
-      // Not written yet: the draft has English underneath (src/i18n/messages/de/index.ts).
-      if (de[area] === en[area]) continue;
       const german = texts(de[area], area);
       for (const [path, english] of texts(en[area], area)) {
         if (!SAME_IN_GERMAN.has(path)) expect(german.get(path), path).not.toBe(english);
