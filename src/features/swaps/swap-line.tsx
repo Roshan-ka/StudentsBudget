@@ -4,17 +4,25 @@ import { useId, useState } from 'react';
 import type { Swap } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
 import { RangeSource } from '@/features/setup/steps/range-source';
+import { contentLang } from '@/i18n/content';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import { amountText, swapLineText, type Suggestion } from './suggest';
 
 /** One source block per amount: a swap whose cheaper amount sits on another page says where each one comes from. */
-function sourceBlocks(swap: Swap): { label: string; range: Pick<Swap, 'source' | 'url' | 'checked'> }[] {
+function sourceBlocks(
+  swap: Swap,
+  t: Messages,
+  locale: string,
+): { label: string; range: Pick<Swap, 'source' | 'url' | 'checked'> }[] {
+  const text = t.tips.swap;
   if (swap.toSource === undefined || swap.toUrl === undefined) {
-    return [{ label: 'Where these numbers come from', range: swap }];
+    return [{ label: text.sources, range: swap }];
   }
   return [
-    { label: `Where ${amountText(swap.fromMinor)} comes from`, range: swap },
+    { label: text.sourceOf(amountText(swap.fromMinor, locale)), range: swap },
     {
-      label: `Where ${amountText(swap.toMinor)} comes from`,
+      label: text.sourceOf(amountText(swap.toMinor, locale)),
       range: { source: swap.toSource, url: swap.toUrl, checked: swap.checked },
     },
   ];
@@ -24,12 +32,14 @@ function sourceBlocks(swap: Swap): { label: string; range: Pick<Swap, 'source' |
  * One calm line under an envelope row: "Try this: … · save about €X per …". Tapping it opens the swap's body, where
  * each of its prices comes from and the tip it is linked to, which carries its own source: every number shown has one.
  * The panel is outlined, not filled: muted text on the muted fill was below 4.5:1, on the page background it is above.
+ * The swap's and the tip's own words are city content and stay English.
  */
 export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
   const panelId = useId();
+  const { t, lang, locale } = useT();
   const [open, setOpen] = useState(false);
   const { swap } = suggestion;
-  const tip = swap.tipId === undefined ? undefined : TIPS.find((t) => t.id === swap.tipId);
+  const tip = swap.tipId === undefined ? undefined : TIPS.find((candidate) => candidate.id === swap.tipId);
 
   return (
     <div className="flex flex-col gap-1">
@@ -40,24 +50,26 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
         onClick={() => setOpen(!open)}
         className="inline-flex min-h-11 w-fit max-w-full cursor-pointer items-center text-left text-sm break-words text-primary underline underline-offset-4"
       >
-        {swapLineText(suggestion)}
+        {swapLineText(suggestion, lang)}
       </button>
       {open && (
         <div
           id={panelId}
           role="group"
-          aria-label={`${swap.title} details`}
+          aria-label={t.tips.swap.details(swap.title)}
           className="flex flex-col gap-3 rounded-lg border px-3 py-3 text-sm"
         >
-          <p>{swap.body}</p>
-          {sourceBlocks(swap).map(({ label, range }) => (
+          <p lang={contentLang(lang)}>{swap.body}</p>
+          {sourceBlocks(swap, t, locale).map(({ label, range }) => (
             <RangeSource key={label} range={range} label={label} />
           ))}
           {tip !== undefined && (
             <div className="flex flex-col gap-1 border-t pt-3">
-              <p className="text-xs text-muted-foreground">Related tip</p>
-              <p className="font-medium">{tip.title}</p>
-              <p className="text-muted-foreground">{tip.body}</p>
+              <p className="text-xs text-muted-foreground">{t.tips.swap.relatedTip}</p>
+              <div lang={contentLang(lang)} className="flex flex-col gap-1">
+                <p className="font-medium">{tip.title}</p>
+                <p className="text-muted-foreground">{tip.body}</p>
+              </div>
               <RangeSource range={tip} />
             </div>
           )}

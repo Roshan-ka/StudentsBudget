@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useT } from '@/i18n/use-t';
 import type { Badge } from './badges';
 import { DatedText } from './dated-text';
 
@@ -13,6 +14,8 @@ function nextBadge(badges: Badge[]): Badge | null {
 
 /** The badges on home: how many are earned, the next one, and the way to all of them. Nothing here reads data. */
 export function BadgesCard({ badges }: { badges: Badge[] }) {
+  const { t } = useT();
+  const text = t.badges.card;
   const earned = badges.filter((b) => b.earnedOn !== null).length;
   const next = nextBadge(badges);
 
@@ -23,12 +26,12 @@ export function BadgesCard({ badges }: { badges: Badge[] }) {
       className="flex flex-col items-start gap-0.5 rounded-lg border px-4 pt-3"
     >
       <h2 id="badges-card-heading" className="font-medium">
-        Badges
+        {text.heading}
       </h2>
-      <p className="text-sm">{`${earned} of ${badges.length} earned`}</p>
+      <p className="text-sm">{text.earnedOf(earned, badges.length)}</p>
       {next !== null && (
         <>
-          <p className="text-sm text-muted-foreground">{`Next: ${next.title}`}</p>
+          <p className="text-sm text-muted-foreground">{text.next(next.title)}</p>
           <p className="text-sm break-words text-muted-foreground">
             <DatedText text={next.progress} />
           </p>
@@ -38,7 +41,7 @@ export function BadgesCard({ badges }: { badges: Badge[] }) {
         href="/badges"
         className="inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline"
       >
-        See all badges
+        {text.seeAll}
       </Link>
     </section>
   );

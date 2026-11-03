@@ -2,6 +2,7 @@ import { account } from './account';
 import { accounts } from './accounts';
 import { auth } from './auth';
 import { backup } from './backup';
+import { badges } from './badges';
 import { categories } from './categories';
 import { charts } from './charts';
 import { checkIn } from './check-in';
@@ -10,9 +11,11 @@ import { entries } from './entries';
 import { home } from './home';
 import { profile } from './profile';
 import { recurring } from './recurring';
+import { reveal } from './reveal';
 import { setup } from './setup';
 import { shell } from './shell';
 import { sync } from './sync';
+import { tips } from './tips';
 
 /**
  * English, the reference dictionary: every other language has exactly its keys (`Messages`), area by area. A text
@@ -34,6 +37,9 @@ export const en = {
   auth,
   checkIn,
   charts,
+  badges,
+  reveal,
+  tips,
 };
 
 export type Messages = typeof en;

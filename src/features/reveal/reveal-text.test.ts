@@ -35,3 +35,12 @@ describe('recapLine', () => {
     });
   });
 });
+
+describe('in another language', () => {
+  it("writes the month and the amount the language's way", () => {
+    const line = recapLine('2026-10', 27400, '2026-10-01', 'de');
+    expect(line).toContain('Oktober 2026');
+    expect(line).toContain('274\u00a0€');
+    expect(formatDay('2026-10-16', 'de-DE')).toBe('16. Okt.');
+  });
+});

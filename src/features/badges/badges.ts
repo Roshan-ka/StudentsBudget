@@ -2,6 +2,9 @@ import { parseISO } from 'date-fns';
 import type { Entry, Plan, Profile, WeekResult } from '@/db/types';
 import { semesterWeeksOf } from '@/features/profile/profile';
 import { isIsoDate } from '@/features/recurring/schedule';
+import { dateFormat } from '@/i18n/format';
+import { LANGUAGES, type Language } from '@/i18n/languages';
+import { MESSAGES, type Messages } from '@/i18n/messages';
 import {
   addDays,
   firstOfMonth,
@@ -45,15 +48,16 @@ const SILVER_WEEKS = 12;
 /** Weeks in a row that earn the Logging Streak. */
 const STREAK_WEEKS = 4;
 
-const monthAndYear = new Intl.DateTimeFormat('en-IE', { month: 'long', year: 'numeric' });
+/** The dictionary and the locale a badge's words are written with. */
+type Words = { t: Messages; locale: string };
 
 /** "November 2026". `parseISO` reads a date-only string as local midnight, so the month never shifts. */
-const monthName = (month: IsoMonth): string => monthAndYear.format(parseISO(firstOfMonth(month)));
+const monthName = (month: IsoMonth, locale: string): string =>
+  dateFormat(locale, { month: 'long', year: 'numeric' }).format(parseISO(firstOfMonth(month)));
 
 /** "€62", or "€61.72" when there are cents: a bar to stay under is never rounded. */
-const euros = (minor: Minor): string => formatMoney(minor, 'EUR', minor % 100 === 0 ? { whole: true } : undefined);
-
-const weeksText = (n: number): string => `${n} ${n === 1 ? 'week' : 'weeks'}`;
+const euros = (minor: Minor, locale: string): string =>
+  formatMoney(minor, 'EUR', { whole: minor % 100 === 0, locale });
 
 /**
  * The semester that sets gold Under-Budget Week: the weeks of the profile's semester (`semesterWeeksOf`), or
@@ -114,7 +118,7 @@ export function badgeHistory(plan: Plan, entries: Entry[], results: WeekResult[]
  * spending logged says nothing about the budget, a week with nothing planned (a share of 0) has nothing to be under,
  * and a week away does not count. Bronze at 4, silver at 12, gold at a semester.
  */
-function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number): Badge {
+function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number, { t }: Words): Badge {
   const gold = goldWeeks(semesterWeeks);
   const tierAt = (n: number): Badge['tier'] =>
     n >= gold ? 'gold' : n >= SILVER_WEEKS ? 'silver' : n >= BRONZE_WEEKS ? 'bronze' : null;
@@ -133,11 +137,12 @@ function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number): Badge {
   }
 
   const goal = tier === null ? BRONZE_WEEKS : tier === 'bronze' ? SILVER_WEEKS : tier === 'silver' ? gold : null;
+  const text = t.badges.progress;
   return {
     id: 'under-budget-week',
-    title: 'Under-Budget Week',
+    title: t.badges.names['under-budget-week'],
     tier,
-    progress: goal === null ? `${count} weeks under budget` : `${count} of ${goal} weeks`,
+    progress: goal === null ? text.underBudgetCount(count) : text.underBudgetOf(count, goal),
     earnedOn,
   };
 }
@@ -146,7 +151,7 @@ function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number): Badge {
  * Weeks in a row with a logged expense (`loggedExpenseTest`). A week away neither ends the run nor adds to it, and
  * while the latest week (recorded, or one not recorded yet) is marked away the streak reads as paused. Earned at 4.
  */
-function loggingStreak(weeks: WeekResult[], awayNotRecorded: boolean): Badge {
+function loggingStreak(weeks: WeekResult[], awayNotRecorded: boolean, { t }: Words): Badge {
   let run = 0;
   let earnedOn: IsoDate | null = null;
   for (const w of weeks) {
@@ -157,24 +162,21 @@ function loggingStreak(weeks: WeekResult[], awayNotRecorded: boolean): Badge {
   const paused = awayNotRecorded || (weeks.length > 0 && weeks[weeks.length - 1].paused);
 
   // A streak that was earned and has ended reads as a new one starting, not as if nothing had happened.
-  const noRun =
-    earnedOn === null
-      ? 'A streak starts with a week of envelope spending you log yourself'
-      : 'A new streak starts with a week of envelope spending you log yourself';
+  const text = t.badges.progress;
   let progress: string;
-  if (run === 0) progress = noRun;
-  else if (paused) progress = `Your streak is paused at ${weeksText(run)}`;
-  else if (earnedOn === null) progress = `${run} of ${STREAK_WEEKS} weeks in a row`;
-  else progress = `${weeksText(run)} in a row`;
+  if (run === 0) progress = earnedOn === null ? text.streakStart : text.streakNew;
+  else if (paused) progress = text.streakPaused(run);
+  else if (earnedOn === null) progress = text.streakOf(run, STREAK_WEEKS);
+  else progress = text.streakRun(run);
 
-  return { id: 'logging-streak', title: 'Logging Streak', tier: null, progress, earnedOn };
+  return { id: 'logging-streak', title: t.badges.names['logging-streak'], tier: null, progress, earnedOn };
 }
 
 /**
  * The cheapest week on food so far, among full weeks with groceries logged and not away. It is earned by the first
  * week that is cheaper than every week before it, so one week alone does not earn it.
  */
-function ramenRoyalty(weeks: WeekResult[], planStart: IsoDate): Badge {
+function ramenRoyalty(weeks: WeekResult[], planStart: IsoDate, { t, locale }: Words): Badge {
   let best: WeekResult | null = null;
   let earnedOn: IsoDate | null = null;
   for (const w of weeks) {
@@ -184,12 +186,12 @@ function ramenRoyalty(weeks: WeekResult[], planStart: IsoDate): Badge {
     if (best === null || w.foodSpentMinor < best.foodSpentMinor) best = w;
   }
 
-  let progress = 'Your first full week of groceries sets the mark';
-  if (best !== null) {
-    progress = `Cheapest grocery week so far: ${euros(best.foodSpentMinor)} (week of ${formatDate(best.weekStart)})`;
-    if (earnedOn === null) progress += '. A cheaper week earns it';
-  }
-  return { id: 'ramen-royalty', title: 'Ramen Royalty', tier: null, progress, earnedOn };
+  const text = t.badges.progress;
+  const progress =
+    best === null
+      ? text.ramenFirst
+      : text.ramenBest(euros(best.foodSpentMinor, locale), formatDate(best.weekStart), earnedOn !== null);
+  return { id: 'ramen-royalty', title: t.badges.names['ramen-royalty'], tier: null, progress, earnedOn };
 }
 
 /**
@@ -197,32 +199,34 @@ function ramenRoyalty(weeks: WeekResult[], planStart: IsoDate): Badge {
  * hand count, as for the weeks: a month with no spending logged says nothing about eating out, neither as the mark
  * nor as a month under it.
  */
-function latteSurvivor(months: MonthSpend[]): Badge {
+function latteSurvivor(months: MonthSpend[], { t, locale }: Words): Badge {
+  const text = t.badges.progress;
   const badge = (progress: string, earnedOn: IsoDate | null = null): Badge => ({
     id: 'latte-survivor',
-    title: 'Latte Survivor',
+    title: t.badges.names['latte-survivor'],
     tier: null,
     progress,
     earnedOn,
   });
   const logged = months.filter((m) => m.handLoggedCount > 0);
-  if (logged.length === 0) return badge('Your first full month of logging sets the mark');
+  if (logged.length === 0) return badge(text.latteFirstLogging);
   const markAt = logged.findIndex((m) => m.eatingOutMinor > 0);
-  if (markAt === -1) return badge('Your first full month with eating out sets the mark');
+  if (markAt === -1) return badge(text.latteFirstEatingOut);
   const mark = logged[markAt];
 
   // Doubling keeps it in whole cents: €123.45 halves to €61.725, and €61.72 is the most that is at most half.
   const hit = logged.slice(markAt + 1).find((m) => m.eatingOutMinor * 2 <= mark.eatingOutMinor);
   if (hit === undefined) {
     const most = Math.floor(mark.eatingOutMinor / 2);
-    return badge(
-      `A month with ${euros(most)} or less on eating out earns it ` +
-        `(half of what you spent in ${monthName(mark.month)})`,
-    );
+    return badge(text.latteTarget(euros(most, locale), monthName(mark.month, locale)));
   }
   return badge(
-    `${monthName(hit.month)}: ${euros(hit.eatingOutMinor)} on eating out, down from ` +
-      `${euros(mark.eatingOutMinor)} in ${monthName(mark.month)}`,
+    text.latteHit(
+      monthName(hit.month, locale),
+      euros(hit.eatingOutMinor, locale),
+      euros(mark.eatingOutMinor, locale),
+      monthName(mark.month, locale),
+    ),
     addDays(firstOfMonth(shiftMonth(hit.month, 1)), -1),
   );
 }
@@ -234,14 +238,20 @@ function latteSurvivor(months: MonthSpend[]): Badge {
  * time, so editing, adding or deleting an expense of a finished month can change it. Rows that only hold the away
  * mark of a week not recorded yet are left out (the history says whether such a week is marked). `semesterWeeks`
  * (from `semesterWeeksFor`) sets gold for Under-Budget Week and is checked each time, so a longer semester in the
- * profile can take gold back to silver.
+ * profile can take gold back to silver. Their names and progress are in `lang`.
  */
-export function badgesFrom(results: WeekResult[], semesterWeeks: number, history: BadgeHistory): Badge[] {
+export function badgesFrom(
+  results: WeekResult[],
+  semesterWeeks: number,
+  history: BadgeHistory,
+  lang: Language = 'en',
+): Badge[] {
+  const words: Words = { t: MESSAGES[lang], locale: LANGUAGES[lang].locale };
   const weeks = results.filter(isRecorded).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
   return [
-    underBudgetWeek(weeks, semesterWeeks),
-    loggingStreak(weeks, history.awayNotRecorded),
-    ramenRoyalty(weeks, history.planStart),
-    latteSurvivor(history.months),
+    underBudgetWeek(weeks, semesterWeeks, words),
+    loggingStreak(weeks, history.awayNotRecorded, words),
+    ramenRoyalty(weeks, history.planStart, words),
+    latteSurvivor(history.months, words),
   ];
 }

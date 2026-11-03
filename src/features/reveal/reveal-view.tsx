@@ -7,7 +7,9 @@ import { useId } from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { db } from '@/db/db';
 import type { Entry, Guess, Plan } from '@/db/types';
-import { categoryName } from '@/features/entries/categories';
+import { categoryNameIn } from '@/i18n/category-name';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
 import { formatWeekAmount } from '@/lib/week-amount';
@@ -17,10 +19,10 @@ import { formatDay, recapLine } from './reveal-text';
 const LINK_CLASS = 'text-primary underline-offset-4 hover:underline';
 
 /** "You guessed €80. It was €190." Whole euros, except that a non-zero amount under 50 cents keeps its cents. */
-function guessLine(row: GuessRow): string {
-  const guessed = formatWeekAmount(row.guessMinor).text;
-  const actual = formatWeekAmount(row.actualMonthlyMinor).text;
-  return `You guessed ${guessed}. It was ${actual}.`;
+function guessLine(row: GuessRow, t: Messages, locale: string): string {
+  const guessed = formatWeekAmount(row.guessMinor, locale).text;
+  const actual = formatWeekAmount(row.actualMonthlyMinor, locale).text;
+  return t.reveal.guessLine(guessed, actual);
 }
 
 /**
@@ -28,6 +30,8 @@ function guessLine(row: GuessRow): string {
  * Both dates are passed in, so nothing here reads the clock.
  */
 export function RevealCard({ startedOn, today }: { startedOn: IsoDate; today: IsoDate }) {
+  const { t, locale } = useT();
+  const text = t.reveal.card;
   const unlockDate = unlockOn(startedOn);
 
   if (today >= unlockDate) {
@@ -36,7 +40,7 @@ export function RevealCard({ startedOn, today }: { startedOn: IsoDate; today: Is
         href="/reveal"
         className="flex min-h-12 items-center justify-between gap-3 rounded-lg border px-4 py-3 font-medium"
       >
-        See how your guesses compare
+        {text.open}
         <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
       </Link>
     );
@@ -44,43 +48,42 @@ export function RevealCard({ startedOn, today }: { startedOn: IsoDate; today: Is
 
   return (
     // No bottom padding: the link is 44 px tall (a finger needs that), and its own height is the space below the text.
-    <section aria-label="Your guesses" className="flex flex-col items-start rounded-lg border px-4 pt-3">
-      <p className="font-medium">{`Your guesses unlock on ${formatDay(unlockDate)}.`}</p>
+    <section aria-label={text.label} className="flex flex-col items-start rounded-lg border px-4 pt-3">
+      <p className="font-medium">{text.unlocksOn(formatDay(unlockDate, locale))}</p>
       <Link href="/reveal" className={`${LINK_CLASS} inline-flex min-h-11 items-center text-sm`}>
-        What&apos;s this?
+        {text.whatsThis}
       </Link>
     </section>
   );
 }
 
 function Locked({ unlockDate }: { unlockDate: IsoDate }) {
+  const { t, locale } = useT();
   return (
     <div className="flex flex-col gap-2">
-      <p className="font-medium">{`Your guesses unlock on ${formatDay(unlockDate)}. Keep logging.`}</p>
-      <p className="text-muted-foreground">
-        {'At setup you guessed what you spend each month. ' +
-          `After ${REVEAL_MIN_DAYS} days of logging, you will see how your guesses compare with what you really spent.`}
-      </p>
+      <p className="font-medium">{t.reveal.locked.unlocksOn(formatDay(unlockDate, locale))}</p>
+      <p className="text-muted-foreground">{t.reveal.locked.explain(REVEAL_MIN_DAYS)}</p>
     </div>
   );
 }
 
 function Revealed({ rows, startedOn, today }: { rows: GuessRow[]; startedOn: IsoDate; today: IsoDate }) {
+  const { t, locale } = useT();
   return (
     <div className="flex flex-col gap-4">
-      <ul aria-label="Your guesses" className="flex flex-col gap-4">
+      <ul aria-label={t.reveal.listLabel} className="flex flex-col gap-4">
         {rows.map((row) => (
           <li key={row.categoryId} className="flex flex-col gap-0.5">
-            <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
-            <p className="tabular-nums">{guessLine(row)}</p>
+            <p className="font-medium break-words">{categoryNameIn(t, row.categoryId)}</p>
+            <p className="tabular-nums">{guessLine(row, t, locale)}</p>
           </li>
         ))}
       </ul>
       <p className="text-sm text-muted-foreground">
-        {`Your spending from ${formatDay(startedOn)} to ${formatDay(today)}, scaled to a month of 30 days.`}
+        {t.reveal.scaled(formatDay(startedOn, locale), formatDay(today, locale))}
       </p>
       <Link href="/setup?edit=1" className={buttonVariants({ className: 'h-10 self-start px-4' })}>
-        Adjust my plan
+        {t.reveal.adjust}
       </Link>
     </div>
   );
@@ -88,18 +91,19 @@ function Revealed({ rows, startedOn, today }: { rows: GuessRow[]; startedOn: Iso
 
 function Recaps({ guesses, plan, entries, today }: { guesses: Guess[]; plan: Plan; entries: Entry[]; today: IsoDate }) {
   const headingId = useId();
+  const { t, lang } = useT();
   const months = completedMonths(plan.createdOn, today);
   if (months.length === 0) return null;
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
       <h3 id={headingId} className="text-lg font-semibold">
-        Month by month
+        {t.reveal.monthByMonth}
       </h3>
       <ul aria-labelledby={headingId} className="flex flex-col gap-2">
         {months.map((month) => (
           <li key={month}>
-            {recapLine(month, monthRecap(guesses, plan, entries, month).leftoverMinor, plan.createdOn)}
+            {recapLine(month, monthRecap(guesses, plan, entries, month).leftoverMinor, plan.createdOn, lang)}
           </li>
         ))}
       </ul>
@@ -108,13 +112,14 @@ function Recaps({ guesses, plan, entries, today }: { guesses: Guess[]; plan: Pla
 }
 
 function Reveal({ plan, guesses, entries, today }: { plan: Plan; guesses: Guess[]; entries: Entry[]; today: IsoDate }) {
+  const { t } = useT();
   const { unlocked, unlockOn: unlockDate, rows } = guessVsReality(guesses, entries, plan.createdOn, today);
 
   return (
     <div className="flex flex-col gap-8">
       {guesses.length === 0 ? (
         // Guesses are optional, so there may be none to wait for.
-        <p className="text-muted-foreground">No guesses were saved in setup, so there is nothing to compare.</p>
+        <p className="text-muted-foreground">{t.reveal.noGuesses}</p>
       ) : unlocked ? (
         <Revealed rows={rows} startedOn={plan.createdOn} today={today} />
       ) : (
@@ -127,6 +132,7 @@ function Reveal({ plan, guesses, entries, today }: { plan: Plan; guesses: Guess[
 
 /** What you guessed against what you spent, once there are 21 days of it, and how each finished month went. */
 export function RevealView() {
+  const { t } = useT();
   // The date is null until the browser runs this (never the date of the prerender).
   const today = useToday();
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
@@ -137,9 +143,9 @@ export function RevealView() {
   if (plan === null) {
     return (
       <p className="text-muted-foreground">
-        Set up your plan to compare your guesses with what you spend.{' '}
+        {t.reveal.noPlan}{' '}
         <Link href="/setup" className={LINK_CLASS}>
-          Start setup
+          {t.reveal.startSetup}
         </Link>
       </p>
     );

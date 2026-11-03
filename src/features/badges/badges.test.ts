@@ -538,3 +538,16 @@ describe('copy', () => {
     }
   });
 });
+
+describe('in another language', () => {
+  it("writes the badge's amounts and months the language's way", () => {
+    const results = weeks(4, (i) => ({ foodSpentMinor: [3000, 4000, 2500, 2000][i] }));
+    const ramenDe = badgesFrom(results, 26, HISTORY, 'de').find((b) => b.id === 'ramen-royalty');
+    expect(ramenDe?.progress).toContain('20\u00a0€');
+    const latteDe = badgesFrom([], 26, { ...HISTORY, months: [month('2026-11', 12000)] }, 'de').find(
+      (b) => b.id === 'latte-survivor',
+    );
+    expect(latteDe?.progress).toContain('November 2026');
+    expect(latteDe?.progress).toContain('60\u00a0€');
+  });
+});

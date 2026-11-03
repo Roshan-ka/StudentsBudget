@@ -1,6 +1,9 @@
 import { GUESS_CATEGORY_IDS } from '@/data/categories';
 import type { Tip } from '@/data/tips';
-import { categoryName, orderOf } from '@/features/entries/categories';
+import { orderOf } from '@/features/entries/categories';
+import { categoryNameIn } from '@/i18n/category-name';
+import type { Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 
 /** The tips in the app's category order; within a category they keep the order they were written in. */
 export function sortTips(tips: readonly Tip[]): Tip[] {
@@ -24,8 +27,9 @@ export function tipChipIds(tips: readonly Tip[]): { main: string[]; more: string
   };
 }
 
-/** The tag under a tip: its category, and "Estimate" when no page states its number. */
-export function tipTag(tip: Tip): string {
-  const name = categoryName(tip.categoryId);
-  return tip.source === 'Estimate' ? `${name} · Estimate` : name;
+/** The tag under a tip, in `lang`: its category, and "Estimate" when no page states its number. */
+export function tipTag(tip: Tip, lang: Language = 'en'): string {
+  const t = MESSAGES[lang];
+  const name = categoryNameIn(t, tip.categoryId);
+  return tip.source === 'Estimate' ? `${name} · ${t.common.estimate}` : name;
 }
