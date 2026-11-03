@@ -60,6 +60,9 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'categories.income-bafoeg',
     'categories.income-parents',
     'shell.headings.badges',
+    'entries.form.note',
+    'setup.accounts.type',
+    'setup.editPlan.heading',
   ]),
 };
 
