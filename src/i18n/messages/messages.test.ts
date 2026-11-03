@@ -50,6 +50,8 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'accounts.total',
     'accounts.rates.rate',
     'backup.restore.question.after',
+    'auth.secondStep.prompt.after',
+    'auth.signedIn.as.after',
   ]),
 };
 
