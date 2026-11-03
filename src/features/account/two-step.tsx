@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
 import { authErrorMessage } from './auth-errors';
 import { groupedSecret, qrImageSource } from './authenticator';
@@ -15,8 +16,6 @@ import { checkAuthenticatorCode } from './credentials';
 const FACTOR_NAME = 'StudentsBudget';
 /** The name of the entry in the authenticator app (the TOTP issuer). Left out, Supabase Auth picks one itself. */
 const ISSUER = 'StudentsBudget';
-
-const OFFLINE = "You're offline. Turning two-step sign-in on or off needs a connection.";
 
 /**
  * An authenticator being added: what the app shows to add it, until its first code confirms it. `restarted`: an earlier
@@ -43,6 +42,8 @@ type FocusTarget = 'turn-on' | 'turn-off' | 'link';
  */
 export function TwoStepSection() {
   const id = useId();
+  const { t, lang } = useT();
+  const text = t.auth.twoStep;
   const [view, setView] = useState<View>({ kind: 'loading' });
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export function TwoStepSection() {
     void supabase.auth.mfa.listFactors().then(({ data, error: listError }) => {
       if (!current) return;
       if (listError || data === null) {
-        setError(authErrorMessage(listError));
+        setError(authErrorMessage(listError, lang));
         setView({ kind: 'unknown' });
         return;
       }
@@ -81,7 +82,7 @@ export function TwoStepSection() {
       setError(null);
       setStatus('');
     };
-  }, [attempt]);
+  }, [attempt, lang]);
 
   /** A ref that focuses its element when it is the one the last step named. */
   const focusIf = (target: FocusTarget) => (element: HTMLElement | null) => {
@@ -110,7 +111,7 @@ export function TwoStepSection() {
     setError(null);
     setStatus('');
     if (!navigator.onLine) {
-      setError(OFFLINE);
+      setError(text.offline);
       return;
     }
     const supabase = getSupabase();
@@ -121,7 +122,7 @@ export function TwoStepSection() {
       await step(supabase);
     } catch (thrown) {
       console.error('StudentsBudget: two-step sign-in', thrown);
-      setError(authErrorMessage(thrown));
+      setError(authErrorMessage(thrown, lang));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -132,13 +133,13 @@ export function TwoStepSection() {
     run(async (supabase) => {
       const listed = await supabase.auth.mfa.listFactors();
       if (listed.error) {
-        setError(authErrorMessage(listed.error));
+        setError(authErrorMessage(listed.error, lang));
         return;
       }
       // Already on, from another tab or phone: nothing to set up.
       const verified = listed.data.totp[0];
       if (verified !== undefined) {
-        show({ kind: 'on', factorId: verified.id }, 'turn-off', 'Two-step sign-in is already on.');
+        show({ kind: 'on', factorId: verified.id }, 'turn-off', text.alreadyOn);
         return;
       }
       // A set-up left unfinished (the page closed before its first code) would block the name: it goes first.
@@ -155,7 +156,7 @@ export function TwoStepSection() {
         issuer: ISSUER,
       });
       if (enrollError) {
-        setError(authErrorMessage(enrollError));
+        setError(authErrorMessage(enrollError, lang));
         return;
       }
       setCode('');
@@ -171,7 +172,7 @@ export function TwoStepSection() {
 
   const confirm = (event: FormEvent<HTMLFormElement>, setup: Setup) => {
     event.preventDefault();
-    const checked = checkAuthenticatorCode(code);
+    const checked = checkAuthenticatorCode(code, lang);
     if (!checked.ok) {
       setError(checked.error);
       return;
@@ -181,16 +182,16 @@ export function TwoStepSection() {
       if (verifyError?.code === 'mfa_factor_not_found') {
         // Removed meanwhile: a Turn on in another tab or on another phone clears unfinished set-ups.
         show({ kind: 'off' }, 'turn-on');
-        setError('This set-up was cancelled, maybe from another phone. Turn on to start again.');
+        setError(text.cancelledElsewhere);
         return;
       }
       if (verifyError) {
-        setError(authErrorMessage(verifyError));
+        setError(authErrorMessage(verifyError, lang));
         return;
       }
       // Confirmed: this session gave a code, so it keeps the account open.
       setCode('');
-      show({ kind: 'on', factorId: setup.factorId }, 'turn-off', 'Two-step sign-in is on.');
+      show({ kind: 'on', factorId: setup.factorId }, 'turn-off', text.isOn);
     });
   };
 
@@ -198,7 +199,7 @@ export function TwoStepSection() {
     run(async (supabase) => {
       await supabase.auth.mfa.unenroll({ factorId: setup.factorId });
       setCode('');
-      show({ kind: 'off' }, 'turn-on', 'Set-up cancelled.');
+      show({ kind: 'off' }, 'turn-on', text.setupCancelled);
     });
 
   const turnOff = (factorId: string) =>
@@ -206,45 +207,42 @@ export function TwoStepSection() {
       const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId });
       // Not found: already turned off, in another tab or on another phone.
       if (unenrollError && unenrollError.code !== 'mfa_factor_not_found') {
-        setError(authErrorMessage(unenrollError));
+        setError(authErrorMessage(unenrollError, lang));
         return;
       }
       // A fresh session no longer lists the factor, so this tab stops expecting a code.
       await supabase.auth.refreshSession();
-      show({ kind: 'off' }, 'turn-on', 'Two-step sign-in is off.');
+      show({ kind: 'off' }, 'turn-on', text.isOff);
     });
 
-  const badge =
-    view.kind === 'on' || view.kind === 'confirm-off'
-      ? 'On'
-      : view.kind === 'off'
-        ? 'Off'
-        : view.kind === 'setting-up'
-          ? 'Setting up'
-          : undefined;
+  const isOn = view.kind === 'on' || view.kind === 'confirm-off';
+  const badge = isOn
+    ? text.badges.on
+    : view.kind === 'off'
+      ? text.badges.off
+      : view.kind === 'setting-up'
+        ? text.badges.settingUp
+        : undefined;
   return (
     <section aria-labelledby={`${id}-heading`} className={SECURITY_CARD}>
-      <CardHeading id={`${id}-heading`} icon={<SmartphoneIcon />} status={badge} active={badge === 'On'}>
-        Two-step sign-in
+      <CardHeading id={`${id}-heading`} icon={<SmartphoneIcon />} status={badge} active={isOn}>
+        {text.heading}
       </CardHeading>
 
-      {view.kind === 'loading' && <p className="text-sm text-muted-foreground">Checking two-step sign-in…</p>}
+      {view.kind === 'loading' && <p className="text-sm text-muted-foreground">{text.checking}</p>}
 
       {view.kind === 'unknown' && (
         <>
-          <p className="text-sm text-muted-foreground">Couldn&apos;t check whether two-step sign-in is on.</p>
+          <p className="text-sm text-muted-foreground">{text.unknown}</p>
           <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={checkAgain}>
-            Try again
+            {text.tryAgain}
           </Button>
         </>
       )}
 
       {view.kind === 'off' && (
         <>
-          <p className="text-sm text-muted-foreground">
-            Turn it on and signing in also asks for a 6-digit code from an authenticator app, such as Google
-            Authenticator, Microsoft Authenticator or 2FAS, so your password alone no longer opens your account.
-          </p>
+          <p className="text-sm text-muted-foreground">{text.offIntro}</p>
           <Button
             ref={focusIf('turn-on')}
             type="button"
@@ -253,44 +251,36 @@ export function TwoStepSection() {
             disabled={busy}
             onClick={() => void turnOn()}
           >
-            Turn on
+            {text.turnOn}
           </Button>
         </>
       )}
 
       {view.kind === 'setting-up' && (
         <>
-          <p>Add StudentsBudget to your authenticator app, then enter the code it shows.</p>
-          {view.setup.restarted && (
-            <p className="text-sm text-muted-foreground">
-              This starts the set-up again. If your authenticator app already has a StudentsBudget entry from the
-              unfinished one, delete it: its codes won&apos;t work.
-            </p>
-          )}
+          <p>{text.setupIntro}</p>
+          {view.setup.restarted && <p className="text-sm text-muted-foreground">{text.restarted}</p>}
           {/* The app usually runs on the phone that would scan, so the link and the key come first. */}
           <a
             ref={focusIf('link')}
             href={view.setup.uri}
             className={buttonVariants({ variant: 'outline', className: 'h-10 self-start px-4' })}
           >
-            Open in authenticator app
+            {text.openApp}
           </a>
           <div className="flex flex-col gap-1">
-            <p className="text-sm text-muted-foreground">Or type this key into the app:</p>
+            <p className="text-sm text-muted-foreground">{text.typeKey}</p>
             <p className="break-all font-mono text-sm">{groupedSecret(view.setup.secret)}</p>
           </div>
           <div className="flex flex-col gap-1">
-            <p className="text-sm text-muted-foreground">Or scan this code from another device:</p>
+            <p className="text-sm text-muted-foreground">{text.scan}</p>
             {/* eslint-disable-next-line @next/next/no-img-element -- a data URL from the account, not an asset to optimise */}
-            <img src={view.setup.qrCode} alt="QR code for the authenticator app" width={176} height={176} className="rounded-lg bg-white p-2" />
+            <img src={view.setup.qrCode} alt={text.qrAlt} width={176} height={176} className="rounded-lg bg-white p-2" />
           </div>
-          <p className="text-sm text-muted-foreground">
-            Write the key down and keep it somewhere safe, away from this phone. If you lose your authenticator app,
-            typing the key into a new one gives the same codes. The data on this phone stays either way.
-          </p>
+          <p className="text-sm text-muted-foreground">{text.keepKey}</p>
           <form onSubmit={(event) => void confirm(event, view.setup)} noValidate className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${id}-code`}>6-digit code</Label>
+              <Label htmlFor={`${id}-code`}>{text.code}</Label>
               <Input
                 id={`${id}-code`}
                 inputMode="numeric"
@@ -303,10 +293,10 @@ export function TwoStepSection() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="submit" className="h-10 px-4" disabled={busy}>
-                Turn on
+                {text.turnOn}
               </Button>
               <Button type="button" variant="outline" className="h-10 px-4" disabled={busy} onClick={() => void cancelSetup(view.setup)}>
-                Cancel
+                {text.cancel}
               </Button>
             </div>
           </form>
@@ -315,10 +305,8 @@ export function TwoStepSection() {
 
       {view.kind === 'on' && (
         <>
-          <p className="text-sm text-muted-foreground">Signing in asks for the code from your authenticator app.</p>
-          <p className="text-sm text-muted-foreground">
-            Lost the app? If you wrote the key down, typing it into a new authenticator app gives the same codes.
-          </p>
+          <p className="text-sm text-muted-foreground">{text.onIntro}</p>
+          <p className="text-sm text-muted-foreground">{text.lostApp}</p>
           <Button
             ref={focusIf('turn-off')}
             type="button"
@@ -327,7 +315,7 @@ export function TwoStepSection() {
             disabled={busy}
             onClick={() => setView({ kind: 'confirm-off', factorId: view.factorId })}
           >
-            Turn off
+            {text.turnOff}
           </Button>
         </>
       )}
@@ -335,8 +323,7 @@ export function TwoStepSection() {
       {view.kind === 'confirm-off' && (
         <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
           <p id={`${id}-question`} className="text-sm">
-            Turn off two-step sign-in? Your password alone will open your account again. You can then delete the
-            StudentsBudget entry from your authenticator app.
+            {text.confirmOff}
           </p>
           <div className="flex flex-wrap gap-2">
             {/* Focused when the question opens, and described by it, so a screen reader reads the question out. */}
@@ -348,7 +335,7 @@ export function TwoStepSection() {
               aria-describedby={`${id}-question`}
               onClick={() => void turnOff(view.factorId)}
             >
-              Turn off
+              {text.turnOff}
             </Button>
             <Button
               type="button"
@@ -357,7 +344,7 @@ export function TwoStepSection() {
               disabled={busy}
               onClick={() => show({ kind: 'on', factorId: view.factorId }, 'turn-off')}
             >
-              Cancel
+              {text.cancel}
             </Button>
           </div>
         </div>

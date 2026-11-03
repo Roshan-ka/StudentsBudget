@@ -216,6 +216,13 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
      - The account card in Settings and the setup page's account line are in the `account` area.
      - `account-view.tsx` (the sign-in form, the code step and the signed-in panel) moves to chunk 7: its errors come from `credentials.ts` and `auth-errors.ts`.
 7. **Extract `auth-errors.ts`, two-step and passkeys**, plus `account-view.tsx`, `credentials.ts` and `security.tsx` (moved from chunk 6).
+   - **As built (2026-11-03):**
+     - Dictionary area `auth`.
+     - `auth-errors.ts` maps each account-server code to a meaning (`BY_CODE` → `auth.errors` key), and the general fallback is found by its key, not by comparing sentences. `authErrorMessage`, `passkeysUnavailable`, `passkeySignInMessage`, `passkeySettingsMessage`, `checkCredentials` and `checkAuthenticatorCode` take `lang` last.
+     - `OFFLINE_MESSAGE` is gone: the sign-in form and the passkey sign-in use `auth.offline`.
+     - Sentences with the email in bold are a `before` and `after` around it.
+     - The two effects that word a load error (two-step, passkeys) re-run when the language changes.
+     - The lint guard covers all of `src/features/account`.
 8. **Extract charts and check-in.** The MCP tests prove its output stays English.
 9. **Extract badges, `reveal-text` and the tips/discounts/swaps UI chrome**, plus a helper that marks content `lang="en"`.
 10. **Language picker and German shell.**

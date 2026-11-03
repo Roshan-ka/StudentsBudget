@@ -4,23 +4,17 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { KeyRoundIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import { formatDate, formatDateTime, todayIso } from '@/lib/dates';
 import { getSupabase } from '@/lib/supabase/client';
-import {
-  OFFLINE_MESSAGE,
-  passkeyCancelled,
-  passkeySettingsMessage,
-  passkeySignInMessage,
-  passkeysUnavailable,
-} from './auth-errors';
+import { passkeyCancelled, passkeySettingsMessage, passkeySignInMessage, passkeysUnavailable } from './auth-errors';
 import { CardHeading, SECURITY_CARD } from './card-heading';
 import { accountWantsCode } from './code-check';
 
 // Passkeys (P2.3b): a passkey signs in instead of the password, with Face ID, a fingerprint or the phone's PIN. A beta
 // in Supabase Auth; the password always stays. A passkey session is reported to be aal1, like a password one, so an
 // account with two-step sign-in still asks for the authenticator code after it (useAuth, authStateOf).
-
-const OFFLINE = "You're offline. Passkeys need a connection.";
 
 // Whether the browser can use passkeys (WebAuthn) doesn't change while the page is open. The server snapshot is used
 // for the server render and for hydration, so they agree; the browser's answer replaces it right after.
@@ -43,6 +37,7 @@ function noteClosedPrompt(error: unknown) {
  * goes to the form (`onError`), and starting it clears the form's (`onStart`), so the sign-in shows one message.
  */
 export function PasskeySignIn({ onStart, onError }: { onStart: () => void; onError: (message: string) => void }) {
+  const { t, lang } = useT();
   const supported = usePasskeySupport();
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
@@ -51,7 +46,7 @@ export function PasskeySignIn({ onStart, onError }: { onStart: () => void; onErr
     if (inFlight.current) return;
     onStart();
     if (!navigator.onLine) {
-      onError(OFFLINE_MESSAGE);
+      onError(t.auth.offline);
       return;
     }
     const supabase = getSupabase();
@@ -62,7 +57,7 @@ export function PasskeySignIn({ onStart, onError }: { onStart: () => void; onErr
       const { error } = await supabase.auth.signInWithPasskey();
       if (error) {
         if (passkeyCancelled(error)) noteClosedPrompt(error);
-        else onError(passkeySignInMessage(error));
+        else onError(passkeySignInMessage(error, lang));
         return;
       }
       // Signed in, and useAuth heard it. The answer's user may not list the account's authenticators (a beta): a
@@ -70,7 +65,7 @@ export function PasskeySignIn({ onStart, onError }: { onStart: () => void; onErr
       await accountWantsCode(supabase.auth);
     } catch (thrown) {
       console.error('StudentsBudget: could not sign in with a passkey', thrown);
-      onError(passkeySignInMessage(thrown));
+      onError(passkeySignInMessage(thrown, lang));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -82,9 +77,9 @@ export function PasskeySignIn({ onStart, onError }: { onStart: () => void; onErr
     <div className="flex flex-col gap-3">
       <Button type="button" variant="outline" className="h-10 self-start px-4" disabled={busy} onClick={() => void signIn()}>
         <KeyRoundIcon aria-hidden="true" />
-        Sign in with a passkey
+        {t.auth.passkeys.signIn}
       </Button>
-      <p className="text-sm text-muted-foreground">Or with your email and password:</p>
+      <p className="text-sm text-muted-foreground">{t.auth.passkeys.orPassword}</p>
     </div>
   );
 }
@@ -98,13 +93,8 @@ function dayOf(timestamp: string): string {
   return Number.isNaN(date.getTime()) ? '' : formatDate(todayIso(date));
 }
 
-function nameOf(passkey: Passkey): string {
-  return passkey.friendly_name?.trim() || 'Passkey';
-}
-
-/** "Added 29-10-2026, 14:05": with the time, so two passkeys added the same day can be told apart. */
-function addedOf(passkey: Passkey): string {
-  return `Added ${formatDateTime(passkey.created_at)}`;
+function nameOf(passkey: Passkey, t: Messages): string {
+  return passkey.friendly_name?.trim() || t.auth.passkeys.unnamed;
 }
 
 /** The control that takes the focus when the list shows again, since the one that had it is gone. */
@@ -116,6 +106,8 @@ type FocusTarget = 'add' | `remove:${string}`;
  */
 export function PasskeysSection() {
   const id = useId();
+  const { t, lang } = useT();
+  const text = t.auth.passkeys;
   const supported = usePasskeySupport();
   const [passkeys, setPasskeys] = useState<Passkey[] | 'loading' | 'unknown' | { off: string }>('loading');
   // The passkey whose removal waits for "Remove" in its question.
@@ -137,7 +129,7 @@ export function PasskeysSection() {
     void supabase.auth.passkey.list().then(({ data, error: listError }) => {
       if (!current) return;
       if (listError || data === null) {
-        const unavailable = passkeysUnavailable(listError);
+        const unavailable = passkeysUnavailable(listError, lang);
         if (unavailable !== null) {
           setPasskeys({ off: unavailable });
           return;
@@ -154,7 +146,7 @@ export function PasskeysSection() {
       setError(null);
       setStatus('');
     };
-  }, [attempt]);
+  }, [attempt, lang]);
 
   /** A ref that focuses its element when it is the one the last step named. */
   const focusIf = (target: FocusTarget) => (element: HTMLElement | null) => {
@@ -183,7 +175,7 @@ export function PasskeysSection() {
     setError(null);
     setStatus('');
     if (!navigator.onLine) {
-      setError(OFFLINE);
+      setError(text.offline);
       return;
     }
     const supabase = getSupabase();
@@ -194,7 +186,7 @@ export function PasskeysSection() {
       await step(supabase);
     } catch (thrown) {
       console.error('StudentsBudget: passkeys', thrown);
-      setError(passkeySettingsMessage(thrown, fallback));
+      setError(passkeySettingsMessage(thrown, fallback, lang));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -206,13 +198,13 @@ export function PasskeysSection() {
       const { data, error: addError } = await supabase.auth.registerPasskey();
       if (addError) {
         if (passkeyCancelled(addError)) noteClosedPrompt(addError);
-        else setError(passkeySettingsMessage(addError, 'Couldn’t add the passkey. Try again.'));
+        else setError(passkeySettingsMessage(addError, text.addFailed, lang));
         return;
       }
       await reread(supabase, (shown) => [...shown, data]);
       focusNext.current = 'add';
-      setStatus('Passkey added.');
-    }, 'Couldn’t add the passkey. Try again.');
+      setStatus(text.addedStatus);
+    }, text.addFailed);
 
   const remove = (passkey: Passkey) =>
     run(async (supabase) => {
@@ -220,14 +212,14 @@ export function PasskeysSection() {
       // Not found: already removed, on another phone; the card catches up.
       const gone = removeError !== null && (removeError.status === 404 || removeError.code === 'passkey_not_found');
       if (removeError && !gone) {
-        setError(passkeySettingsMessage(removeError, 'Couldn’t remove the passkey. Try again.'));
+        setError(passkeySettingsMessage(removeError, text.removeFailed, lang));
         return;
       }
       await reread(supabase, (shown) => shown.filter((p) => p.id !== passkey.id));
       focusNext.current = 'add';
       setRemoving(null);
-      setStatus('Passkey removed.');
-    }, 'Couldn’t remove the passkey. Try again.');
+      setStatus(text.removedStatus);
+    }, text.removeFailed);
 
   function cancelRemoval(passkey: Passkey) {
     focusNext.current = `remove:${passkey.id}`;
@@ -237,26 +229,18 @@ export function PasskeysSection() {
   const count = Array.isArray(passkeys) ? passkeys.length : null;
   return (
     <section aria-labelledby={`${id}-heading`} className={SECURITY_CARD}>
-      <CardHeading
-        id={`${id}-heading`}
-        icon={<KeyRoundIcon />}
-        status={count === null ? undefined : count === 0 ? 'None yet' : count === 1 ? '1 passkey' : `${count} passkeys`}
-      >
-        Passkeys
+      <CardHeading id={`${id}-heading`} icon={<KeyRoundIcon />} status={count === null ? undefined : text.count(count)}>
+        {text.heading}
       </CardHeading>
-      <p className="text-sm text-muted-foreground">
-        Sign in with Face ID, a fingerprint or your phone&apos;s PIN instead of your password. The passkey stays with
-        you, on your phone or in your password manager; your account keeps its public key, which can&apos;t sign anyone
-        in.
-      </p>
+      <p className="text-sm text-muted-foreground">{text.intro}</p>
 
-      {passkeys === 'loading' && <p className="text-sm text-muted-foreground">Checking your passkeys…</p>}
+      {passkeys === 'loading' && <p className="text-sm text-muted-foreground">{text.checking}</p>}
 
       {passkeys === 'unknown' && (
         <>
-          <p className="text-sm text-muted-foreground">Couldn&apos;t load your passkeys.</p>
+          <p className="text-sm text-muted-foreground">{text.unknown}</p>
           <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={checkAgain}>
-            Try again
+            {text.tryAgain}
           </Button>
         </>
       )}
@@ -271,10 +255,13 @@ export function PasskeysSection() {
             <li key={passkey.id} className="flex flex-col gap-3 rounded-lg border px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="break-words font-medium">{nameOf(passkey)}</p>
+                  <p className="break-words font-medium">{nameOf(passkey, t)}</p>
                   <p className="text-sm text-muted-foreground">
-                    {addedOf(passkey)}
-                    {passkey.last_used_at && dayOf(passkey.last_used_at) ? `; last used ${dayOf(passkey.last_used_at)}` : ''}
+                    {/* With the time, so two passkeys added the same day can be told apart. */}
+                    {text.added(formatDateTime(passkey.created_at))}
+                    {passkey.last_used_at && dayOf(passkey.last_used_at)
+                      ? text.lastUsed(dayOf(passkey.last_used_at))
+                      : null}
                   </p>
                 </div>
                 {removing?.id !== passkey.id && (
@@ -283,19 +270,18 @@ export function PasskeysSection() {
                     type="button"
                     variant="outline"
                     className="h-10 shrink-0 px-4"
-                    aria-label={`Remove ${nameOf(passkey)}, ${addedOf(passkey).toLowerCase()}`}
+                    aria-label={text.removeOne(nameOf(passkey, t), formatDateTime(passkey.created_at))}
                     disabled={busy}
                     onClick={() => setRemoving(passkey)}
                   >
-                    Remove
+                    {text.remove}
                   </Button>
                 )}
               </div>
               {removing?.id === passkey.id && (
                 <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
                   <p id={`${id}-question`} className="text-sm">
-                    Remove this passkey? It will stop signing you in; your password and any other passkey keep
-                    working. You can then delete it from your phone or password manager too.
+                    {text.removeQuestion}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {/* Focused when the question opens, and described by it, so a screen reader reads the question out. */}
@@ -307,7 +293,7 @@ export function PasskeysSection() {
                       aria-describedby={`${id}-question`}
                       onClick={() => void remove(passkey)}
                     >
-                      Remove
+                      {text.remove}
                     </Button>
                     <Button
                       type="button"
@@ -316,7 +302,7 @@ export function PasskeysSection() {
                       disabled={busy}
                       onClick={() => cancelRemoval(passkey)}
                     >
-                      Cancel
+                      {text.cancel}
                     </Button>
                   </div>
                 </div>
@@ -337,10 +323,10 @@ export function PasskeysSection() {
             onClick={() => void add()}
           >
             <KeyRoundIcon aria-hidden="true" />
-            Add a passkey
+            {text.add}
           </Button>
         ) : (
-          <p className="text-sm text-muted-foreground">This browser can&apos;t make passkeys.</p>
+          <p className="text-sm text-muted-foreground">{text.unsupported}</p>
         ))}
 
       {error && (

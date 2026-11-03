@@ -1,5 +1,6 @@
 import { account } from './account';
 import { accounts } from './accounts';
+import { auth } from './auth';
 import { backup } from './backup';
 import { categories } from './categories';
 import { common } from './common';
@@ -28,6 +29,7 @@ export const en = {
   backup,
   sync,
   account,
+  auth,
 };
 
 export type Messages = typeof en;

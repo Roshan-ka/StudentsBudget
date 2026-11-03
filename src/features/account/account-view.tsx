@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useShowInstallHint } from '@/features/setup/install-hint';
+import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
 import { AccountLink } from './account-link';
-import { authErrorMessage, OFFLINE_MESSAGE } from './auth-errors';
+import { authErrorMessage } from './auth-errors';
 import { checkAuthenticatorCode, checkCredentials, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
 import { PasskeySignIn } from './passkeys';
 import { SignInSecurity } from './security';
@@ -17,6 +18,8 @@ import { useAuth } from './use-auth';
 /** Email and password, to sign in or to create an account. */
 function SignInForm() {
   const id = useId();
+  const { t, lang } = useT();
+  const text = t.auth.signIn;
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,13 +48,13 @@ function SignInForm() {
     if (inFlight.current) return;
     setError(null);
     setNotice(null);
-    const checked = checkCredentials(email, password, mode);
+    const checked = checkCredentials(email, password, mode, lang);
     if (!checked.ok) {
       setError(checked.error);
       return;
     }
     if (!navigator.onLine) {
-      setError(OFFLINE_MESSAGE);
+      setError(t.auth.offline);
       return;
     }
     const supabase = getSupabase();
@@ -63,26 +66,26 @@ function SignInForm() {
       if (mode === 'sign-in') {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email: checked.email, password });
         if (signInError) {
-          setError(authErrorMessage(signInError));
+          setError(authErrorMessage(signInError, lang));
           return;
         }
       } else {
         const { data, error: signUpError } = await supabase.auth.signUp({ email: checked.email, password });
         if (signUpError) {
-          setError(authErrorMessage(signUpError));
+          setError(authErrorMessage(signUpError, lang));
           return;
         }
         // Only when the project asks new accounts to confirm their email: there is no session until then.
         if (data.session === null) {
           setMode('sign-in');
-          setNotice('Account created. Open the confirmation email, then sign in here.');
+          setNotice(text.created);
         }
       }
       // Signed in: useAuth hears it from supabase-js, and the page shows the signed-in panel instead of this form.
       setPassword('');
     } catch (thrown) {
       console.error('StudentsBudget: could not sign in', thrown);
-      setError(authErrorMessage(thrown));
+      setError(authErrorMessage(thrown, lang));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -92,14 +95,10 @@ function SignInForm() {
   return (
     <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
       <h3 id={`${id}-heading`} className="text-lg font-semibold">
-        {creating ? 'Create an account' : 'Sign in'}
+        {creating ? text.headingCreate : text.headingSignIn}
       </h3>
-      <p className="text-muted-foreground">Optional. Without an account, everything stays on this phone.</p>
-      {showIosHint && (
-        <p className="rounded-lg bg-muted px-4 py-3 text-sm">
-          On iPhone, sign in inside the Home Screen app: Safari and the app keep separate data and sign-ins.
-        </p>
-      )}
+      <p className="text-muted-foreground">{text.optional}</p>
+      {showIosHint && <p className="rounded-lg bg-muted px-4 py-3 text-sm">{text.iosHint}</p>}
       {/* A passkey belongs to an account that exists, so only when signing in. Its message is the form's: one at a time. */}
       {!creating && (
         <PasskeySignIn
@@ -113,7 +112,7 @@ function SignInForm() {
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${id}-email`}>Email</Label>
+          <Label htmlFor={`${id}-email`}>{text.email}</Label>
           <Input
             id={`${id}-email`}
             type="email"
@@ -127,7 +126,7 @@ function SignInForm() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${id}-password`}>Password</Label>
+          <Label htmlFor={`${id}-password`}>{text.password}</Label>
           <Input
             id={`${id}-password`}
             type="password"
@@ -137,7 +136,7 @@ function SignInForm() {
             onChange={(event) => setPassword(event.target.value)}
           />
           {creating && (
-            <p className="text-sm text-muted-foreground">{`At least ${MIN_PASSWORD_LENGTH} characters.`}</p>
+            <p className="text-sm text-muted-foreground">{text.minLength(MIN_PASSWORD_LENGTH)}</p>
           )}
         </div>
         {error && (
@@ -146,13 +145,13 @@ function SignInForm() {
           </p>
         )}
         <Button type="submit" className="h-10 self-start px-4" disabled={busy}>
-          {creating ? 'Create account' : 'Sign in'}
+          {creating ? text.create : text.signIn}
         </Button>
       </form>
 
       {/* Always rendered, so a screen reader is already listening when the text appears. */}
       <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
-        {notice ?? ''}
+        {notice}
       </p>
       <Button
         type="button"
@@ -164,7 +163,7 @@ function SignInForm() {
           setNotice(null);
         }}
       >
-        {creating ? 'Have an account? Sign in' : 'New here? Create an account'}
+        {creating ? text.toSignIn : text.toCreate}
       </Button>
     </section>
   );
@@ -176,6 +175,8 @@ function SignInForm() {
  */
 function SecondStepForm({ email, factorId }: { email: string; factorId: string }) {
   const id = useId();
+  const { t, lang } = useT();
+  const text = t.auth.secondStep;
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -196,13 +197,13 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
     event.preventDefault();
     if (inFlight.current) return;
     setError(null);
-    const checked = checkAuthenticatorCode(code);
+    const checked = checkAuthenticatorCode(code, lang);
     if (!checked.ok) {
       setError(checked.error);
       return;
     }
     if (!navigator.onLine) {
-      setError(OFFLINE_MESSAGE);
+      setError(t.auth.offline);
       return;
     }
     const supabase = getSupabase();
@@ -218,14 +219,14 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
         return;
       }
       if (verifyError) {
-        setError(authErrorMessage(verifyError));
+        setError(authErrorMessage(verifyError, lang));
         return;
       }
       // Verified: supabase-js swaps in a session that gave the code, and useAuth shows the signed-in panel.
       setCode('');
     } catch (thrown) {
       console.error('StudentsBudget: could not check the authenticator code', thrown);
-      setError(authErrorMessage(thrown));
+      setError(authErrorMessage(thrown, lang));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -245,14 +246,15 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
     return (
       <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
         <h3 id={`${id}-heading`} className="text-lg font-semibold">
-          Two-step sign-in
+          {text.heading}
         </h3>
         <p role="alert" className="break-words">
-          This sign-in for <span className="font-medium">{email}</span> has ended, maybe because it was finished on
-          another device.
+          {text.ended.before}
+          <span className="font-medium">{email}</span>
+          {text.ended.after}
         </p>
         <Button type="button" className="h-10 self-start px-4" autoFocus onClick={() => void signOutToSwitch()}>
-          Sign in again
+          {text.signInAgain}
         </Button>
       </section>
     );
@@ -261,14 +263,16 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
   return (
     <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
       <h3 id={`${id}-heading`} className="text-lg font-semibold">
-        Two-step sign-in
+        {text.heading}
       </h3>
       <p className="break-words">
-        Enter the code from your authenticator app for <span className="font-medium">{email}</span>.
+        {text.prompt.before}
+        <span className="font-medium">{email}</span>
+        {text.prompt.after}
       </p>
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${id}-code`}>6-digit code</Label>
+          <Label htmlFor={`${id}-code`}>{text.code}</Label>
           <Input
             id={`${id}-code`}
             inputMode="numeric"
@@ -285,11 +289,11 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
           </p>
         )}
         <Button type="submit" className="h-10 self-start px-4" disabled={busy}>
-          Continue
+          {text.continue}
         </Button>
       </form>
       <Button type="button" variant="link" className="h-10 self-start px-0" onClick={() => void signOutToSwitch()}>
-        Use a different account
+        {text.otherAccount}
       </Button>
     </section>
   );
@@ -298,6 +302,8 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
 /** Who is signed in, and the way out. Signing out leaves every entry on the phone. */
 function SignedInPanel({ email }: { email: string }) {
   const id = useId();
+  const { t, lang } = useT();
+  const text = t.auth.signedIn;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -317,11 +323,11 @@ function SignedInPanel({ email }: { email: string }) {
         // supabase-js drops the session on this phone even when the server can't be told, and useAuth then shows the
         // form. A message is only due if the session is somehow still here.
         const { data } = await supabase.auth.getSession();
-        if (data.session !== null) setError(authErrorMessage(signOutError));
+        if (data.session !== null) setError(authErrorMessage(signOutError, lang));
       }
     } catch (thrown) {
       console.error('StudentsBudget: could not sign out', thrown);
-      setError(authErrorMessage(thrown));
+      setError(authErrorMessage(thrown, lang));
     } finally {
       setBusy(false);
     }
@@ -330,12 +336,14 @@ function SignedInPanel({ email }: { email: string }) {
   return (
     <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-3">
       <h3 id={`${id}-heading`} className="text-lg font-semibold">
-        Signed in
+        {text.heading}
       </h3>
       <p className="break-words">
-        Signed in as <span className="font-medium">{email}</span>.
+        {text.as.before}
+        <span className="font-medium">{email}</span>
+        {text.as.after}
       </p>
-      <p className="text-muted-foreground">Signing out keeps your data on this phone.</p>
+      <p className="text-muted-foreground">{text.keeps}</p>
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -348,11 +356,11 @@ function SignedInPanel({ email }: { email: string }) {
         disabled={busy}
         onClick={() => void signOut()}
       >
-        Sign out
+        {text.signOut}
       </Button>
       {/* The last sync can take up to 8 seconds (syncBeforeSignOut): said, so the disabled button doesn't look stuck. */}
       <p role="status" className="text-sm text-muted-foreground">
-        {busy ? 'Syncing, then signing out…' : ''}
+        {busy ? text.syncing : null}
       </p>
     </section>
   );
@@ -363,16 +371,13 @@ function SignedInPanel({ email }: { email: string }) {
  * a line that says so.
  */
 export function AccountView() {
+  const { t } = useT();
   const auth = useAuth();
   switch (auth.status) {
     case 'off':
-      return (
-        <p className="text-muted-foreground">
-          Accounts aren&apos;t set up in this copy of the app. Everything stays on this phone.
-        </p>
-      );
+      return <p className="text-muted-foreground">{t.auth.view.off}</p>;
     case 'loading':
-      return <p className="text-muted-foreground">Checking your account…</p>;
+      return <p className="text-muted-foreground">{t.auth.view.checking}</p>;
     case 'signed-in':
       return (
         <>
