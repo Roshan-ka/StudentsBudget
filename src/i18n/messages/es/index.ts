@@ -3,22 +3,27 @@ import { account } from './account';
 import { accounts } from './accounts';
 import { auth } from './auth';
 import { backup } from './backup';
+import { badges } from './badges';
 import { categories } from './categories';
+import { charts } from './charts';
+import { checkIn } from './check-in';
 import { common } from './common';
 import { entries } from './entries';
 import { home } from './home';
 import { language } from './language';
 import { profile } from './profile';
 import { recurring } from './recurring';
+import { reveal } from './reveal';
 import { setup } from './setup';
 import { shell } from './shell';
 import { sync } from './sync';
+import { tips } from './tips';
 
 /**
- * Spanish, being drafted (language switch, plan 2: docs/superpowers/plans/2026-11-03-language-switch-2.md, chunks
- * 3–9): each area as it is written, English for the rest. Not offered yet; chunk 9 offers it once every area is
- * Spanish and a native speaker has read it, and drops the English underneath. A test checks that every written area
- * differs from English, apart from a short allow-list (messages.test.ts). Counts go through `byCount` (`plural()`).
+ * Spanish, drafted area by area (language switch, plan 2: docs/superpowers/plans/2026-11-03-language-switch-2.md,
+ * chunks 3–7); since chunk 7 every area is written. Not offered yet: chunk 9 offers it once a native speaker has read
+ * it, and drops the English underneath. A test checks that every written area differs from English, apart from a
+ * short allow-list (messages.test.ts). Counts go through `byCount` (`plural()`).
  *
  * Glossary, so the areas say the same thing the same way:
  * - tú, throughout; calm: "12 € de más", never a warning
@@ -51,4 +56,9 @@ export const es: Messages = {
   sync,
   account,
   auth,
+  checkIn,
+  charts,
+  badges,
+  reveal,
+  tips,
 };
