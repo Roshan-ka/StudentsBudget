@@ -12,6 +12,8 @@ const picker = (page: Page) => page.getByRole('combobox', { name: /^(Language|Sp
 const nav = (page: Page, name: string) => page.getByRole('navigation', { name, exact: true });
 
 test('Settings switches the app to German and back, and the choice survives a reload', async ({ page }) => {
+  // Setup, two switches and a reload: past 30 s on a cold dev server with every worker busy.
+  test.setTimeout(60_000);
   await completeSetup(page);
   await page.goto('/settings');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
