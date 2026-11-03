@@ -1,4 +1,6 @@
 import type { Account, Entry } from '@/db/types';
+import type { Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import type { IsoDate } from '@/lib/dates';
 import { toEurMinor, type RateMap } from '@/lib/fx';
 import type { Minor } from '@/lib/money';
@@ -20,7 +22,7 @@ export type TransferInput = {
  * converted to EUR with the rate on file, so a missing rate for the sending currency is an error.
  * With `existing` (an edit) the new entry keeps its `id` and `createdAt`. It also keeps its `eurMinor`
  * (and needs no rate) while the sending account and the amount sent are unchanged: the EUR value was fixed
- * when that amount was entered, so a later edit of the date or note must not move it.
+ * when that amount was entered, so a later edit of the date or note must not move it. The error is in `lang`.
  */
 export function buildTransfer(
   input: TransferInput,
@@ -28,17 +30,17 @@ export function buildTransfer(
   rates: RateMap,
   now: Date,
   existing?: Entry,
+  lang: Language = 'en',
 ): { ok: true; entry: Entry } | { ok: false; error: string } {
-  if (input.fromAccountId === input.toAccountId) return { ok: false, error: 'Pick two different accounts.' };
-  if (input.amountMinor <= 0) return { ok: false, error: 'Enter an amount.' };
-  if (input.toAmountMinor <= 0) return { ok: false, error: 'Enter the amount received.' };
+  const t = MESSAGES[lang];
+  if (input.fromAccountId === input.toAccountId) return { ok: false, error: t.accounts.transfer.pickTwo };
+  if (input.amountMinor <= 0) return { ok: false, error: t.entries.errors.enterAmount };
+  if (input.toAmountMinor <= 0) return { ok: false, error: t.accounts.transfer.enterReceived };
 
   const unchanged =
     existing !== undefined && existing.accountId === input.fromAccountId && existing.amountMinor === input.amountMinor;
   const eurMinor = unchanged ? existing.eurMinor : toEurMinor(input.amountMinor, from.currency, rates);
-  if (eurMinor === null) {
-    return { ok: false, error: `No exchange rate for ${from.currency} yet. Set one in Settings.` };
-  }
+  if (eurMinor === null) return { ok: false, error: t.entries.errors.noRate(from.currency) };
 
   return {
     ok: true,

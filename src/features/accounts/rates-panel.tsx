@@ -9,11 +9,10 @@ import { Label } from '@/components/ui/label';
 import { db } from '@/db/db';
 import { clearManualRate, loadRates, refreshRates, setManualRate } from '@/db/rates';
 import type { Rate } from '@/db/types';
+import { dateFormat, numberFormat } from '@/i18n/format';
+import { useT } from '@/i18n/use-t';
 import { todayIso, type IsoDate } from '@/lib/dates';
 import { CURRENCIES, type CurrencyCode } from '@/lib/money';
-
-const rateFormatter = new Intl.NumberFormat('en-IE', { maximumFractionDigits: 4 });
-const dayFormatter = new Intl.DateTimeFormat('en-IE', { day: 'numeric', month: 'short' });
 
 // Digits with an optional ',' or '.' decimal part; rates need more decimals than money does.
 const RATE_PATTERN = /^\d+(?:[.,]\d{1,6})?$/;
@@ -26,12 +25,15 @@ function parseRate(text: string): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-function formatDay(date: IsoDate): string {
-  return dayFormatter.format(parseISO(date));
+/** "30 Oct", "30. Okt.". */
+function formatDay(date: IsoDate, locale: string): string {
+  return dateFormat(locale, { day: 'numeric', month: 'short' }).format(parseISO(date));
 }
 
 function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | undefined }) {
   const id = useId();
+  const { t, locale } = useT();
+  const words = t.accounts.rates;
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const isManual = rate?.source === 'manual';
@@ -39,14 +41,14 @@ function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | unde
   async function onSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const perEur = parseRate(text);
-    if (perEur === null) return setError('Enter a rate greater than zero, like 95.12.');
+    if (perEur === null) return setError(words.invalid);
     try {
       await setManualRate(currency, perEur, todayIso());
       setText('');
       setError(null);
     } catch (saveError) {
       console.error('StudentsBudget: could not save the exchange rate', saveError);
-      setError('Could not save the rate.');
+      setError(words.saveFailed);
     }
   }
 
@@ -56,7 +58,7 @@ function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | unde
       setError(null);
     } catch (clearError) {
       console.error('StudentsBudget: could not remove the manual exchange rate', clearError);
-      setError('Could not switch back to the ECB rate.');
+      setError(words.ecbFailed);
       return;
     }
     // The ECB row is normally stored already. If it never arrived (offline when the account was added), fetch it now.
@@ -71,11 +73,15 @@ function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | unde
     <li className="flex flex-col gap-2 border-b py-3 last:border-b-0">
       <p className="font-medium">
         {rate
-          ? `1 € = ${rateFormatter.format(rate.perEur)} ${currency} · ${isManual ? 'set by you' : `ECB, ${formatDay(rate.rateDate)}`}`
-          : `No rate yet. Enter one to log ${currency} spending.`}
+          ? words.rate(
+              numberFormat(locale, { maximumFractionDigits: 4 }).format(rate.perEur),
+              currency,
+              isManual ? words.setByYou : words.ecb(formatDay(rate.rateDate, locale)),
+            )
+          : words.noRate(currency)}
       </p>
       <form onSubmit={onSave} noValidate className="flex flex-col gap-1.5">
-        <Label htmlFor={`${id}-rate`}>Your rate for {currency} per €1</Label>
+        <Label htmlFor={`${id}-rate`}>{words.yourRate(currency)}</Label>
         <div className="flex gap-2">
           <Input
             id={`${id}-rate`}
@@ -86,7 +92,7 @@ function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | unde
             autoComplete="off"
           />
           <Button type="submit" variant="outline" className="h-10 px-4">
-            Save rate
+            {words.save}
           </Button>
         </div>
       </form>
@@ -98,7 +104,7 @@ function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | unde
       {isManual && (
         <div>
           <Button variant="ghost" className="h-10 px-4" onClick={() => void onUseEcb()}>
-            Use ECB rate again
+            {words.useEcb}
           </Button>
         </div>
       )}
@@ -107,6 +113,7 @@ function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | unde
 }
 
 export function RatesPanel() {
+  const { t } = useT();
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const rates = useLiveQuery(() => loadRates(), []);
 
@@ -118,10 +125,10 @@ export function RatesPanel() {
   return (
     <section aria-labelledby="rates-heading" className="flex flex-col gap-3">
       <h3 id="rates-heading" className="text-lg font-semibold">
-        Exchange rates
+        {t.accounts.rates.heading}
       </h3>
       {accounts !== undefined && rates !== undefined && currencies.length === 0 && (
-        <p className="text-muted-foreground">Rates show up here once you add an account in another currency.</p>
+        <p className="text-muted-foreground">{t.accounts.rates.none}</p>
       )}
       {rates !== undefined && currencies.length > 0 && (
         <ul className="flex flex-col">

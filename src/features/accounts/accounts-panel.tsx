@@ -10,14 +10,13 @@ import { db } from '@/db/db';
 import { loadRates, refreshRates } from '@/db/rates';
 import { AccountHasScheduleError, AccountInUseError, deleteAccount } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
+import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import { CURRENCIES, formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { newId } from '@/lib/new-id';
 import { accountBalance, defaultAccount, sortAccounts, totalInEur } from './balances';
 import { isOverdrawn, parseSignedAmount, tickOverdrawn, typeOpening } from './opening-balance';
 import { setDefaultAccount } from './set-default-account';
-
-const KIND_LABELS: Record<Account['kind'], string> = { bank: 'Bank', cash: 'Cash' };
 
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
@@ -45,6 +44,8 @@ function AccountForm({
   onDone: () => void;
 }) {
   const id = useId();
+  const { t } = useT();
+  const text = t.accounts;
   const [name, setName] = useState(account?.name ?? '');
   const [kind, setKind] = useState<Account['kind']>(account?.kind ?? 'bank');
   const [currency, setCurrency] = useState<CurrencyCode>(account?.currency ?? 'EUR');
@@ -58,9 +59,9 @@ function AccountForm({
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedName = name.trim();
-    if (trimmedName === '') return setError('Enter a name.');
+    if (trimmedName === '') return setError(text.errors.name);
     const openingMinor = parseSignedAmount(opening);
-    if (openingMinor === null) return setError('Enter the opening balance as a number, like 250 or 12.50.');
+    if (openingMinor === null) return setError(text.errors.opening);
 
     setSaving(true);
     setError(null);
@@ -77,7 +78,7 @@ function AccountForm({
       });
     } catch (saveError) {
       console.error('StudentsBudget: could not save the account', saveError);
-      setError('Could not save the account.');
+      setError(text.errors.saveFailed);
       setSaving(false);
       return;
     }
@@ -89,7 +90,7 @@ function AccountForm({
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-name`}>Name</Label>
+        <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
           id={`${id}-name`}
           className="h-10"
@@ -99,19 +100,19 @@ function AccountForm({
         />
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-kind`}>Type</Label>
+        <Label htmlFor={`${id}-kind`}>{text.type}</Label>
         <NativeSelect
           id={`${id}-kind`}
           className="w-full"
           value={kind}
           onChange={(event) => setKind(event.target.value as Account['kind'])}
         >
-          <NativeSelectOption value="bank">{KIND_LABELS.bank}</NativeSelectOption>
-          <NativeSelectOption value="cash">{KIND_LABELS.cash}</NativeSelectOption>
+          <NativeSelectOption value="bank">{text.kinds.bank}</NativeSelectOption>
+          <NativeSelectOption value="cash">{text.kinds.cash}</NativeSelectOption>
         </NativeSelect>
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-currency`}>Currency</Label>
+        <Label htmlFor={`${id}-currency`}>{text.currency}</Label>
         <NativeSelect
           id={`${id}-currency`}
           className="w-full"
@@ -126,11 +127,11 @@ function AccountForm({
           ))}
         </NativeSelect>
         {currencyLocked && (
-          <p className="text-sm text-muted-foreground">The currency can&apos;t change once the account has entries.</p>
+          <p className="text-sm text-muted-foreground">{text.currencyLocked}</p>
         )}
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-opening`}>Opening balance</Label>
+        <Label htmlFor={`${id}-opening`}>{text.opening}</Label>
         <Input
           id={`${id}-opening`}
           className="h-10"
@@ -155,7 +156,7 @@ function AccountForm({
               setOpening(ticked.text);
             }}
           />
-          Overdrawn (below zero)
+          {t.common.amountField.overdrawn}
         </label>
       </div>
       {error && (
@@ -165,10 +166,10 @@ function AccountForm({
       )}
       <div className="flex gap-2">
         <Button type="submit" className="h-10 px-4" disabled={saving}>
-          Save account
+          {text.save}
         </Button>
         <Button type="button" variant="outline" className="h-10 px-4" onClick={onDone}>
-          Cancel
+          {text.cancel}
         </Button>
       </div>
     </form>
@@ -176,6 +177,8 @@ function AccountForm({
 }
 
 export function AccountsPanel() {
+  const { t, locale } = useT();
+  const text = t.accounts;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
   const entries = useLiveQuery(() => db.entries.toArray(), []);
   const rates = useLiveQuery(() => loadRates(), []);
@@ -193,16 +196,12 @@ export function AccountsPanel() {
       await deleteAccount(account.id);
     } catch (error) {
       if (error instanceof AccountInUseError) {
-        setRowError({ id: account.id, message: 'This account has entries. Delete them first.' });
+        setRowError({ id: account.id, message: text.errors.inUse });
       } else if (error instanceof AccountHasScheduleError) {
-        setRowError({
-          id: account.id,
-          message:
-            'This account pays or receives a fixed cost or income. Change that first in Fixed costs and income.',
-        });
+        setRowError({ id: account.id, message: text.errors.hasSchedule });
       } else {
         console.error('StudentsBudget: could not delete the account', error);
-        setRowError({ id: account.id, message: 'Could not delete the account.' });
+        setRowError({ id: account.id, message: text.errors.deleteFailed });
       }
     }
   }
@@ -213,12 +212,12 @@ export function AccountsPanel() {
       await setDefaultAccount(account.id);
     } catch (error) {
       console.error('StudentsBudget: could not change the default account', error);
-      setRowError({ id: account.id, message: 'Could not change the default account.' });
+      setRowError({ id: account.id, message: text.errors.defaultFailed });
       return;
     }
     // The button that was tapped is replaced by the mark, and focus would fall to the page: the row's Edit takes it.
     editButtons.current.get(account.id)?.focus();
-    setDefaultNotice({ id: account.id, message: `${account.name} is now the default for new entries.` });
+    setDefaultNotice({ id: account.id, message: text.nowDefault(account.name) });
   }
 
   const loaded = accounts !== undefined && entries !== undefined && rates !== undefined;
@@ -233,7 +232,7 @@ export function AccountsPanel() {
     <section aria-labelledby="accounts-heading" className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <h3 id="accounts-heading" className="text-lg font-semibold">
-          Accounts
+          {text.heading}
         </h3>
         {editing !== 'new' && (
           <Button
@@ -244,7 +243,7 @@ export function AccountsPanel() {
               setEditing('new');
             }}
           >
-            Add account
+            {text.add}
           </Button>
         )}
       </div>
@@ -258,7 +257,7 @@ export function AccountsPanel() {
       {editing === 'new' && <AccountForm currencyLocked={false} onDone={() => setEditing(null)} />}
 
       {loaded && accounts.length === 0 && editing !== 'new' && (
-        <p className="text-muted-foreground">No accounts yet. Add your bank account, your wallet or your account back home.</p>
+        <p className="text-muted-foreground">{text.none}</p>
       )}
 
       {loaded && accounts.length > 0 && (
@@ -277,18 +276,18 @@ export function AccountsPanel() {
                     <div className="min-w-0">
                       <p className="font-medium break-words">{account.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {KIND_LABELS[account.kind]} · {account.currency}
+                        {text.kinds[account.kind]} · {account.currency}
                         {/* With one account there is nothing to choose between. */}
                         {accounts.length > 1 && account.id === defaultId && (
                           <>
                             {' · '}
-                            <span className="text-foreground">Default for new entries</span>
+                            <span className="text-foreground">{text.defaultMark}</span>
                           </>
                         )}
                       </p>
                     </div>
                     <p className="shrink-0 font-medium tabular-nums">
-                      {formatMoney(accountBalance(account, entries), account.currency)}
+                      {formatMoney(accountBalance(account, entries), account.currency, { locale })}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -299,31 +298,31 @@ export function AccountsPanel() {
                       }}
                       variant="outline"
                       className="h-10 px-4"
-                      aria-label={`Edit ${account.name}`}
+                      aria-label={text.editAccount(account.name)}
                       onClick={() => {
                         setRowError(null);
                         setEditing(account.id);
                       }}
                     >
-                      Edit
+                      {text.edit}
                     </Button>
                     {accounts.length > 1 && account.id !== defaultId && (
                       <Button
                         variant="ghost"
                         className="h-10 px-4"
-                        aria-label={`Make default: ${account.name}`}
+                        aria-label={text.makeDefaultOf(account.name)}
                         onClick={() => void makeDefault(account)}
                       >
-                        Make default
+                        {text.makeDefault}
                       </Button>
                     )}
                     <Button
                       variant="ghost"
                       className="h-10 px-4"
-                      aria-label={`Delete ${account.name}`}
+                      aria-label={text.deleteAccount(account.name)}
                       onClick={() => void remove(account)}
                     >
-                      Delete
+                      {text.delete}
                     </Button>
                   </div>
                   {rowError?.id === account.id && (
@@ -341,13 +340,13 @@ export function AccountsPanel() {
       {total && (
         <div className="flex flex-col gap-1 rounded-lg bg-muted px-4 py-3">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="font-medium">Total</p>
-            <p className="font-medium tabular-nums">{nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR')}</p>
+            <p className="font-medium">{text.total}</p>
+            <p className="font-medium tabular-nums">
+              {nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { locale })}
+            </p>
           </div>
           {total.missingRates.length > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Without {total.missingRates.join(', ')}: no exchange rate yet.
-            </p>
+            <p className="text-sm text-muted-foreground">{text.withoutRates(total.missingRates.join(', '))}</p>
           )}
         </div>
       )}

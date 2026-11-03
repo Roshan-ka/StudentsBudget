@@ -199,6 +199,13 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
      - The prefilled account names are in the language the wizard opens in.
      - Still English: `DraftScheduleFields` and `SemesterFeeSource` (chunk 5), the account link and restore section on the setup page (chunk 6), and the source text itself (city content).
 5. **Extract profile, edit plan, recurring, accounts, transfer and rates.**
+   - **As built (2026-11-03), in two commits (5a profile and recurring, 5b accounts, transfer and rates):**
+     - Dictionary areas `profile`, `recurring` and `accounts`; `common.source.of` ("Source: …") and `common.accountOption` ("Wise (INR)") are shared.
+     - `profileProblems`, `termName`, `describeTiming`, `firstAddedLine`, `describeLine`, `overBudgetLine` and `buildTransfer` take `lang` last, and `buildEntry` passes it to `buildTransfer`. `periodLabel` takes a locale.
+     - Weekday names come from Intl (`weekdayName`), and `WEEKDAYS` is the days 1–7.
+     - "No income yet." and "No fixed costs yet." are their own texts instead of a lowercased heading.
+     - The university "Other" is named in the phone's language; `UNIVERSITIES` stays as the data and the MCP server have it. A fee part's label is sourced content and stays.
+     - The rate and its ECB day use the phone's locale. Edit plan itself is the setup wizard, done in chunk 4.
 6. **Extract backup and restore, `summary`, and sync** (`engine.ts`, `link.ts`, `sync-status.tsx`, `account-view.tsx`, `account-link.tsx`).
    - Problem codes are introduced here. `engine.test.ts` and `link.test.ts` change on purpose.
 7. **Extract `auth-errors.ts`, two-step and passkeys.**

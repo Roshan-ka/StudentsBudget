@@ -18,7 +18,7 @@ export type EntryInput =
  * With `existing` (an edit) the entry keeps that entry's `id`, `createdAt` and `recurring` marker; otherwise it keeps
  * `input.id` when there is one and gets a new id. An edit that leaves the account and the amount alone also
  * keeps `eurMinor` and needs no rate: the EUR value was fixed when the amount was entered.
- * The error is in `lang` (a transfer's still in English).
+ * The error is in `lang`.
  */
 export function buildEntry(
   input: EntryInput,
@@ -43,7 +43,7 @@ function build(
 ): { ok: true; entry: Entry } | { ok: false; error: string } {
   if (input.type === 'transfer') {
     const { accountId, ...rest } = input;
-    return buildTransfer({ ...rest, fromAccountId: accountId }, account, rates, now, existing);
+    return buildTransfer({ ...rest, fromAccountId: accountId }, account, rates, now, existing, lang);
   }
 
   const errors = MESSAGES[lang].entries.errors;
