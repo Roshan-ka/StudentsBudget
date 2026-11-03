@@ -274,6 +274,13 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
       - The allow-list gains three that are the same in both: "Passkeys", "Passkey" and the full stop after the bold email.
       - Still English in German: charts, check-in, badges, reveal and the tips chrome (chunk 14).
 14. **German, part 4:** charts, check-in, badges, reveal, content chrome.
+    - **As built (2026-11-03):**
+      - German for `charts`, `checkIn`, `badges`, `reveal` and `tips` (the tips and discounts chrome and the swap line's words). Every area of `de` is now written; the `...en` spread stays until chunk 15, as planned.
+      - The charts' German short names: Nebenkosten, ÖPNV-Ticket and Gesundheit (16 characters at most, `colors.test.ts`).
+      - German needs "im Oktober" but "in diesen 3 Monaten", so the "nothing yet" lines say "Für Oktober …" and "Für diese 3 Monate …", and the captions put the period after a comma.
+      - Badge names: Unter-Budget-Woche, Eintragsserie, Ramen-Majestät and Latte-Survivor, for the native-speaker read in chunk 15 to confirm. The check-in's away hint and the badges' intro name them too.
+      - The swap line keeps the swap's own unit ("pro meal"): a swap's title and unit are city content, which stays English (chunk 9b).
+      - The allow-list gains Bronze and Gold.
     - Chunks 11–14 build up `de` as `{...en, ...done}`, with a glossary (plan, envelope, check-in, one-off).
     - A unit test checks that German strings differ from English, apart from an allow-list.
 15. **Offer German.**

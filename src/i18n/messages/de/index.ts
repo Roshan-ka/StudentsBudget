@@ -3,20 +3,25 @@ import { account } from './account';
 import { accounts } from './accounts';
 import { auth } from './auth';
 import { backup } from './backup';
+import { badges } from './badges';
 import { categories } from './categories';
+import { charts } from './charts';
+import { checkIn } from './check-in';
 import { common } from './common';
 import { entries } from './entries';
 import { home } from './home';
 import { language } from './language';
 import { profile } from './profile';
 import { recurring } from './recurring';
+import { reveal } from './reveal';
 import { setup } from './setup';
 import { shell } from './shell';
 import { sync } from './sync';
+import { tips } from './tips';
 
 /**
- * German, being drafted (plan 1, chunks 10–14): each area as it is written, English for the rest. Not offered yet;
- * chunk 15 offers it once every area is German, and drops the English underneath, so typecheck then holds every key.
+ * German, drafted area by area (plan 1, chunks 10–14); since chunk 14 every area is written. Not offered yet: chunk 15
+ * offers it, and drops the English underneath, so typecheck then holds every key.
  * A test checks that every written area differs from English, apart from a short allow-list (messages.test.ts).
  *
  * Glossary, so the areas say the same thing the same way:
@@ -49,4 +54,9 @@ export const de: Messages = {
   sync,
   account,
   auth,
+  checkIn,
+  charts,
+  badges,
+  reveal,
+  tips,
 };

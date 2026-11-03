@@ -35,6 +35,8 @@ const SAME_IN_GERMAN = new Set([
   'auth.signedIn.as.after',
   'auth.passkeys.heading',
   'auth.passkeys.unnamed',
+  'badges.tiers.bronze',
+  'badges.tiers.gold',
 ]);
 
 describe('the dictionaries', () => {
