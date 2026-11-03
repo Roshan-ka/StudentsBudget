@@ -10,6 +10,11 @@ import { ranges as deRanges } from './de/ranges';
 import { semesters as deSemesters } from './de/semesters';
 import { swaps as deSwaps } from './de/swaps';
 import { tips as deTips } from './de/tips';
+import { discounts as esDiscounts } from './es/discounts';
+import { ranges as esRanges } from './es/ranges';
+import { semesters as esSemesters } from './es/semesters';
+import { swaps as esSwaps } from './es/swaps';
+import { tips as esTips } from './es/tips';
 
 // The city content (src/data) in other languages (language switch, plan 2: docs/superpowers/plans/
 // 2026-11-03-language-switch-2.md). Only the words, by item id: every number, source URL, checked date, category and
@@ -43,6 +48,7 @@ export type CityWords = {
 /** Every language with city content of its own. A language without it, or an item it doesn't have, shows English. */
 export const CITY_WORDS: Partial<Record<Language, CityWords>> = {
   de: { tips: deTips, discounts: deDiscounts, swaps: deSwaps, ranges: deRanges, semesters: deSemesters },
+  es: { tips: esTips, discounts: esDiscounts, swaps: esSwaps, ranges: esRanges, semesters: esSemesters },
 };
 
 /**
