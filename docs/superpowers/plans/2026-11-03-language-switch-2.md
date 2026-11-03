@@ -69,6 +69,7 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
 5. Profile, recurring, accounts, backup.
    - **As built (2026-11-03):** Spanish for `profile` (Cuota semestral, rematriculación), `recurring` (Gastos fijos e ingresos, Añadir automáticamente; weekday names come from the locale: "Cada semana, el lunes"), `accounts` (with moving money and the rates: Tipos de cambio, BCE) and `backup` (Copia de seguridad; the word to type before deleting everything is BORRAR). The allow-list gains Total, the bare rate format and the "?" after the file name in the restore question.
 6. Sync, account, sign-in and security.
+   - **As built (2026-11-03):** Spanish for `sync` (Sincronizar ahora, vincular; "hace 2 min" without a full stop, since "min" is a symbol), `account` (Tu cuenta) and `auth` (iniciar / cerrar sesión, verificación en dos pasos, llave de acceso, app de autenticación). Counts go through `byCount`. The allow-list gains the two bare full stops after the bold email.
 7. Check-in, charts (short names), badges, reveal, tips chrome.
 8. City content in Spanish.
 9. **Offer Spanish**, after its native read: `OFFERED`, drop the spread, the language e2e and the tour with `E2E_LANGUAGES=all`, `test:offline`, a try on the phone.
