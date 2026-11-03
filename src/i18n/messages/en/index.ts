@@ -9,6 +9,7 @@ import { checkIn } from './check-in';
 import { common } from './common';
 import { entries } from './entries';
 import { home } from './home';
+import { language } from './language';
 import { profile } from './profile';
 import { recurring } from './recurring';
 import { reveal } from './reveal';
@@ -23,6 +24,7 @@ import { tips } from './tips';
  */
 export const en = {
   shell,
+  language,
   common,
   categories,
   home,

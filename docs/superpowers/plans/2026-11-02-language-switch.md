@@ -245,6 +245,13 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
       - `e2e/language.spec.ts`: switch to Deutsch; check `html[lang=de]`, a German heading, that it survives a reload, and switching back.
       - An entry in `e2e/affected-map.json`.
       - A new `e2e/helpers/layout.ts` for the horizontal-scroll check.
+    - **As built (2026-11-03):**
+      - `SELECTABLE` (`selectableIn(process.env.NODE_ENV)`) is what the picker lists: `OFFERED` in production, every registry language in any other build. `pickLanguage` and `languageHeadScript` take it besides `OFFERED`: a stored choice counts when it is selectable, but the phone's own languages pick only an offered one, so a developer with a German browser is not switched to a half-translated draft.
+      - `LanguagePicker` and `LanguageSection` (`src/components/language-picker.tsx`) list each language by its own name, with `lang` on each option, and mark a draft. They render nothing while only one language can be picked, so production shows nothing new until German is offered (chunk 15).
+      - The German draft dictionary is `de = { ...en, shell, language }`. Its nav labels are Start, Einträge, Grafiken, Tipps and Optionen; the length test now covers every registry language.
+      - Nav width: the items are `min-w-0`, centred, with a tight second line; `main` has `hyphens-auto`.
+      - `e2e/language.spec.ts` covers Settings (switch, reload, back, no sideways scroll at 375 px) and setup (the options, their `lang`, the switch). It is listed under `allOnly`.
+      - `account.spec.ts` and `profile.spec.ts` now skip the Language section when checking which section comes first.
 11. **German, part 1:** shell, Home, entries, categories, setup.
 12. **German, part 2:** profile, plan, recurring, accounts, rates, backup.
 13. **German, part 3:** sync, account, sign-in and security.

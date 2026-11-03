@@ -46,3 +46,23 @@ describe('languageHeadScript', () => {
     expect(run(['en'], { stored: 'de', browser: ['de-DE'] })).toEqual({ lang: 'en', dir: 'ltr' });
   });
 });
+
+describe('languageHeadScript with drafts that can be picked', () => {
+  /** As `run`, with a list of languages that can be picked besides the offered ones. */
+  function runWith(offered: readonly Language[], selectable: readonly Language[], c: Run) {
+    const documentElement = { lang: 'en', dir: 'ltr' };
+    const localStorage = { getItem: (key: string) => (key === LANGUAGE_STORAGE_KEY ? (c.stored ?? null) : null) };
+    const browser = c.browser ?? [];
+    new Function('document', 'localStorage', 'navigator', languageHeadScript(offered, selectable))(
+      { documentElement },
+      localStorage,
+      { languages: browser, language: browser[0] },
+    );
+    return documentElement;
+  }
+
+  it('keeps a stored draft, and never picks one from the phone’s languages, as pickLanguage does', () => {
+    expect(runWith(['en'], ['en', 'de'], { stored: 'de', browser: ['en-GB'] })).toEqual({ lang: 'de', dir: 'ltr' });
+    expect(runWith(['en'], ['en', 'de'], { stored: null, browser: ['de-DE'] })).toEqual({ lang: 'en', dir: 'ltr' });
+  });
+});

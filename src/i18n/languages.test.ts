@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, pickLanguage, type Language } from './languages';
+import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, pickLanguage, selectableIn, type Language } from './languages';
 
 describe('the language registry', () => {
   it('gives every language a valid locale of its own, its name in itself, and a writing direction', () => {
@@ -36,5 +36,27 @@ describe('pickLanguage', () => {
   it('falls back to the default when nothing matches', () => {
     expect(pickLanguage(null, ['fr-CA', 'ja'], offered)).toBe(DEFAULT_LANGUAGE);
     expect(pickLanguage(null, [], offered)).toBe(DEFAULT_LANGUAGE);
+  });
+});
+
+describe('selectableIn', () => {
+  it('lets a production build pick only the offered languages, and any other build every one, to try drafts', () => {
+    expect(selectableIn('production')).toEqual(OFFERED);
+    expect(selectableIn('development')).toEqual(Object.keys(LANGUAGES));
+    expect(selectableIn(undefined)).toEqual(Object.keys(LANGUAGES));
+  });
+});
+
+describe('pickLanguage with drafts that can be picked', () => {
+  const offered: readonly Language[] = ['en'];
+  const selectable: readonly Language[] = ['en', 'de'];
+
+  it('keeps a stored choice of a draft that can be picked', () => {
+    expect(pickLanguage('de', ['en-GB'], offered, selectable)).toBe('de');
+  });
+
+  it('never picks a draft from the phone’s own languages', () => {
+    expect(pickLanguage(null, ['de-DE'], offered, selectable)).toBe('en');
+    expect(pickLanguage('fr', ['de-DE'], offered, selectable)).toBe('en');
   });
 });

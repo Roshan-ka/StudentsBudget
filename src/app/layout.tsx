@@ -4,7 +4,7 @@ import { AppInit } from '@/components/app-init';
 import { BottomNav } from '@/components/bottom-nav';
 import { LanguageAttributes } from '@/components/language-attributes';
 import { languageHeadScript } from '@/i18n/head-script';
-import { DEFAULT_LANGUAGE, LANGUAGES } from '@/i18n/languages';
+import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, SELECTABLE } from '@/i18n/languages';
 import './globals.css';
 
 const geistSans = Geist({
@@ -41,7 +41,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: languageHeadScript() }} />
+        <script dangerouslySetInnerHTML={{ __html: languageHeadScript(OFFERED, SELECTABLE) }} />
       </head>
       <body className="flex min-h-full flex-col">
         <AppInit />
@@ -49,7 +49,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <header className="bg-primary pt-[env(safe-area-inset-top)] text-primary-foreground">
           <h1 className="flex h-12 items-center px-4 text-lg font-semibold">StudentsBudget</h1>
         </header>
-        <main className="flex-1 px-4 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom))]">{children}</main>
+        <main className="flex-1 px-4 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom))] hyphens-auto">{children}</main>
         <BottomNav />
       </body>
     </html>

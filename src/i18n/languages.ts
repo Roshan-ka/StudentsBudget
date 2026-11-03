@@ -30,20 +30,36 @@ export const DEFAULT_LANGUAGE: Language = 'en';
  */
 export const OFFERED: readonly Language[] = ['en'];
 
+/**
+ * What a build lets a person pick in the language picker: the offered languages in production, and every language in
+ * the registry in any other build (`next dev`, the e2e), so a draft can be tried before it is offered.
+ */
+export function selectableIn(env: string | undefined): readonly Language[] {
+  return env === 'production' ? OFFERED : (Object.keys(LANGUAGES) as Language[]);
+}
+
+/** What this build lets a person pick (`selectableIn`). The phone's own languages only ever pick an offered one. */
+export const SELECTABLE: readonly Language[] = selectableIn(process.env.NODE_ENV);
+
 /** Where this phone keeps the person's choice (localStorage): per phone, never synced or backed up. */
 export const LANGUAGE_STORAGE_KEY = 'studentsbudget-language';
 
 /**
- * The language to show: the stored choice when it is offered, else the first of the phone's languages whose main part
- * (`de` of `de-AT`) is offered, else the default.
+ * The language to show: the stored choice when it can be picked (`selectable`, which the offered ones are part of),
+ * else the first of the phone's languages whose main part (`de` of `de-AT`) is offered, else the default. A draft is
+ * never picked from the phone's languages: only someone who chose it sees it.
  */
 export function pickLanguage(
   stored: string | null,
   browser: readonly string[],
   offered: readonly Language[] = OFFERED,
+  selectable: readonly Language[] = offered,
 ): Language {
-  const isOffered = (code: string): code is Language => (offered as readonly string[]).includes(code);
-  if (stored !== null && isOffered(stored)) return stored;
+  const isIn = (list: readonly Language[]) => (code: string): code is Language =>
+    (list as readonly string[]).includes(code);
+  const isSelectable = isIn(selectable);
+  const isOffered = isIn(offered);
+  if (stored !== null && (isSelectable(stored) || isOffered(stored))) return stored;
   for (const tag of browser) {
     const main = tag.toLowerCase().split('-')[0];
     if (isOffered(main)) return main;

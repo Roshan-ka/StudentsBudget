@@ -47,3 +47,13 @@ describe('the language store', () => {
     expect(documentElement).toEqual({ lang: 'en', dir: 'ltr' });
   });
 });
+
+describe('the language store in a build that lists drafts', () => {
+  it('keeps a draft that was chosen, and never takes one from the phone', () => {
+    stored[LANGUAGE_STORAGE_KEY] = 'de';
+    expect(getLanguageSnapshot()).toBe('de');
+    delete stored[LANGUAGE_STORAGE_KEY];
+    vi.stubGlobal('navigator', { languages: ['de-DE'], language: 'de-DE' });
+    expect(getLanguageSnapshot()).toBe('en');
+  });
+});
