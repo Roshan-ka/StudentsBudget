@@ -2,6 +2,7 @@ import { account } from './account';
 import { accounts } from './accounts';
 import { auth } from './auth';
 import { backup } from './backup';
+import { badges } from './badges';
 import { categories } from './categories';
 import { charts } from './charts';
 import { checkIn } from './check-in';
@@ -10,6 +11,7 @@ import { entries } from './entries';
 import { home } from './home';
 import { profile } from './profile';
 import { recurring } from './recurring';
+import { reveal } from './reveal';
 import { setup } from './setup';
 import { shell } from './shell';
 import { sync } from './sync';
@@ -34,6 +36,8 @@ export const en = {
   auth,
   checkIn,
   charts,
+  badges,
+  reveal,
 };
 
 export type Messages = typeof en;

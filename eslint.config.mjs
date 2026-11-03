@@ -51,6 +51,8 @@ const eslintConfig = defineConfig([
       "src/features/account/**/*.tsx",
       "src/features/check-in/**/*.tsx",
       "src/features/charts/**/*.tsx",
+      "src/features/badges/**/*.tsx",
+      "src/features/reveal/**/*.tsx",
       "src/components/date-field.tsx",
     ],
     rules: {

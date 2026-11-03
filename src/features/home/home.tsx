@@ -33,7 +33,7 @@ export function HomeScreen({
   /** Read with the plan: its name is the greeting, and its semester sets gold Under-Budget Week. */
   profile: Profile | null;
 }) {
-  const { t, locale } = useT();
+  const { t, lang, locale } = useT();
   const name = profile?.name.trim() ?? '';
   // The date follows the clock, so the week turns over on its own when the app comes back or midnight passes,
   // with no entry saved in between. It is null until the browser runs this (never a date from the prerender).
@@ -60,7 +60,12 @@ export function HomeScreen({
     const leftMinor = month.reduce((total, status) => total + status.plannedMinor - status.spentMinor, 0);
     // Envelopes planned at €0 and never used would only add empty rows.
     const rows: EnvelopeRow[] = month.filter((status) => status.plannedMinor > 0 || status.spentMinor > 0);
-    const badges = badgesFrom(weekResults, semesterWeeksFor(profile), badgeHistory(plan, entries, weekResults, today));
+    const badges = badgesFrom(
+      weekResults,
+      semesterWeeksFor(profile),
+      badgeHistory(plan, entries, weekResults, today),
+      lang,
+    );
 
     const total = totalInEur(accounts, entries, rates);
     // Without a rate for any account's currency nothing was converted, and €0 would read as a real total.
