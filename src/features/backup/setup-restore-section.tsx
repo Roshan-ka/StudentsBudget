@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
+import { useT } from '@/i18n/use-t';
 import { RestoreFromBackup } from './restore-from-backup';
 
 /**
@@ -10,6 +11,7 @@ import { RestoreFromBackup } from './restore-from-backup';
  * plan included).
  */
 export function SetupRestoreSection() {
+  const { t } = useT();
   // 'loading' (no answer yet) and a saved plan both render nothing.
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
   if (plan !== null) return null;
@@ -17,11 +19,9 @@ export function SetupRestoreSection() {
   return (
     <section aria-labelledby="restore-heading" className="flex flex-col gap-3 rounded-lg border px-4 py-3">
       <h2 id="restore-heading" className="text-lg font-semibold">
-        Have a backup? Restore it
+        {t.backup.restore.setupHeading}
       </h2>
-      <p className="text-sm text-muted-foreground">
-        Used StudentsBudget before? Choose your backup file to carry on where you left off.
-      </p>
+      <p className="text-sm text-muted-foreground">{t.backup.restore.setupIntro}</p>
       <RestoreFromBackup />
     </section>
   );
