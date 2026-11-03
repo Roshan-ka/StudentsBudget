@@ -253,6 +253,12 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
       - `e2e/language.spec.ts` covers Settings (switch, reload, back, no sideways scroll at 375 px) and setup (the options, their `lang`, the switch). It is listed under `allOnly`.
       - `account.spec.ts` and `profile.spec.ts` now skip the Language section when checking which section comes first.
 11. **German, part 1:** shell, Home, entries, categories, setup.
+    - **As built (2026-11-03):**
+      - German for `common` (date and amount fields, sources, counts, "Schätzung"), the categories, Home, entries and setup; the frame and the picker were written in chunk 10.
+      - The glossary is in `src/i18n/messages/de/index.ts`: du throughout, Umschlag, Alltagsbudget, einmalige Kosten, Umbuchung, Anfangsstand, "Automatisch hinzufügen", and calm "12 € zu viel".
+      - `messages.test.ts` checks that every written German area differs from English, text by text, with functions called with sample values. A short allow-list holds what is the same in both (Name, Bank, BAföG, Plan, a bare "label: range" format, "Wise (INR)"), and a stale entry fails the test.
+      - Category names respect the 16-character chart label ("Andere Einnahmen", not "Sonstige Einnahmen"). The charts area is still English, so in German its short names (Health, Transport pass, Utilities) are English until chunk 14 writes German ones.
+      - Still English in German: everything from chunks 5–9 that chunks 12–14 translate, and city content.
 12. **German, part 2:** profile, plan, recurring, accounts, rates, backup.
 13. **German, part 3:** sync, account, sign-in and security.
 14. **German, part 4:** charts, check-in, badges, reveal, content chrome.

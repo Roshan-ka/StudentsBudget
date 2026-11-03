@@ -1,0 +1,58 @@
+import type { Messages } from '../en';
+
+// Einträge auf Deutsch: die Liste, das Formular, Schnell erfassen und die Fehler von buildEntry.
+export const entries: Messages['entries'] = {
+  addEntry: 'Eintrag hinzufügen',
+  transfer: 'Umbuchung',
+  recurring: 'Wiederkehrend',
+  noAccount: 'Lege zuerst in den Einstellungen ein Konto an.',
+  saveFailed: 'Der Eintrag konnte nicht gespeichert werden.',
+  list: {
+    label: 'Einträge',
+    unknownAccount: 'Unbekanntes Konto',
+    clear: 'Zurücksetzen',
+    monthNav: 'Monat',
+    previous: '‹ Zurück',
+    next: 'Weiter ›',
+    nothingYet: 'Hier ist noch nichts eingetragen.',
+  },
+  edit: {
+    heading: 'Eintrag bearbeiten',
+    deleteQuestion: 'Diesen Eintrag löschen?',
+    yes: 'Ja',
+    cancel: 'Abbrechen',
+    delete: 'Löschen',
+    deleteFailed: 'Der Eintrag konnte nicht gelöscht werden.',
+  },
+  form: {
+    typeLabel: 'Art des Eintrags',
+    expense: 'Ausgabe',
+    income: 'Einnahme',
+    amount: 'Betrag',
+    account: 'Konto',
+    category: 'Kategorie',
+    note: 'Notiz',
+    pickDate: 'Wähle ein Datum.',
+    saveChanges: 'Änderungen speichern',
+    saveIncome: 'Einnahme speichern',
+    saveExpense: 'Ausgabe speichern',
+  },
+  quickAdd: {
+    label: 'Schnell erfassen',
+    placeholder: 'Was und wie viel, etwa „Döner 6“',
+    add: 'Hinzufügen',
+    noAmount: 'Gib einen Betrag an, etwa „Döner 6“',
+    whichAmount: 'Welcher Betrag?',
+    amountGroup: 'Betrag',
+    whichCategory: 'Welche Kategorie?',
+    categoryGroup: 'Kategorie',
+    more: 'Mehr',
+    saved: (what) => `Gespeichert: ${what}`,
+    undo: 'Rückgängig',
+    undoFailed: 'Das ließ sich nicht rückgängig machen.',
+  },
+  errors: {
+    enterAmount: 'Gib einen Betrag ein.',
+    noRate: (currency) => `Für ${currency} gibt es noch keinen Wechselkurs. Leg einen in den Einstellungen fest.`,
+  },
+};
