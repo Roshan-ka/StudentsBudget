@@ -41,6 +41,13 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
 **Part A: city content in German** (after it, the deferred German read covers the whole app)
 
 1. **The mechanism and the German tips.** `src/i18n/content/`, `tipIn`, per-item `contentLang`, the id and numbers tests, and German for the 25 tips. The Tips page shows them in German.
+   - **As built (2026-11-03):**
+     - The translations live in `src/i18n/city/` (`content.ts` already names `contentLang`): `CITY_WORDS` per language, `de/tips.ts` by tip id, and `tipIn(tip, lang)`, which returns the tip with its words and a `textLang` (`'en'` only where it falls back to English).
+     - `RangeSource` takes a `textLang` with the item and marks the source text by it; a range without one (setup's city ranges, swaps) is still marked by `contentLang`.
+     - The Tips page and a swap's related tip use `tipIn`; the swap's own words stay English until chunk 2.
+     - `city.test.ts`: only existing ids; every number of the English title, body and source in the translation ("€1,000" and "1.000 €" count as the same); `Estimate` kept; titles and bodies in their own words; every tip in every offered language.
+     - `tips.spec.ts`: a phone set to German sees every tip in German with its German source, and none marked English.
+     - CLAUDE.md's city-content rule says how it works now.
 2. **German for the rest of the city content.** Discounts, swaps (the swap line becomes all German: "spar etwa 10 € pro Essen"), the setup ranges' and semesters' sources. The completeness test for offered languages, CLAUDE.md's city-content rule, and the language hint if it needs a word on content.
 
 **Part B: Spanish**

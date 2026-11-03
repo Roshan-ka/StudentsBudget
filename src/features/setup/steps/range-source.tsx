@@ -13,24 +13,26 @@ function hostOf(url: string): string {
 /**
  * Where a city range comes from, collapsed under the range line: source text, check date and link. `label` is the
  * words on the collapsed line ("Source" in the phone's language without it); a swap with two amounts has two sources,
- * which it tells apart by what each one covers.
+ * which it tells apart by what each one covers. An item from `src/i18n/city` brings its `textLang`; anything else is
+ * still English in another language (`contentLang`).
  */
 export function RangeSource({
   range,
   label,
 }: {
-  range: Pick<CityRange, 'source' | 'url' | 'checked'>;
+  range: Pick<CityRange, 'source' | 'url' | 'checked'> & { textLang?: 'en' | undefined };
   label?: string;
 }) {
   const { t, lang } = useT();
   const estimate = range.source === 'Estimate';
+  const sourceLang = 'textLang' in range ? range.textLang : contentLang(lang);
   return (
     <details className="text-xs text-muted-foreground">
       {/* 16 px of text-xs line and 28 px of padding: a 44 px tap target, as everywhere else in the app. */}
       <summary className="w-fit cursor-pointer py-3.5">{label ?? t.common.source.label}</summary>
       <div className="mt-1 flex flex-col gap-1">
-        {/* The source's own text is city content and stays English; "Estimate" is the app's word. */}
-        <p lang={estimate ? undefined : contentLang(lang)} className="break-words">
+        {/* The source's own text is city content; "Estimate" is the app's word. */}
+        <p lang={estimate ? undefined : sourceLang} className="break-words">
           {estimate ? t.common.estimate : range.source}
         </p>
         <p>{t.common.source.checked(formatDate(range.checked))}</p>

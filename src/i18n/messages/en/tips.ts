@@ -1,5 +1,5 @@
 // The Tips tab in English: the tips, the discounts and the swap line's words. The tips, discounts and swaps
-// themselves are city content and stay English (marked lang="en" in another language, src/i18n/content.ts).
+// themselves are city content (src/data), translated by item in src/i18n/city.
 
 export const tips = {
   tabsLabel: 'Tips or discounts',
