@@ -68,6 +68,9 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'accounts.rates.rate',
     'auth.secondStep.prompt.after',
     'auth.signedIn.as.after',
+    'charts.income.source',
+    'badges.tiers.bronze',
+    'badges.card.heading',
   ]),
 };
 
