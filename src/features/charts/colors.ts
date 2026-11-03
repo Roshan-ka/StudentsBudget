@@ -1,21 +1,17 @@
 import { CATEGORIES } from '@/data/categories';
-import { categoryName } from '@/features/entries/categories';
+import { categoryNameIn } from '@/i18n/category-name';
+import type { Messages } from '@/i18n/messages';
 import { BUCKET_ID } from './aggregate';
 
-/** What the bucket of everything that did not fit in the top 6 is called. */
-export const BUCKET_LABEL = 'Everything else';
-
-/** Names that would not fit beside a slice or a bar; the table, the tooltip and every other screen keep the full name. */
-const SHORT_NAMES: Record<string, string> = {
-  utilities: 'Utilities',
-  'transport-pass': 'Transport pass',
-  health: 'Health',
-};
-
-/** The name of a category as a chart writes it: short enough for a legend row or an axis. */
-export function chartLabel(categoryId: string): string {
-  if (categoryId === BUCKET_ID) return BUCKET_LABEL;
-  return SHORT_NAMES[categoryId] ?? categoryName(categoryId);
+/**
+ * The name of a category as a chart writes it, in the dictionary's language: short enough for a legend row or an
+ * axis. A name that would not fit beside a slice or a bar has a shorter one (`charts.shortNames`); the table, the
+ * tooltip and every other screen keep the full name. The bucket of everything that did not fit in the top 6 is
+ * "Everything else".
+ */
+export function chartLabel(categoryId: string, t: Messages): string {
+  if (categoryId === BUCKET_ID) return t.charts.bucket;
+  return (t.charts.shortNames as Record<string, string>)[categoryId] ?? categoryNameIn(t, categoryId);
 }
 
 const COLORED = new Set([...CATEGORIES.map((c) => c.id), BUCKET_ID]);

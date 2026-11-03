@@ -50,11 +50,12 @@ const eslintConfig = defineConfig([
       "src/features/backup/**/*.tsx",
       "src/features/account/**/*.tsx",
       "src/features/check-in/**/*.tsx",
+      "src/features/charts/**/*.tsx",
       "src/components/date-field.tsx",
     ],
     rules: {
-      // The dot between translated parts reads the same in every language.
-      "react/jsx-no-literals": ["error", { noStrings: true, ignoreProps: true, allowedStrings: ["·"] }],
+      // The dot between translated parts, and the arrows beside Previous and Next, read the same in every language.
+      "react/jsx-no-literals": ["error", { noStrings: true, ignoreProps: true, allowedStrings: ["·", "‹", "›"] }],
     },
   },
   {

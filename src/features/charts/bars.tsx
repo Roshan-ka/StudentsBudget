@@ -4,13 +4,15 @@ import { useRouter } from 'next/navigation';
 import { memo, type PointerEvent } from 'react';
 import { Bar, BarChart, Rectangle, XAxis, YAxis, type BarShapeProps } from 'recharts';
 import { ChartContainer, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
-import { amountText, CHART_CONFIG, ChartFrame, type ChartRow, type OnHover } from './chart-parts';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
+import { amountText, ChartFrame, useChartConfig, type ChartRow, type OnHover } from './chart-parts';
 
 /** "€20 of €160", or just "€20" for what has no plan. Home writes the envelopes the same way. */
-function rowText(row: ChartRow): string {
+function rowText(row: ChartRow, t: Messages, locale: string): string {
   return row.plannedMinor === null
-    ? amountText(row.amountMinor)
-    : `${amountText(row.amountMinor)} of ${amountText(row.plannedMinor)}`;
+    ? amountText(row.amountMinor, locale)
+    : t.charts.ofPlanned(amountText(row.amountMinor, locale), amountText(row.plannedMinor, locale));
 }
 
 /** What a bar does with the label that sits at its end: where it goes, and what it says; null for none. */
@@ -117,14 +119,17 @@ const RowsChart = memo(function RowsChart({
   router: Router;
   onHover: OnHover;
 }) {
+  const { t, locale } = useT();
+  const config = useChartConfig();
+  const text = (row: ChartRow) => rowText(row, t, locale);
   const byId = new Map(rows.map((row) => [row.id, row]));
   const max = Math.max(1, ...rows.flatMap((row) => [row.amountMinor, row.plannedMinor ?? 0]));
-  const valueWidth = Math.max(MIN_VALUE_WIDTH, CHARACTER_WIDTH * Math.max(...rows.map((row) => rowText(row).length)) + TICK_GAP);
+  const valueWidth = Math.max(MIN_VALUE_WIDTH, CHARACTER_WIDTH * Math.max(...rows.map((row) => text(row).length)) + TICK_GAP);
   // The plot is exactly `rows.length * ROW_HEIGHT` high, so every row gets a band of ROW_HEIGHT.
   const height = rows.length * ROW_HEIGHT + 2 * MARGIN_Y + (withPlanned ? LEGEND_HEIGHT : 0);
 
   return (
-    <ChartContainer config={CHART_CONFIG} className="aspect-auto w-full" style={{ height }}>
+    <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
       <BarChart
         accessibilityLayer={false}
         layout="vertical"
@@ -154,7 +159,7 @@ const RowsChart = memo(function RowsChart({
           className="[&_.recharts-cartesian-axis-tick_text]:fill-foreground"
           tickFormatter={(id: string) => {
             const row = byId.get(id);
-            return row ? rowText(row) : '';
+            return row ? text(row) : '';
           }}
         />
         {withPlanned && (
@@ -204,10 +209,11 @@ export function HorizontalBars({
   summary: string;
 }) {
   const router = useRouter();
+  const { t } = useT();
   // The bars take the chart's one colour for an amount; the category colours are for the donut.
   const plain = rows.map((row) => ({ ...row, color: `var(--color-${seriesKey})` }));
   return (
-    <ChartFrame summary={summary} valueLabel={seriesKey === 'spent' ? 'Spent' : 'Income'}>
+    <ChartFrame summary={summary} valueLabel={t.charts.series[seriesKey]}>
       {(onHover) => (
         <RowsChart rows={plain} seriesKey={seriesKey} withPlanned={withPlanned} router={router} onHover={onHover} />
       )}

@@ -2,8 +2,10 @@
 
 import { parseISO } from 'date-fns';
 import Link from 'next/link';
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useMemo, useState, type ReactNode } from 'react';
 import type { ChartConfig } from '@/components/ui/chart';
+import { dateFormat } from '@/i18n/format';
+import { useT } from '@/i18n/use-t';
 import { firstOfMonth, type IsoMonth } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 import { formatWeekAmount } from '@/lib/week-amount';
@@ -14,32 +16,55 @@ import { formatWeekAmount } from '@/lib/week-amount';
  * The pair was validated as an ordinal pair against the light and the dark surface; the category colours are in
  * `globals.css`.
  */
-export const CHART_CONFIG = {
-  spent: { label: 'Spent', theme: { light: '#2a78d6', dark: '#3987e5' } },
-  planned: { label: 'Planned', theme: { light: '#86b6ef', dark: '#184f95' } },
-  income: { label: 'Income', theme: { light: '#2a78d6', dark: '#3987e5' } },
-  saved: { label: 'Saved', theme: { light: '#2a78d6', dark: '#3987e5' } },
-  short: { label: 'More spent than earned', theme: { light: '#eb6834', dark: '#d95926' } },
-} satisfies ChartConfig;
+const CHART_THEMES = {
+  spent: { light: '#2a78d6', dark: '#3987e5' },
+  planned: { light: '#86b6ef', dark: '#184f95' },
+  income: { light: '#2a78d6', dark: '#3987e5' },
+  saved: { light: '#2a78d6', dark: '#3987e5' },
+  short: { light: '#eb6834', dark: '#d95926' },
+};
+
+/** The charts' series, each with its colours and its name in the phone's language (the legend's words). */
+export function useChartConfig(): ChartConfig {
+  const { t } = useT();
+  return useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(CHART_THEMES).map(([key, theme]) => [
+          key,
+          { label: t.charts.series[key as keyof typeof CHART_THEMES], theme },
+        ]),
+      ) satisfies ChartConfig,
+    [t],
+  );
+}
 
 /** Whole euros; a non-zero amount under 50 cents keeps its cents, so it does not read as €0. */
-export const amountText = (minor: Minor): string => formatWeekAmount(minor).text;
+export const amountText = (minor: Minor, locale?: string): string => formatWeekAmount(minor, locale).text;
 
 /** `amountText` with a minus sign for a negative amount, for a number that stands on its own: "−€40". */
-export const signedAmountText = (minor: Minor): string => (minor < 0 ? `−${amountText(-minor)}` : amountText(minor));
-
-export const monthAndYear = new Intl.DateTimeFormat('en-IE', { month: 'long', year: 'numeric' });
-export const monthOnly = new Intl.DateTimeFormat('en-IE', { month: 'long' });
-export const shortMonth = new Intl.DateTimeFormat('en-IE', { month: 'short' });
-const shortMonthAndYear = new Intl.DateTimeFormat('en-IE', { month: 'short', year: 'numeric' });
+export const signedAmountText = (minor: Minor, locale?: string): string =>
+  minor < 0 ? `−${amountText(-minor, locale)}` : amountText(minor, locale);
 
 export const monthDate = (month: IsoMonth): Date => parseISO(firstOfMonth(month));
 
+/** "October 2026". */
+export const monthAndYear = (month: IsoMonth, locale: string): string =>
+  dateFormat(locale, { month: 'long', year: 'numeric' }).format(monthDate(month));
+/** "October". */
+export const monthOnly = (month: IsoMonth, locale: string): string =>
+  dateFormat(locale, { month: 'long' }).format(monthDate(month));
+/** "Oct". */
+export const shortMonth = (month: IsoMonth, locale: string): string =>
+  dateFormat(locale, { month: 'short' }).format(monthDate(month));
+const shortMonthAndYear = (month: IsoMonth, locale: string): string =>
+  dateFormat(locale, { month: 'short', year: 'numeric' }).format(monthDate(month));
+
 /** "Aug – Oct 2026", or "Nov 2025 – Oct 2026" across years: the months a period of more than one month covers. */
-export function rangeText(first: IsoMonth, last: IsoMonth): string {
+export function rangeText(first: IsoMonth, last: IsoMonth, locale: string): string {
   const sameYear = first.slice(0, 4) === last.slice(0, 4);
-  const from = (sameYear ? shortMonth : shortMonthAndYear).format(monthDate(first));
-  return `${from} – ${shortMonthAndYear.format(monthDate(last))}`;
+  const from = (sameYear ? shortMonth : shortMonthAndYear)(first, locale);
+  return `${from} – ${shortMonthAndYear(last, locale)}`;
 }
 
 /** "/entries?category=eating-out&month=2026-10": the entries behind one slice, bar or column; the whole month without a category. */
@@ -79,6 +104,7 @@ export type OnHover = (hover: HoverPoint | null) => void;
 
 /** The readout on hover. Everything in it is also printed on the chart or in the table, so it never gates a number. */
 function RowTooltip({ row, valueLabel }: { row: ChartRow; valueLabel: string }) {
+  const { t, locale } = useT();
   return (
     <div
       role="tooltip"
@@ -87,12 +113,12 @@ function RowTooltip({ row, valueLabel }: { row: ChartRow; valueLabel: string }) 
       <p className="font-medium">{row.label}</p>
       <p className="flex items-baseline justify-between gap-3">
         <span className="text-muted-foreground">{row.valueLabel ?? valueLabel}</span>
-        <span className="font-medium tabular-nums">{amountText(row.amountMinor)}</span>
+        <span className="font-medium tabular-nums">{amountText(row.amountMinor, locale)}</span>
       </p>
       {row.plannedMinor !== null && (
         <p className="flex items-baseline justify-between gap-3">
-          <span className="text-muted-foreground">Planned</span>
-          <span className="font-medium tabular-nums">{amountText(row.plannedMinor)}</span>
+          <span className="text-muted-foreground">{t.charts.series.planned}</span>
+          <span className="font-medium tabular-nums">{amountText(row.plannedMinor, locale)}</span>
         </p>
       )}
       {row.extra?.map((line) => (

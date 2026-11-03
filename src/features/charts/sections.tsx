@@ -4,7 +4,10 @@ import { useId, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import type { Entry } from '@/db/types';
-import { categoryName, EXPENSE_CATEGORIES } from '@/features/entries/categories';
+import { EXPENSE_CATEGORIES } from '@/features/entries/categories';
+import { categoryNameIn } from '@/i18n/category-name';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import type { Minor } from '@/lib/money';
 import {
   BUCKET_ID,
@@ -21,31 +24,25 @@ import {
   DataTable,
   entriesHref,
   monthAndYear,
-  monthDate,
   SegmentedControl,
   shortMonth,
   signedAmountText,
   type ChartRow,
 } from './chart-parts';
-import { BUCKET_LABEL, chartColor, chartLabel } from './colors';
+import { chartColor, chartLabel } from './colors';
 import { Donut } from './donut';
 import { MonthSeries } from './series';
 
-const SHARE_STYLES = [
-  { value: 'donut', text: 'Donut' },
-  { value: 'bars', text: 'Bars' },
-  { value: 'table', text: 'Table' },
-] as const;
+const SHARE_STYLES = ['donut', 'bars', 'table'] as const;
+const SERIES_STYLES = ['columns', 'line', 'table'] as const;
 
-const SERIES_STYLES = [
-  { value: 'columns', text: 'Columns' },
-  { value: 'line', text: 'Line' },
-  { value: 'table', text: 'Table' },
-] as const;
+type ShareStyle = (typeof SHARE_STYLES)[number];
+type SeriesChoice = (typeof SERIES_STYLES)[number];
 
-type ShareStyle = (typeof SHARE_STYLES)[number]['value'];
-type SeriesChoice = (typeof SERIES_STYLES)[number]['value'];
-
+/** A segmented control's options for a list of chart styles, named in the dictionary's language. */
+function styleOptions<T extends keyof Messages['charts']['styles']>(styles: readonly T[], t: Messages) {
+  return styles.map((value) => ({ value, text: t.charts.styles[value] }));
+}
 
 /** A category (or the bucket) as one slice, bar or table row, opening its entries for the period's last month. */
 function categoryRow(
@@ -53,12 +50,13 @@ function categoryRow(
   amountMinor: Minor,
   plannedMinor: Minor | null,
   endMonth: Period['endMonth'],
+  t: Messages,
 ): ChartRow {
   const bucket = categoryId === BUCKET_ID;
   return {
     id: categoryId,
-    label: bucket ? BUCKET_LABEL : categoryName(categoryId),
-    shortLabel: chartLabel(categoryId),
+    label: bucket ? t.charts.bucket : categoryNameIn(t, categoryId),
+    shortLabel: chartLabel(categoryId, t),
     amountMinor,
     plannedMinor,
     color: chartColor(categoryId),
@@ -71,11 +69,17 @@ function slicesOf<T extends { categoryId: string }>(
   rows: T[],
   amountOf: (row: T) => Minor,
   endMonth: Period['endMonth'],
+  t: Messages,
 ): ChartRow[] {
   return topWithBucket(
     rows.filter((row) => amountOf(row) > 0),
     amountOf,
-  ).map((row) => categoryRow(row.categoryId, amountOf(row), null, endMonth));
+  ).map((row) => categoryRow(row.categoryId, amountOf(row), null, endMonth, t));
+}
+
+/** The slices in a sentence: "Food & groceries €120, Eating out €45". */
+function slicesText(slices: ChartRow[], locale: string): string {
+  return slices.map((s) => `${s.label} ${amountText(s.amountMinor, locale)}`).join(', ');
 }
 
 /**
@@ -98,36 +102,42 @@ export function SpendingSection({
   note: string | null;
   noneText: string;
 }) {
+  const { t, locale } = useT();
+  const text = t.charts.spending;
   const [style, setStyle] = useState<ShareStyle>('donut');
-  const rows = spending.map((row) => categoryRow(row.categoryId, row.spentMinor, row.plannedMinor, period.endMonth));
+  const rows = spending.map((row) => categoryRow(row.categoryId, row.spentMinor, row.plannedMinor, period.endMonth, t));
   const withPlanned = rows.some((row) => row.plannedMinor !== null);
-  const slices = slicesOf(spending, (row) => row.spentMinor, period.endMonth);
-  const noteText = note ? `${note} ` : '';
+  const slices = slicesOf(spending, (row) => row.spentMinor, period.endMonth, t);
   const table = {
-    caption: `Spending by category, ${periodText}. ${noteText}Each category links to its entries.`,
-    firstColumn: 'Category',
-    columns: withPlanned ? ['Spent', 'Planned'] : ['Spent'],
-    rows: rows.map((row) => ({ row, cells: spendingCells(row, withPlanned) })),
+    caption: text.caption(periodText, note),
+    firstColumn: text.category,
+    columns: withPlanned ? [t.charts.series.spent, t.charts.series.planned] : [t.charts.series.spent],
+    rows: rows.map((row) => ({ row, cells: spendingCells(row, withPlanned, t, locale) })),
   };
 
   return (
-    <ChartSection title="Spending by category">
+    <ChartSection title={text.title}>
       {rows.length === 0 ? (
         <p className="text-muted-foreground">{noneText}</p>
       ) : (
         <>
           {note && <p className="text-sm text-muted-foreground">{note}</p>}
-          <SegmentedControl label="Spending chart style" options={SHARE_STYLES} value={style} onChange={setStyle} />
+          <SegmentedControl
+            label={text.styleLabel}
+            options={styleOptions(SHARE_STYLES, t)}
+            value={style}
+            onChange={setStyle}
+          />
           {style === 'donut' &&
             (slices.length === 0 ? (
-              <p className="text-muted-foreground">{`Nothing spent in ${periodText} yet.`}</p>
+              <p className="text-muted-foreground">{text.nothingSpent(periodText)}</p>
             ) : (
               <>
                 <Donut
                   rows={slices}
-                  valueLabel="Spent"
-                  centreLabel="spent"
-                  summary={`Donut chart of what was spent in ${periodText}: ${slices.map((s) => `${s.label} ${amountText(s.amountMinor)}`).join(', ')}. ${noteText}The same numbers are listed under it.`}
+                  valueLabel={t.charts.series.spent}
+                  centreLabel={text.centre}
+                  summary={text.donutSummary(periodText, slicesText(slices, locale), note)}
                 />
                 {/* Every category, planned and spent: what the donut folds into one slice is in the table. */}
                 <DataTable {...table} />
@@ -139,7 +149,7 @@ export function SpendingSection({
                 rows={rows}
                 seriesKey="spent"
                 withPlanned={withPlanned}
-                summary={`Bar chart of what was spent in each category in ${periodText}${withPlanned ? ', against what was planned' : ''}. ${noteText}The same numbers are in the table.`}
+                summary={text.barsSummary(periodText, withPlanned, note)}
               />
               <DataTable {...table} />
             </>
@@ -151,10 +161,10 @@ export function SpendingSection({
   );
 }
 
-function spendingCells(row: ChartRow, withPlanned: boolean): string[] {
-  return withPlanned
-    ? [amountText(row.amountMinor), row.plannedMinor === null ? 'Not planned' : amountText(row.plannedMinor)]
-    : [amountText(row.amountMinor)];
+function spendingCells(row: ChartRow, withPlanned: boolean, t: Messages, locale: string): string[] {
+  const spent = amountText(row.amountMinor, locale);
+  if (!withPlanned) return [spent];
+  return [spent, row.plannedMinor === null ? t.charts.spending.notPlanned : amountText(row.plannedMinor, locale)];
 }
 
 /** Income by source over the period, as a donut (every source, up to 6), bars or a table. */
@@ -169,43 +179,46 @@ export function IncomeSection({
   periodText: string;
   noneText: string;
 }) {
+  const { t, locale } = useT();
+  const text = t.charts.income;
   const [style, setStyle] = useState<ShareStyle>('donut');
-  const rows = income.map((row) => categoryRow(row.categoryId, row.amountMinor, null, period.endMonth));
-  const slices = slicesOf(income, (row) => row.amountMinor, period.endMonth);
-  const caption = `Income by source, ${periodText}. Each source links to its entries.`;
-  const tableRows = rows.map((row) => ({ row, cells: [amountText(row.amountMinor)] }));
+  const rows = income.map((row) => categoryRow(row.categoryId, row.amountMinor, null, period.endMonth, t));
+  const slices = slicesOf(income, (row) => row.amountMinor, period.endMonth, t);
+  const caption = text.caption(periodText);
+  const columns = [t.charts.series.income];
+  const tableRows = rows.map((row) => ({ row, cells: [amountText(row.amountMinor, locale)] }));
 
   return (
-    <ChartSection title="Income by source">
+    <ChartSection title={text.title}>
       {rows.length === 0 ? (
         <p className="text-muted-foreground">{noneText}</p>
       ) : (
         <>
-          <SegmentedControl label="Income chart style" options={SHARE_STYLES} value={style} onChange={setStyle} />
+          <SegmentedControl
+            label={text.styleLabel}
+            options={styleOptions(SHARE_STYLES, t)}
+            value={style}
+            onChange={setStyle}
+          />
           {style === 'donut' && (
             <>
               <Donut
                 rows={slices}
-                valueLabel="Income"
-                centreLabel="income"
-                summary={`Donut chart of the income in ${periodText} by source: ${slices.map((s) => `${s.label} ${amountText(s.amountMinor)}`).join(', ')}. The same numbers are listed under it.`}
+                valueLabel={t.charts.series.income}
+                centreLabel={text.centre}
+                summary={text.donutSummary(periodText, slicesText(slices, locale))}
               />
-              <DataTable caption={caption} firstColumn="Source" columns={['Income']} rows={tableRows} />
+              <DataTable caption={caption} firstColumn={text.source} columns={columns} rows={tableRows} />
             </>
           )}
           {style === 'bars' && (
             <>
-              <HorizontalBars
-                rows={rows}
-                seriesKey="income"
-                withPlanned={false}
-                summary={`Bar chart of the income in ${periodText} by source. The same numbers are in the table.`}
-              />
-              <DataTable caption={caption} firstColumn="Source" columns={['Income']} rows={tableRows} />
+              <HorizontalBars rows={rows} seriesKey="income" withPlanned={false} summary={text.barsSummary(periodText)} />
+              <DataTable caption={caption} firstColumn={text.source} columns={columns} rows={tableRows} />
             </>
           )}
           {style === 'table' && (
-            <DataTable visible caption={caption} firstColumn="Source" columns={['Income']} rows={tableRows} />
+            <DataTable visible caption={caption} firstColumn={text.source} columns={columns} rows={tableRows} />
           )}
         </>
       )}
@@ -229,71 +242,68 @@ export function SavingsSection({
   periodText: string;
   subtitle?: string | null;
 }) {
+  const { t, locale } = useT();
+  const text = t.charts.savings;
+  const series = t.charts.series;
   const [style, setStyle] = useState<SeriesChoice>('columns');
   const months = savingsByMonth(entries, period);
   const total = months.reduce((sum, m) => sum + m.savedMinor, 0);
   const rows: ChartRow[] = months.map((m) => ({
     id: m.month,
-    label: monthAndYear.format(monthDate(m.month)),
-    shortLabel: shortMonth.format(monthDate(m.month)),
+    label: monthAndYear(m.month, locale),
+    shortLabel: shortMonth(m.month, locale),
     amountMinor: m.savedMinor,
     plannedMinor: null,
     color: m.savedMinor < 0 ? 'var(--color-short)' : 'var(--color-saved)',
     href: entriesHref(null, m.month),
-    valueLabel: m.savedMinor < 0 ? 'More spent than earned' : 'Saved',
+    valueLabel: m.savedMinor < 0 ? series.short : series.saved,
     extra: [
-      { label: 'Income', text: amountText(m.incomeMinor) },
-      { label: 'Spent', text: amountText(m.expenseMinor) },
+      { label: series.income, text: amountText(m.incomeMinor, locale) },
+      { label: series.spent, text: amountText(m.expenseMinor, locale) },
     ],
   }));
-  const headline = total < 0 ? `${amountText(-total)} more spent than earned` : `${amountText(total)} saved`;
-  const caption = `Income minus spending by month, ${periodText}. Each month links to its entries.`;
+  const headline = total < 0 ? text.short(amountText(-total, locale)) : text.saved(amountText(total, locale));
+  const caption = text.caption(periodText);
+  const columns = [series.income, series.spent, series.saved];
+  const cells = savingsCells(rows, months, locale);
 
   return (
-    <ChartSection title="Saved each month" subtitle={subtitle}>
+    <ChartSection title={text.title} subtitle={subtitle}>
       <div>
         <p className="text-2xl font-semibold">{headline}</p>
-        <p className="text-sm text-muted-foreground">
-          {`Income minus spending, ${periodText}. Money moved between your accounts is left out.`}
-        </p>
+        <p className="text-sm text-muted-foreground">{text.explain(periodText)}</p>
       </div>
-      <SegmentedControl label="Savings chart style" options={SERIES_STYLES} value={style} onChange={setStyle} />
+      <SegmentedControl
+        label={text.styleLabel}
+        options={styleOptions(SERIES_STYLES, t)}
+        value={style}
+        onChange={setStyle}
+      />
       {style === 'table' ? (
-        <DataTable
-          visible
-          caption={caption}
-          firstColumn="Month"
-          columns={['Income', 'Spent', 'Saved']}
-          rows={savingsCells(rows, months)}
-        />
+        <DataTable visible caption={caption} firstColumn={text.month} columns={columns} rows={cells} />
       ) : (
         <>
           <MonthSeries
             rows={rows}
             style={style}
             ink="var(--color-saved)"
-            valueLabel="Saved"
-            summary={`${style === 'line' ? 'Line' : 'Column'} chart of income minus spending in each month of ${periodText}, ${headline}. The same numbers are in the table.`}
+            valueLabel={series.saved}
+            summary={text.summary(style === 'line', periodText, headline)}
           />
-          <DataTable
-            caption={caption}
-            firstColumn="Month"
-            columns={['Income', 'Spent', 'Saved']}
-            rows={savingsCells(rows, months)}
-          />
+          <DataTable caption={caption} firstColumn={text.month} columns={columns} rows={cells} />
         </>
       )}
     </ChartSection>
   );
 }
 
-function savingsCells(rows: ChartRow[], months: ReturnType<typeof savingsByMonth>) {
+function savingsCells(rows: ChartRow[], months: ReturnType<typeof savingsByMonth>, locale: string) {
   return rows.map((row, i) => ({
     row,
     cells: [
-      amountText(months[i]?.incomeMinor ?? 0),
-      amountText(months[i]?.expenseMinor ?? 0),
-      signedAmountText(row.amountMinor),
+      amountText(months[i]?.incomeMinor ?? 0, locale),
+      amountText(months[i]?.expenseMinor ?? 0, locale),
+      signedAmountText(row.amountMinor, locale),
     ],
   }));
 }
@@ -318,25 +328,30 @@ export function OverTimeSection({
   subtitle?: string | null;
 }) {
   const selectId = useId();
+  const { t, locale } = useT();
+  const text = t.charts.overTime;
   const [style, setStyle] = useState<SeriesChoice>('columns');
-  const name = chartLabel(categoryId);
+  const name = chartLabel(categoryId, t);
+  const fullName = categoryNameIn(t, categoryId);
   const color = chartColor(categoryId);
   const rows: ChartRow[] = categoryOverPeriod(entries, categoryId, period).map((m) => ({
     id: m.month,
-    label: monthAndYear.format(monthDate(m.month)),
-    shortLabel: shortMonth.format(monthDate(m.month)),
+    label: monthAndYear(m.month, locale),
+    shortLabel: shortMonth(m.month, locale),
     amountMinor: m.spentMinor,
     plannedMinor: null,
     color,
     href: entriesHref(categoryId, m.month),
   }));
-  const caption = `${categoryName(categoryId)} by month, ${periodText}. Each month links to its entries.`;
-  const tableRows = rows.map((row) => ({ row, cells: [amountText(row.amountMinor)] }));
+  const caption = text.caption(fullName, periodText);
+  const columns = [t.charts.series.spent];
+  const tableRows = rows.map((row) => ({ row, cells: [amountText(row.amountMinor, locale)] }));
+  const firstColumn = t.charts.savings.month;
 
   return (
-    <ChartSection title={`${name} over time`} subtitle={subtitle}>
+    <ChartSection title={text.title(name)} subtitle={subtitle}>
       <div className="grid gap-1.5">
-        <Label htmlFor={selectId}>Category</Label>
+        <Label htmlFor={selectId}>{text.category}</Label>
         <NativeSelect
           id={selectId}
           className="w-full"
@@ -345,24 +360,29 @@ export function OverTimeSection({
         >
           {EXPENSE_CATEGORIES.map((c) => (
             <NativeSelectOption key={c.id} value={c.id}>
-              {c.name}
+              {categoryNameIn(t, c.id)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
       </div>
-      <SegmentedControl label="Category chart style" options={SERIES_STYLES} value={style} onChange={setStyle} />
+      <SegmentedControl
+        label={text.styleLabel}
+        options={styleOptions(SERIES_STYLES, t)}
+        value={style}
+        onChange={setStyle}
+      />
       {style === 'table' ? (
-        <DataTable visible caption={caption} firstColumn="Month" columns={['Spent']} rows={tableRows} />
+        <DataTable visible caption={caption} firstColumn={firstColumn} columns={columns} rows={tableRows} />
       ) : (
         <>
           <MonthSeries
             rows={rows}
             style={style}
             ink={color}
-            valueLabel="Spent"
-            summary={`${style === 'line' ? 'Line' : 'Column'} chart of what was spent on ${categoryName(categoryId)} in each month of ${periodText}. The same numbers are in the table.`}
+            valueLabel={t.charts.series.spent}
+            summary={text.summary(style === 'line', fullName, periodText)}
           />
-          <DataTable caption={caption} firstColumn="Month" columns={['Spent']} rows={tableRows} />
+          <DataTable caption={caption} firstColumn={firstColumn} columns={columns} rows={tableRows} />
         </>
       )}
     </ChartSection>

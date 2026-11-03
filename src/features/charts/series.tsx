@@ -4,17 +4,10 @@ import { useRouter } from 'next/navigation';
 import { memo } from 'react';
 import { Bar, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
+import { useT } from '@/i18n/use-t';
 import type { IsoMonth } from '@/lib/dates';
 import { openableBar } from './bars';
-import {
-  CHART_CONFIG,
-  ChartFrame,
-  monthDate,
-  shortMonth,
-  signedAmountText,
-  type ChartRow,
-  type OnHover,
-} from './chart-parts';
+import { ChartFrame, shortMonth, signedAmountText, useChartConfig, type ChartRow, type OnHover } from './chart-parts';
 
 export type SeriesStyle = 'columns' | 'line';
 
@@ -51,6 +44,8 @@ const SeriesChart = memo(function SeriesChart({
   router: Router;
   onHover: OnHover;
 }) {
+  const { locale } = useT();
+  const config = useChartConfig();
   const high = Math.max(0, ...rows.map((row) => row.amountMinor));
   const low = Math.min(0, ...rows.map((row) => row.amountMinor));
   // A label under a column that points down, or under a dot, needs room below the lowest value.
@@ -58,11 +53,11 @@ const SeriesChart = memo(function SeriesChart({
   const domain: [number, number] = [low - below, Math.max(1, high)];
   const band = (chart: { width: number }) => (chart.width - 2 * MARGIN_X) / rows.length;
   const labelOf =
-    rows.length <= LABELLED_UP_TO ? (row: ChartRow) => signedAmountText(row.amountMinor) : (): null => null;
+    rows.length <= LABELLED_UP_TO ? (row: ChartRow) => signedAmountText(row.amountMinor, locale) : (): null => null;
   const open = (href: string) => router.push(href);
 
   return (
-    <ChartContainer config={CHART_CONFIG} className="aspect-auto h-56 w-full">
+    <ChartContainer config={config} className="aspect-auto h-56 w-full">
       <ComposedChart
         accessibilityLayer={false}
         data={rows}
@@ -73,7 +68,7 @@ const SeriesChart = memo(function SeriesChart({
           tickLine={false}
           axisLine={false}
           interval={0}
-          tickFormatter={(month: IsoMonth) => shortMonth.format(monthDate(month))}
+          tickFormatter={(month: IsoMonth) => shortMonth(month, locale)}
         />
         <YAxis hide domain={domain} />
         <ReferenceLine y={0} stroke="var(--border)" />
