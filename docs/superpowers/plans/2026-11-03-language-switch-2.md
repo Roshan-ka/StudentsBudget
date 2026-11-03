@@ -88,6 +88,8 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
       - `messages.test.ts`: French's allow-list (Date, Source, Parents, Badges, BAföG, the bare account option); French counting pinned ("0 compte"); and every French text has a narrow no-break space before : ; ? ! and inside « » (a plain space was tried and fails it).
 11. **French Home, entries, setup.**
     - **As built (2026-11-03):** French for `home` (Reste à dépenser ce mois-ci, Enveloppes, calm "de trop"), `entries` (Saisies, Ajout rapide, « döner 6 » with its spaces) and `setup` (Configure ton plan, Ajouter automatiquement). Problems that name an unnamed account or cost read "du compte 2" rather than splicing a name in. The allow-list gains Note, Type and the Plan heading.
+12. **French profile, recurring, accounts, backup.**
+    - **As built (2026-11-03):** French for `profile` (Frais de semestre, réinscription), `recurring` (Charges fixes et revenus, Ajouter automatiquement; weekday names from the locale: "Chaque semaine, le lundi"), `accounts` (Taux de change, BCE, Virement) and `backup` (Sauvegarde; the word to type before deleting everything is SUPPRIMER). "Tu restes connecté" became "ta session reste ouverte", which needs no gender. The allow-list gains Type, Total and the bare rate format.
 
 ## Verification
 
