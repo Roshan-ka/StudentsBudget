@@ -1,9 +1,13 @@
 import { en, type Messages } from '../en';
+import { accounts } from './accounts';
+import { backup } from './backup';
 import { categories } from './categories';
 import { common } from './common';
 import { entries } from './entries';
 import { home } from './home';
 import { language } from './language';
+import { profile } from './profile';
+import { recurring } from './recurring';
 import { setup } from './setup';
 import { shell } from './shell';
 
@@ -28,4 +32,17 @@ import { shell } from './shell';
  * - sync: sincronizar (the heading: Sincronización; the button: Sincronizar ahora); link: vincular
  * - Regensburg stays Regensburg, as on every sign there.
  */
-export const es: Messages = { ...en, shell, language, common, categories, home, entries, setup };
+export const es: Messages = {
+  ...en,
+  shell,
+  language,
+  common,
+  categories,
+  home,
+  entries,
+  setup,
+  profile,
+  recurring,
+  accounts,
+  backup,
+};
