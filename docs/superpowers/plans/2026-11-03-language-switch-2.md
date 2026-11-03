@@ -81,6 +81,12 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
 
 10–16. As 3–9, in French, with `plural()` for counts and French spacing.
 
+10. **French frame.**
+    - **As built (2026-11-03):**
+      - `messages/fr/`: the glossary in `index.ts` (tu; enveloppe, saisie, compte, estimation, bilan hebdomadaire, badge, Réglages; Regensburg stays Regensburg), `byCount` and `NNBSP` in `count.ts`, and French for shell, language, common and categories. Nav labels: Accueil, Saisies, Graphes, Conseils, Réglages.
+      - Category names fit the 16-character chart label where no short name covers them (Repas dehors, Soins personnels, Télécoms, Frais ponctuels, Compte bloqué).
+      - `messages.test.ts`: French's allow-list (Date, Source, Parents, Badges, BAföG, the bare account option); French counting pinned ("0 compte"); and every French text has a narrow no-break space before : ; ? ! and inside « » (a plain space was tried and fails it).
+
 ## Verification
 
 - **Every chunk:** `npm run lint`, `npm run typecheck`, `npm test` (light lane).

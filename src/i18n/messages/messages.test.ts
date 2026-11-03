@@ -53,6 +53,14 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'auth.secondStep.prompt.after',
     'auth.signedIn.as.after',
   ]),
+  fr: new Set([
+    'common.accountOption',
+    'common.dateField.label',
+    'common.source.label',
+    'categories.income-bafoeg',
+    'categories.income-parents',
+    'shell.headings.badges',
+  ]),
 };
 
 /** Every language besides English with a dictionary of its own; a draft has English underneath its unwritten areas. */
@@ -97,10 +105,24 @@ describe('the dictionaries', () => {
   });
 
   it("counts by each language's own plural rules", () => {
-    // Spanish counts 0 as plural, as English does (French will count it as singular).
+    // Spanish counts 0 as plural, as English does; French counts it as singular.
     expect(MESSAGES.es.common.counts.accounts(0)).toBe('0 cuentas');
     expect(MESSAGES.es.common.counts.accounts(1)).toBe('1 cuenta');
     expect(MESSAGES.es.common.counts.entries(2)).toBe('2 registros');
+    expect(MESSAGES.fr.common.counts.accounts(0)).toBe('0 compte');
+    expect(MESSAGES.fr.common.counts.accounts(1)).toBe('1 compte');
+    expect(MESSAGES.fr.common.counts.entries(2)).toBe('2 saisies');
+  });
+
+  it('puts the narrow no-break space French needs before : ; ? ! and inside « »', () => {
+    const { en, fr } = MESSAGES;
+    for (const area of Object.keys(en) as (keyof Messages)[]) {
+      if (fr[area] === en[area]) continue;
+      for (const [path, text] of texts(fr[area], area)) {
+        expect(text, path).not.toMatch(/(^|[^ ])[:;?!]/);
+        expect(text, path).not.toMatch(/«[^ ]|[^ ]»/);
+      }
+    }
   });
 
   it('keeps every bottom-navigation label short enough for five side by side at 375 px, drafts included', () => {
