@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
 import type { Plan } from '@/db/types';
-import { pull, UPDATE_NEEDED } from './pull';
+import { pull } from './pull';
 import { push } from './push';
 import { expense, fakeStore, MANUAL } from './test-helpers';
 import { untracked } from './untracked';
@@ -73,7 +73,7 @@ describe('pull', () => {
     // A newer phone writes a row this app doesn't know, then another row after it.
     await store.upsert('entries', [{ id: 'e2', data: { ...expense('e2'), type: 'gift' } }]);
     await store.upsert('entries', [{ id: 'e3', data: expense('e3') }]);
-    expect(await pull(store)).toEqual({ kind: 'invalid', problem: UPDATE_NEEDED });
+    expect(await pull(store)).toEqual({ kind: 'invalid', problem: 'update-needed' });
     expect((await db.entries.toArray()).map((e) => e.id)).toEqual(['e1']);
     expect(await cursor()).toBe(1);
   });
@@ -81,7 +81,7 @@ describe('pull', () => {
   it('refuses a row filed under another id', async () => {
     const { store } = fakeStore();
     await store.upsert('entries', [{ id: 'e1', data: expense('e9') }]);
-    expect(await pull(store)).toEqual({ kind: 'invalid', problem: UPDATE_NEEDED });
+    expect(await pull(store)).toEqual({ kind: 'invalid', problem: 'update-needed' });
     expect(await db.entries.count()).toBe(0);
   });
 

@@ -20,6 +20,12 @@ export const common = {
   },
   /** An account in a picker: "Wise (INR)". */
   accountOption: (name: string, currency: string) => `${name} (${currency})`,
+  /** What a set of data holds: "3 accounts", "1 entry", "your plan" (backup and sync). */
+  counts: {
+    accounts: (count: number) => `${count} ${count === 1 ? 'account' : 'accounts'}`,
+    entries: (count: number) => `${count} ${count === 1 ? 'entry' : 'entries'}`,
+    plan: 'your plan',
+  },
   /** What a number no page states says instead of a source (the data's `source: 'Estimate'`). */
   estimate: 'Estimate',
 };

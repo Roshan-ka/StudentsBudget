@@ -13,9 +13,14 @@ import {
   weekResultRow,
 } from '@/db/schemas';
 import type { Category, Plan, Schedule } from '@/db/types';
+import type { Language } from '@/i18n/languages';
+import { MESSAGES, type Messages } from '@/i18n/messages';
 import { addDays, formatDateTime, todayIso, weekOf } from '@/lib/dates';
 
 export type { BackupData };
+
+/** What can be wrong between the rows of a set of data; the dictionary words each one (`backup.problems`). */
+type Problem = keyof Messages['backup']['problems'];
 
 /**
  * Bumped when the file's shape changes. A file with a higher number than this came from a newer app.
@@ -29,10 +34,6 @@ export const BACKUP_VERSION = 3;
 const READABLE_VERSIONS = [1, 2, BACKUP_VERSION] as const;
 
 const APP = 'studentsbudget';
-
-const NOT_A_BACKUP = "This isn't a StudentsBudget backup file.";
-const NEWER_VERSION = 'This backup is from a newer version of the app.';
-const INCOMPLETE = 'This backup file is incomplete.';
 
 // A file is data this app did not write, so every field of every row is checked (the row schemas: src/db/schemas.ts).
 const backupData = z.object({
@@ -113,25 +114,25 @@ function isPossibleSchedule(schedule: Schedule, planCreatedOn: string): boolean 
  * that is not a Monday–Sunday week, an amount that cannot happen. Null when nothing is wrong. `openingMinor` is
  * free: an account can be overdrawn.
  */
-function findProblem(d: BackupData): string | null {
+function findProblem(d: BackupData): Problem | null {
   const accountIds = new Set(d.accounts.map((a) => a.id));
   // A built-in category does not have to be in the file: parseBackup adds the ones that are missing.
   const categoryIds = new Set([...BUILT_IN_CATEGORY_IDS, ...d.categories.map((c) => c.id)]);
   const schedules = schedulesOf(d.plan);
   const planLines = d.plan ? [...d.plan.incomes, ...d.plan.fixed, ...d.plan.envelopes] : [];
 
-  if (d.entries.some((e) => !accountIds.has(e.accountId))) return "an entry uses an account that isn't in the file";
+  if (d.entries.some((e) => !accountIds.has(e.accountId))) return 'entryAccount';
   if (d.entries.some((e) => e.type === 'transfer' && !accountIds.has(e.toAccountId))) {
-    return "a transfer goes to an account that isn't in the file";
+    return 'transferAccount';
   }
   if (schedules.some((s) => !accountIds.has(s.accountId))) {
-    return "a fixed cost or income uses an account that isn't in the file";
+    return 'scheduleAccount';
   }
   if (d.entries.some((e) => e.type !== 'transfer' && !categoryIds.has(e.categoryId))) {
-    return "an entry uses a category that isn't in the file";
+    return 'entryCategory';
   }
   if ([...planLines, ...d.guesses].some((line) => !categoryIds.has(line.categoryId))) {
-    return 'the plan or the guesses use an unknown category';
+    return 'planCategory';
   }
 
   // The keys of the tables. Without this check, restoring would fail on the second row that has the same key.
@@ -146,20 +147,20 @@ function findProblem(d: BackupData): string | null {
     d.weekResults.map((w) => w.weekStart),
     d.discountVotes.map((v) => v.discountId),
   ];
-  if (keyLists.some(hasDuplicates)) return 'two rows share the same id';
+  if (keyLists.some(hasDuplicates)) return 'duplicateId';
 
   // A saved week runs Monday to Sunday and is keyed by its Monday. A row keyed by another day would not stop the
   // app from saving the real Monday as well, and that week would count twice.
   const weekOutOfShape = d.weekResults.some(
     (w) => weekOf(w.weekStart).start !== w.weekStart || w.weekEnd !== addDays(w.weekStart, 6),
   );
-  if (weekOutOfShape) return "a saved week doesn't run from Monday to Sunday";
+  if (weekOutOfShape) return 'weekShape';
 
   const moneyOut =
     d.entries.some((e) => e.amountMinor <= 0 || (e.type === 'transfer' && e.toAmountMinor <= 0)) ||
     (d.plan?.oneOffs ?? []).some((o) => o.amountMinor <= 0) ||
     schedules.some((s) => s.amountMinor <= 0);
-  if (moneyOut) return 'an amount is zero or negative';
+  if (moneyOut) return 'zeroAmount';
   // Zero is fine for these: an envelope, a guess, the rent or the everyday budget can be 0, and a small amount can
   // convert to €0.00.
   const budget = d.plan?.spendingBudgetMinor ?? 0;
@@ -168,26 +169,27 @@ function findProblem(d: BackupData): string | null {
     [...planLines, ...d.guesses].some((line) => line.monthlyMinor < 0) ||
     budget < 0
   ) {
-    return 'an amount is negative';
+    return 'negativeAmount';
   }
   // A paused or empty week is all zeros, and a plan can be €0, so zero is fine here too.
   const weekAmounts = d.weekResults.flatMap((w) => [w.plannedMinor, w.spentMinor, w.foodSpentMinor, w.eatingOutSpentMinor]);
-  if (weekAmounts.some((amount) => amount < 0)) return 'an amount is negative';
+  if (weekAmounts.some((amount) => amount < 0)) return 'negativeAmount';
 
   // There are schedules only when there is a plan.
   const createdOn = d.plan?.createdOn ?? '';
   if (schedules.some((s) => !isPossibleSchedule(s, createdOn))) {
-    return 'a fixed cost or income has an impossible schedule';
+    return 'impossibleSchedule';
   }
   return null;
 }
 
 /**
  * What a complete set of data says about itself, as `findProblem` sees it: null when its rows fit together, else what
- * is wrong. Loading from the account checks its rows with this too, before they replace the phone's.
+ * is wrong, in `lang`. Loading from the account checks its rows with this too, before they replace the phone's.
  */
-export function checkBackupData(d: BackupData): string | null {
-  return findProblem(d);
+export function checkBackupData(d: BackupData, lang: Language = 'en'): string | null {
+  const problem = findProblem(d);
+  return problem === null ? null : MESSAGES[lang].backup.problems[problem];
 }
 
 /** The file's categories and every built-in one it lacks, so a file from before a category existed still restores all 26. */
@@ -206,28 +208,30 @@ export function serializeBackup(d: BackupData, now: Date): string {
  * Checks a file's text and gives back its data, or a message that says what is wrong with it.
  * The version is looked at before the rest, because a newer file may well have a shape this app does not know.
  * A file of the right shape is then checked for what its rows say about each other (see `findProblem`), and
- * the built-in categories it lacks are added to the data it gives back.
+ * the built-in categories it lacks are added to the data it gives back. The message is in `lang`.
  */
 export function parseBackup(
   fileText: string,
+  lang: Language = 'en',
 ): { ok: true; data: BackupData; exportedAt: string } | { ok: false; error: string } {
+  const text = MESSAGES[lang].backup;
   let raw: unknown;
   try {
     raw = JSON.parse(fileText);
   } catch {
-    return { ok: false, error: NOT_A_BACKUP };
+    return { ok: false, error: text.file.notBackup };
   }
   if (typeof raw !== 'object' || raw === null || !('app' in raw) || raw.app !== APP) {
-    return { ok: false, error: NOT_A_BACKUP };
+    return { ok: false, error: text.file.notBackup };
   }
   if ('version' in raw && typeof raw.version === 'number' && raw.version > BACKUP_VERSION) {
-    return { ok: false, error: NEWER_VERSION };
+    return { ok: false, error: text.file.newer };
   }
   const parsed = backupFile.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: INCOMPLETE };
+  if (!parsed.success) return { ok: false, error: text.file.incomplete };
   const data = parsed.data.data;
   const problem = findProblem(data);
-  if (problem) return { ok: false, error: `This backup file is damaged: ${problem}.` };
+  if (problem) return { ok: false, error: text.file.damaged(text.problems[problem]) };
   return {
     ok: true,
     data: { ...data, categories: withBuiltInCategories(data.categories) },
@@ -240,13 +244,12 @@ export function backupFileName(now: Date): string {
   return `${APP}-backup-${todayIso(now)}.json`;
 }
 
-/** What the confirmation says under the file name: "Saved 19-10-2026, 12:00 · 3 accounts · 47 entries". */
-export function backupSummary(d: BackupData, exportedAt: string): string {
-  const accounts = d.accounts.length;
-  const entries = d.entries.length;
+/** What the confirmation says under the file name: "Saved 19-10-2026, 12:00 · 3 accounts · 47 entries", in `lang`. */
+export function backupSummary(d: BackupData, exportedAt: string, lang: Language = 'en'): string {
+  const t = MESSAGES[lang];
   return [
-    `Saved ${formatDateTime(exportedAt)}`,
-    `${accounts} ${accounts === 1 ? 'account' : 'accounts'}`,
-    `${entries} ${entries === 1 ? 'entry' : 'entries'}`,
+    t.backup.saved(formatDateTime(exportedAt)),
+    t.common.counts.accounts(d.accounts.length),
+    t.common.counts.entries(d.entries.length),
   ].join(' · ');
 }

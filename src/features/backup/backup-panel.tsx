@@ -6,10 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { deleteEverything, exportAll, type BackupData } from '@/db/bulk';
+import { useT } from '@/i18n/use-t';
 import { backupFileName, serializeBackup } from './backup';
 import { RestoreFromBackup } from './restore-from-backup';
-
-const CONFIRM_WORD = 'DELETE';
 
 function buildFile(data: BackupData): File {
   const now = new Date();
@@ -35,6 +34,8 @@ type Notice =
   | { kind: 'share-failed' };
 
 function ExportBackup() {
+  const { t } = useT();
+  const text = t.backup.export;
   // Read before the tap, not in it. iOS opens the share sheet only from inside the tap itself, and waiting
   // on the database first would let that moment pass. The live query also keeps the snapshot current.
   const snapshot = useLiveQuery(() => exportAll(), []);
@@ -67,7 +68,7 @@ function ExportBackup() {
       file = buildFile(snapshot);
     } catch (exportError) {
       console.error('StudentsBudget: could not export the backup', exportError);
-      return setError('Could not export your data.');
+      return setError(text.failed);
     }
 
     if (!navigator.canShare?.({ files: [file] })) return startDownload(file);
@@ -75,7 +76,7 @@ function ExportBackup() {
     setSharing(true);
     try {
       navigator
-        .share({ files: [file], title: 'StudentsBudget backup' })
+        .share({ files: [file], title: text.shareTitle })
         .then(() => setNotice({ kind: 'shared' }), onShareFailed)
         .finally(() => setSharing(false));
     } catch (shareError) {
@@ -91,39 +92,37 @@ function ExportBackup() {
       startDownload(buildFile(snapshot));
     } catch (exportError) {
       console.error('StudentsBudget: could not export the backup', exportError);
-      setError('Could not export your data.');
+      setError(text.failed);
     }
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="font-medium">Export a backup</h4>
-      <p className="text-sm text-muted-foreground">
-        Saves everything as one file. On an iPhone, choose Save to Files in the share sheet.
-      </p>
+      <h4 className="font-medium">{text.heading}</h4>
+      <p className="text-sm text-muted-foreground">{text.hint}</p>
       <Button
         variant="outline"
         className="h-10 self-start px-4"
         onClick={onExport}
         disabled={snapshot === undefined || sharing}
       >
-        Export backup
+        {text.button}
       </Button>
       {notice?.kind === 'shared' && (
         <p role="status" className="text-sm">
-          Backup shared.
+          {text.shared}
         </p>
       )}
       {notice?.kind === 'downloaded' && (
         <p role="status" className="text-sm">
-          Download started: {notice.name}
+          {text.downloaded(notice.name)}
         </p>
       )}
       {notice?.kind === 'share-failed' && (
         <div role="alert" className="flex flex-col gap-2 text-sm">
-          <p>The share sheet didn&apos;t open. You can download the file instead.</p>
+          <p>{text.shareFailed}</p>
           <Button variant="outline" className="h-10 self-start px-4" onClick={onDownloadInstead}>
-            Download instead
+            {text.downloadInstead}
           </Button>
         </div>
       )}
@@ -138,6 +137,10 @@ function ExportBackup() {
 
 function DeleteEverything() {
   const inputId = useId();
+  const { t } = useT();
+  const text = t.backup.delete;
+  // The word to type is the phone's language's, so it can be typed on that phone's keyboard.
+  const confirmed = (typed: string) => typed.trim() === text.word;
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -161,14 +164,14 @@ function DeleteEverything() {
 
   async function onDelete(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (typed.trim() !== CONFIRM_WORD) return;
+    if (!confirmed(typed)) return;
     setDeleting(true);
     setError(null);
     try {
       await deleteEverything();
     } catch (deleteError) {
       console.error('StudentsBudget: could not delete the data', deleteError);
-      setError('Could not delete your data. Try again.');
+      setError(text.failed);
       setDeleting(false);
       return;
     }
@@ -178,24 +181,17 @@ function DeleteEverything() {
 
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="font-medium">Delete everything</h4>
-      <p className="text-sm text-muted-foreground">
-        Removes your plan, accounts, entries, saved weeks and badges, discount answers, profile and exchange rates
-        from this phone. A phone linked to your account is unlinked: your account keeps its copy, and you stay signed in.
-        Changes not synced yet are lost.
-      </p>
+      <h4 className="font-medium">{text.heading}</h4>
+      <p className="text-sm text-muted-foreground">{text.intro}</p>
       {open ? (
         <form
           onSubmit={(event) => void onDelete(event)}
           noValidate
           className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3"
         >
-          <p className="text-sm">
-            This can&apos;t be undone on this phone. To get your data back later, export a backup first, or save to
-            your account.
-          </p>
+          <p className="text-sm">{text.warning}</p>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={inputId}>Type {CONFIRM_WORD} to confirm</Label>
+            <Label htmlFor={inputId}>{text.typeToConfirm(text.word)}</Label>
             <Input
               id={inputId}
               className="h-10"
@@ -213,18 +209,18 @@ function DeleteEverything() {
               type="submit"
               variant="destructive"
               className="h-10 px-4"
-              disabled={typed.trim() !== CONFIRM_WORD || deleting}
+              disabled={!confirmed(typed) || deleting}
             >
-              Delete everything
+              {text.button}
             </Button>
             <Button type="button" variant="outline" className="h-10 px-4" onClick={close} disabled={deleting}>
-              Cancel
+              {text.cancel}
             </Button>
           </div>
         </form>
       ) : (
         <Button variant="destructive" className="h-10 self-start px-4" onClick={() => setOpen(true)}>
-          Delete everything
+          {text.button}
         </Button>
       )}
       {error && (
@@ -238,18 +234,16 @@ function DeleteEverything() {
 
 /** Settings: save everything to a file, bring it back, or wipe the phone. Always shown, plan or no plan. */
 export function BackupPanel() {
+  const { t } = useT();
   return (
     <section aria-labelledby="backup-heading" className="flex flex-col gap-4">
       <h3 id="backup-heading" className="text-lg font-semibold">
-        Backup
+        {t.backup.heading}
       </h3>
-      <p className="text-muted-foreground">
-        Everything you enter stays on this phone unless you link it to your account. A backup file is a copy you keep
-        yourself, so export one now and then and keep it somewhere safe.
-      </p>
+      <p className="text-muted-foreground">{t.backup.intro}</p>
       <ExportBackup />
       <div className="flex flex-col gap-2">
-        <h4 className="font-medium">Restore from a backup</h4>
+        <h4 className="font-medium">{t.backup.restore.heading}</h4>
         <RestoreFromBackup />
       </div>
       <DeleteEverything />

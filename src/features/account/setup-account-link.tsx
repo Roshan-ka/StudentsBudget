@@ -3,6 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { db } from '@/db/db';
+import { useT } from '@/i18n/use-t';
 import { useAuth } from './use-auth';
 
 /**
@@ -10,20 +11,22 @@ import { useAuth } from './use-auth';
  * instead of setting up again. Not shown without a Supabase project, or once there is a plan (Edit plan).
  */
 export function SetupAccountLink() {
+  const { t } = useT();
+  const text = t.account.setupLink;
   const auth = useAuth();
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
   if (auth.status === 'off' || plan !== null) return null;
 
   return (
     <p className="text-sm text-muted-foreground">
-      Using StudentsBudget on another phone?{' '}
+      {text.question}{' '}
       <Link href="/settings/account" className="font-medium text-primary underline underline-offset-4">
         {/* Signed in already, for example after Delete everything, which keeps the sign-in. */}
         {auth.status === 'signed-in'
-          ? 'Get your data from your account'
+          ? text.signedIn
           : auth.status === 'second-step'
-            ? 'Finish signing in to get your data'
-            : 'Sign in to get your data'}
+            ? text.secondStep
+            : text.signedOut}
       </Link>
     </p>
   );

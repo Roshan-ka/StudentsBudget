@@ -47,6 +47,11 @@ const eslintConfig = defineConfig([
       "src/features/profile/**/*.tsx",
       "src/features/recurring/**/*.tsx",
       "src/features/accounts/**/*.tsx",
+      "src/features/backup/**/*.tsx",
+      "src/features/account/account-link.tsx",
+      "src/features/account/account-section.tsx",
+      "src/features/account/setup-account-link.tsx",
+      "src/features/account/sync-status.tsx",
       "src/components/date-field.tsx",
     ],
     rules: {

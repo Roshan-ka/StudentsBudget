@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { replaceAll, type BackupData } from '@/db/bulk';
 import { db } from '@/db/db';
+import { useT } from '@/i18n/use-t';
 import { backupSummary, parseBackup } from './backup';
 
 type Chosen = { fileName: string; data: BackupData; exportedAt: string };
@@ -18,6 +19,8 @@ type Chosen = { fileName: string; data: BackupData; exportedAt: string };
  */
 export function RestoreFromBackup() {
   const inputId = useId();
+  const { t, lang } = useT();
+  const text = t.backup.restore;
   const questionRef = useRef<HTMLParagraphElement>(null);
   // Counts the files chosen. A read that finishes after a later file was chosen sees its number is old and says nothing.
   const latestPick = useRef(0);
@@ -63,11 +66,11 @@ export function RestoreFromBackup() {
       if (pick !== latestPick.current) return;
       console.error('StudentsBudget: could not read the backup file', readError);
       setReading(false);
-      return setError('Could not read that file.');
+      return setError(text.readFailed);
     }
     if (pick !== latestPick.current) return;
     setReading(false);
-    const result = parseBackup(fileText);
+    const result = parseBackup(fileText, lang);
     if (!result.ok) return setError(result.error);
     setChosen({ fileName: file.name, data: result.data, exportedAt: result.exportedAt });
   }
@@ -80,7 +83,7 @@ export function RestoreFromBackup() {
       await replaceAll(chosen.data);
     } catch (restoreError) {
       console.error('StudentsBudget: could not restore the backup', restoreError);
-      setError('Could not restore the backup. The data on this device is unchanged.');
+      setError(text.failed);
       setChosen(null);
       setRestoring(false);
       return;
@@ -93,7 +96,7 @@ export function RestoreFromBackup() {
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
         {/* Not "Backup file": a file field is a button to Chromium, and the wizard's "Back" would match it by name. */}
-        <Label htmlFor={inputId}>File to restore</Label>
+        <Label htmlFor={inputId}>{text.file}</Label>
         <Input
           id={inputId}
           type="file"
@@ -104,26 +107,24 @@ export function RestoreFromBackup() {
         />
         {reading && (
           <p role="status" className="text-sm text-muted-foreground">
-            Reading…
+            {text.reading}
           </p>
         )}
       </div>
       {chosen && (
-        <div role="group" aria-label="Confirm restore" className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+        <div role="group" aria-label={text.confirmGroup} className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
           <div className="flex flex-col gap-1">
             <p ref={questionRef} tabIndex={-1} className="text-sm outline-none">
-              Replace all data with <strong className="font-semibold break-words">{chosen.fileName}</strong>?
+              {text.question.before}
+              <strong className="font-semibold break-words">{chosen.fileName}</strong>
+              {text.question.after}
             </p>
-            <p className="text-sm text-muted-foreground">{backupSummary(chosen.data, chosen.exportedAt)}</p>
-            {linked && (
-              <p className="text-sm text-muted-foreground">
-                This phone is linked to your account: your account and your other phones follow at the next sync.
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground">{backupSummary(chosen.data, chosen.exportedAt, lang)}</p>
+            {linked && <p className="text-sm text-muted-foreground">{text.linked}</p>}
           </div>
           <div className="flex gap-2">
             <Button type="button" className="h-10 px-4" onClick={() => void onReplace()} disabled={restoring}>
-              Replace all data
+              {text.replace}
             </Button>
             <Button
               type="button"
@@ -132,7 +133,7 @@ export function RestoreFromBackup() {
               onClick={() => setChosen(null)}
               disabled={restoring}
             >
-              Cancel
+              {text.cancel}
             </Button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
-import { downloadContents, planDownload } from './download';
+import { planDownload } from './download';
+import { contentsOf, contentsText } from './summary';
 import { ECB, MANUAL, expense, fakeStore, snapshot } from './test-helpers';
 import { applyUpload, planUpload } from './upload';
 
@@ -92,7 +93,8 @@ describe('planDownload', () => {
 
 describe('the lines the load shows', () => {
   it('sums up what the account holds', () => {
-    expect(downloadContents(snapshot())).toBe('2 accounts, 3 entries and your plan');
-    expect(downloadContents(snapshot({ entries: [expense('e1')], plan: null }))).toBe('2 accounts and 1 entry');
+    expect(contentsOf(snapshot())).toEqual({ accounts: 2, entries: 3, hasPlan: true });
+    expect(contentsText(contentsOf(snapshot()))).toBe('2 accounts, 3 entries and your plan');
+    expect(contentsText(contentsOf(snapshot({ entries: [expense('e1')], plan: null })))).toBe('2 accounts and 1 entry');
   });
 });

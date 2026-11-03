@@ -2,8 +2,8 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
-import { accountSyncStatus, heldBackText, syncNow, syncResultText, syncStatusText } from './engine';
-import { UPDATE_NEEDED } from './pull';
+import { accountSyncStatus, syncNow, syncResultText, syncStatusText } from './engine';
+import { problemText } from './problem';
 import { StoreError } from './store';
 import { expense, fakeStore } from './test-helpers';
 
@@ -65,12 +65,10 @@ describe('syncNow', () => {
     const { store } = fakeStore();
     await saveEntry(expense('e1'));
     const refusing = { ...store, upsert: async () => Promise.reject(new StoreError('accounts', 0, '', 'offline')) };
-    expect(await syncNow(refusing, USER)).toEqual({
-      kind: 'problem',
-      problem: "Couldn't sync just now. Your changes wait on this phone; try again.",
-    });
+    expect(await syncNow(refusing, USER)).toEqual({ kind: 'problem', problem: 'failed' });
     expect(await db.outbox.count()).toBe(2);
-    expect((await state())?.problem).toMatch(/^Couldn't sync just now/);
+    expect((await state())?.problem).toBe('failed');
+    expect(problemText('failed')).toBe("Couldn't sync just now. Your changes wait on this phone; try again.");
 
     await syncNow(store, USER);
     expect((await state())?.problem).toBeNull();
@@ -81,14 +79,18 @@ describe('syncNow', () => {
     const { store } = fakeStore();
     await saveEntry(expense('e1'));
     const expired = { ...store, upsert: async () => Promise.reject(new StoreError('accounts', 401, 'PGRST301', 'JWT expired')) };
-    expect(await syncNow(expired, USER)).toMatchObject({ problem: 'Your sign-in has run out. Sign out and in again; your changes wait on this phone.' });
+    expect(await syncNow(expired, USER)).toEqual({ kind: 'problem', problem: 'signed-out' });
+    expect(problemText('signed-out')).toBe(
+      'Your sign-in has run out. Sign out and in again; your changes wait on this phone.',
+    );
   });
 
   it('stops at a row this app can’t read, and says it needs an update', async () => {
     const { store } = fakeStore();
     await store.upsert('entries', [{ id: 'e2', data: { ...expense('e2'), type: 'gift' } }]);
-    expect(await syncNow(store, USER)).toEqual({ kind: 'problem', problem: UPDATE_NEEDED });
-    expect((await state())?.problem).toBe(UPDATE_NEEDED);
+    expect(await syncNow(store, USER)).toEqual({ kind: 'problem', problem: 'update-needed' });
+    expect((await state())?.problem).toBe('update-needed');
+    expect(problemText('update-needed')).toBe('This app needs an update to sync.');
   });
 });
 
@@ -109,10 +111,17 @@ describe('syncStatusText', () => {
 
   it('says offline first, then the problem that stopped the last sync', () => {
     expect(syncStatusText({ ...base, online: false })).toBe('Offline. Changes made now wait on this phone.');
-    expect(syncStatusText({ ...base, online: false, waiting: 1, problem: UPDATE_NEEDED })).toBe(
+    expect(syncStatusText({ ...base, online: false, waiting: 1, problem: 'update-needed' })).toBe(
       'Offline: 1 change waits on this phone.',
     );
-    expect(syncStatusText({ ...base, problem: UPDATE_NEEDED, lastSyncedAt: '2026-10-29T14:04:40' })).toBe(UPDATE_NEEDED);
+    expect(syncStatusText({ ...base, problem: 'update-needed', lastSyncedAt: '2026-10-29T14:04:40' })).toBe(
+      'This app needs an update to sync.',
+    );
+  });
+
+  it('shows a sentence an earlier version stored as it is', () => {
+    const old = "Couldn't sync just now. Your changes wait on this phone; try again.";
+    expect(syncStatusText({ ...base, problem: old })).toBe(old);
   });
 });
 
@@ -137,7 +146,9 @@ describe('syncResultText', () => {
     expect(syncResultText({ kind: 'synced', sent: 2, received: 3 })).toBe('Sync finished.');
     expect(syncResultText({ kind: 'offline' })).toBe('Not synced: you’re offline. Changes wait on this phone.');
     expect(syncResultText({ kind: 'not-linked' })).toBe('Not synced: this phone is linked to another account.');
-    expect(syncResultText({ kind: 'problem', problem: UPDATE_NEEDED })).toBe(`Not synced: ${UPDATE_NEEDED}`);
+    expect(syncResultText({ kind: 'problem', problem: 'update-needed' })).toBe(
+      'Not synced: This app needs an update to sync.',
+    );
   });
 });
 
@@ -191,11 +202,11 @@ describe('a change the app refuses', () => {
     const { store, tables } = fakeStore();
     await db.entries.put({ ...expense('bad'), amountMinor: 1.5 });
     await saveEntry(expense('good'));
-    expect(await syncNow(store, USER)).toEqual({ kind: 'problem', problem: heldBackText(1) });
+    expect(await syncNow(store, USER)).toEqual({ kind: 'problem', problem: 'held:1' });
     expect(tables.entries.has('good')).toBe(true);
-    expect((await state())?.problem).toBe(heldBackText(1));
+    expect((await state())?.problem).toBe('held:1');
     expect((await state())?.lastSyncedAt).not.toBeNull();
-    expect(heldBackText(1)).toBe('1 change can’t be synced: this app refuses it. It stays on this phone.');
-    expect(heldBackText(2)).toBe('2 changes can’t be synced: this app refuses them. They stay on this phone.');
+    expect(problemText('held:1')).toBe('1 change can’t be synced: this app refuses it. It stays on this phone.');
+    expect(problemText('held:2')).toBe('2 changes can’t be synced: this app refuses them. They stay on this phone.');
   });
 });

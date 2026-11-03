@@ -1,6 +1,8 @@
 import type { BackupData } from '@/db/bulk';
+import { LANGUAGES, type Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import type { UserDataStore } from './store';
-import { count, listed } from './summary';
+import { listed } from './summary';
 import { byTable, SERVER_TABLES, serverRowsOf, type ServerRow, type ServerTable } from './tables';
 
 /**
@@ -45,15 +47,13 @@ export async function applyUpload(store: UserDataStore, plan: UploadPlan): Promi
 }
 
 /**
- * What saving would delete from the account, in words ("12 entries and 3 other items"), or null when nothing. Only
- * entries are named; the rest (accounts, weeks, votes and the like) are counted together.
+ * What saving would delete from the account, in words ("12 entries and 3 other items"), in `lang`, or null when
+ * nothing. Only entries are named; the rest (accounts, weeks, votes and the like) are counted together.
  */
-export function staleSummary(plan: UploadPlan): string | null {
+export function staleSummary(plan: UploadPlan, lang: Language = 'en'): string | null {
+  const text = MESSAGES[lang].sync.stale;
   const entries = plan.stale.entries.length;
   const others = SERVER_TABLES.filter((table) => table !== 'entries').reduce((n, t) => n + plan.stale[t].length, 0);
-  const parts = [
-    ...(entries > 0 ? [count(entries, 'entry', 'entries')] : []),
-    ...(others > 0 ? [count(others, 'other item', 'other items')] : []),
-  ];
-  return parts.length === 0 ? null : listed(parts);
+  const parts = [...(entries > 0 ? [text.entries(entries)] : []), ...(others > 0 ? [text.others(others)] : [])];
+  return parts.length === 0 ? null : listed(parts, LANGUAGES[lang].locale);
 }

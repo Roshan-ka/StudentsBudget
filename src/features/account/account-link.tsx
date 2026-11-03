@@ -2,10 +2,14 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import type { Language } from '@/i18n/languages';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
 import { syncNow } from '@/sync/engine';
-import { linkPhone, linkWithChoice, type LinkChoice, type LinkOutcome } from '@/sync/link';
+import { linkPhone, linkWithChoice, type LinkChoice, type LinkNote, type LinkOutcome, type LinkProblem } from '@/sync/link';
 import { supabaseStore } from '@/sync/store';
+import { contentsText } from '@/sync/summary';
 import { staleSummary } from '@/sync/upload';
 import { wantsCodeBeforeLinking } from './code-check';
 import { SyncSection } from './sync-status';
@@ -14,9 +18,18 @@ import { SyncSection } from './sync-status';
 // account. An empty side is filled from the other on its own; a phone and an account that both hold data wait for the
 // person's choice. Once linked, the Sync section shows how sync stands, with Sync now.
 
-type View = { kind: 'checking' } | Exclude<LinkOutcome, { kind: 'code' }>;
+/** Why linking stopped: link.ts's own reasons, or this page's (`failed`: anything thrown; `offline`). */
+type PageProblem = LinkProblem | 'failed' | 'offline';
 
-const COULD_NOT_LINK = "Couldn't link this phone to your account. Check your connection and try again.";
+type View =
+  | { kind: 'checking' }
+  | Exclude<LinkOutcome, { kind: 'code' } | { kind: 'problem' }>
+  | { kind: 'problem'; problem: PageProblem };
+
+/** What moved, in words: "Your account now holds this phone's data." or "Loaded from your account: …". */
+function noteText(note: LinkNote, t: Messages, lang: Language): string {
+  return note.kind === 'uploaded' ? t.sync.link.uploaded : t.sync.link.loaded(contentsText(note.contents, lang));
+}
 
 /** The signed-in session's user id, or undefined when there is none. */
 async function sessionUserId(): Promise<string | undefined> {
@@ -26,6 +39,8 @@ async function sessionUserId(): Promise<string | undefined> {
 /** Settings → Your account, signed in: links this phone to the account, then shows the Sync section. */
 export function AccountLink() {
   const id = useId();
+  const { t, lang } = useT();
+  const text = t.sync.link;
   const [view, setView] = useState<View>({ kind: 'checking' });
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
@@ -71,12 +86,7 @@ export function AccountLink() {
         if (outcome.kind === 'linked' && outcome.fresh) await syncNow(store, userId);
       } catch (error) {
         console.error('StudentsBudget: could not link this phone', error);
-        if (current) {
-          setView({
-            kind: 'problem',
-            problem: navigator.onLine ? COULD_NOT_LINK : "You're offline. Linking this phone needs a connection.",
-          });
-        }
+        if (current) setView({ kind: 'problem', problem: navigator.onLine ? 'failed' : 'offline' });
       }
     })();
     return () => {
@@ -107,11 +117,11 @@ export function AccountLink() {
       setView({
         kind: 'linked',
         fresh: true,
-        note: choice === 'phone' ? "Your account now holds this phone's data." : `Loaded from your account: ${plan.account}.`,
+        note: choice === 'phone' ? { kind: 'uploaded' } : { kind: 'loaded', contents: plan.account },
       });
     } catch (error) {
       console.error('StudentsBudget: could not link this phone', error);
-      setView({ kind: 'problem', problem: COULD_NOT_LINK });
+      setView({ kind: 'problem', problem: 'failed' });
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -121,7 +131,7 @@ export function AccountLink() {
   if (view.kind === 'checking') {
     return (
       <p ref={checkingRef} tabIndex={-1} className="text-muted-foreground outline-none">
-        Linking this phone to your account…
+        {text.checking}
       </p>
     );
   }
@@ -131,7 +141,7 @@ export function AccountLink() {
       <>
         {view.note !== null && (
           <p ref={noteRef} tabIndex={-1} aria-live="polite" className="text-sm text-muted-foreground outline-none">
-            {view.note}
+            {noteText(view.note, t, lang)}
           </p>
         )}
         <SyncSection />
@@ -140,22 +150,18 @@ export function AccountLink() {
   }
 
   if (view.kind === 'choose') {
-    const stale = staleSummary(view.plan.upload);
+    const stale = staleSummary(view.plan.upload, lang);
+    const warnings = [stale !== null ? text.staleWarning(stale) : null, text.replaceWarning];
     return (
       <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-3">
         <h3 id={`${id}-heading`} className="text-lg font-semibold">
-          Link this phone
+          {text.heading}
         </h3>
         <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
           <p ref={questionRef} tabIndex={-1} className="text-sm outline-none">
-            {`This phone and your account both hold data. This phone: ${view.plan.phone}. Your account: ${view.plan.account}. Which should both keep?`}
+            {text.question(contentsText(view.plan.phone, lang), contentsText(view.plan.account, lang))}
           </p>
-          <p className="text-sm text-muted-foreground">
-            {stale !== null &&
-              `Keeping this phone's data deletes what only your account has (${stale}) from your account, and from your other phones when they next sync. `}
-            Using your account&apos;s data replaces everything on this phone. Want a copy first? Export a backup under
-            Settings → Backup.
-          </p>
+          <p className="text-sm text-muted-foreground">{warnings.filter((w) => w !== null).join(' ')}</p>
           {/* Neither side is the default: both buttons look alike. */}
           <div className="flex flex-wrap gap-2">
             <Button
@@ -165,7 +171,7 @@ export function AccountLink() {
               disabled={busy}
               onClick={() => void choose(view.plan, 'phone')}
             >
-              Keep this phone&apos;s data
+              {text.keepPhone}
             </Button>
             <Button
               type="button"
@@ -174,12 +180,12 @@ export function AccountLink() {
               disabled={busy}
               onClick={() => void choose(view.plan, 'account')}
             >
-              Use my account&apos;s data
+              {text.useAccount}
             </Button>
           </div>
           {/* While the choice is carried out: the data moving, then the first sync. */}
           <p role="status" className="text-sm text-muted-foreground">
-            {busy ? 'Linking this phone…' : ''}
+            {busy ? text.linking : null}
           </p>
         </div>
       </section>
@@ -189,21 +195,19 @@ export function AccountLink() {
   return (
     <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-3">
       <h3 id={`${id}-heading`} className="text-lg font-semibold">
-        Link this phone
+        {text.heading}
       </h3>
       {view.kind === 'other-account' ? (
         <p role="alert" className="text-sm">
-          This phone holds another account&apos;s data, so it stays apart from this one. To sync it, sign out and sign in
-          with that account. To use this account here instead, delete everything on this phone (Settings → Backup); changes
-          not synced yet are lost.
+          {text.otherAccount}
         </p>
       ) : (
         <>
           <p role="alert" className="text-sm">
-            {view.problem}
+            {text.problems[view.problem]}
           </p>
           <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={linkAgain}>
-            Try again
+            {text.tryAgain}
           </Button>
         </>
       )}

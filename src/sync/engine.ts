@@ -1,20 +1,23 @@
 import { db } from '@/db/db';
+import type { Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import { formatDateTime } from '@/lib/dates';
 import { withSyncLock } from './lock';
+import { heldBack, problemText, type SyncProblem } from './problem';
 import { pull } from './pull';
 import { push } from './push';
 import { StoreError, type UserDataStore } from './store';
-import { count } from './summary';
 
 /**
  * How a sync ended: done (rows sent, and rows taken from the account), or not run because this phone isn't linked to
- * the signed-in account or is offline, or stopped with a problem in words, which `syncState` keeps for the status.
+ * the signed-in account or is offline, or stopped with a problem (a code, see problem.ts), which `syncState` keeps for
+ * the status.
  */
 export type SyncResult =
   | { kind: 'synced'; sent: number; received: number }
   | { kind: 'not-linked' }
   | { kind: 'offline' }
-  | { kind: 'problem'; problem: string };
+  | { kind: 'problem'; problem: SyncProblem };
 
 let running: Promise<SyncResult> | null = null;
 
@@ -44,38 +47,31 @@ async function sync(store: UserDataStore, userId: string): Promise<SyncResult> {
     const again = (await db.outbox.count()) > pushed.held ? await push(store) : null;
     const held = again?.held ?? pushed.held;
     // Synced, but a change this app's own checks refuse stays on the phone: said, so it isn't lost unnoticed.
-    const problem = held > 0 ? heldBackText(held) : null;
+    const problem = held > 0 ? heldBack(held) : null;
     await db.syncState.update('current', { lastSyncedAt: new Date().toISOString(), problem });
     if (problem !== null) return { kind: 'problem', problem };
     const sent = pushed.sent + pushed.deleted + (again ? again.sent + again.deleted : 0);
     return { kind: 'synced', sent, received: pulled.applied };
   } catch (error) {
     console.error('StudentsBudget: sync', error);
-    return stopped(syncErrorMessage(error));
+    return stopped(syncErrorProblem(error));
   }
 }
 
-/** The problem a sync reports when push held back changes this app's own row checks refuse (see push). */
-export function heldBackText(held: number): string {
-  return held === 1
-    ? '1 change can’t be synced: this app refuses it. It stays on this phone.'
-    : `${held} changes can’t be synced: this app refuses them. They stay on this phone.`;
-}
-
-async function stopped(problem: string): Promise<SyncResult> {
+async function stopped(problem: SyncProblem): Promise<SyncResult> {
   await db.syncState.update('current', { problem });
   return { kind: 'problem', problem };
 }
 
-/** Calm text for a sync that didn't finish. Whatever stopped it, this phone's changes are kept for the next one. */
-export function syncErrorMessage(error: unknown): string {
-  if (error instanceof StoreError && error.status === 401) {
-    return 'Your sign-in has run out. Sign out and in again; your changes wait on this phone.';
-  }
-  return "Couldn't sync just now. Your changes wait on this phone; try again.";
+/** What stopped a sync that didn't finish. Whatever it was, this phone's changes are kept for the next one. */
+export function syncErrorProblem(error: unknown): SyncProblem {
+  return error instanceof StoreError && error.status === 401 ? 'signed-out' : 'failed';
 }
 
-/** What the status line needs: the sync state, how many changes wait, whether the phone is online, and the time. */
+/**
+ * What the status line needs: the sync state, how many changes wait, whether the phone is online, and the time.
+ * `problem` is as stored: a code, or a sentence an earlier version stored.
+ */
 export type SyncStatusInput = {
   lastSyncedAt: string | null;
   problem: string | null;
@@ -85,57 +81,58 @@ export type SyncStatusInput = {
 };
 
 /**
- * The status line under Sync now: "Synced just now.", "Synced 2 min ago. 3 changes waiting.", "Offline: 1 change waits
- * on this phone.", "Not synced yet.", or the problem that stopped the last sync.
+ * The status line under Sync now, in `lang`: "Synced just now.", "Synced 2 min ago. 3 changes waiting.", "Offline: 1
+ * change waits on this phone.", "Not synced yet.", or the problem that stopped the last sync.
  */
-export function syncStatusText({ lastSyncedAt, problem, waiting, online, now }: SyncStatusInput): string {
-  const changes = count(waiting, 'change', 'changes');
-  if (!online) {
-    if (waiting === 0) return 'Offline. Changes made now wait on this phone.';
-    return `Offline: ${changes} ${waiting === 1 ? 'waits' : 'wait'} on this phone.`;
-  }
-  if (problem !== null) return problem;
-  const when = lastSyncedAt === null ? 'Not synced yet' : `Synced ${ago(lastSyncedAt, now)}`;
-  return waiting === 0 ? `${when}.` : `${when}. ${changes} waiting.`;
+export function syncStatusText(
+  { lastSyncedAt, problem, waiting, online, now }: SyncStatusInput,
+  lang: Language = 'en',
+): string {
+  const text = MESSAGES[lang].sync.status;
+  if (!online) return waiting === 0 ? text.offline : text.offlineWaiting(waiting);
+  if (problem !== null) return problemText(problem, lang);
+  const state = lastSyncedAt === null ? text.notYet : text.synced(ago(lastSyncedAt, now, lang));
+  return text.line(state, waiting);
 }
 
-const OTHER_ACCOUNT_LINKED = 'This phone is linked to another account.';
-
 /**
- * The sync status for the signed-in user `userId`: null while the phone isn't linked (`linkedTo` is the account it
- * is linked to), and a line saying so when it is linked to another account, whose status isn't this user's.
+ * The sync status for the signed-in user `userId`, in `lang`: null while the phone isn't linked (`linkedTo` is the
+ * account it is linked to), and a line saying so when it is linked to another account, whose status isn't this user's.
  */
 export function accountSyncStatus(
   linkedTo: string | null | undefined,
   userId: string,
   input: SyncStatusInput,
+  lang: Language = 'en',
 ): string | null {
   if (!linkedTo) return null;
-  return linkedTo === userId ? syncStatusText(input) : OTHER_ACCOUNT_LINKED;
+  return linkedTo === userId ? syncStatusText(input, lang) : MESSAGES[lang].sync.status.otherAccount;
 }
 
 /**
- * What a screen reader hears once after Sync now: how the tap ended. The status line isn't announced (its clock moves
- * every half minute), and these words never match it, so the two can be told apart.
+ * What a screen reader hears once after Sync now, in `lang`: how the tap ended. The status line isn't announced (its
+ * clock moves every half minute), and these words never match it, so the two can be told apart.
  */
-export function syncResultText(result: SyncResult): string {
+export function syncResultText(result: SyncResult, lang: Language = 'en'): string {
+  const text = MESSAGES[lang].sync.result;
   switch (result.kind) {
     case 'synced':
-      return 'Sync finished.';
+      return text.finished;
     case 'offline':
-      return 'Not synced: you’re offline. Changes wait on this phone.';
+      return text.offline;
     case 'not-linked':
-      return 'Not synced: this phone is linked to another account.';
+      return text.otherAccount;
     case 'problem':
-      return `Not synced: ${result.problem}`;
+      return text.problem(problemText(result.problem, lang));
   }
 }
 
 /** "just now", "2 min ago", or the day and time for anything an hour old or more. */
-function ago(iso: string, now: Date): string {
+function ago(iso: string, now: Date, lang: Language): string {
+  const text = MESSAGES[lang].sync.status;
   const minutes = Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000);
-  if (Number.isNaN(minutes)) return 'before';
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes} min ago`;
-  return `on ${formatDateTime(iso)}`;
+  if (Number.isNaN(minutes)) return text.before;
+  if (minutes < 1) return text.justNow;
+  if (minutes < 60) return text.minutesAgo(minutes);
+  return text.at(formatDateTime(iso));
 }
