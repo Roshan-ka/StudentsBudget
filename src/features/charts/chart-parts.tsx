@@ -248,7 +248,8 @@ export function ChartSection({
 
 /**
  * A row of buttons of which one is on, for the style of a chart or the period of all of them. Each segment is at
- * least 44 px high, and the group takes the full width, so it works with a thumb at 375 px.
+ * least 44 px high, and the group takes the full width, so it works with a thumb at 375 px. A segment may shrink and
+ * wrap its words onto a second line ("Dieser / Monat"), so a language with longer words never widens the page.
  */
 export function SegmentedControl<T extends string | number>({
   label,
@@ -269,7 +270,7 @@ export function SegmentedControl<T extends string | number>({
           type="button"
           aria-pressed={option.value === value}
           onClick={() => onChange(option.value)}
-          className="min-h-11 flex-1 rounded-md px-2 text-sm font-medium whitespace-nowrap text-foreground/70 transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm"
+          className="min-h-11 min-w-0 flex-1 rounded-md px-2 text-sm leading-tight font-medium text-foreground/70 transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm"
         >
           {option.text}
         </button>
