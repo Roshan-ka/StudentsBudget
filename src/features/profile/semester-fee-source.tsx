@@ -1,6 +1,7 @@
 'use client';
 
 import { RangeSource } from '@/features/setup/steps/range-source';
+import { feePartIn, reRegistrationIn } from '@/i18n/city';
 import { useT } from '@/i18n/use-t';
 import { formatMoney } from '@/lib/money';
 import { monthLabel, type SemesterFeeOffer } from './profile';
@@ -8,12 +9,14 @@ import { monthLabel, type SemesterFeeOffer } from './profile';
 /**
  * Where the offered semester fee's numbers come from: each sourced part of the amount, and the re-registration month
  * it is due in, each with its source collapsed. Without a stated fee it says the amount is the person's to fill in.
- * A part's label is sourced content and stays as the data has it.
+ * A part's label and source are sourced content, in the phone's language where translated (`feePartIn`).
  */
 export function SemesterFeeSource({ offer }: { offer: SemesterFeeOffer }) {
-  const { t, locale } = useT();
+  const { t, lang, locale } = useT();
   const text = t.profile.fee;
-  const { row, parts, reRegistration } = offer;
+  const { row } = offer;
+  const parts = offer.parts.map((part) => feePartIn(part, lang));
+  const reRegistration = offer.reRegistration && reRegistrationIn(offer.reRegistration, lang);
   const amount =
     parts.length > 0
       ? `${parts.map((p) => `${formatMoney(p.minor, 'EUR', { locale })} ${p.label}`).join(' + ')}.`

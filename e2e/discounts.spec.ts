@@ -191,3 +191,25 @@ test('after eight weeks without a confirmation every discount may be outdated, a
   await expect.poll(() => votes(page)).toEqual([{ discountId: LAST.id, vote: 'outdated', on: '2026-12-15' }]);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
+
+test.describe('on a phone set to German', () => {
+  test.use({ locale: 'de-DE' });
+
+  test('the discounts read in German, place names kept, and none is marked English', async ({ page }) => {
+    await page.clock.setFixedTime(NOV_2);
+    await page.goto('/tips');
+    await expect(page.getByRole('heading', { level: 2, name: 'Tipps und Rabatte in Regensburg', exact: true })).toBeVisible();
+    await page.getByRole('tablist', { name: 'Tipps oder Rabatte', exact: true }).getByRole('tab', { name: 'Rabatte', exact: true }).click();
+    const list = page.getByRole('list', { name: 'Rabatte', exact: true });
+    await expect(list.getByRole('listitem')).toHaveCount(DISCOUNTS.length);
+
+    // A place keeps its name, unless the name holds a common word.
+    const westbad = list.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 3, name: 'Westbad', exact: true }) });
+    await expect(westbad.getByText('4,60 € statt 7,20 € für 3 Stunden; 6,50 € statt 10 € für den ganzen Tag', { exact: true })).toBeVisible();
+    await expect(list.getByRole('heading', { level: 3, name: 'Hallenbad Sportpark Ost', exact: true })).toBeVisible();
+    await westbad.getByText('Quelle', { exact: true }).click();
+    await expect(westbad.getByText(/Preise Westbad/)).toBeVisible();
+    await expect(list.locator('[lang="en"]')).toHaveCount(0);
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+  });
+});

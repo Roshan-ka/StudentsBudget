@@ -164,6 +164,15 @@ describe('swapLineText', () => {
     expect(line(900, 850, 'ticket', 'See a film')).toBe('Try this: See a film · save about €0.50 per ticket');
   });
 
+  it('reads all in German for a seeded swap, its title and unit included', () => {
+    const mensa = SWAPS.find((s) => s.id === 'mensa-instead-of-restaurant');
+    if (mensa === undefined) throw new Error('the Mensa swap is gone');
+    expect(swapLineText({ categoryId: 'eating-out', swap: mensa, savingPerUseMinor: 1070 }, 'de')).toBe(
+      // German puts a no-break space between the amount and the euro sign.
+      'Probier das: Iss in der Mensa statt im Restaurant · spar etwa 10 € pro Essen',
+    );
+  });
+
   it('says "(estimate)" on the line of a swap that rests on an assumption', () => {
     const estimate: Swap = { ...swap('x', 'transport', 3400, 2200, 'month'), title: 'Book the ticket', estimate: true };
     expect(swapLineText({ categoryId: 'transport', swap: estimate, savingPerUseMinor: 1200 })).toBe(

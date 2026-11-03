@@ -1,8 +1,7 @@
 import type { Messages } from '../en';
 
 // Der Tipps-Tab auf Deutsch: Tipps, Rabatte und die Worte der Spar-Zeile. Die Tipps, Rabatte und Spartipps selbst
-// sind Stadtinhalte; ihre deutschen Worte stehen in src/i18n/city/de (die Tipps seit Plan 2, Chunk 1; Rabatte,
-// Spartipps und das "per" der Spar-Zeile folgen in Chunk 2).
+// sind Stadtinhalte; ihre deutschen Worte, auch das "per" der Spar-Zeile, stehen in src/i18n/city/de (Plan 2).
 export const tips: Messages['tips'] = {
   tabsLabel: 'Tipps oder Rabatte',
   tips: 'Tipps',

@@ -49,6 +49,12 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
      - `tips.spec.ts`: a phone set to German sees every tip in German with its German source, and none marked English.
      - CLAUDE.md's city-content rule says how it works now.
 2. **German for the rest of the city content.** Discounts, swaps (the swap line becomes all German: "spar etwa 10 € pro Essen"), the setup ranges' and semesters' sources. The completeness test for offered languages, CLAUDE.md's city-content rule, and the language hint if it needs a word on content.
+   - **As built (2026-11-03):**
+     - `discountIn` (offer, conditions, source; a place keeps its name unless it holds a common word: "Sportpark Ost pool" is "Hallenbad Sportpark Ost"), `swapIn` (title, body, `per`, source, `toSource`), `rangeIn` (by category; the three Estimate ranges stay `Estimate`).
+     - Semester texts have no id and are partly built from templates, so `semesters` keys them by their exact English text: `periodIn`, `feePartIn` (label and source together, or both English) and `reRegistrationIn`. A changed English text makes its translation stale, and the test fails.
+     - Wired: the Discounts tab, the swap line and its panel (`swapLineText` too), setup's rent and envelope ranges, Home's suggested budget, the profile's semester period and the semester fee's parts and re-registration.
+     - `city.test.ts` covers every kind, the semester texts and completeness for offered languages; a broken German price was tried and fails it. `suggest.test.ts` reads the Mensa swap line all in German; `discounts.spec.ts` reads the Discounts tab on a phone set to German.
+     - The language hint needed no change.
 
 **Part B: Spanish**
 

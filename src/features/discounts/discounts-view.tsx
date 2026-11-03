@@ -8,7 +8,7 @@ import { db } from '@/db/db';
 import type { DiscountVote } from '@/db/types';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
-import { contentLang } from '@/i18n/content';
+import { discountIn } from '@/i18n/city';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { formatDate, todayIso } from '@/lib/dates';
@@ -141,7 +141,8 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
         {heard}
       </p>
       <ul aria-label={text.discounts} className="flex flex-col gap-3">
-        {shown.map(({ discount: d, vote, freshness: f }) => {
+        {shown.map(({ discount, vote, freshness: f }) => {
+          const d = discountIn(discount, lang);
           const placeId = `discount-${d.id}-place`;
           return (
             <li
@@ -154,8 +155,8 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
               }}
               className="flex flex-col gap-2 rounded-lg border px-4 py-3"
             >
-              {/* The discount's own words are city content and stay English. */}
-              <div lang={contentLang(lang)} className="flex flex-col gap-1">
+              {/* The discount's own words are city content: in the phone's language where translated (`discountIn`). */}
+              <div lang={d.textLang} className="flex flex-col gap-1">
                 <h3 id={placeId} className="font-medium break-words">
                   {d.place}
                 </h3>
