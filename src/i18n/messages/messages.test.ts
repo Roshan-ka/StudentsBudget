@@ -32,6 +32,9 @@ const SAME_IN_GERMAN = new Set([
   'accounts.kinds.bank',
   'accounts.rates.rate',
   'backup.heading',
+  'auth.signedIn.as.after',
+  'auth.passkeys.heading',
+  'auth.passkeys.unnamed',
 ]);
 
 describe('the dictionaries', () => {

@@ -267,6 +267,12 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
       - The allow-list gains four that are the same in both: Name, Bank, Backup and the bare rate format "1 € = … · …".
       - Still English in German: sync, account, sign-in (chunk 13), and charts, check-in, badges, reveal, tips chrome (chunk 14).
 13. **German, part 3:** sync, account, sign-in and security.
+    - **As built (2026-11-03):**
+      - German for `sync` (the problem codes, the status line under Sync now, what a screen reader hears after it, and linking), `account` (the Your account card and the setup line) and `auth` (the server's errors, the sign-in form, the code step, Sign-in and security, two-step sign-in and passkeys).
+      - The glossary gains the sign-in words: Konto for the sign-in account too, as English uses "account" for both; anmelden and abmelden; zweistufige Anmeldung; Passkey; Authenticator-App; synchronisieren, with Synchronisierung as the heading and "Jetzt synchronisieren" as the button; verknüpfen.
+      - "2 min ago" is written out ("vor 2 Minuten"), because the status line ends with a full stop and "Min.." would double it.
+      - The allow-list gains three that are the same in both: "Passkeys", "Passkey" and the full stop after the bold email.
+      - Still English in German: charts, check-in, badges, reveal and the tips chrome (chunk 14).
 14. **German, part 4:** charts, check-in, badges, reveal, content chrome.
     - Chunks 11–14 build up `de` as `{...en, ...done}`, with a glossary (plan, envelope, check-in, one-off).
     - A unit test checks that German strings differ from English, apart from an allow-list.
