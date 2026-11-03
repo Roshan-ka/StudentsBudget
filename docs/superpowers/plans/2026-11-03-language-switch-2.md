@@ -90,6 +90,8 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
     - **As built (2026-11-03):** French for `home` (Reste à dépenser ce mois-ci, Enveloppes, calm "de trop"), `entries` (Saisies, Ajout rapide, « döner 6 » with its spaces) and `setup` (Configure ton plan, Ajouter automatiquement). Problems that name an unnamed account or cost read "du compte 2" rather than splicing a name in. The allow-list gains Note, Type and the Plan heading.
 12. **French profile, recurring, accounts, backup.**
     - **As built (2026-11-03):** French for `profile` (Frais de semestre, réinscription), `recurring` (Charges fixes et revenus, Ajouter automatiquement; weekday names from the locale: "Chaque semaine, le lundi"), `accounts` (Taux de change, BCE, Virement) and `backup` (Sauvegarde; the word to type before deleting everything is SUPPRIMER). "Tu restes connecté" became "ta session reste ouverte", which needs no gender. The allow-list gains Type, Total and the bare rate format.
+13. **French sync, account, sign-in and security.**
+    - **As built (2026-11-03):** French for `sync` (Synchroniser, associer; "il y a 2 min" without a full stop), `account` (Ton compte) and `auth` (se connecter / se déconnecter, validation en deux étapes, clé d’accès, appli d’authentification). Where English says "signed in", French says "Session ouverte", which needs no gender. Counts go through `byCount`; the allow-list gains the two bare full stops after the bold email.
 
 ## Verification
 
