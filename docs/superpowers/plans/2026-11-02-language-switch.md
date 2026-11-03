@@ -299,7 +299,7 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
       - CLAUDE.md: the Languages section (with the "Adding a language" checklist), the UI and money formats per language, and the CI `languages` option; the comments in `ci.yml` and `ci-affected.mjs` say what `languages=all` runs.
       - The Settings switch test has 60 s: under four workers on a cold dev server it ran past the 30 s default.
       - Real try on Roshan's phone (03-11-2026): everything works.
-      - Still to do before it merges: the native-speaker read.
+      - German ships before its native read (Roshan, 03-11-2026): the read follows, and its corrections come in a PR of their own.
 
 ## Verification
 
