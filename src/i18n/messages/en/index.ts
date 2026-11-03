@@ -3,6 +3,7 @@ import { accounts } from './accounts';
 import { auth } from './auth';
 import { backup } from './backup';
 import { categories } from './categories';
+import { checkIn } from './check-in';
 import { common } from './common';
 import { entries } from './entries';
 import { home } from './home';
@@ -30,6 +31,7 @@ export const en = {
   sync,
   account,
   auth,
+  checkIn,
 };
 
 export type Messages = typeof en;

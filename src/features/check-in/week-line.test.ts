@@ -62,3 +62,11 @@ describe('weekTotalLine', () => {
     expect(weekTotalLine(-49)).toBe('In total: €0.49 over this week');
   });
 });
+
+describe('in another language', () => {
+  it("writes the amounts the language's way", () => {
+    expect(weekLine(week(7000, 2000), false, 'de')).toContain('70\u00a0€');
+    expect(weekLine(week(0, 600), true, 'de')).toContain('6\u00a0€');
+    expect(weekTotalLine(14500, 'de')).toContain('145\u00a0€');
+  });
+});
