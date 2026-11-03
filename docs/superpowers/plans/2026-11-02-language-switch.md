@@ -297,7 +297,9 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
       - `e2e/language-tour.spec.ts`: setup's first step, then every page after setup, at 375 px in each such language: `<html lang>`, its heading (Home: its first region), the nav, and no sideways scroll. It is skipped unless the run has every language, and listed under every route in `affected-map.json`.
       - `language.spec.ts` gains a phone set to German (`locale: 'de-DE'`): it opens in German, and a chosen English survives a reload. `offline.spec.ts` gains an offline open in German.
       - CLAUDE.md: the Languages section (with the "Adding a language" checklist), the UI and money formats per language, and the CI `languages` option; the comments in `ci.yml` and `ci-affected.mjs` say what `languages=all` runs.
-      - Still to do before it merges: the native-speaker read, and the real try on the phone.
+      - The Settings switch test has 60 s: under four workers on a cold dev server it ran past the 30 s default.
+      - Real try on Roshan's phone (03-11-2026): everything works.
+      - Still to do before it merges: the native-speaker read.
 
 ## Verification
 
