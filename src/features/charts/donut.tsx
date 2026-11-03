@@ -5,14 +5,15 @@ import { useRouter } from 'next/navigation';
 import { memo, type PointerEvent } from 'react';
 import { Pie, PieChart, Sector, type PieSectorShapeProps } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
+import { numberFormat } from '@/i18n/format';
+import { useT } from '@/i18n/use-t';
 import { amountText, ChartFrame, type ChartRow, type OnHover } from './chart-parts';
 
-const percentFormat = new Intl.NumberFormat('en-IE', { style: 'percent', maximumFractionDigits: 0 });
-
-/** "38%", and "<1%" for a slice too small to round to anything. */
-function percentText(part: number, whole: number): string {
+/** "38%" ("38 %" in German), and "<1%" for a slice too small to round to anything. */
+function percentText(part: number, whole: number, locale: string): string {
+  const percent = numberFormat(locale, { style: 'percent', maximumFractionDigits: 0 });
   const share = part / whole;
-  return share > 0 && share < 0.005 ? '<1%' : percentFormat.format(share);
+  return share > 0 && share < 0.005 ? `<${percent.format(0.01)}` : percent.format(share);
 }
 
 type Router = ReturnType<typeof useRouter>;
@@ -95,6 +96,7 @@ export function Donut({
   centreLabel: string;
 }) {
   const router = useRouter();
+  const { locale } = useT();
   const total = rows.reduce((sum, row) => sum + row.amountMinor, 0);
 
   return (
@@ -104,7 +106,7 @@ export function Donut({
           <div className="relative mx-auto aspect-square w-full max-w-56">
             <Ring rows={rows} router={router} onHover={onHover} />
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-              <p className="text-2xl font-semibold">{amountText(total)}</p>
+              <p className="text-2xl font-semibold">{amountText(total, locale)}</p>
               <p className="text-xs text-muted-foreground">{centreLabel}</p>
             </div>
           </div>
@@ -116,9 +118,9 @@ export function Donut({
             <>
               <span aria-hidden="true" className="size-3 shrink-0 rounded-sm" style={{ backgroundColor: row.color }} />
               <span className="min-w-0 flex-1 truncate">{row.shortLabel}</span>
-              <span className="font-medium tabular-nums">{amountText(row.amountMinor)}</span>
+              <span className="font-medium tabular-nums">{amountText(row.amountMinor, locale)}</span>
               <span className="w-10 text-right text-sm text-muted-foreground tabular-nums">
-                {percentText(row.amountMinor, total)}
+                {percentText(row.amountMinor, total, locale)}
               </span>
             </>
           );

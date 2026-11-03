@@ -7,11 +7,12 @@ import { useId } from 'react';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan } from '@/db/types';
 import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
-import { categoryName } from '@/features/entries/categories';
 import { entryTitle } from '@/features/entries/entry-title';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
 import { SwapLine } from '@/features/swaps/swap-line';
+import { categoryNameIn } from '@/i18n/category-name';
+import { dateFormat } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
 import { weekToSpend } from '@/lib/budget';
 import { previousMonthTail, weekOf, type IsoDate } from '@/lib/dates';
@@ -26,13 +27,15 @@ import { weekSwaps } from './week-swaps';
 
 const LINK_CLASS = 'inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline';
 
-const weekday = new Intl.DateTimeFormat('en-IE', { weekday: 'short' });
-const dayOfMonth = new Intl.DateTimeFormat('en-IE', { day: 'numeric' });
-
-/** "Fri 16". `parseISO` reads a date-only string as local midnight, so the day never shifts. */
-function dayLabel(date: IsoDate): string {
+/**
+ * "Fri 16", or another locale's own short day ("Fr., 16."). English stays built from its two parts, as weekLabel's
+ * does, so it reads the same in every browser engine. `parseISO` reads a date-only string as local midnight, so the
+ * day never shifts.
+ */
+function dayLabel(date: IsoDate, locale: string): string {
   const day = parseISO(date);
-  return `${weekday.format(day)} ${dayOfMonth.format(day)}`;
+  if (locale !== 'en-IE') return dateFormat(locale, { weekday: 'short', day: 'numeric' }).format(day);
+  return `${dateFormat(locale, { weekday: 'short' }).format(day)} ${dateFormat(locale, { day: 'numeric' }).format(day)}`;
 }
 
 /** The entries dated from `start` to `end`, newest day first; within a day the entry saved last comes first. */
@@ -43,11 +46,11 @@ function entriesOfWeek(entries: Entry[], start: IsoDate, end: IsoDate): Entry[] 
 }
 
 function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Account[]; planStart: IsoDate }) {
-  const { t } = useT();
+  const { t, lang, locale } = useT();
   const currency = accounts.find((a) => a.id === entry.accountId)?.currency ?? 'EUR';
   const { title, label } = entryTitle(entry, t);
-  const details = [label, dayLabel(entry.date)].filter((part) => part !== null);
-  const notCounted = notCountedNote(entry, planStart);
+  const details = [label, dayLabel(entry.date, locale)].filter((part) => part !== null);
+  const notCounted = notCountedNote(entry, planStart, lang);
 
   return (
     <li className="flex items-center justify-between gap-3 py-2">
@@ -61,27 +64,17 @@ function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Acc
       </span>
       <span className="shrink-0 font-medium tabular-nums">
         {entry.type === 'income' ? '+' : ''}
-        {formatMoney(entry.amountMinor, currency)}
+        {formatMoney(entry.amountMinor, currency, { locale })}
       </span>
     </li>
   );
 }
 
-/** What the two sections of one part of the week are called. */
-type Titles = { against: string; logged: string; empty: string };
-
-const THIS_WEEK: Titles = {
-  against: 'This week against your plan',
-  logged: 'This week',
-  empty: 'Nothing logged this week yet.',
-};
-
-// The days of the week that fall in the previous month, on the Sunday the new month starts.
-const EARLIER_THIS_WEEK: Titles = {
-  against: 'Earlier this week against your plan',
-  logged: 'Earlier this week',
-  empty: 'Nothing logged earlier this week.',
-};
+/**
+ * What the two sections of one part of the week are called: `this` week, or `earlier` (the days of the week that
+ * fall in the previous month, on the Sunday the new month starts).
+ */
+type Part = 'this' | 'earlier';
 
 /**
  * One part of a week, as `weekToSpend` cuts it at the month's edge: its range, each envelope against the
@@ -94,18 +87,20 @@ function WeekPart({
   entries,
   accounts,
   day,
-  titles,
+  part,
   withTotal,
 }: {
   plan: Plan;
   entries: Entry[];
   accounts: Account[];
   day: IsoDate;
-  titles: Titles;
+  part: Part;
   withTotal: boolean;
 }) {
   const planId = useId();
   const weekId = useId();
+  const { t, lang, locale } = useT();
+  const titles = part === 'this' ? t.checkIn.thisWeek : t.checkIn.earlierThisWeek;
   const week = weekToSpend(plan, entries, day);
   // Every envelope with a monthly amount is listed, even one that is used up and so has no share of the week; an
   // envelope at €0 and a category with no envelope only when something was spent on it this week.
@@ -117,24 +112,24 @@ function WeekPart({
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-muted-foreground">{weekLabel(week.weekStart, week.weekEnd)}</p>
+      <p className="text-sm text-muted-foreground">{weekLabel(week.weekStart, week.weekEnd, locale)}</p>
 
       <section aria-labelledby={planId} className="flex flex-col gap-3">
         <h3 id={planId} className="text-lg font-semibold">
           {titles.against}
         </h3>
         {rows.length === 0 ? (
-          <p className="text-muted-foreground">No envelope has an amount in your plan.</p>
+          <p className="text-muted-foreground">{t.checkIn.noEnvelopes}</p>
         ) : (
           <>
-            {withTotal && <p className="font-medium tabular-nums">{weekTotalLine(week.totalMinor)}</p>}
+            {withTotal && <p className="font-medium tabular-nums">{weekTotalLine(week.totalMinor, lang)}</p>}
             <ul aria-labelledby={planId} className="flex flex-col gap-3">
               {rows.map((row) => {
                 const suggestion = suggestions.get(row.categoryId);
                 return (
                   <li key={row.categoryId} className="flex flex-col gap-0.5">
-                    <p className="font-medium break-words">{categoryName(row.categoryId)}</p>
-                    <p className="text-sm tabular-nums">{weekLine(row, row.usedUp)}</p>
+                    <p className="font-medium break-words">{categoryNameIn(t, row.categoryId)}</p>
+                    <p className="text-sm tabular-nums">{weekLine(row, row.usedUp, lang)}</p>
                     {suggestion !== undefined && <SwapLine suggestion={suggestion} />}
                   </li>
                 );
@@ -213,15 +208,16 @@ function AwaySwitch({ day, label, hintId }: { day: IsoDate; label: string; hintI
  */
 function AwayToggle({ plan, today }: { plan: Plan; today: IsoDate }) {
   const hintId = useId();
+  const { t } = useT();
+  const text = t.checkIn.away;
   const lastWeek = weekAwaitingRecord(plan, today);
 
   return (
     <div className="flex flex-col gap-1">
-      {lastWeek !== null && <AwaySwitch day={lastWeek.start} label="I was away last week" hintId={hintId} />}
-      <AwaySwitch day={today} label="I was away this week" hintId={hintId} />
+      {lastWeek !== null && <AwaySwitch day={lastWeek.start} label={text.lastWeek} hintId={hintId} />}
+      <AwaySwitch day={today} label={text.thisWeek} hintId={hintId} />
       <p id={hintId} className="text-sm text-muted-foreground">
-        A week away keeps your logging streak as it is and doesn&apos;t count towards Under-Budget Week or Ramen
-        Royalty.
+        {text.hint}
       </p>
     </div>
   );
@@ -239,6 +235,7 @@ function CheckIn({
   today: IsoDate;
 }) {
   const addId = useId();
+  const { t } = useT();
   // On the Sunday a month starts mid-week, the week's days in the previous month would otherwise never be
   // reviewed. They come first, measured against that month's budget, with its last day standing in for today.
   // A month before the plan was set up has no budget, so a tail that ends before the setup day is left out.
@@ -253,26 +250,26 @@ function CheckIn({
           entries={entries}
           accounts={accounts}
           day={earlierDay}
-          titles={EARLIER_THIS_WEEK}
+          part="earlier"
           withTotal={false}
         />
       )}
-      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} titles={THIS_WEEK} withTotal />
+      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} part="this" withTotal />
       <AwayToggle plan={plan} today={today} />
 
       <section aria-labelledby={addId} className="flex flex-col gap-3">
         <h3 id={addId} className="text-lg font-semibold">
-          Forgot something? Add it here
+          {t.checkIn.add.heading}
         </h3>
         <QuickAddField />
         <Link href="/entries/new" className={`${LINK_CLASS} self-start`}>
-          Add something from an earlier day
+          {t.checkIn.add.earlier}
         </Link>
       </section>
 
       {/* A plain link, not <Link>: this is a file, and the browser or the phone's calendar app takes it from here. */}
       <a href="/weekly-check-in.ics" className={`${LINK_CLASS} self-start`}>
-        Add weekly reminder to calendar
+        {t.checkIn.reminder}
       </a>
     </div>
   );
@@ -283,6 +280,7 @@ function CheckIn({
  * forgotten. It reads the whole database and updates by itself when an entry is saved.
  */
 export function CheckInView() {
+  const { t } = useT();
   // The date is null until the browser runs this (never the date of the prerender).
   const today = useToday();
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
@@ -293,9 +291,9 @@ export function CheckInView() {
   if (plan === null) {
     return (
       <p className="text-muted-foreground">
-        Set up your plan to check in on your week.{' '}
+        {t.checkIn.noPlan}{' '}
         <Link href="/setup" className={LINK_CLASS}>
-          Start setup
+          {t.checkIn.startSetup}
         </Link>
       </p>
     );

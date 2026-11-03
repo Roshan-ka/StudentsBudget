@@ -224,6 +224,14 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
      - The two effects that word a load error (two-step, passkeys) re-run when the language changes.
      - The lint guard covers all of `src/features/account`.
 8. **Extract charts and check-in.** The MCP tests prove its output stays English.
+   - **As built (2026-11-03), in two commits (8a check-in, 8b charts):**
+     - Dictionary areas `checkIn` and `charts`.
+     - `weekLine`, `weekTotalLine` and `notCountedNote` take `lang` last. The MCP server calls them without it, so its check-in stays English.
+     - An entry's day ("Fri 16") is built from its parts in English, as `weekLabel` is, and is the locale's own short day elsewhere.
+     - Charts: `amountText` and `signedAmountText` take a locale, and the month formatters are functions of the locale. `CHART_CONFIG` became `useChartConfig()`, its theme colours unchanged, so the legend's series names are translated.
+     - `chartLabel(id, t)` uses `charts.shortNames` and `charts.bucket`. A test checks that every category's chart label is at most 16 characters in every language, so a long translation needs a short name.
+     - The screen-reader summaries and table captions are dictionary functions; a missing note is left out of the sentence. The "<1%" of a tiny slice uses the locale's percent.
+     - The lint guard covers check-in and charts, and allows the `‹`/`›` arrows.
 9. **Extract badges, `reveal-text` and the tips/discounts/swaps UI chrome**, plus a helper that marks content `lang="en"`.
 10. **Language picker and German shell.**
     - What: a Language section at the top of Settings and a compact picker on setup, each option written in its own language. Dev builds also list languages not yet offered. The nav width fix.

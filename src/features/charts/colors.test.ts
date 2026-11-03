@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import { BUCKET_ID } from './aggregate';
-import { BUCKET_LABEL, chartColor, chartLabel } from './colors';
+import { MESSAGES } from '@/i18n/messages';
+import { chartColor, chartLabel } from './colors';
 
 const css = readFileSync(new URL('../../app/globals.css', import.meta.url), 'utf8');
 
@@ -62,20 +63,23 @@ describe('category colours', () => {
 });
 
 describe('chart labels', () => {
+  const en = MESSAGES.en;
+
   it('shortens the long names', () => {
-    expect(chartLabel('utilities')).toBe('Utilities');
-    expect(chartLabel('transport-pass')).toBe('Transport pass');
+    expect(chartLabel('utilities', en)).toBe('Utilities');
+    expect(chartLabel('transport-pass', en)).toBe('Transport pass');
   });
 
-  it('keeps every other name, and fits every name in a chart', () => {
-    expect(chartLabel('food')).toBe('Food & groceries');
-    expect(chartLabel('income-job')).toBe('Job');
-    for (const { id } of CATEGORIES) expect(chartLabel(id).length, id).toBeLessThanOrEqual(16);
+  it('keeps every other name, and fits every name in a chart, in every language', () => {
+    expect(chartLabel('food', en)).toBe('Food & groceries');
+    expect(chartLabel('income-job', en)).toBe('Job');
+    for (const t of Object.values(MESSAGES)) {
+      for (const { id } of CATEGORIES) expect(chartLabel(id, t).length, id).toBeLessThanOrEqual(16);
+    }
   });
 
   it('names the bucket "Everything else", and an unknown category by its id', () => {
-    expect(chartLabel(BUCKET_ID)).toBe('Everything else');
-    expect(BUCKET_LABEL).toBe('Everything else');
-    expect(chartLabel('not-a-category')).toBe('not-a-category');
+    expect(chartLabel(BUCKET_ID, en)).toBe('Everything else');
+    expect(chartLabel('not-a-category', en)).toBe('not-a-category');
   });
 });

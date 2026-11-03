@@ -1,5 +1,6 @@
 import { ChevronRightIcon } from 'lucide-react';
 import Link from 'next/link';
+import { useT } from '@/i18n/use-t';
 import { isSunday, type IsoDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +9,8 @@ import { cn } from '@/lib/utils';
  * highlighted and says it is time. The date is passed in, so nothing here reads the clock.
  */
 export function CheckInCard({ today }: { today: IsoDate }) {
+  const { t } = useT();
+  const text = t.checkIn.card;
   const sunday = isSunday(today);
 
   return (
@@ -19,9 +22,9 @@ export function CheckInCard({ today }: { today: IsoDate }) {
       )}
     >
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-medium">Weekly check-in</span>
+        <span className="font-medium">{text.title}</span>
         <span className={cn('text-sm', sunday ? 'text-foreground' : 'text-muted-foreground')}>
-          {sunday ? "It's Sunday — time for your weekly check-in." : 'Your weekly check-in is on Sunday.'}
+          {sunday ? text.sunday : text.other}
         </span>
       </span>
       <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
