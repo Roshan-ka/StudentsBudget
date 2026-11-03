@@ -1,7 +1,10 @@
 import { en, type Messages } from '../en';
 import { categories } from './categories';
 import { common } from './common';
+import { entries } from './entries';
+import { home } from './home';
 import { language } from './language';
+import { setup } from './setup';
 import { shell } from './shell';
 
 /**
@@ -27,4 +30,4 @@ import { shell } from './shell';
  * - Regensburg stays Regensburg, as on every sign there.
  * - Typography: a narrow no-break space (`NNBSP`) before : ; ? ! and inside « », and ’ for the apostrophe.
  */
-export const fr: Messages = { ...en, shell, language, common, categories };
+export const fr: Messages = { ...en, shell, language, common, categories, home, entries, setup };

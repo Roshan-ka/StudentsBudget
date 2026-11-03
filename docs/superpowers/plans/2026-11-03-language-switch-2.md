@@ -86,6 +86,8 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
       - `messages/fr/`: the glossary in `index.ts` (tu; enveloppe, saisie, compte, estimation, bilan hebdomadaire, badge, Réglages; Regensburg stays Regensburg), `byCount` and `NNBSP` in `count.ts`, and French for shell, language, common and categories. Nav labels: Accueil, Saisies, Graphes, Conseils, Réglages.
       - Category names fit the 16-character chart label where no short name covers them (Repas dehors, Soins personnels, Télécoms, Frais ponctuels, Compte bloqué).
       - `messages.test.ts`: French's allow-list (Date, Source, Parents, Badges, BAföG, the bare account option); French counting pinned ("0 compte"); and every French text has a narrow no-break space before : ; ? ! and inside « » (a plain space was tried and fails it).
+11. **French Home, entries, setup.**
+    - **As built (2026-11-03):** French for `home` (Reste à dépenser ce mois-ci, Enveloppes, calm "de trop"), `entries` (Saisies, Ajout rapide, « döner 6 » with its spaces) and `setup` (Configure ton plan, Ajouter automatiquement). Problems that name an unnamed account or cost read "du compte 2" rather than splicing a name in. The allow-list gains Note, Type and the Plan heading.
 
 ## Verification
 
