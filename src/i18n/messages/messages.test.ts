@@ -42,7 +42,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'badges.tiers.bronze',
     'badges.tiers.gold',
   ]),
-  es: new Set(['common.accountOption', 'categories.income-bafoeg']),
+  es: new Set(['common.accountOption', 'categories.income-bafoeg', 'setup.lines.range', 'setup.editPlan.heading']),
 };
 
 /** Every language besides English with a dictionary of its own; a draft has English underneath its unwritten areas. */

@@ -65,6 +65,7 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
      - Category names fit the 16-character chart label (Alimentación, Salud y farmacia, Estudios, Deporte, Cuenta bloqueada); the three with short names use the English charts area until chunk 7.
      - `MESSAGES.es` is the Spanish draft. It shows only in dev builds, where the picker lists it as a draft.
 4. Home, entries, setup.
+   - **As built (2026-11-03):** Spanish for `home`, `entries` and `setup`, following the glossary: Disponible este mes, Sobres, Añadir rápido, Añadir automáticamente, calm "de más". Counts (missing rates, the envelope estimates) go through `byCount`. The allow-list gains the bare range format and the Plan heading, as German's did.
 5. Profile, recurring, accounts, backup.
 6. Sync, account, sign-in and security.
 7. Check-in, charts (short names), badges, reveal, tips chrome.
