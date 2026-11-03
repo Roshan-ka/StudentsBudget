@@ -25,7 +25,7 @@ on:
         options: [auto, chromium, all]
         default: auto
       languages:
-        description: 'auto: the default language for changed, all for full (English only so far: no effect yet)'
+        description: 'auto: the default language for changed, all for full (all adds the 375 px tour in every other language)'
         type: choice
         options: [auto, default, all]
         default: auto
@@ -129,7 +129,7 @@ jobs:
           SPECS: ${{ needs.changes.outputs.e2e }}
           SHARD: ${{ matrix.shard }}
           PROJECTS: ${{ needs.changes.outputs.projects }}
-          # No spec reads it yet: StudentsBudget is English only.
+          # `all` runs the 375 px tour in every offered language besides English (e2e/helpers/languages.ts).
           E2E_LANGUAGES: ${{ needs.changes.outputs.languages }}
         # $SPECS and $PROJECTS stay unquoted: each spec is an argument of its own, and no projects means every project.
         run: |

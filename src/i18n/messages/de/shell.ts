@@ -1,7 +1,6 @@
 import type { Messages } from '../en';
 
-// Der Rahmen der App auf Deutsch: die Navigation unten und die Seitenüberschriften. Entwurf (Plan 1, Chunk 10); vor
-// dem Anbieten liest ihn eine Muttersprachlerin oder ein Muttersprachler (Chunk 15).
+// Der Rahmen der App auf Deutsch: die Navigation unten und die Seitenüberschriften (Plan 1, Chunk 10).
 export const shell: Messages['shell'] = {
   // Höchstens 9 Zeichen: fünf stehen bei 375 px nebeneinander. "Einstellungen" ist zu lang, daher "Optionen".
   nav: {

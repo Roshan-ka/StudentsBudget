@@ -291,6 +291,13 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
       - an offline open in German (heavy).
     - A native-speaker read of the German before it's offered; Roshan decides who.
     - Real try on Roshan's phone via `npm run start:https`.
+    - **As built (2026-11-03):**
+      - `OFFERED` is `['en', 'de']`, and `de` has no `...en` underneath. A unit test refuses an offered language whose area is still the English object; the store test's draft is now the first registry language not offered (Spanish), and a phone set to `de-AT` gets German.
+      - `e2e/helpers/languages.ts`: `tourLanguages()` reads `E2E_LANGUAGES` (`all` tours every offered language besides English, anything else none) and `chooseLanguage()` sets the choice and reloads.
+      - `e2e/language-tour.spec.ts`: setup's first step, then every page after setup, at 375 px in each such language: `<html lang>`, its heading (Home: its first region), the nav, and no sideways scroll. It is skipped unless the run has every language, and listed under every route in `affected-map.json`.
+      - `language.spec.ts` gains a phone set to German (`locale: 'de-DE'`): it opens in German, and a chosen English survives a reload. `offline.spec.ts` gains an offline open in German.
+      - CLAUDE.md: the Languages section (with the "Adding a language" checklist), the UI and money formats per language, and the CI `languages` option; the comments in `ci.yml` and `ci-affected.mjs` say what `languages=all` runs.
+      - Still to do before it merges: the native-speaker read, and the real try on the phone.
 
 ## Verification
 
