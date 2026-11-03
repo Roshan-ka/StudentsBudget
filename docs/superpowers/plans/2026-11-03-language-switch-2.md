@@ -2,7 +2,7 @@
 
 **Goal:** the city content (tips, discounts, swaps, the setup ranges' and semesters' sources) in every offered language, then Spanish and French, each offered as soon as its own native read is done.
 
-**Builds on:** plan 1 (`2026-11-02-language-switch.md`), whose chunk 15 (#38, offer German) waits for its native read. Plan 2 stacks on it; the "Adding a language" checklist in CLAUDE.md is its recipe.
+**Builds on:** plan 1 (`2026-11-02-language-switch.md`). German is offered since #38 (merged 03-11-2026, before its native read: the read and its corrections come later, in a PR of their own). Plan 2 starts from main; the "Adding a language" checklist in CLAUDE.md is its recipe.
 
 **Decided (Roshan, 2026-11-03):**
 1. **tú and tu:** Spanish and French speak informally, as the German uses du.
@@ -38,7 +38,7 @@
 
 Each is about an hour, with lint, typecheck and the unit tests, an "As built" note here, a commit and its own draft PR, stacked as in plan 1. Heavy runs go through the lane.
 
-**Part A: city content in German** (after it, the German read covers the whole app)
+**Part A: city content in German** (after it, the deferred German read covers the whole app)
 
 1. **The mechanism and the German tips.** `src/i18n/content/`, `tipIn`, per-item `contentLang`, the id and numbers tests, and German for the 25 tips. The Tips page shows them in German.
 2. **German for the rest of the city content.** Discounts, swaps (the swap line becomes all German: "spar etwa 10 € pro Essen"), the setup ranges' and semesters' sources. The completeness test for offered languages, CLAUDE.md's city-content rule, and the language hint if it needs a word on content.
