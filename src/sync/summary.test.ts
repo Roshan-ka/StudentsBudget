@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contentsOf, listed } from './summary';
+import { contentsText, listed } from './summary';
 
 describe('listed', () => {
   it('joins as English always has: "a", "a and b", "a, b and c"', () => {
@@ -15,13 +15,13 @@ describe('listed', () => {
   });
 });
 
-describe('contentsOf', () => {
+describe('contentsText', () => {
   it('counts the accounts and entries, and names the plan', () => {
-    expect(contentsOf(3, 42, true)).toBe('3 accounts, 42 entries and your plan');
-    expect(contentsOf(1, 1, false)).toBe('1 account and 1 entry');
+    expect(contentsText({ accounts: 3, entries: 42, hasPlan: true })).toBe('3 accounts, 42 entries and your plan');
+    expect(contentsText({ accounts: 1, entries: 1, hasPlan: false })).toBe('1 account and 1 entry');
   });
 
   it("joins the parts the language's way", () => {
-    expect(contentsOf(3, 42, true, 'de')).toContain(' und ');
+    expect(contentsText({ accounts: 3, entries: 42, hasPlan: true }, 'de')).toContain(' und ');
   });
 });

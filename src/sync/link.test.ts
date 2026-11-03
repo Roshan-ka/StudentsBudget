@@ -66,7 +66,7 @@ describe('planLink', () => {
     const plan = await planLink(store, USER);
     expect(plan.kind).toBe('download');
     if (plan.kind !== 'download') return;
-    expect(plan.account).toBe('2 accounts, 3 entries and your plan');
+    expect(plan.account).toEqual({ accounts: 2, entries: 3, hasPlan: true });
     await applyLink(store, plan, USER);
     expect((await db.entries.toArray()).map((e) => e.id).sort()).toEqual(['e1', 'e2', 'rec:s1:2026-10-01']);
     expect(await db.plan.get('current')).toEqual(d.plan);
@@ -84,8 +84,8 @@ describe('planLink', () => {
     const plan = await planLink(store, USER);
     expect(plan.kind).toBe('choose');
     if (plan.kind !== 'choose') return;
-    expect(plan.phone).toBe('2 accounts, 3 entries and your plan');
-    expect(plan.account).toBe('1 account, 1 entry and your plan');
+    expect(plan.phone).toEqual({ accounts: 2, entries: 3, hasPlan: true });
+    expect(plan.account).toEqual({ accounts: 1, entries: 1, hasPlan: true });
 
     // Keeping the phone's data makes the account match the phone: what only the account had goes.
     await applyLink(store, plan, USER, 'phone');
@@ -139,7 +139,7 @@ describe('planLink', () => {
     expect(await planLink(odd.store, USER)).toEqual({ kind: 'unreadable', problem: "a row of entries isn't the app's data" });
 
     const outcome = await linkPhone(odd.store, USER, async () => false);
-    expect(outcome).toEqual({ kind: 'problem', problem: expect.stringContaining("can't read") });
+    expect(outcome).toEqual({ kind: 'problem', problem: 'unreadable' });
     expect(odd.tables.entries.get('e1')).toEqual({ nonsense: true });
     expect(await linkedTo()).toBeUndefined();
   });
@@ -224,7 +224,7 @@ describe('linkPhone', () => {
   it('links on its own when one side is empty, and says what moved', async () => {
     const { store, tables } = fakeStore();
     await replaceAll(snapshot());
-    expect(await linkPhone(store, USER, noCode)).toEqual({ kind: 'linked', fresh: true, note: "Your account now holds this phone's data." });
+    expect(await linkPhone(store, USER, noCode)).toEqual({ kind: 'linked', fresh: true, note: { kind: 'uploaded' } });
     expect(liveIds(tables.plans)).toEqual(['current']);
     expect(await linkPhone(store, USER, noCode)).toEqual({ kind: 'linked', fresh: false, note: null });
 
@@ -232,7 +232,7 @@ describe('linkPhone', () => {
     expect(await linkPhone(store, USER, noCode)).toEqual({
       kind: 'linked',
       fresh: true,
-      note: 'Loaded from your account: 2 accounts, 3 entries and your plan.',
+      note: { kind: 'loaded', contents: { accounts: 2, entries: 3, hasPlan: true } },
     });
     expect(await db.entries.count()).toBe(3);
   });
@@ -267,7 +267,7 @@ describe('linkPhone', () => {
 
   it('says calmly why it can’t link, and blocks another account', async () => {
     const half = fakeStore({ entries: { e1: expense('e1') } });
-    expect(await linkPhone(half.store, USER, noCode)).toMatchObject({ kind: 'problem', problem: expect.stringMatching(/^Your account's last save didn't finish/) });
+    expect(await linkPhone(half.store, USER, noCode)).toEqual({ kind: 'problem', problem: 'unfinished' });
     await db.syncState.put({ id: 'current', userId: 'someone-else', cursor: 0, lastSyncedAt: null, problem: null });
     expect(await linkPhone(fakeStore().store, USER, noCode)).toEqual({ kind: 'other-account' });
   });

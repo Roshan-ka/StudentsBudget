@@ -3,7 +3,6 @@ import type { BackupData } from '@/db/bulk';
 import { checkBackupData } from '@/features/backup/backup';
 import { BadRow, ROW_CHECKS } from './rows';
 import type { StoredRow, UserDataStore } from './store';
-import { contentsOf } from './summary';
 import { byTable, SERVER_TABLES } from './tables';
 
 /**
@@ -49,11 +48,7 @@ export async function planDownload(store: UserDataStore, phone: BackupData): Pro
     throw error;
   }
 
+  // In English: the problem is only logged (link.ts), never shown.
   const problem = checkBackupData(data);
   return problem === null ? { kind: 'ready', data } : { kind: 'invalid', problem };
-}
-
-/** "3 accounts, 128 entries and your plan": what loading brings onto the phone. */
-export function downloadContents(data: BackupData): string {
-  return contentsOf(data.accounts.length, data.entries.length, data.plan !== null);
 }

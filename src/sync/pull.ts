@@ -2,6 +2,7 @@ import { db } from '@/db/db';
 import { accountUse } from '@/db/repo';
 import type { Plan } from '@/db/types';
 import { keepWatermarks } from '@/features/recurring/update-plan';
+import type { SyncProblem } from './problem';
 import { BadRow, ROW_CHECKS } from './rows';
 import type { PulledRow, UserDataStore } from './store';
 import { dexieHome, SERVER_TABLES } from './tables';
@@ -10,14 +11,14 @@ import { untracked } from './untracked';
 /** Rows per pull request. */
 export const PULL_PAGE = 500;
 
-/** Shown when the account holds a row this version of the app can't read: a newer phone wrote it. */
-export const UPDATE_NEEDED = 'This app needs an update to sync.';
-
 /**
  * How a pull ended: every new row taken (how many were applied, and the cursor now), or stopped at a row this app
- * can't read, with the cursor left before it, so nothing after it is skipped once the app is updated.
+ * can't read, with the cursor left before it, so nothing after it is skipped once the app is updated. Such a row was
+ * written by a newer phone: the problem is `update-needed`.
  */
-export type PullResult = { kind: 'done'; applied: number; cursor: number } | { kind: 'invalid'; problem: string };
+export type PullResult =
+  | { kind: 'done'; applied: number; cursor: number }
+  | { kind: 'invalid'; problem: Extract<SyncProblem, 'update-needed'> };
 
 /** A pulled row, checked: the row to put on the phone, or null for a tombstone (the row was deleted). */
 export type Checked = { row: PulledRow; value: object | null };
@@ -48,7 +49,7 @@ export async function pull(store: UserDataStore, limit = PULL_PAGE): Promise<Pul
         if (!(error instanceof BadRow)) throw error;
         // Named by table and id, so the row can be found in the account.
         console.error(`StudentsBudget: a pulled row this app cannot read (${row.table} ${row.id}):`, error.message);
-        return { kind: 'invalid', problem: UPDATE_NEEDED };
+        return { kind: 'invalid', problem: 'update-needed' };
       }
     }
     // Only forward: a page never takes the cursor back.

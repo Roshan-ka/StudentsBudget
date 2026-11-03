@@ -208,7 +208,14 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
      - The rate and its ECB day use the phone's locale. Edit plan itself is the setup wizard, done in chunk 4.
 6. **Extract backup and restore, `summary`, and sync** (`engine.ts`, `link.ts`, `sync-status.tsx`, `account-view.tsx`, `account-link.tsx`).
    - Problem codes are introduced here. `engine.test.ts` and `link.test.ts` change on purpose.
-7. **Extract `auth-errors.ts`, two-step and passkeys.**
+   - **As built (2026-11-03), in two commits (6a backup and restore, 6b sync and linking):**
+     - `backup.ts`: `findProblem` returns a key, which `backup.problems` words. `checkBackupData`, `parseBackup` and `backupSummary` take `lang` last. The word typed to delete everything is the dictionary's.
+     - `syncState.problem` stores a code (`update-needed`, `signed-out`, `failed`, `held:N`; `src/sync/problem.ts`), and `problemText(code, lang)` words it. A sentence an earlier version stored shows as it is until the next sync. There is no Dexie version, because the field isn't indexed.
+     - Link outcomes carry data: a note (`uploaded`, or `loaded` with its `Contents`), a problem (`unfinished`, `unreadable`), and each side's holdings as `Contents` counts. `account-link.tsx` words them, along with its own `failed` and `offline`.
+     - `syncStatusText`, `accountSyncStatus`, `syncResultText`, `staleSummary` and `contentsText` take `lang`. Messages that are only logged (row checks, `checkBackupData` in a download) stay English.
+     - The account card in Settings and the setup page's account line are in the `account` area.
+     - `account-view.tsx` (the sign-in form, the code step and the signed-in panel) moves to chunk 7: its errors come from `credentials.ts` and `auth-errors.ts`.
+7. **Extract `auth-errors.ts`, two-step and passkeys**, plus `account-view.tsx`, `credentials.ts` and `security.tsx` (moved from chunk 6).
 8. **Extract charts and check-in.** The MCP tests prove its output stays English.
 9. **Extract badges, `reveal-text` and the tips/discounts/swaps UI chrome**, plus a helper that marks content `lang="en"`.
 10. **Language picker and German shell.**

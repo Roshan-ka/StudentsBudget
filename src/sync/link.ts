@@ -1,11 +1,11 @@
 import { exportAll, replaceAll, type BackupData } from '@/db/bulk';
 import { db } from '@/db/db';
 import type { OutboxEntry } from '@/db/types';
-import { downloadContents, planDownload } from './download';
+import { planDownload } from './download';
 import { withSyncLock } from './lock';
 import { push } from './push';
 import type { UserDataStore } from './store';
-import { contentsOf } from './summary';
+import { contentsOf, type Contents } from './summary';
 import { dexieHome, dexieSync, SERVER_TABLES, serverRowsOf, type ServerTable } from './tables';
 import { planUpload, type UploadPlan } from './upload';
 
@@ -22,15 +22,16 @@ import { planUpload, type UploadPlan } from './upload';
  * - `choose`: both have data. The person picks which to keep, told what each holds and what keeping the phone's
  *   would delete from the account.
  * - `unfinished` / `unreadable`: the account holds rows this phone can't take (a save that stopped halfway, or rows
- *   this app can't read), and this phone has nothing to put in their place. Nothing is linked.
+ *   this app can't read, with what is wrong for the log), and this phone has nothing to put in their place. Nothing is
+ *   linked.
  */
 export type LinkPlan =
   | { kind: 'linked' }
   | { kind: 'other-account' }
   | { kind: 'link' }
   | { kind: 'upload'; upload: UploadPlan }
-  | { kind: 'download'; data: BackupData; account: string }
-  | { kind: 'choose'; upload: UploadPlan; data: BackupData; phone: string; account: string }
+  | { kind: 'download'; data: BackupData; account: Contents }
+  | { kind: 'choose'; upload: UploadPlan; data: BackupData; phone: Contents; account: Contents }
   | { kind: 'unfinished' }
   | { kind: 'unreadable'; problem: string };
 
@@ -58,35 +59,31 @@ export async function planLink(store: UserDataStore, userId: string): Promise<Li
     if (phoneHasData) return { kind: 'upload', upload: await planUpload(store, phone) };
     return { kind: 'unfinished' };
   }
-  const account = downloadContents(download.data);
+  const account = contentsOf(download.data);
   if (!phoneHasData) return { kind: 'download', data: download.data, account };
-  return {
-    kind: 'choose',
-    upload: await planUpload(store, phone),
-    data: download.data,
-    phone: contentsOf(phone.accounts.length, phone.entries.length, phone.plan !== null),
-    account,
-  };
+  return { kind: 'choose', upload: await planUpload(store, phone), data: download.data, phone: contentsOf(phone), account };
 }
 
 /** Which side wins when both have data: this phone's (`phone`) or the account's (`account`). */
 export type LinkChoice = 'phone' | 'account';
 
+/** What moved when linking: this phone's data to the account, or the account's (what it holds) onto the phone. */
+export type LinkNote = { kind: 'uploaded' } | { kind: 'loaded'; contents: Contents };
+
+/** Why linking stopped on its own: the account's last save didn't finish, or it holds data this app can't read. */
+export type LinkProblem = 'unfinished' | 'unreadable';
+
 /**
- * How linking on the account page ended: linked (`fresh` when just now, with a line on what moved, if anything), a choice for the person, a
- * phone blocked by another account's data, a problem in words, or `code`: the account wants this session's
- * authenticator code before it shows its rows, so the code step takes over.
+ * How linking on the account page ended: linked (`fresh` when just now, with what moved, if anything), a choice for
+ * the person, a phone blocked by another account's data, a problem, or `code`: the account wants this session's
+ * authenticator code before it shows its rows, so the code step takes over. The page words the note and the problem.
  */
 export type LinkOutcome =
-  | { kind: 'linked'; fresh: boolean; note: string | null }
+  | { kind: 'linked'; fresh: boolean; note: LinkNote | null }
   | { kind: 'choose'; plan: Extract<LinkPlan, { kind: 'choose' }> }
   | { kind: 'other-account' }
-  | { kind: 'problem'; problem: string }
+  | { kind: 'problem'; problem: LinkProblem }
   | { kind: 'code' };
-
-const UNFINISHED =
-  "Your account's last save didn't finish, and this phone has no data to put in its place, so it isn't linked yet.";
-const UNREADABLE = "Your account holds data this app can't read, so this phone isn't linked. An app update may help.";
 
 let linking: Promise<LinkOutcome> | null = null;
 
@@ -113,15 +110,15 @@ async function linkWhatItCan(store: UserDataStore, userId: string, wantsCode: ()
     case 'choose':
       return { kind: 'choose', plan };
     case 'unfinished':
-      return { kind: 'problem', problem: UNFINISHED };
+      return { kind: 'problem', problem: 'unfinished' };
     case 'unreadable':
       console.error('StudentsBudget: the account holds data the app cannot load:', plan.problem);
-      return { kind: 'problem', problem: UNREADABLE };
+      return { kind: 'problem', problem: 'unreadable' };
   }
   if (plan.kind !== 'download' && (await wantsCode())) return { kind: 'code' };
   await applyLink(store, plan, userId);
-  if (plan.kind === 'upload') return { kind: 'linked', fresh: true, note: "Your account now holds this phone's data." };
-  if (plan.kind === 'download') return { kind: 'linked', fresh: true, note: `Loaded from your account: ${plan.account}.` };
+  if (plan.kind === 'upload') return { kind: 'linked', fresh: true, note: { kind: 'uploaded' } };
+  if (plan.kind === 'download') return { kind: 'linked', fresh: true, note: { kind: 'loaded', contents: plan.account } };
   return { kind: 'linked', fresh: true, note: null };
 }
 
