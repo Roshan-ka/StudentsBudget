@@ -7,7 +7,7 @@ import { TIPS } from '@/data/tips';
 import { DiscountsView } from '@/features/discounts/discounts-view';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
-import { contentLang } from '@/i18n/content';
+import { tipIn } from '@/i18n/city';
 import { useT } from '@/i18n/use-t';
 import { sortTips, tipChipIds, tipTag } from './tips';
 
@@ -43,8 +43,8 @@ export function TipsView() {
 
 /**
  * The Regensburg tips, all or one category at a time. The tips are static, so nothing here waits for the
- * database; the chosen category is kept only while the page stays mounted. A tip's own words are city content and
- * stay English (`contentLang`).
+ * database; the chosen category is kept only while the page stays mounted. A tip's own words come in the phone's
+ * language where they are translated (`tipIn`), else in English, marked so.
  */
 function TipList() {
   const { t, lang } = useT();
@@ -86,19 +86,22 @@ function TipList() {
         {showMore && CHIPS.more.map((id) => chip(id, categoryNameIn(t, id)))}
       </div>
       <ul aria-label={text.tips} className="flex flex-col gap-3">
-        {shown.map((tip) => (
-          <li key={tip.id} className="flex flex-col gap-2 rounded-lg border px-4 py-3">
-            <div lang={contentLang(lang)} className="flex flex-col gap-1">
-              <h3 className="font-medium">{tip.title}</h3>
-              <p className="text-sm text-muted-foreground">{tip.body}</p>
-            </div>
-            {/* An outline, not the muted fill: muted text on the muted fill is about 4.3:1, on the page about 4.7:1. */}
-            <span className="w-fit rounded-md border px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-              {tipTag(tip, lang)}
-            </span>
-            <RangeSource range={tip} />
-          </li>
-        ))}
+        {shown.map((tip) => {
+          const words = tipIn(tip, lang);
+          return (
+            <li key={tip.id} className="flex flex-col gap-2 rounded-lg border px-4 py-3">
+              <div lang={words.textLang} className="flex flex-col gap-1">
+                <h3 className="font-medium">{words.title}</h3>
+                <p className="text-sm text-muted-foreground">{words.body}</p>
+              </div>
+              {/* An outline, not the muted fill: muted text on the muted fill is about 4.3:1, on the page about 4.7:1. */}
+              <span className="w-fit rounded-md border px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                {tipTag(tip, lang)}
+              </span>
+              <RangeSource range={words} />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

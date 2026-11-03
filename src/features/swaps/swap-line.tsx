@@ -4,6 +4,7 @@ import { useId, useState } from 'react';
 import type { Swap } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
 import { RangeSource } from '@/features/setup/steps/range-source';
+import { tipIn } from '@/i18n/city';
 import { contentLang } from '@/i18n/content';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
@@ -32,14 +33,15 @@ function sourceBlocks(
  * One calm line under an envelope row: "Try this: … · save about €X per …". Tapping it opens the swap's body, where
  * each of its prices comes from and the tip it is linked to, which carries its own source: every number shown has one.
  * The panel is outlined, not filled: muted text on the muted fill was below 4.5:1, on the page background it is above.
- * The swap's and the tip's own words are city content and stay English.
+ * The swap's own words are city content in English for now (`contentLang`); the tip's come through `tipIn`.
  */
 export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
   const panelId = useId();
   const { t, lang, locale } = useT();
   const [open, setOpen] = useState(false);
   const { swap } = suggestion;
-  const tip = swap.tipId === undefined ? undefined : TIPS.find((candidate) => candidate.id === swap.tipId);
+  const linked = swap.tipId === undefined ? undefined : TIPS.find((candidate) => candidate.id === swap.tipId);
+  const tip = linked === undefined ? undefined : tipIn(linked, lang);
 
   return (
     <div className="flex flex-col gap-1">
@@ -66,7 +68,7 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
           {tip !== undefined && (
             <div className="flex flex-col gap-1 border-t pt-3">
               <p className="text-xs text-muted-foreground">{t.tips.swap.relatedTip}</p>
-              <div lang={contentLang(lang)} className="flex flex-col gap-1">
+              <div lang={tip.textLang} className="flex flex-col gap-1">
                 <p className="font-medium">{tip.title}</p>
                 <p className="text-muted-foreground">{tip.body}</p>
               </div>

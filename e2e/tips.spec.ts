@@ -106,3 +106,19 @@ test('the tips open without a plan, and the nav stays hidden until setup', async
   await expect(tipList(page).getByRole('listitem')).toHaveCount(TIPS.length);
   await expect(mainNav(page)).toHaveCount(0);
 });
+
+test.describe('on a phone set to German', () => {
+  test.use({ locale: 'de-DE' });
+
+  test('the tips read in German, with their sources, and none is marked English', async ({ page }) => {
+    await page.goto('/tips');
+    const list = page.getByRole('list', { name: 'Tipps', exact: true });
+    await expect(list.getByRole('listitem')).toHaveCount(TIPS.length);
+    const mensa = list.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Iss in der Mensa' }) });
+    await expect(mensa.getByText('Gäste zahlen für denselben Teller 6,10 €.', { exact: false })).toBeVisible();
+    await mensa.getByText('Quelle', { exact: true }).click();
+    await expect(mensa.getByText(/Speiseplan der Mensa Uni Regensburg/)).toBeVisible();
+    await expect(list.locator('[lang="en"]')).toHaveCount(0);
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+  });
+});
