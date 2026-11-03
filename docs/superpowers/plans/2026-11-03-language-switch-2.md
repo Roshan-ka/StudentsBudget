@@ -72,6 +72,7 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
    - **As built (2026-11-03):** Spanish for `sync` (Sincronizar ahora, vincular; "hace 2 min" without a full stop, since "min" is a symbol), `account` (Tu cuenta) and `auth` (iniciar / cerrar sesión, verificación en dos pasos, llave de acceso, app de autenticación). Counts go through `byCount`. The allow-list gains the two bare full stops after the bold email.
 7. Check-in, charts (short names), badges, reveal, tips chrome.
 8. City content in Spanish.
+   - **As built (2026-11-03):** `src/i18n/city/es/` with the 25 tips, 17 discounts ("Sportpark Ost pool" is "Piscina Sportpark Ost"), 3 swaps (units: comida, entrada, mes), the city ranges and the semester texts (keyed by their English text, as in German; "(en alemán)" stays, since the pages are German). Registered in `CITY_WORDS`; `city.test.ts` checks it as it does German, numbers included. Based on main, not on chunk 7: it needs only the city mechanism.
 9. **Offer Spanish**, after its native read: `OFFERED`, drop the spread, the language e2e and the tour with `E2E_LANGUAGES=all`, `test:offline`, a try on the phone.
 
 **Part C: French**
