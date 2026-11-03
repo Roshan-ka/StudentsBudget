@@ -15,6 +15,7 @@ import { reveal } from './reveal';
 import { setup } from './setup';
 import { shell } from './shell';
 import { sync } from './sync';
+import { tips } from './tips';
 
 /**
  * English, the reference dictionary: every other language has exactly its keys (`Messages`), area by area. A text
@@ -38,6 +39,7 @@ export const en = {
   charts,
   badges,
   reveal,
+  tips,
 };
 
 export type Messages = typeof en;

@@ -233,6 +233,12 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
      - The screen-reader summaries and table captions are dictionary functions; a missing note is left out of the sentence. The "<1%" of a tiny slice uses the locale's percent.
      - The lint guard covers check-in and charts, and allows the `‹`/`›` arrows.
 9. **Extract badges, `reveal-text` and the tips/discounts/swaps UI chrome**, plus a helper that marks content `lang="en"`.
+   - **As built (2026-11-03), in two commits (9a badges and the reveal, 9b tips, discounts and swaps):**
+     - Dictionary areas `badges`, `reveal` and `tips` (tips, discounts and the swap line).
+     - `badgesFrom` and `recapLine` take `lang` last; badge names and progress lines come from the dictionary. `formatDay` takes a locale.
+     - `swapLineText` and `tipTag` take `lang`. `amountText` and `savingText` take an optional locale, so the MCP server stays English.
+     - `contentLang(lang)` (`src/i18n/content.ts`) is `'en'` in any other language and nothing in English, so the English DOM is unchanged. It marks the tip, discount, swap and related-tip texts and a source's own text. The swap line mixes the app's words with the swap's, so it is not marked.
+     - The lint guard covers badges, the reveal, tips, discounts and swaps.
 10. **Language picker and German shell.**
     - What: a Language section at the top of Settings and a compact picker on setup, each option written in its own language. Dev builds also list languages not yet offered. The nav width fix.
     - Tests:

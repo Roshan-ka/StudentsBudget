@@ -6,21 +6,22 @@ import { Button } from '@/components/ui/button';
 import type { Discount } from '@/data/discounts';
 import { db } from '@/db/db';
 import type { DiscountVote } from '@/db/types';
-import { categoryName } from '@/features/entries/categories';
 import { RangeSource } from '@/features/setup/steps/range-source';
+import { categoryNameIn } from '@/i18n/category-name';
+import { contentLang } from '@/i18n/content';
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/use-t';
 import { formatDate, todayIso } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
 import { bundledDiscounts, discountCategoryIds, sortByFreshness, voteMove, type DiscountSource } from './discounts';
 
-const VOTES: { vote: DiscountVote['vote']; label: string }[] = [
-  { vote: 'works', label: 'Still works' },
-  { vote: 'outdated', label: "Doesn't work anymore" },
-];
+const VOTES: readonly DiscountVote['vote'][] = ['works', 'outdated'];
 
 /** What a screen reader hears after a vote, and which way the discount went when the list re-sorted. */
-function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'down' | null): string {
-  const saved = vote === 'works' ? `${d.place}: saved as still working.` : `${d.place}: saved as not working.`;
-  return move === null ? saved : `${saved} It moves ${move} the list.`;
+function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'down' | null, t: Messages): string {
+  const text = t.tips.heard;
+  const saved = vote === 'works' ? text.works(d.place) : text.outdated(d.place);
+  return move === null ? saved : text.moves(saved, move);
 }
 
 /**
@@ -30,6 +31,8 @@ function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'dow
  * only while the page stays mounted.
  */
 export function DiscountsView({ source = bundledDiscounts }: { source?: DiscountSource }) {
+  const { t, lang } = useT();
+  const text = t.tips;
   // The date is null until the browser runs this (never the date of the prerender).
   const today = useToday();
   const votes = useLiveQuery(() => db.discountVotes.toArray(), []);
@@ -80,7 +83,7 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
   }, [votes]);
 
   if (failed && discounts === null) {
-    return <p className="text-sm text-muted-foreground">The discounts could not be loaded. Try again later.</p>;
+    return <p className="text-sm text-muted-foreground">{text.loadFailed}</p>;
   }
   if (today === null || discounts === null || votes === undefined) return null;
 
@@ -101,14 +104,14 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
     );
     db.discountVotes.put(row).then(
       () => {
-        setNotice({ discountId: d.id, text: 'Saved on this phone.' });
-        setHeard(announcement(d, vote, move));
+        setNotice({ discountId: d.id, text: text.saved });
+        setHeard(announcement(d, vote, move, t));
       },
       (error: unknown) => {
         follow.current = null;
         console.error('StudentsBudget: could not save the discount vote', error);
-        setNotice({ discountId: d.id, text: 'Could not save your answer. Try again.' });
-        setHeard(`${d.place}: could not save your answer. Try again.`);
+        setNotice({ discountId: d.id, text: text.saveFailed });
+        setHeard(text.heard.failed(d.place));
       },
     );
   }
@@ -128,20 +131,16 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted-foreground">
-        Student discounts in Regensburg. Each one says where it is stated. Tell the app whether one still works: your
-        answers are saved on this phone. Ones you confirm move up; ones you mark as not working, or that haven&rsquo;t been
-        confirmed for 8 weeks, move down.
-      </p>
-      <div role="group" aria-label="Show discounts for" className="flex flex-wrap gap-2">
-        {chip(null, 'All')}
-        {discountCategoryIds(discounts).map((id) => chip(id, categoryName(id)))}
+      <p className="text-sm text-muted-foreground">{text.discountsIntro}</p>
+      <div role="group" aria-label={text.discountsFor} className="flex flex-wrap gap-2">
+        {chip(null, text.all)}
+        {discountCategoryIds(discounts).map((id) => chip(id, categoryNameIn(t, id)))}
       </div>
       {/* Always there and filled later, so screen readers announce each change. */}
       <p role="status" className="sr-only">
         {heard}
       </p>
-      <ul aria-label="Discounts" className="flex flex-col gap-3">
+      <ul aria-label={text.discounts} className="flex flex-col gap-3">
         {shown.map(({ discount: d, vote, freshness: f }) => {
           const placeId = `discount-${d.id}-place`;
           return (
@@ -155,7 +154,8 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
               }}
               className="flex flex-col gap-2 rounded-lg border px-4 py-3"
             >
-              <div className="flex flex-col gap-1">
+              {/* The discount's own words are city content and stay English. */}
+              <div lang={contentLang(lang)} className="flex flex-col gap-1">
                 <h3 id={placeId} className="font-medium break-words">
                   {d.place}
                 </h3>
@@ -165,31 +165,31 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
               </div>
               {/* An outline, not the muted fill: muted text on the muted fill is about 4.3:1, on the page about 4.7:1. */}
               <span className="w-fit rounded-md border px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-                {categoryName(d.categoryId)}
+                {categoryNameIn(t, d.categoryId)}
               </span>
               <div className="flex flex-col gap-0.5 text-sm">
                 {f.outdated && vote ? (
-                  <p className="font-medium">You marked this as not working on {formatDate(vote.on)}</p>
+                  <p className="font-medium">{text.markedOutdated(formatDate(vote.on))}</p>
                 ) : (
                   <>
-                    {f.mayBeOutdated && <p className="font-medium">May be outdated</p>}
-                    <p className="text-muted-foreground">Last confirmed {formatDate(f.lastConfirmed)}</p>
+                    {f.mayBeOutdated && <p className="font-medium">{text.mayBeOutdated}</p>}
+                    <p className="text-muted-foreground">{text.lastConfirmed(formatDate(f.lastConfirmed))}</p>
                   </>
                 )}
               </div>
               <RangeSource range={d} />
-              <div role="group" aria-label={`${d.place}: does it still work?`} className="mt-1 flex flex-wrap gap-2">
+              <div role="group" aria-label={text.voteGroup(d.place)} className="mt-1 flex flex-wrap gap-2">
                 {VOTES.map((option) => (
                   <Button
-                    key={option.vote}
+                    key={option}
                     type="button"
-                    variant={vote?.vote === option.vote ? 'default' : 'outline'}
-                    aria-pressed={vote?.vote === option.vote}
+                    variant={vote?.vote === option ? 'default' : 'outline'}
+                    aria-pressed={vote?.vote === option}
                     aria-describedby={placeId}
                     className="h-10 px-3"
-                    onClick={() => choose(d, option.vote)}
+                    onClick={() => choose(d, option)}
                   >
-                    {option.label}
+                    {text.votes[option]}
                   </Button>
                 ))}
               </div>

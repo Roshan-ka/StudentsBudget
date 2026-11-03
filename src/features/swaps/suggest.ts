@@ -1,4 +1,6 @@
 import { SWAPS, type Swap } from '@/data/swaps';
+import { LANGUAGES, type Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import { daysInMonth, monthOf, type IsoDate } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
 
@@ -57,24 +59,29 @@ export function createSuggestionProvider(swaps: readonly Swap[]): SuggestionProv
 /** The rule-based provider over the seeded swaps. */
 export const localSuggestions: SuggestionProvider = createSuggestionProvider(SWAPS);
 
-/** "€14.50" for an amount with cents, "€34" for a whole-euro one: an amount that is not whole is never rounded. */
-export function amountText(minor: Minor): string {
-  return formatMoney(minor, 'EUR', minor % 100 === 0 ? { whole: true } : undefined);
+/**
+ * "€14.50" for an amount with cents, "€34" for a whole-euro one: an amount that is not whole is never rounded. In
+ * English unless `locale` says otherwise (the MCP server's are English).
+ */
+export function amountText(minor: Minor, locale?: string): string {
+  return formatMoney(minor, 'EUR', { whole: minor % 100 === 0, locale });
 }
 
 /**
  * The saving in the words of the line: whole euros, rounded down so it is never flattering ("about €10" for €10.70),
  * except that a saving under €1 keeps its cents rather than read as €0.
  */
-export function savingText(minor: Minor): string {
-  return minor < 100 ? amountText(minor) : amountText(Math.floor(minor / 100) * 100);
+export function savingText(minor: Minor, locale?: string): string {
+  return minor < 100 ? amountText(minor, locale) : amountText(Math.floor(minor / 100) * 100, locale);
 }
 
 /**
- * "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal". A saving that rests on an
- * assumption says "(estimate)" on the line itself, where the number is shown, not only once the swap is opened.
+ * "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal", in `lang`; the swap's title and
+ * what it is per are city content and stay as written. A saving that rests on an assumption says "(estimate)" on the
+ * line itself, where the number is shown, not only once the swap is opened.
  */
-export function swapLineText({ swap, savingPerUseMinor }: Suggestion): string {
-  const line = `Try this: ${swap.title} · save about ${savingText(savingPerUseMinor)} per ${swap.per}`;
-  return swap.estimate === true ? `${line} (estimate)` : line;
+export function swapLineText({ swap, savingPerUseMinor }: Suggestion, lang: Language = 'en'): string {
+  const text = MESSAGES[lang].tips.swap;
+  const line = text.line(swap.title, savingText(savingPerUseMinor, LANGUAGES[lang].locale), swap.per);
+  return swap.estimate === true ? text.estimate(line) : line;
 }

@@ -189,3 +189,13 @@ describe('amountText', () => {
     expect(amountText(2200)).toBe('€22');
   });
 });
+
+describe('in another language', () => {
+  it("writes the saving the language's way, and keeps the swap's own words", () => {
+    const s = { ...swap('x', 'eating-out', 1450, 380, 'meal'), title: 'Eat at the Mensa' };
+    const line = swapLineText({ categoryId: 'eating-out', swap: s, savingPerUseMinor: 1070 }, 'de');
+    expect(line).toContain('10\u00a0€');
+    expect(line).toContain('Eat at the Mensa');
+    expect(amountText(1450, 'de-DE')).toBe('14,50\u00a0€');
+  });
+});
