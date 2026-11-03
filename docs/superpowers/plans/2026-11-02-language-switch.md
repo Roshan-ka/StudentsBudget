@@ -260,6 +260,12 @@ Every extraction chunk keeps English **byte-identical**, so unit tests and e2e s
       - Category names respect the 16-character chart label ("Andere Einnahmen", not "Sonstige Einnahmen"). The charts area is still English, so in German its short names (Health, Transport pass, Utilities) are English until chunk 14 writes German ones.
       - Still English in German: everything from chunks 5–9 that chunks 12–14 translate, and city content.
 12. **German, part 2:** profile, plan, recurring, accounts, rates, backup.
+    - **As built (2026-11-03):**
+      - German for `profile` (with the semester-fee hint), `recurring` (Settings → Fixkosten und Einnahmen, the setup schedule fields, the repeat fields and the line descriptions), `accounts` (with moving money and the rates) and `backup` (export, restore, delete everything, and the file problems). Edit plan lives in `setup`, so chunk 11 already wrote it.
+      - Weekday names in a line's timing come from the language's locale (`weekdayName`), so "Wöchentlich am Montag" needs nothing more; a monthly line reads "Monatlich am 5.".
+      - The word to type before deleting everything is LÖSCHEN in German. The e2e runs in English, so it still types DELETE.
+      - The allow-list gains four that are the same in both: Name, Bank, Backup and the bare rate format "1 € = … · …".
+      - Still English in German: sync, account, sign-in (chunk 13), and charts, check-in, badges, reveal, tips chrome (chunk 14).
 13. **German, part 3:** sync, account, sign-in and security.
 14. **German, part 4:** charts, check-in, badges, reveal, content chrome.
     - Chunks 11–14 build up `de` as `{...en, ...done}`, with a glossary (plan, envelope, check-in, one-off).

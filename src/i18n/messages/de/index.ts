@@ -1,9 +1,13 @@
 import { en, type Messages } from '../en';
+import { accounts } from './accounts';
+import { backup } from './backup';
 import { categories } from './categories';
 import { common } from './common';
 import { entries } from './entries';
 import { home } from './home';
 import { language } from './language';
+import { profile } from './profile';
+import { recurring } from './recurring';
 import { setup } from './setup';
 import { shell } from './shell';
 
@@ -22,4 +26,17 @@ import { shell } from './shell';
  * - check-in: Check-in; badge: Abzeichen; semester fee: Semesterbeitrag; exchange rate: Wechselkurs
  * - Settings (in a sentence): in den Einstellungen; Edit plan: Plan bearbeiten; the nav says Optionen (9 characters)
  */
-export const de: Messages = { ...en, shell, language, common, categories, home, entries, setup };
+export const de: Messages = {
+  ...en,
+  shell,
+  language,
+  common,
+  categories,
+  home,
+  entries,
+  setup,
+  profile,
+  recurring,
+  accounts,
+  backup,
+};
