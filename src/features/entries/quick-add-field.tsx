@@ -1,8 +1,9 @@
 'use client';
 
-import { Mic, Square } from 'lucide-react';
+import { ChevronDownIcon, Mic, Square } from 'lucide-react';
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { db } from '@/db/db';
@@ -13,6 +14,7 @@ import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
+import { cn } from '@/lib/utils';
 import { buildEntry } from './build-entry';
 import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES } from './categories';
 import { markMicNoteSeen, micNoteSeen } from './mic-note';
@@ -64,8 +66,7 @@ function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: s
     <Button
       key={category.id}
       type="button"
-      variant="outline"
-      className="h-10 px-3"
+      variant="chip"
       disabled={busy}
       onClick={() => onPick(category.id)}
     >
@@ -78,14 +79,9 @@ function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: s
       <p className="text-sm text-muted-foreground">{t.entries.quickAdd.whichCategory}</p>
       <div className="flex flex-wrap gap-2">
         {GUESS_CATEGORIES.map(chip)}
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-10 px-3"
-          aria-expanded={showMore}
-          onClick={() => setShowMore((open) => !open)}
-        >
+        <Button type="button" variant="chip" aria-expanded={showMore} onClick={() => setShowMore((open) => !open)}>
           {t.entries.quickAdd.more}
+          <ChevronDownIcon aria-hidden="true" className={cn('transition-transform', showMore && 'rotate-180')} />
         </Button>
         {showMore && MORE_CATEGORIES.map(chip)}
       </div>
@@ -112,8 +108,7 @@ function AmountChoice({
           <Button
             key={option}
             type="button"
-            variant="outline"
-            className="h-10 px-3"
+            variant="chip"
             disabled={busy}
             onClick={() => onPick(option)}
           >
@@ -354,7 +349,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         <div className="flex gap-2">
           <Input
             id={`${id}-text`}
-            className="h-10 flex-1"
+            className="min-w-0 flex-1"
             value={text}
             onChange={(event) => {
               setText(event.target.value);
@@ -372,7 +367,8 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
             <Button
               type="button"
               variant="outline"
-              className="h-10 w-10 shrink-0 px-0"
+              size="lg"
+              className="w-[50px] shrink-0 px-0"
               aria-label={listening ? words.stopMic : words.mic}
               disabled={busy}
               onClick={onMic}
@@ -380,19 +376,18 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
               {listening ? <Square aria-hidden="true" /> : <Mic aria-hidden="true" />}
             </Button>
           )}
-          <Button type="submit" className="h-10 px-4" disabled={busy}>
+          <Button type="submit" size="lg" disabled={busy}>
             {words.add}
           </Button>
         </div>
       </form>
 
       {noteOpen && (
-        <div role="group" aria-label={words.mic} className="flex flex-col gap-2 rounded-lg border px-4 py-3 text-sm">
+        <div role="group" aria-label={words.mic} className={cn(cardVariants(), 'gap-2 text-sm')}>
           <p>{words.micNote.text}</p>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              className="h-10 px-4"
               onClick={() => {
                 markMicNoteSeen();
                 setNoteOpen(false);
@@ -401,7 +396,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
             >
               {words.micNote.continue}
             </Button>
-            <Button type="button" variant="ghost" className="h-10 px-4" onClick={() => setNoteOpen(false)}>
+            <Button type="button" variant="ghost" onClick={() => setNoteOpen(false)}>
               {words.micNote.cancel}
             </Button>
           </div>
@@ -428,7 +423,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
 
       <div
         className={
-          saved || listening ? 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 pr-1 pl-4' : undefined
+          saved || listening ? 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 ps-4 pe-1' : undefined
         }
       >
         {/* Always rendered, so a screen reader is already listening when the text appears. The one status line for
@@ -437,7 +432,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
           {listening ? words.listening : saved?.message}
         </p>
         {saved && !listening && (
-          <Button type="button" variant="ghost" className="h-10 shrink-0 px-3" onClick={() => void undo()}>
+          <Button type="button" variant="ghost" className="shrink-0" onClick={() => void undo()}>
             {words.undo}
           </Button>
         )}

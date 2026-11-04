@@ -37,10 +37,8 @@ function physicalClasses(source: string): string[] {
     .filter((base) => PHYSICAL.test(base));
 }
 
-/**
- * Files not yet on logical sides: the list only shrinks. Quick add is restyled last (chunk 12), after the mic button.
- */
-const NOT_YET_LOGICAL = new Set(['features/entries/quick-add-field.tsx']);
+/** Files not yet on logical sides: the list only shrinks, and is empty since quick add's restyle (chunk 12). */
+const NOT_YET_LOGICAL = new Set<string>();
 
 describe('logical sides', () => {
   const files = filesIn(SRC, '.tsx').map((path) => relative(SRC, path).replaceAll('\\', '/'));
