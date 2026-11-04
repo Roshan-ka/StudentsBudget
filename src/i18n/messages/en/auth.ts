@@ -15,6 +15,7 @@ export const auth = {
     codeWrongOrExpired: 'That code is wrong or has expired. Check the newest email, or send a new code.',
     waitForCode: 'Too many emails for now. Wait a minute, then send a new code.',
     emailNotSent: "The email couldn't be sent. Try again later.",
+    samePassword: "That's your current password. Choose a different one.",
     codeFailed: 'That code didn’t work. Codes change every 30 seconds: enter the newest one.',
     codeExpired: 'That took a little long. Enter the newest code from your authenticator app.',
     factorGone: 'Two-step sign-in was turned off for this account. Sign out, then sign in again.',
@@ -64,6 +65,7 @@ export const auth = {
     create: 'Create account',
     toSignIn: 'Have an account? Sign in',
     toCreate: 'New here? Create an account',
+    forgot: 'Forgot your password?',
   },
   /** The code from the sign-up email (P2.4). The email sits in bold between the parts of a sentence. */
   confirm: {
@@ -74,6 +76,26 @@ export const auth = {
     sendAgain: 'Send a new code',
     resent: 'A new code is on its way. Use the newest one.',
     back: 'Back',
+  },
+  /** "Forgot password" (P2.4): the email, then its code. The email sits in bold between the parts of a sentence. */
+  reset: {
+    heading: 'Reset your password',
+    intro: "Enter your account's email, and we'll send it a 6-digit code.",
+    send: 'Send code',
+    prompt: { before: 'If ', after: ' has an account, we sent it a 6-digit code. It works for 60 minutes.' },
+    code: '6-digit code',
+    confirm: 'Continue',
+    sendAgain: 'Send a new code',
+    resent: 'A new code is on its way. Use the newest one.',
+    back: 'Back',
+  },
+  /** The last step of "Forgot password": signed in with the code, a new password finishes it. */
+  newPassword: {
+    heading: 'Choose a new password',
+    prompt: { before: 'Signed in as ', after: ' with the code from your email. Choose a new password to finish.' },
+    password: 'New password',
+    save: 'Save password',
+    signOut: 'Sign out',
   },
   /** The code step of signing in. The email sits in bold between the parts of a sentence. */
   secondStep: {
@@ -91,6 +113,7 @@ export const auth = {
     keeps: 'Signing out keeps your data on this phone.',
     signOut: 'Sign out',
     syncing: 'Syncing, then signing out…',
+    passwordChanged: 'Password changed.',
   },
   security: {
     heading: 'Sign-in and security',

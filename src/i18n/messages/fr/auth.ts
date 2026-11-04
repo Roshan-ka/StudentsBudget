@@ -17,6 +17,7 @@ export const auth: Messages['auth'] = {
     codeWrongOrExpired: 'Ce code est faux ou a expiré. Regarde le dernier e-mail, ou demande un nouveau code.',
     waitForCode: 'Trop d’e-mails pour l’instant. Attends une minute, puis demande un nouveau code.',
     emailNotSent: 'L’e-mail n’a pas pu être envoyé. Réessaie plus tard.',
+    samePassword: 'C’est ton mot de passe actuel. Choisis-en un autre.',
     codeFailed: `Ce code n’a pas marché. Les codes changent toutes les 30 secondes${NNBSP}: saisis le plus récent.`,
     codeExpired: 'Ça a pris un peu trop de temps. Saisis le code le plus récent de ton appli d’authentification.',
     factorGone: 'La validation en deux étapes a été désactivée pour ce compte. Déconnecte-toi, puis reconnecte-toi.',
@@ -66,6 +67,7 @@ export const auth: Messages['auth'] = {
     create: 'Créer le compte',
     toSignIn: `Tu as un compte${NNBSP}? Connecte-toi`,
     toCreate: `Pas encore de compte${NNBSP}? Crée-en un`,
+    forgot: `Mot de passe oublié${NNBSP}?`,
   },
   /** Le code de l’e-mail après la création d’un compte (P2.4). L’adresse est en gras au milieu de la phrase. */
   confirm: {
@@ -76,6 +78,26 @@ export const auth: Messages['auth'] = {
     sendAgain: 'Envoyer un nouveau code',
     resent: 'Un nouveau code est en route. Utilise le plus récent.',
     back: 'Retour',
+  },
+  /** « Mot de passe oublié » (P2.4) : l’e-mail, puis son code. L’adresse est en gras au milieu de la phrase. */
+  reset: {
+    heading: 'Réinitialiser ton mot de passe',
+    intro: 'Saisis l’adresse e-mail de ton compte, et nous lui enverrons un code à 6 chiffres.',
+    send: 'Envoyer le code',
+    prompt: { before: 'Si ', after: ' a un compte, nous lui avons envoyé un code à 6 chiffres. Il est valable 60 minutes.' },
+    code: 'Code à 6 chiffres',
+    confirm: 'Continuer',
+    sendAgain: 'Envoyer un nouveau code',
+    resent: 'Un nouveau code est en route. Utilise le plus récent.',
+    back: 'Retour',
+  },
+  /** La dernière étape de « Mot de passe oublié » : connecté avec le code, un nouveau mot de passe la termine. */
+  newPassword: {
+    heading: 'Choisis un nouveau mot de passe',
+    prompt: { before: 'Session ouverte avec ', after: ' grâce au code de ton e-mail. Choisis un nouveau mot de passe pour terminer.' },
+    password: 'Nouveau mot de passe',
+    save: 'Enregistrer le mot de passe',
+    signOut: 'Se déconnecter',
   },
   secondStep: {
     heading: 'Validation en deux étapes',
@@ -95,6 +117,7 @@ export const auth: Messages['auth'] = {
     keeps: 'Te déconnecter garde tes données sur ce téléphone.',
     signOut: 'Se déconnecter',
     syncing: 'Synchronisation, puis déconnexion…',
+    passwordChanged: 'Mot de passe modifié.',
   },
   security: {
     heading: 'Connexion et sécurité',

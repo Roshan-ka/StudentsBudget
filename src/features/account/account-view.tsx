@@ -12,38 +12,74 @@ import { getSupabase } from '@/lib/supabase/client';
 import { AccountLink } from './account-link';
 import { authErrorMessage } from './auth-errors';
 import { CodeField } from './code-field';
-import { checkAuthenticatorCode, checkCredentials, checkEmailCode, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
-import { SIGN_UP_CODE } from './email-codes';
+import {
+  checkAuthenticatorCode,
+  checkCredentials,
+  checkEmail,
+  checkEmailCode,
+  checkNewPassword,
+  MIN_PASSWORD_LENGTH,
+  type AuthMode,
+} from './credentials';
+import { RECOVERY_CODE, SIGN_UP_CODE } from './email-codes';
 import { PasskeySignIn } from './passkeys';
+import { finishRecovery, forgetPasswordChanged, useRecovery } from './recovery';
 import { SignInSecurity } from './security';
 import { syncBeforeSignOut } from './sync-status';
 import { useAuth } from './use-auth';
 
+/** Which email a code comes from (P2.4): the sign-up's, or "Forgot password"'s. */
+type CodeKind = 'sign-up' | 'recovery';
+
 /**
- * Asks the account server to email a new sign-up code to `email`. Null when it went out; otherwise the calm text of
- * why not, in `lang`.
+ * Asks the account server to email a code to `email`: a new sign-up code, or a "Forgot password" one. Null when it
+ * went out (for a reset, the server says the same whether or not the email has an account); otherwise the calm text
+ * of why not, in `lang`.
  */
-async function sendSignUpCode(email: string, lang: Language): Promise<string | null> {
+async function sendEmailCode(kind: CodeKind, email: string, lang: Language): Promise<string | null> {
   if (!navigator.onLine) return MESSAGES[lang].auth.offline;
   const supabase = getSupabase();
   if (supabase === null) return MESSAGES[lang].auth.errors.general;
   try {
-    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    const { error } =
+      kind === 'sign-up'
+        ? await supabase.auth.resend({ type: 'signup', email })
+        : await supabase.auth.resetPasswordForEmail(email);
     return error ? authErrorMessage(error, lang) : null;
   } catch (thrown) {
-    console.error('StudentsBudget: could not send a new sign-up code', thrown);
+    console.error('StudentsBudget: could not send an email code', thrown);
     return authErrorMessage(thrown, lang);
   }
 }
 
+/** Signs this phone out of a half-finished sign-in. Local only: what matters is that this phone forgets it. */
+async function signOutLocally() {
+  const supabase = getSupabase();
+  if (supabase === null) return;
+  await supabase.auth.signOut({ scope: 'local' }).catch((thrown: unknown) => {
+    console.error('StudentsBudget: could not sign out', thrown);
+  });
+}
+
 /**
- * The code from the sign-up email (P2.4): until it is given, the new account has no session. Send a new code asks
- * for another email; Back returns to signing in, with the email kept. `resent` opens it saying a new code is on its way.
+ * The code from an email (P2.4): the sign-up's, until which the new account has no session, or "Forgot password"'s,
+ * which signs in for a new password. Send a new code asks for another email; Back returns to signing in, with the
+ * email kept. `resent` opens it saying a new code is on its way.
  */
-function ConfirmEmailStep({ email, resent, onBack }: { email: string; resent: boolean; onBack: () => void }) {
+function EmailCodeStep({
+  kind,
+  email,
+  resent,
+  onBack,
+}: {
+  kind: CodeKind;
+  email: string;
+  resent: boolean;
+  onBack: () => void;
+}) {
   const id = useId();
   const { t, lang } = useT();
-  const text = t.auth.confirm;
+  const text = kind === 'sign-up' ? t.auth.confirm : t.auth.reset;
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(resent ? text.resent : null);
@@ -92,15 +128,17 @@ function ConfirmEmailStep({ email, resent, onBack }: { email: string; resent: bo
 
     await runOnce(async () => {
       try {
-        const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: checked.code, type: SIGN_UP_CODE });
+        const type = kind === 'sign-up' ? SIGN_UP_CODE : RECOVERY_CODE;
+        const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: checked.code, type });
         if (verifyError) {
           setError(authErrorMessage(verifyError, lang));
           return;
         }
-        // Confirmed and signed in: useAuth hears it from supabase-js, and the page shows the signed-in panel.
+        // Signed in: useAuth hears it from supabase-js. The page then shows the account, or for a reset the
+        // authenticator's step (if the account has one) and the new password (`recovery.ts`).
         setCode('');
       } catch (thrown) {
-        console.error('StudentsBudget: could not check the sign-up code', thrown);
+        console.error('StudentsBudget: could not check the emailed code', thrown);
         setError(authErrorMessage(thrown, lang));
       }
     });
@@ -110,7 +148,7 @@ function ConfirmEmailStep({ email, resent, onBack }: { email: string; resent: bo
     setError(null);
     setNotice(null);
     await runOnce(async () => {
-      const problem = await sendSignUpCode(email, lang);
+      const problem = await sendEmailCode(kind, email, lang);
       if (problem === null) setNotice(text.resent);
       else setError(problem);
     });
@@ -153,6 +191,186 @@ function ConfirmEmailStep({ email, resent, onBack }: { email: string; resent: bo
   );
 }
 
+/**
+ * "Forgot password" (P2.4): the account's email, which gets a 6-digit code. `initialEmail` is what the sign-in form
+ * holds; `onSent` opens the code step for the email the code went to.
+ */
+function ResetEmailStep({
+  initialEmail,
+  onSent,
+  onBack,
+}: {
+  initialEmail: string;
+  onSent: (email: string) => void;
+  onBack: () => void;
+}) {
+  const id = useId();
+  const { t, lang } = useT();
+  const text = t.auth.reset;
+  const [email, setEmail] = useState(initialEmail);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+
+  // As in SignInForm: the message goes when the person leaves the page; the email stays.
+  useEffect(() => () => setError(null), []);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (inFlight.current) return;
+    setError(null);
+    const checked = checkEmail(email, lang);
+    if (!checked.ok) {
+      setError(checked.error);
+      return;
+    }
+    inFlight.current = true;
+    setBusy(true);
+    try {
+      const problem = await sendEmailCode('recovery', checked.email, lang);
+      if (problem === null) onSent(checked.email);
+      else setError(problem);
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
+      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+        {text.heading}
+      </h3>
+      <p>{text.intro}</p>
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${id}-email`}>{t.auth.signIn.email}</Label>
+          <Input
+            id={`${id}-email`}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            className="h-10"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </div>
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <Button type="submit" className="h-10 self-start px-4" disabled={busy}>
+          {text.send}
+        </Button>
+      </form>
+      <Button type="button" variant="link" className="h-10 self-start px-0" onClick={onBack}>
+        {text.back}
+      </Button>
+    </section>
+  );
+}
+
+/**
+ * The last step of "Forgot password" (P2.4): the emailed code signed in (and the authenticator's, for an account with
+ * two-step sign-in), and a new password finishes it. Until it is saved, the account panel and linking wait.
+ */
+function NewPasswordForm({ email }: { email: string }) {
+  const id = useId();
+  const { t, lang } = useT();
+  const text = t.auth.newPassword;
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+
+  // As in SignInForm: the password and the message go when the person leaves the page.
+  useEffect(
+    () => () => {
+      setPassword('');
+      setError(null);
+    },
+    [],
+  );
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (inFlight.current) return;
+    setError(null);
+    const checked = checkNewPassword(password, lang);
+    if (!checked.ok) {
+      setError(checked.error);
+      return;
+    }
+    if (!navigator.onLine) {
+      setError(t.auth.offline);
+      return;
+    }
+    const supabase = getSupabase();
+    if (supabase === null) return;
+
+    inFlight.current = true;
+    setBusy(true);
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) {
+        setError(authErrorMessage(updateError, lang));
+        return;
+      }
+      setPassword('');
+      // The account panel follows, saying the password changed.
+      finishRecovery();
+    } catch (thrown) {
+      console.error('StudentsBudget: could not save the new password', thrown);
+      setError(authErrorMessage(thrown, lang));
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
+      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+        {text.heading}
+      </h3>
+      <p className="break-words">
+        {text.prompt.before}
+        <span className="font-medium">{email}</span>
+        {text.prompt.after}
+      </p>
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${id}-password`}>{text.password}</Label>
+          <Input
+            id={`${id}-password`}
+            type="password"
+            autoComplete="new-password"
+            className="h-10"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <p className="text-sm text-muted-foreground">{t.auth.signIn.minLength(MIN_PASSWORD_LENGTH)}</p>
+        </div>
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <Button type="submit" className="h-10 self-start px-4" disabled={busy}>
+          {text.save}
+        </Button>
+      </form>
+      {/* Signing out ends the reset too (use-auth.ts): the old password, or another code, is the way back in. */}
+      <Button type="button" variant="link" className="h-10 self-start px-0" onClick={() => void signOutLocally()}>
+        {text.signOut}
+      </Button>
+    </section>
+  );
+}
+
 /** Email and password, to sign in or to create an account. */
 function SignInForm() {
   const id = useId();
@@ -163,8 +381,11 @@ function SignInForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  // The account whose sign-up code the form waits for (P2.4), and whether it opens saying a new code was sent.
-  const [confirming, setConfirming] = useState<{ email: string; resent: boolean } | null>(null);
+  // A step that takes the form's place (P2.4): an emailed code, with whether it opens saying a new one was sent, or
+  // the email a "Forgot password" code goes to.
+  const [step, setStep] = useState<
+    { at: 'code'; kind: CodeKind; email: string; resent: boolean } | { at: 'reset-email' } | null
+  >(null);
   // A sign-in found the account not confirmed yet: the form offers a new code for it.
   const [unconfirmed, setUnconfirmed] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -175,8 +396,8 @@ function SignInForm() {
   const creating = mode === 'create';
 
   // The router keeps this page mounted but hidden after the person leaves and runs the effect cleanups: the password
-  // and the messages go then, so none of them waits on the page for the next visit. The email stays, and so does the
-  // code step (ConfirmEmailStep clears its own field).
+  // and the messages go then, so none of them waits on the page for the next visit. The email stays, and so does a
+  // step in its place (each clears its own fields).
   useEffect(
     () => () => {
       setPassword('');
@@ -195,13 +416,13 @@ function SignInForm() {
     setError(null);
     setNotice(null);
     try {
-      const problem = await sendSignUpCode(to, lang);
+      const problem = await sendEmailCode('sign-up', to, lang);
       if (problem !== null) {
         setError(problem);
         return;
       }
       setUnconfirmed(null);
-      setConfirming({ email: to, resent: true });
+      setStep({ at: 'code', kind: 'sign-up', email: to, resent: true });
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -249,7 +470,7 @@ function SignInForm() {
         }
         // Only when the project asks new accounts to confirm their email: there is no session until the emailed code
         // is given.
-        if (data.session === null) setConfirming({ email: checked.email, resent: false });
+        if (data.session === null) setStep({ at: 'code', kind: 'sign-up', email: checked.email, resent: false });
       }
       // Signed in: useAuth hears it from supabase-js, and the page shows the signed-in panel instead of this form.
       setPassword('');
@@ -262,16 +483,29 @@ function SignInForm() {
     }
   }
 
-  if (confirming !== null) {
+  if (step?.at === 'code') {
     return (
-      <ConfirmEmailStep
-        email={confirming.email}
-        resent={confirming.resent}
+      <EmailCodeStep
+        kind={step.kind}
+        email={step.email}
+        resent={step.resent}
         onBack={() => {
-          setConfirming(null);
+          setStep(null);
           // The account exists now: back to signing in, with the email kept.
           setMode('sign-in');
         }}
+      />
+    );
+  }
+  if (step?.at === 'reset-email') {
+    return (
+      <ResetEmailStep
+        initialEmail={email}
+        onSent={(to) => {
+          setEmail(to);
+          setStep({ at: 'code', kind: 'recovery', email: to, resent: false });
+        }}
+        onBack={() => setStep(null)}
       />
     );
   }
@@ -319,8 +553,22 @@ function SignInForm() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
-          {creating && (
+          {creating ? (
             <p className="text-sm text-muted-foreground">{text.minLength(MIN_PASSWORD_LENGTH)}</p>
+          ) : (
+            <Button
+              type="button"
+              variant="link"
+              className="h-10 self-start px-0"
+              onClick={() => {
+                setError(null);
+                setNotice(null);
+                setUnconfirmed(null);
+                setStep({ at: 'reset-email' });
+              }}
+            >
+              {text.forgot}
+            </Button>
           )}
         </div>
         {error && (
@@ -428,15 +676,6 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
     }
   }
 
-  async function signOutToSwitch() {
-    const supabase = getSupabase();
-    if (supabase === null) return;
-    // Local only: what matters is that this phone forgets the half-finished sign-in.
-    await supabase.auth.signOut({ scope: 'local' }).catch((thrown: unknown) => {
-      console.error('StudentsBudget: could not sign out', thrown);
-    });
-  }
-
   if (ended) {
     return (
       <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
@@ -448,7 +687,7 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
           <span className="font-medium">{email}</span>
           {text.ended.after}
         </p>
-        <Button type="button" className="h-10 self-start px-4" autoFocus onClick={() => void signOutToSwitch()}>
+        <Button type="button" className="h-10 self-start px-4" autoFocus onClick={() => void signOutLocally()}>
           {text.signInAgain}
         </Button>
       </section>
@@ -476,15 +715,21 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
           {text.continue}
         </Button>
       </form>
-      <Button type="button" variant="link" className="h-10 self-start px-0" onClick={() => void signOutToSwitch()}>
+      <Button type="button" variant="link" className="h-10 self-start px-0" onClick={() => void signOutLocally()}>
         {text.otherAccount}
       </Button>
     </section>
   );
 }
 
-/** Who is signed in, and the way out. Signing out leaves every entry on the phone. */
-function SignedInPanel({ email }: { email: string }) {
+/** How long the "Password changed" line stays, as quick add's "Saved" line does. */
+const PASSWORD_CHANGED_MS = 10_000;
+
+/**
+ * Who is signed in, and the way out. Signing out leaves every entry on the phone. `passwordChanged`: a "Forgot
+ * password" reset was just finished, which the status line says for a while.
+ */
+function SignedInPanel({ email, passwordChanged }: { email: string; passwordChanged: boolean }) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.signedIn;
@@ -493,6 +738,14 @@ function SignedInPanel({ email }: { email: string }) {
 
   // Cleared when the person leaves the page (it stays mounted but hidden), like the form's messages.
   useEffect(() => () => setError(null), []);
+
+  // A timer, not a cleanup: React's development double run calls cleanups right after the first mount, which would
+  // take the line away before anyone saw it.
+  useEffect(() => {
+    if (!passwordChanged) return;
+    const timer = setTimeout(forgetPasswordChanged, PASSWORD_CHANGED_MS);
+    return () => clearTimeout(timer);
+  }, [passwordChanged]);
 
   async function signOut() {
     const supabase = getSupabase();
@@ -544,7 +797,7 @@ function SignedInPanel({ email }: { email: string }) {
       </Button>
       {/* The last sync can take up to 8 seconds (syncBeforeSignOut): said, so the disabled button doesn't look stuck. */}
       <p role="status" className="text-sm text-muted-foreground">
-        {busy ? text.syncing : null}
+        {busy ? text.syncing : passwordChanged ? text.passwordChanged : null}
       </p>
     </section>
   );
@@ -557,15 +810,18 @@ function SignedInPanel({ email }: { email: string }) {
 export function AccountView() {
   const { t } = useT();
   const auth = useAuth();
+  const recovery = useRecovery();
   switch (auth.status) {
     case 'off':
       return <p className="text-muted-foreground">{t.auth.view.off}</p>;
     case 'loading':
       return <p className="text-muted-foreground">{t.auth.view.checking}</p>;
     case 'signed-in':
+      // Signed in with a "Forgot password" code: the new password comes before the account and linking.
+      if (recovery === 'pending') return <NewPasswordForm email={auth.email} />;
       return (
         <>
-          <SignedInPanel email={auth.email} />
+          <SignedInPanel email={auth.email} passwordChanged={recovery === 'changed'} />
           <AccountLink />
           {/* Last: syncing is what the page is for; passkeys and two-step sign-in are set once. */}
           <SignInSecurity />

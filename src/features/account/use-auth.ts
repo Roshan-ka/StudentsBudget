@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
 import { authStateOf, type AuthState } from './auth-state';
+import { endRecovery, startRecovery } from './recovery';
 
 /**
  * The account state of this tab, kept current by supabase-js: sign-in, sign-out, token refreshes and changes made in
@@ -19,7 +20,13 @@ export function useAuth(): AuthState {
   useEffect(() => {
     const supabase = getSupabase();
     if (supabase === null) return;
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setState(authStateOf(session)));
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      // A "Forgot password" code signed in (P2.4): the new-password step stays until a new password is saved. Set in
+      // the same callback as the state, so the account never shows for a moment without the step.
+      if (event === 'PASSWORD_RECOVERY') startRecovery();
+      else if (event === 'SIGNED_OUT') endRecovery();
+      setState(authStateOf(session));
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 

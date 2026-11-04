@@ -15,6 +15,7 @@ export const auth: Messages['auth'] = {
     codeWrongOrExpired: 'Dieser Code ist falsch oder abgelaufen. Schau in die neueste E-Mail oder lass dir einen neuen Code schicken.',
     waitForCode: 'Gerade zu viele E-Mails. Warte eine Minute und lass dir dann einen neuen Code schicken.',
     emailNotSent: 'Die E-Mail konnte nicht gesendet werden. Versuch es später noch einmal.',
+    samePassword: 'Das ist dein aktuelles Passwort. Wähle ein anderes.',
     codeFailed: 'Dieser Code hat nicht funktioniert. Codes ändern sich alle 30 Sekunden: Gib den neuesten ein.',
     codeExpired: 'Das hat etwas zu lange gedauert. Gib den neuesten Code aus deiner Authenticator-App ein.',
     factorGone: 'Die zweistufige Anmeldung wurde für dieses Konto ausgeschaltet. Melde dich ab und wieder an.',
@@ -63,6 +64,7 @@ export const auth: Messages['auth'] = {
     create: 'Konto erstellen',
     toSignIn: 'Schon ein Konto? Anmelden',
     toCreate: 'Neu hier? Konto erstellen',
+    forgot: 'Passwort vergessen?',
   },
   /** Der Code aus der E-Mail nach dem Erstellen eines Kontos (P2.4). Die E-Mail-Adresse steht fett mitten im Satz. */
   confirm: {
@@ -73,6 +75,26 @@ export const auth: Messages['auth'] = {
     sendAgain: 'Neuen Code senden',
     resent: 'Ein neuer Code ist unterwegs. Nimm den neuesten.',
     back: 'Zurück',
+  },
+  /** „Passwort vergessen“ (P2.4): die E-Mail-Adresse, dann ihr Code. Die Adresse steht fett mitten im Satz. */
+  reset: {
+    heading: 'Passwort zurücksetzen',
+    intro: 'Gib die E-Mail-Adresse deines Kontos ein, dann schicken wir ihr einen 6-stelligen Code.',
+    send: 'Code senden',
+    prompt: { before: 'Wenn ', after: ' ein Konto hat, haben wir dorthin einen 6-stelligen Code geschickt. Er gilt 60 Minuten.' },
+    code: '6-stelliger Code',
+    confirm: 'Weiter',
+    sendAgain: 'Neuen Code senden',
+    resent: 'Ein neuer Code ist unterwegs. Nimm den neuesten.',
+    back: 'Zurück',
+  },
+  /** Der letzte Schritt von „Passwort vergessen“: mit dem Code angemeldet, ein neues Passwort schließt ab. */
+  newPassword: {
+    heading: 'Neues Passwort wählen',
+    prompt: { before: 'Angemeldet als ', after: ' mit dem Code aus deiner E-Mail. Wähle zum Abschluss ein neues Passwort.' },
+    password: 'Neues Passwort',
+    save: 'Passwort speichern',
+    signOut: 'Abmelden',
   },
   secondStep: {
     heading: 'Zweistufige Anmeldung',
@@ -92,6 +114,7 @@ export const auth: Messages['auth'] = {
     keeps: 'Beim Abmelden bleiben deine Daten auf diesem Handy.',
     signOut: 'Abmelden',
     syncing: 'Wird synchronisiert, dann abgemeldet …',
+    passwordChanged: 'Passwort geändert.',
   },
   security: {
     heading: 'Anmeldung und Sicherheit',

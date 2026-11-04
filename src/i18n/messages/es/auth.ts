@@ -17,6 +17,7 @@ export const auth: Messages['auth'] = {
     codeWrongOrExpired: 'Ese código es incorrecto o ha caducado. Mira el correo más reciente o pide un código nuevo.',
     waitForCode: 'Demasiados correos por ahora. Espera un minuto y pide un código nuevo.',
     emailNotSent: 'No se ha podido enviar el correo. Inténtalo más tarde.',
+    samePassword: 'Esa es tu contraseña actual. Elige otra.',
     codeFailed: 'Ese código no ha funcionado. Los códigos cambian cada 30 segundos: escribe el más reciente.',
     codeExpired: 'Ha tardado un poco. Escribe el código más reciente de tu app de autenticación.',
     factorGone:
@@ -68,6 +69,7 @@ export const auth: Messages['auth'] = {
     create: 'Crear cuenta',
     toSignIn: '¿Tienes una cuenta? Inicia sesión',
     toCreate: '¿Primera vez aquí? Crea una cuenta',
+    forgot: '¿Has olvidado tu contraseña?',
   },
   /** El código del correo tras crear una cuenta (P2.4). La dirección va en negrita en medio de la frase. */
   confirm: {
@@ -78,6 +80,26 @@ export const auth: Messages['auth'] = {
     sendAgain: 'Enviar un código nuevo',
     resent: 'Un código nuevo va de camino. Usa el más reciente.',
     back: 'Volver',
+  },
+  /** «¿Has olvidado tu contraseña?» (P2.4): el correo y luego su código. La dirección va en negrita en la frase. */
+  reset: {
+    heading: 'Restablecer tu contraseña',
+    intro: 'Escribe el correo de tu cuenta y le enviaremos un código de 6 cifras.',
+    send: 'Enviar código',
+    prompt: { before: 'Si ', after: ' tiene una cuenta, le hemos enviado un código de 6 cifras. Sirve durante 60 minutos.' },
+    code: 'Código de 6 cifras',
+    confirm: 'Continuar',
+    sendAgain: 'Enviar un código nuevo',
+    resent: 'Un código nuevo va de camino. Usa el más reciente.',
+    back: 'Volver',
+  },
+  /** El último paso: con la sesión iniciada por el código, una contraseña nueva lo termina. */
+  newPassword: {
+    heading: 'Elige una contraseña nueva',
+    prompt: { before: 'Sesión iniciada como ', after: ' con el código de tu correo. Elige una contraseña nueva para terminar.' },
+    password: 'Contraseña nueva',
+    save: 'Guardar contraseña',
+    signOut: 'Cerrar sesión',
   },
   secondStep: {
     heading: 'Verificación en dos pasos',
@@ -94,6 +116,7 @@ export const auth: Messages['auth'] = {
     keeps: 'Al cerrar sesión, tus datos se quedan en este móvil.',
     signOut: 'Cerrar sesión',
     syncing: 'Sincronizando y cerrando sesión…',
+    passwordChanged: 'Contraseña cambiada.',
   },
   security: {
     heading: 'Inicio de sesión y seguridad',

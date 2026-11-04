@@ -9,6 +9,26 @@ export const MIN_PASSWORD_LENGTH = 8;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Checks the email alone, as "Forgot password" asks for it: trimmed, and shaped like an address. */
+export function checkEmail(
+  email: string,
+  lang: Language = 'en',
+): { ok: true; email: string } | { ok: false; error: string } {
+  const text = MESSAGES[lang].auth;
+  const trimmed = email.trim();
+  if (trimmed === '') return { ok: false, error: text.check.enterEmail };
+  if (!EMAIL_PATTERN.test(trimmed)) return { ok: false, error: text.errors.checkEmail };
+  return { ok: true, email: trimmed };
+}
+
+/** Checks a new password before it is sent: the rule a new account's password has. Taken as typed, spaces and all. */
+export function checkNewPassword(password: string, lang: Language = 'en'): { ok: true } | { ok: false; error: string } {
+  const text = MESSAGES[lang].auth;
+  if (password === '') return { ok: false, error: text.check.enterPassword };
+  if (password.length < MIN_PASSWORD_LENGTH) return { ok: false, error: text.check.shortPassword(MIN_PASSWORD_LENGTH) };
+  return { ok: true };
+}
+
 /**
  * Checks the two fields before anything is sent, saying what is wrong in `lang`. The email is trimmed; the password is
  * taken as typed, since spaces can be part of it.
@@ -19,15 +39,14 @@ export function checkCredentials(
   mode: AuthMode,
   lang: Language = 'en',
 ): { ok: true; email: string } | { ok: false; error: string } {
-  const text = MESSAGES[lang].auth;
-  const trimmed = email.trim();
-  if (trimmed === '') return { ok: false, error: text.check.enterEmail };
-  if (!EMAIL_PATTERN.test(trimmed)) return { ok: false, error: text.errors.checkEmail };
-  if (password === '') return { ok: false, error: text.check.enterPassword };
-  if (mode === 'create' && password.length < MIN_PASSWORD_LENGTH) {
-    return { ok: false, error: text.check.shortPassword(MIN_PASSWORD_LENGTH) };
+  const checked = checkEmail(email, lang);
+  if (!checked.ok) return checked;
+  if (mode === 'create') {
+    const fresh = checkNewPassword(password, lang);
+    return fresh.ok ? checked : fresh;
   }
-  return { ok: true, email: trimmed };
+  if (password === '') return { ok: false, error: MESSAGES[lang].auth.check.enterPassword };
+  return checked;
 }
 
 /** Six digits, once spaces and dashes are dropped: apps show a code as "123 456", and a pasted one keeps the gap. */

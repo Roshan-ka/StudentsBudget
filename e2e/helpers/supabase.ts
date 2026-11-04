@@ -89,7 +89,10 @@ export type AuthCall = { method: string; path: string; search: string; body: unk
  * can make one, such as Chrome with a virtual authenticator (`addVirtualAuthenticator`). `factors` shares the
  * accounts' authenticators with another page, a second phone; each page keeps its own session. With `confirmations`,
  * "Confirm email" is on (P2.4): a new account gets no session until `/verify` is given E2E_EMAIL_CODE, and its password
- * alone answers `email_not_confirmed`; `/resend` always says a new email went. Returns every call, in order.
+ * alone answers `email_not_confirmed`; `/resend` always says a new email went. "Forgot password" works either way:
+ * `/recover` mails an account E2E_EMAIL_CODE, which `/verify` takes once as a `recovery` code (aal1, so an account with
+ * two-step sign-in still owes its authenticator), and `PUT /user` sets the new password (at aal2 when the account has
+ * an authenticator, as Supabase Auth wants). Returns every call, in order.
  */
 export async function mockSupabaseAuth(
   page: Page,
@@ -97,8 +100,10 @@ export async function mockSupabaseAuth(
   options: { factors?: AuthFactors; confirmations?: boolean } = {},
 ): Promise<AuthCall[]> {
   const passwords = new Map(Object.entries(accounts));
-  // Accounts made while "Confirm email" is on, until their emailed code is given.
+  // Accounts made while "Confirm email" is on, until their emailed code is given, and accounts whose "Forgot password"
+  // code was mailed and not used yet.
   const unconfirmed = new Set<string>();
+  const resetting = new Set<string>();
   const calls: AuthCall[] = [];
   // Each account's authenticator factors, the account signed in, and whether its session gave a code.
   const factorsOf: AuthFactors = options.factors ?? new Map();
@@ -166,10 +171,20 @@ export async function mockSupabaseAuth(
         unconfirmed.delete(email);
         return reply(route, 200, signedIn(email, 'aal1'));
       }
+      // A "Forgot password" code signs in like the password: aal1, with the account's authenticators listed.
+      if (email !== undefined && resetting.has(email) && type === 'recovery' && token === E2E_EMAIL_CODE) {
+        resetting.delete(email);
+        return reply(route, 200, signedIn(email, 'aal1'));
+      }
       return reply(route, 403, { error_code: 'otp_expired', msg: 'Token has expired or is invalid' });
     }
     // A new sign-up email; Supabase Auth says the same whether or not the email has an account.
     if (path === '/resend') return reply(route, 200, {});
+    // A "Forgot password" email: only an existing account gets a code, but the answer is the same for any email.
+    if (path === '/recover') {
+      if (email !== undefined && passwords.has(email)) resetting.add(email);
+      return reply(route, 200, {});
+    }
     if (path === '/logout') {
       current = null;
       return reply(route, 204);
@@ -202,6 +217,19 @@ export async function mockSupabaseAuth(
       return reply(route, 200, signedIn(who, currentAal === 'aal2' && verified(who).length > 0 ? 'aal2' : 'aal1'));
     }
     if (path === '/user' && request.method() === 'GET') return reply(route, 200, userFor(who, factors(who)));
+    if (path === '/user' && request.method() === 'PUT') {
+      // A new password: on an account with two-step sign-in only from a session that gave the code, and never the
+      // password it already has.
+      if (password === undefined) return reply(route, 200, userFor(who, factors(who)));
+      if (verified(who).length > 0 && currentAal !== 'aal2') {
+        return reply(route, 401, { error_code: 'insufficient_aal', msg: 'AAL2 session is required to update email or password when MFA is enabled.' });
+      }
+      if (passwords.get(who) === password) {
+        return reply(route, 422, { error_code: 'same_password', msg: 'New password should be different from the old password.' });
+      }
+      passwords.set(who, password);
+      return reply(route, 200, userFor(who, factors(who)));
+    }
     if (path === '/passkeys/registration/options') {
       challenges += 1;
       return reply(route, 200, {

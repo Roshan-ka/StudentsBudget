@@ -140,6 +140,28 @@ Each is about an hour: lint, typecheck, `npm test`, an "As built" note, a commit
    - The link, the email, code and new-password steps, `recovery.ts` with `use-auth.ts`, and `NewPasswordForm`.
    - Texts, mocks and the recovery half of the spec, including an account with two-step sign-in.
    - **Before merging:** Roshan pastes `recovery.html` into the hosted Reset password template. Until go-live, only team addresses receive it.
+   - **As built (2026-11-04):**
+     - **`recovery.ts`** (with `recovery.test.ts`): `'pending' | 'changed' | null` in memory, plus `sessionStorage` for `pending`, so a reload keeps the step and blocked storage still shows it while the tab is open.
+       - `use-auth.ts` calls `startRecovery()` on `PASSWORD_RECOVERY`, in the same callback that sets the auth state, so the account never shows for a moment without the step.
+       - `SIGNED_OUT` ends it.
+     - **`account-view.tsx`:**
+       - Chunk 2's `ConfirmEmailStep` became `EmailCodeStep` with a `kind` (`sign-up` or `recovery`): the texts, the `verifyOtp` type and Send a new code (`resend` or `resetPasswordForEmail`, in `sendEmailCode`) follow it.
+       - `ResetEmailStep` takes the email over from the sign-in form.
+       - `NewPasswordForm` (`updateUser`, `checkNewPassword`) replaces the signed-in view while the reset is pending, so linking waits for the new password.
+       - `SignedInPanel`'s status line says "Password changed." for 10 s. It's a timer, because React's development double run calls cleanups right after the first mount.
+       - `signOutLocally` is shared with `SecondStepForm`.
+       - "Forgot your password?" is a link under the password field in sign-in mode.
+     - **`credentials.ts`:** `checkEmail` and `checkNewPassword`; `checkCredentials` now uses both.
+     - **`auth-errors.ts`:** `same_password` → `samePassword`.
+     - **Texts:** `auth.reset`, `auth.newPassword`, `signIn.forgot`, `signedIn.passwordChanged` and `errors.samePassword`, in en, de, fr and es.
+     - **`mockSupabaseAuth`:**
+       - `/recover` mails existing accounts;
+       - `/verify` takes `E2E_EMAIL_CODE` once as a `recovery` code (aal1);
+       - `PUT /user` wants aal2 when the account has an authenticator, and refuses the same password.
+     - **`email-codes.spec.ts`**, 3 more tests:
+       - the reset with a wrong code, a reload on the new-password step, a short password and the same password;
+       - an account with two-step sign-in (the authenticator before the new password);
+       - the flow in French.
 4. **Go live and hand the skill its task.**
    - Roshan chooses an SMTP sender; look up current EU options and their limits then, as Supabase names none.
    - In the dashboard: the sender, the email rate limit, "Confirm email" on, a 6-digit OTP.

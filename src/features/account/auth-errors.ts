@@ -31,6 +31,8 @@ const BY_CODE: Record<string, ErrorKey> = {
   over_email_send_rate_limit: 'waitForCode',
   // The hosted project's own sender delivers only to its team's addresses, until it has an SMTP sender of its own.
   email_address_not_authorized: 'emailNotSent',
+  // A new password after "Forgot password" that is the old one.
+  same_password: 'samePassword',
   // Two-step sign-in (the authenticator code).
   mfa_verification_failed: 'codeFailed',
   mfa_verification_rejected: 'codeFailed',
