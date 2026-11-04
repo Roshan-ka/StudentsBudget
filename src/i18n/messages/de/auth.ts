@@ -178,6 +178,20 @@ export const auth: Messages['auth'] = {
     cancelledElsewhere:
       'Diese Einrichtung wurde abgebrochen, vielleicht auf einem anderen Handy. Tipp auf Einschalten, um neu zu beginnen.',
   },
+  /** Anmeldung und Sicherheit → Passwort: ein neues Passwort; das aktuelle nur, wenn diese Sitzung damit begann. */
+  changePassword: {
+    heading: 'Passwort',
+    intro:
+      'Ändere das Passwort, mit dem du dich anmeldest. Vergessen? Melde dich mit einem Passkey an, dann kannst du ' +
+      'hier ohne das alte ein neues festlegen.',
+    open: 'Passwort ändern',
+    current: 'Aktuelles Passwort',
+    next: 'Neues Passwort',
+    save: 'Passwort speichern',
+    cancel: 'Abbrechen',
+    changed: 'Passwort geändert.',
+    wrongCurrent: 'Das ist nicht dein aktuelles Passwort.',
+  },
   passkeys: {
     heading: 'Passkeys',
     count: (count) => (count === 0 ? 'Noch keine' : count === 1 ? '1 Passkey' : `${count} Passkeys`),

@@ -2,10 +2,14 @@
 
 import { useId } from 'react';
 import { useT } from '@/i18n/use-t';
+import { PasswordSection } from './change-password';
 import { PasskeysSection } from './passkeys';
 import { TwoStepSection } from './two-step';
 
-/** Settings → Your account → Sign-in and security: passkeys and two-step sign-in, a card each. Only shown signed in. */
+/**
+ * Settings → Your account → Sign-in and security: the password, passkeys and two-step sign-in, a card each. Only shown
+ * signed in.
+ */
 export function SignInSecurity() {
   const id = useId();
   const { t } = useT();
@@ -15,6 +19,7 @@ export function SignInSecurity() {
         {t.auth.security.heading}
       </h3>
       <p className="text-muted-foreground">{t.auth.security.intro}</p>
+      <PasswordSection />
       <PasskeysSection />
       <TwoStepSection />
     </section>

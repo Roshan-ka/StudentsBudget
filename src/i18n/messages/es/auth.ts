@@ -178,6 +178,20 @@ export const auth: Messages['auth'] = {
     setupCancelled: 'Configuración cancelada.',
     cancelledElsewhere: 'Esta configuración se canceló, quizá desde otro móvil. Toca Activar para empezar de nuevo.',
   },
+  /** Inicio de sesión y seguridad → Contraseña: la nueva; la actual solo si esta sesión empezó con ella. */
+  changePassword: {
+    heading: 'Contraseña',
+    intro:
+      'Cambia la contraseña con la que inicias sesión. ¿La has olvidado? Inicia sesión con una llave de acceso y ' +
+      'podrás poner una nueva aquí sin la antigua.',
+    open: 'Cambiar contraseña',
+    current: 'Contraseña actual',
+    next: 'Contraseña nueva',
+    save: 'Guardar contraseña',
+    cancel: 'Cancelar',
+    changed: 'Contraseña cambiada.',
+    wrongCurrent: 'Esa no es tu contraseña actual.',
+  },
   passkeys: {
     heading: 'Llaves de acceso',
     count: (count) =>
