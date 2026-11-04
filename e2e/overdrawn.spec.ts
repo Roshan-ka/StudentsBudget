@@ -149,6 +149,10 @@ test('setup: text that is not an amount stops the Accounts step, a lone minus si
   const next = page.getByRole('button', { name: 'Next', exact: true });
 
   await opening.fill('abc');
+  // The field shows its own message when it loses focus, which pushes Next down. Leaving the field first keeps the
+  // click from landing where Next was (WebKit lays out between the press and the release).
+  await opening.blur();
+  await expect(page.getByText('Enter a number, like 250 or 12.50.')).toBeVisible();
   await next.click();
   await expect(inlineAlert(page)).toHaveText('Check the opening balance for Local bank.');
   await expect(page.getByText('Enter a number, like 250 or 12.50.')).toBeVisible();

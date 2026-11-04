@@ -63,8 +63,8 @@ test('the account and its rows go, the phone keeps its data and unlinks', async 
   await signIn(page);
   await expect(page.getByText(ENGLISH.signedIn, { exact: true })).toBeVisible();
   await linked(page);
-  // Linking sent the phone's plan to the empty account.
-  expect(tables.get('plans')?.size).toBe(1);
+  // Linking sends the phone's plan to the empty account, a moment after it marks the phone linked.
+  await expect.poll(() => tables.get('plans')?.size).toBe(1);
 
   // The button waits for the word, and a wrong password deletes nothing.
   const button = card(page).getByRole('button', { name: 'Delete my account', exact: true });
