@@ -91,8 +91,9 @@ function isAutomaticEntryOf(entry: Entry, line: LineKey): boolean {
  * Whether `period` already holds an entry a schedule posted for the line. An entry of an earlier schedule (the line was
  * deleted and added again, or turned off and on) holds the period it is dated in, so the new one finds what the old one
  * posted. The current schedule's own entry holds only the period its id names, wherever it is dated: its watermark says
- * what else it handled, so a moved entry or a change of frequency never hides a period. An entry logged by hand does
- * not count. The poster skips such a period, and `firstAddedOn` looks past it.
+ * what else it handled, so a moved entry or a change of frequency does not hide a period. (A week's id is a month's
+ * when the month starts on a Monday, so weekly turned monthly still finds that month held.) An entry logged by hand
+ * does not count. The poster skips such a period, and `firstAddedOn` looks past it.
  */
 export function holdsAutomaticEntry(
   entries: readonly Entry[],
