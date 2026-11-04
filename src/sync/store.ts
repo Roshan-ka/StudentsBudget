@@ -33,16 +33,21 @@ export type UserDataStore = {
   tombstone(table: ServerTable, ids: string[]): Promise<void>;
   /** At most `limit` rows written after revision `since`, from every table, tombstones included, in revision order. */
   pull(since: number, limit: number): Promise<PulledRow[]>;
+  /**
+   * Whether the account of `userId` still exists (P2.5, `linked_account_exists`): a phone linked to an account that was
+   * deleted may forget it and link to another.
+   */
+  accountExists(userId: string): Promise<boolean>;
 };
 
 /** A request the account's database refused or never answered. `status` is the HTTP status, 0 without an answer. */
 export class StoreError extends Error {
   // Written out rather than as parameter properties, so Node can strip this file's types (tsconfig erasableSyntaxOnly).
-  readonly table: ServerTable | 'sync_pull';
+  readonly table: ServerTable | 'sync_pull' | 'linked_account_exists';
   readonly status: number;
   readonly code: string;
 
-  constructor(table: ServerTable | 'sync_pull', status: number, code: string, message: string) {
+  constructor(table: ServerTable | 'sync_pull' | 'linked_account_exists', status: number, code: string, message: string) {
     super(`${table}: ${message}`);
     this.name = 'StoreError';
     this.table = table;
@@ -81,7 +86,7 @@ function batches<T>(items: T[], size: number): T[][] {
 /** What supabase-js gives back for a request, reduced to what a StoreError needs. */
 type Answer = { error: { message: string; code: string } | null; status: number };
 
-function check(table: ServerTable | 'sync_pull', { error, status }: Answer): void {
+function check(table: ServerTable | 'sync_pull' | 'linked_account_exists', { error, status }: Answer): void {
   if (error) throw new StoreError(table, status, error.code, error.message);
 }
 
@@ -153,6 +158,11 @@ export function supabaseStore(client: SupabaseClient): UserDataStore {
       const answer = await client.rpc('sync_pull', { p_since: since, p_limit: limit });
       check('sync_pull', answer);
       return pulledRows.parse(answer.data);
+    },
+    async accountExists(userId) {
+      const answer = await client.rpc('linked_account_exists', { p_user_id: userId });
+      check('linked_account_exists', answer);
+      return answer.data === true;
     },
   };
 }

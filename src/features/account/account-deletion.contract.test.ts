@@ -46,6 +46,17 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY && MAIL_URL))('deleting the accoun
     expect((await otherPhone.auth.refreshSession()).error?.code).toBe('refresh_token_not_found');
   });
 
+  it('tells another signed-in user whether the account a phone is linked to still exists', async () => {
+    const owner = await confirmedUser();
+    const ownerId = (await owner.auth.getUser()).data.user?.id ?? '';
+    const other = await confirmedUser();
+    expect(await supabaseStore(other).accountExists(ownerId)).toBe(true);
+
+    expect((await owner.rpc('delete_my_account')).error).toBeNull();
+    // As linking asks it, through the app's own store.
+    expect(await supabaseStore(other).accountExists(ownerId)).toBe(false);
+  });
+
   it('refuses a password-only session of an account with two-step sign-in, and deletes it with the code', async () => {
     const email = newEmail();
     const owner = await confirmedUser(email);

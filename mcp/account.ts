@@ -107,6 +107,7 @@ export function readOnly(store: UserDataStore): UserDataStore {
     listIds: store.listIds,
     listRows: store.listRows,
     pull: store.pull,
+    accountExists: store.accountExists,
     upsert: refuse,
     insertNew: refuse,
     tombstone: refuse,

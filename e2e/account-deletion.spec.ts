@@ -3,6 +3,7 @@ import type { Plan } from '../src/db/types';
 import { completeSetup, readStore } from './helpers/setup';
 import {
   E2E_TOTP_CODE,
+  e2eUserIdOf,
   mockSupabaseAuth,
   mockSupabaseData,
   skipUnlessAccountsShow,
@@ -30,8 +31,8 @@ const ENGLISH = {
   deleted: 'Your account is deleted. Everything on this phone stays.',
 };
 
-async function signIn(page: Page, words = ENGLISH) {
-  await page.getByRole('textbox', { name: words.email, exact: true }).fill(EMAIL);
+async function signIn(page: Page, words = ENGLISH, email = EMAIL) {
+  await page.getByRole('textbox', { name: words.email, exact: true }).fill(email);
   // A password input has no textbox role, so it is found by its label.
   await page.getByLabel(words.password, { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: words.signIn, exact: true }).click();
@@ -132,4 +133,26 @@ test.describe('in German', () => {
     await expect(page.getByText(words.deleted, { exact: true })).toBeVisible();
     expect(tables.size).toBe(0);
   });
+});
+
+test('a phone linked to an account deleted elsewhere links to a new one instead of being blocked', async ({ page }) => {
+  const other = 'new-account@example.com';
+  await skipUnlessAccountsShow(page);
+  const gone = new Set<string>();
+  await mockSupabaseData(page, { gone });
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD, [other]: PASSWORD });
+  await signIn(page);
+  await expect(page.getByText(ENGLISH.signedIn, { exact: true })).toBeVisible();
+  await linked(page);
+  // Signed out with the link kept, as when a session runs out.
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
+
+  // The account is deleted on another phone; this one signs in to a new account.
+  gone.add(e2eUserIdOf(EMAIL));
+  await signIn(page, ENGLISH, other);
+  await expect(page.getByText(`Signed in as ${other}.`, { exact: true })).toBeVisible();
+  await expect
+    .poll(async () => (await readStore<{ userId: string | null }>(page, 'syncState'))[0]?.userId ?? null)
+    .toBe(e2eUserIdOf(other));
 });
