@@ -52,7 +52,7 @@ const Ring = memo(function Ring({
           endAngle={props.endAngle}
           fill={row?.color ?? props.fill}
           // A 2 px gap in the surface colour between touching slices, not a border around each.
-          stroke="var(--background)"
+          stroke="var(--card)"
           strokeWidth={2}
         />
       </g>
@@ -106,7 +106,7 @@ export function Donut({
           <div className="relative mx-auto aspect-square w-full max-w-56">
             <Ring rows={rows} router={router} onHover={onHover} />
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-              <p className="text-2xl font-semibold">{amountText(total, locale)}</p>
+              <p className="font-heading text-2xl font-extrabold tracking-tight">{amountText(total, locale)}</p>
               <p className="text-xs text-muted-foreground">{centreLabel}</p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export function Donut({
               <span aria-hidden="true" className="size-3 shrink-0 rounded-sm" style={{ backgroundColor: row.color }} />
               <span className="min-w-0 flex-1 truncate">{row.shortLabel}</span>
               <span className="font-medium tabular-nums">{amountText(row.amountMinor, locale)}</span>
-              <span className="w-10 text-right text-sm text-muted-foreground tabular-nums">
+              <span className="w-10 text-end text-sm text-muted-foreground tabular-nums">
                 {percentText(row.amountMinor, total, locale)}
               </span>
             </>

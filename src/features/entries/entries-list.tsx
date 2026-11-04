@@ -2,20 +2,25 @@
 
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { ArrowLeftRightIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { CATEGORIES } from '@/data/categories';
 import { db } from '@/db/db';
 import { deleteEntry, entriesInRange } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
+import { categoryTint } from '@/features/charts/colors';
 import { categoryNameIn } from '@/i18n/category-name';
 import { dateFormat } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
 import { daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
+import { cn } from '@/lib/utils';
+import { CATEGORY_ICONS, OTHER_ICON } from './category-icons';
 import { EntryForm } from './entry-form';
 import { entryTitle } from './entry-title';
 import { RecurringTag, isRecurring } from './recurring-tag';
@@ -60,6 +65,8 @@ function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account
   const currency = accounts.find((a) => a.id === entry.accountId)?.currency ?? 'EUR';
 
   const { title, label } = entryTitle(entry, t);
+  // A transfer has no category: a neutral tile with arrows both ways.
+  const Icon = entry.type === 'transfer' ? ArrowLeftRightIcon : (CATEGORY_ICONS[entry.categoryId] ?? OTHER_ICON);
   const details = [
     label,
     entry.type === 'transfer' ? `${accountName(entry.accountId)} → ${accountName(entry.toAccountId)}` : null,
@@ -69,16 +76,23 @@ function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account
     <button
       type="button"
       onClick={onOpen}
-      className="flex min-h-12 w-full items-center justify-between gap-3 py-2 text-left"
+      className="flex min-h-14 w-full items-center gap-3 py-2.5 text-start"
     >
-      <span className="min-w-0">
+      <span
+        aria-hidden="true"
+        className="flex size-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-muted"
+        style={entry.type === 'transfer' ? undefined : { backgroundColor: categoryTint(entry.categoryId) }}
+      >
+        <Icon className="size-5" />
+      </span>
+      <span className="min-w-0 flex-1">
         <span className="block">
-          <span className="font-medium break-words">{title}</span>
-          {isRecurring(entry) && <RecurringTag className="ml-2 align-middle" />}
+          <span className="font-semibold break-words">{title}</span>
+          {isRecurring(entry) && <RecurringTag className="ms-2 align-middle" />}
         </span>
         {details.length > 0 && <span className="block text-sm text-muted-foreground">{details.join(' · ')}</span>}
       </span>
-      <span className="shrink-0 font-medium tabular-nums">
+      <span className="shrink-0 font-semibold tabular-nums">
         {entry.type === 'income' ? '+' : ''}
         {formatMoney(entry.amountMinor, currency, { locale })}
       </span>
@@ -106,8 +120,8 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
   }
 
   return (
-    <section aria-label={text.heading} className="my-2 flex flex-col gap-4 rounded-lg border p-4">
-      <h3 className="text-lg font-semibold">{text.heading}</h3>
+    <section aria-label={text.heading} className={cn(cardVariants(), 'my-2 gap-4')}>
+      <h3 className="text-xl leading-tight font-extrabold">{text.heading}</h3>
       <EntryForm entry={entry} onSaved={onClose} />
       {error && (
         <p role="alert" className="text-sm text-destructive">
@@ -116,7 +130,7 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
       )}
       {confirming ? (
         <div role="group" aria-label={text.deleteQuestion} className="flex flex-wrap items-center gap-2">
-          <p className="mr-auto font-medium">{text.deleteQuestion}</p>
+          <p className="me-auto font-semibold">{text.deleteQuestion}</p>
           <Button variant="destructive" className="px-4" onClick={() => void remove()}>
             {text.yes}
           </Button>
@@ -205,9 +219,12 @@ export function EntriesList() {
         <p className="text-muted-foreground">{text.nothingYet}</p>
       ) : (
         groupByDate(entries).map((group) => (
-          <div key={group.date} className="flex flex-col">
-            <h3 className="text-sm font-medium text-muted-foreground">{headingOf(group.date, locale)}</h3>
-            <ul className="flex flex-col divide-y">
+          <div key={group.date} className="flex flex-col gap-1.5">
+            <h3 className="font-sans text-sm font-semibold tracking-normal text-muted-foreground">
+              {headingOf(group.date, locale)}
+            </h3>
+            {/* One card per day; the rows inside it are divided by hairlines. */}
+            <ul className={cn(cardVariants(), 'gap-0 divide-y py-0')}>
               {group.entries.map((entry) => (
                 <li key={entry.id}>
                   {editingId === entry.id ? (

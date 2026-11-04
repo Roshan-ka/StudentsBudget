@@ -193,7 +193,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
           {error}
         </p>
       )}
-      <Button type="submit" className="px-4" disabled={saving}>
+      <Button type="submit" size="lg" disabled={saving}>
         {editing ? t.entries.form.saveChanges : text.move}
       </Button>
     </form>
