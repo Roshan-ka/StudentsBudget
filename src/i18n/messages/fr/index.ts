@@ -1,5 +1,7 @@
 import { en, type Messages } from '../en';
+import { account } from './account';
 import { accounts } from './accounts';
+import { auth } from './auth';
 import { backup } from './backup';
 import { categories } from './categories';
 import { common } from './common';
@@ -10,6 +12,7 @@ import { profile } from './profile';
 import { recurring } from './recurring';
 import { setup } from './setup';
 import { shell } from './shell';
+import { sync } from './sync';
 
 /**
  * French, being drafted (language switch, plan 2: docs/superpowers/plans/2026-11-03-language-switch-2.md, chunks
@@ -47,4 +50,7 @@ export const fr: Messages = {
   recurring,
   accounts,
   backup,
+  sync,
+  account,
+  auth,
 };
