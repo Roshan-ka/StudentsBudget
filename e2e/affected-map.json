@@ -16,9 +16,9 @@
     "/manifest.webmanifest": ["smoke"],
     "/reveal": ["demo-scenarios", "language-tour", "reflow", "reveal", "setup"],
     "/settings": "all",
-    "/settings/account": ["account", "account-deletion", "change-password", "email-codes", "language-tour", "linking", "passkeys", "reflow", "two-step"],
+    "/settings/account": ["account", "account-deletion", "change-password", "discount-confirmations", "email-codes", "language-tour", "linking", "passkeys", "reflow", "two-step"],
     "/setup": "all",
-    "/tips": ["discounts", "language-tour", "reflow", "tips"]
+    "/tips": ["discount-confirmations", "discounts", "language-tour", "reflow", "tips"]
   },
   "allOnly": ["dictation", "insecure-origin", "language", "overdrawn", "recurring"]
 }

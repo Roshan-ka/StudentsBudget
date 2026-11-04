@@ -367,11 +367,18 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * answer with that status instead. `tables` shares the account with another page, a second phone. `rpc/delete_my_account`
  * (P2.5) empties the tables; with `twoStep`, the account has two-step sign-in, so only a token at aal2 may, as the
  * database wants. `rpc/linked_account_exists` says yes for every user id but those in `gone` (deleted accounts, which a
- * spec may add to as it runs). Returns the tables, to look at and to seed.
+ * spec may add to as it runs). `rpc/discount_confirmations` (P2.6) answers `confirmations`, other students' totals,
+ * as the database returns them (none by default). Returns the tables, to look at and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
-  options: { failWith?: number; tables?: ServerTables; twoStep?: boolean; gone?: ReadonlySet<string> } = {},
+  options: {
+    failWith?: number;
+    tables?: ServerTables;
+    twoStep?: boolean;
+    gone?: ReadonlySet<string>;
+    confirmations?: { discount_id: string; last_works: string | null; works_since: number; outdated_since: number }[];
+  } = {},
 ): Promise<ServerTables> {
   const tables: ServerTables = options.tables ?? new Map();
   const table = (name: string) => {
@@ -401,6 +408,10 @@ export async function mockSupabaseData(
       }
       tables.clear();
       return route.fulfill({ status: 204, headers: CORS });
+    }
+    // discount_confirmations: other students' totals per discount, since the date asked.
+    if (path === 'rpc/discount_confirmations' && request.method() === 'POST') {
+      return route.fulfill({ status: 200, headers: CORS, json: options.confirmations ?? [] });
     }
     // linked_account_exists: whether the account a phone is linked to still exists.
     if (path === 'rpc/linked_account_exists' && request.method() === 'POST') {

@@ -186,3 +186,34 @@ describe('discountCategoryIds', () => {
     expect(discountCategoryIds(list)).toEqual(['eating-out', 'going-out', 'gym']);
   });
 });
+
+describe('with other students’ totals (P2.6)', () => {
+  const totals = (lastWorks: string | null, works = 1, outdated = 0) => ({ lastWorks, works, outdated });
+
+  it('confirms a discount with anyone’s latest "still works", and restarts the 8 weeks with it', () => {
+    const d = discount('a', { checked: '2026-08-01' });
+    expect(freshness(d, undefined, '2026-11-01').mayBeOutdated).toBe(true);
+    expect(freshness(d, undefined, '2026-11-01', totals('2026-10-28'))).toEqual({
+      lastConfirmed: '2026-10-28',
+      outdated: false,
+      mayBeOutdated: false,
+    });
+    // Your own later vote still counts as the latest; a future day from someone's clock counts as today.
+    expect(freshness(d, vote('a', 'works', '2026-10-30'), '2026-11-01', totals('2026-10-28')).lastConfirmed).toBe('2026-10-30');
+    expect(freshness(d, undefined, '2026-11-01', totals('2999-01-01')).lastConfirmed).toBe('2026-11-01');
+  });
+
+  it('shows other people’s "doesn’t work anymore" only as a count: the entry doesn’t sink for it', () => {
+    const d = discount('a');
+    expect(freshness(d, undefined, '2026-11-01', totals(null, 0, 3))).toEqual(freshness(d, undefined, '2026-11-01'));
+  });
+
+  it('pairs each entry with its totals and sorts by them', () => {
+    const today = '2026-11-01';
+    const community = new Map([['b', totals('2026-10-31', 4, 1)]]);
+    const rows = sortByFreshness([discount('a'), discount('b')], [], today, community);
+    expect(rows.map((row) => row.discount.id)).toEqual(['b', 'a']);
+    expect(rows[0].community).toEqual(totals('2026-10-31', 4, 1));
+    expect(rows[1].community).toBeUndefined();
+  });
+});

@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // La pestaña Consejos en español: consejos, descuentos y las palabras de la línea de ahorro. Los consejos, descuentos
 // e ideas de ahorro en sí son contenido de la ciudad; sus palabras en español van en src/i18n/city/es (chunk 8).
@@ -21,6 +22,12 @@ export const tips: Messages['tips'] = {
   markedOutdated: (date) => `Lo marcaste como que ya no funciona el ${date}`,
   mayBeOutdated: 'Puede estar desactualizado',
   lastConfirmed: (date) => `Confirmado por última vez el ${date}`,
+  /** Lo que otros estudiantes han confirmado este semestre (P2.6), visible con la sesión iniciada. */
+  confirmations: (count) =>
+    byCount(count, { one: '1 confirmación este semestre', other: `${count} confirmaciones este semestre` }),
+  notWorking: (count) =>
+    byCount(count, { one: '1 persona dice que ya no funciona', other: `${count} personas dicen que ya no funciona` }),
+  othersSignIn: 'Inicia sesión para ver lo que han confirmado otros estudiantes.',
   saved: 'Guardado en este móvil.',
   saveFailed: 'No se ha podido guardar tu respuesta. Inténtalo de nuevo.',
   heard: {
