@@ -58,7 +58,7 @@ function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Acc
       <span className="min-w-0">
         <span className="block">
           <span className="font-medium break-words">{title}</span>
-          {isRecurring(entry) && <RecurringTag className="ml-2 align-middle" />}
+          {isRecurring(entry) && <RecurringTag className="ms-2 align-middle" />}
         </span>
         <span className="block text-sm text-muted-foreground">{details.join(' · ')}</span>
         {notCounted !== null && <span className="block text-sm text-muted-foreground">{notCounted}</span>}
@@ -181,7 +181,7 @@ function AwaySwitch({ day, label, hintId }: { day: IsoDate; label: string; hintI
       aria-describedby={hintId}
       disabled={away === null}
       onClick={toggle}
-      className="flex min-h-11 items-center gap-3 self-start rounded-md text-left font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+      className="flex min-h-11 items-center gap-3 self-start rounded-md text-start font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
     >
       <span
         aria-hidden="true"
@@ -192,8 +192,8 @@ function AwaySwitch({ day, label, hintId }: { day: IsoDate; label: string; hintI
       >
         <span
           className={cn(
-            'absolute top-0.5 left-0.5 size-5 rounded-full bg-background shadow-sm transition-transform',
-            away && 'translate-x-4',
+            'absolute top-0.5 start-0.5 size-5 rounded-full bg-background shadow-sm transition-transform',
+            away && 'translate-x-4 rtl:-translate-x-4',
           )}
         />
       </span>

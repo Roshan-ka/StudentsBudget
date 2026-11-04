@@ -1,0 +1,8 @@
+/*
+ * The design layer for Germany (redesign, chunk 10). Empty on purpose: the base design is the German-market design.
+ * A region's layer may set only `--region-*` tokens (global-design.test.ts), for content or imagery that region
+ * needs, never colours, fonts, spacing or components: those stay one design everywhere. Fonts for another script
+ * follow the language, not the region. See "Adding a region's design layer" in CLAUDE.md.
+ */
+[data-region='de'] {
+}

@@ -185,6 +185,14 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
 - The UI is in English, German, French and Spanish, picked per phone (Languages, above). Money, numbers and date labels are formatted in the language's registry locale (a full date follows the region): `€6.50` and `€63` for headlines in English (`en-IE`), `6,50 €` and `63 €` in German (`de-DE`), French (`fr-FR`: a no-break space before the €, a narrow one between thousands, `1 006,50 €`) and Spanish (`es-ES`: `1006,50 €`, with a thousands dot only from five digits, `10.006,50 €`). French puts a narrow no-break space before : ; ? ! and inside « » (tested).
 - Calm wording: overspending reads "€12 over" ("12 € zu viel", "12 € de trop", "12 € de más"), never "failed" or "warning!".
 - Phone first: works at 375 px width, 16 px side gutters, no horizontal page scroll, bottom navigation.
+- **One design everywhere** (Roshan's global design rules, 04-11-2026; redesign plan, chunk 10):
+  - Brand, type, spacing, components, navigation and accessibility are the same in every region. A region adapts only what its people need (today the date's form), and a language its words, its script's fonts and its direction.
+  - Logical sides only (`ps-`, `pe-`, `ms-`, `me-`, `start-`, `end-`, `text-start`; `rtl:` on a directional icon or movement): `global-design.test.ts` refuses left and right outside an allow-list that only shrinks.
+- **Adding a region's design layer:**
+  1. Its entry in `src/i18n/regions.ts`.
+  2. `src/app/regions/<code>.css`, holding `[data-region='<code>'] { }` with only `--region-*` tokens (content or imagery the region needs), imported in `globals.css`. Never colours, fonts, spacing or components (tested).
+  3. With a second region, a region picker and a stored choice apart from the language, and `data-region` from that choice instead of `DEFAULT_REGION`.
+- **A language in another script:** its registry `script`, its fonts through `next/font` in the layout, and a `:lang(<code>)` block in `globals.css` that sets `--font-sans` and `--font-heading` (tested).
 - User-facing text states no platform storage-eviction rule without a source (the Concept's iOS 7-day line has none): say only that clearing site data or removing the app deletes the data.
 
 **Data rules**
