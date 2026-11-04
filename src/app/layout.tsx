@@ -67,7 +67,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <LanguageAttributes />
         <ThemeAttributes />
         {/* The wordmark on the page itself, no coloured bar. The dot is decoration: the heading's name stays
-            "StudentsBudget", which smoke.spec.ts and offline.spec.ts look for. */}
+            "StudentsBudget", which smoke.spec.ts and offline.spec.ts look for. With text at 200 % the name is wider
+            than the phone, so it may break before "Budget" (<wbr> adds no text to the name). */}
         <header className="pt-[env(safe-area-inset-top)]">
           <h1 className="flex min-h-14 items-center gap-2 px-4 text-lg font-extrabold">
             <span
@@ -76,7 +77,11 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             >
               <WalletIcon className="size-4" />
             </span>
-            StudentsBudget
+            <span className="min-w-0">
+              Students
+              <wbr />
+              Budget
+            </span>
           </h1>
         </header>
         {/* The bottom padding clears the nav (at least 4 rem and its outline) with room to spare. */}
