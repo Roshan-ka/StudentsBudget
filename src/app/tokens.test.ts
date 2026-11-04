@@ -2,38 +2,21 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { TINT_SHARE } from '@/features/charts/colors';
 
-// The theme's colours as the browser gets them, read from globals.css (redesign plan, chunk 1). WCAG 2.2 AA: text
-// needs 4.5:1 against what it sits on, an outline or a focus ring 3:1. The category tints joined in chunk 4; the dark
-// theme's pairs join in chunk 8.
+// The themes' colours as the browser gets them, read from globals.css (redesign plan, chunks 1, 4 and 8). WCAG 2.2 AA:
+// text needs 4.5:1 against what it sits on, an outline or a focus ring 3:1, in the light theme and in the dark one,
+// on the plain surfaces and on every category tint.
 const css = readFileSync(new URL('./globals.css', import.meta.url), 'utf8');
 
-/** Every `--name: #rrggbb;` in the stylesheet's `:root` blocks. */
-function rootTokens(source: string): Map<string, string> {
+/** Every `--name: #rrggbb;` in the stylesheet's blocks for `selector` (`:root` is light, `.dark` dark). */
+function tokensOf(source: string, selector: ':root' | '.dark'): Map<string, string> {
   const tokens = new Map<string, string>();
-  for (const block of source.matchAll(/^:root\s*\{([^}]*)\}/gm)) {
+  const blocks = new RegExp(`^${selector.replace('.', '\\.')}\\s*\\{([^}]*)\\}`, 'gm');
+  for (const block of source.matchAll(blocks)) {
     for (const [, name, hex] of block[1].matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})\s*;/gi)) {
       tokens.set(name, hex.toLowerCase());
     }
   }
   return tokens;
-}
-
-/** WCAG's relative luminance of an sRGB colour. */
-function luminance(hex: string): number {
-  const [r, g, b] = [1, 3, 5].map((i) => {
-    const channel = parseInt(hex.slice(i, i + 2), 16) / 255;
-    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function contrast(a: string, b: string): number {
-  return ratio(luminance(a), luminance(b));
-}
-
-function ratio(a: number, b: number): number {
-  const [lighter, darker] = [a, b].sort((x, y) => y - x);
-  return (lighter + 0.05) / (darker + 0.05);
 }
 
 /** An sRGB colour as linear channels, 0 to 1. */
@@ -43,6 +26,24 @@ function linear(hex: string): [number, number, number] {
     return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
   });
   return [r, g, b];
+}
+
+/** WCAG's relative luminance, from linear channels. */
+function luminanceOf([r, g, b]: [number, number, number]): number {
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function luminance(hex: string): number {
+  return luminanceOf(linear(hex));
+}
+
+function ratio(a: number, b: number): number {
+  const [lighter, darker] = [a, b].sort((x, y) => y - x);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function contrast(a: string, b: string): number {
+  return ratio(luminance(a), luminance(b));
 }
 
 /** Linear sRGB to OKLab and back (Björn Ottosson's matrices, as CSS Color 4 uses them). */
@@ -69,16 +70,36 @@ function fromOklab([L, a, b]: [number, number, number]): [number, number, number
   ];
 }
 
+/** OKLCH: lightness, chroma, and hue in degrees. */
+function toOklch(hex: string): [number, number, number] {
+  const [L, a, b] = toOklab(linear(hex));
+  return [L, Math.hypot(a, b), ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360];
+}
+
+/** Below this chroma a colour has no hue to speak of (white, the greys): CSS treats its hue as missing. */
+const ACHROMATIC = 0.0002;
+
 /**
- * The luminance of `color-mix(in oklch, <tint> <share>%, <base>)` with an achromatic base (the white card): white has
- * no hue, so the mix keeps the tint's, and mixing lightness and chroma in OKLCH is mixing L, a and b in OKLab.
+ * The luminance of `color-mix(in oklch, <tint> <share>%, <base>)`, as CSS Color 5 mixes: lightness and chroma
+ * linearly, the hue along the shorter arc, and a colour without a hue taking the other's.
  */
 function mixedLuminance(tint: string, share: number, base: string): number {
-  const [tl, ta, tb] = toOklab(linear(tint));
-  const [bl, ba, bb] = toOklab(linear(base));
+  const [tl, tc, th] = toOklch(tint);
+  const [bl, bc, bh] = toOklch(base);
   const w = share / 100;
-  const [r, g, b] = fromOklab([tl * w + bl * (1 - w), ta * w + ba * (1 - w), tb * w + bb * (1 - w)]);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  let hue: number;
+  if (bc < ACHROMATIC) hue = th;
+  else if (tc < ACHROMATIC) hue = bh;
+  else {
+    let turn = bh - th;
+    if (turn > 180) turn -= 360;
+    if (turn < -180) turn += 360;
+    hue = th + turn * (1 - w);
+  }
+  const L = tl * w + bl * (1 - w);
+  const C = tc * w + bc * (1 - w);
+  const radians = (hue * Math.PI) / 180;
+  return luminanceOf(fromOklab([L, C * Math.cos(radians), C * Math.sin(radians)]));
 }
 
 /** Text and the surface it is read on. `primary` is also the colour of links; `destructive` of form errors. */
@@ -116,56 +137,51 @@ const GRAPHICS: [mark: string, surface: string][] = [
   ['primary', 'accent'],
 ];
 
-const light = rootTokens(css);
+const THEMES = { light: tokensOf(css, ':root'), dark: tokensOf(css, '.dark') };
 
-describe('the light theme', () => {
+describe.each(Object.entries(THEMES))('the %s theme', (_, tokens) => {
   it('defines every colour the pairs below name', () => {
     const named = new Set([...TEXT, ...GRAPHICS].flat());
-    for (const name of named) expect(light.get(name), `--${name}`).toMatch(/^#[0-9a-f]{6}$/);
+    for (const name of named) expect(tokens.get(name), `--${name}`).toMatch(/^#[0-9a-f]{6}$/);
   });
 
   it('gives text at least 4.5:1 on every surface it is read on', () => {
     for (const [text, surface] of TEXT) {
-      const ratio = contrast(light.get(text) ?? '', light.get(surface) ?? '');
-      expect(ratio, `--${text} on --${surface}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      const value = contrast(tokens.get(text) ?? '', tokens.get(surface) ?? '');
+      expect(value, `--${text} on --${surface}: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
     }
   });
 
   it('gives outlines and focus rings at least 3:1 against what they sit on', () => {
     for (const [mark, surface] of GRAPHICS) {
-      const ratio = contrast(light.get(mark) ?? '', light.get(surface) ?? '');
-      expect(ratio, `--${mark} on --${surface}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+      const value = contrast(tokens.get(mark) ?? '', tokens.get(surface) ?? '');
+      expect(value, `--${mark} on --${surface}: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
     }
   });
-});
 
-describe('the category tints (an envelope on Home, a tag)', () => {
-  const categories = [...light.keys()].filter((name) => name.startsWith('cat-'));
-
-  it('finds the category colours', () => {
+  it('keeps text and secondary text at 4.5:1 on every category tint, with a margin for rounding', () => {
+    const categories = [...tokens.keys()].filter((name) => name.startsWith('cat-'));
     expect(categories.length).toBeGreaterThanOrEqual(20);
-  });
-
-  it('keeps text and secondary text at 4.5:1 on every tint, with a margin for rounding', () => {
     for (const category of categories) {
-      const tint = mixedLuminance(light.get(category) ?? '', TINT_SHARE, light.get('card') ?? '');
+      const tint = mixedLuminance(tokens.get(category) ?? '', TINT_SHARE, tokens.get('card') ?? '');
       for (const text of ['foreground', 'muted-foreground']) {
-        const value = ratio(luminance(light.get(text) ?? ''), tint);
+        const value = ratio(luminance(tokens.get(text) ?? ''), tint);
         expect(value, `--${text} on the ${category} tint: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.6);
       }
     }
   });
-
-  it('mixes as the browser does: white with any share of white is white, and no share of a colour leaves the card', () => {
-    expect(mixedLuminance('#ffffff', 50, '#ffffff')).toBeCloseTo(1, 4);
-    expect(mixedLuminance('#3046c8', 0, '#ffffff')).toBeCloseTo(1, 4);
-    expect(mixedLuminance('#3046c8', 100, '#ffffff')).toBeCloseTo(luminance('#3046c8'), 3);
-  });
 });
 
-describe('contrast', () => {
+describe('the colour maths', () => {
   it('matches WCAG: black on white is 21:1, a colour on itself 1:1', () => {
     expect(contrast('#000000', '#ffffff')).toBeCloseTo(21, 5);
     expect(contrast('#3046c8', '#3046c8')).toBe(1);
+  });
+
+  it('mixes as the browser does: no share of a colour leaves the base, all of it gives the colour', () => {
+    expect(mixedLuminance('#ffffff', 50, '#ffffff')).toBeCloseTo(1, 4);
+    expect(mixedLuminance('#3046c8', 0, '#ffffff')).toBeCloseTo(1, 4);
+    expect(mixedLuminance('#3046c8', 100, '#ffffff')).toBeCloseTo(luminance('#3046c8'), 3);
+    expect(mixedLuminance('#3046c8', 0, '#25221c')).toBeCloseTo(luminance('#25221c'), 3);
   });
 });

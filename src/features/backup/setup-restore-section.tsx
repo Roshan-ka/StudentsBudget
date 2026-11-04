@@ -1,6 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { useT } from '@/i18n/use-t';
 import { RestoreFromBackup } from './restore-from-backup';
@@ -17,7 +18,7 @@ export function SetupRestoreSection() {
   if (plan !== null) return null;
 
   return (
-    <section aria-labelledby="restore-heading" className="flex flex-col gap-3 rounded-lg border px-4 py-3">
+    <section aria-labelledby="restore-heading" className={cardVariants()}>
       <h2 id="restore-heading" className="text-lg font-semibold">
         {t.backup.restore.setupHeading}
       </h2>

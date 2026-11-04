@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import type { Language } from '@/i18n/languages';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
@@ -153,8 +154,8 @@ export function AccountLink() {
     const stale = staleSummary(view.plan.upload, lang);
     const warnings = [stale !== null ? text.staleWarning(stale) : null, text.replaceWarning];
     return (
-      <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-3">
-        <h3 id={`${id}-heading`} className="text-lg font-semibold">
+      <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
+        <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
           {text.heading}
         </h3>
         <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
@@ -193,8 +194,8 @@ export function AccountLink() {
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-3">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
+      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       {view.kind === 'other-account' ? (

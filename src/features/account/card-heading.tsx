@@ -1,8 +1,9 @@
-import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
+import { cardVariants } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
-/** The look of a card in Sign-in and security (passkeys, two-step sign-in). */
-export const SECURITY_CARD = 'flex flex-col gap-3 rounded-xl border p-4';
+/** The look of a card in Sign-in and security (password, passkeys, two-step sign-in, deleting the account). */
+export const SECURITY_CARD = cardVariants();
 
 /**
  * A card's heading in Sign-in and security: its icon, its name, and a short status at the end ("On", "1 passkey"),

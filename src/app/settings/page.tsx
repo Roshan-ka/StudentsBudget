@@ -1,5 +1,6 @@
 import { LanguageSection } from '@/components/language-picker';
 import { PageHeading } from '@/components/page-heading';
+import { AppearanceSection } from '@/components/theme-picker';
 import { AccountSection } from '@/features/account/account-section';
 import { AccountsPanel } from '@/features/accounts/accounts-panel';
 import { RatesPanel } from '@/features/accounts/rates-panel';
@@ -11,10 +12,11 @@ import { EditPlanSection } from '@/features/setup/edit-plan-section';
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5">
       <PageHeading id="settings" />
       {/* First: someone who can't read the current language looks here for theirs. */}
       <LanguageSection />
+      <AppearanceSection />
       <AccountSection />
       <ProfileSection />
       <EditPlanSection />

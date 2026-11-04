@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { DateField } from '@/components/date-field';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
@@ -246,8 +247,8 @@ export function ProfileSection() {
   useEffect(() => () => setShowSaved(false), []);
 
   return (
-    <section aria-labelledby="profile-heading" className="flex flex-col gap-3">
-      <h3 id="profile-heading" className="text-lg font-semibold">
+    <section aria-labelledby="profile-heading" className={cardVariants()}>
+      <h3 id="profile-heading" className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       <p className="text-muted-foreground">{text.intro}</p>

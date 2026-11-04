@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useState, type FormEvent } from 'react';
 import { DateField } from '@/components/date-field';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
@@ -230,8 +231,8 @@ export function TransferSection() {
   }
 
   return (
-    <section aria-labelledby="transfer-heading" className="flex flex-col gap-3 rounded-lg border p-4">
-      <h3 id="transfer-heading" className="text-lg font-semibold">
+    <section aria-labelledby="transfer-heading" className={cardVariants()}>
+      <h3 id="transfer-heading" className="text-xl leading-tight font-extrabold">
         {text.open}
       </h3>
       <TransferForm
