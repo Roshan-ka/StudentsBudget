@@ -1,6 +1,14 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
-import { newId } from '@/lib/new-id';
+import {
+  CONTRACT_PASSWORD as PASSWORD,
+  confirmedUser,
+  MAIL_URL,
+  newEmail,
+  STACK_KEY,
+  STACK_URL,
+  stackClient as client,
+} from '@/sync/contract-users';
 import { codeIn, mailIds, nextMail, type Mail } from '@/sync/mailpit';
 import { freshCode, totpCode } from '@/sync/totp';
 import { RECOVERY_CODE, SIGN_UP_CODE } from './email-codes';
@@ -10,33 +18,11 @@ import { RECOVERY_CODE, SIGN_UP_CODE } from './email-codes';
 // test:contract` when SUPABASE_TEST_URL, SUPABASE_TEST_KEY and SUPABASE_TEST_MAIL_URL are set (`node
 // scripts/supabase-test-env.mjs` prints them), and is skipped in `npm test` otherwise.
 
-const STACK_URL = process.env.SUPABASE_TEST_URL;
-const STACK_KEY = process.env.SUPABASE_TEST_KEY;
-const MAIL_URL = process.env.SUPABASE_TEST_MAIL_URL;
-
-const PASSWORD = 'contract-test-password';
 const NEW_PASSWORD = 'contract-test-password-2';
-
-/** A client of its own, as another phone or browser would be: nothing signed in. */
-function client(): SupabaseClient {
-  return createClient(STACK_URL ?? '', STACK_KEY ?? '', { auth: { persistSession: false, autoRefreshToken: false } });
-}
-
-const newEmail = () => `contract-${newId()}@example.com`;
 
 /** A code that isn't `code`: the same digits with the first one moved on. */
 function otherCode(code: string): string {
   return String((Number(code[0]) + 1) % 10) + code.slice(1);
-}
-
-/** Signs `email` up, with `data` as user metadata, and confirms it with the mailed code. The client is then signed in. */
-async function confirmedUser(email: string, data?: Record<string, string>): Promise<SupabaseClient> {
-  const user = client();
-  const signedUp = await user.auth.signUp({ email, password: PASSWORD, options: { data } });
-  if (signedUp.error) throw signedUp.error;
-  const { error } = await user.auth.verifyOtp({ email, token: codeIn(await nextMail(email)), type: SIGN_UP_CODE });
-  if (error) throw error;
-  return user;
 }
 
 /**
