@@ -3,10 +3,13 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import type { Discount } from '@/data/discounts';
 import { db } from '@/db/db';
 import type { DiscountVote } from '@/db/types';
 import { useAuth } from '@/features/account/use-auth';
+import { categoryTint } from '@/features/charts/colors';
+import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { semesterOn } from '@/features/profile/profile';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
@@ -16,6 +19,7 @@ import { useT } from '@/i18n/use-t';
 import { formatDate, todayIso } from '@/lib/dates';
 import { getSupabase } from '@/lib/supabase/client';
 import { useToday } from '@/lib/use-today';
+import { cn } from '@/lib/utils';
 import { readCommunity, type CommunityConfirmations } from './community';
 import { bundledDiscounts, discountCategoryIds, sortByFreshness, voteMove, type DiscountSource } from './discounts';
 
@@ -147,9 +151,8 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
     <Button
       key={id ?? 'all'}
       type="button"
-      variant={categoryId === id ? 'default' : 'outline'}
+      variant="chip"
       aria-pressed={categoryId === id}
-      className="px-3"
       onClick={() => setCategoryId(id)}
     >
       {label}
@@ -172,6 +175,7 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
         {shown.map(({ discount, vote, community: others, freshness: f }) => {
           const d = discountIn(discount, lang);
           const placeId = `discount-${d.id}-place`;
+          const Icon = CATEGORY_ICONS[d.categoryId] ?? OTHER_ICON;
           return (
             <li
               key={d.id}
@@ -181,21 +185,25 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
                   items.current.delete(d.id);
                 };
               }}
-              className="flex flex-col gap-2 rounded-lg border px-4 py-3"
+              className={cn(cardVariants(), 'gap-2')}
             >
+              {/* The category's tint and icon, as on a tip; its name is the text (4.5:1 on every tint). */}
+              <span
+                className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold"
+                style={{ backgroundColor: categoryTint(d.categoryId) }}
+              >
+                <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+                {categoryNameIn(t, d.categoryId)}
+              </span>
               {/* The discount's own words are city content: in the phone's language where translated (`discountIn`). */}
               <div lang={d.textLang} className="flex flex-col gap-1">
-                <h3 id={placeId} className="font-medium break-words">
+                <h3 id={placeId} className="text-xl leading-snug font-extrabold break-words">
                   {d.place}
                 </h3>
-                <p className="text-sm font-medium break-words">{d.offer}</p>
+                <p className="text-sm font-semibold break-words">{d.offer}</p>
                 <p className="text-sm break-words text-muted-foreground">{d.conditions}</p>
                 <p className="text-sm break-words text-muted-foreground">{d.address}</p>
               </div>
-              {/* An outline, not the muted fill: muted text on the muted fill is about 4.3:1, on the page about 4.7:1. */}
-              <span className="w-fit rounded-md border px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-                {categoryNameIn(t, d.categoryId)}
-              </span>
               <div className="flex flex-col gap-0.5 text-sm">
                 {f.outdated && vote ? (
                   <p className="font-medium">{text.markedOutdated(formatDate(vote.on))}</p>
@@ -218,10 +226,9 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
                   <Button
                     key={option}
                     type="button"
-                    variant={vote?.vote === option ? 'default' : 'outline'}
+                    variant="chip"
                     aria-pressed={vote?.vote === option}
                     aria-describedby={placeId}
-                    className="px-3"
                     onClick={() => choose(d, option)}
                   >
                     {text.votes[option]}
