@@ -50,6 +50,26 @@ export const entries = {
     saved: (what: string) => `Saved ${what}`,
     undo: 'Undo',
     undoFailed: 'Could not undo.',
+    /** The mic button (P2): its two labels, and the status while it listens. */
+    mic: 'Speak an entry',
+    stopMic: 'Stop listening',
+    listening: 'Listening…',
+    /** Shown once per phone before the first use: where the speech goes. */
+    micNote: {
+      text:
+        'Your browser turns what you say into text. To do that it may send the recording to its speech service ' +
+        '(Chrome sends it to Google). StudentsBudget only gets the text.',
+      continue: 'Continue',
+      cancel: 'Cancel',
+    },
+    /** Why listening stopped without text (speech.ts `SpeechProblem`). */
+    micErrors: {
+      denied: 'The microphone is blocked. Allow it for this site in your browser settings.',
+      noSpeech: "Didn't catch anything. Try again.",
+      offline: "You're offline. Speaking an entry needs a connection.",
+      noMic: 'No microphone found.',
+      failed: "Couldn't hear that. Try again, or type it.",
+    },
   },
   /** buildEntry's answers to an expense or income it can't save. */
   errors: {

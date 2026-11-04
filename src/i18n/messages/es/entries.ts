@@ -50,6 +50,23 @@ export const entries: Messages['entries'] = {
     saved: (what) => `Guardado: ${what}`,
     undo: 'Deshacer',
     undoFailed: 'No se ha podido deshacer.',
+    mic: 'Dictar un registro',
+    stopMic: 'Dejar de escuchar',
+    listening: 'Escuchando…',
+    micNote: {
+      text:
+        'Tu navegador convierte lo que dices en texto. Para ello puede enviar la grabación a su servicio de voz ' +
+        '(Chrome la envía a Google). StudentsBudget solo recibe el texto.',
+      continue: 'Continuar',
+      cancel: 'Cancelar',
+    },
+    micErrors: {
+      denied: 'El micrófono está bloqueado. Permítelo para este sitio en los ajustes de tu navegador.',
+      noSpeech: 'No se ha oído nada. Inténtalo de nuevo.',
+      offline: 'No tienes conexión. Para dictar un registro hace falta conexión.',
+      noMic: 'No se ha encontrado ningún micrófono.',
+      failed: 'No se ha podido entender. Inténtalo de nuevo o escríbelo.',
+    },
   },
   errors: {
     enterAmount: 'Escribe un importe.',

@@ -51,6 +51,23 @@ export const entries: Messages['entries'] = {
     saved: (what) => `Enregistré${NNBSP}: ${what}`,
     undo: 'Annuler',
     undoFailed: 'Impossible d’annuler.',
+    mic: 'Dicter une saisie',
+    stopMic: 'Arrêter l’écoute',
+    listening: 'À l’écoute…',
+    micNote: {
+      text:
+        'Ton navigateur transforme ce que tu dis en texte. Pour cela, il peut envoyer l’enregistrement à son service ' +
+        'vocal (Chrome l’envoie à Google). StudentsBudget ne reçoit que le texte.',
+      continue: 'Continuer',
+      cancel: 'Annuler',
+    },
+    micErrors: {
+      denied: 'Le micro est bloqué. Autorise-le pour ce site dans les réglages de ton navigateur.',
+      noSpeech: 'Rien entendu. Réessaie.',
+      offline: 'Tu es hors ligne. Pour dicter une saisie, il faut une connexion.',
+      noMic: 'Aucun micro trouvé.',
+      failed: 'Impossible de comprendre. Réessaie, ou tape-le.',
+    },
   },
   errors: {
     enterAmount: 'Saisis un montant.',
