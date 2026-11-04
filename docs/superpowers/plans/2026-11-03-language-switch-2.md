@@ -76,6 +76,12 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
    - **As built (2026-11-03):** `src/i18n/city/es/` with the 25 tips, 17 discounts ("Sportpark Ost pool" is "Piscina Sportpark Ost"), 3 swaps (units: comida, entrada, mes), the city ranges and the semester texts (keyed by their English text, as in German; "(en alemán)" stays, since the pages are German). Registered in `CITY_WORDS`; `city.test.ts` checks it as it does German, numbers included. Based on main, not on chunk 7: it needs only the city mechanism.
 9. **Offer Spanish**, after its native read: `OFFERED`, drop the spread, the language e2e and the tour with `E2E_LANGUAGES=all`, `test:offline`, a try on the phone.
    - **Waits for the read (Roshan, 03-11-2026):** unlike German, Spanish is offered only after a native speaker has read it, dictionary and city content alike. Until then it shows only in dev builds; French (Part C) goes ahead meanwhile.
+   - **Offered before its read after all (Roshan, 04-11-2026):** like German and French. The read and its corrections come later, in a PR of their own.
+   - **As built (2026-11-04):**
+     - `OFFERED` is `['en', 'de', 'fr', 'es']`, and `es` drops the `...en` spread. Typecheck now holds every key, and the unit tests refuse any English left underneath, in the dictionary and the city content alike.
+     - A phone set to Spanish opens in Spanish, and the picker lists Español without "(draft)".
+     - With every registry language offered, no draft is left: `store.test.ts`'s draft test skips, as its `skipIf` allows.
+     - CLAUDE.md: the offered languages, Spanish money formats (`es-ES` writes `1006,50 €`, with the thousands dot only from five digits) and "12 € de más".
 
 **Part C: French**
 
