@@ -348,13 +348,27 @@ describe('holdsAutomaticEntry', () => {
     const december = { start: '2026-12-01', end: '2026-12-31' } as const;
     // November's entry of s1, moved to 2 December.
     const moved = { ...automatic('2026-12-02'), id: 'rec:s1:2026-11-01' };
-    const current = { ...RENT, currentScheduleId: 's1' };
+    const own = { ...RENT, current: { id: 's1', frequency: 'monthly' } } as const;
 
-    expect(holdsAutomaticEntry([moved], december, current)).toBe(false);
-    expect(holdsAutomaticEntry([moved], november, current)).toBe(true);
+    expect(holdsAutomaticEntry([moved], december, own)).toBe(false);
+    expect(holdsAutomaticEntry([moved], november, own)).toBe(true);
     // An entry of another schedule of the line still holds the period it is dated in.
-    expect(holdsAutomaticEntry([moved], december, { ...RENT, currentScheduleId: 's2' })).toBe(true);
+    expect(holdsAutomaticEntry([moved], december, { ...RENT, current: { id: 's2', frequency: 'monthly' } })).toBe(true);
     expect(holdsAutomaticEntry([moved], december, RENT)).toBe(true);
+  });
+
+  // 1 February 2027 is a Monday: the week that starts on it and the month begin on the same day.
+  it('does not count a week’s entry for the month that starts on its Monday', () => {
+    const february = { start: '2027-02-01', end: '2027-02-28' } as const;
+    const week = { ...automatic('2027-02-05'), id: 'rec:s1:w:2027-02-01' };
+    expect(holdsAutomaticEntry([week], february, { ...RENT, current: { id: 's1', frequency: 'monthly' } })).toBe(false);
+  });
+
+  it('still counts a week’s entry posted under the month’s id, before weeks on the 1st had their own', () => {
+    const firstWeek = { start: '2027-02-01', end: '2027-02-07' } as const;
+    // Moved out of its week, so only its id places it.
+    const week = { ...automatic('2027-02-09'), id: 'rec:s1:2027-02-01' };
+    expect(holdsAutomaticEntry([week], firstWeek, { ...RENT, current: { id: 's1', frequency: 'weekly' } })).toBe(true);
   });
 });
 

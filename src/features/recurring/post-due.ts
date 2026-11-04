@@ -13,6 +13,7 @@ import {
   isUsableSchedule,
   laterOf,
   occurrenceIn,
+  ownEntryIds,
   periodOf,
   recurringEntryId,
   type LineKey,
@@ -55,21 +56,22 @@ async function postLine(
 
   // Never before the plan existed, whatever a damaged or hand-edited schedule says.
   const periods = duePeriods({ ...s, startOn: laterOf(s.startOn, ctx.createdOn) }, ctx.today);
-  // Every period handled, oldest first, and the entries to add for them (none for a period already posted).
+  // Every period handled, oldest first, and the entries to add for them (none for a period already posted), each with
+  // the ids its period's entry may already have.
   const handled: IsoDate[] = [];
-  const toAdd: Entry[] = [];
+  const toAdd: { entry: Entry; ids: string[] }[] = [];
   for (const start of periods) {
     // This line was posted in this period already, under the schedule it had before it was deleted and added again
     // or turned off and on: the new schedule's id would not find that entry, so the period itself is searched. This
     // schedule's own entries count only for the period their id names; its watermark covers the rest.
-    if (await postedIn(periodOf(s, start), { type, categoryId: line.categoryId, currentScheduleId: s.id })) {
+    if (await postedIn(periodOf(s, start), { type, categoryId: line.categoryId, current: s })) {
       handled.push(start);
       continue;
     }
     // The same path as a manual entry: the amount in the account's currency, converted with the rate in use.
     const result = buildEntry(
       {
-        id: recurringEntryId(s.id, start),
+        id: recurringEntryId(s, start),
         type,
         date: occurrenceIn(s, start),
         accountId: account.id,
@@ -84,13 +86,17 @@ async function postLine(
     // No rate for the account's currency: stop before this period and leave the watermark, so the next run retries.
     if (!result.ok || result.entry.type === 'transfer') break;
     handled.push(start);
-    toAdd.push({ ...result.entry, recurring: { scheduleId: s.id } });
+    toAdd.push({ entry: { ...result.entry, recurring: { scheduleId: s.id } }, ids: ownEntryIds(s, start) });
   }
   if (handled.length === 0) return { line, posted: 0 };
 
-  // An entry whose id exists (restored from a backup, say, or moved to another day) is not added again.
-  const existing = await db.entries.bulkGet(toAdd.map((e) => e.id));
-  const fresh = toAdd.filter((entry, i) => existing[i] === undefined && !ctx.added.has(entry.id));
+  // A period whose entry exists by id (restored from a backup, say, moved to another day, or a week on the 1st posted
+  // under the month's id) gets no other.
+  const found = await db.entries.bulkGet(toAdd.flatMap((add) => add.ids));
+  const existing = new Set(found.flatMap((e) => (e ? [e.id] : [])));
+  const fresh = toAdd.flatMap(({ entry, ids }) =>
+    ids.some((id) => existing.has(id)) || ctx.added.has(entry.id) ? [] : [entry],
+  );
   if (fresh.length > 0) await db.entries.bulkAdd(fresh);
   for (const entry of fresh) ctx.added.add(entry.id);
 

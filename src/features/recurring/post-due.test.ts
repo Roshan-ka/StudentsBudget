@@ -67,7 +67,14 @@ beforeEach(async () => {
 
 describe('recurringEntryId', () => {
   it('names the schedule and the period', () => {
-    expect(recurringEntryId('abc', '2026-11-01')).toBe('rec:abc:2026-11-01');
+    expect(recurringEntryId({ id: 'abc', frequency: 'monthly' }, '2026-11-01')).toBe('rec:abc:2026-11-01');
+    expect(recurringEntryId({ id: 'abc', frequency: 'weekly' }, '2027-02-08')).toBe('rec:abc:2027-02-08');
+  });
+
+  // 1 February 2027 is a Monday: the week that starts on it and the month begin on the same day.
+  it('marks a week that starts on the 1st as a week, as the month has that id', () => {
+    expect(recurringEntryId({ id: 'abc', frequency: 'weekly' }, '2027-02-01')).toBe('rec:abc:w:2027-02-01');
+    expect(recurringEntryId({ id: 'abc', frequency: 'monthly' }, '2027-02-01')).toBe('rec:abc:2027-02-01');
   });
 });
 
@@ -78,7 +85,7 @@ describe('postDueRecurring', () => {
     expect(await postDueRecurring('2026-11-01')).toEqual({ posted: 1 });
     const outbox = await db.outbox.toArray();
     expect(outbox.map((entry) => `${entry.table}:${entry.id}:${entry.auto}`).sort()).toEqual([
-      `entries:${recurringEntryId('rent-s', '2026-11-01')}:true`,
+      `entries:${recurringEntryId(schedule(), '2026-11-01')}:true`,
       'plans:current:true',
     ]);
   });
@@ -245,17 +252,44 @@ describe('postDueRecurring', () => {
       ]);
     });
 
-    // Known gap: a weekly entry's id names its Monday and a monthly one the 1st, so in a month that starts on a Monday
-    // the first week's entry carries the month's id. Telling them apart needs ids that name the frequency.
-    it('still skips a month that starts on a Monday once its first week was posted (known gap)', async () => {
+    // 1 February 2027 is a Monday: the week that starts on it has its own id (rec:<schedule>:w:<Monday>), as
+    // rec:<schedule>:2027-02-01 is the month's.
+    it('posts the month’s entry in a month that starts on a Monday after its first week was posted', async () => {
       await db.plan.put(fridays({ startOn: '2027-01-25', postedThrough: '2027-01-24' }));
-      // Fridays 29 January and 5 February 2027; the week of Monday 1 February has the id rec:rent-s:2027-02-01.
+      // Fridays 29 January and 5 February 2027.
       expect(await postDueRecurring('2027-02-08')).toEqual({ posted: 2 });
 
       await toMonthly(15, '2027-02-08');
 
-      expect(await postDueRecurring('2027-02-15')).toEqual({ posted: 0 });
+      expect(await postDueRecurring('2027-02-15')).toEqual({ posted: 1 });
+      expect((await entries()).map((e) => [e.id, e.date])).toEqual([
+        ['rec:rent-s:2027-01-25', '2027-01-29'],
+        ['rec:rent-s:w:2027-02-01', '2027-02-05'],
+        ['rec:rent-s:2027-02-01', '2027-02-15'],
+      ]);
+      expect(await scheduleOf('rent')).toMatchObject({ postedThrough: '2027-02-28' });
+      // March starts on a Monday too, and none of its weeks was posted.
       expect(await postDueRecurring('2027-03-15')).toEqual({ posted: 1 });
+    });
+
+    it('does not post a week again that an older version posted under the month’s id, moved out of the week', async () => {
+      await db.plan.put(fridays({ startOn: '2027-01-25', postedThrough: '2027-01-31' }));
+      // Friday 5 February's rent, posted before weeks on the 1st had their own id, then moved to 9 February.
+      await db.entries.add({
+        id: 'rec:rent-s:2027-02-01',
+        type: 'expense',
+        date: '2027-02-09',
+        accountId: 'local',
+        categoryId: 'rent',
+        amountMinor: 40000,
+        eurMinor: 40000,
+        note: 'Rent',
+        createdAt: CREATED_AT,
+        recurring: { scheduleId: 'rent-s' },
+      });
+
+      expect(await postDueRecurring('2027-02-08')).toEqual({ posted: 0 });
+      expect(await scheduleOf('rent')).toMatchObject({ postedThrough: '2027-02-07' });
     });
 
     it('posts the next period after its entry was moved into it', async () => {
@@ -389,6 +423,27 @@ describe('postDueRecurring', () => {
       await expectFirstOn(first, 'rent-m');
       // The 15th of November was handled without an entry.
       expect((await rentEntries()).map((e) => e.date)).toEqual(['2026-10-23', '2026-10-30', '2026-11-06', '2026-12-15']);
+    });
+
+    it('a weekly line repaired as monthly on day 15, after its week of Monday 1 February: 15 Feb', async () => {
+      await db.accounts.add(account('other'));
+      const fridays = schedule({ frequency: 'weekly', day: 5, accountId: 'other', startOn: '2027-01-25', postedThrough: '2027-01-24' });
+      await db.plan.put(plan({ fixed: [{ categoryId: 'rent', monthlyMinor: 40000, schedule: fridays }] }));
+      // Fridays 29 January and 5 February 2027.
+      expect(await postDueRecurring('2027-02-08')).toEqual({ posted: 2 });
+      await db.accounts.delete('other');
+
+      const timing = { frequency: 'monthly', day: 15 } as const;
+      const line = { type: 'expense', categoryId: 'rent', entries: await rentEntries() } as const;
+      expect(firstAddedOn(timing, await scheduleOf('rent'), '2027-02-08', true, line)).toBe('2027-02-15');
+
+      // Picked again on another account, so it is added again from tomorrow. The schedule keeps its id, so the
+      // weekly entries are its own too: the new one is found by its id.
+      const auto = { ...timing, accountId: 'local', amountMinor: 40000, currency: 'EUR' } as const;
+      await updatePlan((p) => applyLineChange(p, { categoryId: 'rent', auto, monthlyMinor: 0 }, '2027-02-08', [{ id: 'local' }]));
+      expect(await postDueRecurring('2027-02-14')).toEqual({ posted: 0 });
+      expect(await postDueRecurring('2027-02-15')).toEqual({ posted: 1 });
+      expect(await db.entries.get('rec:rent-s:2027-02-01')).toMatchObject({ date: '2027-02-15' });
     });
   });
 
