@@ -40,6 +40,7 @@ const LEADING_ZERO = /^0\d{2,}$/;
 /** A decimal part a space split from its number: ",50" in "6 ,50", or "," before "50" in "6 , 50". */
 const SPLIT_DECIMAL_PART = /^[.,]\d/;
 const LONE_DECIMAL_MARK = /^[.,]$/;
+const CENTS_DIGITS = /^\d{1,2}$/;
 
 /** What dictation puts at the end of a phrase: "Döner 6 €." (full stop, !, ?, … and runs of them). */
 const SENTENCE_END = /[.!?…]+$/;
@@ -200,7 +201,7 @@ function readNumber(words: Word[], i: number): Span | Invalid | null {
 /**
  * The number that starts at word `w`: digits (with a marker written onto them or not) or number words.
  * Null when there is none. 'invalid' when the token looks like a number or a price but is not an amount
- * ("6,505", "$7", "3pm"), or when number words go wrong.
+ * ("6,505", "$7", "3pm", "0176"), or when number words go wrong.
  */
 function readAmount(tokens: string[], words: Word[], w: number): Amount | Invalid | null {
   if (w >= words.length) return null;
@@ -226,11 +227,22 @@ function readAmount(tokens: string[], words: Word[], w: number): Amount | Invali
   return { minor: run.value * 100, end: run.end, marked: false, markedAfter: false, integer: true, cents };
 }
 
-/** Whether a token right after a number is the number's decimal part split off by a space: "6 ,50", "6 , 50". */
+/** Whether the token is a whole number, with or without a marker written onto it: "6", "6€", "€6". */
+function isWholeNumber(token: string | undefined): boolean {
+  return token !== undefined && WHOLE_NUMBER.test(stripMarker(token).core);
+}
+
+/**
+ * Whether the line holds a whole number's decimal part split off by a space: "6 ,50", "6 , 50", "6€ ,50", "6 € ,50".
+ * A lone comma counts only before cents ("Bus 6 , 2,80 €" is two numbers), and only after a whole number ("U2 , 3 €").
+ */
 function hasSplitDecimal(tokens: string[]): boolean {
   return tokens.some((token, i) => {
-    if (i === 0 || !/\d$/.test(tokens[i - 1])) return false;
-    return SPLIT_DECIMAL_PART.test(token) || (LONE_DECIMAL_MARK.test(token) && /^\d/.test(tokens[i + 1] ?? ''));
+    // The number right before the mark, or before a marker of its own.
+    const before = isMarker(tokens[i - 1]) ? tokens[i - 2] : tokens[i - 1];
+    if (!isWholeNumber(before)) return false;
+    if (SPLIT_DECIMAL_PART.test(token)) return true;
+    return LONE_DECIMAL_MARK.test(token) && CENTS_DIGITS.test(stripMarker(tokens[i + 1] ?? '').core);
   });
 }
 
