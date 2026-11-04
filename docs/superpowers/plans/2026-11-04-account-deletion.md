@@ -109,6 +109,22 @@ Each is about an hour: lint, typecheck, the touched unit tests (the full suite r
      - the schema rule notes that deleting the account is the one hard delete;
      - the outgoing requests.
    - The real try on the hosted project with a throwaway account (needs `db push` of the migration, which Roshan runs).
+   - **As built (2026-11-04), changed from the design:**
+     - **Other phones are handled when they next link, not when a session errors.** A phone linked to the deleted account mostly never sees `user_not_found`: its session runs out within the hour, and supabase-js signs it out with the link still set. Signing in to another account there would then stay blocked as "linked to another account".
+     - So migration `20261104134116_linked_account_exists.sql` adds `public.linked_account_exists(p_user_id uuid)`, for `authenticated` only. It says only whether an id the phone already holds still has an account, and ids are random UUIDs.
+     - **`planLink`:** when the phone is linked to another account, it asks the server (`UserDataStore.accountExists`). If that account is gone, it forgets the link in one transaction (`forgetLink`, which `unlinkPhone` shares under the lock) and plans as an unlinked phone; otherwise linking stays blocked, as before.
+     - **Where else `accountExists` is implemented:** MCP's `readOnly` store passes it through, and the fake store takes a `gone` set.
+     - **Tests:**
+       - pgTAP: 5 more checks (who may ask, an existing account, a deleted one, an id that never had one);
+       - the contract test asks through the app's store before and after a deletion;
+       - `link.test.ts`: a deleted account is forgotten and the phone's data offered to the new one; a living one still blocks;
+       - e2e: a phone whose account was deleted elsewhere signs in to a new account and links (`mockSupabaseData`'s `gone`).
+     - **CLAUDE.md:**
+       - the schema rule's one exception (deleting the account);
+       - linking's exception for a deleted account;
+       - a "Deleting the account" bullet;
+       - the outgoing requests;
+       - account deletion is no longer "left out".
 
 ## Verification
 

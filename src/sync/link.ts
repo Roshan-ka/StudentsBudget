@@ -15,7 +15,8 @@ import { planUpload, type UploadPlan } from './upload';
  * sides alike.
  *
  * - `linked`: already linked to this account; nothing to do.
- * - `other-account`: linked to another account. Blocked, so no data is ever mixed between accounts.
+ * - `other-account`: linked to another account that still exists. Blocked, so no data is ever mixed between accounts.
+ *   A link to a deleted account (P2.5) is forgotten first, the one write planning makes, and planning goes on.
  * - `link`: neither side has data.
  * - `upload`: only this phone has data; the account gets it.
  * - `download`: only the account has data; this phone gets it.
@@ -45,7 +46,12 @@ function hasData(d: BackupData): boolean {
 export async function planLink(store: UserDataStore, userId: string): Promise<LinkPlan> {
   const state = await db.syncState.get('current');
   if (state?.userId === userId) return { kind: 'linked' };
-  if (state?.userId) return { kind: 'other-account' };
+  if (state?.userId) {
+    // Linked to another account. When that account was deleted (P2.5), nothing of it is left to mix with: the phone
+    // forgets it, the one write planning makes, and plans as an unlinked phone. Otherwise linking stays blocked.
+    if (await store.accountExists(state.userId)) return { kind: 'other-account' };
+    await forgetLink();
+  }
 
   const phone = await exportAll();
   const phoneHasData = hasData(phone);
@@ -184,10 +190,13 @@ async function linkAndQueue(stale: Record<ServerTable, string[]>, userId: string
  * being blocked as linked to another account. Takes the sync lock, so no sync of another tab is halfway through it.
  */
 export function unlinkPhone(): Promise<void> {
-  return withSyncLock(() =>
-    db.transaction('rw', db.outbox, db.syncState, async () => {
-      await db.outbox.clear();
-      await db.syncState.clear();
-    }),
-  );
+  return withSyncLock(forgetLink);
+}
+
+/** The link and the changes waiting for it go, in one transaction. Callers hold the sync lock. */
+function forgetLink(): Promise<void> {
+  return db.transaction('rw', db.outbox, db.syncState, async () => {
+    await db.outbox.clear();
+    await db.syncState.clear();
+  });
 }

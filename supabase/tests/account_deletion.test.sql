@@ -1,12 +1,13 @@
--- Deleting the account (P2.5, migration 20261104131626_delete_my_account.sql). Run with `npm run test:db`. Everything
--- happens in one transaction that is rolled back. Users are played as in two_step.test.sql, with the JWT's `aal`.
+-- Deleting the account (P2.5, migrations 20261104131626_delete_my_account.sql and
+-- 20261104134116_linked_account_exists.sql). Run with `npm run test:db`. Everything happens in one transaction that is
+-- rolled back. Users are played as in two_step.test.sql, with the JWT's `aal`.
 --   A has a verified authenticator factor, B has none, and C, who has none either, only watches: nobody's deletion may
---   touch C's rows.
+--   touch C's rows. C then asks whether B's account still exists, as a phone once linked to it would.
 
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(11);
+select plan(16);
 
 create temporary table user_tables (name text primary key) on commit drop;
 insert into user_tables
@@ -117,6 +118,32 @@ select is_empty(
   $$ select id from auth.mfa_factors where user_id = '00000000-0000-4000-8000-00000000000a' $$,
   'A''s authenticator factor went with the account'
 );
+
+-- 5. Whether a linked account still exists: only a signed-in user may ask, and the answer follows auth.users.
+select ok(
+  not has_function_privilege('anon', 'public.linked_account_exists(uuid)', 'EXECUTE'),
+  'anon cannot execute linked_account_exists'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.linked_account_exists(uuid)', 'EXECUTE'),
+  'authenticated can execute linked_account_exists'
+);
+create function pg_temp.exists_for_c(who text)
+returns boolean
+language plpgsql
+as $$
+declare
+  answer boolean;
+begin
+  perform pg_temp.act_as('c', 'aal1');
+  answer := public.linked_account_exists(('00000000-0000-4000-8000-00000000000' || who)::uuid);
+  execute 'reset role';
+  return answer;
+end;
+$$;
+select ok(pg_temp.exists_for_c('c'), 'C''s own account exists');
+select ok(not pg_temp.exists_for_c('b'), 'B''s deleted account no longer exists');
+select ok(not pg_temp.exists_for_c('f'), 'an id that never had an account has none');
 
 select * from finish();
 rollback;

@@ -321,3 +321,24 @@ describe('unlinkPhone (P2.5)', () => {
     expect((await planLink(store, 'someone-else')).kind).not.toBe('other-account');
   });
 });
+
+describe('a phone linked to a deleted account (P2.5)', () => {
+  it('forgets that account and links to the one signed in now, but stays blocked while the other exists', async () => {
+    await replaceAll(snapshot());
+    await db.syncState.put({ id: 'current', userId: 'deleted-user', cursor: 7, lastSyncedAt: null, problem: null });
+    await db.outbox.put({ table: 'entries', id: 'e1', seq: 1 });
+
+    const { store: stillThere } = fakeStore();
+    expect(await planLink(stillThere, USER)).toEqual({ kind: 'other-account' });
+    expect(await linkedTo()).toBe('deleted-user');
+
+    const { store, calls } = fakeStore({}, new Set(['deleted-user']));
+    const plan = await planLink(store, USER);
+    expect(calls[0]).toBe('exists deleted-user');
+    // Unlinked first, with what waited for the deleted account gone; the phone's data is offered to the new one.
+    expect(plan.kind).toBe('upload');
+    expect(await linkedTo()).toBeUndefined();
+    expect(await queued()).toEqual([]);
+    expect(await db.entries.count()).toBeGreaterThan(0);
+  });
+});

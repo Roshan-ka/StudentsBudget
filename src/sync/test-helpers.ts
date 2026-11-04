@@ -78,7 +78,11 @@ export function liveIds(rows: Map<string, unknown>): string[] {
   return [...rows.keys()].filter((id) => rows.get(id) !== null).sort();
 }
 
-export function fakeStore(initial: Partial<Record<ServerTable, Record<string, unknown>>> = {}) {
+/** `gone`: the ids of accounts that were deleted (P2.5); every other account exists. */
+export function fakeStore(
+  initial: Partial<Record<ServerTable, Record<string, unknown>>> = {},
+  gone: ReadonlySet<string> = new Set(),
+) {
   const tables = byTable((table) => new Map<string, unknown>(Object.entries(initial[table] ?? {})));
   const calls: string[] = [];
   // Each row's revision, as the database's stamp_sync trigger sets it: the user's next one on every write.
@@ -133,6 +137,10 @@ export function fakeStore(initial: Partial<Record<ServerTable, Record<string, un
           .map(([id, rev]) => ({ table, id, data: structuredClone(tables[table].get(id) ?? null), rev })),
       );
       return rows.sort((a, b) => a.rev - b.rev).slice(0, limit);
+    },
+    async accountExists(userId) {
+      calls.push(`exists ${userId}`);
+      return !gone.has(userId);
     },
   };
   return { store, tables, calls };
