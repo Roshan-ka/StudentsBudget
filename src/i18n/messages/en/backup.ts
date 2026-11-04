@@ -60,7 +60,6 @@ export const backup = {
   problems: {
     entryAccount: "an entry uses an account that isn't in the file",
     transferAccount: "a transfer goes to an account that isn't in the file",
-    scheduleAccount: "a fixed cost or income uses an account that isn't in the file",
     entryCategory: "an entry uses a category that isn't in the file",
     planCategory: 'the plan or the guesses use an unknown category',
     duplicateId: 'two rows share the same id',

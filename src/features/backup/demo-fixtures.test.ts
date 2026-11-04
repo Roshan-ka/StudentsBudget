@@ -121,7 +121,8 @@ describe('uploadable manual demo files', () => {
     expect(weekToSpend(data.plan!, [...data.entries, foodExpense('2026-10-21')], '2026-10-21').totalMinor).toBe(24000);
   });
 
-  it('actually restores each dataset into IndexedDB', async () => {
+  // Every file into fake IndexedDB: about 1 s alone, but past Vitest's 5 s default while other jobs share the machine.
+  it('actually restores each dataset into IndexedDB', { timeout: 30_000 }, async () => {
     for (const c of valid) {
       const data = read(c.path);
       await replaceAll(data);

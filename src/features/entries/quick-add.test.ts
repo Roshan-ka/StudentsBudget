@@ -102,6 +102,46 @@ describe('parseQuickAdd', () => {
     expect(parseQuickAdd('coffee 12abc')).toBeNull();
   });
 
+  it('returns null for a whole number of three or more digits that starts with 0, such as a phone number', () => {
+    expect(parseQuickAdd('tel 0176')).toBeNull();
+    expect(parseQuickAdd('bus 093')).toBeNull();
+    expect(parseQuickAdd('call 0176 back 5')).toBeNull();
+    expect(parseQuickAdd('coffee €0176')).toBeNull();
+  });
+
+  it('still reads a leading 0 in a decimal, a two-digit cents part and zero itself', () => {
+    expect(parseQuickAdd('kebab 07,50')).toEqual({ amountMinor: 750, note: 'kebab' });
+    expect(parseQuickAdd('ticket 0,50')).toEqual({ amountMinor: 50, note: 'ticket' });
+    expect(parseQuickAdd('coffee 6 euro 05')).toEqual({ amountMinor: 605, note: 'coffee' });
+    expect(parseQuickAdd('coffee 000 6')).toEqual({ amountMinor: 600, note: 'coffee 000' });
+  });
+
+  it('returns null for a decimal part split from its number by a space', () => {
+    expect(parseQuickAdd('Döner 6 ,50')).toBeNull();
+    expect(parseQuickAdd('coffee 6 , 50')).toBeNull();
+    expect(parseQuickAdd('coffee 6 .50')).toBeNull();
+    expect(parseQuickAdd('coffee 6 . 50')).toBeNull();
+  });
+
+  it('returns null for a split decimal after a number with a marker, written on or apart', () => {
+    expect(parseQuickAdd('coffee 6€ ,50')).toBeNull();
+    expect(parseQuickAdd('coffee €6 ,50')).toBeNull();
+    expect(parseQuickAdd('coffee 6 € ,50')).toBeNull();
+    expect(parseQuickAdd('coffee 6 Euro ,50')).toBeNull();
+    expect(parseQuickAdd('coffee 6 € , 50')).toBeNull();
+  });
+
+  it('still reads a comma that only separates words from the amount', () => {
+    expect(parseQuickAdd('coffee , 6')).toEqual({ amountMinor: 600, note: 'coffee' });
+    expect(parseQuickAdd('lunch 6 , cake')).toEqual({ amountMinor: 600, note: 'lunch , cake' });
+  });
+
+  it('still reads a lone comma that cannot be a decimal mark: not after a whole number, or not before cents', () => {
+    expect(parseQuickAdd('Bus 6 , 2,80 €')).toEqual({ amountMinor: 280, note: 'Bus 6' });
+    expect(parseQuickAdd('U2 , 3 €')).toEqual({ amountMinor: 300, note: 'U2' });
+    expect(parseQuickAdd('Kaffee x2 , 7 €')).toEqual({ amountMinor: 700, note: 'Kaffee x2' });
+  });
+
   it('returns an empty note when only the amount was typed', () => {
     expect(parseQuickAdd('6')).toEqual({ amountMinor: 600, note: '' });
     expect(parseQuickAdd('  6,50 €  ')).toEqual({ amountMinor: 650, note: '' });

@@ -28,7 +28,8 @@ beforeEach(async () => {
 });
 
 describe('uploadable demo scenarios', () => {
-  it.each(files)('%s restores and exports every row', async (name) => {
+  // The twelve-month history takes 1–2 s alone, but has passed 10 s while other jobs share the machine.
+  it.each(files)('%s restores and exports every row', { timeout: 30_000 }, async (name) => {
     const { data } = valid(name);
     await replaceAll(data);
     const result = await exportAll();

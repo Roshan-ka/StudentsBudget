@@ -539,11 +539,16 @@ describe('parseBackup checks what the rows say about each other', () => {
       expect(result).toEqual(damaged("a transfer goes to an account that isn't in the file"));
     });
 
+    // The app waits for an account to be picked (Settings asks, the poster skips the line), as after its account was
+    // deleted, so one such line does not make the whole file unrestorable.
     it.each([
-      ['a fixed cost', (data: BackupData) => (rentSchedule(data).accountId = 'ghost')],
-      ['an income', (data: BackupData) => (incomeSchedule(data).accountId = 'ghost')],
-    ])('refuses the schedule of %s that posts to an account that is not in the file', (_name, change) => {
-      expect(parseChanged(change, sampleV2)).toEqual(damaged("a fixed cost or income uses an account that isn't in the file"));
+      ['a fixed cost', rentSchedule],
+      ['an income', incomeSchedule],
+    ])('restores the schedule of %s whose account is not in the file, as it is', (_name, scheduleOf) => {
+      const result = parseChanged((data) => (scheduleOf(data).accountId = 'ghost'), sampleV2);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(scheduleOf(result.data).accountId).toBe('ghost');
     });
 
     it('passes a file with no accounts, no entries and no plan', () => {
