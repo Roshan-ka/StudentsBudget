@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* One file per region in src/i18n/regions.ts, each only `--region-*` tokens, so their order here does not matter. */
+@import "./regions/de.css";
 
 @custom-variant dark (&:is(.dark *));
 

@@ -99,14 +99,14 @@ export function AmountField({
       <div className="relative">
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted-foreground"
+          className="pointer-events-none absolute inset-y-0 start-3.5 flex items-center text-muted-foreground"
         >
           {unit}
         </span>
         <Input
           id={id}
           ref={inputRef}
-          className={unit.length > 1 ? 'pl-12' : 'pl-7'}
+          className={unit.length > 1 ? 'ps-12' : 'ps-8'}
           inputMode="decimal"
           placeholder="0"
           autoComplete="off"

@@ -10,13 +10,18 @@ export type LanguageInfo = {
   name: string;
   /** Its writing direction, set on <html> with the language. */
   dir: 'ltr' | 'rtl';
+  /**
+   * Its script (ISO 15924). DM Sans and Bricolage Grotesque cover Latin only: another script needs its fonts through a
+   * `:lang(<code>)` block in globals.css (tested in global-design.test.ts).
+   */
+  script: string;
 };
 
 export const LANGUAGES = {
-  en: { locale: 'en-IE', name: 'English', dir: 'ltr' },
-  de: { locale: 'de-DE', name: 'Deutsch', dir: 'ltr' },
-  es: { locale: 'es-ES', name: 'Español', dir: 'ltr' },
-  fr: { locale: 'fr-FR', name: 'Français', dir: 'ltr' },
+  en: { locale: 'en-IE', name: 'English', dir: 'ltr', script: 'Latn' },
+  de: { locale: 'de-DE', name: 'Deutsch', dir: 'ltr', script: 'Latn' },
+  es: { locale: 'es-ES', name: 'Español', dir: 'ltr', script: 'Latn' },
+  fr: { locale: 'fr-FR', name: 'Français', dir: 'ltr', script: 'Latn' },
 } as const satisfies Record<string, LanguageInfo>;
 
 export type Language = keyof typeof LANGUAGES;

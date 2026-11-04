@@ -33,7 +33,7 @@ export function CardHeading({
       {status !== undefined && (
         <span
           className={cn(
-            'ml-auto shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium',
+            'ms-auto shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold',
             active ? 'bg-primary text-primary-foreground' : 'bg-muted',
           )}
         >

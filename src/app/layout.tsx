@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/bottom-nav';
 import { LanguageAttributes } from '@/components/language-attributes';
 import { languageHeadScript } from '@/i18n/head-script';
 import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, SELECTABLE } from '@/i18n/languages';
+import { DEFAULT_REGION } from '@/i18n/regions';
 import './globals.css';
 
 // Self-hosted at build time, so they come from /_next/static and the service worker keeps them for offline. `latin`
@@ -47,6 +48,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html
       lang={DEFAULT_LANGUAGE}
       dir={LANGUAGES[DEFAULT_LANGUAGE].dir}
+      // The region's design layer (src/app/regions/): one region so far, so it is the same on every phone.
+      data-region={DEFAULT_REGION}
       // scroll-padding-bottom: the browser scrolls a focused control above the bottom nav, never behind it (WCAG 2.2,
       // Focus Not Obscured).
       className={`${dmSans.variable} ${bricolage.variable} ${geistMono.variable} h-full scroll-pb-[calc(5rem+env(safe-area-inset-bottom))] antialiased`}

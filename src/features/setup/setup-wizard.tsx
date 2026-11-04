@@ -166,7 +166,7 @@ function Wizard({
 
       {attempted && problems.length > 0 && (
         <div role="alert" className="text-sm text-destructive">
-          <ul className="list-disc pl-5">
+          <ul className="list-disc ps-5">
             {problems.map((problem) => (
               <li key={problem}>{problem}</li>
             ))}
