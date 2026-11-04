@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { CATEGORIES } from '../src/data/categories';
 import { TIPS } from '../src/data/tips';
+import { formatDate } from '../src/lib/dates';
 import { completeSetup } from './helpers/setup';
 
 // 375 px, the narrowest phone the app is made for: five tabs and the category chips have to fit.
@@ -92,7 +93,7 @@ test('a tip shows where it comes from, collapsed until asked for', async ({ page
 
   await item.getByText('Source', { exact: true }).click();
   await expect(item.getByText(tip.source, { exact: true })).toBeVisible();
-  await expect(item.getByText(`checked ${tip.checked.split('-').reverse().join('-')}`, { exact: true })).toBeVisible();
+  await expect(item.getByText(`checked ${formatDate(tip.checked)}`, { exact: true })).toBeVisible();
   const link = item.getByRole('link', { name: new URL(tip.url).hostname.replace(/^www\./, ''), exact: true });
   await expect(link).toHaveAttribute('href', tip.url);
   await expect(link).toHaveAttribute('target', '_blank');
