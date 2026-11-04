@@ -27,20 +27,25 @@ export function keepWatermarks(stored: Plan, next: Plan): Plan {
  * as stored and the later of the two starts. The wizard has no pause or resume of its own, so a wizard left open in
  * another tab cannot undo one made since; a later start it set itself (a repaired line) stays.
  *
- * A line whose schedule names an account that is not among `accountIds` any more, while the stored one names one that
- * is, stays as stored: another tab moved it and deleted the old account, and the wizard cannot have picked an account
- * that is gone. Saving its copy would point the line at that account again.
+ * A line whose schedule names an account that is not among `accountIds` any more stays as stored (found by schedule
+ * id, else by category), as long as the stored line has no schedule or one on an account that exists: another tab
+ * changed the line since (moved it, or turned auto-add off, or off and on) and deleted the old account. Saving the
+ * wizard's copy would add the line to that account again, where nothing is posted. The wizard's own edits to that line
+ * are dropped with it.
  */
 export function keepScheduleState(stored: Plan, next: Plan, accountIds: ReadonlySet<string>): Plan {
-  const byId = new Map(
-    [...stored.incomes, ...stored.fixed].flatMap((l) => (l.schedule ? [[l.schedule.id, l] as const] : [])),
-  );
+  const storedLines = [...stored.incomes, ...stored.fixed];
+  const byId = new Map(storedLines.flatMap((l) => (l.schedule ? [[l.schedule.id, l] as const] : [])));
+  const byCategory = new Map(storedLines.map((l) => [l.categoryId, l] as const));
   const keep = (line: PlanLine): PlanLine => {
     const s = line.schedule;
-    const storedLine = s && byId.get(s.id);
-    const was = storedLine?.schedule;
-    if (!s || !storedLine || !was) return line;
-    if (!accountIds.has(s.accountId) && accountIds.has(was.accountId)) return storedLine;
+    if (!s) return line;
+    if (!accountIds.has(s.accountId)) {
+      const storedLine = byId.get(s.id) ?? byCategory.get(line.categoryId);
+      if (storedLine && (!storedLine.schedule || accountIds.has(storedLine.schedule.accountId))) return storedLine;
+    }
+    const was = byId.get(s.id)?.schedule;
+    if (!was) return line;
     const schedule = { ...s, startOn: laterOf(was.startOn, s.startOn) };
     if (was.paused) schedule.paused = true;
     else delete schedule.paused;

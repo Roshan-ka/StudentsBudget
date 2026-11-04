@@ -78,7 +78,7 @@ What the two build ledgers (P1, 2026-10-16 to 2026-10-19, and P1.1, 2026-10-19 t
 
 ### P1.1 (R1–R18)
 - R1: Task 1 may edit `src/features/setup/steps/envelopes.tsx` if the six new flexible envelopes need a €0 default or validation change; the file is frozen afterwards. Cost if wrong: none.
-- R2: Task 6 also rejects a schedule whose `accountId` isn't in the backup file, because a dangling one would never post. Cost if wrong: one more rule and test.
+- R2: Task 6 also rejects a schedule whose `accountId` isn't in the backup file, because a dangling one would never post. Cost if wrong: one more rule and test. Reversed 2026-11-04 (fix/data-bugs-chunk-2): such a schedule restores as it is, since the app treats it as a line waiting for an account.
 - R3: Task 7 (README, CLAUDE.md, emulated iPhone check) runs on the merged branch before the whole-branch review, so the final review also covers any fixes from the check. Cost if wrong: a fix-wave change after the check could alter iPhone behaviour; the final full-suite run covers that.
 - R4: Tasks 2–6 run as parallel implementers, each in its own git worktree with disjoint file ownership and its own e2e port, as Roshan asked. Cost if wrong: merge conflicts if a track strays outside its files.
 - R5: the four remote branches `origin/feat/p1-day1..4` stay on GitHub until Roshan says to delete them. Cost if wrong: none.

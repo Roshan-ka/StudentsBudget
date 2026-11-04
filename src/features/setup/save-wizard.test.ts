@@ -1,10 +1,8 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { exportAll } from '@/db/bulk';
 import { db } from '@/db/db';
 import { deleteAccount } from '@/db/repo';
 import type { Account, Plan } from '@/db/types';
-import { checkBackupData } from '@/features/backup/backup';
 import { applyLineChange } from '@/features/recurring/lines';
 import { updatePlan } from '@/features/recurring/update-plan';
 import { draftFromPlan, draftToRecords, initialDraft, type AccountOption } from './draft';
@@ -52,29 +50,50 @@ beforeEach(async () => {
   await db.plan.put(PLAN);
 });
 
+/** Every schedule of the stored plan is added to an account that exists. */
+async function expectNoOrphanedSchedule() {
+  const ids = new Set((await db.accounts.toArray()).map((a) => a.id));
+  const plan = await db.plan.get('current');
+  const orphaned = [...(plan?.incomes ?? []), ...(plan?.fixed ?? [])].filter((l) => l.schedule && !ids.has(l.schedule.accountId));
+  expect(orphaned).toEqual([]);
+}
+
+const toOther = { frequency: 'monthly', day: 1, accountId: 'other', amountMinor: 40000, currency: 'EUR' } as const;
+const BOTH = [{ id: 'local' }, { id: 'other' }];
+
+/** What another tab did to rent while the wizard was open, before it deleted "local". */
+const moves: [string, () => Promise<void>][] = [
+  ['moved rent to "other"', () => updatePlan((p) => applyLineChange(p, { categoryId: 'rent', auto: toOther, monthlyMinor: 0 }, TODAY, BOTH))],
+  [
+    'turned rent off and on again on "other"',
+    async () => {
+      await updatePlan((p) => applyLineChange(p, { categoryId: 'rent', auto: null, monthlyMinor: 40000 }, TODAY, BOTH));
+      await updatePlan((p) => applyLineChange(p, { categoryId: 'rent', auto: toOther, monthlyMinor: 0 }, TODAY, BOTH));
+    },
+  ],
+];
+
 describe('saveWizard', () => {
   // The wizard keeps the account list it read when it opened, or follows the live one: both must save safely.
-  it.each([
+  const lists: [string, AccountOption[]][] = [
     ['the accounts it read when it opened', [option('local'), option('other')]],
     ['the accounts as they are now', [option('other')]],
-  ])(
-    'does not point rent at an account another tab deleted while the wizard was open (%s)',
-    async (_name, storedAccounts) => {
+  ];
+
+  describe.each(moves)('when another tab %s and deleted "local" while the wizard was open', (_move, move) => {
+    it.each(lists)('does not point rent at "local" again (%s)', async (_list, storedAccounts) => {
       const opened = PLAN;
       const draft = draftFromPlan(opened);
 
-      // Meanwhile, in another tab: rent moves to "other", then "local" is deleted.
-      const toOther = { frequency: 'monthly', day: 1, accountId: 'other', amountMinor: 40000, currency: 'EUR' } as const;
-      const accounts = [{ id: 'local' }, { id: 'other' }];
-      await updatePlan((p) => applyLineChange(p, { categoryId: 'rent', auto: toOther, monthlyMinor: 0 }, TODAY, accounts));
+      await move();
       await deleteAccount('local');
 
       await saveWizard(draftToRecords(draft, TODAY, opened, storedAccounts), true);
 
-      expect(await rentSchedule()).toMatchObject({ id: 'rent-s', accountId: 'other' });
-      expect(checkBackupData(await exportAll())).toBeNull();
-    },
-  );
+      expect(await rentSchedule()).toMatchObject({ accountId: 'other' });
+      await expectNoOrphanedSchedule();
+    });
+  });
 
   it('saves a new setup’s accounts and plan together', async () => {
     await Promise.all(db.tables.map((table) => table.clear()));

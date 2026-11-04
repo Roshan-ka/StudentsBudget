@@ -142,6 +142,19 @@ describe('keepScheduleState', () => {
     expect(keepScheduleState(stored, stale, new Set(['other'])).fixed[0]).toEqual(stored.fixed[0]);
   });
 
+  it('keeps the line as stored when another tab turned it off and on again on an account that exists', () => {
+    // Off and on makes a new schedule (rent-b), so the wizard's rent-s is not found by id.
+    const stored = withRent(schedule({ id: 'rent-b', accountId: 'other', startOn: '2026-11-05', postedThrough: '2026-11-04' }));
+    const stale = withRent(schedule());
+    expect(keepScheduleState(stored, stale, new Set(['other'])).fixed[0]).toEqual(stored.fixed[0]);
+  });
+
+  it('keeps the line as stored when another tab turned it off and the wizard’s account is gone', () => {
+    const stored: Plan = { ...PLAN, fixed: [{ categoryId: 'rent', monthlyMinor: 40000 }] };
+    const stale = withRent(schedule());
+    expect(keepScheduleState(stored, stale, new Set(['other'])).fixed[0]).toEqual({ categoryId: 'rent', monthlyMinor: 40000 });
+  });
+
   it('keeps the wizard’s own account change when that account exists', () => {
     const next = withRent(schedule({ accountId: 'other' }));
     expect(keepScheduleState(withRent(schedule()), next, new Set(['local', 'other'])).fixed[0].schedule).toMatchObject({
