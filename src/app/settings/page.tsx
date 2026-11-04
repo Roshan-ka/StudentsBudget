@@ -1,5 +1,6 @@
 import { LanguageSection } from '@/components/language-picker';
 import { PageHeading } from '@/components/page-heading';
+import { AppearanceSection } from '@/components/theme-picker';
 import { AccountSection } from '@/features/account/account-section';
 import { AccountsPanel } from '@/features/accounts/accounts-panel';
 import { RatesPanel } from '@/features/accounts/rates-panel';
@@ -15,6 +16,7 @@ export default function SettingsPage() {
       <PageHeading id="settings" />
       {/* First: someone who can't read the current language looks here for theirs. */}
       <LanguageSection />
+      <AppearanceSection />
       <AccountSection />
       <ProfileSection />
       <EditPlanSection />
