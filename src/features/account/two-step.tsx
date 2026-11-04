@@ -3,13 +3,12 @@
 import { SmartphoneIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
 import { authErrorMessage } from './auth-errors';
 import { groupedSecret, qrImageSource } from './authenticator';
 import { CardHeading, SECURITY_CARD } from './card-heading';
+import { CodeField } from './code-field';
 import { checkAuthenticatorCode } from './credentials';
 
 /** The name the factor carries in the account (Supabase's list of the user's factors). */
@@ -279,18 +278,7 @@ export function TwoStepSection() {
           </div>
           <p className="text-sm text-muted-foreground">{text.keepKey}</p>
           <form onSubmit={(event) => void confirm(event, view.setup)} noValidate className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${id}-code`}>{text.code}</Label>
-              <Input
-                id={`${id}-code`}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={9}
-                className="h-10 w-40"
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-              />
-            </div>
+            <CodeField id={`${id}-code`} label={text.code} value={code} onChange={setCode} />
             <div className="flex flex-wrap gap-2">
               <Button type="submit" className="h-10 px-4" disabled={busy}>
                 {text.turnOn}

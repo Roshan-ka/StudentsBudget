@@ -12,8 +12,11 @@ export const auth: Messages['auth'] = {
     checkEmail: 'Revisa la dirección de correo.',
     signupDisabled: 'Ahora mismo no se pueden crear cuentas nuevas.',
     emailDisabled: 'Ahora mismo no se puede iniciar sesión con correo.',
-    notConfirmed: 'Esta cuenta aún tiene que confirmarse por correo.',
+    notConfirmed: 'Esta cuenta aún tiene que confirmarse con el código de su correo.',
     tooMany: 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.',
+    codeWrongOrExpired: 'Ese código es incorrecto o ha caducado. Mira el correo más reciente o pide un código nuevo.',
+    waitForCode: 'Demasiados correos por ahora. Espera un minuto y pide un código nuevo.',
+    emailNotSent: 'No se ha podido enviar el correo. Inténtalo más tarde.',
     codeFailed: 'Ese código no ha funcionado. Los códigos cambian cada 30 segundos: escribe el más reciente.',
     codeExpired: 'Ha tardado un poco. Escribe el código más reciente de tu app de autenticación.',
     factorGone:
@@ -45,6 +48,7 @@ export const auth: Messages['auth'] = {
     enterPassword: 'Escribe tu contraseña.',
     shortPassword: (min) => `Usa al menos ${min} caracteres para la contraseña.`,
     code: 'Escribe el código de 6 cifras de tu app de autenticación.',
+    emailCode: 'Escribe el código de 6 cifras del correo.',
   },
   view: {
     off: 'Las cuentas no están configuradas en esta copia de la app. Todo se queda en este móvil.',
@@ -62,9 +66,18 @@ export const auth: Messages['auth'] = {
     minLength: (min) => `Al menos ${min} caracteres.`,
     signIn: 'Iniciar sesión',
     create: 'Crear cuenta',
-    created: 'Cuenta creada. Abre el correo de confirmación y luego inicia sesión aquí.',
     toSignIn: '¿Tienes una cuenta? Inicia sesión',
     toCreate: '¿Primera vez aquí? Crea una cuenta',
+  },
+  /** El código del correo tras crear una cuenta (P2.4). La dirección va en negrita en medio de la frase. */
+  confirm: {
+    heading: 'Confirma tu correo',
+    prompt: { before: 'Escribe el código de 6 cifras que hemos enviado a ', after: '. Sirve durante 60 minutos.' },
+    code: 'Código de 6 cifras',
+    confirm: 'Confirmar',
+    sendAgain: 'Enviar un código nuevo',
+    resent: 'Un código nuevo va de camino. Usa el más reciente.',
+    back: 'Volver',
   },
   secondStep: {
     heading: 'Verificación en dos pasos',

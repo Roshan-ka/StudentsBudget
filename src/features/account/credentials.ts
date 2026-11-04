@@ -30,14 +30,26 @@ export function checkCredentials(
   return { ok: true, email: trimmed };
 }
 
-/**
- * Checks an authenticator code before it is sent: six digits. Spaces and dashes are dropped first, since apps show the
- * code as "123 456" and a pasted one keeps the gap.
- */
+/** Six digits, once spaces and dashes are dropped: apps show a code as "123 456", and a pasted one keeps the gap. */
+function sixDigits(text: string): string | null {
+  const code = text.replace(/[\s-]/g, '');
+  return /^\d{6}$/.test(code) ? code : null;
+}
+
+/** Checks an authenticator code before it is sent: six digits. */
 export function checkAuthenticatorCode(
   text: string,
   lang: Language = 'en',
 ): { ok: true; code: string } | { ok: false; error: string } {
-  const code = text.replace(/[\s-]/g, '');
-  return /^\d{6}$/.test(code) ? { ok: true, code } : { ok: false, error: MESSAGES[lang].auth.check.code };
+  const code = sixDigits(text);
+  return code !== null ? { ok: true, code } : { ok: false, error: MESSAGES[lang].auth.check.code };
+}
+
+/** Checks the code from a sign-up or "Forgot password" email before it is sent: six digits, as for the authenticator. */
+export function checkEmailCode(
+  text: string,
+  lang: Language = 'en',
+): { ok: true; code: string } | { ok: false; error: string } {
+  const code = sixDigits(text);
+  return code !== null ? { ok: true, code } : { ok: false, error: MESSAGES[lang].auth.check.emailCode };
 }

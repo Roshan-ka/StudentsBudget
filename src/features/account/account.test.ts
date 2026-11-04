@@ -9,7 +9,7 @@ import {
   passkeysUnavailable,
 } from './auth-errors';
 import { assuranceLevelOf, authStateOf } from './auth-state';
-import { checkAuthenticatorCode, checkCredentials, MIN_PASSWORD_LENGTH } from './credentials';
+import { checkAuthenticatorCode, checkCredentials, checkEmailCode, MIN_PASSWORD_LENGTH } from './credentials';
 
 describe('authStateOf', () => {
   it('is signed out without a session', () => {
@@ -119,7 +119,33 @@ describe('checkAuthenticatorCode', () => {
   });
 });
 
+describe('checkEmailCode', () => {
+  it('takes six digits as the authenticator check does, but asks for the email’s code', () => {
+    for (const typed of ['135792', '135 792', ' 135-792 ']) expect(checkEmailCode(typed)).toEqual({ ok: true, code: '135792' });
+    for (const typed of ['', '13579', '1357923', '13a792']) {
+      expect(checkEmailCode(typed)).toEqual({ ok: false, error: 'Enter the 6-digit code from the email.' });
+    }
+    expect(checkEmailCode('1', 'de')).toEqual({ ok: false, error: 'Gib den 6-stelligen Code aus der E-Mail ein.' });
+  });
+});
+
 describe('authErrorMessage', () => {
+  it('says calmly what went wrong with an emailed code (P2.4)', () => {
+    // Supabase Auth answers a wrong code and an expired one alike.
+    expect(authErrorMessage({ code: 'otp_expired', status: 403 })).toBe(
+      'That code is wrong or has expired. Check the newest email, or send a new code.',
+    );
+    expect(authErrorMessage({ code: 'over_email_send_rate_limit', status: 429 })).toBe(
+      'Too many emails for now. Wait a minute, then send a new code.',
+    );
+    expect(authErrorMessage({ code: 'email_address_not_authorized', status: 400 })).toBe(
+      "The email couldn't be sent. Try again later.",
+    );
+    expect(authErrorMessage({ code: 'email_not_confirmed', status: 400 })).toBe(
+      'This account still has to be confirmed with the code from its email.',
+    );
+  });
+
   it('says calmly what went wrong with an authenticator code', () => {
     expect(authErrorMessage({ code: 'mfa_verification_failed', status: 422 })).toBe(
       'That code didn’t work. Codes change every 30 seconds: enter the newest one.',

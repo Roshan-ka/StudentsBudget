@@ -5,15 +5,153 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useShowInstallHint } from '@/features/setup/install-hint';
+import type { Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
 import { AccountLink } from './account-link';
 import { authErrorMessage } from './auth-errors';
-import { checkAuthenticatorCode, checkCredentials, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
+import { CodeField } from './code-field';
+import { checkAuthenticatorCode, checkCredentials, checkEmailCode, MIN_PASSWORD_LENGTH, type AuthMode } from './credentials';
+import { SIGN_UP_CODE } from './email-codes';
 import { PasskeySignIn } from './passkeys';
 import { SignInSecurity } from './security';
 import { syncBeforeSignOut } from './sync-status';
 import { useAuth } from './use-auth';
+
+/**
+ * Asks the account server to email a new sign-up code to `email`. Null when it went out; otherwise the calm text of
+ * why not, in `lang`.
+ */
+async function sendSignUpCode(email: string, lang: Language): Promise<string | null> {
+  if (!navigator.onLine) return MESSAGES[lang].auth.offline;
+  const supabase = getSupabase();
+  if (supabase === null) return MESSAGES[lang].auth.errors.general;
+  try {
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    return error ? authErrorMessage(error, lang) : null;
+  } catch (thrown) {
+    console.error('StudentsBudget: could not send a new sign-up code', thrown);
+    return authErrorMessage(thrown, lang);
+  }
+}
+
+/**
+ * The code from the sign-up email (P2.4): until it is given, the new account has no session. Send a new code asks
+ * for another email; Back returns to signing in, with the email kept. `resent` opens it saying a new code is on its way.
+ */
+function ConfirmEmailStep({ email, resent, onBack }: { email: string; resent: boolean; onBack: () => void }) {
+  const id = useId();
+  const { t, lang } = useT();
+  const text = t.auth.confirm;
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(resent ? text.resent : null);
+  const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+
+  // As in SignInForm: the code and the messages go when the person leaves the page. The step and the email stay, so
+  // someone who went to read the email comes back to the code.
+  useEffect(
+    () => () => {
+      setCode('');
+      setError(null);
+      setNotice(null);
+    },
+    [],
+  );
+
+  /** Runs `task` unless one is running already: a second tap can arrive before React has disabled the buttons. */
+  async function runOnce(task: () => Promise<void>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    try {
+      await task();
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setNotice(null);
+    const checked = checkEmailCode(code, lang);
+    if (!checked.ok) {
+      setError(checked.error);
+      return;
+    }
+    if (!navigator.onLine) {
+      setError(t.auth.offline);
+      return;
+    }
+    const supabase = getSupabase();
+    if (supabase === null) return;
+
+    await runOnce(async () => {
+      try {
+        const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: checked.code, type: SIGN_UP_CODE });
+        if (verifyError) {
+          setError(authErrorMessage(verifyError, lang));
+          return;
+        }
+        // Confirmed and signed in: useAuth hears it from supabase-js, and the page shows the signed-in panel.
+        setCode('');
+      } catch (thrown) {
+        console.error('StudentsBudget: could not check the sign-up code', thrown);
+        setError(authErrorMessage(thrown, lang));
+      }
+    });
+  }
+
+  async function onSendAgain() {
+    setError(null);
+    setNotice(null);
+    await runOnce(async () => {
+      const problem = await sendSignUpCode(email, lang);
+      if (problem === null) setNotice(text.resent);
+      else setError(problem);
+    });
+  }
+
+  return (
+    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
+      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+        {text.heading}
+      </h3>
+      <p className="break-words">
+        {text.prompt.before}
+        <span className="font-medium">{email}</span>
+        {text.prompt.after}
+      </p>
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
+        <CodeField id={`${id}-code`} label={text.code} value={code} onChange={setCode} />
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" className="h-10 px-4" disabled={busy}>
+            {text.confirm}
+          </Button>
+          <Button type="button" variant="outline" className="h-10 px-4" disabled={busy} onClick={() => void onSendAgain()}>
+            {text.sendAgain}
+          </Button>
+        </div>
+      </form>
+      {/* Always rendered, so a screen reader is already listening when the text appears. */}
+      <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
+        {notice}
+      </p>
+      <Button type="button" variant="link" className="h-10 self-start px-0" onClick={onBack}>
+        {text.back}
+      </Button>
+    </section>
+  );
+}
 
 /** Email and password, to sign in or to create an account. */
 function SignInForm() {
@@ -25,6 +163,10 @@ function SignInForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // The account whose sign-up code the form waits for (P2.4), and whether it opens saying a new code was sent.
+  const [confirming, setConfirming] = useState<{ email: string; resent: boolean } | null>(null);
+  // A sign-in found the account not confirmed yet: the form offers a new code for it.
+  const [unconfirmed, setUnconfirmed] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // True from the first tap until the answer is in. A ref, because a second tap can arrive before React has rendered
   // the disabled button.
@@ -33,21 +175,45 @@ function SignInForm() {
   const creating = mode === 'create';
 
   // The router keeps this page mounted but hidden after the person leaves and runs the effect cleanups: the password
-  // and the messages go then, so none of them waits on the page for the next visit. The email stays.
+  // and the messages go then, so none of them waits on the page for the next visit. The email stays, and so does the
+  // code step (ConfirmEmailStep clears its own field).
   useEffect(
     () => () => {
       setPassword('');
       setError(null);
       setNotice(null);
+      setUnconfirmed(null);
     },
     [],
   );
+
+  /** For an account a sign-in found unconfirmed: a new code, then the code step. */
+  async function sendCodeFor(to: string) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const problem = await sendSignUpCode(to, lang);
+      if (problem !== null) {
+        setError(problem);
+        return;
+      }
+      setUnconfirmed(null);
+      setConfirming({ email: to, resent: true });
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (inFlight.current) return;
     setError(null);
     setNotice(null);
+    setUnconfirmed(null);
     const checked = checkCredentials(email, password, mode, lang);
     if (!checked.ok) {
       setError(checked.error);
@@ -67,19 +233,23 @@ function SignInForm() {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email: checked.email, password });
         if (signInError) {
           setError(authErrorMessage(signInError, lang));
+          if (signInError.code === 'email_not_confirmed') setUnconfirmed(checked.email);
           return;
         }
       } else {
-        const { data, error: signUpError } = await supabase.auth.signUp({ email: checked.email, password });
+        // The language goes along as user metadata, so the account's emails are written in it.
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: checked.email,
+          password,
+          options: { data: { lang } },
+        });
         if (signUpError) {
           setError(authErrorMessage(signUpError, lang));
           return;
         }
-        // Only when the project asks new accounts to confirm their email: there is no session until then.
-        if (data.session === null) {
-          setMode('sign-in');
-          setNotice(text.created);
-        }
+        // Only when the project asks new accounts to confirm their email: there is no session until the emailed code
+        // is given.
+        if (data.session === null) setConfirming({ email: checked.email, resent: false });
       }
       // Signed in: useAuth hears it from supabase-js, and the page shows the signed-in panel instead of this form.
       setPassword('');
@@ -90,6 +260,20 @@ function SignInForm() {
       inFlight.current = false;
       setBusy(false);
     }
+  }
+
+  if (confirming !== null) {
+    return (
+      <ConfirmEmailStep
+        email={confirming.email}
+        resent={confirming.resent}
+        onBack={() => {
+          setConfirming(null);
+          // The account exists now: back to signing in, with the email kept.
+          setMode('sign-in');
+        }}
+      />
+    );
   }
 
   return (
@@ -143,6 +327,17 @@ function SignInForm() {
           <p role="alert" className="text-sm text-destructive">
             {error}
           </p>
+        )}
+        {unconfirmed !== null && (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 self-start px-4"
+            disabled={busy}
+            onClick={() => void sendCodeFor(unconfirmed)}
+          >
+            {t.auth.confirm.sendAgain}
+          </Button>
         )}
         <Button type="submit" className="h-10 self-start px-4" disabled={busy}>
           {creating ? text.create : text.signIn}
@@ -271,18 +466,7 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
         {text.prompt.after}
       </p>
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${id}-code`}>{text.code}</Label>
-          <Input
-            id={`${id}-code`}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={9}
-            className="h-10 w-40"
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-          />
-        </div>
+        <CodeField id={`${id}-code`} label={text.code} value={code} onChange={setCode} />
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
