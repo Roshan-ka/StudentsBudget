@@ -18,6 +18,12 @@ function inNode(file: string, today: string): BudgetFigures | null {
   return JSON.parse(out) as BudgetFigures | null;
 }
 
+/**
+ * A plain Node start loads the app's modules through the import hook: about 4 s alone, but past 30 s while other jobs
+ * share the machine. The same limit as mcp/server.test.ts, which starts Node the same way.
+ */
+const NODE_RUN_MS = 60_000;
+
 function inVitest(file: string, today: string): BudgetFigures | null {
   const parsed = parseBackup(readFileSync(file, 'utf8'));
   if (!parsed.ok) throw new Error(parsed.error);
@@ -25,7 +31,7 @@ function inVitest(file: string, today: string): BudgetFigures | null {
 }
 
 describe('the app’s budget maths in plain Node (M2.1)', () => {
-  it('loads through the resolve hook and gives the demo month the pack documents', { timeout: 30_000 }, () => {
+  it('loads through the resolve hook and gives the demo month the pack documents', { timeout: NODE_RUN_MS }, () => {
     const figures = inNode(DEMO, manifest.generatedFor);
     expect(figures?.month).toBe(manifest.month);
     expect(figures?.leftMinor).toBe(expected?.leftMinor);
@@ -33,7 +39,7 @@ describe('the app’s budget maths in plain Node (M2.1)', () => {
     expect(figures).toEqual(inVitest(DEMO, manifest.generatedFor));
   });
 
-  it('has nothing to say before a plan exists', { timeout: 30_000 }, () => {
+  it('has nothing to say before a plan exists', { timeout: NODE_RUN_MS }, () => {
     expect(inNode('fixtures/manual-demo/valid/14-fresh-setup.json', manifest.generatedFor)).toBeNull();
   });
 });
