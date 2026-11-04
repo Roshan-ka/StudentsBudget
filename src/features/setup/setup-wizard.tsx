@@ -3,12 +3,14 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
+import { cn } from '@/lib/utils';
 import {
   accountOptions,
   draftFromPlan,
@@ -124,26 +126,43 @@ function Wizard({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">{edit ? text.headingEdit : text.headingNew}</h2>
-      <div className="flex flex-col gap-1">
-        <p className="text-sm text-muted-foreground">{text.stepOf(index + 1, steps.length)}</p>
-        <h3 ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
+      <h2 className="font-sans text-sm font-semibold tracking-normal text-muted-foreground">
+        {edit ? text.headingEdit : text.headingNew}
+      </h2>
+      <div className="flex flex-col gap-2">
+        {/* One segment per step, filled up to this one: the line under it says the same in words. */}
+        <div aria-hidden="true" className="flex gap-1">
+          {steps.map((id, i) => (
+            <span key={id} className={cn('h-1.5 flex-1 rounded-full', i <= index ? 'bg-primary' : 'bg-track')} />
+          ))}
+        </div>
+        <p className="text-sm font-semibold text-muted-foreground">{text.stepOf(index + 1, steps.length)}</p>
+        <h3
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-[30px] leading-tight font-extrabold text-balance break-words outline-none"
+        >
           {text.titles[step]}
         </h3>
       </div>
 
-      {step === 'city-rent' && <CityRentStep draft={draft} update={update} />}
-      {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
-      {step === 'income' && !edit && accountsExist && (
-        <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
-      )}
-      {step === 'income' && <IncomeStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
-      {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
-      {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
-      {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
-      {step === 'envelopes' && (
-        <EnvelopesStep draft={draft} update={update} today={today} existing={existing} edit={edit} />
-      )}
+      {/* The step's fields in one card. */}
+      <div className={cn(cardVariants(), 'gap-4')}>
+        {step === 'city-rent' && <CityRentStep draft={draft} update={update} />}
+        {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
+        {step === 'income' && !edit && accountsExist && (
+          <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
+        )}
+        {step === 'income' && (
+          <IncomeStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />
+        )}
+        {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
+        {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
+        {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
+        {step === 'envelopes' && (
+          <EnvelopesStep draft={draft} update={update} today={today} existing={existing} edit={edit} />
+        )}
+      </div>
 
       {attempted && problems.length > 0 && (
         <div role="alert" className="text-sm text-destructive">
@@ -160,18 +179,19 @@ function Wizard({
         </p>
       )}
 
-      <div className="flex gap-2">
+      {/* Across the width at the end of the step, not stuck to the bottom: a phone's keyboard would cover that. */}
+      <div className="flex gap-3">
         {index > 0 && (
-          <Button type="button" variant="outline" className="px-4" onClick={back} disabled={saving}>
+          <Button type="button" variant="outline" size="lg" className="flex-1" onClick={back} disabled={saving}>
             {text.back}
           </Button>
         )}
         {isLast ? (
-          <Button type="button" className="px-4" onClick={() => void save()} disabled={saving}>
+          <Button type="button" size="lg" className="flex-1" onClick={() => void save()} disabled={saving}>
             {text.save}
           </Button>
         ) : (
-          <Button type="button" className="px-4" onClick={next}>
+          <Button type="button" size="lg" className="flex-1" onClick={next}>
             {text.next}
           </Button>
         )}
