@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 export function AddEntryLink() {
   const { t } = useT();
   return (
-    <Link href="/entries/new" className={cn(buttonVariants({ variant: 'outline' }), 'h-10 px-4')}>
+    <Link href="/entries/new" className={cn(buttonVariants({ variant: 'outline' }), 'px-4')}>
       {t.entries.addEntry}
     </Link>
   );

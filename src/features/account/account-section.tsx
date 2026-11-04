@@ -29,7 +29,7 @@ export function AccountSection() {
       </p>
       {/* While this phone is linked to the account: how its sync stands. */}
       {auth.status === 'signed-in' && syncStatus !== null && <p className="text-sm text-muted-foreground">{syncStatus}</p>}
-      <Link href="/settings/account" className={buttonVariants({ variant: 'outline', className: 'h-10 self-start px-4' })}>
+      <Link href="/settings/account" className={buttonVariants({ variant: 'outline', className: 'self-start px-4' })}>
         {auth.status === 'signed-in' ? text.manage : auth.status === 'second-step' ? text.finish : text.signIn}
       </Link>
     </section>

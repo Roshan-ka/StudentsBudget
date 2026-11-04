@@ -27,7 +27,7 @@ export function CodeField({
         inputMode="numeric"
         autoComplete="one-time-code"
         maxLength={9}
-        className="h-10 w-40"
+        className="w-40"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />

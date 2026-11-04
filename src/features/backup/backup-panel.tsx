@@ -102,7 +102,7 @@ function ExportBackup() {
       <p className="text-sm text-muted-foreground">{text.hint}</p>
       <Button
         variant="outline"
-        className="h-10 self-start px-4"
+        className="self-start px-4"
         onClick={onExport}
         disabled={snapshot === undefined || sharing}
       >
@@ -121,7 +121,7 @@ function ExportBackup() {
       {notice?.kind === 'share-failed' && (
         <div role="alert" className="flex flex-col gap-2 text-sm">
           <p>{text.shareFailed}</p>
-          <Button variant="outline" className="h-10 self-start px-4" onClick={onDownloadInstead}>
+          <Button variant="outline" className="self-start px-4" onClick={onDownloadInstead}>
             {text.downloadInstead}
           </Button>
         </div>
@@ -194,7 +194,6 @@ function DeleteEverything() {
             <Label htmlFor={inputId}>{text.typeToConfirm(text.word)}</Label>
             <Input
               id={inputId}
-              className="h-10"
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
               autoComplete="off"
@@ -208,18 +207,18 @@ function DeleteEverything() {
             <Button
               type="submit"
               variant="destructive"
-              className="h-10 px-4"
+              className="px-4"
               disabled={!confirmed(typed) || deleting}
             >
               {text.button}
             </Button>
-            <Button type="button" variant="outline" className="h-10 px-4" onClick={close} disabled={deleting}>
+            <Button type="button" variant="outline" className="px-4" onClick={close} disabled={deleting}>
               {text.cancel}
             </Button>
           </div>
         </form>
       ) : (
-        <Button variant="destructive" className="h-10 self-start px-4" onClick={() => setOpen(true)}>
+        <Button variant="destructive" className="self-start px-4" onClick={() => setOpen(true)}>
           {text.button}
         </Button>
       )}

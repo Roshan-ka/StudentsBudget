@@ -22,7 +22,7 @@ import { RecurringTag, isRecurring } from './recurring-tag';
 
 const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 
-const LINK_CLASS = 'inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline';
+const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline';
 
 /** "Friday, 16 October". `parseISO` reads a date-only string as local midnight, so the day never shifts. */
 function headingOf(date: IsoDate, locale: string): string {
@@ -117,19 +117,19 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
       {confirming ? (
         <div role="group" aria-label={text.deleteQuestion} className="flex flex-wrap items-center gap-2">
           <p className="mr-auto font-medium">{text.deleteQuestion}</p>
-          <Button variant="destructive" className="h-10 px-4" onClick={() => void remove()}>
+          <Button variant="destructive" className="px-4" onClick={() => void remove()}>
             {text.yes}
           </Button>
-          <Button variant="outline" className="h-10 px-4" onClick={() => setConfirming(false)}>
+          <Button variant="outline" className="px-4" onClick={() => setConfirming(false)}>
             {text.cancel}
           </Button>
         </div>
       ) : (
         <div className="flex gap-2">
-          <Button variant="outline" className="h-10 px-4" onClick={onClose}>
+          <Button variant="outline" className="px-4" onClick={onClose}>
             {text.cancel}
           </Button>
-          <Button variant="ghost" className="h-10 px-4" onClick={() => setConfirming(true)}>
+          <Button variant="ghost" className="px-4" onClick={() => setConfirming(true)}>
             {text.delete}
           </Button>
         </div>

@@ -75,7 +75,7 @@ export function PasskeySignIn({ onStart, onError }: { onStart: () => void; onErr
   if (!supported) return null;
   return (
     <div className="flex flex-col gap-3">
-      <Button type="button" variant="outline" className="h-10 self-start px-4" disabled={busy} onClick={() => void signIn()}>
+      <Button type="button" variant="outline" className="self-start px-4" disabled={busy} onClick={() => void signIn()}>
         <KeyRoundIcon aria-hidden="true" />
         {t.auth.passkeys.signIn}
       </Button>
@@ -239,7 +239,7 @@ export function PasskeysSection() {
       {passkeys === 'unknown' && (
         <>
           <p className="text-sm text-muted-foreground">{text.unknown}</p>
-          <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={checkAgain}>
+          <Button type="button" variant="outline" className="self-start px-4" onClick={checkAgain}>
             {text.tryAgain}
           </Button>
         </>
@@ -269,7 +269,7 @@ export function PasskeysSection() {
                     ref={focusIf(`remove:${passkey.id}`)}
                     type="button"
                     variant="outline"
-                    className="h-10 shrink-0 px-4"
+                    className="shrink-0 px-4"
                     aria-label={text.removeOne(nameOf(passkey, t), formatDateTime(passkey.created_at))}
                     disabled={busy}
                     onClick={() => setRemoving(passkey)}
@@ -287,7 +287,7 @@ export function PasskeysSection() {
                     {/* Focused when the question opens, and described by it, so a screen reader reads the question out. */}
                     <Button
                       type="button"
-                      className="h-10 px-4"
+                      className="px-4"
                       autoFocus
                       disabled={busy}
                       aria-describedby={`${id}-question`}
@@ -298,7 +298,7 @@ export function PasskeysSection() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-10 px-4"
+                      className="px-4"
                       disabled={busy}
                       onClick={() => cancelRemoval(passkey)}
                     >
@@ -318,7 +318,7 @@ export function PasskeysSection() {
             ref={focusIf('add')}
             type="button"
             variant="outline"
-            className="h-10 self-start px-4"
+            className="self-start px-4"
             disabled={busy}
             onClick={() => void add()}
           >

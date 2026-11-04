@@ -26,8 +26,7 @@ export function TipsView() {
 
   return (
     <Tabs value={view} onValueChange={(value) => setView(value === 'discounts' ? 'discounts' : 'tips')}>
-      {/* h-13: the tabs are 45 px high inside the list's padding, so they are easy to hit with a thumb. */}
-      <TabsList aria-label={t.tips.tabsLabel} className="w-full group-data-horizontal/tabs:h-13">
+      <TabsList aria-label={t.tips.tabsLabel} className="w-full">
         <TabsTrigger value="tips">{t.tips.tips}</TabsTrigger>
         <TabsTrigger value="discounts">{t.tips.discounts}</TabsTrigger>
       </TabsList>
@@ -59,7 +58,7 @@ function TipList() {
       type="button"
       variant={categoryId === id ? 'default' : 'outline'}
       aria-pressed={categoryId === id}
-      className="h-10 px-3"
+      className="px-3"
       onClick={() => setCategoryId(id)}
     >
       {label}
@@ -79,7 +78,7 @@ function TipList() {
         {chip(null, text.all)}
         {CHIPS.main.map((id) => chip(id, categoryNameIn(t, id)))}
         {CHIPS.more.length > 0 && (
-          <Button type="button" variant="secondary" className="h-10 px-3" aria-expanded={showMore} onClick={toggleMore}>
+          <Button type="button" variant="secondary" className="px-3" aria-expanded={showMore} onClick={toggleMore}>
             {text.more}
           </Button>
         )}

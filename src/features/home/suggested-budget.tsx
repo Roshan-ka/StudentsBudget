@@ -183,13 +183,13 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
           {/* Never with €0 everywhere: one tap would empty every envelope. */}
           <Button
             type="button"
-            className="h-10 px-4"
+            className="px-4"
             disabled={saving || invalid || total === 0}
             onClick={() => void applyBudget()}
           >
             {text.use}
           </Button>
-          <Button type="button" variant="outline" className="h-10 px-4" onClick={() => setExpanded(false)}>
+          <Button type="button" variant="outline" className="px-4" onClick={() => setExpanded(false)}>
             {text.notNow}
           </Button>
         </div>

@@ -123,7 +123,7 @@ function MoneyEntryForm({
         <div className="flex items-center gap-2">
           <Input
             id={`${id}-amount`}
-            className="h-10 flex-1"
+            className="flex-1"
             inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
@@ -167,7 +167,6 @@ function MoneyEntryForm({
         <Label htmlFor={`${id}-note`}>{text.note}</Label>
         <Input
           id={`${id}-note`}
-          className="h-10"
           value={note}
           onChange={(event) => setNote(event.target.value)}
           autoComplete="off"
@@ -178,7 +177,7 @@ function MoneyEntryForm({
           {error}
         </p>
       )}
-      <Button type="submit" className="h-10 px-4" disabled={saving}>
+      <Button type="submit" className="px-4" disabled={saving}>
         {editing ? text.saveChanges : type === 'income' ? text.saveIncome : text.saveExpense}
       </Button>
     </form>
@@ -206,7 +205,7 @@ export function EntryForm({ entry, onSaved }: { entry?: Entry; onSaved?: (saved:
         if (next) setTab(next);
       }}
     >
-      <TabsList aria-label={t.entries.form.typeLabel} className="w-full group-data-horizontal/tabs:h-10">
+      <TabsList aria-label={t.entries.form.typeLabel} className="w-full">
         {TABS.map((type) => (
           <TabsTrigger key={type} value={type}>
             {tabLabel(type)}

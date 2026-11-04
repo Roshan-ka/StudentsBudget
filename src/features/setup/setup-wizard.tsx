@@ -162,16 +162,16 @@ function Wizard({
 
       <div className="flex gap-2">
         {index > 0 && (
-          <Button type="button" variant="outline" className="h-10 px-4" onClick={back} disabled={saving}>
+          <Button type="button" variant="outline" className="px-4" onClick={back} disabled={saving}>
             {text.back}
           </Button>
         )}
         {isLast ? (
-          <Button type="button" className="h-10 px-4" onClick={() => void save()} disabled={saving}>
+          <Button type="button" className="px-4" onClick={() => void save()} disabled={saving}>
             {text.save}
           </Button>
         ) : (
-          <Button type="button" className="h-10 px-4" onClick={next}>
+          <Button type="button" className="px-4" onClick={next}>
             {text.next}
           </Button>
         )}

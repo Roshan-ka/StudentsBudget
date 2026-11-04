@@ -233,7 +233,7 @@ export function TwoStepSection() {
       {view.kind === 'unknown' && (
         <>
           <p className="text-sm text-muted-foreground">{text.unknown}</p>
-          <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={checkAgain}>
+          <Button type="button" variant="outline" className="self-start px-4" onClick={checkAgain}>
             {text.tryAgain}
           </Button>
         </>
@@ -246,7 +246,7 @@ export function TwoStepSection() {
             ref={focusIf('turn-on')}
             type="button"
             variant="outline"
-            className="h-10 self-start px-4"
+            className="self-start px-4"
             disabled={busy}
             onClick={() => void turnOn()}
           >
@@ -263,7 +263,7 @@ export function TwoStepSection() {
           <a
             ref={focusIf('link')}
             href={view.setup.uri}
-            className={buttonVariants({ variant: 'outline', className: 'h-10 self-start px-4' })}
+            className={buttonVariants({ variant: 'outline', className: 'self-start px-4' })}
           >
             {text.openApp}
           </a>
@@ -280,10 +280,10 @@ export function TwoStepSection() {
           <form onSubmit={(event) => void confirm(event, view.setup)} noValidate className="flex flex-col gap-3">
             <CodeField id={`${id}-code`} label={text.code} value={code} onChange={setCode} />
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" className="h-10 px-4" disabled={busy}>
+              <Button type="submit" className="px-4" disabled={busy}>
                 {text.turnOn}
               </Button>
-              <Button type="button" variant="outline" className="h-10 px-4" disabled={busy} onClick={() => void cancelSetup(view.setup)}>
+              <Button type="button" variant="outline" className="px-4" disabled={busy} onClick={() => void cancelSetup(view.setup)}>
                 {text.cancel}
               </Button>
             </div>
@@ -299,7 +299,7 @@ export function TwoStepSection() {
             ref={focusIf('turn-off')}
             type="button"
             variant="outline"
-            className="h-10 self-start px-4"
+            className="self-start px-4"
             disabled={busy}
             onClick={() => setView({ kind: 'confirm-off', factorId: view.factorId })}
           >
@@ -317,7 +317,7 @@ export function TwoStepSection() {
             {/* Focused when the question opens, and described by it, so a screen reader reads the question out. */}
             <Button
               type="button"
-              className="h-10 px-4"
+              className="px-4"
               autoFocus
               disabled={busy}
               aria-describedby={`${id}-question`}
@@ -328,7 +328,7 @@ export function TwoStepSection() {
             <Button
               type="button"
               variant="outline"
-              className="h-10 px-4"
+              className="px-4"
               disabled={busy}
               onClick={() => show({ kind: 'on', factorId: view.factorId }, 'turn-off')}
             >

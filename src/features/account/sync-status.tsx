@@ -140,7 +140,7 @@ export function SyncSection() {
       </h3>
       {/* Not a live region: "Synced 2 min ago" moves on every half minute, and would be read out each time. */}
       <p className="text-muted-foreground">{note ?? status}</p>
-      <Button type="button" variant="outline" className="h-10 self-start px-4" disabled={busy} onClick={() => void sync()}>
+      <Button type="button" variant="outline" className="self-start px-4" disabled={busy} onClick={() => void sync()}>
         <RefreshCwIcon aria-hidden="true" className={busy ? 'motion-safe:animate-spin' : undefined} />
         {t.sync.section.syncNow}
       </Button>

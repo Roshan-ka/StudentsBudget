@@ -178,10 +178,10 @@ function EmailCodeStep({
           </p>
         )}
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" className="h-10 px-4" disabled={busy}>
+          <Button type="submit" className="px-4" disabled={busy}>
             {text.confirm}
           </Button>
-          <Button type="button" variant="outline" className="h-10 px-4" disabled={busy} onClick={() => void onSendAgain()}>
+          <Button type="button" variant="outline" className="px-4" disabled={busy} onClick={() => void onSendAgain()}>
             {text.sendAgain}
           </Button>
         </div>
@@ -190,7 +190,7 @@ function EmailCodeStep({
       <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
         {notice ?? (resent && !acted ? text.resent : null)}
       </p>
-      <Button type="button" variant="link" className="h-10 self-start px-0" onClick={onBack}>
+      <Button type="button" variant="link" className="self-start px-0" onClick={onBack}>
         {text.back}
       </Button>
     </section>
@@ -258,7 +258,6 @@ function ResetEmailStep({
             autoComplete="email"
             autoCapitalize="none"
             spellCheck={false}
-            className="h-10"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
@@ -268,11 +267,11 @@ function ResetEmailStep({
             {error}
           </p>
         )}
-        <Button type="submit" className="h-10 self-start px-4" disabled={busy}>
+        <Button type="submit" className="self-start px-4" disabled={busy}>
           {text.send}
         </Button>
       </form>
-      <Button type="button" variant="link" className="h-10 self-start px-0" onClick={onBack}>
+      <Button type="button" variant="link" className="self-start px-0" onClick={onBack}>
         {text.back}
       </Button>
     </section>
@@ -354,7 +353,6 @@ function NewPasswordForm({ email }: { email: string }) {
             id={`${id}-password`}
             type="password"
             autoComplete="new-password"
-            className="h-10"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
@@ -365,12 +363,12 @@ function NewPasswordForm({ email }: { email: string }) {
             {error}
           </p>
         )}
-        <Button type="submit" className="h-10 self-start px-4" disabled={busy}>
+        <Button type="submit" className="self-start px-4" disabled={busy}>
           {text.save}
         </Button>
       </form>
       {/* Signing out ends the reset too (use-auth.ts): the old password, or another code, is the way back in. */}
-      <Button type="button" variant="link" className="h-10 self-start px-0" onClick={() => void signOutLocally()}>
+      <Button type="button" variant="link" className="self-start px-0" onClick={() => void signOutLocally()}>
         {text.signOut}
       </Button>
     </section>
@@ -544,7 +542,6 @@ function SignInForm() {
             autoComplete="email"
             autoCapitalize="none"
             spellCheck={false}
-            className="h-10"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
@@ -555,7 +552,6 @@ function SignInForm() {
             id={`${id}-password`}
             type="password"
             autoComplete={creating ? 'new-password' : 'current-password'}
-            className="h-10"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
@@ -565,7 +561,7 @@ function SignInForm() {
             <Button
               type="button"
               variant="link"
-              className="h-10 self-start px-0"
+              className="self-start px-0"
               onClick={() => {
                 setError(null);
                 setNotice(null);
@@ -586,14 +582,14 @@ function SignInForm() {
           <Button
             type="button"
             variant="outline"
-            className="h-10 self-start px-4"
+            className="self-start px-4"
             disabled={busy}
             onClick={() => void sendCodeFor(unconfirmed)}
           >
             {t.auth.confirm.sendAgain}
           </Button>
         )}
-        <Button type="submit" className="h-10 self-start px-4" disabled={busy}>
+        <Button type="submit" className="self-start px-4" disabled={busy}>
           {creating ? text.create : text.signIn}
         </Button>
       </form>
@@ -605,7 +601,7 @@ function SignInForm() {
       <Button
         type="button"
         variant="link"
-        className="h-10 self-start px-0"
+        className="self-start px-0"
         onClick={() => {
           setMode(creating ? 'sign-in' : 'create');
           setError(null);
@@ -693,7 +689,7 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
           <span className="font-medium">{email}</span>
           {text.ended.after}
         </p>
-        <Button type="button" className="h-10 self-start px-4" autoFocus onClick={() => void signOutLocally()}>
+        <Button type="button" className="self-start px-4" autoFocus onClick={() => void signOutLocally()}>
           {text.signInAgain}
         </Button>
       </section>
@@ -717,11 +713,11 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
             {error}
           </p>
         )}
-        <Button type="submit" className="h-10 self-start px-4" disabled={busy}>
+        <Button type="submit" className="self-start px-4" disabled={busy}>
           {text.continue}
         </Button>
       </form>
-      <Button type="button" variant="link" className="h-10 self-start px-0" onClick={() => void signOutLocally()}>
+      <Button type="button" variant="link" className="self-start px-0" onClick={() => void signOutLocally()}>
         {text.otherAccount}
       </Button>
     </section>
@@ -795,7 +791,7 @@ function SignedInPanel({ email, passwordChanged }: { email: string; passwordChan
       <Button
         type="button"
         variant="outline"
-        className="h-10 self-start px-4"
+        className="self-start px-4"
         disabled={busy}
         onClick={() => void signOut()}
       >

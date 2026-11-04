@@ -60,7 +60,7 @@ function MonthSwitcher({
   const [first] = months;
   return (
     <div role="group" aria-label={t.charts.monthLabel} className="flex items-center justify-between gap-2">
-      <Button variant="ghost" className="h-10 px-3" onClick={() => onChange(shiftMonth(month, -1))}>
+      <Button variant="ghost" className="px-3" onClick={() => onChange(shiftMonth(month, -1))}>
         <span aria-hidden="true">‹</span> {t.charts.previous}
       </Button>
       <div aria-live="polite" className="text-center">
@@ -69,7 +69,7 @@ function MonthSwitcher({
           <p className="text-xs text-muted-foreground">{rangeText(first, month, locale)}</p>
         )}
       </div>
-      <Button variant="ghost" className="h-10 px-3" onClick={() => onChange(shiftMonth(month, 1))}>
+      <Button variant="ghost" className="px-3" onClick={() => onChange(shiftMonth(month, 1))}>
         {t.charts.next} <span aria-hidden="true">›</span>
       </Button>
     </div>

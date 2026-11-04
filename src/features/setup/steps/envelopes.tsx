@@ -114,7 +114,7 @@ export function EnvelopesStep({
           <Button
             type="button"
             variant="outline"
-            className="h-10 px-4"
+            className="px-4"
             aria-describedby={noteId}
             onClick={() =>
               update((d) => ({

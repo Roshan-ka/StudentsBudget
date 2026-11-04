@@ -140,7 +140,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         <div className="flex items-center gap-2">
           <Input
             id={`${id}-amount`}
-            className="h-10 flex-1"
+            className="flex-1"
             inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
@@ -169,7 +169,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         <div className="flex items-center gap-2">
           <Input
             id={`${id}-received`}
-            className="h-10 flex-1"
+            className="flex-1"
             inputMode="decimal"
             value={received}
             onChange={(event) => setReceivedChoice(event.target.value)}
@@ -183,7 +183,6 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         <Label htmlFor={`${id}-note`}>{t.entries.form.note}</Label>
         <Input
           id={`${id}-note`}
-          className="h-10"
           value={note}
           onChange={(event) => setNote(event.target.value)}
           autoComplete="off"
@@ -194,7 +193,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
           {error}
         </p>
       )}
-      <Button type="submit" className="h-10 px-4" disabled={saving}>
+      <Button type="submit" className="px-4" disabled={saving}>
         {editing ? t.entries.form.saveChanges : text.move}
       </Button>
     </form>
@@ -218,7 +217,7 @@ export function TransferSection() {
         )}
         <Button
           variant="outline"
-          className="h-10 px-4"
+          className="px-4"
           onClick={() => {
             setSaved(false);
             setOpen(true);
@@ -241,7 +240,7 @@ export function TransferSection() {
           setOpen(false);
         }}
       />
-      <Button variant="ghost" className="h-10 px-4" onClick={() => setOpen(false)}>
+      <Button variant="ghost" className="px-4" onClick={() => setOpen(false)}>
         {text.cancel}
       </Button>
     </section>

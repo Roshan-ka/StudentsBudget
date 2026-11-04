@@ -101,7 +101,7 @@ export function RestoreFromBackup() {
           id={inputId}
           type="file"
           accept=".json,application/json"
-          className="h-10 py-1.5"
+          className="py-1.5"
           onChange={(event) => void onChoose(event)}
           disabled={restoring}
         />
@@ -123,13 +123,13 @@ export function RestoreFromBackup() {
             {linked && <p className="text-sm text-muted-foreground">{text.linked}</p>}
           </div>
           <div className="flex gap-2">
-            <Button type="button" className="h-10 px-4" onClick={() => void onReplace()} disabled={restoring}>
+            <Button type="button" className="px-4" onClick={() => void onReplace()} disabled={restoring}>
               {text.replace}
             </Button>
             <Button
               type="button"
               variant="outline"
-              className="h-10 px-4"
+              className="px-4"
               onClick={() => setChosen(null)}
               disabled={restoring}
             >

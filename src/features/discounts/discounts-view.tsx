@@ -122,7 +122,7 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
       type="button"
       variant={categoryId === id ? 'default' : 'outline'}
       aria-pressed={categoryId === id}
-      className="h-10 px-3"
+      className="px-3"
       onClick={() => setCategoryId(id)}
     >
       {label}
@@ -187,7 +187,7 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
                     variant={vote?.vote === option ? 'default' : 'outline'}
                     aria-pressed={vote?.vote === option}
                     aria-describedby={placeId}
-                    className="h-10 px-3"
+                    className="px-3"
                     onClick={() => choose(d, option)}
                   >
                     {text.votes[option]}
