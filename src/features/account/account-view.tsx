@@ -82,7 +82,11 @@ function EmailCodeStep({
   const text = kind === 'sign-up' ? t.auth.confirm : t.auth.reset;
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(resent ? text.resent : null);
+  const [notice, setNotice] = useState<string | null>(null);
+  // Whether the person has done anything here yet. Until then, a step opened by Send a new code says so. That line is
+  // worked out from `resent`, not kept in `notice`: React's development double run calls the cleanup below right after
+  // the first mount, which would take it away before anyone saw it.
+  const [acted, setActed] = useState(false);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
 
@@ -112,6 +116,7 @@ function EmailCodeStep({
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setActed(true);
     setError(null);
     setNotice(null);
     const checked = checkEmailCode(code, lang);
@@ -145,6 +150,7 @@ function EmailCodeStep({
   }
 
   async function onSendAgain() {
+    setActed(true);
     setError(null);
     setNotice(null);
     await runOnce(async () => {
@@ -182,7 +188,7 @@ function EmailCodeStep({
       </form>
       {/* Always rendered, so a screen reader is already listening when the text appears. */}
       <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
-        {notice}
+        {notice ?? (resent && !acted ? text.resent : null)}
       </p>
       <Button type="button" variant="link" className="h-10 self-start px-0" onClick={onBack}>
         {text.back}
