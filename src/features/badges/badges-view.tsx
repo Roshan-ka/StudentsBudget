@@ -1,12 +1,15 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { AwardIcon } from 'lucide-react';
 import Link from 'next/link';
+import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { formatDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
+import { cn } from '@/lib/utils';
 import { badgeHistory, badgesFrom, goldWeeks, semesterWeeksFor, type Badge } from './badges';
 import { DatedText } from './dated-text';
 
@@ -71,15 +74,27 @@ export function BadgesView() {
       <p className="text-sm text-muted-foreground">{t.badges.intro}</p>
       <ul aria-label={t.badges.listLabel} className="flex flex-col gap-3">
         {badges.map((b) => (
-          <li key={b.id} className="flex flex-col gap-1 rounded-lg border px-4 py-3">
-            <h3 className="font-medium">{b.title}</h3>
-            <p className="text-sm font-medium">
-              <DatedText text={status(b, t)} />
-            </p>
-            <p className="text-sm break-words">
-              <DatedText text={b.progress} />
-            </p>
-            <p className="text-sm text-muted-foreground">{rule(b.id, semesterWeeks, t)}</p>
+          <li key={b.id} className={cn(cardVariants(), 'flex-row items-start gap-3')}>
+            {/* A round sticker, yellow once earned: decoration, as the status line says it in words. */}
+            <span
+              aria-hidden="true"
+              className={cn(
+                'flex size-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-outline',
+                b.earnedOn === null ? 'bg-muted text-muted-foreground' : 'bg-accent text-accent-foreground',
+              )}
+            >
+              <AwardIcon className="size-5" />
+            </span>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <h3 className="text-lg leading-tight font-extrabold">{b.title}</h3>
+              <p className="text-sm font-semibold">
+                <DatedText text={status(b, t)} />
+              </p>
+              <p className="text-sm break-words">
+                <DatedText text={b.progress} />
+              </p>
+              <p className="text-sm text-muted-foreground">{rule(b.id, semesterWeeks, t)}</p>
+            </div>
           </li>
         ))}
       </ul>

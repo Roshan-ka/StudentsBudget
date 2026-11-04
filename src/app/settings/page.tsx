@@ -12,7 +12,7 @@ import { EditPlanSection } from '@/features/setup/edit-plan-section';
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5">
       <PageHeading id="settings" />
       {/* First: someone who can't read the current language looks here for theirs. */}
       <LanguageSection />

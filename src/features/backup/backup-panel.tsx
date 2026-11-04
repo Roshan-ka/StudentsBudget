@@ -3,10 +3,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { deleteEverything, exportAll, type BackupData } from '@/db/bulk';
 import { useT } from '@/i18n/use-t';
+import { cn } from '@/lib/utils';
 import { backupFileName, serializeBackup } from './backup';
 import { RestoreFromBackup } from './restore-from-backup';
 
@@ -235,8 +237,8 @@ function DeleteEverything() {
 export function BackupPanel() {
   const { t } = useT();
   return (
-    <section aria-labelledby="backup-heading" className="flex flex-col gap-4">
-      <h3 id="backup-heading" className="text-lg font-semibold">
+    <section aria-labelledby="backup-heading" className={cn(cardVariants(), 'gap-4')}>
+      <h3 id="backup-heading" className="text-xl leading-tight font-extrabold">
         {t.backup.heading}
       </h3>
       <p className="text-muted-foreground">{t.backup.intro}</p>

@@ -98,8 +98,8 @@ function Recaps({ guesses, plan, entries, today }: { guesses: Guess[]; plan: Pla
   if (months.length === 0) return null;
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h3 id={headingId} className="text-lg font-semibold">
+    <section aria-labelledby={headingId} className={cardVariants()}>
+      <h3 id={headingId} className="text-xl leading-tight font-extrabold">
         {t.reveal.monthByMonth}
       </h3>
       <ul aria-labelledby={headingId} className="flex flex-col gap-2">

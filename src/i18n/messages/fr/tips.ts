@@ -1,5 +1,5 @@
 import type { Messages } from '../en';
-import { NNBSP } from './count';
+import { byCount, NNBSP } from './count';
 
 // L'onglet Conseils en français : conseils, réductions et les mots de la ligne d'économie. Les conseils, réductions et
 // idées d'économie eux-mêmes sont du contenu de la ville ; leurs mots en français vont dans src/i18n/city/fr (chunk 15).
@@ -22,6 +22,15 @@ export const tips: Messages['tips'] = {
   markedOutdated: (date) => `Tu as indiqué le ${date} que ça ne marche plus`,
   mayBeOutdated: 'Peut-être obsolète',
   lastConfirmed: (date) => `Confirmé pour la dernière fois le ${date}`,
+  /** Ce que les autres étudiants ont confirmé ce semestre (P2.6), visible une fois connecté. */
+  confirmations: (count) =>
+    byCount(count, { one: `${count} confirmation ce semestre`, other: `${count} confirmations ce semestre` }),
+  notWorking: (count) =>
+    byCount(count, {
+      one: `${count} personne dit que ça ne marche plus`,
+      other: `${count} personnes disent que ça ne marche plus`,
+    }),
+  othersSignIn: 'Connecte-toi pour voir ce que les autres étudiants ont confirmé.',
   saved: 'Enregistré sur ce téléphone.',
   saveFailed: 'Impossible d’enregistrer ta réponse. Réessaie.',
   heard: {

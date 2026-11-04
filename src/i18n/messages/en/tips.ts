@@ -20,6 +20,11 @@ export const tips = {
   markedOutdated: (date: string) => `You marked this as not working on ${date}`,
   mayBeOutdated: 'May be outdated',
   lastConfirmed: (date: string) => `Last confirmed ${date}`,
+  /** Other students' totals this semester (P2.6), shown while signed in. */
+  confirmations: (count: number) => (count === 1 ? '1 confirmation this semester' : `${count} confirmations this semester`),
+  notWorking: (count: number) =>
+    count === 1 ? '1 student said it no longer works' : `${count} students said it no longer works`,
+  othersSignIn: 'Sign in to see what other students confirmed.',
   saved: 'Saved on this phone.',
   saveFailed: 'Could not save your answer. Try again.',
   /** What a screen reader hears after a vote. */

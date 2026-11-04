@@ -1,6 +1,7 @@
 'use client';
 
 import { useId } from 'react';
+import { cardVariants } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { LANGUAGES, OFFERED, SELECTABLE, type Language } from '@/i18n/languages';
@@ -50,8 +51,8 @@ export function LanguageSection() {
   const { t } = useT();
   if (SELECTABLE.length < 2) return null;
   return (
-    <section aria-labelledby="language-heading" className="flex flex-col gap-3">
-      <h3 id="language-heading" className="text-lg font-semibold">
+    <section aria-labelledby="language-heading" className={cardVariants()}>
+      <h3 id="language-heading" className="text-xl leading-tight font-extrabold">
         {t.language.heading}
       </h3>
       <LanguagePicker hint />
