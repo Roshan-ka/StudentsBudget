@@ -15,6 +15,11 @@ import { ranges as esRanges } from './es/ranges';
 import { semesters as esSemesters } from './es/semesters';
 import { swaps as esSwaps } from './es/swaps';
 import { tips as esTips } from './es/tips';
+import { discounts as frDiscounts } from './fr/discounts';
+import { ranges as frRanges } from './fr/ranges';
+import { semesters as frSemesters } from './fr/semesters';
+import { swaps as frSwaps } from './fr/swaps';
+import { tips as frTips } from './fr/tips';
 
 // The city content (src/data) in other languages (language switch, plan 2: docs/superpowers/plans/
 // 2026-11-03-language-switch-2.md). Only the words, by item id: every number, source URL, checked date, category and
@@ -49,6 +54,7 @@ export type CityWords = {
 export const CITY_WORDS: Partial<Record<Language, CityWords>> = {
   de: { tips: deTips, discounts: deDiscounts, swaps: deSwaps, ranges: deRanges, semesters: deSemesters },
   es: { tips: esTips, discounts: esDiscounts, swaps: esSwaps, ranges: esRanges, semesters: esSemesters },
+  fr: { tips: frTips, discounts: frDiscounts, swaps: frSwaps, ranges: frRanges, semesters: frSemesters },
 };
 
 /**

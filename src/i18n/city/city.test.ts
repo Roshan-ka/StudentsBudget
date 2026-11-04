@@ -7,9 +7,19 @@ import { TIPS } from '@/data/tips';
 import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, type Language } from '../languages';
 import { CITY_WORDS, discountIn, feePartIn, periodIn, rangeIn, swapIn, tipIn, type CityWords } from '.';
 
-/** Every number in a text, without its separators, so "€1,000" and "1.000 €", or "€18.36" and "18,36 €", match. */
+/**
+ * Every number in a text, without its separators, so "€1,000", "1.000 €" and French "1 000 €" (a narrow no-break
+ * space), or "€18.36" and "18,36 €", match.
+ */
 function numbersIn(text: string): string[] {
-  return (text.match(/\d+(?:[.,]\d+)*/g) ?? []).map((number) => number.replace(/[.,]/g, ''));
+  return (text.match(/\d+(?:[.,  ]\d+)*/g) ?? []).map((number) => number.replace(/[.,  ]/g, ''));
+}
+
+/** Every text a language's city content gives: each item's words and the semester texts. */
+function allTexts(words: CityWords): string[] {
+  const items = [words.tips, words.discounts, words.swaps, words.ranges].flatMap((kind) => Object.values(kind));
+  const fields = items.flatMap((item) => Object.values(item ?? {}).filter((value) => typeof value === 'string'));
+  return [...fields, ...Object.values(words.semesters).filter((text) => text !== undefined)];
 }
 
 /** An item's fields; only its texts matter here (a swap's amounts are numbers). */
@@ -106,6 +116,16 @@ describe('city content in other languages', () => {
         for (const number of numbersIn(english)) expect(numbers, `${code}: ${english} keeps ${number}`).toContain(number);
         expect(translated, `${code}: ${english}`).not.toBe(english);
       }
+    }
+  });
+
+  it('puts the narrow no-break space French needs before : ; ? ! and inside « », quotes in another language aside', () => {
+    const french = CITY_WORDS.fr;
+    if (french === undefined) return;
+    for (const text of allTexts(french)) {
+      // A quoted page keeps its own punctuation: « Rückmeldung für das SoSe 2027: … ».
+      expect(text.replace(/«[^»]*»/g, '«»'), text).not.toMatch(/(^|[^ ])[:;?!]/);
+      expect(text, text).not.toMatch(/«[^ ]|[^ ]»/);
     }
   });
 
