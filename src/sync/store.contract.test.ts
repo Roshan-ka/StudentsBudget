@@ -1,8 +1,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { SIGN_UP_CODE } from '@/features/account/email-codes';
 import { newId } from '@/lib/new-id';
+import { codeIn, nextMail } from './mailpit';
 import { supabaseStore, type PulledRow } from './store';
-import { totpCode } from './totp';
+import { freshCode, totpCode } from './totp';
 
 // The app's account store against a real Supabase stack: the local one that `npm run supabase:start` and the CI `db`
 // job run, with the migrations applied. The e2e specs mock PostgREST; this checks that what the store sends is what
@@ -19,8 +21,9 @@ const PASSWORD = 'contract-test-password';
 type Change = { tbl: string; id: string; data: unknown; deleted_at: string | null; rev: number };
 
 /**
- * A new user, signed in. The local stack lets anyone sign up, with no email confirmation (supabase/config.toml).
- * `experimental` turns on supabase-js's experimental auth APIs, such as recovery codes.
+ * A new user, signed in. The local stack lets anyone sign up, and since P2.4 wants the email confirmed
+ * (supabase/config.toml): the code comes from the sign-up email in Mailpit. `experimental` turns on supabase-js's
+ * experimental auth APIs, such as recovery codes.
  */
 async function newUser(
   email = `contract-${newId()}@example.com`,
@@ -29,8 +32,12 @@ async function newUser(
   const client = createClient(STACK_URL ?? '', STACK_KEY ?? '', {
     auth: { persistSession: false, autoRefreshToken: false, experimental },
   });
-  const { data, error } = await client.auth.signUp({ email, password: PASSWORD });
-  if (error || !data.session) throw error ?? new Error('sign-up gave no session');
+  const signedUp = await client.auth.signUp({ email, password: PASSWORD });
+  if (signedUp.error) throw signedUp.error;
+  if (signedUp.data.session) return client;
+  const token = codeIn(await nextMail(email));
+  const confirmed = await client.auth.verifyOtp({ email, token, type: SIGN_UP_CODE });
+  if (confirmed.error || !confirmed.data.session) throw confirmed.error ?? new Error('the sign-up code gave no session');
   return client;
 }
 
@@ -179,16 +186,6 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('the account store against a rea
   }, 60_000);
 });
 
-/** The authenticator's code now, once it differs from `used`: the account server may refuse a code given twice. */
-async function freshCode(secret: string, used: string): Promise<string> {
-  for (;;) {
-    const code = totpCode(secret);
-    if (code !== used) return code;
-    // Into the next 30-second step.
-    await new Promise((resolve) => setTimeout(resolve, 30_000 - (Date.now() % 30_000) + 200));
-  }
-}
-
 describe.runIf(Boolean(STACK_URL && STACK_KEY))('two-step sign-in against a real Supabase stack', () => {
   it('lets a password alone neither add an authenticator nor remove one, and shows it no rows', async () => {
     const email = `contract-${newId()}@example.com`;
@@ -229,7 +226,7 @@ describe.runIf(Boolean(STACK_URL && STACK_KEY))('two-step sign-in against a real
 
 
 describe.runIf(Boolean(STACK_URL && STACK_KEY))('passkeys and recovery codes against a real Supabase stack (P2.3b)', () => {
-  it('lets a new, auto-confirmed user start a passkey registration for StudentsBudget', async () => {
+  it('lets a new, confirmed user start a passkey registration for StudentsBudget', async () => {
     const client = await newUser();
     const started = await client.auth.passkey.startRegistration();
     expect(started.error).toBeNull();

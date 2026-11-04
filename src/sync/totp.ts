@@ -33,3 +33,13 @@ export function totpCode(secret: string, time: number = Date.now()): string {
   const offset = mac[mac.length - 1] & 0x0f;
   return String((mac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0');
 }
+
+/** The authenticator's code now, once it differs from `used`: the account server may refuse a code given twice. */
+export async function freshCode(secret: string, used: string): Promise<string> {
+  for (;;) {
+    const code = totpCode(secret);
+    if (code !== used) return code;
+    // Into the next 30-second step.
+    await new Promise((resolve) => setTimeout(resolve, STEP_SECONDS * 1000 - (Date.now() % (STEP_SECONDS * 1000)) + 200));
+  }
+}
