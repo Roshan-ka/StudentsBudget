@@ -17,6 +17,7 @@ import { reveal } from './reveal';
 import { setup } from './setup';
 import { shell } from './shell';
 import { sync } from './sync';
+import { theme } from './theme';
 import { tips } from './tips';
 
 /**
@@ -45,6 +46,7 @@ import { tips } from './tips';
 export const fr: Messages = {
   shell,
   language,
+  theme,
   common,
   categories,
   home,
