@@ -78,7 +78,7 @@ What the two build ledgers (P1, 2026-10-16 to 2026-10-19, and P1.1, 2026-10-19 t
 
 ### P1.1 (R1–R18)
 - R1: Task 1 may edit `src/features/setup/steps/envelopes.tsx` if the six new flexible envelopes need a €0 default or validation change; the file is frozen afterwards. Cost if wrong: none.
-- R2: Task 6 also rejects a schedule whose `accountId` isn't in the backup file, because a dangling one would never post. Cost if wrong: one more rule and test.
+- R2: Task 6 also rejects a schedule whose `accountId` isn't in the backup file, because a dangling one would never post. Cost if wrong: one more rule and test. Reversed 2026-11-04 (fix/data-bugs-chunk-2): such a schedule restores as it is, since the app treats it as a line waiting for an account.
 - R3: Task 7 (README, CLAUDE.md, emulated iPhone check) runs on the merged branch before the whole-branch review, so the final review also covers any fixes from the check. Cost if wrong: a fix-wave change after the check could alter iPhone behaviour; the final full-suite run covers that.
 - R4: Tasks 2–6 run as parallel implementers, each in its own git worktree with disjoint file ownership and its own e2e port, as Roshan asked. Cost if wrong: merge conflicts if a track strays outside its files.
 - R5: the four remote branches `origin/feat/p1-day1..4` stay on GitHub until Roshan says to delete them. Cost if wrong: none.
@@ -129,7 +129,7 @@ Every deferred or minor item in the two ledgers was checked against the code on 
 - `postedIn` now loads the whole period and filters it in memory instead of stopping at the first match (`post-due.ts`); same result, trivial cost. Found 2026-10-21.
 - A plain weekly-to-monthly edit skips that month's first monthly entry (the period scan finds the weekly ones), and monthly-to-weekly posts weekly entries in a month whose monthly one already posted (`post-due.ts` `postedIn`). Done 2026-11-04 (fix/data-bugs-chunk-1): a schedule's own entry holds only the period its id names. The monthly-to-weekly half did not reproduce for an edit (the watermark holds the weekly entries back); turning auto-add off and on does it, as `post-due.test.ts` pins on purpose. Known gap: a month that starts on a Monday is still skipped after a weekly-to-monthly change once its first week was posted (the week's id is the month's).
 - A future-dated automatic entry that was moved to another day still suppresses its period (`post-due.ts`). Done 2026-11-04 (fix/data-bugs-chunk-1) for the current schedule's entries; an earlier schedule's entry (the line turned off and on) moved into a later period still holds it.
-- A stale second-tab wizard can re-orphan an `accountId`, and a plan exported in that state can't be restored (`update-plan.ts`, `src/features/backup/backup.ts`).
+- A stale second-tab wizard can re-orphan an `accountId`, and a plan exported in that state can't be restored (`update-plan.ts`, `src/features/backup/backup.ts`). Done 2026-11-04 (fix/data-bugs-chunk-2): the wizard keeps a line another tab moved to an existing account, and a backup or Load with an orphaned schedule restores it as it is.
 - The Resume button shows no date although the Edit form does; the frequency-change note exists in the editor but not in the wizard; focus is lost after the Delete confirmation (`recurring-editor.tsx`, `draft-schedule-fields.tsx`).
 
 ### Home and suggested budget

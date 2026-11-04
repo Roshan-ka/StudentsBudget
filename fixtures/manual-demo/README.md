@@ -1,6 +1,6 @@
 # StudentsBudget manual demonstration pack
 
-24 accepted backup files, 58 deliberately invalid files, and manual checks with expected results. All data and exchange rates are fictional.
+24 accepted backup files, 57 deliberately invalid files, and manual checks with expected results. All data and exchange rates are fictional.
 
 ## Read first: a snapshot of 21-10-2026
 
@@ -8,7 +8,7 @@ The committed files were generated for **21-10-2026** (Europe/Berlin), demo mont
 
 | What you check | Holds |
 |---|---|
-| Importing and refusing all 82 files, Replace/Cancel; account balances and the Total in Settings; Entries and Charts once the month switcher is on October 2026; Home's monthly figure for the files without dated entries (02, 04, 07, 18, 19, 21 to 24) | On any date |
+| Importing and refusing all 81 files, Replace/Cancel; account balances and the Total in Settings; Entries and Charts once the month switcher is on October 2026; Home's monthly figure for the files without dated entries (02, 04, 07, 18, 19, 21 to 24) | On any date |
 | Home's monthly figure ("Left to spend this month", over, envelopes) for the files with dated entries: 01, 03, 05, 06, 09, 10 to 13, 15, 17, 20 | While your device date is in October 2026. From 01-11-2026 Home shows an untouched November: go back to October 2026 in Entries and Charts instead. |
 | "This week" on Home and the Check-in week; the away mark of the current week in 13 | Only from 19-10-2026 to 25-10-2026, the Monday to Sunday of the snapshot week |
 | 08: exactly three recurring entries after the restore | Only if you restore from 21-10-2026 to 27-10-2026 (nothing is due before; from 28-10-2026 the weekly Job line posts again) |

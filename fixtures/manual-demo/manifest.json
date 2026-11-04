@@ -617,10 +617,6 @@
       "error": "This backup file is damaged: two rows share the same id."
     },
     {
-      "path": "invalid/schedule-missing-account.json",
-      "error": "This backup file is damaged: a fixed cost or income uses an account that isn't in the file."
-    },
-    {
       "path": "invalid/schedule-day-32.json",
       "error": "This backup file is damaged: a fixed cost or income has an impossible schedule."
     },

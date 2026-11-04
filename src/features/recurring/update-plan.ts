@@ -26,15 +26,26 @@ export function keepWatermarks(stored: Plan, next: Plan): Plan {
  * For a whole plan saved from a copy read earlier (the edit wizard): each schedule `stored` has by id keeps its pause
  * as stored and the later of the two starts. The wizard has no pause or resume of its own, so a wizard left open in
  * another tab cannot undo one made since; a later start it set itself (a repaired line) stays.
+ *
+ * A line whose schedule names an account that is not among `accountIds` any more stays as stored (found by schedule
+ * id, else by category), as long as the stored line has no schedule or one on an account that exists: another tab
+ * changed the line since (moved it, or turned auto-add off, or off and on) and deleted the old account. Saving the
+ * wizard's copy would add the line to that account again, where nothing is posted. The wizard's own edits to that line
+ * are dropped with it.
  */
-export function keepScheduleState(stored: Plan, next: Plan): Plan {
-  const byId = new Map(
-    [...stored.incomes, ...stored.fixed].flatMap((l) => (l.schedule ? [[l.schedule.id, l.schedule] as const] : [])),
-  );
+export function keepScheduleState(stored: Plan, next: Plan, accountIds: ReadonlySet<string>): Plan {
+  const storedLines = [...stored.incomes, ...stored.fixed];
+  const byId = new Map(storedLines.flatMap((l) => (l.schedule ? [[l.schedule.id, l] as const] : [])));
+  const byCategory = new Map(storedLines.map((l) => [l.categoryId, l] as const));
   const keep = (line: PlanLine): PlanLine => {
     const s = line.schedule;
-    const was = s && byId.get(s.id);
-    if (!s || !was) return line;
+    if (!s) return line;
+    if (!accountIds.has(s.accountId)) {
+      const storedLine = byId.get(s.id) ?? byCategory.get(line.categoryId);
+      if (storedLine && (!storedLine.schedule || accountIds.has(storedLine.schedule.accountId))) return storedLine;
+    }
+    const was = byId.get(s.id)?.schedule;
+    if (!was) return line;
     const schedule = { ...s, startOn: laterOf(was.startOn, s.startOn) };
     if (was.paused) schedule.paused = true;
     else delete schedule.paused;

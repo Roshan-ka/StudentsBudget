@@ -316,7 +316,6 @@ For each file: restore 02-clean-budget first, choose the invalid file, check the
 | [duplicate-discount-votes.json](invalid/duplicate-discount-votes.json) | This backup file is damaged: two rows share the same id. |
 | [duplicate-one-offs.json](invalid/duplicate-one-offs.json) | This backup file is damaged: two rows share the same id. |
 | [duplicate-schedules.json](invalid/duplicate-schedules.json) | This backup file is damaged: two rows share the same id. |
-| [schedule-missing-account.json](invalid/schedule-missing-account.json) | This backup file is damaged: a fixed cost or income uses an account that isn't in the file. |
 | [schedule-day-32.json](invalid/schedule-day-32.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. |
 | [schedule-weekday-8.json](invalid/schedule-weekday-8.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. |
 | [schedule-watermark-before-start.json](invalid/schedule-watermark-before-start.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. |
