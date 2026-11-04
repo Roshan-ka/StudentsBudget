@@ -175,6 +175,36 @@ Each is about an hour: lint, typecheck, `npm test`, an "As built" note, a commit
      - "What P2.1 and P2.2 leave out" drops password reset and email confirmation;
      - the `mockSupabaseAuth` and contract-test notes (Mailpit must run for `test:contract`).
    - A brief for the Playwright-tester session: a trial task for the real-stack e2e of these flows with its Mailpit helper.
+   - **Prepared (2026-11-04), on top of chunk 3:**
+     - **CLAUDE.md:**
+       - an "Emailed codes" bullet (codes, not links; the hosted templates are pasted copies; the `lang` metadata; the aal1 recovery and `recovery.ts`; Mailpit for the contract tests);
+       - the mock's endpoints in the e2e note;
+       - the language choice sent once at sign-up;
+       - the outgoing requests;
+       - password reset and email confirmation are no longer left out.
+     - **Senders checked for Roshan's choice** (free tiers, as of 04-11-2026; all three are French companies with SMTP relay):
+
+       | Sender | Free tier | Notes |
+       |---|---|---|
+       | Brevo | 300 emails a day | Named by Supabase. A new account may wait for approval. |
+       | Mailjet | 200 a day, 6,000 a month | Free emails carry its logo. |
+       | Scaleway Transactional Email | 300 a month, then €0.25 per 1,000 | |
+
+       Recommended: Brevo, which has the most room on the free tier and is on Supabase's list.
+     - **What every sender needs: a domain of our own.** Each sender wants the From domain verified (SPF and DKIM). StudentsBudget has none: `students-budget.vercel.app` is Vercel's. A From address at a mailbox provider (gmail.com, say) fails that provider's DMARC, so the codes would land in spam or be refused. So go-live needs a domain, about €10 a year, with the sender's DNS records. Until then, only the project team's addresses get codes, from Supabase's own sender.
+     - **Roshan's go-live steps,** in this order:
+       1. Paste both templates into the dashboard (Authentication → Emails), if not done with chunks 2 and 3.
+       2. Get the domain and set up the sender's DNS records.
+       3. Add the sender in Authentication → SMTP settings. The email rate limit then starts at 30 an hour; raise it if friends hit it.
+       4. Check "OTP length" is 6 and "Email OTP expiration" is 3600 s.
+       5. Turn "Confirm email" on.
+       6. Do the real try on the phone, then tell Claude what the emails and the app showed.
+     - **The trial task for the playwright-tester skill** (send it to its session once chunk 3 is merged):
+       - Cover the sign-up confirmation and "Forgot password" on the real local stack: `npm run supabase:start` (with Mailpit), and `npm run dev` with the local stack's two `NEXT_PUBLIC_SUPABASE_*` settings.
+       - Write the skill's Mailpit helper (`templates/mailpit.ts`, its open E2 item). It reads the newest code for the run's own address through Playwright's `request` fixture on `http://127.0.0.1:54324`. `src/sync/mailpit.ts` shows the API (`/api/v1/search`, `/api/v1/message/{ID}`).
+       - Cover E3: a used code is refused a second time.
+       - For an account with two-step sign-in, recovery shows the authenticator step before the new password.
+       - The mocked specs (`e2e/email-codes.spec.ts`) stay as they are; the skill's specs are a new file.
 
 ## Verification
 
