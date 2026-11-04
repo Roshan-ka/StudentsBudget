@@ -8,6 +8,7 @@ export const common: Messages['common'] = {
     pickDay: 'Elige un día',
     today: 'Hoy',
     yesterday: 'Ayer',
+    letters: { day: 'D', month: 'M', year: 'A' },
   },
   amountField: {
     positive: 'Escribe un importe mayor que 0, como 250 o 12,50.',

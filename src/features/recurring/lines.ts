@@ -8,7 +8,7 @@ import { formatDate, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { describeTiming, monthlyEquivalent, newSchedule, restartSchedule, resumeSchedule } from './schedule';
 
-/** Under the repeat fields of a line that has not started yet: "First added on 01-12-2026." */
+/** Under the repeat fields of a line that has not started yet: "First added on 01.12.2026." */
 export function firstAddedLine(day: IsoDate, lang: Language = 'en'): string {
   return MESSAGES[lang].recurring.firstAdded(formatDate(day));
 }

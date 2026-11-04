@@ -10,7 +10,7 @@ import { UNIVERSITIES } from '@/features/profile/profile';
 /** How every answer from these prompts is written: the app's rules for text, and the tools' for figures. */
 const HOUSE_RULES =
   'Write it short and calm: a figure below zero is "€12 over", never "failed" or a warning. Write full dates as ' +
-  'DD-MM-YYYY. Use only figures the tools return, cite the source and checked date of every Regensburg figure, call ' +
+  'DD.MM.YYYY. Use only figures the tools return, cite the source and checked date of every Regensburg figure, call ' +
   'estimates estimates, and say so when a tool has nothing instead of guessing.';
 
 function userMessage(text: string): GetPromptResult {

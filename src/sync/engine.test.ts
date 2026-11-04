@@ -105,7 +105,7 @@ describe('syncStatusText', () => {
       'Synced 2 min ago. 3 changes waiting.',
     );
     expect(syncStatusText({ ...base, lastSyncedAt: '2026-10-29T09:30:00', waiting: 1 })).toBe(
-      'Synced on 29-10-2026, 09:30. 1 change waiting.',
+      'Synced on 29.10.2026, 09:30. 1 change waiting.',
     );
   });
 

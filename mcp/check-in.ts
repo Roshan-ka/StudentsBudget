@@ -64,7 +64,7 @@ const CHECK_IN_NOTE =
   'offer no other. A swap’s source and url state the usual price, toSource and toUrl the cheaper one. When a month ' +
   'began mid-week, the first part covers the week’s days in the previous month. Rank expenses by eurMinor; note is ' +
   'the user’s own text, so quote it only when it helps. Write a figure below zero as "€12 over", never as failed ' +
-  'or a warning, and dates as DD-MM-YYYY.';
+  'or a warning, and dates as DD.MM.YYYY.';
 
 /** The entries dated in the part, newest day first; within a day the entry saved last comes first, as the app lists them. */
 function entriesOf(data: BackupData, start: IsoDate, end: IsoDate): Part['entries'] {

@@ -1,13 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Category, DiscountVote, Entry, Plan, Profile, Rate, WeekResult } from '../src/db/types';
+import { formatDate } from '../src/lib/dates';
 import { completeSetup, readStore } from './helpers/setup';
 
 // The clock is pinned to 2026-10-16 by `completeSetup`, so the file is named after that day.
 const FILE_NAME = 'studentsbudget-backup-2026-10-16.json';
 const QUESTION = `Replace all data with ${FILE_NAME}?`;
-// Made on the pinned day with the 3 accounts and the 1 entry of the test.
-const SUMMARY = /^Saved 16-10-2026, \d{2}:\d{2} · 3 accounts · 1 entry$/;
+// Made on the pinned day with the 3 accounts and the 1 entry of the test; the day as the region writes it, escaped.
+const PINNED_DAY = formatDate('2026-10-16').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const SUMMARY = new RegExp(`^Saved ${PINNED_DAY}, \\d{2}:\\d{2} · 3 accounts · 1 entry$`);
 const NOT_A_BACKUP = "This isn't a StudentsBudget backup file.";
 const NEWER = 'This backup is from a newer version of the app.';
 const DAMAGED = "This backup file is damaged: an entry uses an account that isn't in the file.";
@@ -444,7 +446,7 @@ test.describe('choosing a file to restore, on every screen size', () => {
     await expect(page.getByText('Reading…', { exact: true })).toBeVisible();
     await backupFileInput(page).setInputFiles(jsonFile('good.json', GOOD_BACKUP));
     await expect(page.getByText('Replace all data with good.json?')).toBeVisible();
-    await expect(confirmation(page).getByText('Saved 16-10-2026, 12:00 · 2 accounts · 3 entries')).toBeVisible();
+    await expect(confirmation(page).getByText(`Saved ${formatDate('2026-10-16')}, 12:00 · 2 accounts · 3 entries`)).toBeVisible();
 
     await afterSlowRead(page);
     await expect(inlineAlert(page)).toHaveCount(0);
@@ -490,7 +492,7 @@ test.describe('choosing a file to restore, on every screen size', () => {
     await expect(inlineAlert(page)).toHaveCount(0);
   });
 
-  test('the confirmation names the file, gives its date as DD-MM-YYYY with the time, and counts what is in it', async ({
+  test('the confirmation names the file, gives its date as DD.MM.YYYY with the time, and counts what is in it', async ({
     page,
   }) => {
     await page.goto('/setup');
@@ -500,7 +502,7 @@ test.describe('choosing a file to restore, on every screen size', () => {
     const question = page.getByText('Replace all data with studentsbudget-backup-2026-10-19.json?');
     await expect(question).toBeVisible();
     await expect(question.locator('strong')).toHaveText('studentsbudget-backup-2026-10-19.json');
-    await expect(confirmation(page).getByText('Saved 16-10-2026, 12:00 · 2 accounts · 3 entries')).toBeVisible();
+    await expect(confirmation(page).getByText(`Saved ${formatDate('2026-10-16')}, 12:00 · 2 accounts · 3 entries`)).toBeVisible();
     await expect(confirmation(page).getByRole('button')).toHaveText(['Replace all data', 'Cancel']);
     await confirmation(page).getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(confirmation(page)).toHaveCount(0);

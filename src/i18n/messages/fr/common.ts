@@ -9,6 +9,7 @@ export const common: Messages['common'] = {
     pickDay: 'Choisis un jour',
     today: 'Aujourd’hui',
     yesterday: 'Hier',
+    letters: { day: 'J', month: 'M', year: 'A' },
   },
   amountField: {
     positive: 'Saisis un montant supérieur à 0, comme 250 ou 12,50.',

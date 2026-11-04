@@ -4,6 +4,6 @@ import type { Messages } from '../en';
 export const language: Messages['language'] = {
   heading: 'Idioma',
   label: 'Idioma',
-  hint: 'Solo en este móvil. Los importes y las fechas siguen el idioma.',
+  hint: 'Solo en este móvil. Los importes siguen el idioma; las fechas, la región (Alemania).',
   draft: (name) => `${name} (borrador)`,
 };

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry } from '../src/db/types';
+import { formatDate } from '../src/lib/dates';
 import { FRANKFURTER, completeSetup, mockFrankfurter, readStore } from './helpers/setup';
 
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
@@ -172,7 +173,7 @@ test('Settings marks one default account, keeps it through an edit, and falls ba
   expect((await readStore<Account>(page, 'accounts')).some((a) => a.isDefault)).toBe(false);
 });
 
-test('the transfer form shows its date as DD-MM-YYYY, and Yesterday dates the transfer the day before', async ({
+test('the transfer form shows its date as DD.MM.YYYY, and Yesterday dates the transfer the day before', async ({
   page,
 }) => {
   await page.clock.setFixedTime(new Date(2026, 9, 16, 12, 0, 0));
@@ -186,13 +187,13 @@ test('the transfer form shows its date as DD-MM-YYYY, and Yesterday dates the tr
   const today = page.getByRole('button', { name: 'Today', exact: true });
   const yesterday = page.getByRole('button', { name: 'Yesterday', exact: true });
   await expect(date).toHaveValue('2026-10-16');
-  await expect(page.getByText('16-10-2026', { exact: true })).toBeVisible();
+  await expect(page.getByText(formatDate('2026-10-16'), { exact: true })).toBeVisible();
   await expect(today).toHaveAttribute('aria-pressed', 'true');
   await expect(yesterday).toHaveAttribute('aria-pressed', 'false');
 
   await yesterday.click();
   await expect(date).toHaveValue('2026-10-15');
-  await expect(page.getByText('15-10-2026', { exact: true })).toBeVisible();
+  await expect(page.getByText(formatDate('2026-10-15'), { exact: true })).toBeVisible();
   await expect(yesterday).toHaveAttribute('aria-pressed', 'true');
   await expect(today).toHaveAttribute('aria-pressed', 'false');
 
@@ -276,7 +277,7 @@ test('a new transfer is dated the day it is saved, unless a date was picked', as
   await page.clock.setFixedTime(new Date(2026, 9, 17, 0, 5, 0));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect(date).toHaveValue('2026-10-17');
-  await expect(page.getByText('17-10-2026', { exact: true })).toBeVisible();
+  await expect(page.getByText(formatDate('2026-10-17'), { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Today', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Amount', { exact: true }).fill('20');
   await page.getByRole('button', { name: 'Move money', exact: true }).click();
@@ -289,7 +290,7 @@ test('a new transfer is dated the day it is saved, unless a date was picked', as
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await page.getByLabel('Amount', { exact: true }).fill('5');
   await expect(date).toHaveValue('2026-10-10');
-  await expect(page.getByText('10-10-2026', { exact: true })).toBeVisible();
+  await expect(page.getByText(formatDate('2026-10-10'), { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Move money', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
 

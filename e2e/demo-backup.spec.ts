@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
+import { formatDate } from '../src/lib/dates';
 import { mockFrankfurter, readStore } from './helpers/setup';
 
 const demoFile = fileURLToPath(new URL('../fixtures/studentsbudget-demo-2026-10.json', import.meta.url));
@@ -17,7 +18,7 @@ test('the demo backup restores from setup and populates home, entries and charts
   await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
   await page.getByLabel('File to restore').setInputFiles(demoFile);
   await expect(page.getByText('Replace all data with studentsbudget-demo-2026-10.json?')).toBeVisible();
-  await expect(page.getByText('Saved 19-10-2026, 12:00 · 3 accounts · 47 entries')).toBeVisible();
+  await expect(page.getByText(`Saved ${formatDate('2026-10-19')}, 12:00 · 3 accounts · 47 entries`)).toBeVisible();
   await page.getByRole('button', { name: 'Replace all data', exact: true }).click();
 
   await expect(page).toHaveURL('/');

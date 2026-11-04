@@ -26,6 +26,7 @@ function texts(value: unknown, prefix: string): Map<string, string> {
 const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
   de: new Set([
     'common.accountOption',
+    'common.dateField.letters.month',
     'categories.income-bafoeg',
     'setup.accounts.name',
     'setup.accounts.bank',
@@ -44,6 +45,8 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
   ]),
   es: new Set([
     'common.accountOption',
+    'common.dateField.letters.day',
+    'common.dateField.letters.month',
     'categories.income-bafoeg',
     'setup.lines.range',
     'setup.editPlan.heading',
@@ -56,6 +59,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
   fr: new Set([
     'common.accountOption',
     'common.dateField.label',
+    'common.dateField.letters.month',
     'common.source.label',
     'categories.income-bafoeg',
     'categories.income-parents',

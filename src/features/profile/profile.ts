@@ -202,7 +202,7 @@ export function semesterFeeOffer(
 }
 
 /**
- * "1 Oct – 31 Mar" ("1. Okt. – 31. März" in German): a short label, so not DD-MM-YYYY. Any year will do; none of the
+ * "1 Oct – 31 Mar" ("1. Okt. – 31. März" in German): a short label, so not a full date. Any year will do; none of the
  * days is 29 February.
  */
 export function periodLabel(period: Pick<SemesterPeriod, 'starts' | 'ends'>, locale = 'en-IE'): string {

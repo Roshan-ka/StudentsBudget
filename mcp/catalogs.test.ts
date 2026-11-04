@@ -198,7 +198,7 @@ describe('semester_info', () => {
     expect(oth.next).toMatchObject({ start: '2027-03-15', fee: { reRegistration: { month: '2027-01' } } });
 
     expect(text.startsWith(SEMESTER_NOTE)).toBe(true);
-    expect(text).toContain('Universität Regensburg on 28-10-2026: winter semester 2026/27, 01-10-2026 to 31-03-2027.');
+    expect(text).toContain('Universität Regensburg on 28.10.2026: winter semester 2026/27, 01.10.2026 to 31.03.2027.');
     expect(text).toContain('Fee for the summer semester 2027: €215, paid with the re-registration');
     expect(text).toContain("Universität Regensburg hasn't published when re-registration for the summer semester 2027 opens.");
     expect(text).toContain('Re-registration is expected to open in January 2027.');

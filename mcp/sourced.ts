@@ -9,7 +9,7 @@ export function isEstimate(item: Sourced): boolean {
   return item.source === 'Estimate';
 }
 
-/** "Source: …, https://…, checked 16-10-2026", or for an estimate what it rests on. */
+/** "Source: …, https://…, checked 16.10.2026", or for an estimate what it rests on. */
 export function sourceLine(item: Sourced): string {
   const checked = `checked ${formatDate(item.checked)}`;
   return isEstimate(item)

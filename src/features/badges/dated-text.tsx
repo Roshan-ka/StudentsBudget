@@ -1,7 +1,9 @@
-/** A full date as `formatDate` writes it: "15-11-2026". The group keeps it in `split`'s result. */
-const DATE = /(\d{2}-\d{2}-\d{4})/;
+import { fullDatePattern } from '@/i18n/regions';
 
-/** Text whose full dates never break across lines (a hyphen is a break point). The text itself is unchanged. */
+/** A full date as `formatDate` writes it in the region: "15.11.2026". The group keeps it in `split`'s result. */
+const DATE = new RegExp(`(${fullDatePattern()})`);
+
+/** Text whose full dates never break across lines (a separator can be a break point). The text itself is unchanged. */
 export function DatedText({ text }: { text: string }) {
   return (
     <>

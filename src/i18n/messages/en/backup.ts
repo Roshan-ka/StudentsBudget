@@ -69,6 +69,6 @@ export const backup = {
     negativeAmount: 'an amount is negative',
     impossibleSchedule: 'a fixed cost or income has an impossible schedule',
   },
-  /** "Saved 19-10-2026, 12:00". */
+  /** "Saved 19.10.2026, 12:00". */
   saved: (dateTime: string) => `Saved ${dateTime}`,
 };

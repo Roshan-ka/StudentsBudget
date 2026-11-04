@@ -120,7 +120,7 @@ const READING_NOTE =
   'Home’s "This week": the week’s share of what is left this month, less this week’s spending. plan.overBy above ' +
   'zero means the envelopes plan more than the month brings in after fixed costs and money set aside (plan.available): ' +
   'mention it, as Home does. totalInEur leaves out the currencies in missingRates, since the account keeps only ' +
-  'manual rates; its amount is null when nothing could be converted: then give no total. Write dates as DD-MM-YYYY.';
+  'manual rates; its amount is null when nothing could be converted: then give no total. Write dates as DD.MM.YYYY.';
 
 function budgetOf(data: BackupData, today: IsoDate): z.infer<typeof budgetSchema> | null {
   const figures = budgetFigures(data, today);
@@ -300,7 +300,7 @@ const ENTRIES_NOTE =
   'currency. A transfer moves money between two accounts and is no spending. ' +
   'automatic: true means a recurring plan line posted it. beforeSetup: true marks an expense from before the plan ' +
   'was set up: budget_overview’s spending leaves it out, so leave it out of any budget sum too. note is the user’s ' +
-  'own text: use it to answer, and quote it only when that helps. Write dates as DD-MM-YYYY.';
+  'own text: use it to answer, and quote it only when that helps. Write dates as DD.MM.YYYY.';
 
 /** A month's entries, newest first (latest made first within a day), at most `limit`; a category leaves out transfers. */
 export async function recentEntries(

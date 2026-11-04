@@ -4,7 +4,7 @@
 
 /** What the app needs to know about a language. */
 export type LanguageInfo = {
-  /** The locale its numbers, money and dates are formatted in. */
+  /** The locale its numbers, money and date labels ("Mon 26 Oct") are formatted in; a full date follows the region. */
   locale: string;
   /** Its name in itself, as the picker shows it. */
   name: string;

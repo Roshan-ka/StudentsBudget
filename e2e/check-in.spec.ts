@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { formatDate } from '../src/lib/dates';
 import { DEFAULT_SETUP, completeSetup, readStore } from './helpers/setup';
 
 // `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day. October is planned in full, and
@@ -171,10 +172,10 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await expect(page).toHaveURL('/entries/new');
   await page.getByLabel('Amount', { exact: true }).fill('50');
   await page.getByLabel('Category', { exact: true }).selectOption({ label: 'Eating out' });
-  // Saturday is one tap away: Yesterday, shown as DD-MM-YYYY, over the native input's ISO value.
+  // Saturday is one tap away: Yesterday, shown as DD.MM.YYYY, over the native input's ISO value.
   await page.getByRole('button', { name: 'Yesterday', exact: true }).click();
   await expect(page.getByLabel('Date', { exact: true })).toHaveValue('2026-10-17');
-  await expect(page.getByText('17-10-2026', { exact: true })).toBeVisible();
+  await expect(page.getByText(formatDate('2026-10-17'), { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Save expense' }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
 

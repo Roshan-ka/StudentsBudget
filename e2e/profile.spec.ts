@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan, Profile } from '../src/db/types';
+import { formatDate } from '../src/lib/dates';
 import { completeSetup, readStore } from './helpers/setup';
 
 // 375 px, the narrowest phone the app is made for. `completeSetup` pins the clock to Friday 2026-10-16, which falls in
@@ -71,8 +72,8 @@ test('Profile comes first in Settings after Your account, prefills the semester 
   // The current semester, from the university's own semester dates, with their source.
   await expect(startField(page)).toHaveValue('2026-10-01');
   await expect(endField(page)).toHaveValue('2027-03-31');
-  await expect(profileSection(page).getByText('01-10-2026', { exact: true })).toBeVisible();
-  await expect(profileSection(page).getByText('31-03-2027', { exact: true })).toBeVisible();
+  await expect(profileSection(page).getByText(formatDate('2026-10-01'), { exact: true })).toBeVisible();
+  await expect(profileSection(page).getByText(formatDate('2027-03-31'), { exact: true })).toBeVisible();
   await expect(profileSection(page).getByText('26 weeks', { exact: false })).toBeVisible();
   await expect(profileSection(page).getByText('Source', { exact: true })).toBeVisible();
 

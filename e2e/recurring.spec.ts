@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Account, Entry, Plan, PlanLine, Rate } from '../src/db/types';
+import { formatDate } from '../src/lib/dates';
 import { FRANKFURTER, completeSetup, fillSetup, readStore } from './helpers/setup';
 
 /** Noon on a local calendar day; month is 1–12. */
@@ -145,9 +146,9 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
   const rent = page.getByRole('group', { name: 'Rent schedule', exact: true });
-  await expect(rent.getByText('First added on 01-12-2026.', { exact: true })).toBeVisible();
+  await expect(rent.getByText(`First added on ${formatDate('2026-12-01')}.`, { exact: true })).toBeVisible();
   await rent.getByLabel('Day', { exact: true }).selectOption('15');
-  await expect(rent.getByText('First added on 15-11-2026.', { exact: true })).toBeVisible();
+  await expect(rent.getByText(`First added on ${formatDate('2026-11-15')}.`, { exact: true })).toBeVisible();
   await rent.getByLabel('Day', { exact: true }).selectOption('1');
   for (const step of ['One-off costs', 'Guesses', 'Envelopes']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
@@ -160,11 +161,11 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
   await openSettings(page);
   await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
   const form = page.getByRole('form', { name: 'Change Rent' });
-  await expect(form.getByText('First added on 01-12-2026.', { exact: true })).toBeVisible();
+  await expect(form.getByText(`First added on ${formatDate('2026-12-01')}.`, { exact: true })).toBeVisible();
   await form.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', { name: 'Add a fixed cost or income', exact: true }).click();
   const added = page.getByRole('form', { name: 'New fixed cost or income' });
-  await expect(added.getByText('First added on 01-12-2026.', { exact: true })).toBeVisible();
+  await expect(added.getByText(`First added on ${formatDate('2026-12-01')}.`, { exact: true })).toBeVisible();
   await added.getByRole('button', { name: 'Cancel', exact: true }).click();
 
   // Once the rent has started, it is no longer the first.
@@ -187,8 +188,8 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
   const again = page.getByRole('form', { name: 'Change Rent' });
   await again.getByRole('checkbox', { name: 'Add it automatically', exact: true }).check();
   await again.getByLabel('Day', { exact: true }).selectOption('15');
-  await expect(again.getByText('First added on 15-01-2027.', { exact: true })).toBeVisible();
-  await expect(again.getByText('First added on 15-12-2026.', { exact: true })).toHaveCount(0);
+  await expect(again.getByText(`First added on ${formatDate('2027-01-15')}.`, { exact: true })).toBeVisible();
+  await expect(again.getByText(`First added on ${formatDate('2026-12-15')}.`, { exact: true })).toHaveCount(0);
 });
 
 test('in Settings a line can be added automatically, paused, resumed, added and deleted', async ({ page }) => {

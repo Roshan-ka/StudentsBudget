@@ -106,7 +106,7 @@ function feeLines(s: SemesterInfo, name: string): string[] {
 /** How to read the result: what the model sees in a client that passes only the structured content on. */
 export const SEMESTER_NOTE =
   'current is the semester the date falls in, next the one after it. Cite the sources and checked dates, and write ' +
-  'dates as DD-MM-YYYY. A fee is paid with the re-registration (Rückmeldung) before its semester. On next, fee: null ' +
+  'dates as DD.MM.YYYY. A fee is paid with the re-registration (Rückmeldung) before its semester. On next, fee: null ' +
   '(or a total of null) means no page in this data states that fee yet: say so, and never estimate it, because it ' +
   'changes every semester. On current, the fee was already due before the semester began, and this data may no ' +
   'longer hold it: fee: null there says nothing about what that fee was or whether it is paid. ' +

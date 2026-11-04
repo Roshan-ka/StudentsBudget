@@ -3,6 +3,7 @@ import { CATEGORIES } from '../src/data/categories';
 import { DISCOUNTS, type Discount } from '../src/data/discounts';
 import { TIPS } from '../src/data/tips';
 import type { DiscountVote } from '../src/db/types';
+import { formatDate } from '../src/lib/dates';
 import { readStore } from './helpers/setup';
 
 // 375 px, the narrowest phone the app is made for.
@@ -85,7 +86,7 @@ test('the Tips tab switches to a sourced discount list and back', async ({ page 
   await expect(discountList(page).getByText('May be outdated', { exact: true })).toHaveCount(0);
 
   const first = item(page, FIRST);
-  for (const text of [FIRST.offer, FIRST.conditions, FIRST.address, 'Last confirmed 20-10-2026']) {
+  for (const text of [FIRST.offer, FIRST.conditions, FIRST.address, `Last confirmed ${formatDate('2026-10-20')}`]) {
     await expect(first.getByText(text, { exact: true })).toBeVisible();
   }
   await expect(voteButton(page, FIRST, 'Still works')).toHaveAttribute('aria-pressed', 'false');
@@ -95,7 +96,7 @@ test('the Tips tab switches to a sourced discount list and back', async ({ page 
   await expect(first.locator('details[open]')).toHaveCount(0);
   await first.getByText('Source', { exact: true }).click();
   await expect(first.getByText(FIRST.source, { exact: true })).toBeVisible();
-  await expect(first.getByText('checked 20-10-2026', { exact: true })).toBeVisible();
+  await expect(first.getByText(`checked ${formatDate('2026-10-20')}`, { exact: true })).toBeVisible();
   const link = first.getByRole('link', { name: new URL(FIRST.url).hostname.replace(/^www\./, ''), exact: true });
   await expect(link).toHaveAttribute('href', FIRST.url);
   await expect(link).toHaveAttribute('target', '_blank');
@@ -130,7 +131,7 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await voteButton(page, LAST, 'Still works').click();
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'true');
   await expect(places(page)).toHaveText([LAST.place, FIRST.place, ...middle]);
-  await expect(item(page, LAST).getByText('Last confirmed 02-11-2026', { exact: true })).toBeVisible();
+  await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-11-02')}`, { exact: true })).toBeVisible();
   // Focus moves with the discount, and a screen reader hears where it went.
   await expect(voteButton(page, LAST, 'Still works')).toBeFocused();
   await expect(announced(page)).toHaveText(`${LAST.place}: saved as still working. It moves up the list.`);
@@ -138,7 +139,7 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await voteButton(page, FIRST, "Doesn't work anymore").click();
   await expect(voteButton(page, FIRST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
   await expect(places(page)).toHaveText([LAST.place, ...middle, FIRST.place]);
-  await expect(item(page, FIRST).getByText('You marked this as not working on 02-11-2026', { exact: true })).toBeVisible();
+  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-02')}`, { exact: true })).toBeVisible();
   await expect(item(page, FIRST).getByText('Saved on this phone.', { exact: true })).toBeVisible();
   await expect(voteButton(page, FIRST, "Doesn't work anymore")).toBeFocused();
   await expect(announced(page)).toHaveText(`${FIRST.place}: saved as not working. It moves down the list.`);
@@ -154,9 +155,9 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await showDiscounts(page);
   await expect(places(page)).toHaveText([LAST.place, ...middle, FIRST.place]);
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'true');
-  await expect(item(page, LAST).getByText('Last confirmed 02-11-2026', { exact: true })).toBeVisible();
+  await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-11-02')}`, { exact: true })).toBeVisible();
   await expect(voteButton(page, FIRST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
-  await expect(item(page, FIRST).getByText('You marked this as not working on 02-11-2026', { exact: true })).toBeVisible();
+  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-02')}`, { exact: true })).toBeVisible();
   await expect(item(page, FIRST).getByText(/^Last confirmed/)).toHaveCount(0);
   // What was said about the votes before the reload is gone.
   await expect(discountList(page).getByText('Saved on this phone.', { exact: true })).toHaveCount(0);
@@ -172,7 +173,7 @@ test('after eight weeks without a confirmation every discount may be outdated, a
   // A confirmation today lifts it back to the top.
   await voteButton(page, LAST, 'Still works').click();
   await expect(places(page).first()).toHaveText(LAST.place);
-  await expect(item(page, LAST).getByText('Last confirmed 15-12-2026', { exact: true })).toBeVisible();
+  await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-12-15')}`, { exact: true })).toBeVisible();
   await expect(item(page, LAST).getByText('May be outdated', { exact: true })).toHaveCount(0);
   await expect(discountList(page).getByText('May be outdated', { exact: true })).toHaveCount(DISCOUNTS.length - 1);
   await expect(announced(page)).toHaveText(`${LAST.place}: saved as still working. It moves up the list.`);
@@ -187,7 +188,7 @@ test('after eight weeks without a confirmation every discount may be outdated, a
   await expect(voteButton(page, LAST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'false');
   await expect(places(page).last()).toHaveText(LAST.place);
-  await expect(item(page, LAST).getByText('You marked this as not working on 15-12-2026', { exact: true })).toBeVisible();
+  await expect(item(page, LAST).getByText(`You marked this as not working on ${formatDate('2026-12-15')}`, { exact: true })).toBeVisible();
   await expect.poll(() => votes(page)).toEqual([{ discountId: LAST.id, vote: 'outdated', on: '2026-12-15' }]);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });

@@ -3,7 +3,7 @@
 export const language = {
   heading: 'Language',
   label: 'Language',
-  hint: 'Only on this phone. Money and dates follow the language.',
+  hint: 'Only on this phone. Money follows the language; dates follow the region (Germany).',
   /** A language a dev build lists before it is offered. */
   draft: (name: string) => `${name} (draft)`,
 };

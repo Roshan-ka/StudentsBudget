@@ -49,12 +49,12 @@ describe('regensburg_costs', () => {
     }
   });
 
-  it('writes each figure as the app does, with the date as DD-MM-YYYY', async () => {
+  it('writes each figure as the app does, with the date as DD.MM.YYYY', async () => {
     const { text, data } = await costs();
     const rent = data.ranges.find((r) => r.categoryId === 'rent');
     expect(rent).toMatchObject({ category: 'Rent', range: '€215–561', minMinor: 21500, maxMinor: 56100, estimate: false });
     expect(text).toContain('- Rent: €215–561 a month. Source: Universität Regensburg');
-    expect(text).toContain('checked 16-10-2026');
+    expect(text).toContain('checked 16.10.2026');
     expect(data.prices.find((p) => p.label === 'Mensa main meal (student price)')?.price).toBe('€3.80');
   });
 
