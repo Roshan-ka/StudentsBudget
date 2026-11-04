@@ -104,25 +104,38 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/*
+ * The dark theme (chunk 8): the same design on a warm near-black page, with cards a step lighter, a muted cream outline,
+ * a dark gold accent and periwinkle in place of cobalt. Put on <html> by the theme head script (src/theme/themes.ts)
+ * for Dark, or for Same as phone on a dark phone. tokens.test.ts holds it to the same contrast as the light theme.
+ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #1b1915;
+  --foreground: #f1ead9;
+  --card: #25221c;
+  --card-foreground: #f1ead9;
+  --popover: #25221c;
+  --popover-foreground: #f1ead9;
+  --primary: #aab7ff;
+  --primary-foreground: #15151c;
+  --secondary: #2f2a21;
+  --secondary-foreground: #f1ead9;
+  --muted: #2f2a21;
+  --muted-foreground: #c9bfab;
+  --accent: #3d331c;
+  --accent-foreground: #f3e3b5;
+  --destructive: #ffb4a8;
+  --border: #332f27;
+  --input: #a99f8b;
+  --ring: #aab7ff;
+  --outline: #a99f8b;
+  --nav: #201e19;
+  --nav-foreground: #c9bfab;
+  --highlight: #e6c467;
+  --track: color-mix(in oklch, var(--foreground) 12%, transparent);
+  /* The shadows go black: on a dark page the warm shadow would not show. */
+  --shadow-offset: 3px 3px 0 rgb(0 0 0 / 0.45);
+  --shadow-offset-pressed: 1px 1px 0 rgb(0 0 0 / 0.45);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
