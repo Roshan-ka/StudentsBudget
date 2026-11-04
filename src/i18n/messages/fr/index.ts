@@ -1,4 +1,4 @@
-import { en, type Messages } from '../en';
+import type { Messages } from '../en';
 import { account } from './account';
 import { accounts } from './accounts';
 import { auth } from './auth';
@@ -20,9 +20,9 @@ import { sync } from './sync';
 import { tips } from './tips';
 
 /**
- * French, drafted area by area (language switch, plan 2: docs/superpowers/plans/2026-11-03-language-switch-2.md,
- * chunks 10–14); since chunk 14 every area is written. Not offered yet: chunk 16 offers it once a native speaker has
- * read it, and drops the English underneath. A test checks that every written area
+ * French, written area by area (language switch, plan 2: docs/superpowers/plans/2026-11-03-language-switch-2.md,
+ * chunks 10–14) and offered since chunk 16, before its native read (Roshan, 04-11-2026). Every area is its own, with no
+ * English underneath, so typecheck holds every key. A test checks that every area
  * differs from English, apart from a short allow-list, and that French punctuation has its narrow no-break space
  * (messages.test.ts). Counts go through `byCount` (`plural()`: 0 is singular in French).
  *
@@ -43,7 +43,6 @@ import { tips } from './tips';
  * - Typography: a narrow no-break space (`NNBSP`) before : ; ? ! and inside « », and ’ for the apostrophe.
  */
 export const fr: Messages = {
-  ...en,
   shell,
   language,
   common,
