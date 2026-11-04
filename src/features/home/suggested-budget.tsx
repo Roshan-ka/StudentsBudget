@@ -181,7 +181,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
       )}
 
       <div className="flex flex-col gap-2">
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {/* Never with €0 everywhere: one tap would empty every envelope. */}
           <Button
             type="button"

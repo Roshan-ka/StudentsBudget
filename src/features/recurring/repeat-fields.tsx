@@ -19,9 +19,10 @@ export function RepeatFields({ timing, onChange }: { timing: Timing; onChange: (
   const monthly = timing.frequency === 'monthly';
 
   return (
-    <div className="flex flex-col gap-1.5">
-      {/* "Monthly on day" is the longer text, so the first column is a little wider: at 375 px an even split clips it. */}
-      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-3">
+    <div className="@container flex flex-col gap-1.5">
+      {/* Side by side only where both fit (a container of 28 rem): inside a Settings card at 375 px they are stacked,
+          as side by side clips "Monthly on day". "Monthly on day" is the longer text, so its column is a little wider. */}
+      <div className="grid gap-3 @md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <div className="grid gap-1.5">
           <Label htmlFor={`${id}-repeats`}>{text.repeats}</Label>
           <NativeSelect

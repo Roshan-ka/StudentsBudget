@@ -122,7 +122,7 @@ export function RestoreFromBackup() {
             <p className="text-sm text-muted-foreground">{backupSummary(chosen.data, chosen.exportedAt, lang)}</p>
             {linked && <p className="text-sm text-muted-foreground">{text.linked}</p>}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button type="button" className="px-4" onClick={() => void onReplace()} disabled={restoring}>
               {text.replace}
             </Button>

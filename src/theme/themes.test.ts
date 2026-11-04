@@ -3,15 +3,32 @@ import { choiceOf, DEFAULT_THEME_CHOICE, THEME_COLORS, THEME_STORAGE_KEY, themeH
 
 type Run = { stored?: string | null; phoneDark?: boolean; storageThrows?: boolean; meta?: boolean };
 
-/** Runs the head script against a stand-in browser and returns what it put on <html> and the theme-color meta. */
+type Meta = { content: string; setAttribute: (name: string, value: string) => void };
+
+function metaOf(content: string): Meta {
+  const meta: Meta = { content, setAttribute: (name, value) => name === 'content' && (meta.content = value) };
+  return meta;
+}
+
+/**
+ * Runs the head script against a stand-in browser and returns what it put on <html> and the theme-color meta, and how
+ * many metas it added to <head>.
+ */
 function run({ stored = null, phoneDark = false, storageThrows = false, meta = true }: Run) {
   const classes = new Set<string>();
   const documentElement = {
     classList: { toggle: (name: string, on: boolean) => (on ? classes.add(name) : classes.delete(name)) },
     style: { colorScheme: '' },
   };
-  const themeColor = { content: THEME_COLORS.light, setAttribute: (_: string, value: string) => (themeColor.content = value) };
-  const document = { documentElement, querySelector: () => (meta ? themeColor : null) };
+  let themeColor: Meta | null = meta ? metaOf(THEME_COLORS.light) : null;
+  let added = 0;
+  const head = {
+    appendChild(element: Meta) {
+      themeColor = element;
+      added += 1;
+    },
+  };
+  const document = { documentElement, head, createElement: () => metaOf(''), querySelector: () => themeColor };
   const localStorage = {
     getItem(key: string) {
       if (storageThrows) throw new Error('blocked');
@@ -20,7 +37,7 @@ function run({ stored = null, phoneDark = false, storageThrows = false, meta = t
   };
   const window = { matchMedia: () => ({ matches: phoneDark }) };
   new Function('document', 'localStorage', 'window', themeHeadScript())(document, localStorage, window);
-  return { dark: classes.has('dark'), scheme: documentElement.style.colorScheme, themeColor: themeColor.content };
+  return { dark: classes.has('dark'), scheme: documentElement.style.colorScheme, themeColor: themeColor?.content, added };
 }
 
 describe('the theme choice', () => {
@@ -41,8 +58,8 @@ describe('the theme choice', () => {
 });
 
 describe('themeHeadScript', () => {
-  const light = { dark: false, scheme: 'light', themeColor: THEME_COLORS.light };
-  const dark = { dark: true, scheme: 'dark', themeColor: THEME_COLORS.dark };
+  const light = { dark: false, scheme: 'light', themeColor: THEME_COLORS.light, added: 0 };
+  const dark = { dark: true, scheme: 'dark', themeColor: THEME_COLORS.dark, added: 0 };
 
   it('leaves a new phone light, even when the phone itself is dark', () => {
     expect(run({ phoneDark: true })).toEqual(light);
@@ -57,11 +74,13 @@ describe('themeHeadScript', () => {
     expect(run({ stored: 'system', phoneDark: false })).toEqual(light);
   });
 
-  it('leaves the page as rendered when storage can’t be read', () => {
-    expect(run({ storageThrows: true, phoneDark: true })).toEqual({ dark: false, scheme: '', themeColor: THEME_COLORS.light });
+  it('draws the page light when storage can’t be read, theme-color included', () => {
+    expect(run({ storageThrows: true, phoneDark: true })).toEqual(light);
+    expect(run({ storageThrows: true, meta: false })).toEqual({ ...light, added: 1 });
   });
 
-  it('still sets <html> when the page has no theme-color meta yet', () => {
-    expect(run({ stored: 'dark', meta: false })).toMatchObject({ dark: true, scheme: 'dark' });
+  it('adds the one theme-color meta when the page has none, as the layout renders it', () => {
+    expect(run({ stored: 'dark', meta: false })).toEqual({ ...dark, added: 1 });
+    expect(run({ meta: false })).toEqual({ ...light, added: 1 });
   });
 });

@@ -61,10 +61,11 @@ test('Profile comes first in Settings after Your account, prefills the semester 
 }) => {
   await completeSetup(page);
   await openSettings(page);
-  // The first section of Settings after Language (shown while more than one can be picked) and Your account (shown
-  // only when the build has a Supabase project).
+  // The first section of Settings after this phone's own choices (Language, shown while more than one can be picked,
+  // and Appearance) and Your account (shown only when the build has a Supabase project).
+  const before = ['Language', 'Appearance', 'Your account'];
   const headings = await page.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
-  expect(headings.filter((heading) => heading !== 'Language' && heading !== 'Your account')[0]).toBe('Profile');
+  expect(headings.filter((heading) => !before.includes(heading))[0]).toBe('Profile');
   await expect(profileSection(page).getByText('stored on this phone and goes into any backup', { exact: false })).toBeVisible();
 
   await nameField(page).fill('Roshan');

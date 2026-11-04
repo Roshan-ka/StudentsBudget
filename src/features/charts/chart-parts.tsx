@@ -251,7 +251,8 @@ export function ChartSection({
 /**
  * A row of buttons of which one is on, for the style of a chart or the period of all of them. Each segment is at
  * least 44 px high, and the group takes the full width, so it works with a thumb at 375 px. A segment may shrink and
- * wrap its words onto a second line ("Dieser / Monat"), so a language with longer words never widens the page.
+ * wrap its words onto a second line ("Dieser / Monat"), so a language with longer words never widens the page. Where
+ * the group is narrower than 20 rem (large text), two segments share a row instead of all of them.
  */
 export function SegmentedControl<T extends string | number>({
   label,
@@ -265,14 +266,18 @@ export function SegmentedControl<T extends string | number>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex gap-1 rounded-lg border-[1.5px] border-outline bg-muted p-1">
+    <div
+      role="group"
+      aria-label={label}
+      className="@container flex flex-wrap gap-1 rounded-lg border-[1.5px] border-outline bg-muted p-1"
+    >
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           aria-pressed={option.value === value}
           onClick={() => onChange(option.value)}
-          className="min-h-11 min-w-0 flex-1 rounded-md border-[1.5px] border-transparent px-2 text-sm leading-tight font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none aria-pressed:border-outline aria-pressed:bg-card aria-pressed:text-foreground"
+          className="min-h-11 min-w-0 flex-1 basis-[40%] rounded-md @xs:basis-0 border-[1.5px] border-transparent px-2 text-sm leading-tight font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none aria-pressed:border-outline aria-pressed:bg-card aria-pressed:text-foreground"
         >
           {option.text}
         </button>

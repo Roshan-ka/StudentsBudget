@@ -30,9 +30,11 @@ test('a new phone is light; Dark stays after a reload, and Light comes back', as
   await expect(html(page)).toHaveClass(DARK);
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', THEME_COLORS.dark);
 
-  // The head script puts it back before the first paint.
+  // The head script puts it back before the first paint, on the one theme-color meta it owns.
   await page.reload();
   await expect(html(page)).toHaveClass(DARK);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveCount(1);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', THEME_COLORS.dark);
   await expect(choice(page, t.theme.choices.dark)).toBeChecked();
 
   await choice(page, t.theme.choices.light).check();

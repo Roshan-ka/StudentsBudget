@@ -86,7 +86,7 @@ export function BadgesView() {
               <AwardIcon className="size-5" />
             </span>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <h3 className="text-lg leading-tight font-extrabold">{b.title}</h3>
+              <h3 className="text-lg leading-tight font-extrabold break-words">{b.title}</h3>
               <p className="text-sm font-semibold">
                 <DatedText text={status(b, t)} />
               </p>

@@ -39,8 +39,9 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  // The page colour (`--background`), so the status bar runs into the page.
-  themeColor: '#fbf6ec',
+  // No themeColor: the theme's head script adds the theme-color meta in the page colour of the phone's theme
+  // (src/theme/themes.ts), so the status bar runs into the page. React would add a second one beside a rendered meta
+  // whose colour the script had changed.
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
