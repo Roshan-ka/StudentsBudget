@@ -34,7 +34,6 @@ function AccountRow({
         <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
           id={`${id}-name`}
-          className="h-10"
           value={account.name}
           autoComplete="off"
           onChange={(event) => onChange({ name: event.target.value })}
@@ -76,7 +75,7 @@ function AccountRow({
         value={account.openingMinor}
         onChange={(minor) => onChange({ openingMinor: minor ?? 0 })}
       />
-      <Button type="button" variant="ghost" className="h-10 self-start px-4" onClick={onRemove}>
+      <Button type="button" variant="ghost" className="self-start px-4" onClick={onRemove}>
         {text.remove(index + 1)}
       </Button>
     </div>
@@ -104,7 +103,7 @@ export function AccountsStep({ draft, update }: { draft: SetupDraft; update: Dra
       <Button
         type="button"
         variant="outline"
-        className="h-10 self-start px-4"
+        className="self-start px-4"
         onClick={() =>
           update((d) => ({
             ...d,

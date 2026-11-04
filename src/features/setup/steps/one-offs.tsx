@@ -71,7 +71,6 @@ function OneOffRow({
         <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
           id={`${id}-name`}
-          className="h-10"
           value={oneOff.name}
           autoComplete="off"
           onChange={(event) => onChange({ name: event.target.value })}
@@ -95,7 +94,6 @@ function OneOffRow({
         <Label htmlFor={`${id}-due`}>{text.due}</Label>
         <Input
           id={`${id}-due`}
-          className="h-10"
           type="month"
           placeholder="YYYY-MM"
           min={monthAfter(today)}
@@ -111,7 +109,7 @@ function OneOffRow({
           </p>
         )}
       </div>
-      <Button type="button" variant="ghost" className="h-10 self-start px-4" onClick={onRemove}>
+      <Button type="button" variant="ghost" className="self-start px-4" onClick={onRemove}>
         {text.remove(index + 1)}
       </Button>
     </div>
@@ -167,8 +165,8 @@ export function OneOffsStep({
           <Button
             type="button"
             variant="outline"
-            // The longest label ("…: €222, due September 2027") wraps on a narrow phone instead of scrolling sideways.
-            className="h-auto min-h-10 self-start px-4 py-2 text-left whitespace-normal"
+            // The longest label ("…: €222, due September 2027") wraps on a narrow phone, as every button's may.
+            className="self-start text-start"
             onClick={() => {
               setAdded({ index: draft.oneOffs.length, offer: feeOffer });
               update((d) => ({ ...d, oneOffs: [...d.oneOffs, feeOffer.row] }));
@@ -182,7 +180,7 @@ export function OneOffsStep({
       <Button
         type="button"
         variant="outline"
-        className="h-10 self-start px-4"
+        className="self-start px-4"
         onClick={() =>
           update((d) => ({ ...d, oneOffs: [...d.oneOffs, { name: '', amountMinor: 0, dueMonth: '' }] }))
         }

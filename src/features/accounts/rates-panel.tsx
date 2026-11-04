@@ -85,13 +85,13 @@ function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | unde
         <div className="flex gap-2">
           <Input
             id={`${id}-rate`}
-            className="h-10 flex-1"
+            className="flex-1"
             inputMode="decimal"
             value={text}
             onChange={(event) => setText(event.target.value)}
             autoComplete="off"
           />
-          <Button type="submit" variant="outline" className="h-10 px-4">
+          <Button type="submit" variant="outline" className="px-4">
             {words.save}
           </Button>
         </div>
@@ -103,7 +103,7 @@ function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | unde
       )}
       {isManual && (
         <div>
-          <Button variant="ghost" className="h-10 px-4" onClick={() => void onUseEcb()}>
+          <Button variant="ghost" className="px-4" onClick={() => void onUseEcb()}>
             {words.useEcb}
           </Button>
         </div>

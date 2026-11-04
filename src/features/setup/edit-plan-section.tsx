@@ -20,7 +20,7 @@ export function EditPlanSection() {
         {text.heading}
       </h3>
       <p className="text-muted-foreground">{text.body}</p>
-      <Link href="/setup?edit=1" className={buttonVariants({ variant: 'outline', className: 'h-10 self-start px-4' })}>
+      <Link href="/setup?edit=1" className={buttonVariants({ variant: 'outline', className: 'self-start px-4' })}>
         {text.link}
       </Link>
     </section>

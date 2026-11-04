@@ -58,7 +58,7 @@ export function DateField({
       <Label htmlFor={id}>{label ?? text.label}</Label>
       <div
         data-slot="date-field"
-        className="relative flex h-10 items-center justify-between gap-2 rounded-lg border border-input px-2.5 text-base transition-colors has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 has-[[aria-invalid]]:border-destructive md:text-sm dark:bg-input/30"
+        className="relative flex min-h-[50px] items-center justify-between gap-2 rounded-md border-[1.5px] border-input bg-card px-3.5 text-base transition-colors has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring has-[[aria-invalid]]:border-destructive md:text-sm dark:bg-input/30"
       >
         <span aria-hidden="true" className={cn('tabular-nums', value === '' && 'text-muted-foreground')}>
           {dateText(value, text.letters)}
@@ -83,9 +83,8 @@ export function DateField({
             <Button
               key={chip}
               type="button"
-              variant={selected === chip ? 'default' : 'outline'}
+              variant="chip"
               aria-pressed={selected === chip}
-              className="h-10 px-3"
               disabled={today === null}
               onClick={() => {
                 if (today !== null) onChange(chipDate(chip, today));

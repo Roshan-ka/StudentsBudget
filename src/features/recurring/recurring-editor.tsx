@@ -208,7 +208,6 @@ function LineForm({
               <Label htmlFor={`${id}-amount`}>{text.amountIn(account.currency)}</Label>
               <Input
                 id={`${id}-amount`}
-                className="h-10"
                 inputMode="decimal"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
@@ -230,7 +229,6 @@ function LineForm({
           <Label htmlFor={`${id}-monthly`}>{text.perMonth}</Label>
           <Input
             id={`${id}-monthly`}
-            className="h-10"
             inputMode="decimal"
             value={monthly}
             onChange={(event) => setMonthly(event.target.value)}
@@ -245,10 +243,10 @@ function LineForm({
         </p>
       )}
       <div className="flex gap-2">
-        <Button type="submit" className="h-10 px-4" disabled={saving}>
+        <Button type="submit" className="px-4" disabled={saving}>
           {text.save}
         </Button>
-        <Button type="button" variant="outline" className="h-10 px-4" onClick={onDone}>
+        <Button type="button" variant="outline" className="px-4" onClick={onDone}>
           {text.cancel}
         </Button>
       </div>
@@ -286,25 +284,25 @@ function LineRow({
           <div className="flex flex-wrap gap-2">
             <Button
               variant="destructive"
-              className="h-10 px-4"
+              className="px-4"
               onClick={() => void change((plan) => removeLine(plan, line.categoryId))}
             >
               {text.delete}
             </Button>
-            <Button variant="outline" className="h-10 px-4" onClick={() => setConfirming(false)}>
+            <Button variant="outline" className="px-4" onClick={() => setConfirming(false)}>
               {text.cancel}
             </Button>
           </div>
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="h-10 px-4" aria-label={text.editLine(name)} onClick={onEdit}>
+          <Button variant="outline" className="px-4" aria-label={text.editLine(name)} onClick={onEdit}>
             {text.edit}
           </Button>
           {s && (
             <Button
               variant="outline"
-              className="h-10 px-4"
+              className="px-4"
               aria-label={s.paused ? text.resumeLine(name) : text.pauseLine(name)}
               onClick={() => void change((plan) => setLinePaused(plan, line.categoryId, !s.paused, todayIso()))}
             >
@@ -313,7 +311,7 @@ function LineRow({
           )}
           <Button
             variant="ghost"
-            className="h-10 px-4"
+            className="px-4"
             aria-label={text.deleteLine(name)}
             onClick={() => setConfirming(true)}
           >
@@ -425,7 +423,7 @@ export function RecurringEditor() {
         <LineForm addable={addable} accounts={accounts} today={today} change={change} onDone={() => setOpen(null)} />
       ) : (
         addable.length > 0 && (
-          <Button variant="outline" className="h-10 self-start px-4" onClick={() => setOpen('new')}>
+          <Button variant="outline" className="self-start px-4" onClick={() => setOpen('new')}>
             {text.add}
           </Button>
         )

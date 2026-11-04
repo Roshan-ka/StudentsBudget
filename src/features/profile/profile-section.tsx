@@ -128,7 +128,6 @@ function ProfileForm({
         <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
           id={`${id}-name`}
-          className="h-10"
           value={draft.name}
           maxLength={40}
           autoComplete="given-name"
@@ -192,7 +191,7 @@ function ProfileForm({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button ref={saveRef} type="submit" className="h-10 px-4" aria-disabled={saving || undefined}>
+        <Button ref={saveRef} type="submit" className="px-4" aria-disabled={saving || undefined}>
           {text.save}
         </Button>
         {/* A date picker has no reliable way to empty a field, and both dates are optional. */}
@@ -200,7 +199,7 @@ function ProfileForm({
           <Button
             type="button"
             variant="ghost"
-            className="h-10 px-4"
+            className="px-4"
             onClick={() => {
               change({ semesterStart: '', semesterEnd: '' });
               saveRef.current?.focus();

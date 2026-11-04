@@ -167,7 +167,7 @@ export function AccountLink() {
             <Button
               type="button"
               variant="outline"
-              className="h-10 px-4"
+              className="px-4"
               disabled={busy}
               onClick={() => void choose(view.plan, 'phone')}
             >
@@ -176,7 +176,7 @@ export function AccountLink() {
             <Button
               type="button"
               variant="outline"
-              className="h-10 px-4"
+              className="px-4"
               disabled={busy}
               onClick={() => void choose(view.plan, 'account')}
             >
@@ -206,7 +206,7 @@ export function AccountLink() {
           <p role="alert" className="text-sm">
             {text.problems[view.problem]}
           </p>
-          <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={linkAgain}>
+          <Button type="button" variant="outline" className="self-start px-4" onClick={linkAgain}>
             {text.tryAgain}
           </Button>
         </>

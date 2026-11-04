@@ -25,7 +25,7 @@ import { weekLine, weekTotalLine } from './week-line';
 import { weekRows } from './week-rows';
 import { weekSwaps } from './week-swaps';
 
-const LINK_CLASS = 'inline-flex min-h-10 items-center text-primary underline-offset-4 hover:underline';
+const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline';
 
 /**
  * "Fri 16", or another locale's own short day ("Fr., 16."). English stays built from its two parts, as weekLabel's

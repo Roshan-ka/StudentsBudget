@@ -93,7 +93,6 @@ function AccountForm({
         <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
           id={`${id}-name`}
-          className="h-10"
           value={name}
           onChange={(event) => setName(event.target.value)}
           autoComplete="off"
@@ -134,7 +133,6 @@ function AccountForm({
         <Label htmlFor={`${id}-opening`}>{text.opening}</Label>
         <Input
           id={`${id}-opening`}
-          className="h-10"
           inputMode="decimal"
           placeholder="0"
           value={opening}
@@ -165,10 +163,10 @@ function AccountForm({
         </p>
       )}
       <div className="flex gap-2">
-        <Button type="submit" className="h-10 px-4" disabled={saving}>
+        <Button type="submit" className="px-4" disabled={saving}>
           {text.save}
         </Button>
-        <Button type="button" variant="outline" className="h-10 px-4" onClick={onDone}>
+        <Button type="button" variant="outline" className="px-4" onClick={onDone}>
           {text.cancel}
         </Button>
       </div>
@@ -237,7 +235,7 @@ export function AccountsPanel() {
         {editing !== 'new' && (
           <Button
             variant="outline"
-            className="h-10 px-4"
+            className="px-4"
             onClick={() => {
               setRowError(null);
               setEditing('new');
@@ -297,7 +295,7 @@ export function AccountsPanel() {
                         else editButtons.current.delete(account.id);
                       }}
                       variant="outline"
-                      className="h-10 px-4"
+                      className="px-4"
                       aria-label={text.editAccount(account.name)}
                       onClick={() => {
                         setRowError(null);
@@ -309,7 +307,7 @@ export function AccountsPanel() {
                     {accounts.length > 1 && account.id !== defaultId && (
                       <Button
                         variant="ghost"
-                        className="h-10 px-4"
+                        className="px-4"
                         aria-label={text.makeDefaultOf(account.name)}
                         onClick={() => void makeDefault(account)}
                       >
@@ -318,7 +316,7 @@ export function AccountsPanel() {
                     )}
                     <Button
                       variant="ghost"
-                      className="h-10 px-4"
+                      className="px-4"
                       aria-label={text.deleteAccount(account.name)}
                       onClick={() => void remove(account)}
                     >

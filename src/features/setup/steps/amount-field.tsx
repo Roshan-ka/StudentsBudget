@@ -106,7 +106,7 @@ export function AmountField({
         <Input
           id={id}
           ref={inputRef}
-          className={unit.length > 1 ? 'h-10 pl-12' : 'h-10 pl-7'}
+          className={unit.length > 1 ? 'pl-12' : 'pl-7'}
           inputMode="decimal"
           placeholder="0"
           autoComplete="off"
