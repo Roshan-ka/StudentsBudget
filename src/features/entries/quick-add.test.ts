@@ -102,6 +102,32 @@ describe('parseQuickAdd', () => {
     expect(parseQuickAdd('coffee 12abc')).toBeNull();
   });
 
+  it('returns null for a whole number of three or more digits that starts with 0, such as a phone number', () => {
+    expect(parseQuickAdd('tel 0176')).toBeNull();
+    expect(parseQuickAdd('bus 093')).toBeNull();
+    expect(parseQuickAdd('call 0176 back 5')).toBeNull();
+    expect(parseQuickAdd('coffee €0176')).toBeNull();
+  });
+
+  it('still reads a leading 0 in a decimal, a two-digit cents part and zero itself', () => {
+    expect(parseQuickAdd('kebab 07,50')).toEqual({ amountMinor: 750, note: 'kebab' });
+    expect(parseQuickAdd('ticket 0,50')).toEqual({ amountMinor: 50, note: 'ticket' });
+    expect(parseQuickAdd('coffee 6 euro 05')).toEqual({ amountMinor: 605, note: 'coffee' });
+    expect(parseQuickAdd('coffee 000 6')).toEqual({ amountMinor: 600, note: 'coffee 000' });
+  });
+
+  it('returns null for a decimal part split from its number by a space', () => {
+    expect(parseQuickAdd('Döner 6 ,50')).toBeNull();
+    expect(parseQuickAdd('coffee 6 , 50')).toBeNull();
+    expect(parseQuickAdd('coffee 6 .50')).toBeNull();
+    expect(parseQuickAdd('coffee 6 . 50')).toBeNull();
+  });
+
+  it('still reads a comma that only separates words from the amount', () => {
+    expect(parseQuickAdd('coffee , 6')).toEqual({ amountMinor: 600, note: 'coffee' });
+    expect(parseQuickAdd('lunch 6 , cake')).toEqual({ amountMinor: 600, note: 'lunch , cake' });
+  });
+
   it('returns an empty note when only the amount was typed', () => {
     expect(parseQuickAdd('6')).toEqual({ amountMinor: 600, note: '' });
     expect(parseQuickAdd('  6,50 €  ')).toEqual({ amountMinor: 650, note: '' });

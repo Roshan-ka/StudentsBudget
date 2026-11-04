@@ -34,6 +34,12 @@ const MARKER_SUFFIX = /(?:€|euros?|eur)$/i;
 const NUMBER_LIKE = new RegExp('^[\\p{Nd}\\p{Sc}]', 'u');
 const WHOLE_NUMBER = /^\d+$/;
 const ZERO = /^0+(?:[.,]0+)?$/;
+/** Three or more digits starting with 0: a phone number or a code ("0176"), never an amount. */
+const LEADING_ZERO = /^0\d{2,}$/;
+
+/** A decimal part a space split from its number: ",50" in "6 ,50", or "," before "50" in "6 , 50". */
+const SPLIT_DECIMAL_PART = /^[.,]\d/;
+const LONE_DECIMAL_MARK = /^[.,]$/;
 
 /** What dictation puts at the end of a phrase: "Döner 6 €." (full stop, !, ?, … and runs of them). */
 const SENTENCE_END = /[.!?…]+$/;
@@ -203,6 +209,7 @@ function readAmount(tokens: string[], words: Word[], w: number): Amount | Invali
 
   const { core, attached, after } = stripMarker(token);
   if (NUMBER_LIKE.test(token) || NUMBER_LIKE.test(core)) {
+    if (LEADING_ZERO.test(core) && !ZERO.test(core)) return 'invalid';
     // Zero is a number but not an amount (same rule as parseAmount): it can still be a cents part.
     const minor = parseAmount(core) ?? (ZERO.test(core) ? 0 : null);
     if (minor === null) return 'invalid';
@@ -217,6 +224,14 @@ function readAmount(tokens: string[], words: Word[], w: number): Amount | Invali
   if (run === null || run === 'invalid') return run;
   const cents = run.value < 100 ? run.value : null;
   return { minor: run.value * 100, end: run.end, marked: false, markedAfter: false, integer: true, cents };
+}
+
+/** Whether a token right after a number is the number's decimal part split off by a space: "6 ,50", "6 , 50". */
+function hasSplitDecimal(tokens: string[]): boolean {
+  return tokens.some((token, i) => {
+    if (i === 0 || !/\d$/.test(tokens[i - 1])) return false;
+    return SPLIT_DECIMAL_PART.test(token) || (LONE_DECIMAL_MARK.test(token) && /^\d/.test(tokens[i + 1] ?? ''));
+  });
 }
 
 /** Every amount in the line, or null when something that looks like an amount cannot be read. */
@@ -269,7 +284,8 @@ function findCandidates(tokens: string[]): Candidate[] | null {
  * A number is digits that `parseAmount` accepts, or English number words (whole euros only); "6 euro 50"
  * (and "6 euro 50 cents") at the end of the line is 6 euros and 50 cents. The note is the rest of the line as typed, without that number and its marker.
  * Returns null when there is no amount, and also when the line has something that looks like an amount
- * but cannot be read ("$7", "6,505", "fifty cents", "one million"): a silently wrong amount is worse.
+ * but cannot be read ("$7", "6,505", "fifty cents", "one million", a phone number such as "0176", or a decimal
+ * part split off by a space: "6 ,50"): a silently wrong amount is worse.
  *
  * A whole number straight before the chosen one ("coffee 7 40", "coffee seven forty euros") could be the euros
  * of "7,40" said in two parts, or a count. When the chosen number could be cents (1 to 99) and has no marker or only
@@ -287,6 +303,7 @@ export function readQuickAdd(text: string): QuickAddLine | null {
   const trimmed = text.trim().replace(SENTENCE_END, '').trimEnd();
   // `tokens` is the line as typed, for the note; `read` has the same tokens without a word's separator.
   const tokens = trimmed === '' ? [] : trimmed.split(/\s+/);
+  if (hasSplitDecimal(tokens)) return null;
   const read = tokens.map(withoutSeparator);
   const candidates = findCandidates(read);
   if (candidates === null || candidates.length === 0) return null;
