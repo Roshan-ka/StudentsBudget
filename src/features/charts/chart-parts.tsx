@@ -3,11 +3,13 @@
 import { parseISO } from 'date-fns';
 import Link from 'next/link';
 import { useId, useMemo, useState, type ReactNode } from 'react';
+import { cardVariants } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { dateFormat } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
 import { firstOfMonth, type IsoMonth } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
+import { cn } from '@/lib/utils';
 import { formatWeekAmount } from '@/lib/week-amount';
 
 /**
@@ -108,7 +110,7 @@ function RowTooltip({ row, valueLabel }: { row: ChartRow; valueLabel: string }) 
   return (
     <div
       role="tooltip"
-      className="grid min-w-32 gap-1 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl"
+      className="grid min-w-32 gap-1 rounded-md border-[1.5px] border-outline bg-card px-2.5 py-1.5 text-xs shadow-offset"
     >
       <p className="font-medium">{row.label}</p>
       <p className="flex items-baseline justify-between gap-3">
@@ -183,14 +185,14 @@ export function DataTable({
   return (
     <div className={visible ? undefined : 'sr-only focus-within:not-sr-only'}>
       <table className="w-full text-sm">
-        <caption className="py-1 text-left text-muted-foreground">{caption}</caption>
+        <caption className="py-1 text-start text-muted-foreground">{caption}</caption>
         <thead>
           <tr className={visible ? 'border-b' : undefined}>
-            <th scope="col" className="py-1 text-left font-medium">
+            <th scope="col" className="py-1 text-start font-semibold">
               {firstColumn}
             </th>
             {columns.map((column) => (
-              <th key={column} scope="col" className="py-1 pl-3 text-right font-medium">
+              <th key={column} scope="col" className="py-1 ps-3 text-end font-semibold">
                 {column}
               </th>
             ))}
@@ -199,7 +201,7 @@ export function DataTable({
         <tbody className={visible ? 'divide-y' : undefined}>
           {rows.map(({ row, cells }) => (
             <tr key={row.id}>
-              <th scope="row" className={`text-left font-normal ${visible ? 'py-3' : 'py-1'}`}>
+              <th scope="row" className={`text-start font-normal ${visible ? 'py-3' : 'py-1'}`}>
                 {row.href === null ? (
                   row.label
                 ) : (
@@ -209,7 +211,7 @@ export function DataTable({
                 )}
               </th>
               {cells.map((cell, i) => (
-                <td key={columns[i]} className={`pl-3 text-right tabular-nums ${visible ? 'py-3' : 'py-1'}`}>
+                <td key={columns[i]} className={`ps-3 text-end tabular-nums ${visible ? 'py-3' : 'py-1'}`}>
                   {cell}
                 </td>
               ))}
@@ -234,9 +236,9 @@ export function ChartSection({
 }) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+    <section aria-labelledby={headingId} className={cn(cardVariants(), 'gap-3')}>
       <div>
-        <h3 id={headingId} className="text-lg font-semibold">
+        <h3 id={headingId} className="text-xl leading-tight font-extrabold">
           {title}
         </h3>
         {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
@@ -263,14 +265,14 @@ export function SegmentedControl<T extends string | number>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex gap-1 rounded-lg bg-muted p-1">
+    <div role="group" aria-label={label} className="flex gap-1 rounded-lg border-[1.5px] border-outline bg-muted p-1">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           aria-pressed={option.value === value}
           onClick={() => onChange(option.value)}
-          className="min-h-11 min-w-0 flex-1 rounded-md px-2 text-sm leading-tight font-medium text-foreground/70 transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm"
+          className="min-h-11 min-w-0 flex-1 rounded-md border-[1.5px] border-transparent px-2 text-sm leading-tight font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none aria-pressed:border-outline aria-pressed:bg-card aria-pressed:text-foreground"
         >
           {option.text}
         </button>

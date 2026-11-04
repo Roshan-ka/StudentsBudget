@@ -177,7 +177,7 @@ function MoneyEntryForm({
           {error}
         </p>
       )}
-      <Button type="submit" className="px-4" disabled={saving}>
+      <Button type="submit" size="lg" disabled={saving}>
         {editing ? text.saveChanges : type === 'income' ? text.saveIncome : text.saveExpense}
       </Button>
     </form>
