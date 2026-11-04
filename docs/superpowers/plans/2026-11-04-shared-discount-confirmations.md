@@ -73,6 +73,20 @@ Each is about an hour: lint, typecheck, the touched unit tests; the full suite, 
        - two accounts vote through the app's store and a third reads the totals, still seeing none of their rows;
        - a signed-out client is refused.
 2. **The list:** `community.ts`, the merged freshness, the view, texts, the mock and the spec, plus CLAUDE.md (a new outgoing request: the totals, read when the Discounts list opens while signed in). Before merging, Roshan runs `npx supabase db push`.
+   - **As built (2026-11-04):**
+     - **`src/features/discounts/community.ts`:** `CommunityEntry` (`lastWorks`, `works`, `outdated`), `CommunityConfirmations` (by discount id), and `readCommunity(supabase, since)`. It answers null on any failure, and logs the reason.
+     - **`discounts.ts`:**
+       - `freshness(d, vote, today, community?)` takes the latest of the check, your "still works" and anyone's, with a future day counting as today;
+       - others' "doesn't work anymore" changes nothing there;
+       - `sortByFreshness` and `voteMove` pass the totals through, and `DiscountRow` carries `community`;
+       - 3 unit tests.
+     - **`discounts-view.tsx`:**
+       - signed in, it reads the totals once per visit, since the start of `semesterOn(university, today)` (the profile's OTH, else UR);
+       - each item shows "14 confirmations this semester" and "2 students said it no longer works" when there are any;
+       - signed out, one line says signing in shows what others confirmed. Totals from an earlier sign-in aren't used once signed out.
+     - **Texts:** `tips.confirmations`, `tips.notWorking` and `tips.othersSignIn`, in en, de, fr and es. French and Spanish go through `byCount`.
+     - **Mocks and the spec:** `mockSupabaseData`'s `confirmations` answers `rpc/discount_confirmations`. `e2e/discount-confirmations.spec.ts` covers signed in (the counts) and signed out (the line), listed under `/tips` and `/settings/account`.
+     - **CLAUDE.md:** a "Shared discount confirmations" bullet and the new outgoing request.
 
 ## Left out
 

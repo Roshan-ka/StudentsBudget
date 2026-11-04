@@ -6,13 +6,17 @@ import { Button } from '@/components/ui/button';
 import type { Discount } from '@/data/discounts';
 import { db } from '@/db/db';
 import type { DiscountVote } from '@/db/types';
+import { useAuth } from '@/features/account/use-auth';
+import { semesterOn } from '@/features/profile/profile';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
 import { discountIn } from '@/i18n/city';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { formatDate, todayIso } from '@/lib/dates';
+import { getSupabase } from '@/lib/supabase/client';
 import { useToday } from '@/lib/use-today';
+import { readCommunity, type CommunityConfirmations } from './community';
 import { bundledDiscounts, discountCategoryIds, sortByFreshness, voteMove, type DiscountSource } from './discounts';
 
 const VOTES: readonly DiscountVote['vote'][] = ['works', 'outdated'];
@@ -28,7 +32,8 @@ function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'dow
  * The Regensburg student discounts, freshest first. "Still works" and "Doesn't work anymore" are saved on this
  * phone, dated today; tapping again replaces the answer. The list comes from `source` (bundled now, a server
  * later; keep the same one for the view's lifetime), the votes from the database, and the chosen category is kept
- * only while the page stays mounted.
+ * only while the page stays mounted. Signed in, other students' totals for this semester join in (P2.6,
+ * `discount_confirmations`): they confirm a discount too, and show as counts.
  */
 export function DiscountsView({ source = bundledDiscounts }: { source?: DiscountSource }) {
   const { t, lang } = useT();
@@ -36,6 +41,10 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
   // The date is null until the browser runs this (never the date of the prerender).
   const today = useToday();
   const votes = useLiveQuery(() => db.discountVotes.toArray(), []);
+  // Whose semester "this semester" is: the profile's university, else the University of Regensburg's.
+  const university = useLiveQuery(async () => ((await db.profile.get('current'))?.university === 'oth' ? 'oth' : 'ur'), []);
+  const auth = useAuth();
+  const [community, setCommunity] = useState<CommunityConfirmations | null>(null);
   const [discounts, setDiscounts] = useState<Discount[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -64,6 +73,21 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
     };
   }, [source]);
 
+  // Other students' totals, read once per visit while signed in. Without them (signed out, offline, refused) the list
+  // goes by this phone's votes alone.
+  useEffect(() => {
+    if (auth.status !== 'signed-in' || today === null || university === undefined) return;
+    const supabase = getSupabase();
+    if (supabase === null) return;
+    let current = true;
+    void readCommunity(supabase, semesterOn(university, today).start).then((totals) => {
+      if (current) setCommunity(totals);
+    });
+    return () => {
+      current = false;
+    };
+  }, [auth.status, today, university]);
+
   // A page the app leaves stays mounted but hidden: what was just said about a vote is old news when it comes back.
   useEffect(
     () => () => {
@@ -87,7 +111,9 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
   }
   if (today === null || discounts === null || votes === undefined) return null;
 
-  const rows = sortByFreshness(discounts, votes, today);
+  // Signed out, the totals of an earlier sign-in no longer count.
+  const totals = auth.status === 'signed-in' ? community : null;
+  const rows = sortByFreshness(discounts, votes, today, totals);
   const shown = categoryId === null ? rows : rows.filter((row) => row.discount.categoryId === categoryId);
 
   function choose(d: Discount, vote: DiscountVote['vote']) {
@@ -101,6 +127,7 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
       votes ?? [],
       row,
       row.on,
+      totals,
     );
     db.discountVotes.put(row).then(
       () => {
@@ -132,6 +159,7 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">{text.discountsIntro}</p>
+      {auth.status === 'signed-out' && <p className="text-sm text-muted-foreground">{text.othersSignIn}</p>}
       <div role="group" aria-label={text.discountsFor} className="flex flex-wrap gap-2">
         {chip(null, text.all)}
         {discountCategoryIds(discounts).map((id) => chip(id, categoryNameIn(t, id)))}
@@ -141,7 +169,7 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
         {heard}
       </p>
       <ul aria-label={text.discounts} className="flex flex-col gap-3">
-        {shown.map(({ discount, vote, freshness: f }) => {
+        {shown.map(({ discount, vote, community: others, freshness: f }) => {
           const d = discountIn(discount, lang);
           const placeId = `discount-${d.id}-place`;
           return (
@@ -176,6 +204,12 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
                     {f.mayBeOutdated && <p className="font-medium">{text.mayBeOutdated}</p>}
                     <p className="text-muted-foreground">{text.lastConfirmed(formatDate(f.lastConfirmed))}</p>
                   </>
+                )}
+                {others !== undefined && others.works > 0 && (
+                  <p className="text-muted-foreground">{text.confirmations(others.works)}</p>
+                )}
+                {others !== undefined && others.outdated > 0 && (
+                  <p className="text-muted-foreground">{text.notWorking(others.outdated)}</p>
                 )}
               </div>
               <RangeSource range={d} />

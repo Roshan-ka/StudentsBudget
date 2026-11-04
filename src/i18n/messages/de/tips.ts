@@ -21,6 +21,11 @@ export const tips: Messages['tips'] = {
   markedOutdated: (date) => `Du hast das am ${date} als ungültig markiert`,
   mayBeOutdated: 'Vielleicht veraltet',
   lastConfirmed: (date) => `Zuletzt bestätigt am ${date}`,
+  /** Was andere Studierende in diesem Semester bestätigt haben (P2.6), angemeldet zu sehen. */
+  confirmations: (count) => (count === 1 ? '1 Bestätigung in diesem Semester' : `${count} Bestätigungen in diesem Semester`),
+  notWorking: (count) =>
+    count === 1 ? '1 Person sagt, es gilt nicht mehr' : `${count} Personen sagen, es gilt nicht mehr`,
+  othersSignIn: 'Melde dich an, um zu sehen, was andere Studierende bestätigt haben.',
   saved: 'Auf diesem Handy gespeichert.',
   saveFailed: 'Deine Antwort ließ sich nicht speichern. Versuch es noch einmal.',
   heard: {
