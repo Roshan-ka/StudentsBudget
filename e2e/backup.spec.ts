@@ -107,6 +107,9 @@ async function overflow(page: Page) {
 async function openSettings(page: Page) {
   await page.goto('/settings');
   await expect(page.getByRole('heading', { level: 3, name: 'Backup' })).toBeVisible();
+  // The heading is prerendered; Export is enabled only once the page has hydrated and its live query has answered,
+  // so a file chosen after it cannot reach the server-rendered input before React is listening.
+  await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeEnabled();
 }
 
 /** Takes the download path on every browser: some have a share sheet for files, some pretend to. */
