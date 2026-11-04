@@ -177,3 +177,17 @@ async function linkAndQueue(stale: Record<ServerTable, string[]>, userId: string
     await db.syncState.put({ id: 'current', userId, cursor: 0, lastSyncedAt: null, problem: null });
   });
 }
+
+/**
+ * Forgets the account on this phone (P2.5): the link and the changes waiting for it go, in one transaction, and the
+ * phone's own data stays. For an account that no longer exists, so the phone can link to another one later instead of
+ * being blocked as linked to another account. Takes the sync lock, so no sync of another tab is halfway through it.
+ */
+export function unlinkPhone(): Promise<void> {
+  return withSyncLock(() =>
+    db.transaction('rw', db.outbox, db.syncState, async () => {
+      await db.outbox.clear();
+      await db.syncState.clear();
+    }),
+  );
+}

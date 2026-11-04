@@ -9,6 +9,7 @@ import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
+import { useAccountDeleted } from './account-deleted';
 import { AccountLink } from './account-link';
 import { authErrorMessage } from './auth-errors';
 import { CodeField } from './code-field';
@@ -21,6 +22,7 @@ import {
   MIN_PASSWORD_LENGTH,
   type AuthMode,
 } from './credentials';
+import { DeleteAccountCard } from './delete-account';
 import { RECOVERY_CODE, SIGN_UP_CODE } from './email-codes';
 import { PasskeySignIn } from './passkeys';
 import { finishRecovery, forgetPasswordChanged, useRecovery } from './recovery';
@@ -813,6 +815,7 @@ export function AccountView() {
   const { t } = useT();
   const auth = useAuth();
   const recovery = useRecovery();
+  const accountDeleted = useAccountDeleted();
   switch (auth.status) {
     case 'off':
       return <p className="text-muted-foreground">{t.auth.view.off}</p>;
@@ -827,11 +830,22 @@ export function AccountView() {
           <AccountLink />
           {/* Last: syncing is what the page is for; passkeys and two-step sign-in are set once. */}
           <SignInSecurity />
+          {/* At the very end: deleting the account is the rarest step, and the one that can't be undone. */}
+          <DeleteAccountCard email={auth.email} />
         </>
       );
     case 'second-step':
       return <SecondStepForm email={auth.email} factorId={auth.factorId} />;
     case 'signed-out':
-      return <SignInForm />;
+      return (
+        <>
+          {accountDeleted && (
+            <p role="status" className="rounded-lg bg-muted px-4 py-3 text-sm">
+              {t.auth.deleteAccount.done}
+            </p>
+          )}
+          <SignInForm />
+        </>
+      );
   }
 }
