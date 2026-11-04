@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { Mic, Square } from 'lucide-react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,7 @@ import { todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { buildEntry } from './build-entry';
 import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES } from './categories';
+import { markMicNoteSeen, micNoteSeen } from './mic-note';
 import {
   accountFor,
   checkReading,
@@ -25,6 +27,13 @@ import {
   type QuickAddProvider,
   type QuickAddReading,
 } from './quick-add-provider';
+import { listen, recognizerFor } from './speech';
+
+// Whether the browser can turn speech into text: it never changes while the page is open, and the server renders
+// without the mic button, as for passkeys.
+const subscribeNever = () => () => {};
+const speechOnClient = () => recognizerFor(window) !== null;
+const speechOnServer = () => false;
 
 /** The two readings of a line like "coffee 7 40 euros", shown in the currency quick add saves in. */
 type Choice = QuickAddChoiceReading & { currency: CurrencyCode };
@@ -124,6 +133,10 @@ function AmountChoice({
  *
  * `provider` reads the line (the local parser unless another is given), once per submit. Its category, account and
  * date are checked against the data first: an unknown one falls back to the chips, the default account or today.
+ *
+ * Where the browser has speech recognition, a mic button speaks a line instead (`speech.ts`): the first tap on a phone
+ * shows where the speech goes (`mic-note.ts`), and what is heard is added like a typed line, with the same Saved line
+ * and Undo.
  */
 export function QuickAddField({ provider = localQuickAddProvider }: { provider?: QuickAddProvider }) {
   const id = useId();
@@ -140,6 +153,20 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
   // True from the first tap until the save is over. A ref, because a second tap can arrive before React has
   // rendered the disabled button, and `busy` would still read false in the handler it calls.
   const inFlight = useRef(false);
+  const canSpeak = useSyncExternalStore(subscribeNever, speechOnClient, speechOnServer);
+  // Set while the mic listens: what stops it.
+  const stopListening = useRef<(() => void) | null>(null);
+  const [listening, setListening] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+
+  // A page the router leaves stays mounted but hidden, so the mic is stopped here rather than left listening.
+  useEffect(
+    () => () => {
+      stopListening.current?.();
+      stopListening.current = null;
+    },
+    [],
+  );
 
   // The line fades after a while: it says what happened some time ago, and Undo is for the moment after.
   useEffect(() => {
@@ -235,10 +262,10 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
     setChoice({ ...readings, currency: accountFor(accounts, readings.accountId)?.currency ?? 'EUR' });
   }
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  /** Reads one line, typed or spoken, and saves it or asks what it needs. */
+  async function addLine(line: string) {
     // Nothing to add: a tap on the empty field right after a save must not take the Saved line away.
-    if (text.trim() === '') return;
+    if (line.trim() === '') return;
 
     await runOnce(async () => {
       setSaved(null);
@@ -248,7 +275,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
       let reading: QuickAddReading | null;
       try {
         ctx = await loadContext();
-        reading = checkReading(await provider.read(text, ctx), ctx);
+        reading = checkReading(await provider.read(line, ctx), ctx);
       } catch (readError) {
         console.error('StudentsBudget: could not read the quick-add line', readError);
         setError(t.entries.saveFailed);
@@ -264,6 +291,49 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
       }
       await saveOrAsk(reading);
     });
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await addLine(text);
+  }
+
+  /** Listens once; what is heard goes into the field and is added as a typed line would be. */
+  function startListening() {
+    setError(null);
+    if (!navigator.onLine) {
+      setError(words.micErrors.offline);
+      return;
+    }
+    const stop = listen({
+      win: window,
+      lang,
+      onText: (heard) => {
+        setText(heard);
+        void addLine(heard);
+      },
+      onProblem: (problem) => setError(words.micErrors[problem]),
+      onEnd: () => {
+        stopListening.current = null;
+        setListening(false);
+      },
+    });
+    if (stop === null) return;
+    stopListening.current = stop;
+    setListening(true);
+  }
+
+  /** The mic button: stops while listening; otherwise listens, after the note on where speech goes the first time. */
+  function onMic() {
+    if (stopListening.current !== null) {
+      stopListening.current();
+      return;
+    }
+    if (!micNoteSeen()) {
+      setNoteOpen(true);
+      return;
+    }
+    startListening();
   }
 
   async function undo() {
@@ -297,11 +367,46 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
             autoComplete="off"
             enterKeyHint="done"
           />
+          {canSpeak && (
+            // The name says what a tap does now, so it changes while listening (no aria-pressed besides).
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 w-10 shrink-0 px-0"
+              aria-label={listening ? words.stopMic : words.mic}
+              disabled={busy}
+              onClick={onMic}
+            >
+              {listening ? <Square aria-hidden="true" /> : <Mic aria-hidden="true" />}
+            </Button>
+          )}
           <Button type="submit" className="h-10 px-4" disabled={busy}>
             {words.add}
           </Button>
         </div>
       </form>
+
+      {noteOpen && (
+        <div role="group" aria-label={words.mic} className="flex flex-col gap-2 rounded-lg border px-4 py-3 text-sm">
+          <p>{words.micNote.text}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              className="h-10 px-4"
+              onClick={() => {
+                markMicNoteSeen();
+                setNoteOpen(false);
+                startListening();
+              }}
+            >
+              {words.micNote.continue}
+            </Button>
+            <Button type="button" variant="ghost" className="h-10 px-4" onClick={() => setNoteOpen(false)}>
+              {words.micNote.cancel}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {choice !== null && (
         <AmountChoice
@@ -321,12 +426,17 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         </p>
       )}
 
-      <div className={saved ? 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 pr-1 pl-4' : undefined}>
-        {/* Always rendered, so a screen reader is already listening when the text appears. */}
-        <p role="status" className="min-w-0 text-sm break-words">
-          {saved?.message}
+      <div
+        className={
+          saved || listening ? 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 pr-1 pl-4' : undefined
+        }
+      >
+        {/* Always rendered, so a screen reader is already listening when the text appears. The one status line for
+            the field: it says "Listening…" while the mic is on, and what was saved after. */}
+        <p role="status" className={listening ? 'min-w-0 py-2.5 text-sm break-words' : 'min-w-0 text-sm break-words'}>
+          {listening ? words.listening : saved?.message}
         </p>
-        {saved && (
+        {saved && !listening && (
           <Button type="button" variant="ghost" className="h-10 shrink-0 px-3" onClick={() => void undo()}>
             {words.undo}
           </Button>
