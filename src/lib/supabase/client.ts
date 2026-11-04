@@ -31,3 +31,24 @@ export function getSupabase(): SupabaseClient | null {
   }
   return client;
 }
+
+/**
+ * A client of its own for one check that must leave this tab's session alone: the password, and the authenticator's
+ * code, given again before the account is deleted (P2.5). Signing in on the tab's client would swap its session, and
+ * an account with two-step sign-in would drop back to the code step. This one keeps its session in memory, under its
+ * own storage key, and is dropped after the check. Null on the server or without a Supabase project; only in event
+ * handlers.
+ */
+export function checkingSupabase(): SupabaseClient | null {
+  if (typeof window === 'undefined') return null;
+  const env = readSupabaseEnv();
+  if (env === null) return null;
+  return createClient(env.url, env.publishableKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: `${AUTH_STORAGE_KEY}-check`,
+    },
+  });
+}

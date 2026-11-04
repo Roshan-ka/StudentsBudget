@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { exportAll, replaceAll } from '@/db/bulk';
 import { db } from '@/db/db';
 import { deleteEntry, saveEntry } from '@/db/repo';
-import { applyLink, linkPhone, linkWithChoice, planLink } from './link';
+import { applyLink, linkPhone, linkWithChoice, planLink, unlinkPhone } from './link';
 import { push } from './push';
 import type { UserDataStore } from './store';
 import { expense, fakeStore, liveIds, snapshot } from './test-helpers';
@@ -300,5 +300,24 @@ describe('linkWithChoice', () => {
     await held;
     await linking;
     expect(await linkedTo()).toBe(USER);
+  });
+});
+
+describe('unlinkPhone (P2.5)', () => {
+  it('forgets the account and the changes waiting for it, keeps the phone’s data, and records no more changes', async () => {
+    const { store } = fakeStore();
+    await applyLink(store, { kind: 'link' }, USER);
+    await db.accounts.put(snapshot().accounts[0]);
+    expect(await queued()).toEqual(['accounts:local']);
+
+    await unlinkPhone();
+    expect(await linkedTo()).toBeUndefined();
+    expect(await queued()).toEqual([]);
+    expect(await db.accounts.count()).toBe(1);
+    // Unlinked: a write is the phone's alone, and waits for no account.
+    await db.accounts.put({ ...snapshot().accounts[0], name: 'Renamed' });
+    expect(await queued()).toEqual([]);
+    // And the phone can link to another account, instead of being blocked.
+    expect((await planLink(store, 'someone-else')).kind).not.toBe('other-account');
   });
 });
