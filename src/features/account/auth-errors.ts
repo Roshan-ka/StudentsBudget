@@ -26,6 +26,11 @@ const BY_CODE: Record<string, ErrorKey> = {
   email_provider_disabled: 'emailDisabled',
   email_not_confirmed: 'notConfirmed',
   over_request_rate_limit: 'tooMany',
+  // The emailed codes (P2.4). Supabase Auth answers a wrong code and an expired one alike.
+  otp_expired: 'codeWrongOrExpired',
+  over_email_send_rate_limit: 'waitForCode',
+  // The hosted project's own sender delivers only to its team's addresses, until it has an SMTP sender of its own.
+  email_address_not_authorized: 'emailNotSent',
   // Two-step sign-in (the authenticator code).
   mfa_verification_failed: 'codeFailed',
   mfa_verification_rejected: 'codeFailed',

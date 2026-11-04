@@ -115,6 +115,27 @@ Each is about an hour: lint, typecheck, `npm test`, an "As built" note, a commit
    - The error mappings and texts in four dictionaries.
    - The mock options and the sign-up half of `email-codes.spec.ts`.
    - **Before merging:** Roshan pastes `confirmation.html` into the hosted dashboard's Confirm signup template. Confirmations stay off there, so nobody's sign-up changes yet.
+   - **As built (2026-11-04):**
+     - **`code-field.tsx`:** `CodeField` (label, value, `onChange`). `SecondStepForm` and the two-step set-up use it in place of their inlined inputs.
+     - **`credentials.ts`:** `checkEmailCode`, which shares a `sixDigits` rule with `checkAuthenticatorCode`. `checkEmail` waits for chunk 3, which needs it.
+     - **`auth-errors.ts`:** `otp_expired` → `codeWrongOrExpired`, `over_email_send_rate_limit` → `waitForCode`, `email_address_not_authorized` → `emailNotSent`. `notConfirmed` now points to the code.
+     - **`account-view.tsx`:**
+       - `ConfirmEmailStep` sits in the same file as `SecondStepForm`;
+       - `sendSignUpCode` (`auth.resend({ type: 'signup' })`) is shared by Send a new code and the unconfirmed sign-in;
+       - `signUp` sends `options.data.lang`, so the account's user metadata now holds the language chosen at sign-up (for its emails; CLAUDE.md gets this in chunk 4);
+       - Back returns to sign-in mode with the email kept;
+       - `signIn.created` is gone from the four dictionaries.
+     - **Texts:** `auth.confirm` (heading, prompt, code, confirm, sendAgain, resent, back), `auth.check.emailCode` and three errors, in en, de, fr and es.
+     - **`mockSupabaseAuth`:**
+       - `{ confirmations: true }` (a sign-up answers the user without a session; the password alone gets `email_not_confirmed`);
+       - `/verify` takes `E2E_EMAIL_CODE` (`135792`) for `email` or `signup`, and anything else gets `otp_expired`;
+       - `/resend` answers 200.
+     - **`e2e/email-codes.spec.ts`** (4 tests):
+       - the code signs in after a malformed and a wrong code, and the sign-up sends `lang`;
+       - Send a new code;
+       - signing in before the code offers a new one, then the step;
+       - the flow in German.
+     - **Map:** `email-codes` under `/settings/account` in `e2e/affected-map.json`.
 3. **Forgot password.**
    - The link, the email, code and new-password steps, `recovery.ts` with `use-auth.ts`, and `NewPasswordForm`.
    - Texts, mocks and the recovery half of the spec, including an account with two-step sign-in.

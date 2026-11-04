@@ -16,7 +16,7 @@
     "/manifest.webmanifest": ["smoke"],
     "/reveal": ["demo-scenarios", "language-tour", "reveal", "setup"],
     "/settings": "all",
-    "/settings/account": ["account", "language-tour", "linking", "passkeys", "two-step"],
+    "/settings/account": ["account", "email-codes", "language-tour", "linking", "passkeys", "two-step"],
     "/setup": "all",
     "/tips": ["discounts", "language-tour", "tips"]
   },

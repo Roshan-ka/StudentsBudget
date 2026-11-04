@@ -10,8 +10,11 @@ export const auth = {
     checkEmail: 'Check the email address.',
     signupDisabled: 'New accounts are switched off right now.',
     emailDisabled: 'Signing in with email is switched off right now.',
-    notConfirmed: 'This account still has to be confirmed by email.',
+    notConfirmed: 'This account still has to be confirmed with the code from its email.',
     tooMany: 'Too many tries. Wait a minute, then try again.',
+    codeWrongOrExpired: 'That code is wrong or has expired. Check the newest email, or send a new code.',
+    waitForCode: 'Too many emails for now. Wait a minute, then send a new code.',
+    emailNotSent: "The email couldn't be sent. Try again later.",
     codeFailed: 'That code didn’t work. Codes change every 30 seconds: enter the newest one.',
     codeExpired: 'That took a little long. Enter the newest code from your authenticator app.',
     factorGone: 'Two-step sign-in was turned off for this account. Sign out, then sign in again.',
@@ -43,6 +46,7 @@ export const auth = {
     enterPassword: 'Enter your password.',
     shortPassword: (min: number) => `Use at least ${min} characters for the password.`,
     code: 'Enter the 6-digit code from your authenticator app.',
+    emailCode: 'Enter the 6-digit code from the email.',
   },
   view: {
     off: "Accounts aren't set up in this copy of the app. Everything stays on this phone.",
@@ -58,9 +62,18 @@ export const auth = {
     minLength: (min: number) => `At least ${min} characters.`,
     signIn: 'Sign in',
     create: 'Create account',
-    created: 'Account created. Open the confirmation email, then sign in here.',
     toSignIn: 'Have an account? Sign in',
     toCreate: 'New here? Create an account',
+  },
+  /** The code from the sign-up email (P2.4). The email sits in bold between the parts of a sentence. */
+  confirm: {
+    heading: 'Confirm your email',
+    prompt: { before: 'Enter the 6-digit code we sent to ', after: '. It works for 60 minutes.' },
+    code: '6-digit code',
+    confirm: 'Confirm',
+    sendAgain: 'Send a new code',
+    resent: 'A new code is on its way. Use the newest one.',
+    back: 'Back',
   },
   /** The code step of signing in. The email sits in bold between the parts of a sentence. */
   secondStep: {

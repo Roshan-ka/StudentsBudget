@@ -34,6 +34,8 @@ function base64url(value: object): string {
 
 /** The one code the mocked authenticator accepts; any other is wrong. */
 export const E2E_TOTP_CODE = '246802';
+/** The code every mocked sign-up email holds (P2.4); any other is wrong or expired. */
+export const E2E_EMAIL_CODE = '135792';
 /** The key the mocked authenticator hands out. */
 export const E2E_TOTP_SECRET = 'JBSWY3DPEHPK3PXP';
 
@@ -85,15 +87,18 @@ export type AuthCall = { method: string; path: string; search: string; body: unk
  * (two-step sign-in) and passkeys on (relying party localhost): a new account is signed in at once. `accounts` maps
  * each existing email to its password. The authenticator accepts only E2E_TOTP_CODE. A passkey needs a browser that
  * can make one, such as Chrome with a virtual authenticator (`addVirtualAuthenticator`). `factors` shares the
- * accounts' authenticators with another page, a second phone; each page keeps its own session. Returns every call, in
- * order.
+ * accounts' authenticators with another page, a second phone; each page keeps its own session. With `confirmations`,
+ * "Confirm email" is on (P2.4): a new account gets no session until `/verify` is given E2E_EMAIL_CODE, and its password
+ * alone answers `email_not_confirmed`; `/resend` always says a new email went. Returns every call, in order.
  */
 export async function mockSupabaseAuth(
   page: Page,
   accounts: Record<string, string> = {},
-  options: { factors?: AuthFactors } = {},
+  options: { factors?: AuthFactors; confirmations?: boolean } = {},
 ): Promise<AuthCall[]> {
   const passwords = new Map(Object.entries(accounts));
+  // Accounts made while "Confirm email" is on, until their emailed code is given.
+  const unconfirmed = new Set<string>();
   const calls: AuthCall[] = [];
   // Each account's authenticator factors, the account signed in, and whether its session gave a code.
   const factorsOf: AuthFactors = options.factors ?? new Map();
@@ -138,13 +143,33 @@ export async function mockSupabaseAuth(
         return reply(route, 422, { error_code: 'user_already_exists', msg: 'User already registered' });
       }
       passwords.set(email, password);
+      if (options.confirmations) {
+        // The user alone, with no session: Supabase Auth's answer while the email waits for its code.
+        unconfirmed.add(email);
+        return reply(route, 200, userFor(email, []));
+      }
       return reply(route, 200, signedIn(email, 'aal1'));
     }
     if (path === '/token' && url.searchParams.get('grant_type') === 'password') {
       // The password alone: aal1, with the account's confirmed authenticators listed, as Supabase Auth does.
-      if (email !== undefined && passwords.get(email) === password) return reply(route, 200, signedIn(email, 'aal1'));
+      if (email !== undefined && passwords.get(email) === password) {
+        if (unconfirmed.has(email)) return reply(route, 400, { error_code: 'email_not_confirmed', msg: 'Email not confirmed' });
+        return reply(route, 200, signedIn(email, 'aal1'));
+      }
       return reply(route, 400, { error_code: 'invalid_credentials', msg: 'Invalid login credentials' });
     }
+    if (path === '/verify') {
+      // The code from the sign-up email confirms the account and signs it in. A wrong code and an expired one get the
+      // same answer from Supabase Auth.
+      const { token, type } = (body ?? {}) as { token?: string; type?: string };
+      if (email !== undefined && unconfirmed.has(email) && (type === 'email' || type === 'signup') && token === E2E_EMAIL_CODE) {
+        unconfirmed.delete(email);
+        return reply(route, 200, signedIn(email, 'aal1'));
+      }
+      return reply(route, 403, { error_code: 'otp_expired', msg: 'Token has expired or is invalid' });
+    }
+    // A new sign-up email; Supabase Auth says the same whether or not the email has an account.
+    if (path === '/resend') return reply(route, 200, {});
     if (path === '/logout') {
       current = null;
       return reply(route, 204);
