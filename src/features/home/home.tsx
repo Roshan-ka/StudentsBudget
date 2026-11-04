@@ -1,6 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import type { Plan, Profile } from '@/db/types';
@@ -16,6 +17,7 @@ import { monthStatus, weekToSpend } from '@/lib/budget';
 import { monthOf } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
+import { cn } from '@/lib/utils';
 import { EnvelopeList, type EnvelopeRow } from './envelope-list';
 import { LeftThisMonthCard } from './left-this-month-card';
 import { SuggestedBudget } from './suggested-budget';
@@ -56,8 +58,10 @@ export function HomeScreen({
     const { today, entries, accounts, rates, weekResults, guessCount } = data;
     const week = weekToSpend(plan, entries, today);
     const month = monthStatus(plan, entries, monthOf(today));
+    const plannedMinor = month.reduce((total, status) => total + status.plannedMinor, 0);
+    const spentMinor = month.reduce((total, status) => total + status.spentMinor, 0);
     // Negative once more has been spent than the envelopes planned, which the card says as "over".
-    const leftMinor = month.reduce((total, status) => total + status.plannedMinor - status.spentMinor, 0);
+    const leftMinor = plannedMinor - spentMinor;
     // Envelopes planned at €0 and never used would only add empty rows.
     const rows: EnvelopeRow[] = month.filter((status) => status.plannedMinor > 0 || status.spentMinor > 0);
     const badges = badgesFrom(
@@ -73,7 +77,12 @@ export function HomeScreen({
 
     content = (
       <>
-        <LeftThisMonthCard leftMinor={leftMinor} weekMinor={week.totalMinor} />
+        <LeftThisMonthCard
+          leftMinor={leftMinor}
+          weekMinor={week.totalMinor}
+          plannedMinor={plannedMinor}
+          spentMinor={spentMinor}
+        />
         <EnvelopeList rows={rows} today={today} />
         {/* Keyed by month: an installed app stays mounted for days, and "Not now", typed amounts and the saved note
             should not carry into the next month. */}
@@ -82,8 +91,8 @@ export function HomeScreen({
         <BadgesCard badges={badges} />
         {/* Guesses are optional: with none saved there is nothing to unlock. */}
         {guessCount > 0 && <RevealCard startedOn={plan.createdOn} today={today} />}
-        <div className="flex flex-col gap-1">
-          <p className="font-medium">
+        <div className={cn(cardVariants(), 'gap-1')}>
+          <p className="font-semibold">
             {t.home.acrossAccounts(
               nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { whole: true, locale }),
             )}
@@ -99,8 +108,12 @@ export function HomeScreen({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {name !== '' && <p className="text-lg font-semibold break-words">{t.home.greeting(name)}</p>}
+    <div className="flex flex-col gap-5">
+      {name !== '' && (
+        <p className="font-heading text-[28px] leading-tight font-extrabold tracking-tight break-words">
+          {t.home.greeting(name)}
+        </p>
+      )}
       <QuickAddField />
       {content}
     </div>

@@ -34,7 +34,8 @@ function sourceBlocks(
 /**
  * One calm line under an envelope row: "Try this: … · save about €X per …". Tapping it opens the swap's body, where
  * each of its prices comes from and the tip it is linked to, which carries its own source: every number shown has one.
- * The panel is outlined, not filled: muted text on the muted fill was below 4.5:1, on the page background it is above.
+ * The panel is the card colour, outlined: muted text is above 4.5:1 on it, whether the line sits on the page or on an
+ * envelope's tint.
  * The swap's and the tip's own words are city content, in the phone's language where translated (`swapIn`, `tipIn`).
  */
 export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
@@ -52,7 +53,8 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         onClick={() => setOpen(!open)}
-        className="inline-flex min-h-11 w-fit max-w-full cursor-pointer items-center text-left text-sm break-words text-primary underline underline-offset-4"
+        // The foreground colour, bold and underlined: it sits on an envelope's tint, where cobalt is under 4.5:1.
+        className="inline-flex min-h-11 w-fit max-w-full cursor-pointer items-center text-start text-sm font-semibold break-words text-foreground underline underline-offset-4"
       >
         {swapLineText(suggestion, lang)}
       </button>
@@ -61,7 +63,7 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
           id={panelId}
           role="group"
           aria-label={t.tips.swap.details(swap.title)}
-          className="flex flex-col gap-3 rounded-lg border px-3 py-3 text-sm"
+          className="flex flex-col gap-3 rounded-md border-[1.5px] border-outline bg-card px-3 py-3 text-sm"
         >
           <p lang={swap.textLang}>{swap.body}</p>
           {sourceBlocks(swap, t, locale).map(({ label, range }) => (

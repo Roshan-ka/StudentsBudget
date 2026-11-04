@@ -27,6 +27,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
   de: new Set([
     'common.accountOption',
     'common.dateField.letters.month',
+    'home.leftThisMonth.overThisMonth.before',
     'categories.income-bafoeg',
     'setup.accounts.name',
     'setup.accounts.bank',
@@ -45,6 +46,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
   ]),
   es: new Set([
     'common.accountOption',
+    'home.leftThisMonth.overThisMonth.before',
     'common.dateField.letters.day',
     'common.dateField.letters.month',
     'categories.income-bafoeg',
@@ -58,6 +60,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
   ]),
   fr: new Set([
     'common.accountOption',
+    'home.leftThisMonth.overThisMonth.before',
     'common.dateField.label',
     'common.dateField.letters.month',
     'common.source.label',
