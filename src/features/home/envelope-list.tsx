@@ -58,7 +58,7 @@ function EnvelopeItem({ row, suggestion }: { row: EnvelopeRow; suggestion: Sugge
           className="h-2.5 overflow-hidden rounded-full bg-track"
         >
           <div
-            className="h-full rounded-full"
+            className="h-full rounded-full motion-safe:animate-bar-fill"
             style={{ width: `${percent}%`, backgroundColor: chartColor(row.categoryId) }}
           />
         </div>

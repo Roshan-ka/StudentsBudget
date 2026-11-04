@@ -29,6 +29,8 @@ function MonthRing({ percent }: { percent: number }) {
           strokeLinecap="round"
           strokeDasharray={`${(CIRCUMFERENCE * percent) / 100} ${CIRCUMFERENCE}`}
           transform="rotate(-90 54 54)"
+          // Fills from empty when shown (globals.css, `ring-fill`); still under reduced motion.
+          className="motion-safe:animate-ring-fill"
         />
       )}
     </svg>

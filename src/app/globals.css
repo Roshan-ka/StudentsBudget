@@ -158,6 +158,25 @@
   --shadow-offset: 3px 3px 0 rgb(74 67 54 / 0.22);
   /* A pressed button: it moves 2 px into its shadow, so 1 px is left. */
   --shadow-offset-pressed: 1px 1px 0 rgb(74 67 54 / 0.22);
+
+  /* Motion (chunk 11): an envelope's bar and Home's ring fill from empty when they are shown. Each runs only under
+     `motion-safe:`, so nothing moves for someone who asked for reduced motion. The end is the element's own value, so
+     the keyframes say only where to start; the bar grows from the start side in either reading direction. */
+  --animate-bar-fill: bar-fill 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  --animate-ring-fill: ring-fill 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  @keyframes bar-fill {
+    from {
+      width: 0;
+    }
+  }
+
+  /* The ring's circumference is 2π × 42 ≈ 264 units (left-this-month-card.tsx). */
+  @keyframes ring-fill {
+    from {
+      stroke-dasharray: 0 264;
+    }
+  }
 }
 
 @layer base {

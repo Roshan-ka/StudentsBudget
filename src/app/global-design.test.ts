@@ -105,3 +105,33 @@ describe('fonts for every script', () => {
     for (const [code, { script }] of Object.entries(LANGUAGES)) expect(script, code).toMatch(/^[A-Z][a-z]{3}$/);
   });
 });
+
+describe('motion', () => {
+  /** The animation classes in a file that run whatever the person asked for: `animate-*` without `motion-safe:`. */
+  function unguardedAnimations(source: string): string[] {
+    return withoutComments(source)
+      .split(/[\s"'`{}(),;]+/)
+      .filter((token) => /(^|:)animate-(?!none$)/.test(token) && !token.split(':').includes('motion-safe'));
+  }
+
+  it('moves nothing for someone who asked for reduced motion (chunk 11)', () => {
+    const found = filesIn(SRC, '.tsx').flatMap((path) =>
+      unguardedAnimations(readFileSync(path, 'utf8')).map((name) => `${relative(SRC, path)}: ${name}`),
+    );
+    expect(found).toEqual([]);
+  });
+
+  it('finds an animation without the guard and leaves a guarded one alone', () => {
+    expect(unguardedAnimations('className="animate-spin hover:animate-bar-fill motion-safe:animate-ring-fill"')).toEqual([
+      'animate-spin',
+      'hover:animate-bar-fill',
+    ]);
+  });
+
+  it('defines the keyframes each guarded animation names', () => {
+    for (const name of ['bar-fill', 'ring-fill']) {
+      expect(css, name).toContain(`--animate-${name}: ${name} `);
+      expect(css, name).toMatch(new RegExp(`@keyframes ${name}\\s*\\{`));
+    }
+  });
+});
