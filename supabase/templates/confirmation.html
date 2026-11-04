@@ -1,0 +1,33 @@
+{{/*
+  The sign-up email: a 6-digit code the app asks for (P2.4, docs/superpowers/plans/2026-11-04-email-codes.md).
+  The language is the one the app sent as user metadata at sign-up (`lang`); English when there is none. The hosted
+  project keeps its own copy in the dashboard (Authentication, Emails, Confirm signup): paste this file there when it
+  changes. The French texts keep a narrow no-break space (&#8239;) before the colon, as the app does.
+*/}}{{ $lang := or .Data.lang "en" }}<!doctype html>
+<html lang="{{ $lang }}">
+  <body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #111">
+    {{ if eq $lang "de" }}
+    <h1 style="font-size: 20px">Dein StudentsBudget-Code</h1>
+    <p>Gib diesen Code in der App ein, um deine E-Mail-Adresse zu bestätigen:</p>
+    {{ else if eq $lang "fr" }}
+    <h1 style="font-size: 20px">Ton code StudentsBudget</h1>
+    <p>Saisis ce code dans l’app pour confirmer ton adresse e-mail&#8239;:</p>
+    {{ else if eq $lang "es" }}
+    <h1 style="font-size: 20px">Tu código de StudentsBudget</h1>
+    <p>Escribe este código en la app para confirmar tu correo:</p>
+    {{ else }}
+    <h1 style="font-size: 20px">Your StudentsBudget code</h1>
+    <p>Enter this code in the app to confirm your email:</p>
+    {{ end }}
+    <p style="font-family: ui-monospace, monospace; font-size: 28px; letter-spacing: 4px">{{ .Token }}</p>
+    {{ if eq $lang "de" }}
+    <p>Er gilt 60 Minuten. Wenn du kein StudentsBudget-Konto erstellt hast, ignoriere diese E-Mail.</p>
+    {{ else if eq $lang "fr" }}
+    <p>Il est valable 60 minutes. Si tu n’as pas créé de compte StudentsBudget, ignore cet e-mail.</p>
+    {{ else if eq $lang "es" }}
+    <p>Sirve durante 60 minutos. Si no has creado una cuenta de StudentsBudget, ignora este correo.</p>
+    {{ else }}
+    <p>It works for 60 minutes. If you didn't create a StudentsBudget account, ignore this email.</p>
+    {{ end }}
+  </body>
+</html>

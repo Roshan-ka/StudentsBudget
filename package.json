@@ -20,7 +20,7 @@
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "test:db": "supabase test db",
-    "test:contract": "vitest run src/sync/store.contract.test.ts",
+    "test:contract": "vitest run .contract.test",
     "mcp": "node mcp/server.ts"
   },
   "dependencies": {
