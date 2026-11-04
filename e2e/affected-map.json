@@ -20,5 +20,5 @@
     "/setup": "all",
     "/tips": ["discounts", "language-tour", "tips"]
   },
-  "allOnly": ["insecure-origin", "language", "overdrawn", "recurring"]
+  "allOnly": ["dictation", "insecure-origin", "language", "overdrawn", "recurring"]
 }

@@ -95,6 +95,24 @@ Each is about an hour: lint, typecheck, `npm test`, an "As built" note, a commit
    - CLAUDE.md:
      - the Quick add bullet, saying the mic feeds the same `addLine` and provider path;
      - the outgoing-requests note: the app sends nothing, but the browser's speech service may receive audio, and the app says so once.
+   - **As built (2026-11-04):**
+     - `QuickAddField`:
+       - `onSubmit`'s body is now `addLine(line)`, shared by typing and speech.
+       - The mic button (`Mic`, then `Square` while listening) shows where `recognizerFor(window)` exists (`useSyncExternalStore`, false on the server). It sits between the field and Add.
+       - Its name says what a tap does now, "Speak an entry" or "Stop listening". It has no `aria-pressed`, unlike the plan: a toggle shouldn't change both its name and its pressed state.
+       - The first tap opens the note (a group named after the button, with Continue and Cancel).
+       - Offline taps say so without starting.
+       - What is heard fills the field and goes through `addLine`.
+       - Leaving the page stops listening.
+     - "Listening…" takes the field's one `role="status"` line, where the Saved line shows. A second status region would break the specs' `getByRole('status')`.
+     - `e2e/dictation.spec.ts` (under `allOnly`) installs a stand-in recognizer with `addInitScript`. It checks:
+       - the note, then Continue → "coffee 3" → the category chips → Saved;
+       - after a reload, no note, and "coffee 6" saves straight away;
+       - Cancel leaves the mic off;
+       - a blocked microphone and being offline;
+       - no button without the API;
+       - German listens in `de-DE`.
+     - CLAUDE.md: the mic under Quick add, and the speech service under outgoing requests.
 3. **Real try on the phones.**
    - Android Chrome and the iPhone (Safari and the installed app) via `npm run start:https`: does the button show, does recognition work, what does dictation actually produce?
    - Fix what the try finds, for example a parser case for a phrasing the phone produces.
