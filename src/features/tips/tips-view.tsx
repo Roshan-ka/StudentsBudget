@@ -1,14 +1,19 @@
 'use client';
 
+import { ChevronDownIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TIPS } from '@/data/tips';
+import { categoryTint } from '@/features/charts/colors';
 import { DiscountsView } from '@/features/discounts/discounts-view';
+import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
 import { tipIn } from '@/i18n/city';
 import { useT } from '@/i18n/use-t';
+import { cn } from '@/lib/utils';
 import { sortTips, tipChipIds, tipTag } from './tips';
 
 const SORTED = sortTips(TIPS);
@@ -56,9 +61,8 @@ function TipList() {
     <Button
       key={id ?? 'all'}
       type="button"
-      variant={categoryId === id ? 'default' : 'outline'}
+      variant="chip"
       aria-pressed={categoryId === id}
-      className="px-3"
       onClick={() => setCategoryId(id)}
     >
       {label}
@@ -78,8 +82,9 @@ function TipList() {
         {chip(null, text.all)}
         {CHIPS.main.map((id) => chip(id, categoryNameIn(t, id)))}
         {CHIPS.more.length > 0 && (
-          <Button type="button" variant="secondary" className="px-3" aria-expanded={showMore} onClick={toggleMore}>
+          <Button type="button" variant="chip" aria-expanded={showMore} onClick={toggleMore}>
             {text.more}
+            <ChevronDownIcon aria-hidden="true" className={cn('transition-transform', showMore && 'rotate-180')} />
           </Button>
         )}
         {showMore && CHIPS.more.map((id) => chip(id, categoryNameIn(t, id)))}
@@ -87,16 +92,21 @@ function TipList() {
       <ul aria-label={text.tips} className="flex flex-col gap-3">
         {shown.map((tip) => {
           const words = tipIn(tip, lang);
+          const Icon = CATEGORY_ICONS[tip.categoryId] ?? OTHER_ICON;
           return (
-            <li key={tip.id} className="flex flex-col gap-2 rounded-lg border px-4 py-3">
-              <div lang={words.textLang} className="flex flex-col gap-1">
-                <h3 className="font-medium">{words.title}</h3>
-                <p className="text-sm text-muted-foreground">{words.body}</p>
-              </div>
-              {/* An outline, not the muted fill: muted text on the muted fill is about 4.3:1, on the page about 4.7:1. */}
-              <span className="w-fit rounded-md border px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+            <li key={tip.id} className={cn(cardVariants(), 'gap-2 pb-0')}>
+              {/* The category's tint and icon; its name is the text, in the foreground colour (4.5:1 on every tint). */}
+              <span
+                className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold"
+                style={{ backgroundColor: categoryTint(tip.categoryId) }}
+              >
+                <Icon aria-hidden="true" className="size-3.5 shrink-0" />
                 {tipTag(tip, lang)}
               </span>
+              <div lang={words.textLang} className="flex flex-col gap-1">
+                <h3 className="text-xl leading-snug font-extrabold">{words.title}</h3>
+                <p className="text-sm text-muted-foreground">{words.body}</p>
+              </div>
               <RangeSource range={words} />
             </li>
           );

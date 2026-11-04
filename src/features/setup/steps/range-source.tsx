@@ -28,9 +28,13 @@ export function RangeSource({
   const sourceLang = 'textLang' in range ? range.textLang : contentLang(lang);
   return (
     <details className="text-xs text-muted-foreground">
-      {/* 16 px of text-xs line and 28 px of padding: a 44 px tap target, as everywhere else in the app. */}
-      <summary className="w-fit cursor-pointer py-3.5">{label ?? t.common.source.label}</summary>
-      <div className="mt-1 flex flex-col gap-1">
+      {/* A line and 28 px of padding: at least a 44 px tap target, as everywhere else in the app. Bold cobalt and
+          underlined, so it reads as something to open; it sits on the card colour, where cobalt is 6.9:1. */}
+      <summary className="w-fit cursor-pointer py-3.5 text-[13px] font-semibold text-primary underline underline-offset-4">
+        {label ?? t.common.source.label}
+      </summary>
+      {/* Space below: a card ends flush with the closed summary, which is tall enough on its own. */}
+      <div className="mb-3.5 flex flex-col gap-1">
         {/* The source's own text is city content; "Estimate" is the app's word. */}
         <p lang={estimate ? undefined : sourceLang} className="break-words">
           {estimate ? t.common.estimate : range.source}
