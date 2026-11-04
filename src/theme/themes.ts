@@ -34,17 +34,22 @@ export function themeOf(choice: ThemeChoice, phonePrefersDark: boolean): Theme {
 /**
  * The inline script the root layout puts in <head>: before the first paint it puts the phone's theme on <html> (the
  * `dark` class and `color-scheme`) and on the theme-color meta, so a dark phone never flashes the light page. Plain ES5,
- * generated from the values above; storage that can't be read leaves the page light, as rendered.
+ * generated from the values above; storage that can't be read draws the page light, as rendered.
+ *
+ * The script owns the theme-color meta and adds it when the page has none: the layout renders none, because React
+ * hydrates a rendered one by its content, and finding a colour the script had changed it would add a second.
  */
 export function themeHeadScript(): string {
   return (
-    '(function(){try{' +
+    '(function(){var d=false;try{' +
     `var k=${JSON.stringify(THEME_CHOICES)},c=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});` +
     `if(k.indexOf(c)<0)c=${JSON.stringify(DEFAULT_THEME_CHOICE)};` +
-    `var d=c==='dark'||(c==='system'&&window.matchMedia(${JSON.stringify(PREFERS_DARK)}).matches);` +
+    `d=c==='dark'||(c==='system'&&window.matchMedia(${JSON.stringify(PREFERS_DARK)}).matches)` +
+    '}catch(e){}try{' +
     "var e=document.documentElement;e.classList.toggle('dark',d);e.style.colorScheme=d?'dark':'light';" +
     "var m=document.querySelector('meta[name=\"theme-color\"]');" +
-    `if(m)m.setAttribute('content',d?${JSON.stringify(THEME_COLORS.dark)}:${JSON.stringify(THEME_COLORS.light)})` +
+    "if(!m){m=document.createElement('meta');m.setAttribute('name','theme-color');document.head.appendChild(m)}" +
+    `m.setAttribute('content',d?${JSON.stringify(THEME_COLORS.dark)}:${JSON.stringify(THEME_COLORS.light)})` +
     '}catch(e){}})()'
   );
 }

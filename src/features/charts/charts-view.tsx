@@ -59,17 +59,22 @@ function MonthSwitcher({
   const { t, locale } = useT();
   const [first] = months;
   return (
-    <div role="group" aria-label={t.charts.monthLabel} className="flex items-center justify-between gap-2">
-      <Button variant="ghost" className="px-3" onClick={() => onChange(shiftMonth(month, -1))}>
+    // One row where it fits (a container of 20 rem); with large text the month goes on its own line above the buttons.
+    <div
+      role="group"
+      aria-label={t.charts.monthLabel}
+      className="@container flex flex-wrap items-center justify-between gap-2"
+    >
+      <Button variant="ghost" className="min-w-0 shrink px-3" onClick={() => onChange(shiftMonth(month, -1))}>
         <span aria-hidden="true">‹</span> {t.charts.previous}
       </Button>
-      <div aria-live="polite" className="text-center">
+      <div aria-live="polite" className="order-first w-full min-w-0 text-center @xs:order-none @xs:w-auto">
         <p className="font-medium">{monthAndYear(month, locale)}</p>
         {months.length > 1 && first !== undefined && (
           <p className="text-xs text-muted-foreground">{rangeText(first, month, locale)}</p>
         )}
       </div>
-      <Button variant="ghost" className="px-3" onClick={() => onChange(shiftMonth(month, 1))}>
+      <Button variant="ghost" className="min-w-0 shrink px-3" onClick={() => onChange(shiftMonth(month, 1))}>
         {t.charts.next} <span aria-hidden="true">›</span>
       </Button>
     </div>

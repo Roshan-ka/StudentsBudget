@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { MESSAGES } from '../src/i18n/messages';
-import { horizontalOverflow } from './helpers/layout';
+import { horizontalOverflow, widerThanThePage } from './helpers/layout';
 import { heading, PAGES } from './helpers/pages';
 import { completeSetup } from './helpers/setup';
 
@@ -11,6 +11,11 @@ import { completeSetup } from './helpers/setup';
 const t = MESSAGES.en;
 const LARGE_TEXT = 'html { font-size: 200% !important; }';
 
+/** Soft, so one run names every page that is too wide, and what on it sticks out. */
+async function expectNoOverflow(page: Page, path: string) {
+  expect.soft(await horizontalOverflow(page), `${path}: ${await widerThanThePage(page)}`).toBe(0);
+}
+
 async function tour(page: Page, largeText: boolean) {
   const enlarge = async () => {
     if (largeText) await page.addStyleTag({ content: LARGE_TEXT });
@@ -20,7 +25,7 @@ async function tour(page: Page, largeText: boolean) {
   await page.goto('/setup');
   await enlarge();
   await expect(heading(page, t.setup.headingNew)).toBeVisible();
-  expect(await horizontalOverflow(page), '/setup').toBe(0);
+  await expectNoOverflow(page, '/setup');
 
   await completeSetup(page);
   for (const { path, shown } of PAGES) {
@@ -32,7 +37,7 @@ async function tour(page: Page, largeText: boolean) {
     });
     // What is shown above appears once the page has hydrated; what it reads from IndexedDB follows within moments.
     await page.waitForLoadState('networkidle');
-    expect(await horizontalOverflow(page), path).toBe(0);
+    await expectNoOverflow(page, path);
   }
 }
 

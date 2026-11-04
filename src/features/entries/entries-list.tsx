@@ -139,7 +139,7 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
           </Button>
         </div>
       ) : (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="px-4" onClick={onClose}>
             {text.cancel}
           </Button>
