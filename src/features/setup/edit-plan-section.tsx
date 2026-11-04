@@ -3,6 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { useT } from '@/i18n/use-t';
 
@@ -15,8 +16,8 @@ export function EditPlanSection() {
   if (plan === 'loading' || plan === null) return null;
 
   return (
-    <section aria-labelledby="plan-heading" className="flex flex-col gap-3">
-      <h3 id="plan-heading" className="text-lg font-semibold">
+    <section aria-labelledby="plan-heading" className={cardVariants()}>
+      <h3 id="plan-heading" className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       <p className="text-muted-foreground">{text.body}</p>

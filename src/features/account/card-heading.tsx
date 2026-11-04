@@ -1,8 +1,9 @@
-import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
+import { cardVariants } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
-/** The look of a card in Sign-in and security (passkeys, two-step sign-in). */
-export const SECURITY_CARD = 'flex flex-col gap-3 rounded-xl border p-4';
+/** The look of a card in Sign-in and security (password, passkeys, two-step sign-in, deleting the account). */
+export const SECURITY_CARD = cardVariants();
 
 /**
  * A card's heading in Sign-in and security: its icon, its name, and a short status at the end ("On", "1 passkey"),
@@ -33,7 +34,7 @@ export function CardHeading({
       {status !== undefined && (
         <span
           className={cn(
-            'ml-auto shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium',
+            'ms-auto shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold',
             active ? 'bg-primary text-primary-foreground' : 'bg-muted',
           )}
         >

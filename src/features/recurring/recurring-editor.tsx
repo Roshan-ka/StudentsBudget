@@ -3,6 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '@/components/ui/native-select';
@@ -406,8 +407,8 @@ export function RecurringEditor() {
     );
 
   return (
-    <section aria-labelledby="recurring-heading" className="flex flex-col gap-3">
-      <h3 id="recurring-heading" className="text-lg font-semibold">
+    <section aria-labelledby="recurring-heading" className={cardVariants()}>
+      <h3 id="recurring-heading" className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       <p className="text-muted-foreground">{text.intro}</p>
