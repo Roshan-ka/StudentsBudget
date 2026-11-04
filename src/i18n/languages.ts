@@ -28,7 +28,7 @@ export const DEFAULT_LANGUAGE: Language = 'en';
  * The languages a person can pick, the default first. A language can be in the registry, and be drafted, before it
  * is offered here; offering it needs its whole dictionary, with no English underneath (messages.test.ts).
  */
-export const OFFERED: readonly Language[] = ['en', 'de', 'fr'];
+export const OFFERED: readonly Language[] = ['en', 'de', 'fr', 'es'];
 
 /**
  * What a build lets a person pick in the language picker: the offered languages in production, and every language in

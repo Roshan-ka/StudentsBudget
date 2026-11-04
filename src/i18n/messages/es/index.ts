@@ -1,4 +1,4 @@
-import { en, type Messages } from '../en';
+import type { Messages } from '../en';
 import { account } from './account';
 import { accounts } from './accounts';
 import { auth } from './auth';
@@ -20,9 +20,9 @@ import { sync } from './sync';
 import { tips } from './tips';
 
 /**
- * Spanish, drafted area by area (language switch, plan 2: docs/superpowers/plans/2026-11-03-language-switch-2.md,
- * chunks 3–7); since chunk 7 every area is written. Not offered yet: chunk 9 offers it once a native speaker has read
- * it, and drops the English underneath. A test checks that every written area differs from English, apart from a
+ * Spanish, written area by area (language switch, plan 2: docs/superpowers/plans/2026-11-03-language-switch-2.md,
+ * chunks 3–7) and offered since chunk 9, before its native read (Roshan, 04-11-2026). Every area is its own, with no
+ * English underneath, so typecheck holds every key. A test checks that every area differs from English, apart from a
  * short allow-list (messages.test.ts). Counts go through `byCount` (`plural()`).
  *
  * Glossary, so the areas say the same thing the same way:
@@ -41,7 +41,6 @@ import { tips } from './tips';
  * - Regensburg stays Regensburg, as on every sign there.
  */
 export const es: Messages = {
-  ...en,
   shell,
   language,
   common,
