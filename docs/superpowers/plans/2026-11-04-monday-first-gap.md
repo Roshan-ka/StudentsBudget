@@ -59,7 +59,7 @@ B1 also changes the ids four pinned tests expect (`rec:job-s:…` three times, `
 
 ## Decided
 
-*Waiting for Roshan's call.*
+**B2** (Roshan, 2026-11-04): only a week that starts on the 1st gets `rec:<scheduleId>:w:<Monday>`; every other id stays as it is, and the old form is still read.
 
 ## Global constraints
 
@@ -90,17 +90,24 @@ B1 also changes the ids four pinned tests expect (`rec:job-s:…` three times, `
 - `firstAddedOn` passes `current: { id: stored.id, frequency: timing.frequency }`: the period it looks at is the new timing's.
 - `postLine`: the id is `recurringEntryId(s, start)`; a period is left out of the adds when any of `ownEntryIds(s, start)` already exists.
 
-- [ ] **Step 1: failing tests**
+- **As built (2026-11-04):**
+  - As the interfaces say. `postLine` keeps each entry to add with its `ownEntryIds`, and one `bulkGet` over all of them decides which go in.
+  - One test differs from step 1: "still counts a week's entry posted under the month's id" dates the entry 9 February, outside its week, so only its id can place it (dated 5 February it would pass on the date rule alone). It failed first too.
+  - Step 2 had 8 failures: the five new or flipped cases, plus three existing tests through the new call shapes (`recurringEntryId` taking the schedule, `LineKey.current`). The moved old-form poster case passed, as planned. No pinned test changed its expected result.
+  - CLAUDE.md's "Recurring entries" rule and the follow-ups doc say so.
+  - Lint, typecheck and `npm test` pass (1605 tests; the 11 skipped are the contract tests, which need a local Supabase). The worktree had no `node_modules`; the checks ran with the main checkout's, which is at the same commit with the same lockfile, so no install was needed.
+
+- [x] **Step 1: failing tests**
   - `post-due.test.ts`, the known-gap test becomes "posts the month's entry in a month that starts on a Monday after its first week was posted": `postDueRecurring('2027-02-15')` → `{ posted: 1 }`; rent ids and dates `[['rec:rent-s:2027-01-25', '2027-01-29'], ['rec:rent-s:w:2027-02-01', '2027-02-05'], ['rec:rent-s:2027-02-01', '2027-02-15']]`; watermark `'2027-02-28'`; then `postDueRecurring('2027-03-15')` → `{ posted: 1 }`. The known-gap comment goes.
   - `post-due.test.ts`, `recurringEntryId`: "names the schedule and the period" calls `recurringEntryId({ id: 'abc', frequency: 'monthly' }, '2026-11-01')` → `'rec:abc:2026-11-01'`; new "marks a week that starts on the 1st as a week, as the month has that id": weekly `'2027-02-01'` → `'rec:abc:w:2027-02-01'`, weekly `'2027-02-08'` → `'rec:abc:2027-02-08'`, monthly `'2027-02-01'` → `'rec:abc:2027-02-01'`. The automatic-mark test's `recurringEntryId('rent-s', …)` takes `schedule()`.
   - `post-due.test.ts`, "does not post a week again that an older version posted under the month's id, moved out of the week" (passing now, pinned): weekly Fridays, `postedThrough '2027-01-31'`, an automatic entry `rec:rent-s:2027-02-01` dated `'2027-02-09'`; `postDueRecurring('2027-02-08')` → `{ posted: 0 }`, watermark `'2027-02-07'`.
   - `post-due.test.ts`, under "the first entry it adds is on the day 'First added on' says": "a repaired weekly line picked again as monthly on day 15 after its week of Monday 1 February: 15 Feb". Weekly Fridays on a second euro account `other` from `'2027-01-25'`; `postDueRecurring('2027-02-08')` → 2; `other` is deleted; `firstAddedOn({ frequency: 'monthly', day: 15 }, stored, '2027-02-08', true, line)` → `'2027-02-15'`; `updatePlan` with `applyLineChange` to monthly day 15 on `local` (a repair: it restarts from tomorrow); `postDueRecurring('2027-02-14')` → `{ posted: 0 }`, `postDueRecurring('2027-02-15')` → `{ posted: 1 }`, and `rec:rent-s:2027-02-01` is dated `'2027-02-15'`. (`expectFirstOn` doesn't fit: the schedule keeps its id, so the weekly entries match it too.)
   - `schedule.test.ts`, `holdsAutomaticEntry`: "a week's entry does not hold the month that starts on its Monday": `current: { id: 's1', frequency: 'monthly' }`, an automatic entry `rec:s1:w:2027-02-01` dated `'2027-02-05'`, February → `false`. "still reads a week's entry posted under the month's id" (passing now, pinned): `current: { id: 's1', frequency: 'weekly' }`, entry `rec:s1:2027-02-01` dated `'2027-02-05'`, the week of 1 February → `true`. The existing `currentScheduleId` tests take `current`.
-- [ ] **Step 2:** `npx vitest run src/features/recurring` → the flipped test, both `recurringEntryId` cases, the "First added on" case and the first `holdsAutomaticEntry` case fail; every other test passes.
-- [ ] **Step 3:** the fix in `schedule.ts` and `post-due.ts`, as the interfaces say; `recurringEntryId`'s comment says why a week on the 1st is marked.
-- [ ] **Step 4:** `npx vitest run src/features/recurring` → all pass; the pinned off-and-on and late-change tests unchanged.
-- [ ] **Step 5:** CLAUDE.md "Recurring entries": the known-gap sentence becomes "A week that starts on the 1st has the id `rec:<schedule>:w:<Monday>`, since `rec:<schedule>:<1st>` is that month's; one posted before under the month's id still holds its week." Follow-ups doc: the known gap Done 2026-11-xx (branch).
-- [ ] **Step 6:** lint, typecheck, `npm test`; As built; commit `fix(recurring): a week that starts on the 1st no longer takes the month's id`; draft PR (this plan goes with it).
+- [x] **Step 2:** `npx vitest run src/features/recurring` → the flipped test, both `recurringEntryId` cases, the "First added on" case and the first `holdsAutomaticEntry` case fail; every other test passes.
+- [x] **Step 3:** the fix in `schedule.ts` and `post-due.ts`, as the interfaces say; `recurringEntryId`'s comment says why a week on the 1st is marked.
+- [x] **Step 4:** `npx vitest run src/features/recurring` → all pass; the pinned off-and-on and late-change tests unchanged.
+- [x] **Step 5:** CLAUDE.md "Recurring entries": the known-gap sentence becomes "A week that starts on the 1st has the id `rec:<schedule>:w:<Monday>`, since `rec:<schedule>:<1st>` is that month's; one posted before under the month's id still holds its week." Follow-ups doc: the known gap Done 2026-11-xx (branch).
+- [x] **Step 6:** lint, typecheck, `npm test`; As built; commit `fix(recurring): a week that starts on the 1st no longer takes the month's id`; draft PR (this plan goes with it).
 
 ## Verification
 

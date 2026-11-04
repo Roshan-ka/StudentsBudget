@@ -63,16 +63,34 @@ export function firstOccurrence(timing: Timing, startOn: IsoDate): IsoDate {
 /** The kind of entry a plan line posts: income lines post income, fixed lines post expenses. */
 export type LineType = 'income' | 'expense';
 
-/** The id of the entry a schedule posts for one period, so a period can only ever hold one. */
-export function recurringEntryId(scheduleId: string, periodStart: IsoDate): string {
-  return `rec:${scheduleId}:${periodStart}`;
+/** A week that starts on the 1st (a Monday), whose start is also the start of a month. */
+function isWeekOnTheFirst(s: Pick<Schedule, 'frequency'>, periodStart: IsoDate): boolean {
+  return s.frequency === 'weekly' && periodStart.endsWith('-01');
 }
 
 /**
- * The line an automatic entry belongs to: the entry's type and category. `currentScheduleId` is the line's schedule
- * now, whose own entries are known by their ids.
+ * The id of the entry a schedule posts for one period, so a period can only ever hold one: `rec:<id>:<periodStart>`.
+ * A week that starts on the 1st is `rec:<id>:w:<periodStart>`, since the month that starts that day has the plain id:
+ * a weekly line changed to monthly would otherwise find its first week's entry under the month's id.
  */
-export type LineKey = { type: LineType; categoryId: string; currentScheduleId?: string };
+export function recurringEntryId(s: Pick<Schedule, 'id' | 'frequency'>, periodStart: IsoDate): string {
+  return isWeekOnTheFirst(s, periodStart) ? `rec:${s.id}:w:${periodStart}` : `rec:${s.id}:${periodStart}`;
+}
+
+/**
+ * The ids a schedule's entry for a period may have: its id now, and for a week that starts on the 1st also the plain
+ * id, which such a week had before it got its own (and which an older version of the app still gives it).
+ */
+export function ownEntryIds(s: Pick<Schedule, 'id' | 'frequency'>, periodStart: IsoDate): string[] {
+  const id = recurringEntryId(s, periodStart);
+  return isWeekOnTheFirst(s, periodStart) ? [id, `rec:${s.id}:${periodStart}`] : [id];
+}
+
+/**
+ * The line an automatic entry belongs to: the entry's type and category. `current` is the line's schedule now, with
+ * the frequency of the periods being looked at; its own entries are known by their ids.
+ */
+export type LineKey = { type: LineType; categoryId: string; current?: Pick<Schedule, 'id' | 'frequency'> };
 
 /** Entries to look through for a line: its key, and entries of its category, any of which may be by hand. */
 export type LineEntries = LineKey & { entries: readonly Entry[] };
@@ -90,20 +108,20 @@ function isAutomaticEntryOf(entry: Entry, line: LineKey): boolean {
 /**
  * Whether `period` already holds an entry a schedule posted for the line. An entry of an earlier schedule (the line was
  * deleted and added again, or turned off and on) holds the period it is dated in, so the new one finds what the old one
- * posted. The current schedule's own entry holds only the period its id names, wherever it is dated: its watermark says
- * what else it handled, so a moved entry or a change of frequency does not hide a period. (A week's id is a month's
- * when the month starts on a Monday, so weekly turned monthly still finds that month held.) An entry logged by hand
- * does not count. The poster skips such a period, and `firstAddedOn` looks past it.
+ * posted. The current schedule's own entry holds only the period its id names (`ownEntryIds`), wherever it is dated:
+ * its watermark says what else it handled, so a moved entry or a change of frequency does not hide a period. An entry
+ * logged by hand does not count. The poster skips such a period, and `firstAddedOn` looks past it.
  */
 export function holdsAutomaticEntry(
   entries: readonly Entry[],
   period: { start: IsoDate; end: IsoDate },
   line: LineKey,
 ): boolean {
-  const current = line.currentScheduleId;
+  const { current } = line;
+  const own = current ? ownEntryIds(current, period.start) : [];
   return entries.some((e) => {
     if (e.type === 'transfer' || !isAutomaticEntryOf(e, line)) return false;
-    if (current !== undefined && e.recurring?.scheduleId === current) return e.id === recurringEntryId(current, period.start);
+    if (e.recurring?.scheduleId === current?.id) return own.includes(e.id);
     return e.date >= period.start && e.date <= period.end;
   });
 }
@@ -134,7 +152,8 @@ export function firstAddedOn(
   if (stored?.paused || s.startOn <= today) return null;
   let first = firstOccurrence(timing, laterOf(s.startOn, addDays(s.postedThrough, 1)));
   if (line === undefined) return first;
-  const key = stored ? { ...line, currentScheduleId: stored.id } : line;
+  // The periods looked at are the new timing's, so its own entries are known by the ids that timing gives them.
+  const key = stored ? { ...line, current: { id: stored.id, frequency: timing.frequency } } : line;
   // Each period passed over holds at least one of the entries, so this ends.
   let period = periodOf(timing, first);
   while (holdsAutomaticEntry(line.entries, period, key)) {
