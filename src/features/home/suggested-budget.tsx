@@ -3,6 +3,7 @@
 import { parseISO } from 'date-fns';
 import { useId, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { CITIES } from '@/data/cities';
 import { db } from '@/db/db';
 import type { Amount, Entry, Plan } from '@/db/types';
@@ -17,6 +18,7 @@ import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
+import { cn } from '@/lib/utils';
 import { suggestBudget, suggestionIsProminent, type Suggestion } from './suggest-budget';
 
 /** "September". */
@@ -149,9 +151,9 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   const total = rows.reduce((sum, row) => sum + (isAmount(amountOf(row)) ? amountOf(row) : 0), 0);
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4 rounded-lg border px-4 py-4">
+    <section aria-labelledby={headingId} className={cn(cardVariants(), 'gap-4')}>
       <div className="flex flex-col gap-1">
-        <h2 id={headingId} className="text-lg font-semibold">
+        <h2 id={headingId} className="text-[22px] leading-tight font-extrabold">
           {text.heading}
         </h2>
         <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor, t, lang)}</p>

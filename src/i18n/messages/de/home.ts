@@ -12,7 +12,7 @@ export const home: Messages['home'] = {
     count === 1 ? `Wechselkurs für ${currencies} fehlt` : `Wechselkurse für ${currencies} fehlen`,
   leftThisMonth: {
     heading: 'Diesen Monat noch frei',
-    overThisMonth: ' zu viel diesen Monat',
+    overThisMonth: { before: '', after: ' zu viel diesen Monat' },
     weekOver: (amount) => `Diese Woche: ${amount} zu viel`,
     weekSafe: (amount) => `Diese Woche: ${amount} frei`,
   },

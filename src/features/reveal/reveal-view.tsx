@@ -5,6 +5,7 @@ import { ChevronRightIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useId } from 'react';
 import { buttonVariants } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import type { Entry, Guess, Plan } from '@/db/types';
 import { categoryNameIn } from '@/i18n/category-name';
@@ -12,6 +13,7 @@ import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
+import { cn } from '@/lib/utils';
 import { formatWeekAmount } from '@/lib/week-amount';
 import { REVEAL_MIN_DAYS, completedMonths, guessVsReality, monthRecap, unlockOn, type GuessRow } from './reveal';
 import { formatDay, recapLine } from './reveal-text';
@@ -38,17 +40,17 @@ export function RevealCard({ startedOn, today }: { startedOn: IsoDate; today: Is
     return (
       <Link
         href="/reveal"
-        className="flex min-h-12 items-center justify-between gap-3 rounded-lg border px-4 py-3 font-medium"
+        className={cn(cardVariants(), 'min-h-12 flex-row items-center justify-between gap-3 px-4 py-3 font-semibold')}
       >
         {text.open}
-        <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 rtl:rotate-180" />
       </Link>
     );
   }
 
   return (
     // No bottom padding: the link is 44 px tall (a finger needs that), and its own height is the space below the text.
-    <section aria-label={text.label} className="flex flex-col items-start rounded-lg border px-4 pt-3">
+    <section aria-label={text.label} className={cn(cardVariants(), 'items-start gap-0 pt-3.5 pb-0')}>
       <p className="font-medium">{text.unlocksOn(formatDay(unlockDate, locale))}</p>
       <Link href="/reveal" className={`${LINK_CLASS} inline-flex min-h-11 items-center text-sm`}>
         {text.whatsThis}

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import { BUCKET_ID } from './aggregate';
 import { MESSAGES } from '@/i18n/messages';
-import { chartColor, chartLabel } from './colors';
+import { categoryTint, chartColor, chartLabel, TINT_SHARE } from './colors';
 
 const css = readFileSync(new URL('../../app/globals.css', import.meta.url), 'utf8');
 
@@ -59,6 +59,13 @@ describe('category colours', () => {
   it('falls back to the bucket grey for a category that is not built in', () => {
     expect(chartColor('not-a-category')).toBe(`var(--cat-${BUCKET_ID})`);
     expect(chartColor(BUCKET_ID)).toBe(`var(--cat-${BUCKET_ID})`);
+  });
+});
+
+describe('category tints', () => {
+  it('mixes the category colour into the card colour, so a theme changes both', () => {
+    expect(categoryTint('food')).toBe(`color-mix(in oklch, var(--cat-food) ${TINT_SHARE}%, var(--card))`);
+    expect(categoryTint('not-a-category')).toBe(`color-mix(in oklch, var(--cat-${BUCKET_ID}) ${TINT_SHARE}%, var(--card))`);
   });
 });
 

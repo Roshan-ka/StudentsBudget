@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { cardVariants } from '@/components/ui/card';
 import { useT } from '@/i18n/use-t';
+import { cn } from '@/lib/utils';
 import type { Badge } from './badges';
 import { DatedText } from './dated-text';
 
@@ -23,9 +25,9 @@ export function BadgesCard({ badges }: { badges: Badge[] }) {
     // No bottom padding: the link is 44 px tall (a finger needs that), and its own height is the space below the text.
     <section
       aria-labelledby="badges-card-heading"
-      className="flex flex-col items-start gap-0.5 rounded-lg border px-4 pt-3"
+      className={cn(cardVariants(), 'items-start gap-0.5 pt-3.5 pb-0')}
     >
-      <h2 id="badges-card-heading" className="font-medium">
+      <h2 id="badges-card-heading" className="text-lg leading-tight font-extrabold">
         {text.heading}
       </h2>
       <p className="text-sm">{text.earnedOf(earned, badges.length)}</p>

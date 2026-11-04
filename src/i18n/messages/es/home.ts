@@ -15,7 +15,7 @@ export const home: Messages['home'] = {
     }),
   leftThisMonth: {
     heading: 'Disponible este mes',
-    overThisMonth: ' de más este mes',
+    overThisMonth: { before: '', after: ' de más este mes' },
     weekOver: (amount) => `Esta semana: ${amount} de más`,
     weekSafe: (amount) => `Esta semana: ${amount} para gastar`,
   },

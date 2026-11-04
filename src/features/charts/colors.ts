@@ -24,3 +24,14 @@ const COLORED = new Set([...CATEGORIES.map((c) => c.id), BUCKET_ID]);
 export function chartColor(categoryId: string): string {
   return `var(--cat-${COLORED.has(categoryId) ? categoryId : BUCKET_ID})`;
 }
+
+/** How much of the category's colour a tinted block takes: tokens.test.ts holds its text to 4.5:1 at this share. */
+export const TINT_SHARE = 22;
+
+/**
+ * The pale block a category sits on (redesign, chunk 4: an envelope on Home): its colour mixed into the card colour,
+ * so a dark theme that changes either changes the tint with it.
+ */
+export function categoryTint(categoryId: string): string {
+  return `color-mix(in oklch, ${chartColor(categoryId)} ${TINT_SHARE}%, var(--card))`;
+}

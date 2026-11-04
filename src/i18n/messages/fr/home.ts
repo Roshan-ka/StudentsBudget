@@ -16,7 +16,7 @@ export const home: Messages['home'] = {
     }),
   leftThisMonth: {
     heading: 'Reste à dépenser ce mois-ci',
-    overThisMonth: ' de trop ce mois-ci',
+    overThisMonth: { before: '', after: ' de trop ce mois-ci' },
     weekOver: (amount) => `Cette semaine${NNBSP}: ${amount} de trop`,
     weekSafe: (amount) => `Cette semaine${NNBSP}: ${amount} à dépenser`,
   },

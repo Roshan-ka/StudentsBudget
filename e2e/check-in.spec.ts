@@ -357,24 +357,25 @@ test('in a later week, an envelope that is used up is listed as used up and the 
 test('home says when the check-in is and highlights it on Sunday', async ({ page }) => {
   await completeSetup(page);
   const card = page.getByRole('link', { name: /Weekly check-in/ });
-  const border = () => card.evaluate((element) => getComputedStyle(element).borderTopColor);
+  // Every card shares the outline; Sunday turns the card the yellow accent (and says so in words).
+  const fill = () => card.evaluate((element) => getComputedStyle(element).backgroundColor);
 
   await expect(card.getByText('Your weekly check-in is on Sunday.', { exact: true })).toBeVisible();
   await expect(page.getByText(/time for your weekly check-in/)).toHaveCount(0);
-  const ordinaryBorder = await border();
+  const ordinaryFill = await fill();
 
   // Sunday 18 Oct. Nothing is written; the app only comes back from the background.
   await page.clock.setFixedTime(new Date(2026, 9, 18, 12, 0, 0));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect(card.getByText("It's Sunday — time for your weekly check-in.", { exact: true })).toBeVisible();
   await expect(page.getByText('Your weekly check-in is on Sunday.')).toHaveCount(0);
-  expect(await border()).not.toBe(ordinaryBorder);
+  expect(await fill()).not.toBe(ordinaryFill);
 
   // Monday morning: back to the ordinary card.
   await page.clock.setFixedTime(new Date(2026, 9, 19, 8, 0, 0));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect(card.getByText('Your weekly check-in is on Sunday.', { exact: true })).toBeVisible();
-  expect(await border()).toBe(ordinaryBorder);
+  expect(await fill()).toBe(ordinaryFill);
 
   await card.click();
   await expect(page).toHaveURL('/check-in');

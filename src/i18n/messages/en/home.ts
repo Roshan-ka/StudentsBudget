@@ -10,8 +10,11 @@ export const home = {
   missingRates: (currencies: string, count: number) => `${currencies} ${count === 1 ? 'rate' : 'rates'} missing`,
   leftThisMonth: {
     heading: 'Left to spend this month',
-    /** After the amount, in a span of its own (with its leading space). */
-    overThisMonth: ' over this month',
+    /**
+     * "€12 over this month": the words around the amount, which the card writes large between them. A language puts
+     * the amount where its grammar needs it; each part keeps its own spaces.
+     */
+    overThisMonth: { before: '', after: ' over this month' },
     weekOver: (amount: string) => `This week: ${amount} over`,
     weekSafe: (amount: string) => `This week: ${amount} safe to spend`,
   },
