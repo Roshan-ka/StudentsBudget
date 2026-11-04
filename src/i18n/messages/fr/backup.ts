@@ -59,7 +59,6 @@ export const backup: Messages['backup'] = {
   problems: {
     entryAccount: 'une saisie utilise un compte qui n’est pas dans le fichier',
     transferAccount: 'un virement va vers un compte qui n’est pas dans le fichier',
-    scheduleAccount: 'une charge fixe ou un revenu utilise un compte qui n’est pas dans le fichier',
     entryCategory: 'une saisie utilise une catégorie qui n’est pas dans le fichier',
     planCategory: 'le plan ou les estimations utilisent une catégorie inconnue',
     duplicateId: 'deux lignes ont le même id',

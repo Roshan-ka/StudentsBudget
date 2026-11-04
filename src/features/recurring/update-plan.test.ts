@@ -109,28 +109,50 @@ describe('updatePlan', () => {
 
 describe('keepScheduleState', () => {
   // The wizard opened in a second tab before the line was paused there, or before it was resumed.
-  const withRent = (s: Schedule): Plan => ({ ...PLAN, fixed: [{ ...PLAN.fixed[0], schedule: s }] });
+  const withRent = (s: Schedule, monthlyMinor = 40000): Plan => ({ ...PLAN, fixed: [{ categoryId: 'rent', monthlyMinor, schedule: s }] });
+  const LOCAL: ReadonlySet<string> = new Set(['local']);
 
   it('keeps a pause made elsewhere', () => {
     const stored = withRent(schedule({ paused: true }));
     const stale = withRent(schedule({ day: 3 }));
-    expect(keepScheduleState(stored, stale).fixed[0].schedule).toEqual(schedule({ day: 3, paused: true }));
+    expect(keepScheduleState(stored, stale, LOCAL).fixed[0].schedule).toEqual(schedule({ day: 3, paused: true }));
   });
 
   it('keeps a resume made elsewhere, with its later start', () => {
     const stored = withRent(schedule({ startOn: '2027-01-16', postedThrough: '2027-01-15' }));
     const stale = withRent(schedule({ paused: true }));
-    expect(keepScheduleState(stored, stale).fixed[0].schedule).toEqual(schedule({ startOn: '2027-01-16' }));
+    expect(keepScheduleState(stored, stale, LOCAL).fixed[0].schedule).toEqual(schedule({ startOn: '2027-01-16' }));
   });
 
   it('keeps the later start the wizard set when it repaired a line', () => {
     const stored = withRent(schedule());
     const repaired = withRent(schedule({ startOn: '2026-12-06', postedThrough: '2026-12-05' }));
-    expect(keepScheduleState(stored, repaired).fixed[0].schedule).toMatchObject({ startOn: '2026-12-06' });
+    expect(keepScheduleState(stored, repaired, LOCAL).fixed[0].schedule).toMatchObject({ startOn: '2026-12-06' });
   });
 
   it('leaves new schedules and the rest of the plan alone', () => {
     const next = { ...PLAN, envelopes: [], incomes: [{ ...PLAN.incomes[0], schedule: schedule({ id: 'new' }) }] };
-    expect(keepScheduleState(PLAN, next)).toEqual(next);
+    expect(keepScheduleState(PLAN, next, LOCAL)).toEqual(next);
+  });
+
+  it('keeps the line as stored when another tab moved it to an account that exists and the wizard’s is gone', () => {
+    // Moved to "other" (at a new amount) in another tab, then "local" was deleted; the wizard still says "local".
+    const stored = withRent(schedule({ accountId: 'other', amountMinor: 45000 }), 45000);
+    const stale = withRent(schedule({ day: 3 }));
+    expect(keepScheduleState(stored, stale, new Set(['other'])).fixed[0]).toEqual(stored.fixed[0]);
+  });
+
+  it('keeps the wizard’s own account change when that account exists', () => {
+    const next = withRent(schedule({ accountId: 'other' }));
+    expect(keepScheduleState(withRent(schedule()), next, new Set(['local', 'other'])).fixed[0].schedule).toMatchObject({
+      accountId: 'other',
+    });
+  });
+
+  it('leaves a schedule whose account is gone in both as it is: Settings asks for one', () => {
+    const next = withRent(schedule({ accountId: 'gone', day: 3 }));
+    expect(keepScheduleState(withRent(schedule({ accountId: 'gone' })), next, LOCAL).fixed[0].schedule).toEqual(
+      schedule({ accountId: 'gone', day: 3 }),
+    );
   });
 });

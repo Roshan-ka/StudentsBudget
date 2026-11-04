@@ -26,15 +26,21 @@ export function keepWatermarks(stored: Plan, next: Plan): Plan {
  * For a whole plan saved from a copy read earlier (the edit wizard): each schedule `stored` has by id keeps its pause
  * as stored and the later of the two starts. The wizard has no pause or resume of its own, so a wizard left open in
  * another tab cannot undo one made since; a later start it set itself (a repaired line) stays.
+ *
+ * A line whose schedule names an account that is not among `accountIds` any more, while the stored one names one that
+ * is, stays as stored: another tab moved it and deleted the old account, and the wizard cannot have picked an account
+ * that is gone. Saving its copy would point the line at that account again.
  */
-export function keepScheduleState(stored: Plan, next: Plan): Plan {
+export function keepScheduleState(stored: Plan, next: Plan, accountIds: ReadonlySet<string>): Plan {
   const byId = new Map(
-    [...stored.incomes, ...stored.fixed].flatMap((l) => (l.schedule ? [[l.schedule.id, l.schedule] as const] : [])),
+    [...stored.incomes, ...stored.fixed].flatMap((l) => (l.schedule ? [[l.schedule.id, l] as const] : [])),
   );
   const keep = (line: PlanLine): PlanLine => {
     const s = line.schedule;
-    const was = s && byId.get(s.id);
-    if (!s || !was) return line;
+    const storedLine = s && byId.get(s.id);
+    const was = storedLine?.schedule;
+    if (!s || !storedLine || !was) return line;
+    if (!accountIds.has(s.accountId) && accountIds.has(was.accountId)) return storedLine;
     const schedule = { ...s, startOn: laterOf(was.startOn, s.startOn) };
     if (was.paused) schedule.paused = true;
     else delete schedule.paused;

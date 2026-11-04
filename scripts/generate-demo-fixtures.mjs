@@ -340,7 +340,6 @@ for (const [table, name] of [['accounts', 'accounts'], ['categories', 'categorie
 }
 reject('duplicate-one-offs', (f) => f.data.plan.oneOffs.push(clone(f.data.plan.oneOffs[0])), damaged('two rows share the same id'), oneoffs);
 reject('duplicate-schedules', (f) => f.data.plan.fixed[0].schedule.id = f.data.plan.incomes[0].schedule.id, damaged('two rows share the same id'), recurring);
-reject('schedule-missing-account', (f) => f.data.plan.fixed[0].schedule.accountId = 'ghost', damaged("a fixed cost or income uses an account that isn't in the file"), recurring);
 reject('schedule-day-32', (f) => f.data.plan.fixed[0].schedule.day = 32, damaged('a fixed cost or income has an impossible schedule'), recurring);
 reject('schedule-weekday-8', (f) => f.data.plan.incomes[1].schedule.day = 8, damaged('a fixed cost or income has an impossible schedule'), recurring);
 reject('schedule-watermark-before-start', (f) => f.data.plan.fixed[0].schedule.postedThrough = day(`${month}-01`, -2), damaged('a fixed cost or income has an impossible schedule'), recurring);

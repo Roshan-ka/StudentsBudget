@@ -125,9 +125,8 @@ function findProblem(d: BackupData): Problem | null {
   if (d.entries.some((e) => e.type === 'transfer' && !accountIds.has(e.toAccountId))) {
     return 'transferAccount';
   }
-  if (schedules.some((s) => !accountIds.has(s.accountId))) {
-    return 'scheduleAccount';
-  }
+  // A schedule may name an account the data does not have: the app treats it as one whose account was deleted (the
+  // poster skips the line, and Settings asks for an account), so it does not make the whole set unrestorable.
   if (d.entries.some((e) => e.type !== 'transfer' && !categoryIds.has(e.categoryId))) {
     return 'entryCategory';
   }

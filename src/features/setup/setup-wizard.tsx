@@ -5,10 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
-import { saveGuesses } from '@/db/repo';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
-import { keepScheduleState, updatePlan } from '@/features/recurring/update-plan';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import {
@@ -24,6 +22,7 @@ import {
   type SetupDraft,
   type StepId,
 } from './draft';
+import { saveWizard } from './save-wizard';
 import { AccountsStep } from './steps/accounts';
 import { CityRentStep } from './steps/city-rent';
 import { EnvelopesStep } from './steps/envelopes';
@@ -37,21 +36,6 @@ const NEW_STEPS: StepId[] = ['city-rent', 'accounts', 'income', 'fixed', 'one-of
 const EDIT_STEPS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts' && s !== 'guesses');
 // Accounts that already exist (added in Settings before setup) are kept, so a new setup skips that step.
 const NEW_STEPS_WITH_ACCOUNTS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts');
-
-async function persist(records: ReturnType<typeof draftToRecords>, edit: boolean): Promise<void> {
-  if (edit) {
-    // Accounts and guesses are not part of editing; only the plan changes. `updatePlan` keeps each schedule's
-    // watermark where the poster left it, even if it moved while the wizard was open, and `keepScheduleState` keeps
-    // a pause or resume made meanwhile in another tab.
-    await updatePlan((current) => keepScheduleState(current, records.plan));
-    return;
-  }
-  await db.transaction('rw', db.accounts, db.plan, db.guesses, async () => {
-    await db.accounts.bulkAdd(records.accounts);
-    await db.plan.put(records.plan);
-    await saveGuesses(records.guesses);
-  });
-}
 
 function Wizard({
   edit,
@@ -121,7 +105,7 @@ function Wizard({
     setSaving(true);
     setSaveError(null);
     try {
-      await persist(draftToRecords(draft, today, existing, storedAccounts), edit);
+      await saveWizard(draftToRecords(draft, today, existing, storedAccounts), edit);
     } catch (error) {
       console.error('StudentsBudget: could not save the plan', error);
       setSaveError(text.saveFailed);

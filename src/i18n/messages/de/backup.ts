@@ -57,7 +57,6 @@ export const backup: Messages['backup'] = {
   problems: {
     entryAccount: 'ein Eintrag nutzt ein Konto, das nicht in der Datei steht',
     transferAccount: 'eine Umbuchung geht an ein Konto, das nicht in der Datei steht',
-    scheduleAccount: 'Fixkosten oder Einnahmen nutzen ein Konto, das nicht in der Datei steht',
     entryCategory: 'ein Eintrag nutzt eine Kategorie, die nicht in der Datei steht',
     planCategory: 'der Plan oder die Schätzungen nutzen eine unbekannte Kategorie',
     duplicateId: 'zwei Zeilen haben dieselbe ID',
