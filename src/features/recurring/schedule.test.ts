@@ -303,6 +303,13 @@ describe('firstAddedOn', () => {
       expect(firstAddedOn(rent, orphan, '2026-11-05', true, line(automatic('2026-12-01')))).toBe('2027-01-01');
     });
 
+    it('does not pass over a month that holds only the line’s own entry for another month', () => {
+      // November's rent (rec:s1:2026-11-01) went out late, on 2 December; the account was gone, and is picked on 20 Nov.
+      const moved = { ...automatic('2026-12-02'), id: 'rec:s1:2026-11-01' };
+      const orphan = monthly({ postedThrough: '2026-11-30' });
+      expect(firstAddedOn(rent, orphan, '2026-11-20', true, line(moved))).toBe('2026-12-01');
+    });
+
     it('stays null once the schedule has started, whatever it holds', () => {
       expect(firstAddedOn(rent, monthly(), '2026-11-20', false, line(automatic('2026-11-01')))).toBeNull();
     });
@@ -335,6 +342,19 @@ describe('holdsAutomaticEntry', () => {
     const entries = [automatic('2026-11-15', { categoryId: 'phone' }), automatic('2026-11-02')];
     expect(holdsAutomaticEntry(entries, november, RENT)).toBe(true);
     expect(holdsAutomaticEntry(entries, november, { type: 'income', categoryId: 'rent' })).toBe(false);
+  });
+
+  it('counts the current schedule’s own entry for the period its id names, wherever it is dated', () => {
+    const december = { start: '2026-12-01', end: '2026-12-31' } as const;
+    // November's entry of s1, moved to 2 December.
+    const moved = { ...automatic('2026-12-02'), id: 'rec:s1:2026-11-01' };
+    const current = { ...RENT, currentScheduleId: 's1' };
+
+    expect(holdsAutomaticEntry([moved], december, current)).toBe(false);
+    expect(holdsAutomaticEntry([moved], november, current)).toBe(true);
+    // An entry of another schedule of the line still holds the period it is dated in.
+    expect(holdsAutomaticEntry([moved], december, { ...RENT, currentScheduleId: 's2' })).toBe(true);
+    expect(holdsAutomaticEntry([moved], december, RENT)).toBe(true);
   });
 });
 

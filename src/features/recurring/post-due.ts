@@ -14,12 +14,9 @@ import {
   laterOf,
   occurrenceIn,
   periodOf,
+  recurringEntryId,
+  type LineKey,
 } from './schedule';
-
-/** The id of the entry a schedule posts for one period, so a period can only ever hold one. */
-export function recurringEntryId(scheduleId: string, periodStart: IsoDate): string {
-  return `rec:${scheduleId}:${periodStart}`;
-}
 
 type Context = {
   createdOn: IsoDate;
@@ -32,16 +29,13 @@ type Context = {
 };
 
 /**
- * Whether a schedule already posted an entry of this type and category in the period (`holdsAutomaticEntry`, the rule
- * `firstAddedOn` follows too).
+ * Whether the period already holds an automatic entry of the line (`holdsAutomaticEntry`, the rule `firstAddedOn`
+ * follows too). Only entries dated in it are read: the schedule's own entry for it, moved to another day, is found by
+ * its id before anything is added.
  */
-async function postedIn(
-  period: { start: IsoDate; end: IsoDate },
-  type: 'income' | 'expense',
-  categoryId: string,
-): Promise<boolean> {
+async function postedIn(period: { start: IsoDate; end: IsoDate }, line: LineKey): Promise<boolean> {
   const inPeriod = await db.entries.where('date').between(period.start, period.end, true, true).toArray();
-  return holdsAutomaticEntry(inPeriod, period, { type, categoryId });
+  return holdsAutomaticEntry(inPeriod, period, line);
 }
 
 /**
@@ -66,8 +60,9 @@ async function postLine(
   const toAdd: Entry[] = [];
   for (const start of periods) {
     // This line was posted in this period already, under the schedule it had before it was deleted and added again
-    // or turned off and on: the new schedule's id would not find that entry, so the period itself is searched.
-    if (await postedIn(periodOf(s, start), type, line.categoryId)) {
+    // or turned off and on: the new schedule's id would not find that entry, so the period itself is searched. This
+    // schedule's own entries count only for the period their id names; its watermark covers the rest.
+    if (await postedIn(periodOf(s, start), { type, categoryId: line.categoryId, currentScheduleId: s.id })) {
       handled.push(start);
       continue;
     }

@@ -63,8 +63,16 @@ export function firstOccurrence(timing: Timing, startOn: IsoDate): IsoDate {
 /** The kind of entry a plan line posts: income lines post income, fixed lines post expenses. */
 export type LineType = 'income' | 'expense';
 
-/** The line an automatic entry belongs to: the entry's type and category. */
-export type LineKey = { type: LineType; categoryId: string };
+/** The id of the entry a schedule posts for one period, so a period can only ever hold one. */
+export function recurringEntryId(scheduleId: string, periodStart: IsoDate): string {
+  return `rec:${scheduleId}:${periodStart}`;
+}
+
+/**
+ * The line an automatic entry belongs to: the entry's type and category. `currentScheduleId` is the line's schedule
+ * now, whose own entries are known by their ids.
+ */
+export type LineKey = { type: LineType; categoryId: string; currentScheduleId?: string };
 
 /** Entries to look through for a line: its key, and entries of its category, any of which may be by hand. */
 export type LineEntries = LineKey & { entries: readonly Entry[] };
@@ -80,16 +88,23 @@ function isAutomaticEntryOf(entry: Entry, line: LineKey): boolean {
 }
 
 /**
- * Whether `period` already holds an entry a schedule posted for the line, from any schedule: one that replaced another
- * for the same line finds what the old one posted. An entry logged by hand does not count. The poster skips such a
- * period, and `firstAddedOn` looks past it.
+ * Whether `period` already holds an entry a schedule posted for the line. An entry of an earlier schedule (the line was
+ * deleted and added again, or turned off and on) holds the period it is dated in, so the new one finds what the old one
+ * posted. The current schedule's own entry holds only the period its id names, wherever it is dated: its watermark says
+ * what else it handled, so a moved entry or a change of frequency never hides a period. An entry logged by hand does
+ * not count. The poster skips such a period, and `firstAddedOn` looks past it.
  */
 export function holdsAutomaticEntry(
   entries: readonly Entry[],
   period: { start: IsoDate; end: IsoDate },
   line: LineKey,
 ): boolean {
-  return entries.some((e) => e.date >= period.start && e.date <= period.end && isAutomaticEntryOf(e, line));
+  const current = line.currentScheduleId;
+  return entries.some((e) => {
+    if (e.type === 'transfer' || !isAutomaticEntryOf(e, line)) return false;
+    if (current !== undefined && e.recurring?.scheduleId === current) return e.id === recurringEntryId(current, period.start);
+    return e.date >= period.start && e.date <= period.end;
+  });
 }
 
 /**
@@ -100,6 +115,7 @@ export function holdsAutomaticEntry(
  *
  * Given the `line`'s entries, a period that already holds an automatic entry of the line is passed over, as the
  * poster passes over it: rent posted on 1 November, turned off and on again with day 15, first comes on 15 December.
+ * A `stored` schedule's own entries count as the poster counts them (`holdsAutomaticEntry`).
  */
 export function firstAddedOn(
   timing: Timing,
@@ -117,9 +133,10 @@ export function firstAddedOn(
   if (stored?.paused || s.startOn <= today) return null;
   let first = firstOccurrence(timing, laterOf(s.startOn, addDays(s.postedThrough, 1)));
   if (line === undefined) return first;
+  const key = stored ? { ...line, currentScheduleId: stored.id } : line;
   // Each period passed over holds at least one of the entries, so this ends.
   let period = periodOf(timing, first);
-  while (holdsAutomaticEntry(line.entries, period, line)) {
+  while (holdsAutomaticEntry(line.entries, period, key)) {
     first = occurrenceIn(timing, nextPeriodStart(timing, period.start));
     period = periodOf(timing, first);
   }

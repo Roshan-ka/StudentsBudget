@@ -4,8 +4,10 @@ import { db } from '@/db/db';
 import type { Account, Entry, Plan, PlanLine, Rate, Schedule } from '@/db/types';
 import type { CurrencyCode } from '@/lib/money';
 import type { IsoDate } from '@/lib/dates';
-import { postDueRecurring, recurringEntryId } from './post-due';
-import { firstAddedOn, newSchedule } from './schedule';
+import { applyLineChange } from './lines';
+import { postDueRecurring } from './post-due';
+import { firstAddedOn, newSchedule, recurringEntryId } from './schedule';
+import { updatePlan } from './update-plan';
 
 const CREATED_AT = '2026-10-16T10:00:00.000Z';
 
@@ -197,6 +199,34 @@ describe('postDueRecurring', () => {
       ['2026-12-01', 40000, 'Rent'],
     ]);
     expect(await scheduleOf('rent')).toMatchObject({ postedThrough: '2026-12-31' });
+  });
+
+  // A schedule's own entry holds only the period its id names; its watermark says what else was handled.
+  describe('a line whose schedule changed, or whose entry was moved', () => {
+    it('posts the month’s first monthly entry after a weekly line becomes monthly', async () => {
+      const fridays = schedule({ frequency: 'weekly', day: 5 });
+      await db.plan.put(plan({ fixed: [{ categoryId: 'rent', monthlyMinor: 40000, schedule: fridays }] }));
+      // Fridays 23 and 30 October, 6 November: handled through Sunday 8 November.
+      expect(await postDueRecurring('2026-11-10')).toEqual({ posted: 3 });
+
+      // On 10 November the same schedule becomes monthly on the 15th.
+      const monthly = { frequency: 'monthly', day: 15, accountId: 'local', amountMinor: 40000, currency: 'EUR' } as const;
+      await updatePlan((p) => applyLineChange(p, { categoryId: 'rent', auto: monthly, monthlyMinor: 0 }, '2026-11-10', [{ id: 'local' }]));
+
+      expect(await postDueRecurring('2026-11-15')).toEqual({ posted: 1 });
+      expect((await entries()).map((e) => e.date)).toEqual(['2026-10-23', '2026-10-30', '2026-11-06', '2026-11-15']);
+      expect(await scheduleOf('rent')).toMatchObject({ postedThrough: '2026-11-30' });
+    });
+
+    it('posts the next period after its entry was moved into it', async () => {
+      await db.plan.put(plan());
+      await postDueRecurring('2026-11-01');
+      // November's rent went out late, on 2 December.
+      await db.entries.update('rec:rent-s:2026-11-01', { date: '2026-12-02' });
+
+      expect(await postDueRecurring('2026-12-05')).toEqual({ posted: 1 });
+      expect(await db.entries.get('rec:rent-s:2026-12-01')).toMatchObject({ date: '2026-12-01' });
+    });
   });
 
   describe('a line whose schedule was replaced (deleted and added again, or turned off and on)', () => {
