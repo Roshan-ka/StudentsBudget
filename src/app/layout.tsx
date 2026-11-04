@@ -47,7 +47,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html
       lang={DEFAULT_LANGUAGE}
       dir={LANGUAGES[DEFAULT_LANGUAGE].dir}
-      className={`${dmSans.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}
+      // scroll-padding-bottom: the browser scrolls a focused control above the bottom nav, never behind it (WCAG 2.2,
+      // Focus Not Obscured).
+      className={`${dmSans.variable} ${bricolage.variable} ${geistMono.variable} h-full scroll-pb-[calc(5rem+env(safe-area-inset-bottom))] antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -59,7 +61,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         {/* The wordmark on the page itself, no coloured bar. The dot is decoration: the heading's name stays
             "StudentsBudget", which smoke.spec.ts and offline.spec.ts look for. */}
         <header className="pt-[env(safe-area-inset-top)]">
-          <h1 className="flex h-14 items-center gap-2 px-4 text-lg font-extrabold">
+          <h1 className="flex min-h-14 items-center gap-2 px-4 text-lg font-extrabold">
             <span
               aria-hidden="true"
               className="flex size-8 shrink-0 items-center justify-center rounded-full border-[1.5px] border-outline bg-highlight"
@@ -69,7 +71,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             StudentsBudget
           </h1>
         </header>
-        <main className="flex-1 px-4 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom))] hyphens-auto">{children}</main>
+        {/* The bottom padding clears the nav (at least 4 rem and its outline) with room to spare. */}
+        <main className="flex-1 px-4 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))] hyphens-auto">{children}</main>
         <BottomNav />
       </body>
     </html>

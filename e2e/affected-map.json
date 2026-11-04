@@ -8,17 +8,17 @@
   ],
   "routes": {
     "/": "all",
-    "/badges": ["badges", "language-tour", "profile"],
-    "/charts": ["charts", "demo-backup", "demo-scenarios", "language-tour"],
-    "/check-in": ["badges", "check-in", "demo-scenarios", "language-tour", "swaps"],
-    "/entries": ["accounts", "backup", "charts", "check-in", "demo-backup", "demo-scenarios", "entries", "home", "language-tour"],
-    "/entries/new": ["accounts", "check-in", "entries", "language-tour"],
+    "/badges": ["badges", "language-tour", "profile", "reflow"],
+    "/charts": ["charts", "demo-backup", "demo-scenarios", "language-tour", "reflow"],
+    "/check-in": ["badges", "check-in", "demo-scenarios", "language-tour", "reflow", "swaps"],
+    "/entries": ["accounts", "backup", "charts", "check-in", "demo-backup", "demo-scenarios", "entries", "home", "language-tour", "reflow"],
+    "/entries/new": ["accounts", "check-in", "entries", "language-tour", "reflow"],
     "/manifest.webmanifest": ["smoke"],
-    "/reveal": ["demo-scenarios", "language-tour", "reveal", "setup"],
+    "/reveal": ["demo-scenarios", "language-tour", "reflow", "reveal", "setup"],
     "/settings": "all",
-    "/settings/account": ["account", "email-codes", "language-tour", "linking", "passkeys", "two-step"],
+    "/settings/account": ["account", "email-codes", "language-tour", "linking", "passkeys", "reflow", "two-step"],
     "/setup": "all",
-    "/tips": ["discounts", "language-tour", "tips"]
+    "/tips": ["discounts", "language-tour", "reflow", "tips"]
   },
   "allOnly": ["dictation", "insecure-origin", "language", "overdrawn", "recurring"]
 }

@@ -9,5 +9,6 @@ import { useT } from '@/i18n/use-t';
  */
 export function PageHeading({ id }: { id: keyof Messages['shell']['headings'] }) {
   const { t } = useT();
-  return <h2 className="text-lg font-semibold">{t.shell.headings[id]}</h2>;
+  // The heading font from globals.css; balanced, and breaking a long German or French word rather than the layout.
+  return <h2 className="text-[28px] leading-tight font-extrabold text-balance break-words">{t.shell.headings[id]}</h2>;
 }

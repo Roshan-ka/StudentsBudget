@@ -1,30 +1,15 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED } from '../src/i18n/languages';
-import { MESSAGES, type Messages } from '../src/i18n/messages';
+import { MESSAGES } from '../src/i18n/messages';
 import { chooseLanguage, tourLanguages } from './helpers/languages';
 import { horizontalOverflow } from './helpers/layout';
+import { heading, PAGES } from './helpers/pages';
 import { completeSetup } from './helpers/setup';
 
 // Every page at 375 px in each offered language besides English, when the run asks for every language
 // (E2E_LANGUAGES=all, e2e/helpers/languages.ts): the page is in that language, and nothing is wider than the phone.
 // A language with long words fails here first.
 test.use({ viewport: { width: 375, height: 812 } });
-
-const heading = (page: Page, name: string) => page.getByRole('heading', { level: 2, name, exact: true });
-
-/** Each page after setup, and what shows it is drawn in the language: its heading, or Home's first region. */
-const PAGES: { path: string; shown: (page: Page, t: Messages) => Locator }[] = [
-  { path: '/', shown: (page, t) => page.getByRole('region', { name: t.home.leftThisMonth.heading, exact: true }) },
-  { path: '/entries', shown: (page, t) => heading(page, t.shell.headings.entries) },
-  { path: '/entries/new', shown: (page, t) => heading(page, t.shell.headings.newEntry) },
-  { path: '/charts', shown: (page, t) => heading(page, t.shell.headings.charts) },
-  { path: '/tips', shown: (page, t) => heading(page, t.shell.headings.tips) },
-  { path: '/badges', shown: (page, t) => heading(page, t.shell.headings.badges) },
-  { path: '/check-in', shown: (page, t) => heading(page, t.shell.headings.checkIn) },
-  { path: '/reveal', shown: (page, t) => heading(page, t.shell.headings.reveal) },
-  { path: '/settings', shown: (page, t) => heading(page, t.shell.headings.settings) },
-  { path: '/settings/account', shown: (page, t) => heading(page, t.shell.headings.account) },
-];
 
 for (const code of OFFERED.filter((offered) => offered !== DEFAULT_LANGUAGE)) {
   test(`every page fits 375 px in ${LANGUAGES[code].name}`, async ({ page }) => {
