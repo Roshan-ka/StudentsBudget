@@ -94,6 +94,8 @@ Each is about an hour, with lint, typecheck and the unit tests, an "As built" no
     - **As built (2026-11-03):** French for `sync` (Synchroniser, associer; "il y a 2 min" without a full stop), `account` (Ton compte) and `auth` (se connecter / se déconnecter, validation en deux étapes, clé d’accès, appli d’authentification). Where English says "signed in", French says "Session ouverte", which needs no gender. Counts go through `byCount`; the allow-list gains the two bare full stops after the bold email.
 14. **French charts, check-in, badges, reveal, tips chrome.**
     - **As built (2026-11-03):** French for `charts` (short names Charges, Pass transport, Santé), `checkIn` (Bilan hebdomadaire; "J’étais en déplacement" needs no gender), `badges` (Semaine sous budget, Série de saisies, Royauté du ramen, Défi latte, for the native read), `reveal` and the `tips` chrome. Every French area is now written; the swap line shows the swap's English title and unit until chunk 15. The allow-list gains Source (the income chart's column), Bronze and the Badges card heading.
+15. **French city content.**
+    - **As built (2026-11-04):** `src/i18n/city/fr/` with the 25 tips, 17 discounts ("Piscine Sportpark Ost"), 3 swaps (units: repas, billet, mois), the city ranges and the semester texts (keyed by their English text; "(en allemand)" stays). Registered in `CITY_WORDS`. French city texts keep French spacing; `city.test.ts` checks it as `messages.test.ts` does, leaving a quoted German page («…SoSe 2027: …») as it is. French writes 1 000 € with a narrow no-break space, so `numbersIn` now reads that space (and a no-break space) as a thousands separator too. Based on main: it needs only the city mechanism.
 
 ## Verification
 
