@@ -4,8 +4,10 @@ import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google';
 import { AppInit } from '@/components/app-init';
 import { BottomNav } from '@/components/bottom-nav';
 import { LanguageAttributes } from '@/components/language-attributes';
+import { ThemeAttributes } from '@/components/theme-attributes';
 import { languageHeadScript } from '@/i18n/head-script';
 import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, SELECTABLE } from '@/i18n/languages';
+import { themeHeadScript } from '@/theme/themes';
 import './globals.css';
 
 // Self-hosted at build time, so they come from /_next/static and the service worker keeps them for offline. `latin`
@@ -54,10 +56,13 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: languageHeadScript(OFFERED, SELECTABLE) }} />
+        {/* Prerendered light; a phone set to dark gets the dark class before the first paint (also suppressed above). */}
+        <script dangerouslySetInnerHTML={{ __html: themeHeadScript() }} />
       </head>
       <body className="flex min-h-full flex-col">
         <AppInit />
         <LanguageAttributes />
+        <ThemeAttributes />
         {/* The wordmark on the page itself, no coloured bar. The dot is decoration: the heading's name stays
             "StudentsBudget", which smoke.spec.ts and offline.spec.ts look for. */}
         <header className="pt-[env(safe-area-inset-top)]">

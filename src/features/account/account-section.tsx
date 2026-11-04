@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { useT } from '@/i18n/use-t';
 import { useSyncStatus } from './sync-status';
 import { useAuth } from './use-auth';
@@ -16,8 +17,8 @@ export function AccountSection() {
   if (auth.status === 'off') return null;
 
   return (
-    <section aria-labelledby="account-heading" className="flex flex-col gap-3">
-      <h3 id="account-heading" className="text-lg font-semibold">
+    <section aria-labelledby="account-heading" className={cardVariants()}>
+      <h3 id="account-heading" className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       <p className="break-words text-muted-foreground">

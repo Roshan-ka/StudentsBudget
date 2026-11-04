@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useShowInstallHint } from '@/features/setup/install-hint';
@@ -9,6 +10,7 @@ import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
 import { useAccountDeleted } from './account-deleted';
 import { AccountLink } from './account-link';
 import { authErrorMessage } from './auth-errors';
@@ -163,8 +165,8 @@ function EmailCodeStep({
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={cn(cardVariants(), 'gap-4')}>
+      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       <p className="break-words">
@@ -245,8 +247,8 @@ function ResetEmailStep({
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={cn(cardVariants(), 'gap-4')}>
+      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       <p>{text.intro}</p>
@@ -339,8 +341,8 @@ function NewPasswordForm({ email }: { email: string }) {
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={cn(cardVariants(), 'gap-4')}>
+      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       <p className="break-words">
@@ -517,8 +519,8 @@ function SignInForm() {
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={cn(cardVariants(), 'gap-4')}>
+      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
         {creating ? text.headingCreate : text.headingSignIn}
       </h3>
       <p className="text-muted-foreground">{text.optional}</p>
@@ -682,8 +684,8 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
 
   if (ended) {
     return (
-      <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
-        <h3 id={`${id}-heading`} className="text-lg font-semibold">
+      <section aria-labelledby={`${id}-heading`} className={cn(cardVariants(), 'gap-4')}>
+        <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
           {text.heading}
         </h3>
         <p role="alert" className="break-words">
@@ -699,8 +701,8 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={cn(cardVariants(), 'gap-4')}>
+      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       <p className="break-words">
@@ -775,8 +777,8 @@ function SignedInPanel({ email, passwordChanged }: { email: string; passwordChan
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-3">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
+      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
         {text.heading}
       </h3>
       <p className="break-words">

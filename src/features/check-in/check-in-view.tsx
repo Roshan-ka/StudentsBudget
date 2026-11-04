@@ -4,6 +4,7 @@ import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { useId } from 'react';
+import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan } from '@/db/types';
 import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
@@ -114,8 +115,8 @@ function WeekPart({
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">{weekLabel(week.weekStart, week.weekEnd, locale)}</p>
 
-      <section aria-labelledby={planId} className="flex flex-col gap-3">
-        <h3 id={planId} className="text-lg font-semibold">
+      <section aria-labelledby={planId} className={cardVariants()}>
+        <h3 id={planId} className="text-xl leading-tight font-extrabold">
           {titles.against}
         </h3>
         {rows.length === 0 ? (
@@ -139,8 +140,8 @@ function WeekPart({
         )}
       </section>
 
-      <section aria-labelledby={weekId} className="flex flex-col gap-2">
-        <h3 id={weekId} className="text-lg font-semibold">
+      <section aria-labelledby={weekId} className={cn(cardVariants(), 'gap-2')}>
+        <h3 id={weekId} className="text-xl leading-tight font-extrabold">
           {titles.logged}
         </h3>
         {thisWeek.length === 0 ? (
@@ -257,8 +258,8 @@ function CheckIn({
       <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} part="this" withTotal />
       <AwayToggle plan={plan} today={today} />
 
-      <section aria-labelledby={addId} className="flex flex-col gap-3">
-        <h3 id={addId} className="text-lg font-semibold">
+      <section aria-labelledby={addId} className={cardVariants()}>
+        <h3 id={addId} className="text-xl leading-tight font-extrabold">
           {t.checkIn.add.heading}
         </h3>
         <QuickAddField />

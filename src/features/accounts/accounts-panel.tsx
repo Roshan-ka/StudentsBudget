@@ -3,6 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
@@ -227,9 +228,9 @@ export function AccountsPanel() {
   const nothingConverted = loaded && total !== null && accounts.every((a) => total.missingRates.includes(a.currency));
 
   return (
-    <section aria-labelledby="accounts-heading" className="flex flex-col gap-3">
+    <section aria-labelledby="accounts-heading" className={cardVariants()}>
       <div className="flex items-center justify-between gap-3">
-        <h3 id="accounts-heading" className="text-lg font-semibold">
+        <h3 id="accounts-heading" className="text-xl leading-tight font-extrabold">
           {text.heading}
         </h3>
         {editing !== 'new' && (
