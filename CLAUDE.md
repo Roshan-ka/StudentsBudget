@@ -187,7 +187,7 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
 - Phone first: works at 375 px width, 16 px side gutters, no horizontal page scroll, bottom navigation.
 - **One design everywhere** (Roshan's global design rules, 04-11-2026; redesign plan, chunk 10):
   - Brand, type, spacing, components, navigation and accessibility are the same in every region. A region adapts only what its people need (today the date's form), and a language its words, its script's fonts and its direction.
-  - Logical sides only (`ps-`, `pe-`, `ms-`, `me-`, `start-`, `end-`, `text-start`; `rtl:` on a directional icon or movement): `global-design.test.ts` refuses left and right outside an allow-list that only shrinks.
+  - Logical sides only (`ps-`, `pe-`, `ms-`, `me-`, `start-`, `end-`, `text-start`; `rtl:` on a directional icon or movement): `global-design.test.ts` refuses left and right in every `.tsx` in `src/` (its allow-list is empty since chunk 12; never add to it).
 - **Adding a region's design layer:**
   1. Its entry in `src/i18n/regions.ts`.
   2. `src/app/regions/<code>.css`, holding `[data-region='<code>'] { }` with only `--region-*` tokens (content or imagery the region needs), imported in `globals.css`. Never colours, fonts, spacing or components (tested).
