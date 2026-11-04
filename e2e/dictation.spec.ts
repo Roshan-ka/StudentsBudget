@@ -51,6 +51,11 @@ function mic(page: Page, name = 'Speak an entry') {
   return page.getByRole('button', { name, exact: true });
 }
 
+// Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
+function inlineAlert(page: Page) {
+  return page.getByRole('main').getByRole('alert');
+}
+
 test('the first tap says where speech goes; Continue listens and adds the line, and the note never shows again', async ({
   page,
 }) => {
@@ -96,13 +101,13 @@ test('a blocked microphone says how to allow it, and offline says it needs a con
     (window as unknown as SpeechWindow).speechError = 'not-allowed';
   });
   await mic(page).click();
-  await expect(page.getByRole('alert')).toHaveText(
+  await expect(inlineAlert(page)).toHaveText(
     'The microphone is blocked. Allow it for this site in your browser settings.',
   );
 
   await context.setOffline(true);
   await mic(page).click();
-  await expect(page.getByRole('alert')).toHaveText("You're offline. Speaking an entry needs a connection.");
+  await expect(inlineAlert(page)).toHaveText("You're offline. Speaking an entry needs a connection.");
   await context.setOffline(false);
 });
 
