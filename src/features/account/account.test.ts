@@ -8,7 +8,7 @@ import {
   passkeySignInMessage,
   passkeysUnavailable,
 } from './auth-errors';
-import { assuranceLevelOf, authStateOf } from './auth-state';
+import { asksCurrentPassword, assuranceLevelOf, authStateOf, signInMethodsOf } from './auth-state';
 import {
   checkAuthenticatorCode,
   checkCredentials,
@@ -34,12 +34,35 @@ describe('authStateOf', () => {
   });
 });
 
+/** An access token as supabase-js holds it: header.claims.signature, each base64url. */
+function token(claims: object): string {
+  const part = (value: object) => btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${part({ alg: 'HS256' })}.${part(claims)}.signature`;
+}
+
+describe('how a session signed in, for Change password', () => {
+  it('reads the methods from the token, and none from one it can’t read', () => {
+    const now = 1_700_000_000;
+    expect(signInMethodsOf(token({ amr: [{ method: 'password', timestamp: now }, { method: 'totp', timestamp: now }] }))).toEqual([
+      'password',
+      'totp',
+    ]);
+    expect(signInMethodsOf(token({ aal: 'aal1' }))).toEqual([]);
+    expect(signInMethodsOf('not-a-token')).toEqual([]);
+  });
+
+  it('asks for the current password unless the session signed in another way', () => {
+    expect(asksCurrentPassword(['password'])).toBe(true);
+    expect(asksCurrentPassword(['password', 'totp'])).toBe(true);
+    // Unknown: asked, to be safe.
+    expect(asksCurrentPassword([])).toBe(true);
+    // A passkey or an emailed code: a forgotten password can be replaced.
+    expect(asksCurrentPassword(['webauthn'])).toBe(false);
+    expect(asksCurrentPassword(['otp', 'totp'])).toBe(false);
+  });
+});
+
 describe('two-step sign-in in authStateOf', () => {
-  /** An access token as supabase-js holds it: header.claims.signature, each base64url, the claims carrying `aal`. */
-  function token(claims: object): string {
-    const part = (value: object) => btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    return `${part({ alg: 'HS256' })}.${part(claims)}.signature`;
-  }
   const factor = (status: 'verified' | 'unverified') => ({
     id: 'factor-1',
     factor_type: 'totp' as const,

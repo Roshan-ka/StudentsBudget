@@ -180,6 +180,20 @@ export const auth: Messages['auth'] = {
     cancelledElsewhere:
       'Cette configuration a été annulée, peut-être depuis un autre téléphone. Touche Activer pour recommencer.',
   },
+  /** Connexion et sécurité → Mot de passe : le nouveau ; l’actuel seulement si cette session a commencé avec. */
+  changePassword: {
+    heading: 'Mot de passe',
+    intro:
+      `Change le mot de passe avec lequel tu te connectes. Oublié${NNBSP}? Connecte-toi avec une clé d’accès, et tu ` +
+      'pourras en choisir un nouveau ici sans l’ancien.',
+    open: 'Changer le mot de passe',
+    current: 'Mot de passe actuel',
+    next: 'Nouveau mot de passe',
+    save: 'Enregistrer le mot de passe',
+    cancel: 'Annuler',
+    changed: 'Mot de passe modifié.',
+    wrongCurrent: 'Ce n’est pas ton mot de passe actuel.',
+  },
   passkeys: {
     heading: 'Clés d’accès',
     count: (count) =>

@@ -173,6 +173,20 @@ export const auth = {
     setupCancelled: 'Set-up cancelled.',
     cancelledElsewhere: 'This set-up was cancelled, maybe from another phone. Turn on to start again.',
   },
+  /** Sign-in and security → Password: a new password, the current one asked when this session signed in with it. */
+  changePassword: {
+    heading: 'Password',
+    intro:
+      'Change the password you sign in with. Forgot it? Sign in with a passkey, and you can set a new one here ' +
+      'without the old one.',
+    open: 'Change password',
+    current: 'Current password',
+    next: 'New password',
+    save: 'Save password',
+    cancel: 'Cancel',
+    changed: 'Password changed.',
+    wrongCurrent: "That isn't your current password.",
+  },
   passkeys: {
     heading: 'Passkeys',
     /** The card's status: how many the account has. */

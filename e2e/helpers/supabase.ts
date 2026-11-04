@@ -63,12 +63,14 @@ function userFor(email: string, factors: MockFactor[]) {
 
 /**
  * A session as Supabase Auth returns it, valid for an hour of real time (ahead of any clock a spec pins). `aal` is the
- * assurance level its token states: 'aal2' once an authenticator code was given.
+ * assurance level its token states: 'aal2' once an authenticator code was given. `methods` are how it signed in (the
+ * `amr` claim): 'password', 'otp' for an emailed code, 'webauthn' for a passkey, plus 'totp' once the code was given.
  */
-function sessionFor(email: string, aal: 'aal1' | 'aal2' = 'aal1', factors: MockFactor[] = []) {
+function sessionFor(email: string, aal: 'aal1' | 'aal2' = 'aal1', factors: MockFactor[] = [], methods: string[] = ['password']) {
   const now = Math.floor(Date.now() / 1000);
   const user = userFor(email, factors);
-  const claims = { sub: e2eUserIdOf(email), email, role: 'authenticated', aud: 'authenticated', aal, iat: now, exp: now + 3600 };
+  const amr = methods.map((method) => ({ method, timestamp: now }));
+  const claims = { sub: e2eUserIdOf(email), email, role: 'authenticated', aud: 'authenticated', aal, amr, iat: now, exp: now + 3600 };
   return {
     access_token: `${base64url({ alg: 'HS256', typ: 'JWT' })}.${base64url(claims)}${SESSION_SIGNATURE}`,
     token_type: 'bearer',
@@ -109,12 +111,14 @@ export async function mockSupabaseAuth(
   const factorsOf: AuthFactors = options.factors ?? new Map();
   let current: string | null = null;
   let currentAal: 'aal1' | 'aal2' = 'aal1';
+  let currentMethods: string[] = ['password'];
   const factors = (email: string) => factorsOf.get(email) ?? [];
   const verified = (email: string) => factors(email).filter((f) => f.status === 'verified');
-  const signedIn = (email: string, aal: 'aal1' | 'aal2') => {
+  const signedIn = (email: string, aal: 'aal1' | 'aal2', methods: string[] = ['password']) => {
     current = email;
     currentAal = aal;
-    return sessionFor(email, aal, verified(email));
+    currentMethods = methods;
+    return sessionFor(email, aal, verified(email), methods);
   };
   // Each account's passkeys, and which account a passkey's credential (the device's key) signs in.
   const passkeysOf = new Map<string, MockPasskey[]>();
@@ -169,12 +173,12 @@ export async function mockSupabaseAuth(
       const { token, type } = (body ?? {}) as { token?: string; type?: string };
       if (email !== undefined && unconfirmed.has(email) && (type === 'email' || type === 'signup') && token === E2E_EMAIL_CODE) {
         unconfirmed.delete(email);
-        return reply(route, 200, signedIn(email, 'aal1'));
+        return reply(route, 200, signedIn(email, 'aal1', ['otp']));
       }
       // A "Forgot password" code signs in like the password: aal1, with the account's authenticators listed.
       if (email !== undefined && resetting.has(email) && type === 'recovery' && token === E2E_EMAIL_CODE) {
         resetting.delete(email);
-        return reply(route, 200, signedIn(email, 'aal1'));
+        return reply(route, 200, signedIn(email, 'aal1', ['otp']));
       }
       return reply(route, 403, { error_code: 'otp_expired', msg: 'Token has expired or is invalid' });
     }
@@ -206,15 +210,15 @@ export async function mockSupabaseAuth(
       if (used !== undefined) used.last_used_at = new Date().toISOString();
       // Without the account's authenticators: the real answer isn't documented (a beta), so the app must find them
       // itself (a refreshed session lists them) and not rely on this answer to show the code step.
-      signedIn(owner, 'aal1');
-      return reply(route, 200, sessionFor(owner, 'aal1', []));
+      signedIn(owner, 'aal1', ['webauthn']);
+      return reply(route, 200, sessionFor(owner, 'aal1', [], ['webauthn']));
     }
     if (current === null) return reply(route, 401, { error_code: 'no_authorization', msg: 'Not signed in' });
     const who = current;
 
     if (path === '/token' && url.searchParams.get('grant_type') === 'refresh_token') {
       // Still aal2 only while a confirmed authenticator is left.
-      return reply(route, 200, signedIn(who, currentAal === 'aal2' && verified(who).length > 0 ? 'aal2' : 'aal1'));
+      return reply(route, 200, signedIn(who, currentAal === 'aal2' && verified(who).length > 0 ? 'aal2' : 'aal1', currentMethods));
     }
     if (path === '/user' && request.method() === 'GET') return reply(route, 200, userFor(who, factors(who)));
     if (path === '/user' && request.method() === 'PUT') {
@@ -305,7 +309,7 @@ export async function mockSupabaseAuth(
           return reply(route, 422, { error_code: 'mfa_verification_failed', msg: 'Invalid TOTP code entered' });
         }
         factor.status = 'verified';
-        return reply(route, 200, signedIn(who, 'aal2'));
+        return reply(route, 200, signedIn(who, 'aal2', [...new Set([...currentMethods, 'totp'])]));
       }
       if (request.method() === 'DELETE') {
         // A confirmed authenticator can only be removed by a session that gave its code.
