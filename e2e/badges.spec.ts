@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, WeekResult } from '../src/db/types';
+import { formatDate } from '../src/lib/dates';
 import { completeSetup, readStore } from './helpers/setup';
 
 // `completeSetup` creates the plan on Friday 16 October 2026: food €310 and eating out €124 a month (€434). The seed
@@ -114,11 +115,11 @@ test('five finished weeks show on Home and earn the bronze Under-Budget Week', a
   await expect(page.getByRole('heading', { level: 2, name: 'Badges', exact: true })).toBeVisible();
 
   const underBudget = badge(page, 'Under-Budget Week');
-  await expect(underBudget.getByText('Bronze · earned 15-11-2026', { exact: true })).toBeVisible();
+  await expect(underBudget.getByText(`Bronze · earned ${formatDate('2026-11-15')}`, { exact: true })).toBeVisible();
   await expect(underBudget.getByText('4 of 12 weeks', { exact: true })).toBeVisible();
-  await expect(badge(page, 'Logging Streak').getByText('Earned 08-11-2026', { exact: true })).toBeVisible();
+  await expect(badge(page, 'Logging Streak').getByText(`Earned ${formatDate('2026-11-08')}`, { exact: true })).toBeVisible();
   await expect(badge(page, 'Logging Streak').getByText('5 weeks in a row', { exact: true })).toBeVisible();
-  await expect(badge(page, 'Ramen Royalty').getByText('Earned 08-11-2026', { exact: true })).toBeVisible();
+  await expect(badge(page, 'Ramen Royalty').getByText(`Earned ${formatDate('2026-11-08')}`, { exact: true })).toBeVisible();
   await expect(badge(page, 'Latte Survivor').getByText('Not earned yet', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });

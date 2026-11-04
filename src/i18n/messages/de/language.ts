@@ -4,6 +4,6 @@ import type { Messages } from '../en';
 export const language: Messages['language'] = {
   heading: 'Sprache',
   label: 'Sprache',
-  hint: 'Nur auf diesem Handy. Geldbeträge und Daten folgen der Sprache.',
+  hint: 'Nur auf diesem Handy. Geldbeträge folgen der Sprache, Daten der Region (Deutschland).',
   draft: (name: string) => `${name} (Entwurf)`,
 };

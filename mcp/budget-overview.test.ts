@@ -19,7 +19,7 @@ import type { BudgetOverview, RecentEntries } from './budget.ts';
 import { call, connect } from './test-client.ts';
 
 // The demo pack's everyday student, saved to a fake account the way the app's Save writes it. On the pack's day
-// (21-10-2026) the pack documents €138.10 left in October, and its balances.
+// (21.10.2026) the pack documents €138.10 left in October, and its balances.
 const DEMO_DAY = '2026-10-21';
 const SAVED_AT = '2026-10-21T09:30:00.000Z';
 /** An account that wants no code: the password is all it takes. */
@@ -51,7 +51,7 @@ describe('budget_overview', () => {
     expect(o.state).toBe('ready');
     expect(o.savedAt).toBe(SAVED_AT);
     expect(o.note).toContain("as of the phone’s last sync");
-    expect(o.note).toContain('Last changed on 21-10-2026.');
+    expect(o.note).toContain('Last changed on 21.10.2026.');
 
     const b = o.budget!;
     expect(b.month).toBe('2026-10');
@@ -338,7 +338,7 @@ describe('recent_entries', () => {
     const dates = r.entries.map((e) => e.date);
     expect(dates).toEqual([...dates].sort().reverse());
     expect(r.note).toMatch(/^24 entries in 2026-10\. The user’s own entries/);
-    expect(r.note).toContain('Last changed on 21-10-2026.');
+    expect(r.note).toContain('Last changed on 21.10.2026.');
   });
 
   it('adds up to what budget_overview counts as spent, for one category', async () => {

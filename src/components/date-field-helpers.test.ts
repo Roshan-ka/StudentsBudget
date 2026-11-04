@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DATE_CHIPS, DATE_PLACEHOLDER, chipDate, dateText, selectedChip } from './date-field-helpers';
+import { MESSAGES } from '@/i18n/messages';
+import { DATE_CHIPS, chipDate, dateText, selectedChip } from './date-field-helpers';
 
 describe('DATE_CHIPS', () => {
   it('offers Today first, then Yesterday', () => {
@@ -53,13 +54,17 @@ describe('selectedChip', () => {
 });
 
 describe('dateText', () => {
-  it('shows an ISO date as DD-MM-YYYY', () => {
-    expect(dateText('2026-10-16')).toBe('16-10-2026');
-    expect(dateText('2027-01-05')).toBe('05-01-2027');
+  const english = MESSAGES.en.common.dateField.letters;
+
+  it("shows an ISO date in the region's form, whatever the language", () => {
+    expect(dateText('2026-10-16', english)).toBe('16.10.2026');
+    expect(dateText('2027-01-05', MESSAGES.fr.common.dateField.letters)).toBe('05.01.2027');
   });
 
-  it('shows the format itself while the field is empty', () => {
-    expect(dateText('')).toBe(DATE_PLACEHOLDER);
-    expect(DATE_PLACEHOLDER).toBe('DD-MM-YYYY');
+  it("shows the region's form in the language's letters while the field is empty", () => {
+    expect(dateText('', english)).toBe('DD.MM.YYYY');
+    expect(dateText('', MESSAGES.de.common.dateField.letters)).toBe('TT.MM.JJJJ');
+    expect(dateText('', MESSAGES.fr.common.dateField.letters)).toBe('JJ.MM.AAAA');
+    expect(dateText('', MESSAGES.es.common.dateField.letters)).toBe('DD.MM.AAAA');
   });
 });

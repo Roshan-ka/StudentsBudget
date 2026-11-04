@@ -10,7 +10,7 @@ import { useToday } from '@/lib/use-today';
 import { badgeHistory, badgesFrom, goldWeeks, semesterWeeksFor, type Badge } from './badges';
 import { DatedText } from './dated-text';
 
-/** "Bronze · earned 15-11-2026", "Earned 08-11-2026" or "Not earned yet". */
+/** "Bronze · earned 15.11.2026", "Earned 08.11.2026" or "Not earned yet". */
 function status(b: Badge, t: Messages): string {
   const text = t.badges;
   if (b.earnedOn === null) return text.notEarned;

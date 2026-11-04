@@ -243,7 +243,7 @@ export function backupFileName(now: Date): string {
   return `${APP}-backup-${todayIso(now)}.json`;
 }
 
-/** What the confirmation says under the file name: "Saved 19-10-2026, 12:00 · 3 accounts · 47 entries", in `lang`. */
+/** What the confirmation says under the file name: "Saved 19.10.2026, 12:00 · 3 accounts · 47 entries", in `lang`. */
 export function backupSummary(d: BackupData, exportedAt: string, lang: Language = 'en'): string {
   const t = MESSAGES[lang];
   return [

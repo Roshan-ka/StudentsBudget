@@ -39,7 +39,7 @@ describe('the prompts', () => {
       expect(named.length, name).toBeGreaterThan(0);
       for (const tool of named) expect(tools.has(tool), `${name} names ${tool}`).toBe(true);
       expect(text, name).toContain('never "failed" or a warning');
-      expect(text, name).toContain('DD-MM-YYYY');
+      expect(text, name).toContain('DD.MM.YYYY');
       expect(text, name).toContain('cite the source and checked date');
     }
   });

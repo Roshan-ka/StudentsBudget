@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry, Rate } from '../src/db/types';
+import { formatDate } from '../src/lib/dates';
 import { FRANKFURTER, completeSetup, readStore } from './helpers/setup';
 
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
@@ -639,22 +640,22 @@ async function openNewEntry(page: Page) {
   await expect(page.getByLabel('Amount', { exact: true })).toBeVisible();
 }
 
-test('the date field shows DD-MM-YYYY and the native input keeps the ISO value and the label', async ({ page }) => {
+test('the date field shows DD.MM.YYYY and the native input keeps the ISO value and the label', async ({ page }) => {
   await setupAndOpenEntries(page);
   await openNewEntry(page);
   const date = page.getByLabel('Date', { exact: true });
 
   await expect(date).toHaveValue('2026-10-16');
   await expect(date).toHaveAttribute('type', 'date');
-  const shown = page.getByText('16-10-2026', { exact: true });
+  const shown = page.getByText(formatDate('2026-10-16'), { exact: true });
   await expect(shown).toBeVisible();
   // The text is for the eye: the input says the date to a screen reader.
   await expect(shown).toHaveAttribute('aria-hidden', 'true');
 
   await date.fill('2026-10-09');
   await expect(date).toHaveValue('2026-10-09');
-  await expect(page.getByText('09-10-2026', { exact: true })).toBeVisible();
-  await expect(page.getByText('16-10-2026', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(formatDate('2026-10-09'), { exact: true })).toBeVisible();
+  await expect(page.getByText(formatDate('2026-10-16'), { exact: true })).toHaveCount(0);
   // Neither chip stands for another date.
   await expect(dateChip(page, 'Today')).toHaveAttribute('aria-pressed', 'false');
   await expect(dateChip(page, 'Yesterday')).toHaveAttribute('aria-pressed', 'false');
@@ -673,7 +674,7 @@ test('Yesterday dates the entry the day before, and Today takes it back', async 
 
   await yesterday.click();
   await expect(date).toHaveValue('2026-10-15');
-  await expect(page.getByText('15-10-2026', { exact: true })).toBeVisible();
+  await expect(page.getByText(formatDate('2026-10-15'), { exact: true })).toBeVisible();
   await expect(yesterday).toHaveAttribute('aria-pressed', 'true');
   await expect(today).toHaveAttribute('aria-pressed', 'false');
 
@@ -713,7 +714,7 @@ test('Today and Yesterday follow the clock, and a picked date stays', async ({ p
   await expect(dateChip(page, 'Yesterday')).toHaveAttribute('aria-pressed', 'false');
 });
 
-test('editing an entry shows its date as DD-MM-YYYY, with the chip that matches', async ({ page }) => {
+test('editing an entry shows its date as DD.MM.YYYY, with the chip that matches', async ({ page }) => {
   await setupAndOpenEntries(page);
   const accountId = (await readStore<Account>(page, 'accounts')).find((a) => a.name === 'Cash')?.id;
   await writeStore(page, 'entries', {
@@ -736,7 +737,7 @@ test('editing an entry shows its date as DD-MM-YYYY, with the chip that matches'
   await entriesList(page).getByRole('button', { name: /Rewe/ }).click();
   const panel = page.getByRole('region', { name: 'Edit entry' });
   await expect(panel.getByLabel('Date', { exact: true })).toHaveValue('2026-10-15');
-  await expect(panel.getByText('15-10-2026', { exact: true })).toBeVisible();
+  await expect(panel.getByText(formatDate('2026-10-15'), { exact: true })).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Yesterday', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   // Today moves the entry to today's date and keeps it the same entry.
@@ -752,7 +753,7 @@ test('a tap anywhere on the date field lands on the native date input', async ({
   await setupAndOpenEntries(page);
   await openNewEntry(page);
   const date = page.getByLabel('Date', { exact: true });
-  const shown = await page.getByText('16-10-2026', { exact: true }).boundingBox();
+  const shown = await page.getByText(formatDate('2026-10-16'), { exact: true }).boundingBox();
   const input = await date.boundingBox();
   const inputId = await date.getAttribute('id');
   expect(shown && input && inputId).toBeTruthy();

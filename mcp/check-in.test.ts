@@ -13,7 +13,7 @@ import type { ReadAccount } from './account.ts';
 import type { WeekCheckIn } from './check-in.ts';
 import { call, connect } from './test-client.ts';
 
-// The demo pack's everyday student, saved to a fake account as the app's Save writes it; 21-10-2026 is a Wednesday.
+// The demo pack's everyday student, saved to a fake account as the app's Save writes it; 21.10.2026 is a Wednesday.
 const DEMO_DAY = '2026-10-21';
 
 function demo(): BackupData {
@@ -81,7 +81,7 @@ describe('week_check_in', () => {
   });
 
   it('on the Sunday after a month began mid-week, reviews the earlier days first, without a total', async () => {
-    // 01-11-2026 is a Sunday; that week began on Monday 26-10-2026.
+    // 01.11.2026 is a Sunday; that week began on Monday 26.10.2026.
     const { data: c } = await checkIn(demo(), '2026-11-01');
     expect(c.parts.map((p) => [p.label, p.start, p.end])).toEqual([
       ['Earlier this week', '2026-10-26', '2026-10-31'],

@@ -24,7 +24,7 @@ function openPickerOnMouseClick(event: MouseEvent<HTMLInputElement>) {
 }
 
 /**
- * A date as DD-MM-YYYY on a button-sized field, with Today and Yesterday next to it unless `chips` is false (a date
+ * A date in the region's form (04.11.2026) on a button-sized field, with Today and Yesterday next to it unless `chips` is false (a date
  * that is rarely today, like a semester's). The native date input lies over the field, transparent: a tap anywhere on
  * the field opens the picker, and the input carries the label and the ISO value. The text under it is for the eye
  * only. Today follows the clock (`useToday`). `invalid` and `describedBy` mark the field and point at its error.
@@ -61,7 +61,7 @@ export function DateField({
         className="relative flex h-10 items-center justify-between gap-2 rounded-lg border border-input px-2.5 text-base transition-colors has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 has-[[aria-invalid]]:border-destructive md:text-sm dark:bg-input/30"
       >
         <span aria-hidden="true" className={cn('tabular-nums', value === '' && 'text-muted-foreground')}>
-          {dateText(value)}
+          {dateText(value, text.letters)}
         </span>
         <CalendarIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
         {/* 16 px, so iOS does not zoom in on it; one pixel past the border, so the whole field is the target. */}

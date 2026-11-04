@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { formatDate, todayIso } from '../src/lib/dates';
 import {
   addVirtualAuthenticator,
   E2E_TOTP_CODE,
@@ -44,10 +45,9 @@ function passkeyButton(page: Page) {
 
 const removed = (calls: AuthCall[]) => calls.filter((c) => c.method === 'DELETE' && c.path.startsWith('/passkeys/'));
 
-/** Today as the app writes a full date: "29-10-2026". */
+/** Today as the app writes a full date: "29.10.2026". */
 function today(): string {
-  const now = new Date();
-  return `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+  return formatDate(todayIso());
 }
 
 async function signIn(page: Page) {

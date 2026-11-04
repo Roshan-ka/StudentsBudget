@@ -854,7 +854,7 @@ describe('backupSummary', () => {
     // Built from local parts, so the expectation holds in any time zone.
     const exportedAt = new Date(2026, 9, 19, 12, 0).toISOString();
 
-    expect(backupSummary(sample(), exportedAt)).toBe('Saved 19-10-2026, 12:00 · 2 accounts · 3 entries');
+    expect(backupSummary(sample(), exportedAt)).toBe('Saved 19.10.2026, 12:00 · 2 accounts · 3 entries');
   });
 
   it('says "1 account" and "1 entry" in the singular, and 0 as a plural', () => {
@@ -862,7 +862,7 @@ describe('backupSummary', () => {
     const one = { ...sample(), accounts: sample().accounts.slice(0, 1), entries: sample().entries.slice(0, 1) };
     const none = { ...sample(), accounts: [], entries: [] };
 
-    expect(backupSummary(one, exportedAt)).toBe('Saved 02-03-2026, 09:05 · 1 account · 1 entry');
-    expect(backupSummary(none, exportedAt)).toBe('Saved 02-03-2026, 09:05 · 0 accounts · 0 entries');
+    expect(backupSummary(one, exportedAt)).toBe('Saved 02.03.2026, 09:05 · 1 account · 1 entry');
+    expect(backupSummary(none, exportedAt)).toBe('Saved 02.03.2026, 09:05 · 0 accounts · 0 entries');
   });
 });

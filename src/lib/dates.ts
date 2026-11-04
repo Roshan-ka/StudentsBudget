@@ -11,6 +11,8 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
+// Relative, not `@/`: the e2e specs import this module to write the dates they expect.
+import { DEFAULT_REGION, regionDate, type Region } from '../i18n/regions';
 
 /** Local calendar day, `YYYY-MM-DD`. */
 export type IsoDate = string;
@@ -34,16 +36,16 @@ export function todayIso(now: Date = new Date()): IsoDate {
   return toIso(now);
 }
 
-/** How a full date is shown: "2026-10-19" gives "19-10-2026". */
-export function formatDate(d: IsoDate): string {
+/** How a full date is shown, in the region's form: "2026-10-19" gives "19.10.2026" in Germany. */
+export function formatDate(d: IsoDate, region: Region = DEFAULT_REGION): string {
   const [year, month, day] = d.split('-');
-  return `${day}-${month}-${year}`;
+  return regionDate({ day, month, year }, region);
 }
 
-/** An ISO timestamp as local date and time: "19-10-2026, 14:05". Text that is not a timestamp comes back as it is. */
-export function formatDateTime(iso: string): string {
+/** An ISO timestamp as local date and time: "19.10.2026, 14:05". Text that is not a timestamp comes back as it is. */
+export function formatDateTime(iso: string, region: Region = DEFAULT_REGION): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : format(date, 'dd-MM-yyyy, HH:mm');
+  return Number.isNaN(date.getTime()) ? iso : `${formatDate(toIso(date), region)}, ${format(date, 'HH:mm')}`;
 }
 
 export function monthOf(d: IsoDate): IsoMonth {

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry, Guess, Plan } from '../src/db/types';
+import { formatDate } from '../src/lib/dates';
 import { DEFAULT_SETUP, budgetField, completeSetup, fillSetup, mockFrankfurter, readStore } from './helpers/setup';
 
 // The fixture's numbers depend on the month (the 300 fee is spread from the current month to March).
@@ -338,7 +339,7 @@ test('the rent range shows where it comes from, collapsed until asked for', asyn
 
   await page.getByText('Source', { exact: true }).click();
   await expect(page.getByText('Universität Regensburg: cheapest Studierendenwerk room')).toBeVisible();
-  await expect(page.getByText('checked 16-10-2026', { exact: true })).toBeVisible();
+  await expect(page.getByText(`checked ${formatDate('2026-10-16')}`, { exact: true })).toBeVisible();
   const link = page.getByRole('link', { name: 'uni-regensburg.de' });
   await expect(link).toHaveAttribute(
     'href',
@@ -364,7 +365,7 @@ test('every envelope range shows its source, and an estimate says so', async ({ 
   const food = sources.nth(0);
   await food.getByText('Source', { exact: true }).click();
   await expect(food.getByText('DSW 22nd Sozialerhebung 2021, national mean €194')).toBeVisible();
-  await expect(food.getByText('checked 16-10-2026', { exact: true })).toBeVisible();
+  await expect(food.getByText(`checked ${formatDate('2026-10-16')}`, { exact: true })).toBeVisible();
   await expect(food.getByRole('link', { name: 'studierendenwerke.de' })).toHaveAttribute('target', '_blank');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 

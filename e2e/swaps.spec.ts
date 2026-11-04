@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { SWAPS, type Swap } from '../src/data/swaps';
 import { TIPS } from '../src/data/tips';
+import { formatDate } from '../src/lib/dates';
 import { completeSetup } from './helpers/setup';
 
 // 375 px, the narrowest phone the app is made for. `completeSetup` pins the clock to Friday 2026-10-16 and creates the
@@ -53,7 +54,7 @@ async function openSource(details: Locator, label: string): Promise<Locator> {
 /** The block's source text and checked date, and its link: opens in a new tab and says where it goes. */
 async function expectSource(block: Locator, source: string, host: string, url: string) {
   await expect(block.getByText(source, { exact: true })).toBeVisible();
-  await expect(block.getByText('checked 20-10-2026', { exact: true })).toBeVisible();
+  await expect(block.getByText(`checked ${formatDate('2026-10-20')}`, { exact: true })).toBeVisible();
   const link = block.getByRole('link', { name: host, exact: true });
   await expect(link).toHaveAttribute('href', url);
   await expect(link).toHaveAttribute('target', '_blank');

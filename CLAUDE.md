@@ -112,6 +112,7 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
   - The choice is per phone (localStorage `studentsbudget-language`, `src/i18n/store.ts`): not synced, not backed up. Pages prerender in `DEFAULT_LANGUAGE`; the inline head script (`languageHeadScript`) sets `<html lang>` and `dir` before paint, `LanguageAttributes` keeps them after.
   - Text comes from the dictionaries (`src/i18n/messages/<code>/<area>.ts`, `Messages = typeof en`) through `useT()`, which is the default language in the first render and the phone's right after. A text that takes values is a function. Plurals go through `plural()` (`Intl.PluralRules`, any CLDR form, `other` as fallback). Dictionaries are imported statically, never with `import()`, so they are cached for offline.
   - Playwright runs in `en-GB` (both configs); a spec about another language sets its own `test.use({ locale })`.
+- **Regions** (redesign plan, chunk 0, `docs/superpowers/plans/2026-11-04-redesign.md`): a region decides how a full date is written, apart from the language. `src/i18n/regions.ts` is the single source (one region, `de`, so far, and no picker): `formatDate` and `formatDateTime`, the date field's empty form in the language's letters (`datePlaceholder`: TT.MM.JJJJ in German) and `DatedText`'s pattern (`fullDatePattern`) all read it. Never write a date form by hand: specs build expected dates with `formatDate`.
 - **Quick add:** `QuickAddField` reads every line through a `QuickAddProvider` (default `localQuickAddProvider`), and every reading passes `checkReading` before it is saved. Don't call `parseQuickAdd` or `suggestCategory` from the field.
   - The mic button (P2, `docs/superpowers/plans/2026-11-04-mic-button.md`) shows only where the browser has speech recognition (`recognizerFor`, `speech.ts`). It listens once in the language's locale and hands what it heard to the same `addLine` as a typed line, so speech goes through the provider and `checkReading` too, and saves straight away with the Saved line and Undo.
   - The first tap on a phone shows where the speech goes (`mic-note.ts`, localStorage `studentsbudget-mic-note`: per phone, not synced, not backed up).
@@ -129,7 +130,7 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
     - It signs in with the password alone, so an account with two-step sign-in gives `needs-second-step` (also when the step was turned on while the server ran): use one without it.
   - Node 24 runs the `.ts` files directly with type stripping (tsconfig `allowImportingTsExtensions`; `erasableSyntaxOnly` refuses enums and parameter properties in `src/`).
     - Typecheck can't catch a type imported without `type`, which fails in Node. `mcp/server.test.ts` starts the real server in plain Node and does.
-  - Nothing from `src/` beyond `src/data/*`, `src/lib/money.ts` and `src/lib/dates.ts` may load before `registerAppImports()` (`mcp/app-imports.ts`), which teaches Node the `@/` alias and extensionless imports.
+  - Nothing from `src/` beyond `src/data/*` and `src/lib/money.ts` may load before `registerAppImports()` (`mcp/app-imports.ts`), which teaches Node the `@/` alias and extensionless imports.
     - `server.ts` registers it, then imports `create-server.ts` with a dynamic `import()`, since static imports resolve before any code runs.
     - Every module behind that import may use `@/` freely.
   - The tools use the app's own helpers (category names and order, amounts, savings, staleness, semesters, the check-in's week). Two one-line rules are restated, each with a comment: the manual-over-ECB rate choice (`loadRates` reads Dexie) and the setup-day cut of `beforeSetup`.
@@ -150,7 +151,7 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
 **Code**
 - TypeScript `strict`; no `any`.
 - **Money:** integer minor units (`Minor`), never floats. Plan, envelope and city amounts are in EUR. Each entry keeps its account's currency in `amountMinor`, plus `eurMinor` converted at save time.
-- **Dates:** local `IsoDate` strings (`YYYY-MM-DD`) and `IsoMonth` strings (`YYYY-MM`). Shown as `DD-MM-YYYY` with `formatDate` wherever a full date appears; short labels like "Mon 26 Oct" stay. Weeks run Monday–Sunday. The check-in is on Sunday.
+- **Dates:** local `IsoDate` strings (`YYYY-MM-DD`) and `IsoMonth` strings (`YYYY-MM`). Shown in the region's form with `formatDate` wherever a full date appears, whatever the language (Germany, the only region: `DD.MM.YYYY`, so 04.11.2026; Regions, above); short labels like "Mon 26 Oct" stay in the language. Weeks run Monday–Sunday. The check-in is on Sunday.
 - **Data:** the phone's data lives in the IndexedDB database `studentsbudget`; the account (Supabase, Frankfurt) holds a copy only once the phone is linked, and it changes with each sync.
 
 **What P2.1 and P2.2 leave out**
@@ -159,7 +160,7 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
 - Outgoing requests: `https://api.frankfurter.dev/v2/rates?base=EUR&quotes=…&providers=ecb` (confirm the endpoint in Frankfurter's docs before coding), and, only when the build has Supabase settings, the Supabase project: sign-in (password, passkey, authenticator code), the session refresh supabase-js runs in the background, reading and changing passkeys and two-step sign-in, linking, and each sync (Sync now, the first after linking, the last before signing out). The app sends no audio itself: the mic button uses the browser's speech recognition, which may send the recording to the browser maker's speech service (Google, in Chrome), and the app says so once before the first use.
 
 **Text and layout**
-- The UI is in English, German and French, picked per phone (Languages, above). Money, numbers and dates are formatted in the language's registry locale: `€6.50` and `€63` for headlines in English (`en-IE`), `6,50 €` and `63 €` in German (`de-DE`) and French (`fr-FR`: a no-break space before the €, a narrow one between thousands, `1 006,50 €`). French puts a narrow no-break space before : ; ? ! and inside « » (tested).
+- The UI is in English, German and French, picked per phone (Languages, above). Money, numbers and date labels are formatted in the language's registry locale (a full date follows the region): `€6.50` and `€63` for headlines in English (`en-IE`), `6,50 €` and `63 €` in German (`de-DE`) and French (`fr-FR`: a no-break space before the €, a narrow one between thousands, `1 006,50 €`). French puts a narrow no-break space before : ; ? ! and inside « » (tested).
 - Calm wording: overspending reads "€12 over" ("12 € zu viel", "12 € de trop"), never "failed" or "warning!".
 - Phone first: works at 375 px width, 16 px side gutters, no horizontal page scroll, bottom navigation.
 - User-facing text states no platform storage-eviction rule without a source (the Concept's iOS 7-day line has none): say only that clearing site data or removing the app deletes the data.

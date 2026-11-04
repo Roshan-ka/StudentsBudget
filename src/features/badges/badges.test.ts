@@ -290,30 +290,30 @@ describe('Ramen Royalty', () => {
     const results = food([3000, 4000, 2500, 2000]);
     expect(ramen(results)).toMatchObject({
       tier: null,
-      progress: 'Cheapest grocery week so far: €20 (week of 09-11-2026)',
+      progress: 'Cheapest grocery week so far: €20 (week of 09.11.2026)',
       earnedOn: results[2].weekEnd,
     });
   });
 
   it('shows the mark to beat until a cheaper week comes', () => {
     expect(ramen(food([3000, 3000, 4550]))).toMatchObject({
-      progress: 'Cheapest grocery week so far: €30 (week of 19-10-2026). A cheaper week earns it',
+      progress: 'Cheapest grocery week so far: €30 (week of 19.10.2026). A cheaper week earns it',
       earnedOn: null,
     });
     expect(ramen(food([3050]))).toMatchObject({
-      progress: 'Cheapest grocery week so far: €30.50 (week of 19-10-2026). A cheaper week earns it',
+      progress: 'Cheapest grocery week so far: €30.50 (week of 19.10.2026). A cheaper week earns it',
     });
   });
 
   it('leaves out weeks with no groceries, weeks away and the part week of setup', () => {
     // Nothing on food in the 2nd week, away in the 3rd: neither is the cheapest.
     expect(ramen(food([3000, 0, 1000, 4000], (i) => (i === 2 ? { paused: true } : {})))).toMatchObject({
-      progress: 'Cheapest grocery week so far: €30 (week of 19-10-2026). A cheaper week earns it',
+      progress: 'Cheapest grocery week so far: €30 (week of 19.10.2026). A cheaper week earns it',
       earnedOn: null,
     });
     // Set up on Wednesday 21 October: the week of 19 October had only five days of the plan.
     expect(ramen(food([500, 3000]), { ...HISTORY, planStart: '2026-10-21' })).toMatchObject({
-      progress: 'Cheapest grocery week so far: €30 (week of 26-10-2026). A cheaper week earns it',
+      progress: 'Cheapest grocery week so far: €30 (week of 26.10.2026). A cheaper week earns it',
       earnedOn: null,
     });
   });

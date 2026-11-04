@@ -5,6 +5,8 @@ export const common = {
     pickDay: 'Pick a day',
     today: 'Today',
     yesterday: 'Yesterday',
+    /** A full date's parts as letters, which the empty field shows in the region's form: "DD.MM.YYYY". */
+    letters: { day: 'D', month: 'M', year: 'Y' },
   },
   amountField: {
     positive: 'Enter an amount above 0, like 250 or 12.50.',

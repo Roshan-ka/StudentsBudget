@@ -115,7 +115,7 @@ describe('uploadable manual demo files', () => {
     expect(weekToSpend(data.plan!, [...data.entries, foodExpense(manifest.generatedFor)], manifest.generatedFor).totalMinor).toBe(c.expected!.weekAfterFoodMinor);
   });
 
-  it("shows the guide's snapshot figures for B01 on 21-10-2026, whatever day the pack was made for", () => {
+  it("shows the guide's snapshot figures for B01 on 21.10.2026, whatever day the pack was made for", () => {
     const data = named('02-');
     expect(weekToSpend(data.plan!, data.entries, '2026-10-21').totalMinor).toBe(25000);
     expect(weekToSpend(data.plan!, [...data.entries, foodExpense('2026-10-21')], '2026-10-21').totalMinor).toBe(24000);

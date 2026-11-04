@@ -87,7 +87,7 @@ export function PasskeySignIn({ onStart, onError }: { onStart: () => void; onErr
 /** A passkey as the account lists it. */
 type Passkey = { id: string; friendly_name?: string; created_at: string; last_used_at?: string };
 
-/** The account's timestamp as a local day, "19-10-2026"; empty for one that isn't a timestamp. */
+/** The account's timestamp as a local day, "19.10.2026"; empty for one that isn't a timestamp. */
 function dayOf(timestamp: string): string {
   const date = new Date(timestamp);
   return Number.isNaN(date.getTime()) ? '' : formatDate(todayIso(date));

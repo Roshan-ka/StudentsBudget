@@ -24,7 +24,7 @@ export const sync = {
       waiting === 0 ? `${state}.` : `${state}. ${waiting} ${waiting === 1 ? 'change' : 'changes'} waiting.`,
     justNow: 'just now',
     minutesAgo: (minutes: number) => `${minutes} min ago`,
-    /** Anything an hour old or more: "on 29-10-2026, 09:30". */
+    /** Anything an hour old or more: "on 29.10.2026, 09:30". */
     at: (dateTime: string) => `on ${dateTime}`,
     /** A time that can't be read. */
     before: 'before',

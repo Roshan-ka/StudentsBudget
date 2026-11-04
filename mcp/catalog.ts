@@ -103,7 +103,7 @@ export function countNote(
 
 /** How every list tool's `note` asks for sources; the structured dates are YYYY-MM-DD. */
 export const CITE_NOTE =
-  'Cite each item’s source, URL and checked date when you use it, and write dates as DD-MM-YYYY.';
+  'Cite each item’s source, URL and checked date when you use it, and write dates as DD.MM.YYYY.';
 
 /** What `estimate: true` means on a cost, discount or tip (a swap's differs: see swaps.ts). */
 export const ESTIMATE_NOTE = 'estimate: true means no page states the number, so call it an estimate.';
