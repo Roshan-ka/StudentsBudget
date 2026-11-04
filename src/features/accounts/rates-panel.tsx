@@ -4,6 +4,7 @@ import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { db } from '@/db/db';
@@ -123,8 +124,8 @@ export function RatesPanel() {
       : CURRENCIES.filter((code) => code !== 'EUR' && accounts.some((account) => account.currency === code));
 
   return (
-    <section aria-labelledby="rates-heading" className="flex flex-col gap-3">
-      <h3 id="rates-heading" className="text-lg font-semibold">
+    <section aria-labelledby="rates-heading" className={cardVariants()}>
+      <h3 id="rates-heading" className="text-xl leading-tight font-extrabold">
         {t.accounts.rates.heading}
       </h3>
       {accounts !== undefined && rates !== undefined && currencies.length === 0 && (

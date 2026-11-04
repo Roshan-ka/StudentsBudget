@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { RefreshCwIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
@@ -134,8 +135,8 @@ export function SyncSection() {
 
   if (status === null) return null;
   return (
-    <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-3">
-      <h3 id={`${id}-heading`} className="text-lg font-semibold">
+    <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
+      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
         {t.sync.section.heading}
       </h3>
       {/* Not a live region: "Synced 2 min ago" moves on every half minute, and would be read out each time. */}
