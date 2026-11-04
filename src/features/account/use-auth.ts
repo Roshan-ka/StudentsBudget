@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
+import { forgetAccountDeleted } from './account-deleted';
 import { authStateOf, type AuthState } from './auth-state';
 import { endRecovery, startRecovery } from './recovery';
 
@@ -25,6 +26,8 @@ export function useAuth(): AuthState {
       // the same callback as the state, so the account never shows for a moment without the step.
       if (event === 'PASSWORD_RECOVERY') startRecovery();
       else if (event === 'SIGNED_OUT') endRecovery();
+      // A new sign-in after deleting an account (P2.5): the "deleted" line has said what it had to.
+      if (event === 'SIGNED_IN') forgetAccountDeleted();
       setState(authStateOf(session));
     });
     return () => data.subscription.unsubscribe();

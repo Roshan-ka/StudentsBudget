@@ -118,6 +118,21 @@ export const auth: Messages['auth'] = {
     syncing: 'Sincronizando y cerrando sesión…',
     passwordChanged: 'Contraseña cambiada.',
   },
+  /** Ajustes → Tu cuenta → Eliminar mi cuenta (P2.5). La palabra que se escribe es la de la copia de seguridad. */
+  deleteAccount: {
+    heading: 'Eliminar mi cuenta',
+    intro:
+      'Elimina tu cuenta y todo lo que guarda, para siempre: no se puede deshacer. Los datos de este móvil se ' +
+      'quedan, igual que los de tus otros móviles, que dejan de estar vinculados.',
+    backup: 'Exportar antes una copia de seguridad',
+    password: 'Contraseña',
+    code: 'Código de 6 cifras',
+    codeNeeded: 'Tu cuenta tiene verificación en dos pasos: escribe también el código de tu app de autenticación.',
+    button: 'Eliminar mi cuenta',
+    deleting: 'Eliminando tu cuenta…',
+    failed: 'No se ha podido eliminar tu cuenta. Inténtalo de nuevo.',
+    done: 'Tu cuenta está eliminada. Todo lo de este móvil se queda.',
+  },
   security: {
     heading: 'Inicio de sesión y seguridad',
     intro:

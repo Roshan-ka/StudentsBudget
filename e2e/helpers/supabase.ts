@@ -360,12 +360,13 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * pull every change after a revision (`rpc/sync_pull`, revisions kept per account). A hard delete is refused, as the
  * database refuses it. A call without the mocked session's token gets 401, as row-level
  * security would refuse it, so a spec cannot pass while the app sends its calls signed out. `failWith` makes every call
- * answer with that status instead. `tables` shares the account with another page, a second phone. Returns the tables,
- * to look at and to seed.
+ * answer with that status instead. `tables` shares the account with another page, a second phone. `rpc/delete_my_account`
+ * (P2.5) empties the tables; with `twoStep`, the account has two-step sign-in, so only a token at aal2 may, as the
+ * database wants. Returns the tables, to look at and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
-  options: { failWith?: number; tables?: ServerTables } = {},
+  options: { failWith?: number; tables?: ServerTables; twoStep?: boolean } = {},
 ): Promise<ServerTables> {
   const tables: ServerTables = options.tables ?? new Map();
   const table = (name: string) => {
@@ -386,6 +387,16 @@ export async function mockSupabaseData(
 
     const url = new URL(request.url());
     const path = url.pathname.replace(/^.*\/rest\/v1\//, '');
+    // delete_my_account: the account and every row go. An account with two-step sign-in needs the code given (aal2).
+    if (path === 'rpc/delete_my_account' && request.method() === 'POST') {
+      const token = (request.headers()['authorization'] ?? '').replace(/^Bearer /, '');
+      const claims = JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString() || '{}') as { aal?: string };
+      if (options.twoStep && claims.aal !== 'aal2') {
+        return route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message: 'the second step is owed' } });
+      }
+      tables.clear();
+      return route.fulfill({ status: 204, headers: CORS });
+    }
     // sync_pull: every row written after a revision, from every table, tombstones included, in revision order.
     if (path === 'rpc/sync_pull' && request.method() === 'POST') {
       const { p_since: since, p_limit: limit } = request.postDataJSON() as { p_since: number; p_limit: number };

@@ -116,6 +116,21 @@ export const auth: Messages['auth'] = {
     syncing: 'Wird synchronisiert, dann abgemeldet …',
     passwordChanged: 'Passwort geändert.',
   },
+  /** Einstellungen → Dein Konto → Mein Konto löschen (P2.5). Das Wort zum Eintippen ist das von Backup. */
+  deleteAccount: {
+    heading: 'Mein Konto löschen',
+    intro:
+      'Löscht dein Konto und alles, was es speichert, endgültig: Das lässt sich nicht rückgängig machen. Die Daten ' +
+      'auf diesem Handy bleiben, ebenso die auf deinen anderen Handys; sie sind dann nicht mehr verknüpft.',
+    backup: 'Vorher ein Backup exportieren',
+    password: 'Passwort',
+    code: '6-stelliger Code',
+    codeNeeded: 'Dein Konto hat die zweistufige Anmeldung: Gib auch den Code aus deiner Authenticator-App ein.',
+    button: 'Mein Konto löschen',
+    deleting: 'Dein Konto wird gelöscht …',
+    failed: 'Dein Konto konnte nicht gelöscht werden. Versuch es noch einmal.',
+    done: 'Dein Konto ist gelöscht. Alles auf diesem Handy bleibt.',
+  },
   security: {
     heading: 'Anmeldung und Sicherheit',
     intro:

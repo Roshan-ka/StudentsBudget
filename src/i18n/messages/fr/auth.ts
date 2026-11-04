@@ -119,6 +119,21 @@ export const auth: Messages['auth'] = {
     syncing: 'Synchronisation, puis déconnexion…',
     passwordChanged: 'Mot de passe modifié.',
   },
+  /** Réglages → Ton compte → Supprimer mon compte (P2.5). Le mot à saisir est celui de Sauvegarde. */
+  deleteAccount: {
+    heading: 'Supprimer mon compte',
+    intro:
+      `Supprime ton compte et tout ce qu’il garde, définitivement${NNBSP}: c’est irréversible. Les données de ce ` +
+      'téléphone restent, tout comme celles de tes autres téléphones, qui ne sont plus associés.',
+    backup: 'Exporter d’abord une sauvegarde',
+    password: 'Mot de passe',
+    code: 'Code à 6 chiffres',
+    codeNeeded: `Ton compte a la validation en deux étapes${NNBSP}: saisis aussi le code de ton appli d’authentification.`,
+    button: 'Supprimer mon compte',
+    deleting: 'Suppression de ton compte…',
+    failed: 'Impossible de supprimer ton compte. Réessaie.',
+    done: 'Ton compte est supprimé. Tout ce qui est sur ce téléphone reste.',
+  },
   security: {
     heading: 'Connexion et sécurité',
     intro:

@@ -16,7 +16,7 @@
     "/manifest.webmanifest": ["smoke"],
     "/reveal": ["demo-scenarios", "language-tour", "reflow", "reveal", "setup"],
     "/settings": "all",
-    "/settings/account": ["account", "email-codes", "language-tour", "linking", "passkeys", "reflow", "two-step"],
+    "/settings/account": ["account", "account-deletion", "email-codes", "language-tour", "linking", "passkeys", "reflow", "two-step"],
     "/setup": "all",
     "/tips": ["discounts", "language-tour", "reflow", "tips"]
   },

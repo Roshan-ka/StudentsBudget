@@ -115,6 +115,21 @@ export const auth = {
     syncing: 'Syncing, then signing out…',
     passwordChanged: 'Password changed.',
   },
+  /** Settings → Your account → Delete my account (P2.5). The word to type is Backup's (`backup.delete.word`). */
+  deleteAccount: {
+    heading: 'Delete my account',
+    intro:
+      "Deletes your account and everything it keeps, for good: this can't be undone. The data on this phone stays, " +
+      "and so does the data on your other phones; they're no longer linked.",
+    backup: 'Download a backup first',
+    password: 'Password',
+    code: '6-digit code',
+    codeNeeded: 'Your account has two-step sign-in: enter the code from your authenticator app too.',
+    button: 'Delete my account',
+    deleting: 'Deleting your account…',
+    failed: "Couldn't delete your account. Try again.",
+    done: 'Your account is deleted. Everything on this phone stays.',
+  },
   security: {
     heading: 'Sign-in and security',
     intro:

@@ -84,6 +84,24 @@ Each is about an hour: lint, typecheck, the touched unit tests (the full suite r
        - a password-only session of a two-step account refused (`42501`), then deleted at aal2.
      - **Shared helpers:** `src/sync/contract-users.ts` (`stackClient`, `newEmail`, `confirmedUser`, `CONTRACT_PASSWORD`), now also used by `email-codes.contract.test.ts` in place of its own copies.
 2. **The card.** The UI, `unlinkPhone()`, texts, mocks and the spec.
+   - **As built (2026-11-04):**
+     - **The check runs on a client of its own:** `checkingSupabase()` (`src/lib/supabase/client.ts`), with its session in memory only. Signing in again on the tab's client would swap its session, and an account with two-step sign-in would drop back to the code step. The check client signs in with the password, gives the authenticator's code (`challengeAndVerify`) when the account has a verified factor, and then calls `delete_my_account`.
+     - **When the code field shows:** the card reads two-step sign-in from this tab's session in an effect. If another phone turned it on since, the check finds the factor and asks for the code (`codeNeeded`); so does a `42501` from the database.
+     - **`src/features/account/delete-account.tsx`:** `DeleteAccountCard`, last on the account page, styled as a card like the security ones (`SECURITY_CARD`, a trash icon).
+       - It reuses Backup's word and "Type … to confirm" (`backup.delete`), so each language has one word to type.
+       - The "Export a backup first" link goes to `/settings#backup-heading`.
+       - The button stays disabled until the word matches.
+     - **After the deletion:**
+       - `unlinkPhone()` (`src/sync/link.ts`, with a test) clears `syncState` and the `outbox` under the sync lock;
+       - `markAccountDeleted()` (`account-deleted.ts`, memory only, dropped by the next `SIGNED_IN` in `use-auth.ts`) makes the signed-out view say "Your account is deleted. Everything on this phone stays." above the sign-in form;
+       - the tab signs out locally.
+     - **Texts:** `auth.deleteAccount`, in en, de, fr and es.
+     - **Mocks:** `mockSupabaseData` answers `rpc/delete_my_account` by emptying the tables; with `twoStep`, it refuses a token below aal2 (`42501`), as the database does.
+     - **`e2e/account-deletion.spec.ts`** (3 tests), listed under `/settings/account`:
+       - the button waits for the word, and a wrong password deletes nothing;
+       - the deletion empties the account, unlinks the phone and keeps the plan;
+       - a two-step account asks for the code;
+       - the flow in German.
 3. **Other phones and docs.**
    - Unlink on the deleted-user answer.
    - CLAUDE.md:
