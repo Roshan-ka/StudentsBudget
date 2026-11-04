@@ -9,7 +9,14 @@ import {
   passkeysUnavailable,
 } from './auth-errors';
 import { assuranceLevelOf, authStateOf } from './auth-state';
-import { checkAuthenticatorCode, checkCredentials, checkEmailCode, MIN_PASSWORD_LENGTH } from './credentials';
+import {
+  checkAuthenticatorCode,
+  checkCredentials,
+  checkEmail,
+  checkEmailCode,
+  checkNewPassword,
+  MIN_PASSWORD_LENGTH,
+} from './credentials';
 
 describe('authStateOf', () => {
   it('is signed out without a session', () => {
@@ -129,7 +136,30 @@ describe('checkEmailCode', () => {
   });
 });
 
+describe('checkEmail and checkNewPassword ("Forgot password", P2.4)', () => {
+  it('takes the email alone, trimmed, as signing in does', () => {
+    expect(checkEmail('  roshan@example.com ')).toEqual({ ok: true, email: 'roshan@example.com' });
+    expect(checkEmail(' ')).toEqual({ ok: false, error: 'Enter your email.' });
+    expect(checkEmail('roshan@example')).toEqual({ ok: false, error: 'Check the email address.' });
+  });
+
+  it('wants a new password as long as a new account’s, taken as typed', () => {
+    expect(checkNewPassword('')).toEqual({ ok: false, error: 'Enter your password.' });
+    expect(checkNewPassword('x'.repeat(MIN_PASSWORD_LENGTH - 1))).toEqual({
+      ok: false,
+      error: `Use at least ${MIN_PASSWORD_LENGTH} characters for the password.`,
+    });
+    expect(checkNewPassword(' 8 chars')).toEqual({ ok: true });
+  });
+});
+
 describe('authErrorMessage', () => {
+  it('says that a new password is the old one', () => {
+    expect(authErrorMessage({ code: 'same_password', status: 422 })).toBe(
+      "That's your current password. Choose a different one.",
+    );
+  });
+
   it('says calmly what went wrong with an emailed code (P2.4)', () => {
     // Supabase Auth answers a wrong code and an expired one alike.
     expect(authErrorMessage({ code: 'otp_expired', status: 403 })).toBe(

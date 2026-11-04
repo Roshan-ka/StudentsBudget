@@ -1,9 +1,18 @@
 import { expect, test, type Page } from '@playwright/test';
-import { E2E_EMAIL_CODE, mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow, type AuthCall } from './helpers/supabase';
+import {
+  E2E_EMAIL_CODE,
+  E2E_TOTP_CODE,
+  mockSupabaseAuth,
+  mockSupabaseData,
+  skipUnlessAccountsShow,
+  type AuthCall,
+  type AuthFactors,
+} from './helpers/supabase';
 
 // The emailed codes (P2.4, docs/superpowers/plans/2026-11-04-email-codes.md): a new account is confirmed with the
-// 6-digit code from its sign-up email. Supabase Auth is mocked as a project with "Confirm email" on, whose emails all
-// hold E2E_EMAIL_CODE; the real emails are checked by src/features/account/email-codes.contract.test.ts.
+// 6-digit code from its sign-up email, and "Forgot password" signs in with one for a new password. Supabase Auth is
+// mocked: its emails all hold E2E_EMAIL_CODE (the sign-up tests turn "Confirm email" on); the real emails are checked
+// by src/features/account/email-codes.contract.test.ts.
 
 test.use({ viewport: { width: 375, height: 812 } });
 
@@ -115,5 +124,112 @@ test.describe('in German', () => {
     );
     await enterCode(page, E2E_EMAIL_CODE, { code: '6-stelliger Code', confirm: 'Bestätigen' });
     await expect(page.getByText(`Angemeldet als ${EMAIL}.`, { exact: true })).toBeVisible();
+  });
+});
+
+// "Forgot password" (chunk 3): the email, its code, the authenticator's code for an account with two-step sign-in, and
+// a new password.
+
+const ACCOUNT = 'roshan@example.com';
+const OLD_PASSWORD = 'old horse battery';
+const NEW_PASSWORD = 'new staple horse';
+
+const ENGLISH_RESET = { forgot: 'Forgot your password?', email: 'Email', send: 'Send code' };
+
+async function askForCode(page: Page, words = ENGLISH_RESET) {
+  await page.getByRole('button', { name: words.forgot, exact: true }).click();
+  await page.getByRole('textbox', { name: words.email, exact: true }).fill(ACCOUNT);
+  await page.getByRole('button', { name: words.send, exact: true }).click();
+}
+
+async function saveNewPassword(page: Page, password: string, words = { password: 'New password', save: 'Save password' }) {
+  await page.getByLabel(words.password, { exact: true }).fill(password);
+  await page.getByRole('button', { name: words.save, exact: true }).click();
+}
+
+const newPasswords = (calls: AuthCall[]) => calls.filter((c) => c.method === 'PUT' && c.path === '/user').map((c) => c.body);
+
+test('Forgot password: the emailed code signs in, and a new password replaces the old one, through a reload', async ({
+  page,
+}) => {
+  await skipUnlessAccountsShow(page);
+  const calls = await mockSupabaseAuth(page, { [ACCOUNT]: OLD_PASSWORD });
+
+  // The email typed for signing in carries over.
+  await page.getByRole('textbox', { name: 'Email', exact: true }).fill(ACCOUNT);
+  await page.getByRole('button', { name: 'Forgot your password?', exact: true }).click();
+  const emailStep = page.getByRole('region', { name: 'Reset your password', exact: true });
+  await expect(emailStep.getByRole('textbox', { name: 'Email', exact: true })).toHaveValue(ACCOUNT);
+  await emailStep.getByRole('button', { name: 'Send code', exact: true }).click();
+  // Said the same way whether or not the email has an account.
+  await expect(codeStep(page, 'Reset your password')).toContainText(
+    `If ${ACCOUNT} has an account, we sent it a 6-digit code. It works for 60 minutes.`,
+  );
+  expect(calls.filter((c) => c.path === '/recover').map((c) => c.body)).toEqual([expect.objectContaining({ email: ACCOUNT })]);
+
+  await enterCode(page, '000000', { code: '6-digit code', confirm: 'Continue' });
+  await expect(alert(page)).toHaveText('That code is wrong or has expired. Check the newest email, or send a new code.');
+  await enterCode(page, E2E_EMAIL_CODE, { code: '6-digit code', confirm: 'Continue' });
+  expect(verifies(calls)).toEqual([
+    expect.objectContaining({ email: ACCOUNT, token: '000000', type: 'recovery' }),
+    expect.objectContaining({ email: ACCOUNT, token: E2E_EMAIL_CODE, type: 'recovery' }),
+  ]);
+
+  // Signed in, but the account waits for the new password; a reload of the tab keeps the step.
+  const newPassword = page.getByRole('region', { name: 'Choose a new password', exact: true });
+  await expect(newPassword).toContainText(`Signed in as ${ACCOUNT} with the code from your email.`);
+  await expect(page.getByText(`Signed in as ${ACCOUNT}.`, { exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(newPassword).toBeVisible();
+
+  await saveNewPassword(page, 'short');
+  await expect(alert(page)).toHaveText('Use at least 8 characters for the password.');
+  await saveNewPassword(page, OLD_PASSWORD);
+  await expect(alert(page)).toHaveText("That's your current password. Choose a different one.");
+  await saveNewPassword(page, NEW_PASSWORD);
+  await expect(page.getByText('Password changed.', { exact: true })).toBeVisible();
+  await expect(page.getByText(`Signed in as ${ACCOUNT}.`, { exact: true })).toBeVisible();
+  expect(newPasswords(calls)).toEqual([
+    expect.objectContaining({ password: OLD_PASSWORD }),
+    expect.objectContaining({ password: NEW_PASSWORD }),
+  ]);
+});
+
+test('an account with two-step sign-in gives its authenticator code before the new password', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  const factors: AuthFactors = new Map([
+    [ACCOUNT, [{ id: 'factor-owner', friendly_name: 'Owner phone', factor_type: 'totp', status: 'verified' } as const]],
+  ]);
+  const calls = await mockSupabaseAuth(page, { [ACCOUNT]: OLD_PASSWORD }, { factors });
+
+  await askForCode(page);
+  await enterCode(page, E2E_EMAIL_CODE, { code: '6-digit code', confirm: 'Continue' });
+  // The email code alone is aal1: an inbox is not enough for such an account.
+  await expect(page.getByRole('heading', { name: 'Two-step sign-in', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Choose a new password', exact: true })).toHaveCount(0);
+  await enterCode(page, E2E_TOTP_CODE, { code: '6-digit code', confirm: 'Continue' });
+
+  await saveNewPassword(page, NEW_PASSWORD);
+  await expect(page.getByText('Password changed.', { exact: true })).toBeVisible();
+  expect(newPasswords(calls)).toEqual([expect.objectContaining({ password: NEW_PASSWORD })]);
+});
+
+test.describe('in French', () => {
+  test.use({ locale: 'fr-FR' });
+
+  test('Forgot password speaks French from the link to the new password', async ({ page }) => {
+    await skipUnlessAccountsShow(page);
+    await mockSupabaseAuth(page, { [ACCOUNT]: OLD_PASSWORD });
+
+    // French puts a narrow no-break space before the question mark.
+    await askForCode(page, { forgot: 'Mot de passe oublié ?', email: 'E-mail', send: 'Envoyer le code' });
+    await expect(codeStep(page, 'Réinitialiser ton mot de passe')).toContainText(
+      `Si ${ACCOUNT} a un compte, nous lui avons envoyé un code à 6 chiffres. Il est valable 60 minutes.`,
+    );
+    await enterCode(page, E2E_EMAIL_CODE, { code: 'Code à 6 chiffres', confirm: 'Continuer' });
+    await expect(page.getByRole('region', { name: 'Choisis un nouveau mot de passe', exact: true })).toBeVisible();
+    await saveNewPassword(page, NEW_PASSWORD, { password: 'Nouveau mot de passe', save: 'Enregistrer le mot de passe' });
+    await expect(page.getByText('Mot de passe modifié.', { exact: true })).toBeVisible();
+    await expect(page.getByText(`Session ouverte avec ${ACCOUNT}.`, { exact: true })).toBeVisible();
   });
 });
