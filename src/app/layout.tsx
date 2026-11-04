@@ -1,5 +1,6 @@
+import { WalletIcon } from 'lucide-react';
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google';
 import { AppInit } from '@/components/app-init';
 import { BottomNav } from '@/components/bottom-nav';
 import { LanguageAttributes } from '@/components/language-attributes';
@@ -7,8 +8,16 @@ import { languageHeadScript } from '@/i18n/head-script';
 import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, SELECTABLE } from '@/i18n/languages';
 import './globals.css';
 
-const geistSans = Geist({
+// Self-hosted at build time, so they come from /_next/static and the service worker keeps them for offline. `latin`
+// covers German, French and Spanish, the narrow no-break space and €.
+const dmSans = DM_Sans({
   variable: '--font-sans',
+  subsets: ['latin'],
+});
+
+/** Headings and big numbers. */
+const bricolage = Bricolage_Grotesque({
+  variable: '--font-heading',
   subsets: ['latin'],
 });
 
@@ -27,7 +36,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#0f766e',
+  // The page colour (`--background`), so the status bar runs into the page.
+  themeColor: '#fbf6ec',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
@@ -37,7 +47,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html
       lang={DEFAULT_LANGUAGE}
       dir={LANGUAGES[DEFAULT_LANGUAGE].dir}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${dmSans.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -46,8 +56,18 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <body className="flex min-h-full flex-col">
         <AppInit />
         <LanguageAttributes />
-        <header className="bg-primary pt-[env(safe-area-inset-top)] text-primary-foreground">
-          <h1 className="flex h-12 items-center px-4 text-lg font-semibold">StudentsBudget</h1>
+        {/* The wordmark on the page itself, no coloured bar. The dot is decoration: the heading's name stays
+            "StudentsBudget", which smoke.spec.ts and offline.spec.ts look for. */}
+        <header className="pt-[env(safe-area-inset-top)]">
+          <h1 className="flex h-14 items-center gap-2 px-4 text-lg font-extrabold">
+            <span
+              aria-hidden="true"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border-[1.5px] border-outline bg-highlight"
+            >
+              <WalletIcon className="size-4" />
+            </span>
+            StudentsBudget
+          </h1>
         </header>
         <main className="flex-1 px-4 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom))] hyphens-auto">{children}</main>
         <BottomNav />
