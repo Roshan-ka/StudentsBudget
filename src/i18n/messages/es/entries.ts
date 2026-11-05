@@ -25,6 +25,9 @@ export const entries: Messages['entries'] = {
     deleteFailed: 'No se ha podido borrar el registro.',
   },
   form: {
+    saveAnother: 'Guardar y añadir otro',
+    savedAnother: 'Guardado. Añade el siguiente.',
+    groups: { flexible: 'Sobres', fixed: 'Gastos fijos', oneoff: 'Gastos puntuales' },
     typeLabel: 'Tipo de registro',
     expense: 'Gasto',
     income: 'Ingreso',

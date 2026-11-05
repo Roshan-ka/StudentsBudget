@@ -1,18 +1,34 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { PageHeading } from '@/components/page-heading';
 import { EntryForm } from '@/features/entries/entry-form';
 import { monthOf } from '@/lib/dates';
 
-export default function NewEntryPage() {
+/**
+ * Saving goes back where the person came from (pain points, chunk 6): the check-in when its link opened the form
+ * (`?from=check-in`), else the entries of the month the entry was dated in. Only those two: never a URL from the query.
+ */
+function NewEntry() {
   const router = useRouter();
+  const fromCheckIn = useSearchParams().get('from') === 'check-in';
 
+  return (
+    <EntryForm
+      onSaved={(entry) => router.push(fromCheckIn ? '/check-in' : `/entries?month=${monthOf(entry.date)}`)}
+    />
+  );
+}
+
+export default function NewEntryPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeading id="newEntry" />
-      {/* The list shows one month at a time: open the month the entry was dated in, or it would look lost. */}
-      <EntryForm onSaved={(entry) => router.push(`/entries?month=${monthOf(entry.date)}`)} />
+      {/* It reads the search params, so it renders inside Suspense (Cache Components). */}
+      <Suspense>
+        <NewEntry />
+      </Suspense>
     </div>
   );
 }

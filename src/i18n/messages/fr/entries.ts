@@ -26,6 +26,9 @@ export const entries: Messages['entries'] = {
     deleteFailed: 'Impossible de supprimer la saisie.',
   },
   form: {
+    saveAnother: 'Enregistrer et en ajouter un autre',
+    savedAnother: 'Enregistré. Ajoute le suivant.',
+    groups: { flexible: 'Enveloppes', fixed: 'Charges fixes', oneoff: 'Frais ponctuels' },
     typeLabel: 'Type de saisie',
     expense: 'Dépense',
     income: 'Revenu',
