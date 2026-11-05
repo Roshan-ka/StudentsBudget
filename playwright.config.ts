@@ -10,7 +10,8 @@ export default defineConfig({
   // Needs a production build, which has the service worker; playwright.offline.config.ts runs it.
   testIgnore: '**/offline.spec.ts',
   forbidOnly: !!process.env.CI,
-  // On CI an HTML report sits next to the dot output; ci.yml uploads it with test-results/ when a run fails.
+  // On CI an HTML report sits next to the dot output. ci.yml's e2e job doesn't use these: it passes
+  // `--reporter=dot,blob` and merges the shards' blob reports, traces included, into playwright-report-e2e.
   reporter: process.env.CI ? [['dot'], ['html', { open: 'never' }]] : 'list',
   // Kept only for failed tests: `npx playwright show-trace test-results/<test>/trace.zip`.
   // English, whatever the machine's own locale: the app follows the browser's language (src/i18n), and the specs read
