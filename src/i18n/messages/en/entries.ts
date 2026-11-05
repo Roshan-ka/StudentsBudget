@@ -11,8 +11,8 @@ export const entries = {
     unknownAccount: 'Unknown account',
     clear: 'Clear',
     monthNav: 'Month',
-    previous: '‹ Previous',
-    next: 'Next ›',
+    previous: 'Previous',
+    next: 'Next',
     nothingYet: 'Nothing logged here yet.',
   },
   edit: {

@@ -571,14 +571,14 @@ test('a manual entry dated in another month opens that month, and the month link
   await expect(list.getByText('€9.50')).toBeVisible();
   await expect(list.getByRole('heading', { level: 3 })).toHaveText(['Wednesday, 30 September']);
 
-  await page.getByRole('link', { name: 'Next ›' }).click();
+  await page.getByRole('link', { name: 'Next', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
   await expect(page.getByText('Oct 2026')).toBeVisible();
   await expect(list.getByText('Mensa')).toHaveCount(0);
 
-  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await page.getByRole('link', { name: 'Previous', exact: true }).click();
   await expect(list.getByText('Mensa')).toBeVisible();
-  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await page.getByRole('link', { name: 'Previous', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-08');
   await expect(list.getByText('Mensa')).toHaveCount(0);
 });
@@ -588,15 +588,15 @@ test('the month links keep the category and roll over the year', async ({ page }
 
   await page.goto('/entries?category=food&month=2026-12');
   await expect(page.getByText('Food & groceries · Dec 2026 · Clear')).toBeVisible();
-  await page.getByRole('link', { name: 'Next ›' }).click();
+  await page.getByRole('link', { name: 'Next', exact: true }).click();
   await expect(page).toHaveURL(/month=2027-01/);
   await expect(page).toHaveURL(/category=food/);
   await expect(page.getByText('Food & groceries · Jan 2027 · Clear')).toBeVisible();
 
   // Wait for each page before the next tap, or both taps hit the link of the page that was showing.
-  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await page.getByRole('link', { name: 'Previous', exact: true }).click();
   await expect(page).toHaveURL(/month=2026-12/);
-  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await page.getByRole('link', { name: 'Previous', exact: true }).click();
   await expect(page).toHaveURL(/month=2026-11/);
   await expect(page).toHaveURL(/category=food/);
 
@@ -604,10 +604,10 @@ test('the month links keep the category and roll over the year', async ({ page }
   await page.goto('/entries');
   await expect(page.getByText('Oct 2026')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);
-  await page.getByRole('link', { name: '‹ Previous' }).click();
+  await page.getByRole('link', { name: 'Previous', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-09');
   await expect(page.getByRole('link', { name: 'Clear' })).toBeVisible();
-  await page.getByRole('link', { name: 'Next ›' }).click();
+  await page.getByRole('link', { name: 'Next', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
   // Back in the current month there is nothing left to clear.
   await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);

@@ -19,7 +19,7 @@ export function BackToSettings() {
   return (
     <Link
       href={toSetup ? '/setup' : '/settings'}
-      className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+      className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-primary underline underline-offset-4"
     >
       <ChevronLeftIcon aria-hidden="true" className="size-4 rtl:rotate-180" />
       {toSetup ? t.shell.backToSetup : t.shell.backToSettings}

@@ -75,7 +75,7 @@ export function entriesHref(categoryId: string | null, month: IsoMonth): string 
   return `/entries?${params.toString()}`;
 }
 
-export const LINK_CLASS = 'text-primary underline-offset-4 hover:underline';
+export const LINK_CLASS = 'text-primary underline underline-offset-4';
 
 /** One slice, bar or column, with everything a chart, its tooltip and its table need. */
 export type ChartRow = {

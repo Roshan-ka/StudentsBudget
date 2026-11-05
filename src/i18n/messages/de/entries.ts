@@ -12,8 +12,8 @@ export const entries: Messages['entries'] = {
     unknownAccount: 'Unbekanntes Konto',
     clear: 'Zurücksetzen',
     monthNav: 'Monat',
-    previous: '‹ Zurück',
-    next: 'Weiter ›',
+    previous: 'Zurück',
+    next: 'Weiter',
     nothingYet: 'Hier ist noch nichts eingetragen.',
   },
   edit: {
