@@ -108,9 +108,9 @@ async function writeSetup(page: Page, rows: { accounts: Account[]; plan: Plan; g
 /**
  * Sets up a plan from `DEFAULT_SETUP` (or the overrides) without walking the wizard: the same rows the wizard's Save
  * writes, built in Node with its own `draftToRecords` from the draft `fillSetup` would type, then written straight into
- * IndexedDB. Ends on Home with the plan shown, as `completeSetup` does. Same fixture, options and preparation: mocks
- * Frankfurter, accepts the exchange-rate note only, and pins the date to `SETUP_DAY` unless the caller set `page.clock`
- * first. setup.spec.ts checks that both write the same rows.
+ * IndexedDB from /tips. Ends on Home with the plan shown, as `completeSetup` does. Same fixture, options and
+ * preparation: mocks Frankfurter, accepts the exchange-rate note only, and pins the date to `SETUP_DAY` unless the
+ * caller set `page.clock` first. setup.spec.ts checks that both write the same rows.
  */
 export async function seedSetup(page: Page, overrides: Partial<SetupFixture> = {}, options: SetupOptions = {}) {
   const f: SetupFixture = { ...DEFAULT_SETUP, ...overrides };
@@ -118,8 +118,10 @@ export async function seedSetup(page: Page, overrides: Partial<SetupFixture> = {
   await acceptPrivacyNotes(page, ['rates']);
   await ensureClock(page);
 
-  // Any page creates the database; on an empty one /setup is the page that stays where it is.
-  await openApp(page, '/setup');
+  // Any page creates the database. Not / or /setup: each reads the plan once as it opens and navigates to the other
+  // by what it finds, so a read that lands after the write below would send the page away under the next goto
+  // ("interrupted by another navigation"). Tips reads nothing from the database.
+  await openApp(page, '/tips');
   const { now, lang } = await page.evaluate(() => ({ now: Date.now(), lang: document.documentElement.lang }));
   const language: Language = lang in LANGUAGES ? (lang as Language) : DEFAULT_LANGUAGE;
   // The accounts already saved, as the wizard reads them: in their order, with kind and default mark.
