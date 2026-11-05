@@ -1,8 +1,9 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Account } from '../src/db/types';
-import { completeSetup, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import { readStore } from './helpers/setup';
 
-// `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day: food 310 and eating out 124
+// `seedSetup` pins the clock to Friday 2026-10-16 and creates the plan that day: food 310 and eating out 124
 // are planned in full for October, though the plan starts on the 16th, and rent is €400.
 // Flexible spending only counts from the 16th on, so the seeds for October flexible categories are dated after it.
 
@@ -133,7 +134,7 @@ const OCTOBER: Seed[] = [
 ];
 
 test('opens spending as a donut of the top 6 and "Everything else", with the total in the middle', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, OCTOBER);
   await openCharts(page);
   const spending = spendingSection(page);
@@ -172,7 +173,7 @@ test('opens spending as a donut of the top 6 and "Everything else", with the tot
 });
 
 test('a category keeps its colour, and the bucket is grey', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, [
     ...OCTOBER,
     // In September shopping is the biggest and food the second.
@@ -197,7 +198,7 @@ test('a category keeps its colour, and the bucket is grey', async ({ page }) => 
 });
 
 test('a tapped slice opens that category for the month, and the bucket cannot be tapped', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, OCTOBER);
   await openCharts(page);
   const spending = spendingSection(page);
@@ -227,7 +228,7 @@ test('a tapped slice opens that category for the month, and the bucket cannot be
 test('shows each category spent against its plan as bars, and a tapped bar opens that category for the month', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'döner 6', 'Eating out', 'Saved €6.00 · döner · Eating out');
   await quickAdd(page, 'rewe 20', 'Food & groceries', 'Saved €20.00 · rewe · Food & groceries');
 
@@ -258,7 +259,7 @@ test('shows each category spent against its plan as bars, and a tapped bar opens
 });
 
 test('the table style lists every category, most spent first, with what was planned', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, OCTOBER);
   await openCharts(page);
   const spending = spendingSection(page);
@@ -291,7 +292,7 @@ test('the table style lists every category, most spent first, with what was plan
 });
 
 test('each chart has its own style, and going back to the donut remembers nothing but the default', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, [
     ...OCTOBER,
     { type: 'income', categoryId: 'income-parents', date: '2026-10-01', eurMinor: 50000 },
@@ -324,7 +325,7 @@ test('each chart has its own style, and going back to the donut remembers nothin
 });
 
 test('a period of 3 months adds up the months, and the month switcher moves where it ends', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, [
     ...OCTOBER,
     // September came before the plan: it counts as spent, with nothing to measure it against.
@@ -375,7 +376,7 @@ test('a period of 3 months adds up the months, and the month switcher moves wher
 });
 
 test('the savings chart says what was saved in calm words, and leaves transfers out', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, [
     { type: 'income', categoryId: 'income-parents', date: '2026-10-01', eurMinor: 50000 },
     { type: 'expense', categoryId: 'food', date: '2026-10-20', eurMinor: 38000 },
@@ -434,7 +435,7 @@ test('the savings chart says what was saved in calm words, and leaves transfers 
 test('the category chart follows the period: columns, a line or a table, and a tapped column opens its month', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, [
     { type: 'expense', categoryId: 'food', date: '2026-10-20', eurMinor: 2000 },
     { type: 'expense', categoryId: 'eating-out', date: '2026-10-21', eurMinor: 600 },
@@ -487,7 +488,7 @@ test('the category chart follows the period: columns, a line or a table, and a t
 });
 
 test('a period of 12 months fits a phone: twelve columns, and no label wider than its column', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, [
     { type: 'income', categoryId: 'income-parents', date: '2026-10-01', eurMinor: 123456 },
     { type: 'expense', categoryId: 'rent', date: '2026-10-01', eurMinor: 40000 },
@@ -509,7 +510,7 @@ test('a period of 12 months fits a phone: twelve columns, and no label wider tha
 });
 
 test('a keyboard reaches every bar through the table, which shows itself while a link has focus', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'döner 6', 'Eating out', 'Saved €6.00 · döner · Eating out');
   await openCharts(page);
   const spending = spendingSection(page);
@@ -529,7 +530,7 @@ test('a keyboard reaches every bar through the table, which shows itself while a
 });
 
 test('the donut is reachable by keyboard through its legend, which links to the entries', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedEntries(page, OCTOBER);
   await openCharts(page);
   const link = spendingSection(page).getByRole('listitem').filter({ hasText: 'Shopping' }).getByRole('link');
@@ -545,7 +546,7 @@ test('the donut is reachable by keyboard through its legend, which links to the 
 test('the month switcher moves between months, and a month with nothing in it says so and keeps its charts', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'döner 6', 'Eating out', 'Saved €6.00 · döner · Eating out');
   await openCharts(page);
   await expect(spendingSection(page)).toBeVisible();
@@ -585,7 +586,7 @@ test('the month switcher moves between months, and a month with nothing in it sa
 });
 
 test('the setup month plans the whole envelope, counts spending from the setup day on and says so', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'rewe 20', 'Food & groceries', 'Saved €20.00 · rewe · Food & groceries');
   await seedEntries(page, [
     // Backdated to before the setup day: in the entries list, but not counted against food's envelope.
@@ -622,7 +623,7 @@ test('the setup month plans the whole envelope, counts spending from the setup d
 });
 
 test('coming back from another page shows what was added there', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const nav = page.getByRole('navigation', { name: 'Main' });
   await nav.getByRole('link', { name: 'Charts' }).click();
   await expect(page.getByText('Nothing logged in October yet.')).toBeVisible();
@@ -638,7 +639,7 @@ test('coming back from another page shows what was added there', async ({ page }
 });
 
 test('the bottom navigation has Charts between Entries and Tips and opens it', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const nav = page.getByRole('navigation', { name: 'Main' });
   await expect(nav.getByRole('link')).toHaveText(['Home', 'Entries', 'Charts', 'Tips', 'Settings']);
 

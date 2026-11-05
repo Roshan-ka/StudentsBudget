@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page, type Route } from '@playwright/test';
 import type { Entry, Plan, Profile } from '../src/db/types';
-import { completeSetup, mockFrankfurter, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import { mockFrankfurter, readStore } from './helpers/setup';
 import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow, SUPABASE_REST, type ServerTables } from './helpers/supabase';
 
 // Linking and Sync now (P2.2 chunks 6–7) at 375 px, against the mocked account. Linking replaced P2.1's Save and Load:
@@ -61,7 +62,7 @@ async function secondPhone(browser: Browser, account: ServerTables, setUp = fals
   await mockFrankfurter(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await mockSupabaseData(page, { tables: account });
-  if (setUp) await completeSetup(page);
+  if (setUp) await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   return page;
@@ -90,7 +91,7 @@ test('a phone with a plan links by uploading, a second by loading, and Sync now 
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   const account = await mockSupabaseData(page);
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   await expect(page.getByText("Your account now holds this phone's data.", { exact: true })).toBeVisible();
@@ -119,7 +120,7 @@ test('when both phones hold data, the person chooses which to keep', async ({ pa
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   const account = await mockSupabaseData(page);
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
@@ -169,7 +170,7 @@ test('signing out sends the last change first, and keeps the data and the link',
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   const account = await mockSupabaseData(page);
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
@@ -200,7 +201,7 @@ test('Sync now carries an entry, and then its delete, to the other phone', async
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   const account = await mockSupabaseData(page);
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
@@ -239,7 +240,7 @@ test('keeping this phone’s data takes the account’s own rows from the other 
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   const account = await mockSupabaseData(page);
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
@@ -287,7 +288,7 @@ test('offline, Sync now says the change waits on this phone, on a page reached t
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await mockSupabaseData(page);
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();

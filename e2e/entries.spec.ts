@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry, Rate } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
-import { FRANKFURTER, completeSetup, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import { FRANKFURTER, readStore } from './helpers/setup';
 
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
 function inlineAlert(page: Page) {
@@ -54,7 +55,7 @@ async function writeStore(page: Page, store: string, change: { clear?: boolean; 
 }
 
 async function setupAndOpenEntries(page: Page) {
-  await completeSetup(page);
+  await seedSetup(page);
   await openEntries(page);
 }
 
@@ -178,7 +179,7 @@ test('the entry form opens on the default bank account for an expense and an inc
 test('making Cash the default account in Settings moves quick add, the entry form and the transfer to it', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
 
   await page.goto('/settings/accounts');
   // The row buttons only exist once the accounts have been read, so a click cannot hit the prerendered page.
@@ -236,7 +237,7 @@ test('the typed line stays while the chips wait, and changing it takes the chips
 });
 
 test('quick add refuses an account whose currency has no rate yet', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   // Setup refreshes the INR rate in the background. Wait for it, take it away again, and let the next
   // refresh (every page load starts one) answer without an INR rate, so the rate stays gone.
   await expect.poll(async () => (await readStore<Rate>(page, 'fxRates')).length).toBe(1);

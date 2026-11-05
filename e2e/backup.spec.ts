@@ -3,9 +3,10 @@ import { expect, test, type Page } from '@playwright/test';
 import type { Account, Category, DiscountVote, Entry, Plan, Profile, Rate, WeekResult } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
 import { openApp } from './helpers/app';
-import { completeSetup, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import { readStore } from './helpers/setup';
 
-// The clock is pinned to 2026-10-16 by `completeSetup`, so the file is named after that day.
+// The clock is pinned to 2026-10-16 by `seedSetup`, so the file is named after that day.
 const FILE_NAME = 'studentsbudget-backup-2026-10-16.json';
 const QUESTION = `Replace all data with ${FILE_NAME}?`;
 // Made on the pinned day with the 3 accounts and the 1 entry of the test; the day as the region writes it, escaped.
@@ -252,7 +253,7 @@ test.describe('on a desktop browser', () => {
     // Settings has live queries open while the database is deleted and restored; none of them may crash the page.
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
-    await completeSetup(page);
+    await seedSetup(page);
 
     // An entry, and a manual INR rate next to the ECB one.
     await page.getByRole('textbox', { name: 'Quick add' }).fill('döner 6');
@@ -344,7 +345,7 @@ test.describe('on a desktop browser', () => {
   });
 
   test('refuses a file that is not a usable backup and changes nothing', async ({ page }) => {
-    await completeSetup(page);
+    await seedSetup(page);
     await page.getByRole('textbox', { name: 'Quick add' }).fill('döner 6');
     await page.getByRole('button', { name: 'Add', exact: true }).click();
     await page.getByRole('button', { name: 'Eating out' }).click();
@@ -383,7 +384,7 @@ test.describe('on a desktop browser', () => {
   test('shares the file from inside the tap, and a closed share sheet is not an error', async ({ page }) => {
     await withShareSheet(page);
     const downloads = countDownloads(page);
-    await completeSetup(page);
+    await seedSetup(page);
     await openSettings(page);
 
     await page.getByRole('button', { name: 'Export backup' }).click();
@@ -414,7 +415,7 @@ test.describe('on a desktop browser', () => {
   }, testInfo) => {
     await withShareSheet(page);
     const downloads = countDownloads(page);
-    await completeSetup(page);
+    await seedSetup(page);
     await openSettings(page);
     await setShareMode(page, 'blocked');
 

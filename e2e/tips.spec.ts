@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { CATEGORIES } from '../src/data/categories';
 import { TIPS } from '../src/data/tips';
 import { formatDate } from '../src/lib/dates';
-import { completeSetup } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
 
 // 375 px, the narrowest phone the app is made for: five tabs and the category chips have to fit.
 test.use({ viewport: { width: 375, height: 812 } });
@@ -29,7 +29,7 @@ async function overflow(page: Page) {
 }
 
 async function openTips(page: Page) {
-  await completeSetup(page);
+  await seedSetup(page);
   await mainNav(page).getByRole('link', { name: 'Tips', exact: true }).click();
   await expect(page).toHaveURL('/tips');
   await expect(page.getByRole('heading', { level: 2, name: 'Regensburg tips and discounts', exact: true })).toBeVisible();

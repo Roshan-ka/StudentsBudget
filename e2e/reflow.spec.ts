@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { MESSAGES } from '../src/i18n/messages';
 import { horizontalOverflow, widerThanThePage } from './helpers/layout';
 import { heading, PAGES } from './helpers/pages';
-import { completeSetup } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
 
 // WCAG 2.2 in English (redesign plan, chunk 3): Reflow (1.4.10), every page at 320 px, and Resize Text (1.4.4), every
 // page at 375 px with text at 200 %. The app sizes in rem, so doubling the root font size doubles all of it. Nothing
@@ -27,7 +27,7 @@ async function tour(page: Page, largeText: boolean) {
   await expect(heading(page, t.setup.headingNew)).toBeVisible();
   await expectNoOverflow(page, '/setup');
 
-  await completeSetup(page);
+  await seedSetup(page);
   for (const { path, shown } of PAGES) {
     await page.goto(path);
     await enlarge();

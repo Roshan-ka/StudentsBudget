@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Amount, Entry, Plan } from '../src/db/types';
-import { FRANKFURTER, completeSetup, fillSetup, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import { FRANKFURTER, fillSetup, readStore } from './helpers/setup';
 
-// `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day: food 310 and eating out 124 are
+// `seedSetup` pins the clock to Friday 2026-10-16 and creates the plan that day: food 310 and eating out 124 are
 // planned in full (€434), though the plan starts on the 16th. Three weeks of October are left that day (12-18, 19-25
 // and 26-31), so the week Oct 12-18 is €434 / 3 = €145. Available each month: 900 - 400 rent - 60 for the €300 fee
 // (spread over October to February) = €440.
@@ -80,7 +81,7 @@ async function reopenOn(page: Page, date: Date) {
 }
 
 test('leads with what is left to spend this month, and under it what is safe this week', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const card = leftThisMonth(page);
 
   await expect(card.getByText('€434', { exact: true })).toBeVisible();
@@ -108,7 +109,7 @@ test('leads with what is left to spend this month, and under it what is safe thi
 });
 
 test('two numbers side by side before "euros" ask which amount, and one tap saves it', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const amounts = page.getByRole('group', { name: 'Amount', exact: true });
 
   // "seven forty euros" could be €7.40 or €40: nothing is saved until the person says which.
@@ -134,7 +135,7 @@ test('two numbers side by side before "euros" ask which amount, and one tap save
 });
 
 test('the envelopes show what is left of the month and how much of it is used', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const list = envelopes(page);
   const food = list.getByRole('listitem').filter({ hasText: 'Food & groceries' });
   const eatingOut = list.getByRole('listitem').filter({ hasText: 'Eating out' });
@@ -163,7 +164,7 @@ test('the envelopes show what is left of the month and how much of it is used', 
 });
 
 test('an amount under 50 cents keeps its cents instead of reading as €0', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const card = leftThisMonth(page);
   const row = (name: string) => envelopes(page).getByRole('listitem').filter({ hasText: name });
   await expect(card.getByText('€434', { exact: true })).toBeVisible();
@@ -190,7 +191,7 @@ test('an amount under 50 cents keeps its cents instead of reading as €0', asyn
 });
 
 test('the week follows the date when the app is opened again on a later day', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   // Coming back also refreshes the exchange rates, and a stored rate would refresh home as a side effect.
   // Let that fail, so only the date can move home on.
   await page.route(FRANKFURTER, (route) => route.abort());
@@ -217,9 +218,9 @@ test('the week follows the date when the app is opened again on a later day', as
 
 test('the week turns over at midnight while the app stays open', async ({ page }) => {
   // Sunday 11 Oct, ten minutes before midnight; the clock runs from here. Far from the real date, so
-  // completeSetup does not mistake it for a real clock and pin it.
+  // seedSetup does not mistake it for a real clock and pin it.
   await page.clock.install({ time: new Date(2026, 9, 11, 23, 50, 0) });
-  await completeSetup(page);
+  await seedSetup(page);
   const card = leftThisMonth(page);
   // Four weeks of October are left on Sunday 11 Oct (5-11, 12-18, 19-25 and 26-31): €434 / 4 = €108.50.
   await expect(card.getByText('This week: €109 safe to spend', { exact: true })).toBeVisible();
@@ -231,7 +232,7 @@ test('the week turns over at midnight while the app stays open', async ({ page }
 });
 
 test('coming back from another page shows what was added there', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await expect(leftThisMonth(page).getByText('€434', { exact: true })).toBeVisible();
 
   // The dev server's "Cache disabled" badge covers the left of the nav on a phone, so the click goes to the link.
@@ -247,7 +248,7 @@ test('coming back from another page shows what was added there', async ({ page }
 });
 
 test('the Saved line is gone when the person comes back to the page', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'döner 6');
   await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
@@ -265,9 +266,9 @@ test('the Saved line is gone when the person comes back to the page', async ({ p
 });
 
 test('the Saved line goes away on its own after ten seconds', async ({ page }) => {
-  // A running clock far from the real date, so completeSetup does not pin it and the timers can be moved on.
+  // A running clock far from the real date, so seedSetup does not pin it and the timers can be moved on.
   await page.clock.install({ time: new Date(2026, 9, 16, 12, 0, 0) });
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'döner 6');
   await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
@@ -281,7 +282,7 @@ test('the Saved line goes away on its own after ten seconds', async ({ page }) =
 });
 
 test('shows the total across all accounts, in euros', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
 
   // Local bank €1,000 + Home bank 50,000 INR at 95 (€526.32) + Cash €50. The rate arrives after setup.
   await expect(page.getByText('Across all accounts: €1,576', { exact: true })).toBeVisible();
@@ -318,7 +319,7 @@ test('says which rate is missing and shows a dash when nothing could be converte
 test('the suggested budget waits behind its link until it is tapped, and Not now puts it away again', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
 
   // It never opens by itself (Roshan, 05-11-2026).
   await expect(suggestion(page)).toHaveCount(0);
@@ -338,7 +339,7 @@ test('the suggested budget waits behind its link until it is tapped, and Not now
 test('the suggested budget waits behind its link even when the envelopes are more than what is available', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const [plan] = await readStore<Plan>(page, 'plan');
   // Food at €500 and eating out at €124 are €624 of €440.
   const envelopeRows: Amount[] = plan.envelopes.map((e) =>
@@ -352,7 +353,7 @@ test('the suggested budget waits behind its link even when the envelopes are mor
 });
 
 test('says calmly that nothing is available, and suggests €0', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const [plan] = await readStore<Plan>(page, 'plan');
   // No income at all: fixed costs and the set-aside are more than what comes in.
   await writeStore(page, 'plan', [{ ...plan, incomes: [] }]);
@@ -384,7 +385,7 @@ test('when the plan fits, each ranged category starts at the middle of its range
   page,
 }) => {
   // Income of €1,900: €1,440 is available after the rent and the €60 set-aside, more than the middles add up to.
-  await completeSetup(page, { incomes: { parents: '1500', job: '400' } });
+  await seedSetup(page, { incomes: { parents: '1500', job: '400' } });
   await suggestionLink(page).click();
   const panel = suggestion(page);
   const field = (name: string) => panel.getByRole('textbox', { name: `${name} per month`, exact: true });
@@ -404,7 +405,7 @@ test('when the plan fits, each ranged category starts at the middle of its range
 test('with an everyday budget, the suggestion keeps to it, or to what is available when that is less', async ({
   page,
 }) => {
-  await completeSetup(page, { budget: '600' });
+  await seedSetup(page, { budget: '600' });
   await page.setViewportSize({ width: 375, height: 812 });
   await suggestionLink(page).click();
   const panel = suggestion(page);
@@ -455,7 +456,7 @@ test('with an everyday budget, the suggestion keeps to it, or to what is availab
 test('in the first week too the suggested budget waits behind its link, after a reload as well; the saved note goes with the month', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   // Tuesday 3 Nov, the first week: still behind its link.
   await reopenOn(page, new Date(2026, 10, 3, 12, 0, 0));
   await expect(suggestionLink(page)).toBeVisible();
@@ -486,7 +487,7 @@ test('in the first week too the suggested budget waits behind its link, after a 
 test('opened in the first week of the month, the suggested budget changes only the envelopes', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   // October spending in a category the city has no range for: November's suggestion starts from it.
   await seedExpense(page, 'health', '2026-10-20', 1200);
   await seedExpense(page, 'study', '2026-10-21', 200);

@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Entry } from '../src/db/types';
-import { completeSetup, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import { readStore } from './helpers/setup';
 
-// `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day, so the guesses unlock on
+// `seedSetup` pins the clock to Friday 2026-10-16 and creates the plan that day, so the guesses unlock on
 // Friday 2026-11-06 (21 days later). It guesses food 200, eating out 80, going out 60, transport 20, shopping 40
 // and other 20 a month, and plans food 310 and eating out 124: October is planned in full, though the plan starts
 // on the 16th.
@@ -33,7 +34,7 @@ function recaps(page: Page) {
 }
 
 test('before 21 days home and the reveal page say when the guesses unlock', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
 
   const card = page.getByRole('region', { name: 'Your guesses' });
   await expect(card.getByText('Your guesses unlock on 6 Nov.', { exact: true })).toBeVisible();
@@ -56,7 +57,7 @@ test('before 21 days home and the reveal page say when the guesses unlock', asyn
 });
 
 test('on day 22 each guess shows next to what was spent, and the plan can be adjusted', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await logOn(page, '2026-10-20', 'döner 60', 'Eating out', 'Saved €60.00 · döner · Eating out');
   await logOn(page, '2026-10-25', 'rewe 100', 'Food & groceries', 'Saved €100.00 · rewe · Food & groceries');
   // The clock really moved: both entries carry the day they were logged on.
@@ -108,7 +109,7 @@ test('on day 22 each guess shows next to what was spent, and the plan can be adj
 });
 
 test('a finished month that went over its plan reads calmly, even before the guesses unlock', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await logOn(page, '2026-10-20', 'döner 500', 'Eating out', 'Saved €500.00 · döner · Eating out');
 
   // 2 Nov: October is over, the guesses unlock in four days. Planned 43400, spent 50000: €66 over.
@@ -120,7 +121,7 @@ test('a finished month that went over its plan reads calmly, even before the gue
 });
 
 test('a month after the setup month is planned from its 1st, so what is left of it is savings', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
 
   // 2 Dec: October and November are over, and nothing was spent in either. Newest first.
   await page.clock.setFixedTime(noon('2026-12-02'));

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { horizontalOverflow } from './helpers/layout';
-import { completeSetup } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
 
 // The language picker (language switch, chunks 10 and 15) and a phone that is set to German. Every page in German at
 // 375 px is language-tour.spec.ts, for a run with every language.
@@ -14,7 +14,7 @@ const nav = (page: Page, name: string) => page.getByRole('navigation', { name, e
 test('Settings switches the app to German and back, and the choice survives a reload', async ({ page }) => {
   // Setup, two switches and a reload: past 30 s on a cold dev server with every worker busy.
   test.setTimeout(60_000);
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('heading', { level: 2, name: 'Settings', exact: true })).toBeVisible();
