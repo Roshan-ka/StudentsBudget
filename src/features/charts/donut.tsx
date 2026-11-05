@@ -80,6 +80,25 @@ const Ring = memo(function Ring({
 });
 
 /**
+ * The donut while nothing is spent: its ring as an empty track and €0 in the middle, so the chart is there from the
+ * first day (pain points, chunk 5). The table under it lists every envelope, planned and at €0.
+ */
+export function EmptyDonut({ summary, centreLabel }: { summary: string; centreLabel: string }) {
+  const { locale } = useT();
+  return (
+    <div role="img" aria-label={summary} className="relative mx-auto aspect-square w-full max-w-56">
+      <svg aria-hidden="true" viewBox="0 0 100 100" className="absolute inset-0 size-full">
+        <circle cx="50" cy="50" r="40.5" fill="none" stroke="var(--track)" strokeWidth="19" />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+        <p className="font-heading text-2xl font-extrabold tracking-tight">{amountText(0, locale)}</p>
+        <p className="text-xs text-muted-foreground">{centreLabel}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * A donut with the total in its middle, and under it one row per slice: the colour, the name, the amount and its
  * share. The rows are the legend and the text of the chart, and each is a link to the entries behind its slice
  * (the bucket's is plain text), at least 44 px high.

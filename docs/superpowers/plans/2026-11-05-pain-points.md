@@ -121,6 +121,11 @@ Roshan finds Home annoying: whenever he opens it, the suggested budget is open, 
    - **Savings and over time:** their months at €0.
    - Nothing is invented: €0 is what was logged.
    - `charts.spec.ts` changes from "nothing" to "the charts at €0".
+   - **As built (2026-11-05):**
+     - **`charts-view.tsx`:** the four sections always render. With nothing logged in the period, "Nothing logged in … yet." is a line above them, not in their place. The `loggedOverTime` gate is gone.
+     - **Spending:** its rows already kept every planned envelope at €0 (`spendingByCategoryOver`). With nothing spent, the donut style now shows `EmptyDonut` (`donut.tsx`): the ring as an empty `--track` with €0 in the middle, named "Nothing spent in … yet.", plus the table of envelopes, planned and at €0. Bars and table draw those rows as they are.
+     - **No new words:** before the plan began nothing is planned, so Spending still says "No spending logged in … yet." inside its section. Income with nothing logged keeps its own line. Savings and the over-time chart show their months at €0.
+     - **`charts.spec.ts`:** the month-switcher test checks the charts are there: the empty ring, Eating out at €0 of €124, Income's line, Savings and the over-time chart.
 6. **The entry form remembers.**
    - Last category and account per type, per phone (`entry-form.tsx:56,68,71`).
    - The category select in groups (flexible, fixed, one-off), as `recurring-editor.tsx:144-161` does.
