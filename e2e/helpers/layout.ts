@@ -7,14 +7,16 @@ export function horizontalOverflow(page: Page): Promise<number> {
 
 /**
  * What sticks out past the window's edge, for a failure message: the innermost elements wider than the page reaches,
- * each as its tag, a few of its classes and the start of its text. Empty when nothing does.
+ * or whose content (a word too long for its line) runs past it, each as its tag, a few of its classes and the start of
+ * its text. Empty when nothing does.
  */
 export function widerThanThePage(page: Page): Promise<string> {
   return page.evaluate(() => {
     const edge = document.documentElement.clientWidth;
     const out = (element: Element) => {
       const { left, right } = element.getBoundingClientRect();
-      return right > edge + 0.5 || left < -0.5;
+      const contentEnd = left + element.scrollWidth;
+      return right > edge + 0.5 || left < -0.5 || (element.scrollWidth > element.clientWidth + 1 && contentEnd > edge + 0.5);
     };
     const innermost = [...document.body.querySelectorAll('*')].filter(
       (element) => out(element) && ![...element.children].some(out),

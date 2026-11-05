@@ -85,8 +85,11 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             </span>
           </h1>
         </header>
-        {/* The bottom padding clears the nav (at least 4 rem and its outline) with room to spare. */}
-        <main className="flex-1 px-4 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))] hyphens-auto">{children}</main>
+        {/* The bottom padding clears the nav (at least 4 rem and its outline) with room to spare. A word longer than its
+            line (a title's "Rundfunkbeitrag" at 200 % text) breaks instead of widening the page. */}
+        <main className="flex-1 px-4 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))] break-words hyphens-auto">
+          {children}
+        </main>
         <BottomNav />
       </body>
     </html>
