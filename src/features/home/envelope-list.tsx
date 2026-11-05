@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { categoryTint, chartColor } from '@/features/charts/colors';
+import { categoryBarFill, categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { furthestOver, localSuggestions, type Suggestion } from '@/features/swaps/suggest';
 import { SwapLine } from '@/features/swaps/swap-line';
@@ -59,7 +59,7 @@ function EnvelopeItem({ row, suggestion }: { row: EnvelopeRow; suggestion: Sugge
         >
           <div
             className="h-full rounded-full motion-safe:animate-bar-fill"
-            style={{ width: `${percent}%`, backgroundColor: chartColor(row.categoryId) }}
+            style={{ width: `${percent}%`, backgroundColor: categoryBarFill(row.categoryId) }}
           />
         </div>
         {/* A screen reader gets these numbers from the bar's value text instead. */}

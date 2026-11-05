@@ -2,7 +2,7 @@
 
 import { parseISO } from 'date-fns';
 import Link from 'next/link';
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { cardVariants } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { dateFormat } from '@/i18n/format';
@@ -104,6 +104,8 @@ export type HoverPoint = { row: ChartRow; x: number; y: number };
 
 export type OnHover = (hover: HoverPoint | null) => void;
 
+const NO_HOVER = { hover: null, dismissed: null };
+
 /** The readout on hover. Everything in it is also printed on the chart or in the table, so it never gates a number. */
 function RowTooltip({ row, valueLabel }: { row: ChartRow; valueLabel: string }) {
   const { t, locale } = useT();
@@ -146,11 +148,30 @@ export function ChartFrame({
   valueLabel: string;
   children: (onHover: OnHover) => ReactNode;
 }) {
-  const [hover, setHover] = useState<HoverPoint | null>(null);
+  // The point the tooltip shows, and the mark Escape put it away for: it stays away until the pointer leaves that mark
+  // (WCAG 1.4.13; accessibility, chunk 7). One state, so `onHover` stays the same function and the slices aren't rebuilt.
+  const [state, setState] = useState<{ hover: HoverPoint | null; dismissed: string | null }>(NO_HOVER);
+  const hover = state.hover;
+  const onHover = useCallback<OnHover>(
+    (point) =>
+      setState((current) => {
+        if (point === null) return NO_HOVER;
+        return point.row.id === current.dismissed ? current : { hover: point, dismissed: current.dismissed };
+      }),
+    [],
+  );
+  useEffect(() => {
+    if (hover === null) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setState({ hover: null, dismissed: hover.row.id });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [hover]);
 
   return (
     <div role="img" aria-label={summary}>
-      {children(setHover)}
+      {children(onHover)}
       {hover && (
         // Above the pointer, and never past either edge of the window.
         <div
@@ -167,7 +188,9 @@ export function ChartFrame({
 /**
  * The numbers of a chart as a table, every row linking to its entries. In `visible` form it is the chart itself
  * (the "Table" style); otherwise it is the text of a chart for screen readers and keyboards, out of sight until a
- * link in it has focus, so a keyboard user sees where they are.
+ * link in it has focus, so a keyboard user sees where they are. `linkedElsewhere` names the rows whose link is already
+ * on the page (the donut's legend): those are plain text here, so a keyboard meets each link once (accessibility,
+ * chunk 7).
  */
 export function DataTable({
   caption,
@@ -175,12 +198,14 @@ export function DataTable({
   columns,
   rows,
   visible = false,
+  linkedElsewhere,
 }: {
   caption: string;
   firstColumn: string;
   columns: string[];
   rows: { row: ChartRow; cells: string[] }[];
   visible?: boolean;
+  linkedElsewhere?: ReadonlySet<string>;
 }) {
   return (
     <div className={visible ? undefined : 'sr-only focus-within:not-sr-only'}>
@@ -202,7 +227,7 @@ export function DataTable({
           {rows.map(({ row, cells }) => (
             <tr key={row.id}>
               <th scope="row" className={`text-start font-normal ${visible ? 'py-3' : 'py-1'}`}>
-                {row.href === null ? (
+                {row.href === null || linkedElsewhere?.has(row.id) ? (
                   row.label
                 ) : (
                   <Link href={row.href} className={LINK_CLASS}>
