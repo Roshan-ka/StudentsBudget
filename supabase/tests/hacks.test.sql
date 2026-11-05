@@ -193,8 +193,9 @@ select is(
   'P0001 daily-limit',
   'a sixth post within a day is refused'
 );
+-- The SQLSTATE alone: a permission error comes with PostgreSQL's own hint on which grant is missing.
 select is(
-  pg_temp.call_as('b', 'aal1', $$ insert into public.hacks (body, city, category, lang) values ('Written around the functions', 'anywhere', 'food', 'en') $$),
+  left(pg_temp.call_as('b', 'aal1', $$ insert into public.hacks (body, city, category, lang) values ('Written around the functions', 'anywhere', 'food', 'en') $$), 5),
   '42501',
   'nobody writes the table directly'
 );
