@@ -150,6 +150,24 @@ Next on the roadmap after the data-protection notes (#95, #97): the community ha
 - Texts: `auth.postingName` in four languages; the account note now names the username, label and batch others see.
 - e2e: `mockSupabaseData` answers `username_available` (signed out too) and `public_profiles` per user (`profiles`); `posting-name.spec.ts` (sign-up checks and metadata, a check that fails, the card changing a name, a taken name, an account without one, German); the sign-up specs (`account`, `email-codes`, `privacy-notes`) give a username.
 
+**Chunk 3 (2026-11-05):**
+- Migration `20261105110007_hacks.sql`: `hacks`, `hack_votes`, `hack_reports` (owner-select only, second-step policy, no direct writes), `private.moderators`, `private.hide_after_reports()` (5), `private.acting_user()` and `private.acting_moderator()`, and the functions `post_hack`, `delete_hack`, `vote_hack`, `report_hack`, `hacks_feed`, `am_i_moderator`, `moderation_queue`, `moderate_hack`.
+- One change from the plan: an upvote and a verdict sit in one `hack_votes` row per account and post, as planned, but reports are refused on one's own post too (`own-post`), as votes are.
+- Errors the app reads by their hint: `needs-username`, `daily-limit`, `own-post`, `not-found`; a bad body, city, category, link or language is the table's check (23514).
+- Tests:
+  - `supabase/tests/hacks.test.sql` (38): grants and policies; the return shapes with no user id; posting (a username, the second step, the checks, 5 a day, no direct writes); votes and their totals; reports (gone for the reporter, for everyone at 5); the moderator (aal2 only, the queue, keep and hide); deleting; the cascade.
+  - `user_data.test.sql` lists the three new tables.
+  - `src/features/hacks/hacks.contract.test.ts`: real users post, vote and read the feed by username; a report hides a post from its reporter only; no username, no post; no direct writes; nobody moderates by default; signed out, no feed.
+- The hosted project needs `npx supabase db push` once this merges.
+
+**Making the moderator** (once chunk 3 is on the hosted project; in the dashboard's SQL editor, as the project owner):
+
+```sql
+insert into private.moderators (user_id) select id from auth.users where email = '<the moderator account''s email>';
+```
+
+The moderator account needs two-step sign-in turned on: the moderation functions answer only a session that gave the authenticator code.
+
 ## Verification
 
 - **Each chunk, locally:** lint, typecheck and the touched unit tests only. The full suite, pgTAP and contract tests (the CI `db` job) and the e2e run in CI, on Roshan's OK.
