@@ -1,0 +1,72 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { describe, expect, it } from 'vitest';
+import { amIModerator, moderate, queueItemOf, readQueue } from './moderation';
+
+function answering(data: unknown, error: { code?: string; message?: string } | null) {
+  const calls: { fn: string; args: unknown }[] = [];
+  const client = {
+    rpc: async (fn: string, args?: unknown) => {
+      calls.push({ fn, args });
+      return { data, error };
+    },
+  } as unknown as SupabaseClient;
+  return { client, calls };
+}
+
+const row = {
+  id: 'p1',
+  body: 'An advert for a phone shop.',
+  city: 'regensburg',
+  category: 'shopping',
+  link: null,
+  lang: 'en',
+  created_at: '2026-11-05T12:00:00Z',
+  username: 'bea',
+  reports: 6,
+  reports_since_kept: 5,
+  hidden_by_hand: false,
+  hidden_by_reports: true,
+  kept_at: null,
+  last_report: '2026-11-05T13:00:00Z',
+};
+
+describe('the moderation queue', () => {
+  it('reads each row, counting the reports since the post was last kept', () => {
+    expect(queueItemOf(row)).toEqual({
+      id: 'p1',
+      body: 'An advert for a phone shop.',
+      city: 'regensburg',
+      categoryId: 'shopping',
+      lang: 'en',
+      createdAt: '2026-11-05T12:00:00Z',
+      username: 'bea',
+      reports: 5,
+      hiddenByHand: false,
+      hiddenByReports: true,
+    });
+    expect(queueItemOf({ ...row, city: 'munich' })).toBeNull();
+  });
+
+  it('says why it shows nothing: the code owed, or not a moderator', async () => {
+    expect(await readQueue(answering([row], null).client)).toHaveLength(1);
+    expect(await readQueue(answering(null, { code: '42501', message: 'the second step is owed' }).client)).toBe('needs-code');
+    expect(await readQueue(answering(null, { code: '42501', message: 'not a moderator' }).client)).toBe('not-moderator');
+    expect(await readQueue(answering(null, { code: 'XX000', message: 'down' }).client)).toBe('failed');
+  });
+});
+
+describe('moderating', () => {
+  it('asks whether the account moderates', async () => {
+    expect(await amIModerator(answering(true, null).client)).toBe(true);
+    expect(await amIModerator(answering(null, { code: 'XX000' }).client)).toBeNull();
+  });
+
+  it('hides or keeps a post', async () => {
+    const { client, calls } = answering(null, null);
+    expect(await moderate(client, 'p1', 'keep')).toBe('done');
+    expect(calls).toEqual([{ fn: 'moderate_hack', args: { p_id: 'p1', p_action: 'keep' } }]);
+    expect(await moderate(answering(null, { code: '42501', message: 'the second step is owed' }).client, 'p1', 'hide')).toBe(
+      'needs-code',
+    );
+  });
+});

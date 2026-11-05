@@ -18,6 +18,7 @@ export const shell = {
     appearance: 'Appearance',
     accounts: 'Accounts and transfers',
     backup: 'Backup and data',
+    moderation: 'Moderation',
     badges: 'Badges',
     charts: 'Charts',
     checkIn: 'Weekly check-in',

@@ -169,6 +169,27 @@ Next on the roadmap after the data-protection notes (#95, #97): the community ha
 - Texts: `tips.hacks` in four languages.
 - e2e: `mockSupabaseData`'s `feed`; `hacks-feed.spec.ts` (signed out, the posts and their authors, the category filter, the remembered tab, the kept list when loading fails and its end at sign-out, German).
 
+**Chunk 5 (2026-11-05):**
+- `src/features/hacks/posts.ts`: `HACK_CATEGORIES` (ten app categories), `checkHack` (10–500 characters, an optional https link of at most 300; its test reads the migration's checks and the messages' numbers), `postHack` (the phone's language; refusals read by hint: `needs-username`, `daily-limit`; 23514 as `invalid`) and `deleteHack`.
+- `hack-form.tsx`: "Post a hack" opens it above the list. The text, the category, Regensburg or anywhere, and the link. The `post` data-protection note before the first post on a phone. When the database says the account has no name, the name fields join the form and the same Post saves both.
+- Own posts get Delete, with a question ("Keep it" cancels); the list reloads after a post or a delete, and a status line says so.
+- `src/components/ui/textarea.tsx`: a multi-line field with Input's look.
+- Texts: `tips.hacks.form`, the delete words and `common.privacy.post` in four languages. The French spacing test skips a link's `://`.
+- e2e: `mockSupabaseData`'s `feed` changes with `post_hack` and `delete_hack`, and `dailyLimit` refuses; `hacks-post.spec.ts` (the checks, the note, the post and its call, a name picked at the first post, the daily limit, deleting one's own post only).
+
+**Chunk 6 (2026-11-05):**
+- `src/features/hacks/votes.ts`: `nextVote` (the upvote toggles; a verdict toggles and replaces the other), `withVote` (the totals move by the change only), `voteHack` and `reportHack` ('gone' for a post deleted or hidden meanwhile); unit-tested.
+- Others' posts get a "Your vote on this post" group: Upvote, Worked for me and Outdated as pressed chips, and Report. A vote updates the post in place (no reload); a report asks first, then the post leaves the list with "Reported. You won't see this post anymore." One's own post has none of these.
+- The first vote or report on a phone waits for the `hackVotes` note (votes count in totals, nobody sees who voted; a report hides the post for the reporter, and for everyone at enough reports until the moderator decides).
+- The list on screen is kept as it changes, so the fallback list shows one's own votes.
+- e2e: the data mock's `vote_hack` moves the totals and `report_hack` takes the post out; `hacks-votes.spec.ts` (the note, each toggle and its totals, the calls, no buttons on one's own post, the report question and the post leaving).
+
+**Chunk 7 (2026-11-05):**
+- `src/features/hacks/moderation.ts`: `amIModerator`, `readQueue` (the database's 42501 read as 'needs-code' or 'not-moderator' by its message), `queueItemOf` and `moderate`; unit-tested.
+- Settings → Moderation: a row (`ModerationLink` in `settings-links.tsx`) only when `am_i_moderator()` is true for the signed-in account, and the page `/settings/moderation` (`ModerationView`): the reported posts, newest report first, each with its category, place, day, text, author, "N reports since last kept" and whether it is hidden by hand, by reports or visible; Hide (not on one hidden by hand) and Keep. A reader is told the page is for the moderator; the moderator without the authenticator code (aal1) is sent to two-step sign-in.
+- The new route is precached (`public/sw.js`), in the offline spec's list, in `PAGES` (`e2e/helpers/pages.ts`) and in the map; `shell.headings.moderation` and `tips.hacks.moderation` in four languages.
+- e2e: the data mock's `moderator` and `queue` (aal2 only); `moderation.spec.ts` plays the three roles: a reader (no row, the page says so), the moderator at aal1 (sent to two-step sign-in) and the moderator at aal2 (hide, keep).
+
 **Making the moderator** (once chunk 3 is on the hosted project; in the dashboard's SQL editor, as the project owner):
 
 ```sql

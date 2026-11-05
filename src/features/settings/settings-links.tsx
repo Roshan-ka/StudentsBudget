@@ -9,18 +9,21 @@ import {
   ListChecksIcon,
   MonitorSmartphoneIcon,
   MoonIcon,
+  ShieldCheckIcon,
   SunIcon,
   UserIcon,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { useSyncStatus } from '@/features/account/sync-status';
 import { useAuth } from '@/features/account/use-auth';
+import { amIModerator } from '@/features/hacks/moderation';
 import { useT } from '@/i18n/use-t';
+import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useThemeChoice } from '@/theme/store';
 import { accountsSummary, profileSummary } from './summaries';
@@ -91,6 +94,41 @@ function AccountLink() {
 }
 
 /**
+ * The way to the moderation page (the hacks feed, chunk 7): only for the app's moderator, as the database says once
+ * the account is signed in. Nobody else sees the row.
+ */
+function ModerationLink() {
+  const { t } = useT();
+  const auth = useAuth();
+  const userId = auth.status === 'signed-in' ? auth.userId : null;
+  // The answer, and for whom: an answer for another account never shows the row.
+  const [moderator, setModerator] = useState<{ userId: string; yes: boolean } | null>(null);
+
+  useEffect(() => {
+    if (userId === null) return;
+    const supabase = getSupabase();
+    if (supabase === null) return;
+    let current = true;
+    void amIModerator(supabase).then((yes) => {
+      if (current) setModerator({ userId, yes: yes === true });
+    });
+    return () => {
+      current = false;
+    };
+  }, [userId]);
+
+  if (userId === null || moderator?.userId !== userId || !moderator.yes) return null;
+  return (
+    <SettingsLink
+      href="/settings/moderation"
+      icon={ShieldCheckIcon}
+      title={t.shell.headings.moderation}
+      summary={t.tips.hacks.moderation.summary}
+    />
+  );
+}
+
+/**
  * The pages of Settings, as one list under the language picker (pain points, chunk 3): each opens its own page, so
  * Settings itself stays short. The summaries read the phone's data, so they appear once it has been read.
  */
@@ -137,6 +175,7 @@ export function SettingsLinks() {
         summary={t.theme.choices[choice]}
       />
       <AccountLink />
+      <ModerationLink />
       <SettingsLink href="/settings/backup" icon={ArchiveIcon} title={t.shell.headings.backup} summary={t.backup.summary} />
     </ul>
   );

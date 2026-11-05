@@ -12,6 +12,8 @@ export const PRIVACY_NOTES = {
   passkey: 'studentsbudget-passkey-note',
   rates: 'studentsbudget-rates-note',
   votes: 'studentsbudget-votes-note',
+  post: 'studentsbudget-post-note',
+  hackVotes: 'studentsbudget-hack-votes-note',
 } as const;
 
 export type PrivacyNoteId = keyof typeof PRIVACY_NOTES;

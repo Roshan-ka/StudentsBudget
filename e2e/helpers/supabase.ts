@@ -335,6 +335,24 @@ export type ServerTables = Map<string, Map<string, unknown>>;
 /** Each account's posting name (`public_profiles`, the hacks feed), by user id (`e2eUserIdOf`). */
 export type ServerProfiles = Map<string, { username: string; label: string | null; batch: number | null }>;
 
+/** One row of `moderation_queue`, as the database returns it to the moderator. */
+export type QueueRow = {
+  id: string;
+  body: string;
+  city: 'regensburg' | 'anywhere';
+  category: string;
+  link: string | null;
+  lang: string;
+  created_at: string;
+  username: string | null;
+  reports: number;
+  reports_since_kept: number;
+  hidden_by_hand: boolean;
+  hidden_by_reports: boolean;
+  kept_at: string | null;
+  last_report: string | null;
+};
+
 /** One row of `hacks_feed` (the hacks feed), as the database returns it to the signed-in account. */
 export type FeedRow = {
   id: string;
@@ -400,7 +418,11 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * as the database returns them (none by default). `profiles` holds the accounts' posting names (the hacks feed): each
  * signed-in account reads and saves only its own, a username another account has is refused (23505), and
  * `rpc/username_available`, which answers signed out too, says whether any of them has a name. `rpc/hacks_feed`
- * answers `feed`, the posts as the database returns them (none by default). Returns the tables, to look at and to seed.
+ * answers `feed`, the posts as the database returns them (none by default); `rpc/post_hack` adds to it (an account in
+ * `profiles` only, and none with `dailyLimit`), `rpc/delete_hack` takes one's own post out, `rpc/vote_hack` moves a
+ * post's totals and `rpc/report_hack` takes it out, as for the reporter. `moderator` makes the account the app's
+ * moderator: `rpc/moderation_queue` answers `queue` and `rpc/moderate_hack` changes it, at aal2 only. Returns the
+ * tables, to look at and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
@@ -411,11 +433,15 @@ export async function mockSupabaseData(
     gone?: ReadonlySet<string>;
     profiles?: ServerProfiles;
     feed?: FeedRow[];
+    dailyLimit?: boolean;
+    moderator?: boolean;
+    queue?: QueueRow[];
     confirmations?: { discount_id: string; last_works: string | null; works_since: number; outdated_since: number }[];
   } = {},
 ): Promise<ServerTables> {
   const tables: ServerTables = options.tables ?? new Map();
   const profiles: ServerProfiles = options.profiles ?? new Map();
+  const feed: FeedRow[] = options.feed ?? [];
   const table = (name: string) => {
     if (!tables.has(name)) tables.set(name, new Map());
     return tables.get(name)!;
@@ -469,7 +495,107 @@ export async function mockSupabaseData(
     }
     // hacks_feed: the posts the signed-in account may see (the hacks feed), as given in `feed`.
     if (path === 'rpc/hacks_feed' && request.method() === 'POST') {
-      return route.fulfill({ status: 200, headers: CORS, json: options.feed ?? [] });
+      return route.fulfill({ status: 200, headers: CORS, json: feed });
+    }
+    // post_hack: a username first (else hint 'needs-username'), `dailyLimit` refuses (hint 'daily-limit'), and the
+    // table's length check (23514). The post joins `feed` first, as the signed-in account's own.
+    if (path === 'rpc/post_hack' && request.method() === 'POST') {
+      const sent = request.postDataJSON() as {
+        p_body: string;
+        p_city: FeedRow['city'];
+        p_category: string;
+        p_link: string | null;
+        p_lang: string;
+      };
+      const profile = profiles.get(claimsOf(request).sub ?? '');
+      const refuse = (hint: string) =>
+        route.fulfill({ status: 400, headers: CORS, json: { code: 'P0001', message: hint, hint, details: null } });
+      if (profile === undefined) return refuse('needs-username');
+      if (options.dailyLimit) return refuse('daily-limit');
+      if (sent.p_body.length < 10 || sent.p_body.length > 500) {
+        return route.fulfill({ status: 400, headers: CORS, json: { code: '23514', message: 'check violation' } });
+      }
+      const id = randomUUID();
+      feed.unshift({
+        id,
+        body: sent.p_body,
+        city: sent.p_city,
+        category: sent.p_category,
+        link: sent.p_link,
+        lang: sent.p_lang,
+        created_at: new Date().toISOString(),
+        username: profile.username,
+        label: profile.label,
+        batch: profile.batch,
+        mine: true,
+        ups: 0,
+        worked: 0,
+        outdated: 0,
+        my_up: false,
+        my_verdict: null,
+      });
+      return route.fulfill({ status: 200, headers: CORS, json: id });
+    }
+    // vote_hack: the whole vote on someone else's post moves its totals (one's own: hint 'own-post'; a post not in
+    // `feed`: hint 'not-found'). report_hack: the post leaves `feed`, as it leaves the reporter's list.
+    if ((path === 'rpc/vote_hack' || path === 'rpc/report_hack') && request.method() === 'POST') {
+      const sent = request.postDataJSON() as { p_id: string; p_up?: boolean; p_verdict?: FeedRow['my_verdict'] };
+      const at = feed.findIndex((row) => row.id === sent.p_id);
+      const refuse = (hint: string) =>
+        route.fulfill({ status: 400, headers: CORS, json: { code: 'P0001', message: hint, hint, details: null } });
+      if (at < 0) return refuse('not-found');
+      const row = feed[at];
+      if (row.mine) return refuse('own-post');
+      if (path === 'rpc/report_hack') {
+        feed.splice(at, 1);
+        return route.fulfill({ status: 204, headers: CORS });
+      }
+      const up = sent.p_up === true;
+      const verdict = sent.p_verdict ?? null;
+      const step = (was: boolean, is: boolean) => (is === was ? 0 : is ? 1 : -1);
+      row.ups += step(row.my_up, up);
+      row.worked += step(row.my_verdict === 'worked', verdict === 'worked');
+      row.outdated += step(row.my_verdict === 'outdated', verdict === 'outdated');
+      row.my_up = up;
+      row.my_verdict = verdict;
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    // am_i_moderator: `moderator`. moderation_queue and moderate_hack: the moderator only, at aal2 (42501 with the
+    // database's messages otherwise); 'hide' hides a `queue` row by hand, 'keep' shows it again and zeroes its reports.
+    if (path === 'rpc/am_i_moderator' && request.method() === 'POST') {
+      return route.fulfill({ status: 200, headers: CORS, json: options.moderator === true });
+    }
+    if ((path === 'rpc/moderation_queue' || path === 'rpc/moderate_hack') && request.method() === 'POST') {
+      const refuse = (message: string) =>
+        route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message, hint: null, details: null } });
+      if (options.moderator !== true) return refuse('not a moderator');
+      if (claimsOf(request).aal !== 'aal2') return refuse('the second step is owed');
+      const queue = options.queue ?? [];
+      if (path === 'rpc/moderation_queue') return route.fulfill({ status: 200, headers: CORS, json: queue });
+      const { p_id: id, p_action: action } = request.postDataJSON() as { p_id: string; p_action: 'hide' | 'keep' };
+      const item = queue.find((row) => row.id === id);
+      if (item === undefined) {
+        const json = { code: 'P0001', message: 'not-found', hint: 'not-found' };
+        return route.fulfill({ status: 400, headers: CORS, json });
+      }
+      item.hidden_by_hand = action === 'hide';
+      if (action === 'keep') {
+        item.hidden_by_reports = false;
+        item.reports_since_kept = 0;
+        item.kept_at = new Date().toISOString();
+      }
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    // delete_hack: the signed-in account's own post leaves `feed`; any other is refused (hint 'not-found').
+    if (path === 'rpc/delete_hack' && request.method() === 'POST') {
+      const { p_id: id } = request.postDataJSON() as { p_id: string };
+      const at = feed.findIndex((row) => row.id === id && row.mine);
+      if (at < 0) {
+        const json = { code: 'P0001', message: 'not-found', hint: 'not-found' };
+        return route.fulfill({ status: 400, headers: CORS, json });
+      }
+      feed.splice(at, 1);
+      return route.fulfill({ status: 204, headers: CORS });
     }
     // discount_confirmations: other students' totals per discount, since the date asked.
     if (path === 'rpc/discount_confirmations' && request.method() === 'POST') {
