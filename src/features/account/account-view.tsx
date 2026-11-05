@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { noteSeen } from '@/features/privacy/notes';
+import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useShowInstallHint } from '@/features/setup/install-hint';
 import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
@@ -396,6 +398,8 @@ function SignInForm() {
   >(null);
   // A sign-in found the account not confirmed yet: the form offers a new code for it.
   const [unconfirmed, setUnconfirmed] = useState<string | null>(null);
+  // The first account on this phone waits for the note on where its data is kept (`PrivacyNote`).
+  const [accountNote, setAccountNote] = useState(false);
   const [busy, setBusy] = useState(false);
   // True from the first tap until the answer is in. A ref, because a second tap can arrive before React has rendered
   // the disabled button.
@@ -412,6 +416,7 @@ function SignInForm() {
       setError(null);
       setNotice(null);
       setUnconfirmed(null);
+      setAccountNote(false);
     },
     [],
   );
@@ -439,6 +444,14 @@ function SignInForm() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await submit();
+  }
+
+  /**
+   * Signs in, or creates the account: the first one on this phone only after its data-protection note. `noteAccepted`
+   * comes from the note's Continue, so blocked storage (which never remembers it) can't show the note forever.
+   */
+  async function submit(noteAccepted = false) {
     if (inFlight.current) return;
     setError(null);
     setNotice(null);
@@ -454,6 +467,11 @@ function SignInForm() {
     }
     const supabase = getSupabase();
     if (supabase === null) return;
+    if (mode === 'create' && !noteAccepted && !noteSeen('account')) {
+      setAccountNote(true);
+      return;
+    }
+    setAccountNote(false);
 
     inFlight.current = true;
     setBusy(true);
@@ -593,9 +611,21 @@ function SignInForm() {
             {t.auth.confirm.sendAgain}
           </Button>
         )}
-        <Button type="submit" className="self-start px-4" disabled={busy}>
-          {creating ? text.create : text.signIn}
-        </Button>
+        {accountNote ? (
+          <PrivacyNote
+            id="account"
+            label={t.auth.privacy.label}
+            text={t.auth.privacy.account}
+            continueLabel={t.auth.privacy.continue}
+            cancelLabel={t.auth.privacy.cancel}
+            onContinue={() => void submit(true)}
+            onCancel={() => setAccountNote(false)}
+          />
+        ) : (
+          <Button type="submit" className="self-start px-4" disabled={busy}>
+            {creating ? text.create : text.signIn}
+          </Button>
+        )}
       </form>
 
       {/* Always rendered, so a screen reader is already listening when the text appears. */}
@@ -610,6 +640,7 @@ function SignInForm() {
           setMode(creating ? 'sign-in' : 'create');
           setError(null);
           setNotice(null);
+          setAccountNote(false);
         }}
       >
         {creating ? text.toSignIn : text.toCreate}

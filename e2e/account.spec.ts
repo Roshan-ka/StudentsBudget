@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan } from '../src/db/types';
+import { acceptPrivacyNotes } from './helpers/privacy';
 import { completeSetup, readStore } from './helpers/setup';
 import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow, SUPABASE_AUTH, type AuthCall } from './helpers/supabase';
 
@@ -10,6 +11,8 @@ test.use({ viewport: { width: 375, height: 812 } });
 // Signing in links the phone to the account (P2.2), which reads the account's tables: an empty account by default.
 test.beforeEach(async ({ page }) => {
   await mockSupabaseData(page);
+  // The notes before the first account and passkey have their own spec (privacy-notes.spec.ts).
+  await acceptPrivacyNotes(page);
 });
 
 const EMAIL = 'roshan@example.com';

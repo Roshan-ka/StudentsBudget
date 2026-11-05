@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { MIC_NOTE_KEY } from '../src/features/entries/mic-note';
+import { PRIVACY_NOTES } from '../src/features/privacy/notes';
 import { chooseLanguage } from './helpers/languages';
 import { completeSetup } from './helpers/setup';
 
@@ -94,7 +94,7 @@ test('Cancel on the note leaves the mic off', async ({ page }) => {
 
 test('a blocked microphone says how to allow it, and offline says it needs a connection', async ({ page, context }) => {
   await fakeSpeech(page);
-  await page.addInitScript((key) => localStorage.setItem(key, 'seen'), MIC_NOTE_KEY);
+  await page.addInitScript((key) => localStorage.setItem(key, 'seen'), PRIVACY_NOTES.mic);
   await completeSetup(page);
 
   await page.evaluate(() => {
@@ -124,7 +124,7 @@ test('there is no mic button where the browser has no speech recognition', async
 
 test('it listens in the language the phone shows', async ({ page }) => {
   await fakeSpeech(page);
-  await page.addInitScript((key) => localStorage.setItem(key, 'seen'), MIC_NOTE_KEY);
+  await page.addInitScript((key) => localStorage.setItem(key, 'seen'), PRIVACY_NOTES.mic);
   await completeSetup(page);
   await chooseLanguage(page, 'de');
 

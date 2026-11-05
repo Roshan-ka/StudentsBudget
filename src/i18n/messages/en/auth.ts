@@ -173,6 +173,19 @@ export const auth = {
     setupCancelled: 'Set-up cancelled.',
     cancelledElsewhere: 'This set-up was cancelled, maybe from another phone. Turn on to start again.',
   },
+  /** One-time data-protection notes (`PrivacyNote`): before the first account and the first passkey on a phone. */
+  privacy: {
+    label: 'About your data',
+    continue: 'Continue',
+    cancel: 'Cancel',
+    account:
+      'Your account is kept by Supabase, in Frankfurt (EU): your email, your password (stored only as a hash), ' +
+      'your phone’s language and a copy of the data you sync. If the account needs a code, to confirm it or for a ' +
+      'new password, it comes by email. You can delete the account at any time in Settings.',
+    passkey:
+      'Your phone’s password manager keeps the passkey, and may sync it to your other devices (iCloud Keychain or ' +
+      'Google Password Manager, for example). Your account keeps only its public key, which can’t sign anyone in.',
+  },
   /** Sign-in and security → Password: a new password, the current one asked when this session signed in with it. */
   changePassword: {
     heading: 'Password',

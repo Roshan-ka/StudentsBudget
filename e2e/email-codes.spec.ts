@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { acceptPrivacyNotes } from './helpers/privacy';
 import {
   E2E_EMAIL_CODE,
   E2E_TOTP_CODE,
@@ -22,6 +23,8 @@ const PASSWORD = 'correct horse';
 // A confirmed account links the phone (P2.2), which reads the account's tables: an empty account.
 test.beforeEach(async ({ page }) => {
   await mockSupabaseData(page);
+  // The notes before the first account and passkey have their own spec (privacy-notes.spec.ts).
+  await acceptPrivacyNotes(page);
 });
 
 /** The form's message. Inside main: Next's route announcer is an alert of its own, outside it. */

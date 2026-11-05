@@ -16,7 +16,7 @@
     "/manifest.webmanifest": ["smoke"],
     "/reveal": ["demo-scenarios", "language-tour", "reflow", "reveal", "setup", "theme"],
     "/settings": "all",
-    "/settings/account": ["account", "account-deletion", "change-password", "discount-confirmations", "email-codes", "language-tour", "linking", "passkeys", "reflow", "theme", "two-step"],
+    "/settings/account": ["account", "account-deletion", "change-password", "discount-confirmations", "email-codes", "language-tour", "linking", "passkeys", "privacy-notes", "reflow", "theme", "two-step"],
     "/setup": "all",
     "/tips": ["discount-confirmations", "discounts", "language-tour", "reflow", "theme", "tips"]
   },

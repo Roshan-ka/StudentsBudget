@@ -4,6 +4,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { KeyRoundIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
+import { noteSeen } from '@/features/privacy/notes';
+import { PrivacyNote } from '@/features/privacy/privacy-note';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { formatDate, formatDateTime, todayIso } from '@/lib/dates';
@@ -112,6 +114,8 @@ export function PasskeysSection() {
   const [passkeys, setPasskeys] = useState<Passkey[] | 'loading' | 'unknown' | { off: string }>('loading');
   // The passkey whose removal waits for "Remove" in its question.
   const [removing, setRemoving] = useState<Passkey | null>(null);
+  // The first passkey on this phone waits for the note on where it is kept (`PrivacyNote`).
+  const [passkeyNote, setPasskeyNote] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Said out loud by a screen reader when it changes.
   const [status, setStatus] = useState('');
@@ -143,6 +147,7 @@ export function PasskeysSection() {
     return () => {
       current = false;
       setRemoving(null);
+      setPasskeyNote(false);
       setError(null);
       setStatus('');
     };
@@ -220,6 +225,17 @@ export function PasskeysSection() {
       setRemoving(null);
       setStatus(text.removedStatus);
     }, text.removeFailed);
+
+  /** Add, or first the note when this phone hasn't accepted it. Continue adds straight away, from the same tap. */
+  function startAdding() {
+    if (noteSeen('passkey')) void add();
+    else setPasskeyNote(true);
+  }
+
+  function closeNote() {
+    focusNext.current = 'add';
+    setPasskeyNote(false);
+  }
 
   function cancelRemoval(passkey: Passkey) {
     focusNext.current = `remove:${passkey.id}`;
@@ -314,17 +330,32 @@ export function PasskeysSection() {
 
       {Array.isArray(passkeys) &&
         (supported ? (
-          <Button
-            ref={focusIf('add')}
-            type="button"
-            variant="outline"
-            className="self-start px-4"
-            disabled={busy}
-            onClick={() => void add()}
-          >
-            <KeyRoundIcon aria-hidden="true" />
-            {text.add}
-          </Button>
+          passkeyNote ? (
+            <PrivacyNote
+              id="passkey"
+              label={t.auth.privacy.label}
+              text={t.auth.privacy.passkey}
+              continueLabel={t.auth.privacy.continue}
+              cancelLabel={t.auth.privacy.cancel}
+              onContinue={() => {
+                closeNote();
+                void add();
+              }}
+              onCancel={closeNote}
+            />
+          ) : (
+            <Button
+              ref={focusIf('add')}
+              type="button"
+              variant="outline"
+              className="self-start px-4"
+              disabled={busy}
+              onClick={startAdding}
+            >
+              <KeyRoundIcon aria-hidden="true" />
+              {text.add}
+            </Button>
+          )
         ) : (
           <p className="text-sm text-muted-foreground">{text.unsupported}</p>
         ))}

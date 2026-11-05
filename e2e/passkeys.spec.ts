@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { formatDate, todayIso } from '../src/lib/dates';
+import { acceptPrivacyNotes } from './helpers/privacy';
 import {
   addVirtualAuthenticator,
   E2E_TOTP_CODE,
@@ -17,6 +18,8 @@ test.use({ viewport: { width: 375, height: 812 } });
 // Signing in links the phone to the account (P2.2), which reads the account's tables: an empty account by default.
 test.beforeEach(async ({ page }) => {
   await mockSupabaseData(page);
+  // The notes before the first account and passkey have their own spec (privacy-notes.spec.ts).
+  await acceptPrivacyNotes(page);
 });
 
 const VIRTUAL_ONLY = 'Makes or uses a passkey: needs a virtual authenticator, which only Chromium has.';
