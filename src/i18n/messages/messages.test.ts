@@ -25,6 +25,8 @@ function texts(value: unknown, prefix: string): Map<string, string> {
  */
 const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
   de: new Set([
+    'tips.hacks.tab',
+    'tips.hacks.cities.regensburg',
     'auth.postingName.labels.alumni',
     'common.accountOption',
     'common.dateField.letters.month',
@@ -47,6 +49,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'badges.tiers.gold',
   ]),
   es: new Set([
+    'tips.hacks.cities.regensburg',
     'common.accountOption',
     'home.leftThisMonth.overThisMonth.before',
     'common.dateField.letters.day',
@@ -62,6 +65,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'auth.signedIn.as.after',
   ]),
   fr: new Set([
+    'tips.hacks.cities.regensburg',
     'auth.postingName.labels.alumni',
     'common.accountOption',
     'home.leftThisMonth.overThisMonth.before',

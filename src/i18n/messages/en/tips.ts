@@ -2,7 +2,7 @@
 // themselves are city content (src/data), translated by item in src/i18n/city.
 
 export const tips = {
-  tabsLabel: 'Tips or discounts',
+  tabsLabel: 'Tips, discounts or hacks',
   tips: 'Tips',
   discounts: 'Discounts',
   all: 'All',
@@ -33,6 +33,28 @@ export const tips = {
     outdated: (place: string) => `${place}: saved as not working.`,
     moves: (saved: string, direction: 'up' | 'down') => `${saved} It moves ${direction} the list.`,
     failed: (place: string) => `${place}: could not save your answer. Try again.`,
+  },
+  /** The hacks feed: money-saving posts by students (docs/superpowers/plans/2026-11-05-hacks-feed.md). */
+  hacks: {
+    tab: 'Hacks',
+    intro:
+      'Money-saving hacks posted by students, in their own words. The app doesn’t check them: the votes show what ' +
+      'worked.',
+    signedOut: 'Sign in to read and post students’ hacks.',
+    toAccount: 'Go to Your account',
+    off: "Students' posts need an account, and accounts aren't set up in this copy of the app.",
+    loading: 'Loading posts…',
+    loadFailed: "The posts couldn't be loaded. Check your connection and try again.",
+    tryAgain: 'Try again',
+    lastLoaded: (when: string) => `Shown as last loaded, ${when}.`,
+    empty: 'No posts yet.',
+    postsFor: 'Show posts for',
+    posts: 'Posts',
+    cities: { regensburg: 'Regensburg', anywhere: 'Anywhere' },
+    noName: 'A student',
+    yours: 'Your post',
+    counts: (ups: number, worked: number, outdated: number) =>
+      `Upvotes: ${ups} · Worked: ${worked} · Outdated: ${outdated}`,
   },
   /** The swap line under an envelope: "Try this: … · save about €10 per meal". */
   swap: {

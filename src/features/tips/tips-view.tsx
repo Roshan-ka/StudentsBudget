@@ -10,6 +10,7 @@ import { TIPS } from '@/data/tips';
 import { categoryTint } from '@/features/charts/colors';
 import { DiscountsView } from '@/features/discounts/discounts-view';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
+import { HacksView } from '@/features/hacks/hacks-view';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
 import { tipIn } from '@/i18n/city';
@@ -20,12 +21,12 @@ import { sortTips, tipChipIds, tipTag } from './tips';
 const SORTED = sortTips(TIPS);
 const CHIPS = tipChipIds(TIPS);
 
-const VIEWS = ['tips', 'discounts'] as const;
+const VIEWS = ['tips', 'discounts', 'hacks'] as const;
 type View = (typeof VIEWS)[number];
 
 /**
- * The Tips tab: the Regensburg tips or the student discounts, one at a time. Both stay mounted while the other is
- * shown, so each keeps its chosen category; `/tips` stays the only route.
+ * The Tips tab: the Regensburg tips, the student discounts or students' own hacks (the hacks feed), one at a time.
+ * All stay mounted while another is shown, so each keeps its chosen category; `/tips` stays the only route.
  */
 export function TipsView() {
   const { t } = useT();
@@ -33,16 +34,20 @@ export function TipsView() {
   const [view, setView] = useChoicePref<View>('studentsbudget-tips-tab', VIEWS, 'tips');
 
   return (
-    <Tabs value={view} onValueChange={(value) => setView(value === 'discounts' ? 'discounts' : 'tips')}>
+    <Tabs value={view} onValueChange={(value) => setView(VIEWS.find((known) => known === value) ?? 'tips')}>
       <TabsList aria-label={t.tips.tabsLabel} className="w-full">
         <TabsTrigger value="tips">{t.tips.tips}</TabsTrigger>
         <TabsTrigger value="discounts">{t.tips.discounts}</TabsTrigger>
+        <TabsTrigger value="hacks">{t.tips.hacks.tab}</TabsTrigger>
       </TabsList>
       <TabsContent value="tips" keepMounted className="pt-2 text-base">
         <TipList />
       </TabsContent>
       <TabsContent value="discounts" keepMounted className="pt-2 text-base">
         <DiscountsView />
+      </TabsContent>
+      <TabsContent value="hacks" keepMounted className="pt-2 text-base">
+        <HacksView />
       </TabsContent>
     </Tabs>
   );

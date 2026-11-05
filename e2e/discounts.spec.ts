@@ -22,7 +22,7 @@ const NOV_2 = new Date('2026-11-02T12:00:00');
 const DEC_15 = new Date('2026-12-15T12:00:00');
 
 function switcher(page: Page) {
-  return page.getByRole('tablist', { name: 'Tips or discounts', exact: true });
+  return page.getByRole('tablist', { name: 'Tips, discounts or hacks', exact: true });
 }
 
 /** What a screen reader hears after a vote: the one status region inside the Discounts panel. */
@@ -200,7 +200,7 @@ test.describe('on a phone set to German', () => {
     await page.clock.setFixedTime(NOV_2);
     await page.goto('/tips');
     await expect(page.getByRole('heading', { level: 2, name: 'Tipps und Rabatte in Regensburg', exact: true })).toBeVisible();
-    await page.getByRole('tablist', { name: 'Tipps oder Rabatte', exact: true }).getByRole('tab', { name: 'Rabatte', exact: true }).click();
+    await page.getByRole('tablist', { name: 'Tipps, Rabatte oder Hacks', exact: true }).getByRole('tab', { name: 'Rabatte', exact: true }).click();
     const list = page.getByRole('list', { name: 'Rabatte', exact: true });
     await expect(list.getByRole('listitem')).toHaveCount(DISCOUNTS.length);
 

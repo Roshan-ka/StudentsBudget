@@ -4,7 +4,7 @@ import { byCount } from './count';
 // La pestaña Consejos en español: consejos, descuentos y las palabras de la línea de ahorro. Los consejos, descuentos
 // e ideas de ahorro en sí son contenido de la ciudad; sus palabras en español van en src/i18n/city/es (chunk 8).
 export const tips: Messages['tips'] = {
-  tabsLabel: 'Consejos o descuentos',
+  tabsLabel: 'Consejos, descuentos o trucos',
   tips: 'Consejos',
   discounts: 'Descuentos',
   all: 'Todos',
@@ -35,6 +35,29 @@ export const tips: Messages['tips'] = {
     outdated: (place) => `${place}: guardado como que ya no funciona.`,
     moves: (saved, direction) => `${saved} ${direction === 'up' ? 'Sube' : 'Baja'} en la lista.`,
     failed: (place) => `${place}: no se ha podido guardar tu respuesta. Inténtalo de nuevo.`,
+  },
+  /** El feed de trucos: trucos para ahorrar publicados por estudiantes. */
+  hacks: {
+    tab: 'Trucos',
+    intro:
+      'Trucos para ahorrar publicados por estudiantes, con sus propias palabras. La app no los comprueba: los ' +
+      'votos muestran qué funcionó.',
+    signedOut: 'Inicia sesión para leer y publicar trucos de estudiantes.',
+    toAccount: 'Ir a «Tu cuenta»',
+    off:
+      'Las publicaciones de estudiantes necesitan una cuenta, y las cuentas no están configuradas en esta ' +
+      'versión de la app.',
+    loading: 'Cargando publicaciones…',
+    loadFailed: 'No se pudieron cargar las publicaciones. Revisa tu conexión e inténtalo de nuevo.',
+    tryAgain: 'Intentar de nuevo',
+    lastLoaded: (when) => `Tal como se cargó la última vez, ${when}.`,
+    empty: 'Aún no hay publicaciones.',
+    postsFor: 'Mostrar publicaciones de',
+    posts: 'Publicaciones',
+    cities: { regensburg: 'Regensburg', anywhere: 'En cualquier sitio' },
+    noName: 'Alguien',
+    yours: 'Tu publicación',
+    counts: (ups, worked, outdated) => `Votos: ${ups} · Funcionó: ${worked} · Desactualizado: ${outdated}`,
   },
   swap: {
     line: (title, saving, per) => `Prueba esto: ${title} · ahorra unos ${saving} por ${per}`,
