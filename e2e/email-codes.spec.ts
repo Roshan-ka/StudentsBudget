@@ -36,11 +36,15 @@ function codeStep(page: Page, heading = 'Confirm your email') {
   return page.getByRole('region', { name: heading, exact: true });
 }
 
-async function createAccount(page: Page, words = { toCreate: 'New here? Create an account', email: 'Email', password: 'Password', create: 'Create account' }) {
+async function createAccount(
+  page: Page,
+  words = { toCreate: 'New here? Create an account', email: 'Email', password: 'Password', username: 'Username', create: 'Create account' },
+) {
   await page.getByRole('button', { name: words.toCreate, exact: true }).click();
   await page.getByRole('textbox', { name: words.email, exact: true }).fill(EMAIL);
   // A password input has no textbox role, so it is found by its label.
   await page.getByLabel(words.password, { exact: true }).fill(PASSWORD);
+  await page.getByRole('textbox', { name: words.username, exact: true }).fill('new_user');
   await page.getByRole('button', { name: words.create, exact: true }).click();
 }
 
@@ -115,7 +119,13 @@ test.describe('in German', () => {
   test('the code step speaks German, and the sign-up asks for German emails', async ({ page }) => {
     await skipUnlessAccountsShow(page);
     const calls = await mockSupabaseAuth(page, {}, { confirmations: true });
-    await createAccount(page, { toCreate: 'Neu hier? Konto erstellen', email: 'E-Mail', password: 'Passwort', create: 'Konto erstellen' });
+    await createAccount(page, {
+      toCreate: 'Neu hier? Konto erstellen',
+      email: 'E-Mail',
+      password: 'Passwort',
+      username: 'Benutzername',
+      create: 'Konto erstellen',
+    });
 
     await expect(codeStep(page, 'E-Mail-Adresse bestätigen')).toContainText(
       `Gib den 6-stelligen Code ein, den wir an ${EMAIL} geschickt haben. Er gilt 60 Minuten.`,

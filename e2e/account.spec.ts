@@ -123,6 +123,7 @@ test('a new account is checked first, then signed in at once and still signed in
   expect(calls).toHaveLength(0);
 
   await passwordField(page).fill(PASSWORD);
+  await page.getByRole('textbox', { name: 'Username', exact: true }).fill('roshan');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await expect(signedInLine(page, EMAIL)).toBeVisible();
   // One sign-up; the reads the passkeys and two-step sections make aside.
@@ -146,6 +147,7 @@ test('says calmly what went wrong: a wrong password, a taken email, offline, no 
   // Switching clears the message.
   await expect(alert(page)).toHaveCount(0);
   await passwordField(page).fill(PASSWORD);
+  await page.getByRole('textbox', { name: 'Username', exact: true }).fill('roshan');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await expect(alert(page)).toHaveText('This email already has an account. Sign in instead.');
   await page.getByRole('button', { name: 'Have an account? Sign in', exact: true }).click();

@@ -25,6 +25,7 @@ function texts(value: unknown, prefix: string): Map<string, string> {
  */
 const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
   de: new Set([
+    'auth.postingName.labels.alumni',
     'common.accountOption',
     'common.dateField.letters.month',
     'home.leftThisMonth.overThisMonth.before',
@@ -61,6 +62,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'auth.signedIn.as.after',
   ]),
   fr: new Set([
+    'auth.postingName.labels.alumni',
     'common.accountOption',
     'home.leftThisMonth.overThisMonth.before',
     'common.dateField.label',

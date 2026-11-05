@@ -37,12 +37,13 @@ function noteFlag(page: Page, key: string) {
   return page.evaluate((name) => localStorage.getItem(name), key);
 }
 
-async function fillNewAccount(page: Page, email: string, words = EN.auth.signIn) {
-  await page.getByRole('button', { name: words.toCreate, exact: true }).click();
-  await page.getByRole('textbox', { name: words.email, exact: true }).fill(email);
+async function fillNewAccount(page: Page, email: string, username: string, words = EN.auth) {
+  await page.getByRole('button', { name: words.signIn.toCreate, exact: true }).click();
+  await page.getByRole('textbox', { name: words.signIn.email, exact: true }).fill(email);
   // A password input has no textbox role, so it is found by its label.
-  await page.getByLabel(words.password, { exact: true }).fill(PASSWORD);
-  await page.getByRole('button', { name: words.create, exact: true }).click();
+  await page.getByLabel(words.signIn.password, { exact: true }).fill(PASSWORD);
+  await page.getByRole('textbox', { name: words.postingName.username, exact: true }).fill(username);
+  await page.getByRole('button', { name: words.signIn.create, exact: true }).click();
 }
 
 async function signIn(page: Page) {
@@ -70,7 +71,7 @@ async function countFrankfurter(page: Page): Promise<string[]> {
 test('the first account on a phone waits for the note on where its data is kept', async ({ page }) => {
   await skipUnlessAccountsShow(page);
   const calls = await mockSupabaseAuth(page);
-  await fillNewAccount(page, EMAIL);
+  await fillNewAccount(page, EMAIL, 'new_user');
 
   // Cancel: nothing is sent, and the form is back.
   await expect(note(page)).toContainText(NOTE.account);
@@ -88,7 +89,7 @@ test('the first account on a phone waits for the note on where its data is kept'
 
   // The next account on this phone goes straight on.
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await fillNewAccount(page, 'other@example.com');
+  await fillNewAccount(page, 'other@example.com', 'other_user');
   await expect.poll(() => signUps(calls).length).toBe(2);
   await expect(note(page)).toHaveCount(0);
 });
@@ -100,7 +101,7 @@ test.describe('in German', () => {
     await skipUnlessAccountsShow(page);
     const calls = await mockSupabaseAuth(page);
     const de = MESSAGES.de;
-    await fillNewAccount(page, EMAIL, de.auth.signIn);
+    await fillNewAccount(page, EMAIL, 'new_user', de.auth);
 
     const german = note(page, de.common.privacy.label);
     await expect(german).toContainText(de.common.privacy.account);
