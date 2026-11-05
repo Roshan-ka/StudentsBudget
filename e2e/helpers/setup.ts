@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { openApp, waitForHome } from './app';
 import { acceptPrivacyNotes } from './privacy';
 
 export type FlexibleId = 'food' | 'eating-out' | 'going-out' | 'transport' | 'shopping' | 'other';
@@ -56,7 +57,7 @@ const ENVELOPE_LABEL: Record<FlexibleId, string> = {
   other: 'Other',
 };
 
-const FLEXIBLE_IDS = Object.keys(GUESS_TOPIC) as FlexibleId[];
+export const FLEXIBLE_IDS = Object.keys(GUESS_TOPIC) as FlexibleId[];
 
 /** Matches every request to the Frankfurter API; for tests that need the request to fail. */
 export const FRANKFURTER = '**/api.frankfurter.dev/**';
@@ -101,7 +102,7 @@ export const SETUP_DAY = new Date('2026-10-16T12:00:00');
  * that still tells the real time has none. (A clock set to within a minute of now would be replaced by
  * `SETUP_DAY`; nothing does that.)
  */
-async function ensureClock(page: Page) {
+export async function ensureClock(page: Page) {
   const pageNow = await page.evaluate(() => Date.now());
   if (Math.abs(pageNow - Date.now()) < 60_000) await page.clock.setFixedTime(SETUP_DAY);
 }
@@ -146,8 +147,8 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   await acceptPrivacyNotes(page, ['rates']);
   await ensureClock(page);
 
-  await page.goto('/setup');
-  // The wizard renders once it has read the database, so the first heading proves the page is live.
+  await openApp(page, '/setup');
+  // The wizard renders once it has read the database.
   await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
   // 7 steps, or 6 when the accounts already exist and the Accounts step is skipped.
   await expect(page.getByText(`Step 1 of ${options.accountsExist ? 6 : 7}`, { exact: true })).toBeVisible();
@@ -197,11 +198,13 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   }
 }
 
-/** Sets up a plan from `DEFAULT_SETUP` (or the overrides) and waits until the wizard has handed over to home. */
+/**
+ * Sets up a plan from `DEFAULT_SETUP` (or the overrides) by walking the wizard, and waits until Home shows it. Specs
+ * that only need a plan use `seedSetup` (seed-setup.ts), which writes the same rows without the walk.
+ */
 export async function completeSetup(page: Page, overrides: Partial<SetupFixture> = {}, options: SetupOptions = {}) {
   await fillSetup(page, overrides, options);
   await page.getByRole('button', { name: 'Save plan' }).click();
-  // Not tied to what home shows: the URL moved on and the wizard is gone.
-  await expect(page).toHaveURL('/');
+  await waitForHome(page);
   await expect(page.getByRole('button', { name: 'Save plan' })).toHaveCount(0);
 }

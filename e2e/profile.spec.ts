@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan, Profile } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
+import { openApp } from './helpers/app';
 import { completeSetup, readStore } from './helpers/setup';
 
 // 375 px, the narrowest phone the app is made for. `completeSetup` pins the clock to Friday 2026-10-16, which falls in
@@ -33,7 +34,8 @@ function savedNotice(page: Page) {
 }
 
 async function openSettings(page: Page) {
-  await page.goto('/settings/profile');
+  // The heading is prerendered; ready means React is listening.
+  await openApp(page, '/settings/profile');
   await expect(page.getByRole('heading', { level: 2, name: 'Profile', exact: true })).toBeVisible();
 }
 

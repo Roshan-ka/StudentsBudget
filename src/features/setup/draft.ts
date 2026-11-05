@@ -248,13 +248,16 @@ export function draftFromPlan(plan: Plan): SetupDraft {
  * schedule: a stored one keeps its id, start, watermark and pause; a new one starts tomorrow with today as its
  * watermark, so nothing back-posts. Each occurrence posts the monthly euro figure (a weekly one: 12 months over 52
  * weeks), or for an account in another currency the amount typed for it. A draft account's key becomes that account's
- * new id. `stored` are the saved accounts, which a line picks from when the draft has none.
+ * new id. `stored` are the saved accounts, which a line picks from when the draft has none. `now` is the moment the
+ * accounts are created at: the e2e seeder (e2e/helpers/seed-setup.ts) passes the browser's pinned clock, as the
+ * wizard's own `Date.now()` reads it.
  */
 export function draftToRecords(
   d: SetupDraft,
   today: IsoDate,
   existing?: Plan,
   stored: AccountOption[] = [],
+  now: number = Date.now(),
 ): { plan: Plan; guesses: Guess[]; accounts: Account[] } {
   const thisMonth = monthOf(today);
   const unclaimed = [...(existing?.oneOffs ?? [])];
@@ -282,7 +285,6 @@ export function draftToRecords(
 
   // One millisecond apart, in draft order and ending now. With one shared timestamp the name tiebreak of
   // `sortAccounts` ordered them (Cash before Home bank before Local bank).
-  const now = Date.now();
   const accounts = d.accounts.map(
     (a, i): Account => ({
       id: newId(),

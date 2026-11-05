@@ -9,6 +9,9 @@ import { postDueRecurring } from '@/features/recurring/post-due';
 import { todayIso } from '@/lib/dates';
 import { registerServiceWorker } from '@/lib/sw-register';
 
+/** Set on `<html>` once the app has started (see `init` below). e2e/helpers/app.ts waits on the same name. */
+const APP_READY_ATTRIBUTE = 'data-app-ready';
+
 async function refreshExchangeRates() {
   try {
     await refreshRates(todayIso());
@@ -70,12 +73,19 @@ export function AppInit() {
     }
     document.addEventListener('visibilitychange', onVisibilityChange);
 
+    // The effect of a dev remount (StrictMode) must not mark the page once it has been cleaned up.
+    let live = true;
+
     async function init() {
       try {
         await ensureSeeded();
       } catch (error) {
         console.error('StudentsBudget: could not seed the local database', error);
       }
+      // The app's ready signal for the e2e specs (`waitForApp`, e2e/helpers/app.ts): React has hydrated the layout and
+      // the database is open, its schema created and its categories seeded. A bare data attribute, so nothing a person
+      // or a screen reader meets changes, and no style reads it.
+      if (live) document.documentElement.setAttribute(APP_READY_ATTRIBUTE, '');
       // Neither waits for the other: a hung connection holds the rates (and the posting after them) for the 10 s
       // fetch timeout, and some browsers hold the persistence promise open until the person answers a prompt.
       void refreshThenPost();
@@ -88,7 +98,11 @@ export function AppInit() {
     void init();
     void startServiceWorker();
 
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      live = false;
+      document.documentElement.removeAttribute(APP_READY_ATTRIBUTE);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
 
   return null;

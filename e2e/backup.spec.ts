@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Category, DiscountVote, Entry, Plan, Profile, Rate, WeekResult } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
+import { openApp } from './helpers/app';
 import { completeSetup, readStore } from './helpers/setup';
 
 // The clock is pinned to 2026-10-16 by `completeSetup`, so the file is named after that day.
@@ -105,10 +106,10 @@ async function overflow(page: Page) {
 }
 
 async function openSettings(page: Page) {
-  await page.goto('/settings/backup');
+  // Ready means React is listening, so a file chosen after it cannot reach the server-rendered input; Export is
+  // enabled once the page's live query has answered.
+  await openApp(page, '/settings/backup');
   await expect(page.getByRole('heading', { level: 3, name: 'Backup' })).toBeVisible();
-  // The heading is prerendered; Export is enabled only once the page has hydrated and its live query has answered,
-  // so a file chosen after it cannot reach the server-rendered input before React is listening.
   await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeEnabled();
 }
 
