@@ -57,6 +57,25 @@ export function createSuggestionProvider(swaps: readonly Swap[]): SuggestionProv
   };
 }
 
+/**
+ * The one suggestion Home shows: for the envelope furthest over its plan (or closest to it), the first row on a tie,
+ * so a month with several envelopes over doesn't fill Home with swaps (pain points, chunk 2). The check-in shows all.
+ */
+export function furthestOver(suggestions: Suggestion[], rows: SuggestionRow[]): Suggestion | null {
+  let best: Suggestion | null = null;
+  let bestOver = -Infinity;
+  for (const row of rows) {
+    const suggestion = suggestions.find((s) => s.categoryId === row.categoryId);
+    if (suggestion === undefined) continue;
+    const over = row.spentMinor - row.plannedMinor;
+    if (over > bestOver) {
+      best = suggestion;
+      bestOver = over;
+    }
+  }
+  return best;
+}
+
 /** The rule-based provider over the seeded swaps. */
 export const localSuggestions: SuggestionProvider = createSuggestionProvider(SWAPS);
 

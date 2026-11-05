@@ -6,21 +6,31 @@ import { isSunday, type IsoDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
 /**
- * The way into the weekly check-in, on home. Always there; on Sunday, the day of the check-in, it is the yellow
- * accent card and says in words that it is time. The date is passed in, so nothing here reads the clock.
+ * The way into the weekly check-in, on home. Always there: on a weekday one quiet line (pain points, chunk 2), and on
+ * Sunday, the day of the check-in, the yellow accent card that says in words that it is time. The date is passed in,
+ * so nothing here reads the clock.
  */
 export function CheckInCard({ today }: { today: IsoDate }) {
   const { t } = useT();
   const text = t.checkIn.card;
-  const sunday = isSunday(today);
+
+  if (!isSunday(today)) {
+    return (
+      <Link href="/check-in" className="flex min-h-11 items-center gap-3 rounded-md text-sm">
+        <CalendarCheckIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1">
+          <span className="font-semibold">{text.title}</span>{' '}
+          <span className="text-muted-foreground">{text.other}</span>
+        </span>
+        <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 rtl:rotate-180" />
+      </Link>
+    );
+  }
 
   return (
     <Link
       href="/check-in"
-      className={cn(
-        cardVariants({ variant: sunday ? 'accent' : 'default' }),
-        'min-h-12 flex-row items-center gap-3 px-4 py-3',
-      )}
+      className={cn(cardVariants({ variant: 'accent' }), 'min-h-12 flex-row items-center gap-3 px-4 py-3')}
     >
       <span
         aria-hidden="true"
@@ -30,9 +40,7 @@ export function CheckInCard({ today }: { today: IsoDate }) {
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="font-semibold">{text.title}</span>
-        <span className={cn('text-sm', sunday ? 'text-foreground' : 'text-muted-foreground')}>
-          {sunday ? text.sunday : text.other}
-        </span>
+        <span className="text-sm text-foreground">{text.sunday}</span>
       </span>
       <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 rtl:rotate-180" />
     </Link>

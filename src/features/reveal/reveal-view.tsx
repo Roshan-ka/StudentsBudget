@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronRightIcon } from 'lucide-react';
+import { ChevronRightIcon, ScaleIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useId } from 'react';
 import { buttonVariants } from '@/components/ui/button';
@@ -13,7 +13,6 @@ import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
-import { cn } from '@/lib/utils';
 import { formatWeekAmount } from '@/lib/week-amount';
 import { REVEAL_MIN_DAYS, completedMonths, guessVsReality, monthRecap, unlockOn, type GuessRow } from './reveal';
 import { formatDay, recapLine } from './reveal-text';
@@ -28,8 +27,9 @@ function guessLine(row: GuessRow, t: Messages, locale: string): string {
 }
 
 /**
- * The teaser on home. Until the reveal unlocks it says when, and what it is; after that it is the way in.
- * Both dates are passed in, so nothing here reads the clock.
+ * The teaser on home, as one quiet line (pain points, chunk 2). Until the reveal unlocks it says when, and what it is;
+ * after that it is the way in. It stays: this is the only way to the reveal and its month-by-month recaps. Both dates
+ * are passed in, so nothing here reads the clock.
  */
 export function RevealCard({ startedOn, today }: { startedOn: IsoDate; today: IsoDate }) {
   const { t, locale } = useT();
@@ -38,21 +38,19 @@ export function RevealCard({ startedOn, today }: { startedOn: IsoDate; today: Is
 
   if (today >= unlockDate) {
     return (
-      <Link
-        href="/reveal"
-        className={cn(cardVariants(), 'min-h-12 flex-row items-center justify-between gap-3 px-4 py-3 font-semibold')}
-      >
-        {text.open}
+      <Link href="/reveal" className="flex min-h-11 items-center gap-3 text-sm font-semibold">
+        <ScaleIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1">{text.open}</span>
         <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 rtl:rotate-180" />
       </Link>
     );
   }
 
   return (
-    // No bottom padding: the link is 44 px tall (a finger needs that), and its own height is the space below the text.
-    <section aria-label={text.label} className={cn(cardVariants(), 'items-start gap-0 pt-3.5 pb-0')}>
-      <p className="font-medium">{text.unlocksOn(formatDay(unlockDate, locale))}</p>
-      <Link href="/reveal" className={`${LINK_CLASS} inline-flex min-h-11 items-center text-sm`}>
+    <section aria-label={text.label} className="flex min-h-11 flex-wrap items-center gap-x-3 text-sm">
+      <ScaleIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+      <p className="min-w-0 flex-1">{text.unlocksOn(formatDay(unlockDate, locale))}</p>
+      <Link href="/reveal" className={`${LINK_CLASS} inline-flex min-h-11 items-center`}>
         {text.whatsThis}
       </Link>
     </section>

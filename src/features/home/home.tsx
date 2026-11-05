@@ -87,10 +87,13 @@ export function HomeScreen({
         {/* Keyed by month: an installed app stays mounted for days, and "Not now", typed amounts and the saved note
             should not carry into the next month. */}
         <SuggestedBudget key={monthOf(today)} plan={plan} entries={entries} today={today} />
-        <CheckInCard today={today} />
-        <BadgesCard badges={badges} />
-        {/* Guesses are optional: with none saved there is nothing to unlock. */}
-        {guessCount > 0 && <RevealCard startedOn={plan.createdOn} today={today} />}
+        {/* Quiet lines, not cards (pain points, chunk 2); only Sunday's check-in is a card. */}
+        <div className="flex flex-col gap-1">
+          <CheckInCard today={today} />
+          <BadgesCard badges={badges} />
+          {/* Guesses are optional: with none saved there is nothing to unlock. */}
+          {guessCount > 0 && <RevealCard startedOn={plan.createdOn} today={today} />}
+        </div>
         <div className={cn(cardVariants(), 'gap-1')}>
           <p className="font-semibold">
             {t.home.acrossAccounts(
