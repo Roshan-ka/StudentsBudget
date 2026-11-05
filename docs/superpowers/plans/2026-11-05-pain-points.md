@@ -70,6 +70,12 @@ Roshan finds Home annoying: whenever he opens it, the suggested budget is open, 
    - **Badges:** one row, e.g. "Badges · 2 of 4 · Next: …" (`badges-card.tsx`).
    - **Guesses:** only from the unlock day until `/reveal` has been opened, remembered per phone.
    - **Swap lines:** at most one "Try this" on Home, for the envelope furthest over (`envelope-list.tsx`).
+   - **As built (2026-11-05):**
+     - **Check-in:** a plain link row on weekdays (icon, "Weekly check-in", the Sunday line, chevron). Sunday keeps the accent card. Words and link name are unchanged.
+     - **Badges:** one row: the h2 inline, "2 of 4 earned · Next: …", and "See all badges". The next badge's progress line moved off Home; the Badges page has it.
+     - **Guesses: changed from the plan.** It stays as one quiet line, before and after the unlock, instead of hiding after the first visit. It is the only way to `/reveal`, and the reveal also holds the month-by-month recaps (from the first finished month, even before the unlock). Hiding it would have locked people out. No per-phone flag was needed, so `phone-pref` waits for chunk 6.
+     - **Swap lines:** `furthestOver(suggestions, rows)` (`src/features/swaps/suggest.ts`, with tests) picks the row furthest over its plan, the first on a tie. The check-in still lists every swap.
+     - The three lines sit in one group under the suggested budget's link (`home.tsx`).
 3. **Settings hub, Accounts and Backup pages.**
    - **The hub:** `src/app/settings/page.tsx` with the rows, each summary built by a pure helper with tests.
    - **Accounts page:** `AccountsPanel`, `TransferForm` and `RatesPanel`, the last only with a foreign-currency account.

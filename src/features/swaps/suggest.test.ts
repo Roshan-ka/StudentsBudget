@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { SWAPS, type Swap } from '@/data/swaps';
-import { amountText, createSuggestionProvider, localSuggestions, swapLineText, type SuggestionRow } from './suggest';
+import {
+  amountText,
+  createSuggestionProvider,
+  furthestOver,
+  localSuggestions,
+  swapLineText,
+  type SuggestionRow,
+} from './suggest';
 
 const swap = (id: string, categoryId: string, fromMinor: number, toMinor: number, per = 'meal'): Swap => ({
   id,
@@ -123,6 +130,29 @@ describe('suggestions: which swap', () => {
 
   it('no rows, no suggestions', () => {
     expect(provider.suggest({ rows: [], today: '2026-10-10' })).toEqual([]);
+  });
+});
+
+describe('furthestOver: the one swap Home shows', () => {
+  const today = '2026-10-10';
+
+  it('picks the envelope furthest over its plan', () => {
+    const rows = [row('eating-out', 10000, 11000), row('transport', 4000, 9000)];
+    const suggestions = provider.suggest({ rows, today });
+    expect(suggestions).toHaveLength(2);
+    expect(furthestOver(suggestions, rows)?.categoryId).toBe('transport');
+  });
+
+  it('prefers a row over its plan to one only close to it, and the first row on a tie', () => {
+    const close = [row('transport', 10000, 9500), row('eating-out', 10000, 10100)];
+    expect(furthestOver(provider.suggest({ rows: close, today }), close)?.categoryId).toBe('eating-out');
+    const tie = [row('transport', 4000, 5000), row('eating-out', 4000, 5000)];
+    expect(furthestOver(provider.suggest({ rows: tie, today }), tie)?.categoryId).toBe('transport');
+  });
+
+  it('is nothing when no row has a swap', () => {
+    const rows = [row('food', 10000, 20000)];
+    expect(furthestOver(provider.suggest({ rows, today }), rows)).toBeNull();
   });
 });
 

@@ -1,9 +1,7 @@
+import { AwardIcon } from 'lucide-react';
 import Link from 'next/link';
-import { cardVariants } from '@/components/ui/card';
 import { useT } from '@/i18n/use-t';
-import { cn } from '@/lib/utils';
 import type { Badge } from './badges';
-import { DatedText } from './dated-text';
 
 /** The badge to work on next: the first not earned yet, or Under-Budget Week's next tier once all are earned. */
 function nextBadge(badges: Badge[]): Badge | null {
@@ -14,7 +12,10 @@ function nextBadge(badges: Badge[]): Badge | null {
   );
 }
 
-/** The badges on home: how many are earned, the next one, and the way to all of them. Nothing here reads data. */
+/**
+ * The badges on home, as one quiet line (pain points, chunk 2): how many are earned, the next one, and the way to all
+ * of them, where each badge's progress is. Nothing here reads data.
+ */
 export function BadgesCard({ badges }: { badges: Badge[] }) {
   const { t } = useT();
   const text = t.badges.card;
@@ -22,27 +23,24 @@ export function BadgesCard({ badges }: { badges: Badge[] }) {
   const next = nextBadge(badges);
 
   return (
-    // No bottom padding: the link is 44 px tall (a finger needs that), and its own height is the space below the text.
-    <section
-      aria-labelledby="badges-card-heading"
-      className={cn(cardVariants(), 'items-start gap-0.5 pt-3.5 pb-0')}
-    >
-      <h2 id="badges-card-heading" className="text-lg leading-tight font-extrabold">
-        {text.heading}
-      </h2>
-      <p className="text-sm">{text.earnedOf(earned, badges.length)}</p>
-      {next !== null && (
-        <>
-          <p className="text-sm text-muted-foreground">{text.next(next.title)}</p>
-          <p className="text-sm break-words text-muted-foreground">
-            <DatedText text={next.progress} />
-          </p>
-        </>
-      )}
-      <Link
-        href="/badges"
-        className="inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline"
-      >
+    <section aria-labelledby="badges-card-heading" className="flex min-h-11 flex-wrap items-center gap-x-3 text-sm">
+      <AwardIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1">
+        <h2 id="badges-card-heading" className="inline font-sans text-sm font-semibold tracking-normal">
+          {text.heading}
+        </h2>
+        <span aria-hidden="true"> · </span>
+        <span>{text.earnedOf(earned, badges.length)}</span>
+        {next !== null && (
+          <>
+            <span aria-hidden="true" className="text-muted-foreground">
+              {' · '}
+            </span>
+            <span className="text-muted-foreground">{text.next(next.title)}</span>
+          </>
+        )}
+      </div>
+      <Link href="/badges" className="inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline">
         {text.seeAll}
       </Link>
     </section>

@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { categoryTint, chartColor } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
-import { localSuggestions, type Suggestion } from '@/features/swaps/suggest';
+import { furthestOver, localSuggestions, type Suggestion } from '@/features/swaps/suggest';
 import { SwapLine } from '@/features/swaps/swap-line';
 import { categoryNameIn } from '@/i18n/category-name';
 import type { Messages } from '@/i18n/messages';
@@ -73,14 +73,15 @@ function EnvelopeItem({ row, suggestion }: { row: EnvelopeRow; suggestion: Sugge
 }
 
 /**
- * One row per envelope: what is left of this month's plan, with a bar for how much of it is used. A row that runs over,
- * or is close to it early in the month, gets one sourced swap to try under it.
+ * One row per envelope: what is left of this month's plan, with a bar for how much of it is used. The row furthest over
+ * (or closest to it early in the month) gets one sourced swap to try under it; the others don't, so Home stays short.
+ * The check-in lists a swap for each.
  */
 export function EnvelopeList({ rows, today }: { rows: EnvelopeRow[]; today: IsoDate }) {
   const headingId = useId();
   const { t } = useT();
   if (rows.length === 0) return null;
-  const suggestions = new Map(localSuggestions.suggest({ rows, today }).map((s) => [s.categoryId, s]));
+  const swap = furthestOver(localSuggestions.suggest({ rows, today }), rows);
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
@@ -89,7 +90,11 @@ export function EnvelopeList({ rows, today }: { rows: EnvelopeRow[]; today: IsoD
       </h2>
       <ul aria-labelledby={headingId} className="flex flex-col gap-3">
         {rows.map((row) => (
-          <EnvelopeItem key={row.categoryId} row={row} suggestion={suggestions.get(row.categoryId)} />
+          <EnvelopeItem
+            key={row.categoryId}
+            row={row}
+            suggestion={swap?.categoryId === row.categoryId ? swap : undefined}
+          />
         ))}
       </ul>
     </section>

@@ -357,7 +357,7 @@ test('in a later week, an envelope that is used up is listed as used up and the 
 test('home says when the check-in is and highlights it on Sunday', async ({ page }) => {
   await completeSetup(page);
   const card = page.getByRole('link', { name: /Weekly check-in/ });
-  // Every card shares the outline; Sunday turns the card the yellow accent (and says so in words).
+  // On a weekday it is one quiet line; Sunday makes it the yellow accent card (and says so in words).
   const fill = () => card.evaluate((element) => getComputedStyle(element).backgroundColor);
 
   await expect(card.getByText('Your weekly check-in is on Sunday.', { exact: true })).toBeVisible();
