@@ -139,8 +139,9 @@ test('the first passkey on a phone waits for the note on where it is kept', asyn
 
 test('a first account in another currency, in Settings, waits for the note on the exchange rates', async ({ page }) => {
   const requests = await countFrankfurter(page);
-  await page.goto('/settings');
-  await expect(page.getByText('No accounts yet')).toBeVisible();
+  // Settings → Accounts and transfers, its own page since the Settings hub (pain points, chunk 3).
+  await page.goto('/settings/accounts');
+  await expect(page.getByText('No accounts yet', { exact: false })).toBeVisible();
 
   await page.getByRole('button', { name: 'Add account', exact: true }).click();
   await page.getByLabel('Name', { exact: true }).fill('Home bank');
