@@ -37,6 +37,11 @@ export function focusOnMount(element: HTMLElement | null): void {
   element?.focus();
 }
 
+/** An element's first field, for a row that takes the focus after its neighbour goes. */
+export function firstField(element: HTMLElement | null): HTMLElement | null {
+  return element?.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled])') ?? null;
+}
+
 /** The bookkeeping of `useFocusAfter`, apart from React so it can be tested. */
 export function createFocusAfter() {
   let pending: string | null = null;

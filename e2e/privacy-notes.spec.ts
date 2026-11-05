@@ -149,10 +149,13 @@ test('a first account in another currency, in Settings, waits for the note on th
   await page.getByLabel('Opening balance', { exact: true }).fill('50000');
   await page.getByRole('button', { name: 'Save account', exact: true }).click();
 
-  // Cancel: nothing is saved or fetched, and the form is still there.
+  // Cancel: nothing is saved or fetched, and the form is still there. The note takes the focus as it shows, so a
+  // screen reader reads it first, and Cancel gives it to Save, back in the note's place (accessibility, chunk 5).
   await expect(note(page)).toContainText(NOTE.rates);
+  await expect(note(page).locator('p').first()).toBeFocused();
   await note(page).getByRole('button', { name: NOTE.cancel, exact: true }).click();
   await expect(page.getByRole('button', { name: 'Save account', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save account', exact: true })).toBeFocused();
   expect(await readStore<Account>(page, 'accounts')).toHaveLength(0);
   expect(requests).toHaveLength(0);
 
