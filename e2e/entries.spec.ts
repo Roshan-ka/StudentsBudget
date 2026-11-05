@@ -294,10 +294,18 @@ test('delete asks first: Cancel keeps the entry, Yes removes it', async ({ page 
 
   await list.getByRole('button', { name: /döner/ }).click();
   const panel = page.getByRole('region', { name: 'Edit entry' });
+  // The keyboard keeps its place: the panel opens on its heading, and Cancel returns to the entry.
+  await expect(panel.getByRole('heading', { name: 'Edit entry', exact: true })).toBeFocused();
+  await panel.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(list.getByRole('button', { name: /döner/ })).toBeFocused();
+  await list.getByRole('button', { name: /döner/ }).click();
+
   await panel.getByRole('button', { name: 'Delete', exact: true }).click();
-  await expect(panel.getByText('Delete this entry?')).toBeVisible();
+  // The question takes the focus, so a screen reader says it first; Cancel gives it back to Delete.
+  await expect(panel.getByText('Delete this entry?')).toBeFocused();
   await panel.getByRole('button', { name: 'Cancel' }).click();
   await expect(panel.getByText('Delete this entry?')).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'Delete', exact: true })).toBeFocused();
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(1);
 
   await panel.getByRole('button', { name: 'Delete', exact: true }).click();
@@ -306,6 +314,8 @@ test('delete asks first: Cancel keeps the entry, Yes removes it', async ({ page 
 
   await expect(list.getByText('€6.00')).toHaveCount(0);
   await expect(list.getByText('Nothing logged here yet.')).toBeVisible();
+  // The month's only entry went, so the list itself has the focus.
+  await expect(list).toBeFocused();
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
   expect(dialogs).toBe(0);
 });

@@ -5,7 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowLeftRightIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { CATEGORIES } from '@/data/categories';
@@ -19,6 +19,7 @@ import { useT } from '@/i18n/use-t';
 import { daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
+import { useFocusAfter, useFocusOnMount } from '@/lib/focus';
 import { cn } from '@/lib/utils';
 import { CATEGORY_ICONS, OTHER_ICON } from './category-icons';
 import { EntryForm } from './entry-form';
@@ -28,6 +29,9 @@ import { RecurringTag, isRecurring } from './recurring-tag';
 const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 
 const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline underline-offset-4';
+
+/** The focus key of the list itself, for the last entry of a month that is deleted. */
+const LIST_KEY = 'entries-list';
 
 /** "Friday, 16 October". `parseISO` reads a date-only string as local midnight, so the day never shifts. */
 function headingOf(date: IsoDate, locale: string): string {
@@ -58,7 +62,18 @@ function groupByDate(entries: Entry[]): { date: IsoDate; entries: Entry[] }[] {
   return groups;
 }
 
-function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account[]; onOpen: () => void }) {
+function EntryRow({
+  entry,
+  accounts,
+  onOpen,
+  buttonRef,
+}: {
+  entry: Entry;
+  accounts: Account[];
+  onOpen: () => void;
+  /** Takes the focus back when the row's panel closes, or when the entry before it is deleted. */
+  buttonRef: Ref<HTMLButtonElement>;
+}) {
   const { t, locale } = useT();
   const accountName = (accountId: string) =>
     accounts.find((a) => a.id === accountId)?.name ?? t.entries.list.unknownAccount;
@@ -74,6 +89,7 @@ function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onOpen}
       className="flex min-h-14 w-full items-center gap-3 py-2.5 text-start"
@@ -100,12 +116,17 @@ function EntryRow({ entry, accounts, onOpen }: { entry: Entry; accounts: Account
   );
 }
 
-/** The edit form for one entry, with Delete behind a yes-or-cancel question. */
-function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
+/**
+ * The edit form for one entry, with Delete behind a yes-or-cancel question. It opens on its heading; the question
+ * takes the focus when it shows, and Cancel gives it back to Delete. `onClose` and `onDeleted` move it on.
+ */
+function EditPanel({ entry, onClose, onDeleted }: { entry: Entry; onClose: () => void; onDeleted: () => void }) {
   const { t } = useT();
   const text = t.entries.edit;
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const headingRef = useFocusOnMount<HTMLHeadingElement>();
+  const focus = useFocusAfter();
 
   async function remove() {
     setError(null);
@@ -116,12 +137,14 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
       setError(text.deleteFailed);
       return;
     }
-    onClose();
+    onDeleted();
   }
 
   return (
     <section aria-label={text.heading} className={cn(cardVariants(), 'my-2 gap-4')}>
-      <h3 className="text-xl leading-tight font-extrabold">{text.heading}</h3>
+      <h3 ref={headingRef} tabIndex={-1} className="text-xl leading-tight font-extrabold outline-none">
+        {text.heading}
+      </h3>
       <EntryForm entry={entry} onSaved={onClose} />
       {error && (
         <p role="alert" className="text-sm text-destructive">
@@ -130,11 +153,18 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
       )}
       {confirming ? (
         <div role="group" aria-label={text.deleteQuestion} className="flex flex-wrap items-center gap-2">
-          <p className="me-auto font-semibold">{text.deleteQuestion}</p>
+          <DeleteQuestion text={text.deleteQuestion} />
           <Button variant="destructive" className="px-4" onClick={() => void remove()}>
             {text.yes}
           </Button>
-          <Button variant="outline" className="px-4" onClick={() => setConfirming(false)}>
+          <Button
+            variant="outline"
+            className="px-4"
+            onClick={() => {
+              focus.mark('delete');
+              setConfirming(false);
+            }}
+          >
             {text.cancel}
           </Button>
         </div>
@@ -143,12 +173,22 @@ function EditPanel({ entry, onClose }: { entry: Entry; onClose: () => void }) {
           <Button variant="outline" className="px-4" onClick={onClose}>
             {text.cancel}
           </Button>
-          <Button variant="ghost" className="px-4" onClick={() => setConfirming(true)}>
+          <Button ref={focus.refFor('delete')} variant="ghost" className="px-4" onClick={() => setConfirming(true)}>
             {text.delete}
           </Button>
         </div>
       )}
     </section>
+  );
+}
+
+/** The yes-or-cancel question, which takes the focus as it shows, so a screen reader says it first. */
+function DeleteQuestion({ text }: { text: string }) {
+  const ref = useFocusOnMount<HTMLParagraphElement>();
+  return (
+    <p ref={ref} tabIndex={-1} className="me-auto font-semibold outline-none">
+      {text}
+    </p>
   );
 }
 
@@ -181,6 +221,8 @@ export function EntriesList() {
     };
   }, [month, today]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // Where the focus goes as a panel closes or an entry goes: the row's own button, the next row, or the list.
+  const focus = useFocusAfter();
 
   if (accounts === undefined || !loaded) return null;
 
@@ -191,8 +233,19 @@ export function EntriesList() {
     (p) => p !== null,
   );
 
+  // A deleted entry hands the focus to the one after it, else the one before, else the list itself.
+  const neighbour = (id: string): string => {
+    const index = entries.findIndex((e) => e.id === id);
+    return entries[index + 1]?.id ?? entries[index - 1]?.id ?? LIST_KEY;
+  };
+
   return (
-    <section aria-label={text.label} className="flex flex-col gap-3">
+    <section
+      ref={focus.refFor(LIST_KEY)}
+      tabIndex={-1}
+      aria-label={text.label}
+      className="flex flex-col gap-3 outline-none"
+    >
       <div className="flex flex-wrap items-center justify-between gap-x-4 text-sm text-muted-foreground">
         <p className="flex flex-wrap items-center gap-x-2">
           <span>{summary.join(' · ')}</span>
@@ -231,9 +284,24 @@ export function EntriesList() {
               {group.entries.map((entry) => (
                 <li key={entry.id}>
                   {editingId === entry.id ? (
-                    <EditPanel entry={entry} onClose={() => setEditingId(null)} />
+                    <EditPanel
+                      entry={entry}
+                      onClose={() => {
+                        focus.mark(entry.id);
+                        setEditingId(null);
+                      }}
+                      onDeleted={() => {
+                        focus.mark(neighbour(entry.id));
+                        setEditingId(null);
+                      }}
+                    />
                   ) : (
-                    <EntryRow entry={entry} accounts={accounts} onOpen={() => setEditingId(entry.id)} />
+                    <EntryRow
+                      entry={entry}
+                      accounts={accounts}
+                      onOpen={() => setEditingId(entry.id)}
+                      buttonRef={focus.refFor(entry.id)}
+                    />
                   )}
                 </li>
               ))}
