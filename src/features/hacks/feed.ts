@@ -149,3 +149,12 @@ export function linkHost(link: string): string {
     return link;
   }
 }
+
+/**
+ * Google Translate's page for a post's text, into the phone's language (chunk 8): the standard way out to a
+ * translation. The text goes in the address, so the first use on a phone waits for its data-protection note.
+ */
+export function translateUrl(body: string, into: string): string {
+  const query = new URLSearchParams({ sl: 'auto', tl: into, text: body, op: 'translate' });
+  return `https://translate.google.com/?${query.toString()}`;
+}

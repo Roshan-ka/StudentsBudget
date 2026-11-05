@@ -114,6 +114,7 @@ export const tips: Messages['tips'] = {
       kept: 'Behalten: Er ist wieder zu sehen.',
       failed: 'Das hat nicht geklappt. Versuch es noch einmal.',
     },
+    translate: 'Übersetzen',
     counts: (ups, worked, outdated) => `Daumen hoch: ${ups} · Hat geklappt: ${worked} · Veraltet: ${outdated}`,
   },
   swap: {

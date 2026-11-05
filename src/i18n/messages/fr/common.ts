@@ -57,5 +57,8 @@ export const common: Messages['common'] = {
       `Tes votes comptent dans les totaux que tous les étudiants voient sur la publication${NNBSP}; personne ne ` +
       'voit qui a voté. Un signalement cache la publication pour toi tout de suite, et pour tous quand assez ' +
       'd’étudiants l’ont signalée, jusqu’à ce que la modération de l’app décide.',
+    translate:
+      'Traduire ouvre Google Traduction dans un nouvel onglet, avec le texte de la publication dans son adresse. ' +
+      'Google reçoit le texte et l’adresse internet de ton téléphone.',
   },
 };

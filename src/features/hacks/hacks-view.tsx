@@ -10,12 +10,21 @@ import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { categoryNameIn } from '@/i18n/category-name';
+import type { Language } from '@/i18n/languages';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { formatDate, formatDateTime, todayIso } from '@/lib/dates';
 import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import { hackCategoryIds, linkHost, readFeed, readFeedCache, saveFeedCache, type HackPost } from './feed';
+import {
+  hackCategoryIds,
+  linkHost,
+  readFeed,
+  readFeedCache,
+  saveFeedCache,
+  translateUrl,
+  type HackPost,
+} from './feed';
 import { HackForm } from './hack-form';
 import { postingNameText } from './posting-name';
 import { deleteHack } from './posts';
@@ -30,7 +39,7 @@ type Shown = { posts: HackPost[]; loadedAt: string; fresh: boolean };
  * the list this phone last loaded for the account shows instead, saying when it was loaded.
  */
 export function HacksView() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const text = t.tips.hacks;
   const auth = useAuth();
   const userId = auth.status === 'signed-in' ? auth.userId : null;
@@ -197,7 +206,7 @@ export function HacksView() {
       {listed.length > 0 && (
         <ul aria-label={text.posts} className="flex flex-col gap-3">
           {listed.map((post) => (
-            <HackCard key={post.id} post={post} t={t} onDelete={remove} onVote={vote} onReport={report} />
+            <HackCard key={post.id} post={post} t={t} lang={lang} onDelete={remove} onVote={vote} onReport={report} />
           ))}
         </ul>
       )}
@@ -218,18 +227,23 @@ const VOTE_BUTTONS: readonly VoteButton[] = ['up', 'worked', 'outdated'];
 function HackCard({
   post,
   t,
+  lang,
   onDelete,
   onVote,
   onReport,
 }: {
   post: HackPost;
   t: Messages;
+  lang: Language;
   onDelete: (id: string) => Promise<boolean>;
   onVote: (post: HackPost, button: VoteButton) => Promise<string | null>;
   onReport: (post: HackPost) => Promise<string | null>;
 }) {
   const text = t.tips.hacks;
   const Icon = CATEGORY_ICONS[post.categoryId] ?? OTHER_ICON;
+  // A post in another language than the phone's has Translate (chunk 8); its first use waits for its note.
+  const translation = post.lang === lang ? null : translateUrl(post.body, lang);
+  const [translateNote, setTranslateNote] = useState(false);
   const [asking, setAsking] = useState(false);
   const [askingReport, setAskingReport] = useState(false);
   const [pending, setPending] = useState<CardAction | null>(null);
@@ -278,6 +292,36 @@ function HackCard({
       <p lang={post.lang} className="break-words whitespace-pre-line">
         {post.body}
       </p>
+      {translation !== null && (
+        <a
+          href={translation}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="self-start text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          onClick={(event) => {
+            if (noteSeen('translate')) return;
+            event.preventDefault();
+            setTranslateNote(true);
+          }}
+        >
+          {text.translate}
+        </a>
+      )}
+      {translation !== null && translateNote && (
+        <PrivacyNote
+          id="translate"
+          label={t.common.privacy.label}
+          text={t.common.privacy.translate}
+          continueLabel={t.common.privacy.continue}
+          cancelLabel={t.common.privacy.cancel}
+          onContinue={() => {
+            setTranslateNote(false);
+            // From the same tap, so the browser lets the tab open.
+            window.open(translation, '_blank', 'noopener,noreferrer');
+          }}
+          onCancel={() => setTranslateNote(false)}
+        />
+      )}
       {post.link !== null && (
         <a
           href={post.link}

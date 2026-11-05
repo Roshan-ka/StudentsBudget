@@ -126,6 +126,7 @@ export const tips: Messages['tips'] = {
       kept: 'Mantenida: se ve otra vez.',
       failed: 'No funcionó. Inténtalo de nuevo.',
     },
+    translate: 'Traducir',
     counts: (ups, worked, outdated) => `Votos: ${ups} · Funcionó: ${worked} · Desactualizado: ${outdated}`,
   },
   swap: {
