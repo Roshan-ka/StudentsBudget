@@ -125,7 +125,8 @@ test('rent is added on its day, a changed day posts once, and a deleted one stay
     ['2026-12-03', 42000],
   ]);
   await page.reload();
-  await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
+  // The bottom nav's: a Settings page also has "Back to Settings".
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' })).toBeVisible();
 
   // Deleted, it does not come back: not on a reload, and not when January's rent is added.
   const december = (await readStore<Entry>(page, 'entries')).find((e) => e.date === '2026-12-03');
@@ -276,7 +277,9 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   await form.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('₹50,000.00 · Monthly on day 1 · Home bank', { exact: true })).toBeVisible();
 
-  // An account a line is added to cannot be deleted, though it has no entries yet.
+  // An account a line is added to cannot be deleted, though it has no entries yet. Accounts have their own page.
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('link', { name: /^Accounts and transfers/ }).click();
   await page.getByRole('button', { name: 'Delete Home bank', exact: true }).click();
   await expect(
     page.getByText(
@@ -287,6 +290,7 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   expect((await readStore<Account>(page, 'accounts')).map((a) => a.name)).toContain('Home bank');
 
   // 1 November without a rate: the euro rent from Local bank comes, the INR income waits with its watermark.
+  await openSettings(page);
   await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
   const rent = page.getByRole('form', { name: 'Change Rent' });
   await rent.getByRole('checkbox', { name: 'Add it automatically', exact: true }).check();

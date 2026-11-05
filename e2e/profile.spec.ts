@@ -102,7 +102,7 @@ test('Profile has its own page in Settings, prefills the semester and keeps what
   expect(Number.isNaN(Date.parse(saved.updatedAt))).toBe(false);
 
   await page.reload();
-  await expect(page.getByRole('heading', { level: 3, name: 'Profile', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Profile', exact: true })).toBeVisible();
   await expect(nameField(page)).toHaveValue('Roshan');
   await expect(universityField(page)).toHaveValue('ur');
   await expect(startField(page)).toHaveValue('2026-10-12');

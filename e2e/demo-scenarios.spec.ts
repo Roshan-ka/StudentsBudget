@@ -36,7 +36,10 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
         await nav.getByRole('link', { name: heading, exact: true }).click();
         await expect(page.getByRole('heading', { level: 2, name: heading, exact: true })).toBeVisible();
       }
-      if (name.startsWith('05')) await expect(page.getByText('No rate yet. Enter one to log TRY spending.', { exact: true })).toBeVisible();
+      if (name.startsWith('05')) {
+        await page.getByRole('link', { name: /^Accounts and transfers/ }).click();
+        await expect(page.getByText('No rate yet. Enter one to log TRY spending.', { exact: true })).toBeVisible();
+      }
       await nav.getByRole('link', { name: 'Home', exact: true }).click();
       await page.getByRole('link', { name: /Weekly check-in/ }).click();
       await expect(page.getByRole('heading', { name: 'This week against your plan', exact: true })).toBeVisible();
