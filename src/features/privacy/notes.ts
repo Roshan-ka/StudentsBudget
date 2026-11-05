@@ -10,6 +10,8 @@ export const PRIVACY_NOTES = {
   mic: 'studentsbudget-mic-note',
   account: 'studentsbudget-account-note',
   passkey: 'studentsbudget-passkey-note',
+  rates: 'studentsbudget-rates-note',
+  votes: 'studentsbudget-votes-note',
 } as const;
 
 export type PrivacyNoteId = keyof typeof PRIVACY_NOTES;

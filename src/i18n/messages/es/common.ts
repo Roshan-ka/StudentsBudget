@@ -27,4 +27,25 @@ export const common: Messages['common'] = {
     plan: 'tu plan',
   },
   estimate: 'Estimación',
+  /** Notas únicas sobre los datos (`PrivacyNote`), una vez por móvil, antes de que una función envíe datos. */
+  privacy: {
+    label: 'Sobre tus datos',
+    continue: 'Continuar',
+    cancel: 'Cancelar',
+    account:
+      'Tu cuenta la guarda Supabase, en Fráncfort (UE): tu correo electrónico, tu contraseña (guardada solo como ' +
+      'hash), el idioma de tu móvil y una copia de los datos que sincronizas. Si la cuenta necesita un código, para ' +
+      'confirmarla o para una nueva contraseña, llega por correo. Puedes eliminar la cuenta cuando quieras en Ajustes.',
+    passkey:
+      'El gestor de contraseñas de tu móvil guarda la llave de acceso y puede sincronizarla con tus otros ' +
+      'dispositivos (el llavero de iCloud o el Gestor de contraseñas de Google, por ejemplo). Tu cuenta guarda ' +
+      'solo su clave pública, con la que nadie puede iniciar sesión.',
+    rates:
+      'Mientras una cuenta use una moneda distinta del euro, la app pide a Frankfurter (frankfurter.dev) el tipo ' +
+      'de cambio del Banco Central Europeo, como mucho una vez al día. Solo envía los códigos de moneda; como ' +
+      'cualquier web, Frankfurter ve la dirección de internet de tu móvil.',
+    votes:
+      'Con la sesión iniciada, tus votos van a tu cuenta al sincronizar y cuentan en los totales que otros ' +
+      'estudiantes ven para este semestre. Nadie ve quién votó.',
+  },
 };

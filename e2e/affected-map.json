@@ -18,7 +18,7 @@
     "/settings": "all",
     "/settings/account": ["account", "account-deletion", "change-password", "discount-confirmations", "email-codes", "language-tour", "linking", "passkeys", "privacy-notes", "reflow", "theme", "two-step"],
     "/setup": "all",
-    "/tips": ["discount-confirmations", "discounts", "language-tour", "reflow", "theme", "tips"]
+    "/tips": ["discount-confirmations", "discounts", "language-tour", "privacy-notes", "reflow", "theme", "tips"]
   },
   "allOnly": ["dictation", "insecure-origin", "language", "overdrawn", "recurring"]
 }

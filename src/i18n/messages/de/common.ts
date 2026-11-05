@@ -26,4 +26,26 @@ export const common: Messages['common'] = {
     plan: 'dein Plan',
   },
   estimate: 'Schätzung',
+  /** Einmalige Datenschutzhinweise (`PrivacyNote`), einmal pro Handy, bevor eine Funktion erstmals Daten schickt. */
+  privacy: {
+    label: 'Zu deinen Daten',
+    continue: 'Weiter',
+    cancel: 'Abbrechen',
+    account:
+      'Dein Konto liegt bei Supabase in Frankfurt (EU): deine E-Mail-Adresse, dein Passwort (nur als Hash ' +
+      'gespeichert), die Sprache deines Handys und eine Kopie der Daten, die du synchronisierst. Braucht das Konto ' +
+      'einen Code, zum Bestätigen oder für ein neues Passwort, kommt er per E-Mail. Du kannst das Konto jederzeit ' +
+      'in den Einstellungen löschen.',
+    passkey:
+      'Der Passwortmanager deines Handys bewahrt den Passkey auf und kann ihn mit deinen anderen Geräten ' +
+      'synchronisieren (zum Beispiel iCloud-Schlüsselbund oder Google Passwortmanager). Dein Konto speichert nur ' +
+      'den öffentlichen Schlüssel, mit dem sich niemand anmelden kann.',
+    rates:
+      'Solange ein Konto eine andere Währung als Euro hat, fragt die App bei Frankfurter (frankfurter.dev) den Kurs ' +
+      'der Europäischen Zentralbank ab, höchstens einmal am Tag. Sie schickt nur die Währungscodes; wie jede ' +
+      'Website sieht Frankfurter die Internetadresse deines Handys.',
+    votes:
+      'Angemeldet gehen deine Stimmen beim Synchronisieren an dein Konto und zählen in den Summen, die andere ' +
+      'Studierende für dieses Semester sehen. Niemand sieht, wer abgestimmt hat.',
+  },
 };

@@ -27,12 +27,22 @@ Not noted, on purpose: the source links (plain links to other sites), the backup
 - **Mic:** `quick-add-field.tsx` uses `PrivacyNote`; `mic-note.ts` is gone.
 - **Account:** `SignInForm` (`account-view.tsx`) runs its checks first (credentials, offline), then shows the note in place of the Create button. Continue creates the account (`submit(true)`, so blocked storage can't loop the note); switching to Sign in or leaving the page closes it.
 - **Passkey:** `PasskeysSection` (`passkeys.tsx`) shows the note in place of "Add a passkey". Continue starts the registration from the same tap; Cancel puts the focus back on Add.
-- **Texts:** `auth.privacy` (label, Continue, Cancel, the account and passkey texts) in en, de, fr and es. French with `NNBSP`.
+- **Texts:** `common.privacy` (label, Continue, Cancel, and one text per note) in en, de, fr and es. French with `NNBSP`. (Built as `auth.privacy`, moved to `common` in chunk 2, when the notes reached setup, Settings and Tips.)
 - **Tests:**
   - `notes.test.ts`: the flags, the mic's kept key, unique keys, blocked storage.
   - `e2e/privacy-notes.spec.ts` (under `/settings/account` in the affected map): the account note (Cancel sends no sign-up, Continue signs up, the next account goes straight on), in German too, and the passkey note on Chromium (Cancel makes no registration, Continue adds one).
   - `acceptPrivacyNotes` (`e2e/helpers/privacy.ts`) in `account`, `email-codes` and `passkeys` specs, so they aren't stopped by a note.
 
-## Chunk 2
+## Chunk 2, as built (2026-11-05)
 
-The exchange-rate note (wherever a non-euro currency is first chosen: setup, Settings, Edit plan) and the discount-vote note (the first vote while signed in), with their keys in `PRIVACY_NOTES`, texts in four languages, and e2e for each.
+- **Exchange rates** (`rates` in `PRIVACY_NOTES`): shown where an account in another currency is committed, after the form's own checks, in place of the buttons. Continue goes on from the same tap.
+  - Settings → Accounts (`accounts-panel.tsx`): Save of a newly chosen currency other than the euro. An existing account that keeps its currency doesn't ask: nothing new is sent.
+  - Setup (`setup-wizard.tsx`): Next from the accounts step when any account isn't in euros. The draft starts with Home bank in INR, so most new setups see it once. Edit plan has no accounts step.
+  - Frankfurter is asked for nothing new before Continue: the account isn't saved until then, and the fetch only covers saved accounts.
+- **Discount votes** (`votes`): signed in, the first tap on "Still works" or "Doesn't work anymore" shows the note under that discount. Continue saves the vote; Cancel puts the focus back on the button. Signed out, votes stay on the phone and need no note.
+- **Texts:** `common.privacy.rates` and `.votes` in four languages.
+- **Tests:** `privacy-notes.spec.ts` (now also under `/tips`; `/settings` and `/setup` run every spec) covers both places of the rates note and the vote note. `fillSetup` and the `setup`, `overdrawn`, `accounts` and `discount-confirmations` specs accept the notes up front.
+
+**Known edges, left for the privacy page:**
+- Votes given while signed out reach the account at the first link without the votes note. The account note already says a copy of the synced data is kept.
+- Phones that had an account in another currency before this chunk keep fetching its rate without having seen the note.

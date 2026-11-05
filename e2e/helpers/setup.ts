@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { acceptPrivacyNotes } from './privacy';
 
 export type FlexibleId = 'food' | 'eating-out' | 'going-out' | 'transport' | 'shopping' | 'other';
 
@@ -133,12 +134,14 @@ async function addByHand(page: Page, name: string) {
 
 /**
  * Walks through every step of a new setup and stops on the envelopes step, before saving.
- * Mocks Frankfurter first, and pins the date to `SETUP_DAY` unless the caller set `page.clock` before calling it.
+ * Mocks Frankfurter and accepts the data-protection notes first, and pins the date to `SETUP_DAY` unless the caller set `page.clock` before calling it.
  * Rent and the incomes are added by hand (no schedules) unless `options.schedules` is set.
  */
 export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {}, options: SetupOptions = {}) {
   const f: SetupFixture = { ...DEFAULT_SETUP, ...overrides };
   await mockFrankfurter(page);
+  // The prefilled INR account would stop at the exchange-rate note: privacy-notes.spec.ts tests it.
+  await acceptPrivacyNotes(page);
   await ensureClock(page);
 
   await page.goto('/setup');
