@@ -81,9 +81,16 @@ type Handled = {
 
 type FakeEvent = {
   request?: { url: string; method: string; mode: string };
+  /** A push's message (`push`). */
+  data?: { json: () => unknown } | null;
+  /** The notification tapped (`notificationclick`). */
+  notification?: { data?: unknown; close: () => void };
   respondWith: (answer: Promise<Response>) => void;
   waitUntil: (work: Promise<unknown>) => void;
 };
+
+/** A window of the app the worker can bring forward, as `clients.matchAll` lists it. */
+type FakeWindow = { url: string; focus: () => Promise<unknown>; navigate: (url: string) => Promise<unknown> };
 
 /** How the stubbed network answers: a script per test. */
 type Network = (input: string | { url: string }) => Promise<Response>;
@@ -93,7 +100,7 @@ type Network = (input: string | { url: string }) => Promise<Response>;
  * `respondWith` works only while the event is being dispatched, and `waitUntil` only while it is being
  * dispatched or while a promise passed to `respondWith` or `waitUntil` is still pending.
  */
-function loadWorker(network: Network) {
+function loadWorker(network: Network, windows: FakeWindow[] = []) {
   const handlers = new Map<string, ((event: FakeEvent) => void)[]>();
   const cache = new FakeCache();
   const caches = {
@@ -107,7 +114,12 @@ function loadWorker(network: Network) {
       handlers.set(type, [...(handlers.get(type) ?? []), handler]);
     },
     skipWaiting: vi.fn(async () => {}),
-    clients: { claim: vi.fn(async () => {}) },
+    clients: {
+      claim: vi.fn(async () => {}),
+      matchAll: vi.fn(async () => windows),
+      openWindow: vi.fn(async () => null),
+    },
+    registration: { showNotification: vi.fn(async () => {}) },
   };
   const fetchStub = vi.fn(network);
 
@@ -125,7 +137,11 @@ function loadWorker(network: Network) {
   });
   vm.runInContext(SOURCE, context, { filename: 'public/sw.js' });
 
-  function dispatch(type: string, request?: FakeEvent['request']): Handled {
+  function dispatch(
+    type: string,
+    request?: FakeEvent['request'],
+    extra: Pick<FakeEvent, 'data' | 'notification'> = {},
+  ): Handled {
     const handled: Handled = { answered: false, status: 'pending', lifetime: [] };
     let dispatching = true;
     let pending = 0;
@@ -138,6 +154,7 @@ function loadWorker(network: Network) {
     };
     const event: FakeEvent = {
       request,
+      ...extra,
       respondWith(answer) {
         if (!dispatching) throw new DOMException('respondWith() after the event was dispatched', 'InvalidStateError');
         handled.answered = true;
@@ -331,5 +348,78 @@ describe('install and activate', () => {
     await Promise.all(activate.lifetime);
     expect(worker.caches.delete).toHaveBeenCalledExactlyOnceWith('studentsbudget-build-old');
     expect(worker.self.clients.claim).toHaveBeenCalledOnce();
+  });
+});
+
+describe('the weekly reminder', () => {
+  /** A push carrying `message` as its JSON, or a body that isn't JSON. */
+  const push = (message: unknown) => ({
+    data: {
+      json: () => {
+        if (message === 'not json') throw new SyntaxError('Unexpected token');
+        return message;
+      },
+    },
+  });
+
+  it('shows the pushed line, under one tag, taking a tap to the check-in', async () => {
+    const worker = loadWorker(offline);
+    const handled = worker.dispatch('push', undefined, push({
+      title: 'StudentsBudget',
+      body: 'Zeit für deinen wöchentlichen Check-in.',
+      url: '/check-in',
+      lang: 'de',
+    }));
+    await Promise.all(handled.lifetime);
+    expect(worker.self.registration.showNotification).toHaveBeenCalledWith('StudentsBudget', {
+      body: 'Zeit für deinen wöchentlichen Check-in.',
+      icon: '/icon-192.png',
+      tag: 'weekly-reminder',
+      data: { url: '/check-in' },
+      lang: 'de',
+    });
+  });
+
+  it('still shows the app’s name for a push it can’t read, and never sends a tap to another site', async () => {
+    for (const message of ['not json', null, { title: '', url: 'https://evil.example/check-in' }]) {
+      const worker = loadWorker(offline);
+      await Promise.all(worker.dispatch('push', undefined, push(message)).lifetime);
+      expect(worker.self.registration.showNotification, JSON.stringify(message)).toHaveBeenCalledWith('StudentsBudget', {
+        body: '',
+        icon: '/icon-192.png',
+        tag: 'weekly-reminder',
+        data: { url: '/check-in' },
+      });
+    }
+    const empty = loadWorker(offline);
+    await Promise.all(empty.dispatch('push', undefined, { data: null }).lifetime);
+    expect(empty.self.registration.showNotification).toHaveBeenCalledWith('StudentsBudget', expect.anything());
+  });
+
+  it('brings an open window forward and takes it to the check-in', async () => {
+    const open: FakeWindow = {
+      url: `${ORIGIN}/charts`,
+      focus: vi.fn(async () => undefined),
+      navigate: vi.fn(async () => undefined),
+    };
+    const elsewhere: FakeWindow = { url: 'https://example.org/', focus: vi.fn(), navigate: vi.fn() };
+    const worker = loadWorker(offline, [elsewhere, open]);
+    const close = vi.fn();
+    await Promise.all(
+      worker.dispatch('notificationclick', undefined, { notification: { data: { url: '/check-in' }, close } }).lifetime,
+    );
+    expect(close).toHaveBeenCalled();
+    expect(open.focus).toHaveBeenCalled();
+    expect(open.navigate).toHaveBeenCalledWith('/check-in');
+    expect(elsewhere.focus).not.toHaveBeenCalled();
+    expect(worker.self.clients.openWindow).not.toHaveBeenCalled();
+  });
+
+  it('opens the check-in when no window of the app is open', async () => {
+    const worker = loadWorker(offline);
+    await Promise.all(
+      worker.dispatch('notificationclick', undefined, { notification: { data: {}, close: vi.fn() } }).lifetime,
+    );
+    expect(worker.self.clients.openWindow).toHaveBeenCalledWith('/check-in');
   });
 });

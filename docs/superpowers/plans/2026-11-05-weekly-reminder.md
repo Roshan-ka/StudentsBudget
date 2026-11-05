@@ -152,6 +152,10 @@ Roshan approved this plan on 05-11-2026, after a builder's read raised three que
 - `supabase/functions/_shared/reminder.ts`: `localParts` (Intl, the zone's clock), `mondayOf`, `isDue` (weekday, 15-minute window, once per Monday–Sunday week), `reminderText` and `REMINDER_URL`. Its tests live in `src/features/reminder/schedule.test.ts`, so Vitest's config (a change of which runs every e2e spec in CI) stays as it is.
 - Tests: `supabase/tests/push_subscriptions.test.sql` (20: grants, the policy, saving and saving again, an address moving between accounts, owner-only reads and deletes, the checks, the second step, the cascade) and `user_data.test.sql`'s table list.
 
+**Chunk 2 (2026-11-05):**
+- `public/sw.js`: `push` shows `{ title, body, url, lang }` with the app's icon under the tag `weekly-reminder`, so a new reminder replaces an old one still in the tray; a push that can't be read still shows "StudentsBudget", since a push left without a notification can cost the site its permission. `notificationclick` closes it, focuses an open window of the app and takes it to the check-in, or opens a new one there. `ownPath` keeps any message's URL on the app.
+- `src/lib/sw.test.ts`: the fake worker gained `registration.showNotification`, `clients.matchAll` and `openWindow`, and events with `data` and `notification`; four tests (the line, an unreadable push or another site's URL, an open window, none open).
+
 ## Verification
 
 - Each chunk, locally: lint, typecheck and the touched unit tests. In CI, on Roshan's OK: pgTAP and contract (`db`), the offline check (chunk 2) and e2e (chunk 4).
