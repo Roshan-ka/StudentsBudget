@@ -9,7 +9,7 @@
   "routes": {
     "/": "all",
     "/badges": ["badges", "language-tour", "profile", "reflow", "theme"],
-    "/charts": ["charts", "demo-backup", "demo-scenarios", "language-tour", "reflow", "theme"],
+    "/charts": ["charts", "demo-backup", "demo-scenarios", "language-tour", "page-focus", "reflow", "theme"],
     "/check-in": ["badges", "check-in", "demo-scenarios", "language-tour", "reflow", "swaps", "theme"],
     "/entries": ["accounts", "backup", "charts", "check-in", "demo-backup", "demo-scenarios", "entries", "home", "language-tour", "reflow", "theme"],
     "/entries/new": ["accounts", "check-in", "entries", "language-tour", "reflow", "theme"],
@@ -20,7 +20,7 @@
     "/settings/appearance": ["language-tour", "reflow", "theme"],
     "/settings/backup": ["backup", "language-tour", "profile", "reflow", "theme"],
     "/settings/plan": ["accounts", "language-tour", "profile", "recurring", "reflow", "setup", "theme"],
-    "/settings/profile": ["language-tour", "linking", "profile", "reflow", "theme", "two-step"],
+    "/settings/profile": ["language-tour", "linking", "page-focus", "profile", "reflow", "theme", "two-step"],
     "/settings/account": ["account", "account-deletion", "change-password", "discount-confirmations", "email-codes", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "linking", "moderation", "passkeys", "posting-name", "privacy-notes", "reflow", "theme", "two-step"],
     "/settings/moderation": ["language-tour", "moderation", "reflow", "theme"],
     "/setup": "all",
