@@ -25,6 +25,7 @@ function texts(value: unknown, prefix: string): Map<string, string> {
  */
 const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
   de: new Set([
+    'tips.hacks.form.link',
     'tips.hacks.tab',
     'tips.hacks.cities.regensburg',
     'auth.postingName.labels.alumni',
@@ -146,7 +147,8 @@ describe('the dictionaries', () => {
     for (const area of Object.keys(en) as (keyof Messages)[]) {
       if (fr[area] === en[area]) continue;
       for (const [path, text] of texts(fr[area], area)) {
-        expect(text, path).not.toMatch(/(^|[^ ])[:;?!]/);
+        // A link's scheme (https://) is no punctuation.
+        expect(text.replaceAll('://', ''), path).not.toMatch(/(^|[^ ])[:;?!]/);
         expect(text, path).not.toMatch(/«[^ ]|[^ ]»/);
       }
     }

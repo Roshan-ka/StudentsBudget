@@ -400,7 +400,9 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * as the database returns them (none by default). `profiles` holds the accounts' posting names (the hacks feed): each
  * signed-in account reads and saves only its own, a username another account has is refused (23505), and
  * `rpc/username_available`, which answers signed out too, says whether any of them has a name. `rpc/hacks_feed`
- * answers `feed`, the posts as the database returns them (none by default). Returns the tables, to look at and to seed.
+ * answers `feed`, the posts as the database returns them (none by default); `rpc/post_hack` adds to it (an account in
+ * `profiles` only, and none with `dailyLimit`) and `rpc/delete_hack` takes one's own post out. Returns the tables, to
+ * look at and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
@@ -411,11 +413,13 @@ export async function mockSupabaseData(
     gone?: ReadonlySet<string>;
     profiles?: ServerProfiles;
     feed?: FeedRow[];
+    dailyLimit?: boolean;
     confirmations?: { discount_id: string; last_works: string | null; works_since: number; outdated_since: number }[];
   } = {},
 ): Promise<ServerTables> {
   const tables: ServerTables = options.tables ?? new Map();
   const profiles: ServerProfiles = options.profiles ?? new Map();
+  const feed: FeedRow[] = options.feed ?? [];
   const table = (name: string) => {
     if (!tables.has(name)) tables.set(name, new Map());
     return tables.get(name)!;
@@ -469,7 +473,57 @@ export async function mockSupabaseData(
     }
     // hacks_feed: the posts the signed-in account may see (the hacks feed), as given in `feed`.
     if (path === 'rpc/hacks_feed' && request.method() === 'POST') {
-      return route.fulfill({ status: 200, headers: CORS, json: options.feed ?? [] });
+      return route.fulfill({ status: 200, headers: CORS, json: feed });
+    }
+    // post_hack: a username first (else hint 'needs-username'), `dailyLimit` refuses (hint 'daily-limit'), and the
+    // table's length check (23514). The post joins `feed` first, as the signed-in account's own.
+    if (path === 'rpc/post_hack' && request.method() === 'POST') {
+      const sent = request.postDataJSON() as {
+        p_body: string;
+        p_city: FeedRow['city'];
+        p_category: string;
+        p_link: string | null;
+        p_lang: string;
+      };
+      const profile = profiles.get(claimsOf(request).sub ?? '');
+      const refuse = (hint: string) =>
+        route.fulfill({ status: 400, headers: CORS, json: { code: 'P0001', message: hint, hint, details: null } });
+      if (profile === undefined) return refuse('needs-username');
+      if (options.dailyLimit) return refuse('daily-limit');
+      if (sent.p_body.length < 10 || sent.p_body.length > 500) {
+        return route.fulfill({ status: 400, headers: CORS, json: { code: '23514', message: 'check violation' } });
+      }
+      const id = randomUUID();
+      feed.unshift({
+        id,
+        body: sent.p_body,
+        city: sent.p_city,
+        category: sent.p_category,
+        link: sent.p_link,
+        lang: sent.p_lang,
+        created_at: new Date().toISOString(),
+        username: profile.username,
+        label: profile.label,
+        batch: profile.batch,
+        mine: true,
+        ups: 0,
+        worked: 0,
+        outdated: 0,
+        my_up: false,
+        my_verdict: null,
+      });
+      return route.fulfill({ status: 200, headers: CORS, json: id });
+    }
+    // delete_hack: the signed-in account's own post leaves `feed`; any other is refused (hint 'not-found').
+    if (path === 'rpc/delete_hack' && request.method() === 'POST') {
+      const { p_id: id } = request.postDataJSON() as { p_id: string };
+      const at = feed.findIndex((row) => row.id === id && row.mine);
+      if (at < 0) {
+        const json = { code: 'P0001', message: 'not-found', hint: 'not-found' };
+        return route.fulfill({ status: 400, headers: CORS, json });
+      }
+      feed.splice(at, 1);
+      return route.fulfill({ status: 204, headers: CORS });
     }
     // discount_confirmations: other students' totals per discount, since the date asked.
     if (path === 'rpc/discount_confirmations' && request.method() === 'POST') {

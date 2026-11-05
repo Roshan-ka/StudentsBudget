@@ -50,5 +50,8 @@ export const common = {
     votes:
       'Signed in, your votes go to your account when you sync, and count in the totals other students see for this ' +
       'semester. Nobody sees who voted.',
+    post:
+      'Every student with an account can read your post, with your username, label and batch, and vote on it or ' +
+      'report it. You can delete it at any time.',
   },
 };

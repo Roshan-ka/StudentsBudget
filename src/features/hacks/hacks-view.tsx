@@ -14,7 +14,9 @@ import { formatDate, formatDateTime, todayIso } from '@/lib/dates';
 import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { hackCategoryIds, linkHost, readFeed, readFeedCache, saveFeedCache, type HackPost } from './feed';
+import { HackForm } from './hack-form';
 import { postingNameText } from './posting-name';
+import { deleteHack } from './posts';
 
 /** The list on screen: loaded on this visit, or the one this phone kept from an earlier one. */
 type Shown = { posts: HackPost[]; loadedAt: string; fresh: boolean };
@@ -32,8 +34,11 @@ export function HacksView() {
   const [shown, setShown] = useState<Shown | null>(null);
   const [failed, setFailed] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  // Counts "Try again" taps: each one loads the list once more.
+  // Counts "Try again" taps, posts and deletes: each one loads the list once more.
   const [attempt, setAttempt] = useState(0);
+  // The post form (chunk 5), and what a screen reader hears after a post or a delete.
+  const [writing, setWriting] = useState(false);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     if (userId === null) return;
@@ -72,6 +77,21 @@ export function HacksView() {
     );
   }
 
+  function posted() {
+    setWriting(false);
+    setStatus(text.form.posted);
+    setAttempt((n) => n + 1);
+  }
+
+  /** Deletes one of the account's own posts; true once it is gone. */
+  async function remove(id: string): Promise<boolean> {
+    const supabase = getSupabase();
+    if (supabase === null || (await deleteHack(supabase, id)) !== 'deleted') return false;
+    setStatus(text.deleted);
+    setAttempt((n) => n + 1);
+    return true;
+  }
+
   // Another account's list never shows, even for the moment before the effect runs again.
   const posts = shown?.posts ?? null;
   const chips = posts === null ? [] : hackCategoryIds(posts);
@@ -94,6 +114,24 @@ export function HacksView() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">{text.intro}</p>
+      {writing ? (
+        <HackForm userId={userId} onPosted={posted} onCancel={() => setWriting(false)} />
+      ) : (
+        <Button
+          type="button"
+          className="self-start px-4"
+          onClick={() => {
+            setStatus('');
+            setWriting(true);
+          }}
+        >
+          {text.form.open}
+        </Button>
+      )}
+      {/* Always rendered, so a screen reader is already listening when the text appears. */}
+      <p role="status" className="text-sm text-muted-foreground">
+        {status}
+      </p>
       {posts === null && !failed && <p className="text-sm text-muted-foreground">{text.loading}</p>}
       {failed && (
         <div className="flex flex-col gap-2">
@@ -118,7 +156,7 @@ export function HacksView() {
       {listed.length > 0 && (
         <ul aria-label={text.posts} className="flex flex-col gap-3">
           {listed.map((post) => (
-            <HackCard key={post.id} post={post} t={t} />
+            <HackCard key={post.id} post={post} t={t} onDelete={remove} />
           ))}
         </ul>
       )}
@@ -126,10 +164,25 @@ export function HacksView() {
   );
 }
 
-/** One post: its category and place, the text in its own language, the link, who wrote it and the votes so far. */
-function HackCard({ post, t }: { post: HackPost; t: Messages }) {
+/**
+ * One post: its category and place, the text in its own language, the link, who wrote it and the votes so far. The
+ * author's own post can be deleted, after a question.
+ */
+function HackCard({ post, t, onDelete }: { post: HackPost; t: Messages; onDelete: (id: string) => Promise<boolean> }) {
   const text = t.tips.hacks;
   const Icon = CATEGORY_ICONS[post.categoryId] ?? OTHER_ICON;
+  const [asking, setAsking] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function confirmDelete() {
+    setBusy(true);
+    const gone = await onDelete(post.id);
+    setBusy(false);
+    if (!gone) setProblem(text.deleteFailed);
+    setAsking(false);
+  }
+
   return (
     <li className={cn(cardVariants(), 'gap-2')}>
       <div className="flex flex-wrap items-center gap-2">
@@ -164,6 +217,37 @@ function HackCard({ post, t }: { post: HackPost; t: Messages }) {
         {post.mine && <span className="font-normal text-muted-foreground"> · {text.yours}</span>}
       </p>
       <p className="text-sm text-muted-foreground">{text.counts(post.ups, post.worked, post.outdated)}</p>
+      {post.mine && !asking && (
+        <Button
+          type="button"
+          variant="outline"
+          className="self-start px-4"
+          onClick={() => {
+            setProblem(null);
+            setAsking(true);
+          }}
+        >
+          {text.delete}
+        </Button>
+      )}
+      {asking && (
+        <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+          <p className="text-sm">{text.deleteQuestion}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => void confirmDelete()}>
+              {text.delete}
+            </Button>
+            <Button type="button" variant="outline" className="px-4" disabled={busy} onClick={() => setAsking(false)}>
+              {text.keep}
+            </Button>
+          </div>
+        </div>
+      )}
+      {problem && (
+        <p role="alert" className="text-sm text-destructive">
+          {problem}
+        </p>
+      )}
     </li>
   );
 }

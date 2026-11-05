@@ -50,5 +50,8 @@ export const common: Messages['common'] = {
     votes:
       'Avec un compte, tes votes y vont quand tu synchronises, et comptent dans les totaux que les autres ' +
       'étudiants voient pour ce semestre. Personne ne voit qui a voté.',
+    post:
+      'Tous les étudiants qui ont un compte peuvent lire ta publication, avec ton nom d’utilisateur, ton statut et ' +
+      'ta promo, voter ou la signaler. Tu peux la supprimer à tout moment.',
   },
 };

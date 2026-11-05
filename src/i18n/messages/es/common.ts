@@ -49,5 +49,8 @@ export const common: Messages['common'] = {
     votes:
       'Con la sesión iniciada, tus votos van a tu cuenta al sincronizar y cuentan en los totales que otros ' +
       'estudiantes ven para este semestre. Nadie ve quién votó.',
+    post:
+      'Cualquier estudiante con cuenta puede leer tu publicación, con tu nombre de usuario, si estudias o ya ' +
+      'terminaste y tu promoción, y votarla o denunciarla. Puedes borrarla cuando quieras.',
   },
 };

@@ -48,5 +48,8 @@ export const common: Messages['common'] = {
     votes:
       'Angemeldet gehen deine Stimmen beim Synchronisieren an dein Konto und zählen in den Summen, die andere ' +
       'Studierende für dieses Semester sehen. Niemand sieht, wer abgestimmt hat.',
+    post:
+      'Alle Studierenden mit Konto können deinen Beitrag lesen, mit Benutzername, Status und Jahrgang, und ihn ' +
+      'bewerten oder melden. Du kannst ihn jederzeit löschen.',
   },
 };

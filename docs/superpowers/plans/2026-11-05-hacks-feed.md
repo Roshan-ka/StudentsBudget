@@ -169,6 +169,14 @@ Next on the roadmap after the data-protection notes (#95, #97): the community ha
 - Texts: `tips.hacks` in four languages.
 - e2e: `mockSupabaseData`'s `feed`; `hacks-feed.spec.ts` (signed out, the posts and their authors, the category filter, the remembered tab, the kept list when loading fails and its end at sign-out, German).
 
+**Chunk 5 (2026-11-05):**
+- `src/features/hacks/posts.ts`: `HACK_CATEGORIES` (ten app categories), `checkHack` (10–500 characters, an optional https link of at most 300; its test reads the migration's checks and the messages' numbers), `postHack` (the phone's language; refusals read by hint: `needs-username`, `daily-limit`; 23514 as `invalid`) and `deleteHack`.
+- `hack-form.tsx`: "Post a hack" opens it above the list. The text, the category, Regensburg or anywhere, and the link. The `post` data-protection note before the first post on a phone. When the database says the account has no name, the name fields join the form and the same Post saves both.
+- Own posts get Delete, with a question ("Keep it" cancels); the list reloads after a post or a delete, and a status line says so.
+- `src/components/ui/textarea.tsx`: a multi-line field with Input's look.
+- Texts: `tips.hacks.form`, the delete words and `common.privacy.post` in four languages. The French spacing test skips a link's `://`.
+- e2e: `mockSupabaseData`'s `feed` changes with `post_hack` and `delete_hack`, and `dailyLimit` refuses; `hacks-post.spec.ts` (the checks, the note, the post and its call, a name picked at the first post, the daily limit, deleting one's own post only).
+
 **Making the moderator** (once chunk 3 is on the hosted project; in the dashboard's SQL editor, as the project owner):
 
 ```sql
