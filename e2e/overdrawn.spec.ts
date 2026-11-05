@@ -230,6 +230,12 @@ test('Settings: text that is not an amount is refused, a lone minus sign include
     await page.getByLabel('Opening balance').fill(text);
     await page.getByRole('button', { name: 'Save account' }).click();
     await expect(inlineAlert(page), text).toHaveText('Enter the opening balance as a number, like 250 or 12.50.');
+    // The field says so, and reads the message after its currency (accessibility, chunk 6).
+    const opening = page.getByRole('textbox', { name: 'Opening balance', exact: true });
+    await expect(opening, text).toHaveAttribute('aria-invalid', 'true');
+    await expect(opening, text).toHaveAccessibleDescription(
+      'EUR Enter the opening balance as a number, like 250 or 12.50.',
+    );
 
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(inlineAlert(page), text).toHaveCount(0);

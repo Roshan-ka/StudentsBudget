@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useId, useState, type FormEvent } from 'react';
+import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -111,16 +112,8 @@ function ExportBackup() {
       >
         {text.button}
       </Button>
-      {notice?.kind === 'shared' && (
-        <p role="status" className="text-sm">
-          {text.shared}
-        </p>
-      )}
-      {notice?.kind === 'downloaded' && (
-        <p role="status" className="text-sm">
-          {text.downloaded(notice.name)}
-        </p>
-      )}
+      {notice?.kind === 'shared' && <StatusLine className="text-sm">{text.shared}</StatusLine>}
+      {notice?.kind === 'downloaded' && <StatusLine className="text-sm">{text.downloaded(notice.name)}</StatusLine>}
       {notice?.kind === 'share-failed' && (
         <div role="alert" className="flex flex-col gap-2 text-sm">
           <p>{text.shareFailed}</p>

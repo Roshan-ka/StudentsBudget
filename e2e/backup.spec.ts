@@ -443,7 +443,8 @@ test.describe('choosing a file to restore, on every screen size', () => {
   test.use({ timezoneId: 'Europe/Berlin' });
 
   test('the last file chosen wins: a damaged file that is read slowly cannot bring its error back', async ({ page }) => {
-    await withSlowRead(page, 'slow-damaged.json', 600);
+    // Long enough to see "Reading…": a status line takes its text a moment after it shows (StatusLine).
+    await withSlowRead(page, 'slow-damaged.json', 1500);
     await page.goto('/setup');
 
     // The damaged file is still being read when the good one is chosen; the good one is read, shown and asked about first.
@@ -478,7 +479,8 @@ test.describe('choosing a file to restore, on every screen size', () => {
   test('says "Reading…" while a file is read, and an error and a confirmation take each other away', async ({
     page,
   }) => {
-    await withSlowRead(page, 'slow-good.json', 600);
+    // Long enough to see "Reading…": a status line takes its text a moment after it shows (StatusLine).
+    await withSlowRead(page, 'slow-good.json', 1500);
     await page.goto('/setup');
 
     await backupFileInput(page).setInputFiles(jsonFile('slow-good.json', GOOD_BACKUP));

@@ -15,6 +15,7 @@ import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
+import { describedBy } from '@/lib/described-by';
 import { CURRENCIES, formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { newId } from '@/lib/new-id';
 import { accountBalance, defaultAccount, sortAccounts, totalInEur } from './balances';
@@ -38,6 +39,9 @@ async function refreshExchangeRates() {
   }
 }
 
+/** A message under the account form, and the field it is about (none when saving failed). */
+type FormError = { text: string; field: 'name' | 'opening' | null };
+
 function AccountForm({
   account,
   currencyLocked,
@@ -57,7 +61,7 @@ function AccountForm({
   const [opening, setOpening] = useState(account ? minorToInput(account.openingMinor) : '');
   // Overdrawn ticked while the field was empty: the first thing typed takes the minus sign.
   const [waiting, setWaiting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<FormError | null>(null);
   const [saving, setSaving] = useState(false);
   // A newly chosen currency other than the euro waits for the note on the exchange rates (`PrivacyNote`).
   const [ratesNote, setRatesNote] = useState(false);
@@ -70,9 +74,9 @@ function AccountForm({
   /** Saves the account; `noteAccepted` comes from the note's Continue, so blocked storage can't loop the note. */
   async function submit(noteAccepted = false) {
     const trimmedName = name.trim();
-    if (trimmedName === '') return setError(text.errors.name);
+    if (trimmedName === '') return setError({ text: text.errors.name, field: 'name' });
     const openingMinor = parseSignedAmount(opening);
-    if (openingMinor === null) return setError(text.errors.opening);
+    if (openingMinor === null) return setError({ text: text.errors.opening, field: 'opening' });
     if (currency !== 'EUR' && currency !== account?.currency && !noteAccepted && !noteSeen('rates')) {
       setError(null);
       return setRatesNote(true);
@@ -94,7 +98,7 @@ function AccountForm({
       });
     } catch (saveError) {
       console.error('StudentsBudget: could not save the account', saveError);
-      setError(text.errors.saveFailed);
+      setError({ text: text.errors.saveFailed, field: null });
       setSaving(false);
       return;
     }
@@ -102,6 +106,11 @@ function AccountForm({
     // Not awaited: the rate appears through the live query once it arrives, and a slow network must not hold the form.
     if (currency !== 'EUR') void refreshExchangeRates();
   }
+
+  // The field the message is about says so, and reads the message with its name (accessibility, chunk 6).
+  const errorId = `${id}-error`;
+  const invalid = (field: FormError['field']) => (error !== null && error.field === field) || undefined;
+  const errorFor = (field: FormError['field']) => invalid(field) && errorId;
 
   return (
     // It opens on its first field (accessibility, chunk 4).
@@ -113,6 +122,8 @@ function AccountForm({
           value={name}
           onChange={(event) => setName(event.target.value)}
           autoComplete="off"
+          aria-invalid={invalid('name')}
+          aria-describedby={describedBy(errorFor('name'))}
         />
       </div>
       <div className="grid gap-1.5">
@@ -162,7 +173,13 @@ function AccountForm({
             setOpening(typed.text);
           }}
           autoComplete="off"
+          aria-invalid={invalid('opening')}
+          aria-describedby={describedBy(`${id}-opening-currency`, errorFor('opening'))}
         />
+        {/* The currency, read with the field: the select above shows it to the eye. */}
+        <span id={`${id}-opening-currency`} hidden>
+          {currency}
+        </span>
         <label className="flex min-h-11 items-center gap-3 text-sm">
           <input
             type="checkbox"
@@ -178,8 +195,8 @@ function AccountForm({
         </label>
       </div>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
+        <p id={errorId} role="alert" className="text-sm text-destructive">
+          {error.text}
         </p>
       )}
       {ratesNote ? (

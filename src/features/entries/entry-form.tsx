@@ -3,6 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { DateField } from '@/components/date-field';
+import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,10 +14,12 @@ import { loadRates } from '@/db/rates';
 import { saveEntry } from '@/db/repo';
 import type { Entry } from '@/db/types';
 import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
+import type { EntryField } from '@/features/accounts/transfer';
 import { TransferForm } from '@/features/accounts/transfer-form';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
+import { describedBy } from '@/lib/described-by';
 import { parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { buildEntry } from './build-entry';
@@ -24,6 +27,9 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './categories';
 import { readLastChoice, rememberChoice } from './last-choice';
 
 type EntryType = Entry['type'];
+
+/** A message under the form, and the field it is about (none when saving failed): that field points at it. */
+type FormError = { text: string; field: EntryField | 'date' | null };
 
 const TABS: readonly EntryType[] = ['expense', 'income', 'transfer'];
 
@@ -68,7 +74,7 @@ function MoneyEntryForm({
   // null means today, so a form left open over midnight follows the date; a date that was picked stays.
   const [dateChoice, setDateChoice] = useState<IsoDate | null>(editing?.date ?? null);
   const [note, setNote] = useState(editing?.note ?? '');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<FormError | null>(null);
   const [saving, setSaving] = useState(false);
 
   if (accounts === undefined || today === null) return null;
@@ -90,7 +96,7 @@ function MoneyEntryForm({
     // Which button sent it: "Save and add another" keeps the form here for the next one.
     const another = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'another';
     setSavedAnother(false);
-    if (date === '') return setError(text.pickDate);
+    if (date === '') return setError({ text: text.pickDate, field: 'date' });
 
     setSaving(true);
     setError(null);
@@ -113,14 +119,14 @@ function MoneyEntryForm({
         lang,
       );
       if (!result.ok) {
-        setError(result.error);
+        setError({ text: result.error, field: result.field });
         return;
       }
       await saveEntry(result.entry);
       saved = result.entry;
     } catch (saveError) {
       console.error('StudentsBudget: could not save the entry', saveError);
-      setError(t.entries.saveFailed);
+      setError({ text: t.entries.saveFailed, field: null });
       return;
     } finally {
       setSaving(false);
@@ -140,6 +146,11 @@ function MoneyEntryForm({
     onSaved?.(saved);
   }
 
+  // The field the message is about says so, and reads the message with its name (accessibility, chunk 6).
+  const errorId = `${id}-error`;
+  const invalid = (field: FormError['field']) => (error !== null && error.field === field) || undefined;
+  const errorFor = (field: FormError['field']) => invalid(field) && errorId;
+
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
       <div className="grid gap-1.5">
@@ -153,8 +164,12 @@ function MoneyEntryForm({
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             autoComplete="off"
+            aria-invalid={invalid('amount')}
+            aria-describedby={describedBy(`${id}-currency`, errorFor('amount'))}
           />
-          <span className="w-10 text-sm text-muted-foreground">{account.currency}</span>
+          <span id={`${id}-currency`} className="w-10 text-sm text-muted-foreground">
+            {account.currency}
+          </span>
         </div>
       </div>
       <div className="grid gap-1.5">
@@ -162,6 +177,8 @@ function MoneyEntryForm({
         <NativeSelect
           id={`${id}-account`}
           className="w-full"
+          aria-invalid={invalid('account')}
+          aria-describedby={describedBy(errorFor('account'))}
           value={account.id}
           onChange={(event) => setAccountChoice(event.target.value)}
         >
@@ -197,7 +214,12 @@ function MoneyEntryForm({
               ))}
         </NativeSelect>
       </div>
-      <DateField value={date} onChange={setDateChoice} />
+      <DateField
+        value={date}
+        onChange={setDateChoice}
+        invalid={invalid('date')}
+        describedBy={describedBy(errorFor('date'))}
+      />
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-note`}>{text.note}</Label>
         <Input
@@ -208,15 +230,11 @@ function MoneyEntryForm({
         />
       </div>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
+        <p id={errorId} role="alert" className="text-sm text-destructive">
+          {error.text}
         </p>
       )}
-      {savedAnother && (
-        <p role="status" className="text-sm text-muted-foreground">
-          {text.savedAnother}
-        </p>
-      )}
+      {savedAnother && <StatusLine className="text-sm text-muted-foreground">{text.savedAnother}</StatusLine>}
       <Button type="submit" size="lg" disabled={saving}>
         {editing ? text.saveChanges : type === 'income' ? text.saveIncome : text.saveExpense}
       </Button>

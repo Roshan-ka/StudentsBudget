@@ -12,6 +12,7 @@ import {
 } from '@/features/accounts/opening-balance';
 import { useT } from '@/i18n/use-t';
 import { afterPress, watchPresses } from '@/lib/after-press';
+import { describedBy as describedByIds } from '@/lib/described-by';
 import { parseAmount, type Minor } from '@/lib/money';
 
 /** What an empty field means: 0 (income, costs, envelopes), or no answer yet (guesses). */
@@ -43,6 +44,9 @@ function toText(value: Minor | undefined, blank: Blank): string {
  * loses focus. When `value` no longer matches the text (a row above was removed, say), the field shows
  * `value`. `hint` sits under the input.
  *
+ * The unit ("€", "INR") is read with the field, after its label. `problemId` points at a message about the field that
+ * sits elsewhere (the setup step's problems), and marks it invalid.
+ *
  * With `signed` the amount may be below zero, as an account's opening balance is: an "Overdrawn (below zero)"
  * checkbox sits under the field, its hint and its error, and puts a minus sign in the text; a typed "-250" is
  * accepted too.
@@ -57,6 +61,7 @@ export function AmountField({
   signed = false,
   unit = '€',
   inputRef,
+  problemId = null,
 }: {
   label: string;
   hint?: ReactNode;
@@ -70,6 +75,8 @@ export function AmountField({
   unit?: string;
   /** The input itself, for a caller that moves the focus to it. */
   inputRef?: Ref<HTMLInputElement>;
+  /** The id of a message about this field elsewhere on the page, while it shows. */
+  problemId?: string | null;
 }) {
   const id = useId();
   const { t } = useT();
@@ -86,7 +93,8 @@ export function AmountField({
   if (fromValue && waiting) setWaiting(false);
   const pending = waiting && shown.trim() === '';
   const showError = touched && value !== undefined && Number.isNaN(value);
-  const describedBy = [hint ? `${id}-hint` : null, showError ? `${id}-error` : null].filter(Boolean).join(' ');
+  const invalid = showError || problemId !== null;
+  const describedBy = describedByIds(`${id}-unit`, hint ? `${id}-hint` : null, showError && `${id}-error`, problemId);
 
   function edit(next: string) {
     setText(next);
@@ -99,7 +107,9 @@ export function AmountField({
         {label}
       </Label>
       <div className="relative">
+        {/* Hidden from the reading order beside the field, and read with it as its description instead. */}
         <span
+          id={`${id}-unit`}
           aria-hidden="true"
           className="pointer-events-none absolute inset-y-0 start-3.5 flex items-center text-muted-foreground"
         >
@@ -113,8 +123,8 @@ export function AmountField({
           placeholder="0"
           autoComplete="off"
           value={shown}
-          aria-invalid={showError || undefined}
-          aria-describedby={describedBy || undefined}
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           onChange={(event) => {
             if (!signed) return edit(event.target.value);
             const typed = typeOpening(event.target.value, pending);

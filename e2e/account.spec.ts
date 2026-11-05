@@ -113,6 +113,11 @@ test('a new account is checked first, then signed in at once and still signed in
   // Checked on the phone: nothing is sent.
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await expect(alert(page)).toHaveText('Enter your email.');
+  // The field a message is about says so, and reads it; the password reads its hint (accessibility, chunk 6).
+  await expect(emailField(page)).toHaveAttribute('aria-invalid', 'true');
+  await expect(emailField(page)).toHaveAccessibleDescription('Enter your email.');
+  await expect(passwordField(page)).not.toHaveAttribute('aria-invalid');
+  await expect(passwordField(page)).toHaveAccessibleDescription('At least 8 characters.');
   await emailField(page).fill('roshan@');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await expect(alert(page)).toHaveText('Check the email address.');
@@ -120,6 +125,11 @@ test('a new account is checked first, then signed in at once and still signed in
   await passwordField(page).fill('short');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await expect(alert(page)).toHaveText('Use at least 8 characters for the password.');
+  await expect(emailField(page)).not.toHaveAttribute('aria-invalid');
+  await expect(passwordField(page)).toHaveAttribute('aria-invalid', 'true');
+  await expect(passwordField(page)).toHaveAccessibleDescription(
+    'At least 8 characters. Use at least 8 characters for the password.',
+  );
   expect(calls).toHaveLength(0);
 
   await passwordField(page).fill(PASSWORD);

@@ -4,6 +4,7 @@ import { useId } from 'react';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { draftAccountOf, isRepaired, type AccountOption, type DraftSchedule } from '@/features/setup/draft';
+import { useStepProblems } from '@/features/setup/step-problems';
 import { AmountField } from '@/features/setup/steps/amount-field';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
@@ -52,6 +53,11 @@ export function DraftScheduleFields({
   const expectsFirst = account !== undefined && firstAddedOn(schedule, schedule.saved, today, repaired) !== null;
   const firstOn =
     expectsFirst && lineEntries ? firstAddedOn(schedule, schedule.saved, today, repaired, lineEntries) : null;
+  // The amount in another currency is missing: the step's problems say so (`scheduleProblems`), and the field points
+  // at them once they show.
+  const problems = useStepProblems();
+  const foreignMissing =
+    problems !== null && monthlyMinor > 0 && !(Number.isSafeInteger(schedule.foreignMinor) && schedule.foreignMinor > 0);
 
   return (
     <div role="group" aria-label={text.schedule(name)} className="flex flex-col gap-3 rounded-lg border p-3">
@@ -105,6 +111,7 @@ export function DraftScheduleFields({
                   value={schedule.foreignMinor}
                   onChange={(minor) => onChange({ ...schedule, foreignMinor: minor ?? 0 })}
                   hint={text.keepsPlan}
+                  problemId={foreignMissing ? problems : null}
                 />
               ) : (
                 account &&

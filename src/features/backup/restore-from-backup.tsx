@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
+import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -105,11 +106,7 @@ export function RestoreFromBackup() {
           onChange={(event) => void onChoose(event)}
           disabled={restoring}
         />
-        {reading && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {text.reading}
-          </p>
-        )}
+        {reading && <StatusLine className="text-sm text-muted-foreground">{text.reading}</StatusLine>}
       </div>
       {chosen && (
         <div role="group" aria-label={text.confirmGroup} className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">

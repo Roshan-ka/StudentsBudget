@@ -15,6 +15,7 @@ import { useT } from '@/i18n/use-t';
 import { rangeWarnings } from '@/lib/budget';
 import type { IsoDate } from '@/lib/dates';
 import { formatMoney, formatRange } from '@/lib/money';
+import { useSettled } from '@/lib/use-settled';
 import {
   FLEXIBLE_CATEGORIES,
   amountOf,
@@ -82,7 +83,10 @@ export function EnvelopesStep({
     (id) => (amountOf(preview.envelopes, id) ?? 0) <= 0 && (suggested.get(id) ?? 0) > 0,
   );
   const plannedMinor = preview.envelopes.reduce((total, a) => total + a.monthlyMinor, 0);
-  const line = budgetLine(plannedMinor, budget, lang);
+  // The totals follow the amounts once the typing pauses, so a screen reader reads them once, not after every key
+  // (accessibility, chunk 6).
+  const line = useSettled(budgetLine(plannedMinor, budget, lang));
+  const footer = useSettled(edit ? envelopesFooter(summarizeDraft(draft, today, existing), lang) : null);
 
   return (
     <div className="flex flex-col gap-4">
@@ -161,11 +165,7 @@ export function EnvelopesStep({
         {(line !== null || edit) && (
           <div className="flex flex-col gap-1 rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
             {line !== null && <p>{line}</p>}
-            {edit && (
-              <p className="font-normal text-muted-foreground">
-                {envelopesFooter(summarizeDraft(draft, today, existing), lang)}
-              </p>
-            )}
+            {footer !== null && <p className="font-normal text-muted-foreground">{footer}</p>}
           </div>
         )}
       </div>
