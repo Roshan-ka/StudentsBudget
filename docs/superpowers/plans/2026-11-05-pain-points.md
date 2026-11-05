@@ -160,6 +160,13 @@ Roshan finds Home annoying: whenever he opens it, the suggested budget is open, 
      - **Badges:** each card keeps its title, status and progress. The intro and every badge's rule moved into one closed "How badges work" ("So funktionieren Abzeichen") under the list.
      - **Specs:** `profile.spec.ts` opens the fold before reading the gold rule. The charts, tips and discounts specs pass as they are: every test starts with fresh storage, and none reloads expecting a default after choosing.
 
+
+## Found on the way
+
+- **Setup's Next could miss a click (2026-11-05, after chunk 8):** an amount field shows "Enter a number…" when it loses the focus. A press on Next takes the focus on the way down, so the message appeared, pushed Next down, and the release landed where Next had been (WebKit lays out between the two).
+  - **Fix:** `src/lib/after-press.ts` (tested). A field that loses the focus to a press shows its message once the press has ended and its click has landed; leaving it with Tab shows it at once.
+  - `overdrawn.spec.ts` clicks Next straight after typing again, without the blur it had worked around this with.
+
 ## Verification
 
 - **Unit tests:** `phone-pref` (default when storage throws, stored value, unknown value), the hub's summary helpers, the one swap line chosen, and the charts' €0 rows.
