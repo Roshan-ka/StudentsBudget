@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,7 +10,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const SOURCE = readFileSync(fileURLToPath(new URL('../../public/sw.js', import.meta.url)), 'utf8');
 const ORIGIN = 'https://studentsbudget.test';
 const CACHE_NAME = 'studentsbudget-build-a';
-const PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/badges', '/check-in', '/reveal', '/settings', '/settings/account', '/setup'];
+/** Every page of the app: each folder under src/app with a page.tsx, as its route. */
+function appPages(dir = fileURLToPath(new URL('../app', import.meta.url)), route = ''): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.isDirectory()) return appPages(`${dir}/${entry.name}`, `${route}/${entry.name}`);
+    return entry.name === 'page.tsx' ? [route === '' ? '/' : route] : [];
+  });
+}
+
+const PAGES = appPages();
 
 beforeEach(() => {
   vi.useFakeTimers();

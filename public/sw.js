@@ -12,7 +12,24 @@ const CACHE = PREFIX + (new URL(self.location.href).searchParams.get('v') || 'un
 const NAVIGATION_TIMEOUT_MS = 4000;
 
 // Every route document. They are cached on install, so a page nobody has opened yet still opens offline.
-const PAGES = ['/', '/entries', '/entries/new', '/charts', '/tips', '/badges', '/check-in', '/reveal', '/settings', '/settings/account', '/setup'];
+const PAGES = [
+  '/',
+  '/entries',
+  '/entries/new',
+  '/charts',
+  '/tips',
+  '/badges',
+  '/check-in',
+  '/reveal',
+  '/settings',
+  '/settings/accounts',
+  '/settings/plan',
+  '/settings/profile',
+  '/settings/appearance',
+  '/settings/account',
+  '/settings/backup',
+  '/setup',
+];
 
 // Files that keep their name. They are looked up ignoring the query string, because Next links the favicon and
 // the apple icon as `/favicon.ico?favicon.<hash>.ico`.
