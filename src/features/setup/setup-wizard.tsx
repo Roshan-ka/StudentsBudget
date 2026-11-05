@@ -45,9 +45,12 @@ function Wizard({
   edit,
   stored,
   storedAccounts,
+  initialStep,
 }: {
   edit: boolean;
   stored: Plan | null;
+  /** Edit plan can open on a step (`?step=envelopes`, from the reveal's Adjust); a new setup always starts at the first. */
+  initialStep: string | null;
   /** The accounts already saved: what a line can be added to when the wizard has no draft accounts. */
   storedAccounts: AccountOption[];
 }) {
@@ -61,7 +64,7 @@ function Wizard({
   const [draft, setDraft] = useState<SetupDraft>(() =>
     edit && stored ? draftFromPlan(stored) : initialDraft(accountsExist, lang),
   );
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => (edit ? Math.max(0, steps.findIndex((s) => s === initialStep)) : 0));
   // After the first failed Next the messages follow the draft, so they go away as the person fixes things.
   const [attempted, setAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -200,7 +203,7 @@ function Wizard({
       )}
 
       {/* Across the width at the end of the step, not stuck to the bottom: a phone's keyboard would cover that. */}
-      <div className={cn('flex gap-3', ratesNote && 'hidden')}>
+      <div className={cn('flex flex-wrap gap-3', ratesNote && 'hidden')}>
         {index > 0 && (
           <Button type="button" variant="outline" size="lg" className="flex-1" onClick={back} disabled={saving}>
             {text.back}
@@ -215,6 +218,20 @@ function Wizard({
             {text.next}
           </Button>
         )}
+        {/* Editing saves from any step (pain points, chunk 7): save() checks every step and opens the first with a
+            problem, so changing one envelope or the rent needs no walk through the rest. */}
+        {edit && !isLast && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="basis-full"
+            onClick={() => void save()}
+            disabled={saving}
+          >
+            {text.save}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -226,7 +243,9 @@ function Wizard({
  */
 export function SetupWizard() {
   const router = useRouter();
-  const edit = useSearchParams().get('edit') === '1';
+  const params = useSearchParams();
+  const edit = params.get('edit') === '1';
+  const initialStep = params.get('step');
   // undefined: still reading. `plan` is null when no plan is saved.
   const [loaded, setLoaded] = useState<{ plan: Plan | null; accounts: AccountOption[] } | undefined>(undefined);
   const stored = loaded?.plan;
@@ -266,5 +285,13 @@ export function SetupWizard() {
   }, [redirectTo, router]);
 
   if (loaded === undefined || redirectTo) return null;
-  return <Wizard key={edit ? 'edit' : 'new'} edit={edit} stored={loaded.plan} storedAccounts={loaded.accounts} />;
+  return (
+    <Wizard
+      key={`${edit ? 'edit' : 'new'}-${initialStep ?? ''}`}
+      edit={edit}
+      stored={loaded.plan}
+      storedAccounts={loaded.accounts}
+      initialStep={initialStep}
+    />
+  );
 }

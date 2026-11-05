@@ -151,7 +151,8 @@ export function EnvelopesStep({
                 )
               }
             />
-            {range && <RangeSource range={rangeIn(range, lang)} />}
+            {/* In Edit plan, every envelope is asked, so the sources stay in the one "Where this comes from" above. */}
+            {range && !edit && <RangeSource range={rangeIn(range, lang)} />}
           </div>
         );
       })}

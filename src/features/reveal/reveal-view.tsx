@@ -82,7 +82,7 @@ function Revealed({ rows, startedOn, today }: { rows: GuessRow[]; startedOn: Iso
       <p className="text-sm text-muted-foreground">
         {t.reveal.scaled(formatDay(startedOn, locale), formatDay(today, locale))}
       </p>
-      <Link href="/setup?edit=1" className={buttonVariants({ className: 'self-start px-4' })}>
+      <Link href="/setup?edit=1&step=envelopes" className={buttonVariants({ className: 'self-start px-4' })}>
         {t.reveal.adjust}
       </Link>
     </div>

@@ -142,6 +142,12 @@ Roshan finds Home annoying: whenever he opens it, the suggested budget is open, 
    - In edit mode, Save shows on every step. `save()` already checks every step and jumps to the one with a problem (`setup-wizard.tsx:99-105`).
    - `?step=envelopes` opens that step, and Reveal's Adjust goes there (`reveal-view.tsx:87`).
    - In edit mode, each envelope's range and source fold into one "Where these come from" (`envelopes.tsx:133-157`).
+   - **As built (2026-11-05):**
+     - **Save on any step:** in edit mode, every step but the last has a full-width outline "Save plan" under Back and Next. It runs the same `save()`, which opens the first step with a problem. A new setup still saves only at the end.
+     - **`?step=`:** `SetupWizard` passes `?step=` to the wizard, and only edit mode honours it. An unknown step starts at the first. The wizard's key includes it, so a new link opens fresh.
+     - **Reveal's Adjust** goes to `/setup?edit=1&step=envelopes`.
+     - **Changed from the plan:** in edit mode the envelope rows drop their own Source; every range's source is already in the step's one "Where this comes from" at the top. Each row keeps its short hint lines (the students' range, the suggestion, "below"). That is shorter than folding the hints too, and no words change.
+     - **Specs:** `reveal.spec.ts` follows the new link and lands on the Envelopes step. Others click Save plan on the last step, as before.
 8. **Remembered choices, check-in and badges.**
    - **Remembered per phone:** the charts' period and each chart's style (`charts-view.tsx:87-89`, `sections.tsx`), and the Tips/Discounts tab (`tips-view.tsx:30`).
    - **Check-in:** "Add what you forgot" moves up, under the envelope summary (`check-in-view.tsx:247-269`).
