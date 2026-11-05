@@ -160,6 +160,15 @@ Next on the roadmap after the data-protection notes (#95, #97): the community ha
   - `src/features/hacks/hacks.contract.test.ts`: real users post, vote and read the feed by username; a report hides a post from its reporter only; no username, no post; no direct writes; nobody moderates by default; signed out, no feed.
 - The hosted project needs `npx supabase db push` once this merges.
 
+**Chunk 4 (2026-11-05):**
+- The tab is called Hacks (Astuces, Trucos), not "From students": three tabs must fit at 375 px, and the intro says the posts are students' own words. The tablist is now "Tips, discounts or hacks".
+- `src/features/hacks/feed.ts`: `HackPost`, `postOf` (a row it can't read is left out), `readFeed`, `hackCategoryIds`, the kept list (`saveFeedCache`, `readFeedCache` for the same account only, `forgetFeedCache`) and `linkHost`; unit-tested.
+- `hacks-view.tsx`: signed out → the intro and a link to Your account (no account settings → a line saying posts need an account); signed in → the posts, category chips when there are two or more categories, "Try again" when loading fails, and the kept list with when it was loaded.
+- Cards show the category tint and icon, the city and day, the text in its own language, the link's site, "@username · Label · Batch '27" (plus "Your post"), and the totals. The buttons come in chunks 5 and 6.
+- `useAuth` forgets the kept list on `SIGNED_OUT`.
+- Texts: `tips.hacks` in four languages.
+- e2e: `mockSupabaseData`'s `feed`; `hacks-feed.spec.ts` (signed out, the posts and their authors, the category filter, the remembered tab, the kept list when loading fails and its end at sign-out, German).
+
 **Making the moderator** (once chunk 3 is on the hosted project; in the dashboard's SQL editor, as the project owner):
 
 ```sql

@@ -335,6 +335,26 @@ export type ServerTables = Map<string, Map<string, unknown>>;
 /** Each account's posting name (`public_profiles`, the hacks feed), by user id (`e2eUserIdOf`). */
 export type ServerProfiles = Map<string, { username: string; label: string | null; batch: number | null }>;
 
+/** One row of `hacks_feed` (the hacks feed), as the database returns it to the signed-in account. */
+export type FeedRow = {
+  id: string;
+  body: string;
+  city: 'regensburg' | 'anywhere';
+  category: string;
+  link: string | null;
+  lang: string;
+  created_at: string;
+  username: string | null;
+  label: string | null;
+  batch: number | null;
+  mine: boolean;
+  ups: number;
+  worked: number;
+  outdated: number;
+  my_up: boolean;
+  my_verdict: 'worked' | 'outdated' | null;
+};
+
 /** The claims of the mocked session that sent a request. */
 function claimsOf(request: Request): { sub?: string; aal?: string } {
   const token = (request.headers()['authorization'] ?? '').replace(/^Bearer /, '');
@@ -379,8 +399,8 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * spec may add to as it runs). `rpc/discount_confirmations` (P2.6) answers `confirmations`, other students' totals,
  * as the database returns them (none by default). `profiles` holds the accounts' posting names (the hacks feed): each
  * signed-in account reads and saves only its own, a username another account has is refused (23505), and
- * `rpc/username_available`, which answers signed out too, says whether any of them has a name. Returns the tables, to
- * look at and to seed.
+ * `rpc/username_available`, which answers signed out too, says whether any of them has a name. `rpc/hacks_feed`
+ * answers `feed`, the posts as the database returns them (none by default). Returns the tables, to look at and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
@@ -390,6 +410,7 @@ export async function mockSupabaseData(
     twoStep?: boolean;
     gone?: ReadonlySet<string>;
     profiles?: ServerProfiles;
+    feed?: FeedRow[];
     confirmations?: { discount_id: string; last_works: string | null; works_since: number; outdated_since: number }[];
   } = {},
 ): Promise<ServerTables> {
@@ -445,6 +466,10 @@ export async function mockSupabaseData(
         profiles.set(me, { username: row.username, label: row.label ?? null, batch: row.batch ?? null });
         return route.fulfill({ status: 201, headers: CORS });
       }
+    }
+    // hacks_feed: the posts the signed-in account may see (the hacks feed), as given in `feed`.
+    if (path === 'rpc/hacks_feed' && request.method() === 'POST') {
+      return route.fulfill({ status: 200, headers: CORS, json: options.feed ?? [] });
     }
     // discount_confirmations: other students' totals per discount, since the date asked.
     if (path === 'rpc/discount_confirmations' && request.method() === 'POST') {

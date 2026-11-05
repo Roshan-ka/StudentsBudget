@@ -3,7 +3,7 @@ import type { Messages } from '../en';
 // Der Tipps-Tab auf Deutsch: Tipps, Rabatte und die Worte der Spar-Zeile. Die Tipps, Rabatte und Spartipps selbst
 // sind Stadtinhalte; ihre deutschen Worte, auch das "per" der Spar-Zeile, stehen in src/i18n/city/de (Plan 2).
 export const tips: Messages['tips'] = {
-  tabsLabel: 'Tipps oder Rabatte',
+  tabsLabel: 'Tipps, Rabatte oder Hacks',
   tips: 'Tipps',
   discounts: 'Rabatte',
   all: 'Alle',
@@ -33,6 +33,27 @@ export const tips: Messages['tips'] = {
     outdated: (place) => `${place}: als ungültig gespeichert.`,
     moves: (saved, direction) => `${saved} Er rückt in der Liste ${direction === 'up' ? 'nach oben' : 'nach unten'}.`,
     failed: (place) => `${place}: Deine Antwort ließ sich nicht speichern. Versuch es noch einmal.`,
+  },
+  /** Der Hacks-Feed: Spartipps von Studierenden. */
+  hacks: {
+    tab: 'Hacks',
+    intro:
+      'Spar-Hacks von Studierenden, in ihren eigenen Worten. Die App prüft sie nicht: Die Stimmen zeigen, was ' +
+      'geklappt hat.',
+    signedOut: 'Melde dich an, um die Hacks von Studierenden zu lesen und selbst welche zu posten.',
+    toAccount: 'Zu „Dein Konto“',
+    off: 'Beiträge von Studierenden brauchen ein Konto, und Konten sind in dieser Version der App nicht eingerichtet.',
+    loading: 'Beiträge werden geladen …',
+    loadFailed: 'Die Beiträge konnten nicht geladen werden. Prüf deine Verbindung und versuch es noch einmal.',
+    tryAgain: 'Noch einmal versuchen',
+    lastLoaded: (when) => `Stand vom letzten Laden, ${when}.`,
+    empty: 'Noch keine Beiträge.',
+    postsFor: 'Beiträge zeigen für',
+    posts: 'Beiträge',
+    cities: { regensburg: 'Regensburg', anywhere: 'Überall' },
+    noName: 'Jemand aus dem Studium',
+    yours: 'Dein Beitrag',
+    counts: (ups, worked, outdated) => `Daumen hoch: ${ups} · Hat geklappt: ${worked} · Veraltet: ${outdated}`,
   },
   swap: {
     line: (title, saving, per) => `Probier das: ${title} · spar etwa ${saving} pro ${per}`,

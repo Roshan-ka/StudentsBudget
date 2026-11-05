@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { forgetFeedCache } from '@/features/hacks/feed';
 import { getSupabase } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
 import { forgetAccountDeleted } from './account-deleted';
@@ -25,7 +26,11 @@ export function useAuth(): AuthState {
       // A "Forgot password" code signed in (P2.4): the new-password step stays until a new password is saved. Set in
       // the same callback as the state, so the account never shows for a moment without the step.
       if (event === 'PASSWORD_RECOVERY') startRecovery();
-      else if (event === 'SIGNED_OUT') endRecovery();
+      else if (event === 'SIGNED_OUT') {
+        endRecovery();
+        // The hacks feed this phone kept for the account goes too, so the next person never sees it.
+        forgetFeedCache();
+      }
       // A new sign-in after deleting an account (P2.5): the "deleted" line has said what it had to.
       if (event === 'SIGNED_IN') forgetAccountDeleted();
       setState(authStateOf(session));

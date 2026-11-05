@@ -4,7 +4,7 @@ import { byCount, NNBSP } from './count';
 // L'onglet Conseils en français : conseils, réductions et les mots de la ligne d'économie. Les conseils, réductions et
 // idées d'économie eux-mêmes sont du contenu de la ville ; leurs mots en français vont dans src/i18n/city/fr (chunk 15).
 export const tips: Messages['tips'] = {
-  tabsLabel: 'Conseils ou réductions',
+  tabsLabel: 'Conseils, réductions ou astuces',
   tips: 'Conseils',
   discounts: 'Réductions',
   all: 'Tous',
@@ -38,6 +38,30 @@ export const tips: Messages['tips'] = {
     outdated: (place) => `${place}${NNBSP}: enregistré comme ne marchant plus.`,
     moves: (saved, direction) => `${saved} ${direction === 'up' ? 'Elle remonte' : 'Elle descend'} dans la liste.`,
     failed: (place) => `${place}${NNBSP}: impossible d’enregistrer ta réponse. Réessaie.`,
+  },
+  /** Le fil d’astuces : des astuces pour économiser, publiées par des étudiants. */
+  hacks: {
+    tab: 'Astuces',
+    intro:
+      'Des astuces pour économiser, publiées par des étudiants, avec leurs propres mots. L’app ne les vérifie ' +
+      `pas${NNBSP}: les votes montrent ce qui a marché.`,
+    signedOut: 'Connecte-toi pour lire et publier les astuces des étudiants.',
+    toAccount: `Aller à «${NNBSP}Ton compte${NNBSP}»`,
+    off:
+      'Les publications des étudiants demandent un compte, et les comptes ne sont pas configurés dans cette ' +
+      'version de l’app.',
+    loading: 'Chargement des publications…',
+    loadFailed: 'Les publications n’ont pas pu être chargées. Vérifie ta connexion et réessaie.',
+    tryAgain: 'Réessayer',
+    lastLoaded: (when) => `Affiché tel que chargé la dernière fois, ${when}.`,
+    empty: 'Pas encore de publication.',
+    postsFor: 'Afficher les publications pour',
+    posts: 'Publications',
+    cities: { regensburg: 'Regensburg', anywhere: 'Partout' },
+    noName: 'Quelqu’un',
+    yours: 'Ta publication',
+    counts: (ups, worked, outdated) =>
+      `Votes${NNBSP}: ${ups} · A marché${NNBSP}: ${worked} · Dépassé${NNBSP}: ${outdated}`,
   },
   swap: {
     line: (title, saving, per) => `Essaie ça${NNBSP}: ${title} · économise environ ${saving} par ${per}`,
