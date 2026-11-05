@@ -1,0 +1,113 @@
+# Pain points: a calmer Home, Settings in pages, charts that always show
+
+## Context
+
+Roshan finds Home annoying: whenever he opens it, the suggested budget is open, and it is long. Two read-only audits on 05-11-2026 found the cause and more of the same kind.
+
+**The suggested budget:**
+- It opens by itself on days 1–7 and whenever the envelopes add up to more than is available (`suggestionIsProminent`, `src/features/home/suggest-budget.ts:179`).
+- "Not now" lives only in React state (`suggested-budget.tsx:95`), so it comes back on every reload or cold start.
+- The open form is 12 rows of inputs, about three phone screens.
+
+**Elsewhere:**
+- Settings is one page of 10 sections, 5–6 screens long, and the account balances start about 2,400 px down.
+- Charts show only "Nothing logged in October yet" until something is logged.
+- The entry form forgets category and account.
+- Edit plan makes you walk all 5 steps to save.
+- Charts styles and the Tips tab reset on a cold start.
+- Home's check-in, badges and guesses cards repeat the same lines on every visit.
+
+**Roshan's decisions (05-11-2026):**
+- The suggested budget is hidden until clicked.
+- Settings becomes a short page of categories, each opening its own page ("very cluttered and confusing").
+- Charts show even when nothing is logged.
+- One round of mockups comes first.
+- All the pain points go into this plan, in chunks of about an hour.
+- The phone tries (redesign, mic, P2.2 sync, account deletion) are left out for now, with a reminder.
+
+## How every chunk works
+
+- **Per phone, one helper:** a small `src/lib/phone-pref.ts` (get and set in try/catch, plus a `useSyncExternalStore` hook) follows `src/theme/store.ts` and `src/features/entries/mic-note.ts`.
+  - Its keys live in localStorage, per phone: not synced, not backed up. CLAUDE.md lists them.
+  - Storage that can't be read falls back to today's default.
+- **New words** go into en, de, fr and es. Designed and checked in German first, then English. Calm wording.
+- **Each chunk is its own PR from `main`:** lint, typecheck, the touched unit tests, the specs it changes, and an As-built note. A ready PR runs its quick check; Roshan starts any e2e run in CI. Claude names the options to use.
+- **A new route** gets its entry in `e2e/affected-map.json`, and joins `PAGES` in `e2e/helpers/pages.ts`, so `reflow`, `theme` and `language-tour` visit it.
+
+## Settings as pages
+
+`/settings` becomes a hub. The language picker stays first, since CLAUDE.md wants someone who can't read the current language to find theirs there. Under it, one row per category: an outlined card row with an icon, the name, a one-line summary of what is set, and a chevron.
+
+| Row | Page | Holds | Summary line |
+|---|---|---|---|
+| Accounts | `/settings/accounts` | the accounts list and Add, Transfer, and exchange rates (only when an account isn't in euros) | "3 accounts · €1,240" |
+| Plan | `/settings/plan` | Edit plan (to setup in edit mode), fixed costs and income | "Rent €350 · 2 incomes" |
+| Profile | `/settings/profile` | the profile form | "Jo · UR · WiSe 2026/27" |
+| Appearance | `/settings/appearance` | Light, Dark, Same as phone | "Light" |
+| Your account | `/settings/account` (exists) | sign-in, security, delete | "Signed in as …" or "Not signed in" |
+| Backup and data | `/settings/backup` | Export (open); Restore and Delete everything folded | "Last export: never" or the date |
+
+- **Each sub-page:**
+  - a back link "‹ Settings";
+  - its own page heading (h2), the bottom nav's Settings item active (`aria-current`).
+  - The sections move as they are; no feature changes.
+- **CLAUDE.md:** the Settings → Appearance and Settings → Your account wording follows the new pages.
+
+## Chunks
+
+0. **Mockups (one round, 375 px, light).** Roshan approves before chunk 1.
+   - Home on day 3, mid-month and on a Sunday.
+   - The Settings hub and the Accounts and Plan pages.
+   - Charts for a month with nothing logged.
+   - The entry form with "Save and add another".
+1. **Suggested budget hidden until clicked.**
+   - `SuggestedBudget` starts closed every time: `expanded` defaults to false, and `suggestionIsProminent` no longer opens it. Whatever else uses it stays.
+   - The "See a suggested budget" link stays below the envelopes; its tap opens the form.
+   - In the open form, rows at €0 sit behind "More categories", like the More chip in quick add.
+   - `home.spec.ts`'s prominence tests become "opens only on tap".
+2. **Home's quieter cards.**
+   - **Check-in:** a single compact line Monday to Saturday; Sunday keeps the yellow card (`check-in-card.tsx`).
+   - **Badges:** one row, e.g. "Badges · 2 of 4 · Next: …" (`badges-card.tsx`).
+   - **Guesses:** only from the unlock day until `/reveal` has been opened, remembered per phone.
+   - **Swap lines:** at most one "Try this" on Home, for the envelope furthest over (`envelope-list.tsx`).
+3. **Settings hub, Accounts and Backup pages.**
+   - **The hub:** `src/app/settings/page.tsx` with the rows, each summary built by a pure helper with tests.
+   - **Accounts page:** `AccountsPanel`, `TransferForm` and `RatesPanel`, the last only with a foreign-currency account.
+   - **Backup page:** `BackupPanel`, with Restore and Delete everything in collapsed sections.
+   - **Specs:** those that open these sections on `/settings` go to the new pages (`accounts`, `backup`, `overdrawn`, `rates`, `demo-backup`, …), plus the map and `PAGES`.
+4. **Plan, Profile and Appearance pages, and the Your account row.**
+   - Edit plan and the fixed costs editor on `/settings/plan`, and `ProfileSection` and `AppearanceSection` on their own pages.
+   - The account card on the hub becomes its row.
+   - **Specs:** `recurring`, `profile`, `account`, `theme`, `setup` (Edit plan) and the rest that open them follow. `account.spec.ts` and `profile.spec.ts`'s order checks become checks of the hub's rows.
+5. **Charts always shown.**
+   - With nothing logged, the period still shows every section (`charts-view.tsx:126-139`), with "Nothing logged in October yet" as a line above them.
+   - **Spending:** bars and table list each planned envelope at €0 spent. The donut draws its empty ring with "€0 of €X planned".
+   - **Income:** sources at €0, or its line "No income logged".
+   - **Savings and over time:** their months at €0.
+   - Nothing is invented: €0 is what was logged.
+   - `charts.spec.ts` changes from "nothing" to "the charts at €0".
+6. **The entry form remembers.**
+   - Last category and account per type, per phone (`entry-form.tsx:56,68,71`).
+   - The category select in groups (flexible, fixed, one-off), as `recurring-editor.tsx:144-161` does.
+   - "Save and add another" keeps the form open with the date, category and account.
+   - After Save, back to where the person came from (`?back=/check-in`, else Entries): `src/app/entries/new/page.tsx` and the check-in's "add an earlier one".
+7. **Edit plan saves from any step.**
+   - In edit mode, Save shows on every step. `save()` already checks every step and jumps to the one with a problem (`setup-wizard.tsx:99-105`).
+   - `?step=envelopes` opens that step, and Reveal's Adjust goes there (`reveal-view.tsx:87`).
+   - In edit mode, each envelope's range and source fold into one "Where these come from" (`envelopes.tsx:133-157`).
+8. **Remembered choices, check-in and badges.**
+   - **Remembered per phone:** the charts' period and each chart's style (`charts-view.tsx:87-89`, `sections.tsx`), and the Tips/Discounts tab (`tips-view.tsx:30`).
+   - **Check-in:** "Add what you forgot" moves up, under the envelope summary (`check-in-view.tsx:247-269`).
+   - **Badges:** the intro and each badge's rule go into one collapsed "How badges work" (`badges-view.tsx:74,96`).
+
+## Verification
+
+- **Unit tests:** `phone-pref` (default when storage throws, stored value, unknown value), the hub's summary helpers, the one swap line chosen, and the charts' €0 rows.
+- **e2e, per chunk:** the specs for its pages are updated and named in the PR. Hidden pages stay mounted, so specs use `getByRole` with exact names.
+- **Each chunk:** its quick check; screens at 375 px in German and English shown to Roshan in the session.
+- **At the end:** Roshan's full run (scope `full`, browsers `all`, languages `all`); `reflow`, `theme` and `language-tour` cover every new page at 200 % text, in dark and in every language.
+- **Done when:**
+  - Home opens to the number, quick add and the envelopes, with nothing opening by itself.
+  - Settings fits on one screen, and every category is one tap away.
+  - A month with nothing logged still shows its charts.
+  - A second spend in the entry form needs no re-picking.
