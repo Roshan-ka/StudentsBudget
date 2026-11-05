@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, type ReactNode, type Ref } from 'react';
+import { useEffect, useId, useState, type ReactNode, type Ref } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -11,6 +11,7 @@ import {
   typeOpening,
 } from '@/features/accounts/opening-balance';
 import { useT } from '@/i18n/use-t';
+import { afterPress, watchPresses } from '@/lib/after-press';
 import { parseAmount, type Minor } from '@/lib/money';
 
 /** What an empty field means: 0 (income, costs, envelopes), or no answer yet (guesses). */
@@ -77,6 +78,7 @@ export function AmountField({
   // Overdrawn ticked while the field was empty: the first thing typed takes the minus sign.
   const [waiting, setWaiting] = useState(false);
   const [touched, setTouched] = useState(false);
+  useEffect(watchPresses, []);
   const fromValue = !sameAmount(parseField(text, blank, range), value);
   const shown = fromValue ? toText(value, blank) : text;
   // The tick belongs to the text typed here. A field that shows another value now (a row above was removed) forgets
@@ -119,7 +121,9 @@ export function AmountField({
             setWaiting(typed.waiting);
             edit(typed.text);
           }}
-          onBlur={() => setTouched(true)}
+          // Shown once a press that took the focus has ended: on the way down it would push Next from under the
+          // pointer, and the click would miss it (after-press.ts).
+          onBlur={() => afterPress(() => setTouched(true))}
         />
       </div>
       {hint && (
