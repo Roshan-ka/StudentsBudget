@@ -1,12 +1,12 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useRef, useState, type FormEvent } from 'react';
 import { DateField } from '@/components/date-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
+import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '@/components/ui/native-select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
@@ -21,10 +21,17 @@ import { parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { buildEntry } from './build-entry';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './categories';
+import { readLastChoice, rememberChoice } from './last-choice';
 
 type EntryType = Entry['type'];
 
 const TABS: readonly EntryType[] = ['expense', 'income', 'transfer'];
+
+/** The expense categories in the list's three groups, in category order within each. */
+const EXPENSE_GROUPS = (['flexible', 'fixed', 'oneoff'] as const).map((kind) => ({
+  kind,
+  categories: EXPENSE_CATEGORIES.filter((c) => c.kind === kind),
+}));
 
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
@@ -51,9 +58,13 @@ function MoneyEntryForm({
   // Today's date, kept current: null until the browser runs this (never the date of the prerender).
   const today = useToday();
   const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
-  // null until the person picks: the default account and the first category.
+  // null until the person picks: the account and category last saved with on this phone (pain points, chunk 6), else
+  // the default account and the first category.
   const [accountChoice, setAccountChoice] = useState<string | null>(editing?.accountId ?? null);
   const [categoryChoice, setCategoryChoice] = useState<string | null>(editing?.categoryId ?? null);
+  // After "Save and add another": the line that says it was saved, and the amount field to type the next one into.
+  const [savedAnother, setSavedAnother] = useState(false);
+  const amountRef = useRef<HTMLInputElement>(null);
   // null means today, so a form left open over midnight follows the date; a date that was picked stays.
   const [dateChoice, setDateChoice] = useState<IsoDate | null>(editing?.date ?? null);
   const [note, setNote] = useState(editing?.note ?? '');
@@ -65,14 +76,20 @@ function MoneyEntryForm({
     return <p className="text-muted-foreground">{t.entries.noAccount}</p>;
   }
 
-  const account = accounts.find((a) => a.id === accountChoice) ?? defaultAccount(accounts) ?? accounts[0];
+  // Read while rendering, after the accounts have loaded, so never during the prerender or hydration.
+  const last = editing ? null : readLastChoice(type);
+  const account =
+    accounts.find((a) => a.id === (accountChoice ?? last?.accountId)) ?? defaultAccount(accounts) ?? accounts[0];
   // Switching between Expense and Income leaves the other kind's category unknown, which falls back to the first.
   const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-  const category = categories.find((c) => c.id === categoryChoice) ?? categories[0];
+  const category = categories.find((c) => c.id === (categoryChoice ?? last?.categoryId)) ?? categories[0];
   const date = dateChoice ?? today;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Which button sent it: "Save and add another" keeps the form here for the next one.
+    const another = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'another';
+    setSavedAnother(false);
     if (date === '') return setError(text.pickDate);
 
     setSaving(true);
@@ -109,8 +126,15 @@ function MoneyEntryForm({
       setSaving(false);
     }
     if (!editing) {
+      rememberChoice(type, { categoryId: category.id, accountId: account.id });
       setAmount('');
       setNote('');
+      if (another) {
+        // The date, category and account stay for the next receipt.
+        setSavedAnother(true);
+        amountRef.current?.focus();
+        return;
+      }
       setDateChoice(null);
     }
     onSaved?.(saved);
@@ -122,6 +146,7 @@ function MoneyEntryForm({
         <Label htmlFor={`${id}-amount`}>{text.amount}</Label>
         <div className="flex items-center gap-2">
           <Input
+            ref={amountRef}
             id={`${id}-amount`}
             className="flex-1"
             inputMode="decimal"
@@ -155,11 +180,21 @@ function MoneyEntryForm({
           value={category.id}
           onChange={(event) => setCategoryChoice(event.target.value)}
         >
-          {categories.map((c) => (
-            <NativeSelectOption key={c.id} value={c.id}>
-              {categoryNameIn(t, c.id)}
-            </NativeSelectOption>
-          ))}
+          {type === 'income'
+            ? categories.map((c) => (
+                <NativeSelectOption key={c.id} value={c.id}>
+                  {categoryNameIn(t, c.id)}
+                </NativeSelectOption>
+              ))
+            : EXPENSE_GROUPS.map((group) => (
+                <NativeSelectOptGroup key={group.kind} label={text.groups[group.kind]}>
+                  {group.categories.map((c) => (
+                    <NativeSelectOption key={c.id} value={c.id}>
+                      {categoryNameIn(t, c.id)}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelectOptGroup>
+              ))}
         </NativeSelect>
       </div>
       <DateField value={date} onChange={setDateChoice} />
@@ -177,9 +212,19 @@ function MoneyEntryForm({
           {error}
         </p>
       )}
+      {savedAnother && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {text.savedAnother}
+        </p>
+      )}
       <Button type="submit" size="lg" disabled={saving}>
         {editing ? text.saveChanges : type === 'income' ? text.saveIncome : text.saveExpense}
       </Button>
+      {!editing && (
+        <Button type="submit" value="another" variant="outline" size="lg" disabled={saving}>
+          {text.saveAnother}
+        </Button>
+      )}
     </form>
   );
 }

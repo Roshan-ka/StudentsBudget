@@ -33,12 +33,13 @@ async function addExpenseFromCheckIn(page: Page, expense: { amount: string; cate
   // The heading only renders once the page has hydrated and read its data, so the link is live.
   await expect(page.getByRole('heading', { level: 3, name: 'Forgot something? Add it here' })).toBeVisible();
   await page.getByRole('link', { name: 'Add something from an earlier day' }).click();
-  await expect(page).toHaveURL('/entries/new');
+  await expect(page).toHaveURL('/entries/new?from=check-in');
   await page.getByLabel('Amount', { exact: true }).fill(expense.amount);
   await page.getByLabel('Category', { exact: true }).selectOption({ label: expense.category });
   await page.getByLabel('Date', { exact: true }).fill(expense.date);
   await page.getByRole('button', { name: 'Save expense' }).click();
-  await expect(page).toHaveURL(`/entries?month=${expense.date.slice(0, 7)}`);
+  // Back to the check-in, where the person was.
+  await expect(page).toHaveURL('/check-in');
 }
 
 async function overflow(page: Page) {
@@ -169,7 +170,7 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
 
   // The date field behind the link covers Saturday's purchase; €50 against eating out's €41 reads calmly.
   await page.getByRole('link', { name: 'Add something from an earlier day' }).click();
-  await expect(page).toHaveURL('/entries/new');
+  await expect(page).toHaveURL('/entries/new?from=check-in');
   await page.getByLabel('Amount', { exact: true }).fill('50');
   await page.getByLabel('Category', { exact: true }).selectOption({ label: 'Eating out' });
   // Saturday is one tap away: Yesterday, shown as DD.MM.YYYY, over the native input's ISO value.
@@ -177,7 +178,7 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await expect(page.getByLabel('Date', { exact: true })).toHaveValue('2026-10-17');
   await expect(page.getByText(formatDate('2026-10-17'), { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Save expense' }).click();
-  await expect(page).toHaveURL('/entries?month=2026-10');
+  await expect(page).toHaveURL('/check-in');
 
   await page.goto('/check-in');
   await expectWeekLine(page, 'Eating out', '€41 planned · €50 spent · €9 over');

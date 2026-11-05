@@ -263,7 +263,8 @@ function CheckIn({
           {t.checkIn.add.heading}
         </h3>
         <QuickAddField />
-        <Link href="/entries/new" className={`${LINK_CLASS} self-start`}>
+        {/* Saving brings the person back here, to the check-in they were in. */}
+        <Link href="/entries/new?from=check-in" className={`${LINK_CLASS} self-start`}>
           {t.checkIn.add.earlier}
         </Link>
       </section>

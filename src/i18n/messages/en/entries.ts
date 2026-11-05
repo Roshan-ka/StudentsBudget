@@ -24,6 +24,10 @@ export const entries = {
     deleteFailed: 'Could not delete the entry.',
   },
   form: {
+    saveAnother: 'Save and add another',
+    savedAnother: 'Saved. Add the next one.',
+    /** The expense categories' groups in the category list. */
+    groups: { flexible: 'Envelopes', fixed: 'Fixed costs', oneoff: 'One-off costs' },
     typeLabel: 'Entry type',
     expense: 'Expense',
     income: 'Income',

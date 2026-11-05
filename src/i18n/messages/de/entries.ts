@@ -25,6 +25,9 @@ export const entries: Messages['entries'] = {
     deleteFailed: 'Der Eintrag konnte nicht gelöscht werden.',
   },
   form: {
+    saveAnother: 'Speichern und noch einen eintragen',
+    savedAnother: 'Gespeichert. Trag den nächsten ein.',
+    groups: { flexible: 'Umschläge', fixed: 'Fixkosten', oneoff: 'Einmalige Kosten' },
     typeLabel: 'Art des Eintrags',
     expense: 'Ausgabe',
     income: 'Einnahme',

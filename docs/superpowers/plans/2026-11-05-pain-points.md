@@ -131,6 +131,13 @@ Roshan finds Home annoying: whenever he opens it, the suggested budget is open, 
    - The category select in groups (flexible, fixed, one-off), as `recurring-editor.tsx:144-161` does.
    - "Save and add another" keeps the form open with the date, category and account.
    - After Save, back to where the person came from (`?back=/check-in`, else Entries): `src/app/entries/new/page.tsx` and the check-in's "add an earlier one".
+   - **As built (2026-11-05):**
+     - **`phone-pref.ts`** has `readPref` and `writePref` in try/catch, with tests. No hook: the form reads it while rendering, after the accounts have loaded, so never during the prerender.
+     - **`last-choice.ts`:** `lastChoiceIn` and `withLastChoice` (tested) keep `{ categoryId, accountId }` per type under `studentsbudget-entry-form`. Saving a new expense or income remembers it; editing an entry doesn't. A deleted account or an unknown category falls back to the default.
+     - **Groups:** the expense list has three optgroups, Envelopes, Fixed costs and One-off costs ("Umschläge", "Fixkosten", "Einmalige Kosten"). Income stays one list.
+     - **"Save and add another":** a second submit button (`value="another"`, read from the submitter) clears the amount and note, keeps the date, category and account, says "Saved. Add the next one." and puts the cursor back in Amount. It doesn't show when editing.
+     - **Back:** `/entries/new?from=check-in` returns to `/check-in`; anything else goes to the entries of the entry's month. Only that one value is read, so the query can't send the person anywhere else. The page reads search params, so it renders inside `Suspense`.
+     - **Specs:** `check-in.spec.ts` follows the check-in's link and lands back on `/check-in`. The `entries` specs pass as they are: each test starts with fresh storage, and none checks a default after a save.
 7. **Edit plan saves from any step.**
    - In edit mode, Save shows on every step. `save()` already checks every step and jumps to the one with a problem (`setup-wizard.tsx:99-105`).
    - `?step=envelopes` opens that step, and Reveal's Adjust goes there (`reveal-view.tsx:87`).
