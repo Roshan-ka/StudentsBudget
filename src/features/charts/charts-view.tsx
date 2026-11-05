@@ -108,8 +108,6 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
   const overTime: Period = lookBack ? { endMonth, months: 6 } : period;
   const overTimeText = lookBack ? periodText(monthsOf(overTime), t, locale) : text;
   const overTimeSubtitle = lookBack ? t.charts.lastSixMonths : null;
-  // A month with nothing in it has no spending or income to show, but the 6 months before it may have both charts' data.
-  const loggedOverTime = lookBack ? hasEntriesIn(entries, monthsOf(overTime)) : logged;
   const overTimeSpending = lookBack ? spendingByCategoryOver(entries, plan, overTime) : spending;
 
   return (
@@ -123,33 +121,25 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
           onChange={setMonths}
         />
       </div>
-      {logged ? (
-        <>
-          <SpendingSection
-            spending={spending}
-            period={period}
-            periodText={text}
-            note={countedFromNote(plan, inPeriod, t, locale)}
-            noneText={t.charts.noSpending(monthIn)}
-          />
-          <IncomeSection income={income} period={period} periodText={text} noneText={t.charts.noIncome(monthIn)} />
-        </>
-      ) : (
-        <p className="text-muted-foreground">{t.charts.nothing(monthIn)}</p>
-      )}
-      {loggedOverTime && (
-        <>
-          <SavingsSection entries={entries} period={overTime} periodText={overTimeText} subtitle={overTimeSubtitle} />
-          <OverTimeSection
-            categoryId={pickedCategory ?? defaultOverTimeCategory(spending, overTimeSpending)}
-            onCategoryChange={setPickedCategory}
-            entries={entries}
-            period={overTime}
-            periodText={overTimeText}
-            subtitle={overTimeSubtitle}
-          />
-        </>
-      )}
+      {/* Every chart shows, at €0 where nothing was logged (pain points, chunk 5); this line says why. */}
+      {!logged && <p className="text-muted-foreground">{t.charts.nothing(monthIn)}</p>}
+      <SpendingSection
+        spending={spending}
+        period={period}
+        periodText={text}
+        note={countedFromNote(plan, inPeriod, t, locale)}
+        noneText={t.charts.noSpending(monthIn)}
+      />
+      <IncomeSection income={income} period={period} periodText={text} noneText={t.charts.noIncome(monthIn)} />
+      <SavingsSection entries={entries} period={overTime} periodText={overTimeText} subtitle={overTimeSubtitle} />
+      <OverTimeSection
+        categoryId={pickedCategory ?? defaultOverTimeCategory(spending, overTimeSpending)}
+        onCategoryChange={setPickedCategory}
+        entries={entries}
+        period={overTime}
+        periodText={overTimeText}
+        subtitle={overTimeSubtitle}
+      />
     </div>
   );
 }
@@ -157,8 +147,8 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
 /**
  * Where the money went over one period (this month, or the last 3, 6 or 12): spending by category against the plan,
  * income by source, what was saved each month, and one category month by month. On "This month" the last two look
- * back 6 months, since one month is a single column, and say "Last 6 months". A month with nothing logged in it says
- * so in place of the first two, and keeps the last two when the 6 months have something. Each chart has its own style
+ * back 6 months, since one month is a single column, and say "Last 6 months". A period with nothing logged in it
+ * still shows every chart, at €0 (the envelopes as planned, nothing spent), under a line that says so. Each chart has its own style
  * (donut, bars or table; columns, line or table). Every slice, bar and column opens the entries behind it. It reads
  * the whole database and updates by itself when an entry is saved.
  */

@@ -30,7 +30,7 @@ import {
   type ChartRow,
 } from './chart-parts';
 import { chartColor, chartLabel } from './colors';
-import { Donut } from './donut';
+import { Donut, EmptyDonut } from './donut';
 import { MonthSeries } from './series';
 
 const SHARE_STYLES = ['donut', 'bars', 'table'] as const;
@@ -130,7 +130,10 @@ export function SpendingSection({
           />
           {style === 'donut' &&
             (slices.length === 0 ? (
-              <p className="text-muted-foreground">{text.nothingSpent(periodText)}</p>
+              <>
+                <EmptyDonut summary={text.nothingSpent(periodText)} centreLabel={text.centre} />
+                <DataTable {...table} />
+              </>
             ) : (
               <>
                 <Donut

@@ -528,7 +528,9 @@ test('the donut is reachable by keyboard through its legend, which links to the 
   await expect(page).toHaveURL('/entries?category=shopping&month=2026-10');
 });
 
-test('the month switcher moves between months, and a month with nothing in it says so', async ({ page }) => {
+test('the month switcher moves between months, and a month with nothing in it says so and keeps its charts', async ({
+  page,
+}) => {
   await completeSetup(page);
   await quickAdd(page, 'döner 6', 'Eating out', 'Saved €6.00 · döner · Eating out');
   await openCharts(page);
@@ -537,8 +539,9 @@ test('the month switcher moves between months, and a month with nothing in it sa
   await monthSwitcher(page).getByRole('button', { name: 'Previous' }).click();
   await expect(monthSwitcher(page)).toContainText('September 2026');
   await expect(page.getByText('Nothing logged in September yet.')).toBeVisible();
-  await expect(spendingSection(page)).toHaveCount(0);
-  await expect(page.getByRole('region', { name: /over time/ })).toHaveCount(0);
+  // The charts stay (pain points, chunk 5). September came before the plan, so nothing was planned to show either.
+  await expect(spendingSection(page).getByText('No spending logged in September yet.')).toBeVisible();
+  await expect(page.getByRole('region', { name: /over time/ })).toBeVisible();
 
   await monthSwitcher(page).getByRole('button', { name: 'Next' }).click();
   await expect(monthSwitcher(page)).toContainText('October 2026');
@@ -547,10 +550,11 @@ test('the month switcher moves between months, and a month with nothing in it sa
   await monthSwitcher(page).getByRole('button', { name: 'Next' }).click();
   await expect(monthSwitcher(page)).toContainText('November 2026');
   await expect(page.getByText('Nothing logged in November yet.')).toBeVisible();
-  // The line replaces spending and income only: the 6 months behind November reach October's döner, so the two charts
-  // that look back 6 months stay, and the over-time chart opens on the category that was spent in them.
-  await expect(spendingSection(page)).toHaveCount(0);
-  await expect(incomeSection(page)).toHaveCount(0);
+  // Every chart stays, at €0: the donut's empty ring with the envelopes as planned, no income yet, and the two charts
+  // that look back 6 months, whose over-time chart opens on the category spent in them (October's döner).
+  await expect(spendingSection(page).getByRole('img', { name: 'Nothing spent in November 2026 yet.' })).toBeVisible();
+  await expect(spendingSection(page).getByRole('row', { name: /Eating out/ }).getByRole('cell')).toHaveText(['€0', '€124']);
+  await expect(incomeSection(page).getByText('No income logged in November yet.')).toBeVisible();
   await expect(savingsSection(page)).toBeVisible();
   await expect(page.getByRole('region', { name: 'Eating out over time' })).toBeVisible();
 
