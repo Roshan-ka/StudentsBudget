@@ -229,7 +229,7 @@ export function AccountsPanel() {
 
   return (
     <section aria-labelledby="accounts-heading" className={cardVariants()}>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 id="accounts-heading" className="text-xl leading-tight font-extrabold">
           {text.heading}
         </h3>
