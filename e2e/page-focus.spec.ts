@@ -5,30 +5,33 @@ import { completeSetup } from './helpers/setup';
 // title, which Next's route announcer reads out, and after a page change the focus is on the new page's heading, not
 // lost on a link of the page that was left.
 
+/** A page's first visit compiles it in the dev server, which on CI can take longer than an expect's 5 s. */
+const FIRST_VISIT = { timeout: 15_000 };
+
 test('a page change puts the focus on the new page’s heading, and the title names the page', async ({ page }) => {
   await completeSetup(page);
   await expect(page).toHaveTitle('Home · StudentsBudget');
   const nav = page.getByRole('navigation', { name: 'Main' });
 
   await nav.getByRole('link', { name: 'Settings', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'Settings', exact: true })).toBeFocused();
+  await expect(page.getByRole('heading', { level: 2, name: 'Settings', exact: true })).toBeFocused(FIRST_VISIT);
   await expect(page).toHaveTitle('Settings · StudentsBudget');
 
   await page.getByRole('link', { name: /^Profile/ }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'Profile', exact: true })).toBeFocused();
+  await expect(page.getByRole('heading', { level: 2, name: 'Profile', exact: true })).toBeFocused(FIRST_VISIT);
   await expect(page).toHaveTitle('Profile · StudentsBudget');
 
   // Back again: the page the router kept takes the focus and the title back.
   await page.getByRole('link', { name: 'Back to Settings', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'Settings', exact: true })).toBeFocused();
+  await expect(page.getByRole('heading', { level: 2, name: 'Settings', exact: true })).toBeFocused(FIRST_VISIT);
   await expect(page).toHaveTitle('Settings · StudentsBudget');
 
   await nav.getByRole('link', { name: 'Charts', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'Charts', exact: true })).toBeFocused();
+  await expect(page.getByRole('heading', { level: 2, name: 'Charts', exact: true })).toBeFocused(FIRST_VISIT);
 
   // Home's heading is for screen readers and the title; the page shows what it is.
   await nav.getByRole('link', { name: 'Home', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'Home', exact: true })).toBeFocused();
+  await expect(page.getByRole('heading', { level: 2, name: 'Home', exact: true })).toBeFocused(FIRST_VISIT);
   await expect(page).toHaveTitle('Home · StudentsBudget');
 });
 
