@@ -429,7 +429,7 @@ test('saves and lands on home', async ({ page }) => {
   expect(accounts.some((a) => a.isDefault)).toBe(false);
 
   // Setup fetched the INR rate for the new account.
-  await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: /^Accounts and transfers/ }).click();
   await expect(page.getByText('50,000.00')).toBeVisible();
   await expect(page.getByText('1 € = 95 INR')).toBeVisible();
@@ -529,7 +529,7 @@ test('editing the plan skips accounts and guesses and keeps what setup stored', 
 
   // A later day in a later month: a kept plan stays 'created on 2026-10-16' and a kept one-off 'from 2026-10'.
   await page.clock.setFixedTime(new Date(2026, 10, 5, 12, 0, 0));
-  await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: /^Plan/ }).click();
   await page.getByRole('link', { name: 'Edit plan' }).click();
 
@@ -619,7 +619,7 @@ test('in Edit plan the suggested amounts fill only the envelopes that are not se
 }) => {
   const nothing = { food: '', 'eating-out': '', 'going-out': '', transport: '', shopping: '', other: '' };
   await completeSetup(page, { envelopes: nothing });
-  await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: /^Plan/ }).click();
   await page.getByRole('link', { name: 'Edit plan' }).click();
   for (const step of ['Income', 'Fixed costs', 'One-off costs', 'Envelopes']) {

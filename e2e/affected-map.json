@@ -16,7 +16,7 @@
     "/manifest.webmanifest": ["smoke"],
     "/reveal": ["demo-scenarios", "language-tour", "reflow", "reveal", "setup", "theme"],
     "/settings": "all",
-    "/settings/accounts": ["accounts", "entries", "home", "insecure-origin", "language-tour", "overdrawn", "privacy-notes", "reflow", "theme"],
+    "/settings/accounts": ["accounts", "backup", "demo-scenarios", "entries", "home", "insecure-origin", "language-tour", "overdrawn", "privacy-notes", "recurring", "reflow", "theme"],
     "/settings/appearance": ["language-tour", "reflow", "theme"],
     "/settings/backup": ["backup", "language-tour", "profile", "reflow", "theme"],
     "/settings/plan": ["accounts", "language-tour", "profile", "recurring", "reflow", "setup", "theme"],
