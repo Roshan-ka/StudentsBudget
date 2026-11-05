@@ -133,6 +133,7 @@ export const setup: Messages['setup'] = {
   installHint:
     `Installe d’abord l’app${NNBSP}: touche Partager → Sur l’écran d’accueil, puis configure-la là-bas. Ce que tu ` +
     'saisis dans Safari reste dans Safari.',
+  setupRow: { title: 'Configurer ton plan', summary: 'Ton plan n’est pas encore configuré' },
   editPlan: {
     summary: 'Revenus, charges fixes et enveloppes',
     heading: 'Plan',
