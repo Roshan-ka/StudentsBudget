@@ -68,8 +68,11 @@ test('quick add asks for the category once, then saves by itself, and Undo remov
   const list = entriesList(page);
 
   await quickAdd(page, 'döner 6');
+  // The question's chips take the focus, and after a pick it is back in the field (accessibility, chunk 5).
+  await expect(page.getByRole('group', { name: 'Category' }).getByRole('button').first()).toBeFocused();
   await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(status).toHaveText('Saved €6.00 · döner · Eating out');
+  await expect(page.getByRole('textbox', { name: 'Quick add' })).toBeFocused();
   await expect(list.getByText('döner')).toBeVisible();
   await expect(list.getByText('€6.00')).toBeVisible();
   await expect(page.getByLabel('Quick add')).toHaveValue('');
@@ -85,6 +88,7 @@ test('quick add asks for the category once, then saves by itself, and Undo remov
   await expect(list.getByText('€4.00')).toHaveCount(0);
   await expect(list.getByText('€6.00')).toBeVisible();
   await expect(status).toHaveText('');
+  await expect(page.getByRole('textbox', { name: 'Quick add' })).toBeFocused();
   const entries = await readStore<Entry>(page, 'entries');
   expect(entries.map((e) => [e.amountMinor, e.note])).toEqual([[600, 'döner']]);
 });
