@@ -47,7 +47,7 @@ describe('buildEntry', () => {
   it('refuses INR without a rate', () => {
     const result = buildEntry(expense, account('inr', 'INR'), {}, NOW);
 
-    expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.' });
+    expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account' });
   });
 
   it('needs no rate for EUR', () => {
@@ -93,14 +93,14 @@ describe('buildEntry', () => {
     for (const amountMinor of [0, -5]) {
       const result = buildEntry({ ...expense, amountMinor }, account('inr', 'INR'), INR_RATES, NOW);
 
-      expect(result).toEqual({ ok: false, error: 'Enter an amount.' });
+      expect(result).toEqual({ ok: false, error: 'Enter an amount.', field: 'amount' });
     }
   });
 
   it('asks for the amount before it asks for a rate', () => {
     const result = buildEntry({ ...expense, amountMinor: 0 }, account('inr', 'INR'), {}, NOW);
 
-    expect(result).toEqual({ ok: false, error: 'Enter an amount.' });
+    expect(result).toEqual({ ok: false, error: 'Enter an amount.', field: 'amount' });
   });
 
   it('editing keeps id and createdAt', () => {
@@ -211,7 +211,7 @@ describe('buildEntry', () => {
     it('an amount edit without a rate is refused', () => {
       const result = buildEntry({ ...edit, amountMinor: 190000 }, account('inr', 'INR'), {}, NOW, existing);
 
-      expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.' });
+      expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account' });
     });
 
     it('moving the entry to another account converts again', () => {
@@ -320,19 +320,19 @@ describe('buildEntry', () => {
 
     expect(buildEntry(transfer, inr, {}, NOW)).toEqual({
       ok: false,
-      error: 'No exchange rate for INR yet. Set one in Settings.',
+      error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account',
     });
     expect(buildEntry({ ...transfer, toAccountId: 'inr' }, inr, INR_RATES, NOW)).toEqual({
       ok: false,
-      error: 'Pick two different accounts.',
+      error: 'Pick two different accounts.', field: 'toAccount',
     });
     expect(buildEntry({ ...transfer, amountMinor: 0 }, inr, INR_RATES, NOW)).toEqual({
       ok: false,
-      error: 'Enter an amount.',
+      error: 'Enter an amount.', field: 'amount',
     });
     expect(buildEntry({ ...transfer, toAmountMinor: 0 }, inr, INR_RATES, NOW)).toEqual({
       ok: false,
-      error: 'Enter the amount received.',
+      error: 'Enter the amount received.', field: 'received',
     });
   });
 });

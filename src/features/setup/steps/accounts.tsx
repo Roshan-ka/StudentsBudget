@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import type { Account } from '@/db/types';
 import { useT } from '@/i18n/use-t';
+import { describedBy } from '@/lib/described-by';
 import { CURRENCIES, type CurrencyCode } from '@/lib/money';
 import type { DraftUpdate, SetupDraft } from '../draft';
+import { useStepProblems } from '../step-problems';
 import { AmountField } from './amount-field';
 import { firstField, useFocusAfter } from '@/lib/focus';
 
@@ -31,6 +33,9 @@ function AccountRow({
   const id = useId();
   const { t } = useT();
   const text = t.setup.accounts;
+  // Every account needs a name: said in the step's problems, which the field points at once they show.
+  const problems = useStepProblems();
+  const unnamed = problems !== null && account.name.trim() === '';
 
   return (
     <div
@@ -45,6 +50,8 @@ function AccountRow({
           id={`${id}-name`}
           value={account.name}
           autoComplete="off"
+          aria-invalid={unnamed || undefined}
+          aria-describedby={describedBy(unnamed && problems)}
           onChange={(event) => onChange({ name: event.target.value })}
         />
       </div>

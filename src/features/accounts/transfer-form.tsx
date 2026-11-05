@@ -3,6 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useState, type FormEvent } from 'react';
 import { DateField } from '@/components/date-field';
+import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,11 +15,15 @@ import { saveEntry } from '@/db/repo';
 import type { Entry } from '@/db/types';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
+import { describedBy } from '@/lib/described-by';
 import { parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { defaultAccount, sortAccounts } from './balances';
-import { buildTransfer } from './transfer';
+import { buildTransfer, type EntryField } from './transfer';
 import { focusFirstControl, useFocusAfter } from '@/lib/focus';
+
+/** A message under the form, and the field it is about (none when saving failed): that field points at it. */
+type FormError = { text: string; field: EntryField | 'date' | null };
 
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
@@ -45,7 +50,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
   // null means today, so a form left open (or kept hidden by the router) follows the date; a date that was picked stays.
   const [dateChoice, setDateChoice] = useState<IsoDate | null>(editing?.date ?? null);
   const [note, setNote] = useState(editing?.note ?? '');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<FormError | null>(null);
   const [saving, setSaving] = useState(false);
 
   if (accounts === undefined || today === null) return null;
@@ -72,7 +77,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (date === '') return setError(t.entries.form.pickDate);
+    if (date === '') return setError({ text: t.entries.form.pickDate, field: 'date' });
 
     setSaving(true);
     setError(null);
@@ -95,14 +100,14 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         lang,
       );
       if (!result.ok) {
-        setError(result.error);
+        setError({ text: result.error, field: result.field });
         return;
       }
       await saveEntry(result.entry);
       saved = result.entry;
     } catch (saveError) {
       console.error('StudentsBudget: could not save the transfer', saveError);
-      setError(text.saveFailed);
+      setError({ text: text.saveFailed, field: null });
       return;
     } finally {
       setSaving(false);
@@ -116,6 +121,11 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
     onSaved?.(saved);
   }
 
+  // The field the message is about says so, and reads the message with its name (accessibility, chunk 6).
+  const errorId = `${id}-error`;
+  const invalid = (field: FormError['field']) => (error !== null && error.field === field) || undefined;
+  const errorFor = (field: FormError['field']) => invalid(field) && errorId;
+
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
       <div className="grid gap-1.5">
@@ -123,6 +133,8 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         <NativeSelect
           id={`${id}-from`}
           className="w-full"
+          aria-invalid={invalid('account')}
+          aria-describedby={describedBy(errorFor('account'))}
           value={from.id}
           onChange={(event) => {
             setFromChoice(event.target.value);
@@ -147,8 +159,12 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             autoComplete="off"
+            aria-invalid={invalid('amount')}
+            aria-describedby={describedBy(`${id}-from-currency`, errorFor('amount'))}
           />
-          <span className="w-10 text-sm text-muted-foreground">{from.currency}</span>
+          <span id={`${id}-from-currency`} className="w-10 text-sm text-muted-foreground">
+            {from.currency}
+          </span>
         </div>
       </div>
       <div className="grid gap-1.5">
@@ -156,6 +172,8 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         <NativeSelect
           id={`${id}-to`}
           className="w-full"
+          aria-invalid={invalid('toAccount')}
+          aria-describedby={describedBy(errorFor('toAccount'))}
           value={to.id}
           onChange={(event) => setToChoice(event.target.value)}
         >
@@ -176,11 +194,20 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
             value={received}
             onChange={(event) => setReceivedChoice(event.target.value)}
             autoComplete="off"
+            aria-invalid={invalid('received')}
+            aria-describedby={describedBy(`${id}-to-currency`, errorFor('received'))}
           />
-          <span className="w-10 text-sm text-muted-foreground">{to.currency}</span>
+          <span id={`${id}-to-currency`} className="w-10 text-sm text-muted-foreground">
+            {to.currency}
+          </span>
         </div>
       </div>
-      <DateField value={date} onChange={setDateChoice} />
+      <DateField
+        value={date}
+        onChange={setDateChoice}
+        invalid={invalid('date')}
+        describedBy={describedBy(errorFor('date'))}
+      />
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-note`}>{t.entries.form.note}</Label>
         <Input
@@ -191,8 +218,8 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         />
       </div>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
+        <p id={errorId} role="alert" className="text-sm text-destructive">
+          {error.text}
         </p>
       )}
       <Button type="submit" size="lg" disabled={saving}>
@@ -214,11 +241,7 @@ export function TransferSection() {
   if (!open) {
     return (
       <section className="flex flex-col gap-2">
-        {saved && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {text.saved}
-          </p>
-        )}
+        {saved && <StatusLine className="text-sm text-muted-foreground">{text.saved}</StatusLine>}
         <Button
           ref={focus.refFor('open')}
           variant="outline"

@@ -143,8 +143,11 @@ export function PasswordSection() {
               autoComplete="new-password"
               value={next}
               onChange={(event) => setNext(event.target.value)}
+              aria-describedby={`${id}-next-hint`}
             />
-            <p className="text-sm text-muted-foreground">{t.auth.signIn.minLength(MIN_PASSWORD_LENGTH)}</p>
+            <p id={`${id}-next-hint`} className="text-sm text-muted-foreground">
+              {t.auth.signIn.minLength(MIN_PASSWORD_LENGTH)}
+            </p>
           </div>
           {error && (
             <p role="alert" className="text-sm text-destructive">

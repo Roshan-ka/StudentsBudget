@@ -12,8 +12,10 @@ import { monthLabel, semesterFeeOffer, type SemesterFeeOffer } from '@/features/
 import { SemesterFeeSource } from '@/features/profile/semester-fee-source';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
+import { describedBy } from '@/lib/described-by';
 import { formatMoney } from '@/lib/money';
 import { isDueMonthProblem, type DraftUpdate, type SetupDraft } from '../draft';
+import { useStepProblems } from '../step-problems';
 import { AmountField } from './amount-field';
 import { firstField, useFocusAfter } from '@/lib/focus';
 
@@ -68,6 +70,9 @@ function OneOffRow({
     feeOffer && oneOff.amountMinor === feeOffer.row.amountMinor ? <SemesterFeeSource offer={feeOffer} /> : undefined;
   // A named cost with no amount is left out when saving: say so where the amount goes, without stopping anyone.
   const leftOut = oneOff.name.trim() !== '' && oneOff.amountMinor === 0;
+  // A cost with an amount needs a name: said in the step's problems, which the field points at once they show.
+  const problems = useStepProblems();
+  const unnamed = problems !== null && oneOff.amountMinor !== 0 && oneOff.name.trim() === '';
 
   return (
     <div
@@ -82,6 +87,8 @@ function OneOffRow({
           id={`${id}-name`}
           value={oneOff.name}
           autoComplete="off"
+          aria-invalid={unnamed || undefined}
+          aria-describedby={describedBy(unnamed && problems)}
           onChange={(event) => onChange({ name: event.target.value })}
         />
       </div>

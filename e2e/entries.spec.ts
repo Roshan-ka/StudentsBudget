@@ -356,6 +356,11 @@ test('the entry form without an amount says so', async ({ page }) => {
   await page.getByRole('button', { name: 'Save expense' }).click();
 
   await expect(inlineAlert(page)).toHaveText('Enter an amount.');
+  // The field it is about says so, and reads it after its currency (accessibility, chunk 6).
+  const amount = page.getByRole('textbox', { name: 'Amount', exact: true });
+  await expect(amount).toHaveAttribute('aria-invalid', 'true');
+  await expect(amount).toHaveAccessibleDescription(/^[A-Z]{3} Enter an amount\.$/);
+  await expect(page.getByRole('combobox', { name: 'Account', exact: true })).not.toHaveAttribute('aria-invalid');
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
 });
 

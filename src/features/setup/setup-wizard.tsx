@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
@@ -28,6 +28,7 @@ import {
   type StepId,
 } from './draft';
 import { saveWizard } from './save-wizard';
+import { StepProblemsContext } from './step-problems';
 import { AccountsStep } from './steps/accounts';
 import { CityRentStep } from './steps/city-rent';
 import { EnvelopesStep } from './steps/envelopes';
@@ -74,6 +75,7 @@ function Wizard({
   const [ratesNote, setRatesNote] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const shownIndex = useRef(index);
+  const problemsId = useId();
 
   const step = steps[index];
   const isLast = index === steps.length - 1;
@@ -164,26 +166,28 @@ function Wizard({
         </h3>
       </div>
 
-      {/* The step's fields in one card. */}
-      <div className={cn(cardVariants(), 'gap-4')}>
-        {step === 'city-rent' && <CityRentStep draft={draft} update={update} />}
-        {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
-        {step === 'income' && !edit && accountsExist && (
-          <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
-        )}
-        {step === 'income' && (
-          <IncomeStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />
-        )}
-        {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
-        {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
-        {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
-        {step === 'envelopes' && (
-          <EnvelopesStep draft={draft} update={update} today={today} existing={existing} edit={edit} />
-        )}
-      </div>
+      {/* The step's fields in one card. While the problems show, the fields they name point at them. */}
+      <StepProblemsContext value={attempted && problems.length > 0 ? problemsId : null}>
+        <div className={cn(cardVariants(), 'gap-4')}>
+          {step === 'city-rent' && <CityRentStep draft={draft} update={update} />}
+          {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
+          {step === 'income' && !edit && accountsExist && (
+            <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
+          )}
+          {step === 'income' && (
+            <IncomeStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />
+          )}
+          {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
+          {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
+          {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
+          {step === 'envelopes' && (
+            <EnvelopesStep draft={draft} update={update} today={today} existing={existing} edit={edit} />
+          )}
+        </div>
+      </StepProblemsContext>
 
       {attempted && problems.length > 0 && (
-        <div role="alert" className="text-sm text-destructive">
+        <div id={problemsId} role="alert" className="text-sm text-destructive">
           <ul className="list-disc ps-5">
             {problems.map((problem) => (
               <li key={problem}>{problem}</li>

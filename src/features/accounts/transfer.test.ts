@@ -117,7 +117,7 @@ describe('buildTransfer', () => {
       expect(result.ok && result.entry.eurMinor).toBe(1900);
       expect(buildTransfer({ ...input, amountMinor: 190000 }, account('inr', 'INR'), {}, NOW, existing)).toEqual({
         ok: false,
-        error: 'No exchange rate for INR yet. Set one in Settings.',
+        error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account',
       });
     });
 
@@ -136,7 +136,7 @@ describe('buildTransfer', () => {
     it('still checks the input before it reuses the stored value', () => {
       expect(buildTransfer({ ...input, toAmountMinor: 0 }, account('inr', 'INR'), {}, NOW, existing)).toEqual({
         ok: false,
-        error: 'Enter the amount received.',
+        error: 'Enter the amount received.', field: 'received',
       });
     });
   });
@@ -155,13 +155,13 @@ describe('buildTransfer', () => {
   it('reports a missing rate with the currency code', () => {
     const result = buildTransfer(input, account('inr', 'INR'), {}, NOW);
 
-    expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.' });
+    expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account' });
   });
 
   it('rejects the same account on both sides', () => {
     const result = buildTransfer({ ...input, toAccountId: 'inr' }, account('inr', 'INR'), { INR: rate('INR', 95) }, NOW);
 
-    expect(result).toEqual({ ok: false, error: 'Pick two different accounts.' });
+    expect(result).toEqual({ ok: false, error: 'Pick two different accounts.', field: 'toAccount' });
   });
 
   it('rejects an amount of zero or less', () => {
@@ -169,17 +169,17 @@ describe('buildTransfer', () => {
 
     expect(buildTransfer({ ...input, amountMinor: 0 }, account('inr', 'INR'), rates, NOW)).toEqual({
       ok: false,
-      error: 'Enter an amount.',
+      error: 'Enter an amount.', field: 'amount',
     });
     expect(buildTransfer({ ...input, amountMinor: -5 }, account('inr', 'INR'), rates, NOW)).toEqual({
       ok: false,
-      error: 'Enter an amount.',
+      error: 'Enter an amount.', field: 'amount',
     });
   });
 
   it('rejects a received amount of zero or less', () => {
     const result = buildTransfer({ ...input, toAmountMinor: 0 }, account('inr', 'INR'), { INR: rate('INR', 95) }, NOW);
 
-    expect(result).toEqual({ ok: false, error: 'Enter the amount received.' });
+    expect(result).toEqual({ ok: false, error: 'Enter the amount received.', field: 'received' });
   });
 });

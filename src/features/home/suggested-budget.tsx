@@ -3,6 +3,7 @@
 import { parseISO } from 'date-fns';
 import { ChevronDownIcon } from 'lucide-react';
 import { useId, useState } from 'react';
+import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { CITIES } from '@/data/cities';
@@ -19,6 +20,7 @@ import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
+import { useSettled } from '@/lib/use-settled';
 import { cn } from '@/lib/utils';
 import { suggestBudget, type Suggestion } from './suggest-budget';
 import { focusOnMount, useFocusAfter } from '@/lib/focus';
@@ -65,6 +67,16 @@ function availableLine(availableMinor: Minor, budgetMinor: Minor, t: Messages, l
  * What is left over, or by how much the amounts pass what is available, after setup's "€600 of your €600 budget"
  * when there is an everyday budget. Whole euros, never flattering.
  */
+/** The total under the amounts: it follows them once the typing pauses, so a screen reader reads it once (chunk 6). */
+function LiveTotal({ text }: { text: string }) {
+  const settled = useSettled(text);
+  return (
+    <p aria-live="polite" className="rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
+      {settled}
+    </p>
+  );
+}
+
 function leftoverLine(
   availableMinor: Minor,
   totalMinor: Minor,
@@ -134,11 +146,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   if (!shown) {
     return (
       <div className="flex flex-col items-start">
-        {outcome === 'saved' && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {text.updated}
-          </p>
-        )}
+        {outcome === 'saved' && <StatusLine className="text-sm text-muted-foreground">{text.updated}</StatusLine>}
         <button
           ref={focus.refFor('show')}
           type="button"
@@ -198,11 +206,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
         </Button>
       )}
 
-      {availableMinor > 0 && (
-        <p aria-live="polite" className="rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
-          {leftoverLine(availableMinor, total, budgetMinor, t, lang)}
-        </p>
-      )}
+      {availableMinor > 0 && <LiveTotal text={leftoverLine(availableMinor, total, budgetMinor, t, lang)} />}
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-3">
@@ -232,8 +236,9 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
         {!invalid && total === 0 && availableMinor > 0 && (
           <p className="text-sm text-muted-foreground">{text.enterOne}</p>
         )}
+        {/* An alert, read out at once like the app's other save failures (accessibility, chunk 6). */}
         {outcome === 'failed' && (
-          <p role="status" className="text-sm text-muted-foreground">
+          <p role="alert" className="text-sm text-muted-foreground">
             {text.failed}
           </p>
         )}

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { StatusLine } from '@/components/status-line';
 import {
   checkDraft,
   EMPTY_DRAFT,
@@ -20,6 +21,7 @@ import { useShowInstallHint } from '@/features/setup/install-hint';
 import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
+import { describedBy } from '@/lib/described-by';
 import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useAccountDeleted } from './account-deleted';
@@ -370,8 +372,11 @@ function NewPasswordForm({ email }: { email: string }) {
             autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            aria-describedby={`${id}-password-hint`}
           />
-          <p className="text-sm text-muted-foreground">{t.auth.signIn.minLength(MIN_PASSWORD_LENGTH)}</p>
+          <p id={`${id}-password-hint`} className="text-sm text-muted-foreground">
+            {t.auth.signIn.minLength(MIN_PASSWORD_LENGTH)}
+          </p>
         </div>
         {error && (
           <p role="alert" className="text-sm text-destructive">
@@ -391,6 +396,9 @@ function NewPasswordForm({ email }: { email: string }) {
 }
 
 /** Email and password, to sign in or to create an account. */
+/** The sign-in form's fields a message can be about. */
+type SignInField = 'email' | 'password' | 'username' | 'batch';
+
 function SignInForm() {
   const id = useId();
   const { t, lang } = useT();
@@ -400,7 +408,10 @@ function SignInForm() {
   const [password, setPassword] = useState('');
   // Creating: the name the account will post under (the hacks feed).
   const [nameDraft, setNameDraft] = useState<PostingNameDraft>(EMPTY_DRAFT);
-  const [error, setError] = useState<string | null>(null);
+  // The message, and the field it is about: none for an answer from the server, which is about the whole form.
+  const [error, setErrorState] = useState<{ text: string; field: SignInField | null } | null>(null);
+  const setError = (message: string | null, field: SignInField | null = null) =>
+    setErrorState(message === null ? null : { text: message, field });
   const [notice, setNotice] = useState<string | null>(null);
   // A step that takes the form's place (P2.4): an emailed code, with whether it opens saying a new one was sent, or
   // the email a "Forgot password" code goes to.
@@ -424,7 +435,7 @@ function SignInForm() {
   useEffect(
     () => () => {
       setPassword('');
-      setError(null);
+      setErrorState(null);
       setNotice(null);
       setUnconfirmed(null);
       setAccountNote(false);
@@ -469,7 +480,8 @@ function SignInForm() {
     setUnconfirmed(null);
     const checked = checkCredentials(email, password, mode, lang);
     if (!checked.ok) {
-      setError(checked.error);
+      // The email is checked first, so with a good email the message is about the password.
+      setError(checked.error, checkEmail(email, lang).ok ? 'password' : 'email');
       return;
     }
     // Creating: the name it will post under, checked here before anything is sent.
@@ -477,7 +489,7 @@ function SignInForm() {
     if (mode === 'create') {
       const named = checkDraft(nameDraft);
       if (!named.ok) {
-        setError(t.auth.postingName.errors[named.problem]);
+        setError(t.auth.postingName.errors[named.problem], named.problem === 'batch' ? 'batch' : 'username');
         return;
       }
       name = named.name;
@@ -508,7 +520,8 @@ function SignInForm() {
         // Asked first, so a taken username is said before the account exists: the database would only leave it out.
         const free = await usernameAvailable(supabase, name.username);
         if (free !== true) {
-          setError(free === false ? t.auth.postingName.errors.taken : t.auth.postingName.errors.checkFailed);
+          if (free === false) setError(t.auth.postingName.errors.taken, 'username');
+          else setError(t.auth.postingName.errors.checkFailed);
           return;
         }
         // User metadata: the language, so the account's emails are written in it, and the name it posts under, which
@@ -564,6 +577,12 @@ function SignInForm() {
     );
   }
 
+  // The field the message is about says so, and reads the message with its name (accessibility, chunk 6).
+  const errorId = `${id}-error`;
+  const invalid = (field: SignInField) => (error !== null && error.field === field) || undefined;
+  const errorFor = (field: SignInField) => invalid(field) && errorId;
+  const nameProblem = error?.field === 'username' || error?.field === 'batch' ? error.field : null;
+
   return (
     <section aria-labelledby={`${id}-heading`} className={cn(cardVariants(), 'gap-4')}>
       <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
@@ -578,7 +597,7 @@ function SignInForm() {
             setError(null);
             setNotice(null);
           }}
-          onError={setError}
+          onError={(message) => setError(message)}
         />
       )}
 
@@ -594,6 +613,8 @@ function SignInForm() {
             spellCheck={false}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            aria-invalid={invalid('email')}
+            aria-describedby={describedBy(errorFor('email'))}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -604,9 +625,13 @@ function SignInForm() {
             autoComplete={creating ? 'new-password' : 'current-password'}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            aria-invalid={invalid('password')}
+            aria-describedby={describedBy(creating && `${id}-password-hint`, errorFor('password'))}
           />
           {creating ? (
-            <p className="text-sm text-muted-foreground">{text.minLength(MIN_PASSWORD_LENGTH)}</p>
+            <p id={`${id}-password-hint`} className="text-sm text-muted-foreground">
+              {text.minLength(MIN_PASSWORD_LENGTH)}
+            </p>
           ) : (
             <Button
               type="button"
@@ -623,10 +648,12 @@ function SignInForm() {
             </Button>
           )}
         </div>
-        {creating && <PostingNameFields draft={nameDraft} onChange={setNameDraft} />}
+        {creating && (
+          <PostingNameFields draft={nameDraft} onChange={setNameDraft} problem={nameProblem} errorId={errorId} />
+        )}
         {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
+          <p id={errorId} role="alert" className="text-sm text-destructive">
+            {error.text}
           </p>
         )}
         {unconfirmed !== null && (
@@ -903,9 +930,7 @@ export function AccountView() {
       return (
         <>
           {accountDeleted && (
-            <p role="status" className="rounded-lg bg-muted px-4 py-3 text-sm">
-              {t.auth.deleteAccount.done}
-            </p>
+            <StatusLine className="rounded-lg bg-muted px-4 py-3 text-sm">{t.auth.deleteAccount.done}</StatusLine>
           )}
           <SignInForm />
         </>

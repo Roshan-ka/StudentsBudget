@@ -6,6 +6,12 @@ import { toEurMinor, type RateMap } from '@/lib/fx';
 import type { Minor } from '@/lib/money';
 import { newId } from '@/lib/new-id';
 
+/** The field an input error is about, so the form can mark that field and tie the message to it. */
+export type EntryField = 'account' | 'toAccount' | 'amount' | 'received';
+
+/** What is wrong with the input, in `lang`, and the field it is about. */
+export type InputError = { ok: false; error: string; field: EntryField };
+
 export type TransferInput = {
   fromAccountId: string;
   toAccountId: string;
@@ -31,16 +37,16 @@ export function buildTransfer(
   now: Date,
   existing?: Entry,
   lang: Language = 'en',
-): { ok: true; entry: Entry } | { ok: false; error: string } {
+): { ok: true; entry: Entry } | InputError {
   const t = MESSAGES[lang];
-  if (input.fromAccountId === input.toAccountId) return { ok: false, error: t.accounts.transfer.pickTwo };
-  if (input.amountMinor <= 0) return { ok: false, error: t.entries.errors.enterAmount };
-  if (input.toAmountMinor <= 0) return { ok: false, error: t.accounts.transfer.enterReceived };
+  if (input.fromAccountId === input.toAccountId) return { ok: false, error: t.accounts.transfer.pickTwo, field: 'toAccount' };
+  if (input.amountMinor <= 0) return { ok: false, error: t.entries.errors.enterAmount, field: 'amount' };
+  if (input.toAmountMinor <= 0) return { ok: false, error: t.accounts.transfer.enterReceived, field: 'received' };
 
   const unchanged =
     existing !== undefined && existing.accountId === input.fromAccountId && existing.amountMinor === input.amountMinor;
   const eurMinor = unchanged ? existing.eurMinor : toEurMinor(input.amountMinor, from.currency, rates);
-  if (eurMinor === null) return { ok: false, error: t.entries.errors.noRate(from.currency) };
+  if (eurMinor === null) return { ok: false, error: t.entries.errors.noRate(from.currency), field: 'account' };
 
   return {
     ok: true,

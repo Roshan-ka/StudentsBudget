@@ -28,7 +28,10 @@ export function PostingNameCard({ userId }: { userId: string }) {
   const text = t.auth.postingName;
   const [name, setName] = useState<PostingName | null | 'loading' | 'failed'>('loading');
   const [draft, setDraft] = useState<PostingNameDraft | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setErrorState] = useState<{ text: string; field: 'username' | 'batch' | null } | null>(null);
+  // The message, and the field it is about (accessibility, chunk 6): none when saving failed.
+  const setError = (message: string | null, field: 'username' | 'batch' | null = null) =>
+    setErrorState(message === null ? null : { text: message, field });
   // Said out loud by a screen reader when it changes.
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
@@ -47,7 +50,7 @@ export function PostingNameCard({ userId }: { userId: string }) {
     return () => {
       current = false;
       setDraft(null);
-      setError(null);
+      setErrorState(null);
       setStatus('');
     };
   }, [userId]);
@@ -69,7 +72,7 @@ export function PostingNameCard({ userId }: { userId: string }) {
     if (draft === null || inFlight.current) return;
     const checked = checkDraft(draft);
     if (!checked.ok) {
-      setError(text.errors[checked.problem]);
+      setError(text.errors[checked.problem], checked.problem === 'batch' ? 'batch' : 'username');
       return;
     }
     const supabase = getSupabase();
@@ -80,7 +83,8 @@ export function PostingNameCard({ userId }: { userId: string }) {
     try {
       const saved = await savePostingName(supabase, userId, checked.name);
       if (saved !== 'saved') {
-        setError(saved === 'taken' ? text.errors.taken : text.errors.saveFailed);
+        if (saved === 'taken') setError(text.errors.taken, 'username');
+        else setError(text.errors.saveFailed);
         return;
       }
       setName(checked.name);
@@ -115,10 +119,10 @@ export function PostingNameCard({ userId }: { userId: string }) {
 
       {draft !== null ? (
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
-          <PostingNameFields draft={draft} onChange={setDraft} />
+          <PostingNameFields draft={draft} onChange={setDraft} problem={error?.field ?? null} errorId={`${id}-error`} />
           {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
+            <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
+              {error.text}
             </p>
           )}
           <div className="flex flex-wrap gap-2">

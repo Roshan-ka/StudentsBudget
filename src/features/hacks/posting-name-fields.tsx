@@ -5,18 +5,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { useT } from '@/i18n/use-t';
+import { describedBy } from '@/lib/described-by';
 import { LABELS, type PostingLabel, type PostingNameDraft } from './posting-name';
 
 /**
  * The username, label and batch fields: in the sign-up form and on Your account's "Your name on posts" card. The
- * username is kept in lower case as it is typed, as it will be saved.
+ * username is kept in lower case as it is typed, as it will be saved. With `problem`, that field is marked and reads the
+ * form's message (`errorId`) after its hint.
  */
 export function PostingNameFields({
   draft,
   onChange,
+  problem = null,
+  errorId,
 }: {
   draft: PostingNameDraft;
   onChange: (draft: PostingNameDraft) => void;
+  problem?: 'username' | 'batch' | null;
+  errorId?: string;
 }) {
   const id = useId();
   const { t } = useT();
@@ -31,7 +37,8 @@ export function PostingNameFields({
           autoComplete="nickname"
           autoCapitalize="none"
           spellCheck={false}
-          aria-describedby={`${id}-username-hint`}
+          aria-invalid={problem === 'username' || undefined}
+          aria-describedby={describedBy(`${id}-username-hint`, problem === 'username' && errorId)}
           value={draft.username}
           onChange={(event) => onChange({ ...draft, username: event.target.value.toLowerCase() })}
         />
@@ -61,7 +68,8 @@ export function PostingNameFields({
           inputMode="numeric"
           autoComplete="off"
           maxLength={4}
-          aria-describedby={`${id}-batch-hint`}
+          aria-invalid={problem === 'batch' || undefined}
+          aria-describedby={describedBy(`${id}-batch-hint`, problem === 'batch' && errorId)}
           value={draft.batch}
           onChange={(event) => onChange({ ...draft, batch: event.target.value })}
         />

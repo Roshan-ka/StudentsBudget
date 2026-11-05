@@ -750,7 +750,12 @@ test('rent and income can be added on their day, from any account', async ({ pag
   await parents.getByLabel('Account', { exact: true }).selectOption({ label: 'Home bank (INR)' });
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(inlineAlert(page)).toHaveText('Enter the amount in INR for Parents.');
-  await parents.getByLabel('Amount in INR', { exact: true }).fill('50000');
+  // The field the message is about says so, and reads it (accessibility, chunk 6).
+  const rupees = parents.getByRole('textbox', { name: 'Amount in INR', exact: true });
+  await expect(rupees).toHaveAttribute('aria-invalid', 'true');
+  await expect(rupees).toHaveAccessibleDescription(/^INR .*Enter the amount in INR for Parents\.$/);
+  await rupees.fill('50000');
+  await expect(rupees).not.toHaveAttribute('aria-invalid');
 
   // The job pays weekly on Fridays; the plan keeps the €400 a month.
   const job = page.getByRole('group', { name: 'Job schedule', exact: true });
