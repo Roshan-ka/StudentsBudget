@@ -45,6 +45,8 @@ export const badges = {
       'Earned by a month with at most half the eating out of your first full month that had some. ' +
       'Only months in which you log envelope spending yourself count.',
   },
+  /** The fold on the Badges page that holds the intro and every badge's rule. */
+  howItWorks: 'How badges work',
   intro:
     'Each week is saved from the Wednesday after it ends, the next time you open the app, so spending you log for it ' +
     'on Monday or Tuesday still counts. Your badges come from those weeks and your entries. A week you mark as away ' +

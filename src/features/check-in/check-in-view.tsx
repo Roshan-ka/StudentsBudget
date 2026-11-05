@@ -3,7 +3,7 @@
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan } from '@/db/types';
@@ -84,6 +84,7 @@ type Part = 'this' | 'earlier';
  * week", to the part that is today's.
  */
 function WeekPart({
+  children,
   plan,
   entries,
   accounts,
@@ -97,6 +98,8 @@ function WeekPart({
   day: IsoDate;
   part: Part;
   withTotal: boolean;
+  /** Shown between the week against the plan and what was logged in it (the check-in's add card). */
+  children?: ReactNode;
 }) {
   const planId = useId();
   const weekId = useId();
@@ -139,6 +142,8 @@ function WeekPart({
           </>
         )}
       </section>
+
+      {children}
 
       <section aria-labelledby={weekId} className={cn(cardVariants(), 'gap-2')}>
         <h3 id={weekId} className="text-xl leading-tight font-extrabold">
@@ -255,19 +260,21 @@ function CheckIn({
           withTotal={false}
         />
       )}
-      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} part="this" withTotal />
+      {/* What was forgotten is added right under the week against the plan, before the list of what was logged
+          (pain points, chunk 8). */}
+      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} part="this" withTotal>
+        <section aria-labelledby={addId} className={cardVariants()}>
+          <h3 id={addId} className="text-xl leading-tight font-extrabold">
+            {t.checkIn.add.heading}
+          </h3>
+          <QuickAddField />
+          {/* Saving brings the person back here, to the check-in they were in. */}
+          <Link href="/entries/new?from=check-in" className={`${LINK_CLASS} self-start`}>
+            {t.checkIn.add.earlier}
+          </Link>
+        </section>
+      </WeekPart>
       <AwayToggle plan={plan} today={today} />
-
-      <section aria-labelledby={addId} className={cardVariants()}>
-        <h3 id={addId} className="text-xl leading-tight font-extrabold">
-          {t.checkIn.add.heading}
-        </h3>
-        <QuickAddField />
-        {/* Saving brings the person back here, to the check-in they were in. */}
-        <Link href="/entries/new?from=check-in" className={`${LINK_CLASS} self-start`}>
-          {t.checkIn.add.earlier}
-        </Link>
-      </section>
 
       {/* A plain link, not <Link>: this is a file, and the browser or the phone's calendar app takes it from here. */}
       <a href="/weekly-check-in.ics" className={`${LINK_CLASS} self-start`}>

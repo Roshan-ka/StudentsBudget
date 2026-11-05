@@ -4,6 +4,7 @@ import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useChoicePref } from '@/lib/phone-pref';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import type { Entry, Plan } from '@/db/types';
@@ -24,6 +25,8 @@ import { LINK_CLASS, monthAndYear, monthOnly, rangeText, SegmentedControl } from
 import { IncomeSection, OverTimeSection, SavingsSection, SpendingSection } from './sections';
 
 const PERIODS = [1, 3, 6, 12] as const;
+/** The periods as the phone stores them. */
+const PERIOD_KEYS = ['1', '3', '6', '12'] as const;
 
 /**
  * "Envelope spending counts from 16 Oct, the day you set up.", if the plan was set up in a month of the period,
@@ -86,7 +89,10 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
   // Null follows the clock to the current month; Previous and Next pin the month that was picked.
   const [pickedMonth, setPickedMonth] = useState<IsoMonth | null>(null);
   const [pickedCategory, setPickedCategory] = useState<string | null>(null);
-  const [months, setMonths] = useState<Period['months']>(1);
+  // Remembered on this phone (pain points, chunk 8), like each chart's style.
+  const [storedMonths, setStoredMonths] = useChoicePref('studentsbudget-charts-period', PERIOD_KEYS, '1');
+  const months = Number(storedMonths) as Period['months'];
+  const setMonths = (value: Period['months']) => setStoredMonths(`${value}` as (typeof PERIOD_KEYS)[number]);
 
   const endMonth = pickedMonth ?? monthOf(today);
   const period: Period = { endMonth, months };

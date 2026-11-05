@@ -47,6 +47,7 @@ export const badges: Messages['badges'] = {
       'La consigue un mes con como mucho la mitad de comidas fuera que tu primer mes completo que tuvo alguna. Solo ' +
       'cuentan los meses en los que registras por tu cuenta los gastos de los sobres.',
   },
+  howItWorks: 'Cómo funcionan las insignias',
   intro:
     'Cada semana se guarda a partir del miércoles siguiente a su final, la próxima vez que abres la app, así que los ' +
     'gastos que registres para ella el lunes o el martes aún cuentan. Tus insignias salen de esas semanas y de tus ' +
