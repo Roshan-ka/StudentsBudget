@@ -100,9 +100,11 @@ test('on day 22 each guess shows next to what was spent, and the plan can be adj
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   const adjust = page.getByRole('link', { name: 'Adjust my plan' });
-  await expect(adjust).toHaveAttribute('href', '/setup?edit=1');
+  await expect(adjust).toHaveAttribute('href', '/setup?edit=1&step=envelopes');
   await adjust.click();
-  await expect(page).toHaveURL('/setup?edit=1');
+  await expect(page).toHaveURL('/setup?edit=1&step=envelopes');
+  // Straight to the envelopes, the step the guesses are about.
+  await expect(page.getByRole('heading', { level: 3, name: 'Envelopes', exact: true })).toBeVisible();
 });
 
 test('a finished month that went over its plan reads calmly, even before the guesses unlock', async ({ page }) => {
