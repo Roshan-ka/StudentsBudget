@@ -401,8 +401,8 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * signed-in account reads and saves only its own, a username another account has is refused (23505), and
  * `rpc/username_available`, which answers signed out too, says whether any of them has a name. `rpc/hacks_feed`
  * answers `feed`, the posts as the database returns them (none by default); `rpc/post_hack` adds to it (an account in
- * `profiles` only, and none with `dailyLimit`) and `rpc/delete_hack` takes one's own post out. Returns the tables, to
- * look at and to seed.
+ * `profiles` only, and none with `dailyLimit`), `rpc/delete_hack` takes one's own post out, `rpc/vote_hack` moves a
+ * post's totals and `rpc/report_hack` takes it out, as for the reporter. Returns the tables, to look at and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
@@ -513,6 +513,30 @@ export async function mockSupabaseData(
         my_verdict: null,
       });
       return route.fulfill({ status: 200, headers: CORS, json: id });
+    }
+    // vote_hack: the whole vote on someone else's post moves its totals (one's own: hint 'own-post'; a post not in
+    // `feed`: hint 'not-found'). report_hack: the post leaves `feed`, as it leaves the reporter's list.
+    if ((path === 'rpc/vote_hack' || path === 'rpc/report_hack') && request.method() === 'POST') {
+      const sent = request.postDataJSON() as { p_id: string; p_up?: boolean; p_verdict?: FeedRow['my_verdict'] };
+      const at = feed.findIndex((row) => row.id === sent.p_id);
+      const refuse = (hint: string) =>
+        route.fulfill({ status: 400, headers: CORS, json: { code: 'P0001', message: hint, hint, details: null } });
+      if (at < 0) return refuse('not-found');
+      const row = feed[at];
+      if (row.mine) return refuse('own-post');
+      if (path === 'rpc/report_hack') {
+        feed.splice(at, 1);
+        return route.fulfill({ status: 204, headers: CORS });
+      }
+      const up = sent.p_up === true;
+      const verdict = sent.p_verdict ?? null;
+      const step = (was: boolean, is: boolean) => (is === was ? 0 : is ? 1 : -1);
+      row.ups += step(row.my_up, up);
+      row.worked += step(row.my_verdict === 'worked', verdict === 'worked');
+      row.outdated += step(row.my_verdict === 'outdated', verdict === 'outdated');
+      row.my_up = up;
+      row.my_verdict = verdict;
+      return route.fulfill({ status: 204, headers: CORS });
     }
     // delete_hack: the signed-in account's own post leaves `feed`; any other is refused (hint 'not-found').
     if (path === 'rpc/delete_hack' && request.method() === 'POST') {

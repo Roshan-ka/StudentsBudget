@@ -51,5 +51,9 @@ export const common: Messages['common'] = {
     post:
       'Alle Studierenden mit Konto können deinen Beitrag lesen, mit Benutzername, Status und Jahrgang, und ihn ' +
       'bewerten oder melden. Du kannst ihn jederzeit löschen.',
+    hackVotes:
+      'Deine Stimmen zählen in den Summen, die alle Studierenden am Beitrag sehen; niemand sieht, wer abgestimmt ' +
+      'hat. Eine Meldung versteckt den Beitrag sofort für dich und für alle, wenn genug Studierende ihn gemeldet ' +
+      'haben, bis die Moderation der App entscheidet.',
   },
 };

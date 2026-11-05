@@ -53,5 +53,8 @@ export const common = {
     post:
       'Every student with an account can read your post, with your username, label and batch, and vote on it or ' +
       'report it. You can delete it at any time.',
+    hackVotes:
+      'Your votes count in the totals every student sees on the post; nobody sees who voted. A report hides the ' +
+      'post for you at once, and for everyone once enough students reported it, until the app’s moderator decides.',
   },
 };

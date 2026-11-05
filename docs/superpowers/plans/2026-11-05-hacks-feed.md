@@ -177,6 +177,13 @@ Next on the roadmap after the data-protection notes (#95, #97): the community ha
 - Texts: `tips.hacks.form`, the delete words and `common.privacy.post` in four languages. The French spacing test skips a link's `://`.
 - e2e: `mockSupabaseData`'s `feed` changes with `post_hack` and `delete_hack`, and `dailyLimit` refuses; `hacks-post.spec.ts` (the checks, the note, the post and its call, a name picked at the first post, the daily limit, deleting one's own post only).
 
+**Chunk 6 (2026-11-05):**
+- `src/features/hacks/votes.ts`: `nextVote` (the upvote toggles; a verdict toggles and replaces the other), `withVote` (the totals move by the change only), `voteHack` and `reportHack` ('gone' for a post deleted or hidden meanwhile); unit-tested.
+- Others' posts get a "Your vote on this post" group: Upvote, Worked for me and Outdated as pressed chips, and Report. A vote updates the post in place (no reload); a report asks first, then the post leaves the list with "Reported. You won't see this post anymore." One's own post has none of these.
+- The first vote or report on a phone waits for the `hackVotes` note (votes count in totals, nobody sees who voted; a report hides the post for the reporter, and for everyone at enough reports until the moderator decides).
+- The list on screen is kept as it changes, so the fallback list shows one's own votes.
+- e2e: the data mock's `vote_hack` moves the totals and `report_hack` takes the post out; `hacks-votes.spec.ts` (the note, each toggle and its totals, the calls, no buttons on one's own post, the report question and the post leaving).
+
 **Making the moderator** (once chunk 3 is on the hosted project; in the dashboard's SQL editor, as the project owner):
 
 ```sql

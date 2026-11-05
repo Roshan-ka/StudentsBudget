@@ -7,6 +7,8 @@ import { cardVariants } from '@/components/ui/card';
 import { useAuth } from '@/features/account/use-auth';
 import { categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
+import { noteSeen } from '@/features/privacy/notes';
+import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { categoryNameIn } from '@/i18n/category-name';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
@@ -17,6 +19,7 @@ import { hackCategoryIds, linkHost, readFeed, readFeedCache, saveFeedCache, type
 import { HackForm } from './hack-form';
 import { postingNameText } from './posting-name';
 import { deleteHack } from './posts';
+import { nextVote, reportHack, voteHack, withVote, type VoteButton } from './votes';
 
 /** The list on screen: loaded on this visit, or the one this phone kept from an earlier one. */
 type Shown = { posts: HackPost[]; loadedAt: string; fresh: boolean };
@@ -63,6 +66,11 @@ export function HacksView() {
     };
   }, [userId, attempt]);
 
+  // A vote or a report changes the list on screen: the phone keeps that list as it now is.
+  useEffect(() => {
+    if (userId !== null && shown !== null && shown.fresh) saveFeedCache(userId, shown.posts, shown.loadedAt);
+  }, [userId, shown]);
+
   if (auth.status === 'off') return <p className="text-sm text-muted-foreground">{text.off}</p>;
   if (auth.status === 'loading') return <p className="text-sm text-muted-foreground">{text.loading}</p>;
   if (userId === null) {
@@ -90,6 +98,39 @@ export function HacksView() {
     setStatus(text.deleted);
     setAttempt((n) => n + 1);
     return true;
+  }
+
+  /** Changes the posts on screen, from the newest list (two quick taps never undo each other). */
+  function update(change: (posts: HackPost[]) => HackPost[]) {
+    setShown((current) => (current === null ? current : { ...current, posts: change(current.posts) }));
+  }
+
+  /** A post that was deleted or hidden meanwhile, or that this account reported, leaves the list. */
+  function drop(id: string, said: string) {
+    update((posts) => posts.filter((post) => post.id !== id));
+    setStatus(said);
+  }
+
+  /** Saves a tap on a vote button: null once saved, else what to say under the post. */
+  async function vote(post: HackPost, button: VoteButton): Promise<string | null> {
+    const supabase = getSupabase();
+    if (supabase === null) return text.voteFailed;
+    const next = nextVote(post, button);
+    const result = await voteHack(supabase, post.id, next);
+    if (result === 'failed') return text.voteFailed;
+    if (result === 'gone') drop(post.id, text.gone);
+    else update((posts) => posts.map((shownPost) => (shownPost.id === post.id ? withVote(shownPost, next) : shownPost)));
+    return null;
+  }
+
+  /** Reports a post, which leaves this account's list at once: null once done, else what to say under the post. */
+  async function report(post: HackPost): Promise<string | null> {
+    const supabase = getSupabase();
+    if (supabase === null) return text.reportFailed;
+    const result = await reportHack(supabase, post.id);
+    if (result === 'failed') return text.reportFailed;
+    drop(post.id, result === 'reported' ? text.reported : text.gone);
+    return null;
   }
 
   // Another account's list never shows, even for the moment before the effect runs again.
@@ -156,7 +197,7 @@ export function HacksView() {
       {listed.length > 0 && (
         <ul aria-label={text.posts} className="flex flex-col gap-3">
           {listed.map((post) => (
-            <HackCard key={post.id} post={post} t={t} onDelete={remove} />
+            <HackCard key={post.id} post={post} t={t} onDelete={remove} onVote={vote} onReport={report} />
           ))}
         </ul>
       )}
@@ -164,14 +205,34 @@ export function HacksView() {
   );
 }
 
+/** What a tap under someone else's post does, waiting for the note on votes the first time on a phone. */
+type CardAction = { kind: 'vote'; button: VoteButton } | { kind: 'report' };
+
+const VOTE_BUTTONS: readonly VoteButton[] = ['up', 'worked', 'outdated'];
+
 /**
  * One post: its category and place, the text in its own language, the link, who wrote it and the votes so far. The
- * author's own post can be deleted, after a question.
+ * author's own post can be deleted, after a question; anyone else's can be voted on (chunk 6) or reported, after a
+ * question. The first vote or report on a phone waits for its data-protection note.
  */
-function HackCard({ post, t, onDelete }: { post: HackPost; t: Messages; onDelete: (id: string) => Promise<boolean> }) {
+function HackCard({
+  post,
+  t,
+  onDelete,
+  onVote,
+  onReport,
+}: {
+  post: HackPost;
+  t: Messages;
+  onDelete: (id: string) => Promise<boolean>;
+  onVote: (post: HackPost, button: VoteButton) => Promise<string | null>;
+  onReport: (post: HackPost) => Promise<string | null>;
+}) {
   const text = t.tips.hacks;
   const Icon = CATEGORY_ICONS[post.categoryId] ?? OTHER_ICON;
   const [asking, setAsking] = useState(false);
+  const [askingReport, setAskingReport] = useState(false);
+  const [pending, setPending] = useState<CardAction | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -181,6 +242,21 @@ function HackCard({ post, t, onDelete }: { post: HackPost; t: Messages; onDelete
     setBusy(false);
     if (!gone) setProblem(text.deleteFailed);
     setAsking(false);
+  }
+
+  async function act(action: CardAction) {
+    setPending(null);
+    setAskingReport(false);
+    setProblem(null);
+    setBusy(true);
+    const said = action.kind === 'vote' ? await onVote(post, action.button) : await onReport(post);
+    setBusy(false);
+    setProblem(said);
+  }
+
+  function tap(action: CardAction) {
+    if (noteSeen('hackVotes')) void act(action);
+    else setPending(action);
   }
 
   return (
@@ -217,6 +293,58 @@ function HackCard({ post, t, onDelete }: { post: HackPost; t: Messages; onDelete
         {post.mine && <span className="font-normal text-muted-foreground"> · {text.yours}</span>}
       </p>
       <p className="text-sm text-muted-foreground">{text.counts(post.ups, post.worked, post.outdated)}</p>
+      {!post.mine && (
+        <div role="group" aria-label={text.vote.group} className="flex flex-wrap gap-2">
+          {VOTE_BUTTONS.map((button) => (
+            <Button
+              key={button}
+              type="button"
+              variant="chip"
+              aria-pressed={button === 'up' ? post.myUp : post.myVerdict === button}
+              disabled={busy}
+              onClick={() => tap({ kind: 'vote', button })}
+            >
+              {text.vote[button]}
+            </Button>
+          ))}
+          <Button
+            type="button"
+            variant="ghost"
+            className="px-3"
+            disabled={busy}
+            onClick={() => {
+              setProblem(null);
+              setAskingReport(true);
+            }}
+          >
+            {text.report}
+          </Button>
+        </div>
+      )}
+      {askingReport && (
+        <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+          <p className="text-sm">{text.reportQuestion}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => tap({ kind: 'report' })}>
+              {text.report}
+            </Button>
+            <Button type="button" variant="outline" className="px-4" disabled={busy} onClick={() => setAskingReport(false)}>
+              {text.reportCancel}
+            </Button>
+          </div>
+        </div>
+      )}
+      {pending !== null && (
+        <PrivacyNote
+          id="hackVotes"
+          label={t.common.privacy.label}
+          text={t.common.privacy.hackVotes}
+          continueLabel={t.common.privacy.continue}
+          cancelLabel={t.common.privacy.cancel}
+          onContinue={() => void act(pending)}
+          onCancel={() => setPending(null)}
+        />
+      )}
       {post.mine && !asking && (
         <Button
           type="button"

@@ -52,5 +52,9 @@ export const common: Messages['common'] = {
     post:
       'Cualquier estudiante con cuenta puede leer tu publicación, con tu nombre de usuario, si estudias o ya ' +
       'terminaste y tu promoción, y votarla o denunciarla. Puedes borrarla cuando quieras.',
+    hackVotes:
+      'Tus votos cuentan en los totales que todos los estudiantes ven en la publicación; nadie ve quién votó. Una ' +
+      'denuncia oculta la publicación para ti al momento, y para todos cuando suficientes estudiantes la han ' +
+      'denunciado, hasta que la moderación de la app decida.',
   },
 };

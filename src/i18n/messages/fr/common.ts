@@ -53,5 +53,9 @@ export const common: Messages['common'] = {
     post:
       'Tous les étudiants qui ont un compte peuvent lire ta publication, avec ton nom d’utilisateur, ton statut et ' +
       'ta promo, voter ou la signaler. Tu peux la supprimer à tout moment.',
+    hackVotes:
+      `Tes votes comptent dans les totaux que tous les étudiants voient sur la publication${NNBSP}; personne ne ` +
+      'voit qui a voté. Un signalement cache la publication pour toi tout de suite, et pour tous quand assez ' +
+      'd’étudiants l’ont signalée, jusqu’à ce que la modération de l’app décide.',
   },
 };

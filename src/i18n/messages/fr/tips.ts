@@ -88,6 +88,16 @@ export const tips: Messages['tips'] = {
     keep: 'La garder',
     deleted: 'Publication supprimée.',
     deleteFailed: 'La publication n’a pas pu être supprimée. Réessaie.',
+    vote: { group: 'Ton vote sur cette publication', up: 'Vote positif', worked: 'Ça a marché', outdated: 'Dépassé' },
+    report: 'Signaler',
+    reportQuestion:
+      `Signaler cette publication${NNBSP}? Elle disparaît pour toi tout de suite, et pour tous quand assez ` +
+      'd’étudiants la signalent.',
+    reportCancel: 'Annuler',
+    reported: 'Signalé. Tu ne verras plus cette publication.',
+    gone: 'Cette publication n’existe plus.',
+    voteFailed: 'Ton vote n’a pas pu être enregistré. Réessaie.',
+    reportFailed: 'Le signalement n’a pas pu être envoyé. Réessaie.',
     counts: (ups, worked, outdated) =>
       `Votes${NNBSP}: ${ups} · A marché${NNBSP}: ${worked} · Dépassé${NNBSP}: ${outdated}`,
   },

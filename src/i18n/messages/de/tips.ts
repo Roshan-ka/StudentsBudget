@@ -81,6 +81,15 @@ export const tips: Messages['tips'] = {
     keep: 'Behalten',
     deleted: 'Beitrag gelöscht.',
     deleteFailed: 'Der Beitrag konnte nicht gelöscht werden. Versuch es noch einmal.',
+    vote: { group: 'Deine Stimme zu diesem Beitrag', up: 'Daumen hoch', worked: 'Hat geklappt', outdated: 'Veraltet' },
+    report: 'Melden',
+    reportQuestion:
+      'Diesen Beitrag melden? Er verschwindet für dich sofort und für alle, wenn genug Studierende ihn melden.',
+    reportCancel: 'Abbrechen',
+    reported: 'Gemeldet. Du siehst diesen Beitrag nicht mehr.',
+    gone: 'Diesen Beitrag gibt es nicht mehr.',
+    voteFailed: 'Deine Stimme konnte nicht gespeichert werden. Versuch es noch einmal.',
+    reportFailed: 'Die Meldung konnte nicht gesendet werden. Versuch es noch einmal.',
     counts: (ups, worked, outdated) => `Daumen hoch: ${ups} · Hat geklappt: ${worked} · Veraltet: ${outdated}`,
   },
   swap: {

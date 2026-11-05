@@ -85,6 +85,20 @@ export const tips: Messages['tips'] = {
     keep: 'Mantenerla',
     deleted: 'Publicación borrada.',
     deleteFailed: 'No se pudo borrar la publicación. Inténtalo de nuevo.',
+    vote: {
+      group: 'Tu voto sobre esta publicación',
+      up: 'Me gusta',
+      worked: 'Me funcionó',
+      outdated: 'Desactualizado',
+    },
+    report: 'Denunciar',
+    reportQuestion: '¿Denunciar esta publicación? Desaparece para ti al momento, y para todos cuando suficientes ' +
+      'estudiantes la denuncian.',
+    reportCancel: 'Cancelar',
+    reported: 'Denunciada. Ya no verás esta publicación.',
+    gone: 'Esta publicación ya no está.',
+    voteFailed: 'No se pudo guardar tu voto. Inténtalo de nuevo.',
+    reportFailed: 'No se pudo enviar la denuncia. Inténtalo de nuevo.',
     counts: (ups, worked, outdated) => `Votos: ${ups} · Funcionó: ${worked} · Desactualizado: ${outdated}`,
   },
   swap: {
