@@ -42,6 +42,7 @@ export const home: Messages['home'] = {
     overAvailable: (amount) => `${amount} mehr als verfügbar`,
     use: 'Dieses Budget übernehmen',
     notNow: 'Nicht jetzt',
+    moreCategories: 'Weitere Kategorien',
     replaces: 'Damit werden die Beträge in deinen Umschlägen ersetzt.',
     fixAmounts: 'Korrigiere die markierten Beträge, um dieses Budget zu übernehmen.',
     enterOne: 'Gib mindestens einen Betrag ein, um dieses Budget zu übernehmen.',

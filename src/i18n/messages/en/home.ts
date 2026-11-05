@@ -45,6 +45,7 @@ export const home = {
     overAvailable: (amount: string) => `${amount} over what is available`,
     use: 'Use this budget',
     notNow: 'Not now',
+    moreCategories: 'More categories',
     replaces: 'Using it replaces the amounts in your envelopes.',
     fixAmounts: 'Fix the amounts marked above to use this budget.',
     enterOne: 'Enter at least one amount to use this budget.',
