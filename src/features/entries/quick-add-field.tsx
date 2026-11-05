@@ -458,7 +458,11 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setHolding(false);
         }}
-        onPointerEnter={() => setHolding(true)}
+        // A pointer that moves over the line holds it; one the line merely appeared under (where the chip was) does
+        // not, and a finger has no hover.
+        onPointerMove={(event) => {
+          if (event.pointerType !== 'touch') setHolding(true);
+        }}
         onPointerLeave={() => setHolding(false)}
       >
         {/* Always rendered, so a screen reader is already listening when the text appears. The one status line for
