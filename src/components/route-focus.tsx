@@ -20,13 +20,13 @@ function shownHeading(): HTMLElement | null {
  */
 export function RouteFocus() {
   const pathname = usePathname();
-  const first = useRef(true);
+  // The page the focus was last placed for: the first load's, so it is left alone. Not a "first run" flag: React's
+  // Strict Mode runs a new effect twice in development, and the second run would move the focus on the first load.
+  const placedFor = useRef(pathname);
 
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
+    if (placedFor.current === pathname) return;
+    placedFor.current = pathname;
     let frame = 0;
     let frames = 0;
     const focus = () => {

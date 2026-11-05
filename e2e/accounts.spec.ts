@@ -232,13 +232,16 @@ test('an account with entries cannot be deleted, an empty one can', async ({ pag
   await page.getByRole('button', { name: 'Move money', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Transfer saved.');
 
-  await page.getByRole('button', { name: 'Delete Bank' }).click();
+  // Delete asks first (accessibility, chunk 4).
+  await page.getByRole('button', { name: 'Delete Bank', exact: true }).click();
+  await page.getByRole('group', { name: 'Delete Bank?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(inlineAlert(page)).toHaveText('This account has entries. Delete them first.');
   await expect(page.getByText('Bank', { exact: true })).toBeVisible();
 
   // Create and delete a third account that never received an entry.
   await addAccount(page, { name: 'Spare', currency: 'EUR', opening: '' });
-  await page.getByRole('button', { name: 'Delete Spare' }).click();
+  await page.getByRole('button', { name: 'Delete Spare', exact: true }).click();
+  await page.getByRole('group', { name: 'Delete Spare?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.getByText('Spare', { exact: true })).toHaveCount(0);
 });
 
