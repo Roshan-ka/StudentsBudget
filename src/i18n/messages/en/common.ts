@@ -56,5 +56,8 @@ export const common = {
     hackVotes:
       'Your votes count in the totals every student sees on the post; nobody sees who voted. A report hides the ' +
       'post for you at once, and for everyone once enough students reported it, until the app’s moderator decides.',
+    translate:
+      'Translate opens Google Translate in a new tab, with the post’s text in its address. Google gets the text and ' +
+      'your phone’s internet address.',
   },
 };

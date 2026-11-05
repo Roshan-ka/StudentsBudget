@@ -55,5 +55,8 @@ export const common: Messages['common'] = {
       'Deine Stimmen zählen in den Summen, die alle Studierenden am Beitrag sehen; niemand sieht, wer abgestimmt ' +
       'hat. Eine Meldung versteckt den Beitrag sofort für dich und für alle, wenn genug Studierende ihn gemeldet ' +
       'haben, bis die Moderation der App entscheidet.',
+    translate:
+      'Übersetzen öffnet Google Übersetzer in einem neuen Tab, mit dem Text des Beitrags in der Adresse. Google ' +
+      'bekommt den Text und die Internetadresse deines Handys.',
   },
 };

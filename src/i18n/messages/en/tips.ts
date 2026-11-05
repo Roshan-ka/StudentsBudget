@@ -112,6 +112,7 @@ export const tips = {
       kept: 'Kept: it shows again.',
       failed: "That didn't work. Try again.",
     },
+    translate: 'Translate',
     counts: (ups: number, worked: number, outdated: number) =>
       `Upvotes: ${ups} · Worked: ${worked} · Outdated: ${outdated}`,
   },

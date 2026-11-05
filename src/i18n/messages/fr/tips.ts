@@ -125,6 +125,7 @@ export const tips: Messages['tips'] = {
       kept: `Gardée${NNBSP}: elle s’affiche à nouveau.`,
       failed: 'Ça n’a pas marché. Réessaie.',
     },
+    translate: 'Traduire',
     counts: (ups, worked, outdated) =>
       `Votes${NNBSP}: ${ups} · A marché${NNBSP}: ${worked} · Dépassé${NNBSP}: ${outdated}`,
   },

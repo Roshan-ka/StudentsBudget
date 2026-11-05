@@ -14,6 +14,7 @@ export const PRIVACY_NOTES = {
   votes: 'studentsbudget-votes-note',
   post: 'studentsbudget-post-note',
   hackVotes: 'studentsbudget-hack-votes-note',
+  translate: 'studentsbudget-translate-note',
 } as const;
 
 export type PrivacyNoteId = keyof typeof PRIVACY_NOTES;

@@ -56,5 +56,8 @@ export const common: Messages['common'] = {
       'Tus votos cuentan en los totales que todos los estudiantes ven en la publicación; nadie ve quién votó. Una ' +
       'denuncia oculta la publicación para ti al momento, y para todos cuando suficientes estudiantes la han ' +
       'denunciado, hasta que la moderación de la app decida.',
+    translate:
+      'Traducir abre el Traductor de Google en una pestaña nueva, con el texto de la publicación en su dirección. ' +
+      'Google recibe el texto y la dirección de internet de tu móvil.',
   },
 };

@@ -190,6 +190,18 @@ Next on the roadmap after the data-protection notes (#95, #97): the community ha
 - The new route is precached (`public/sw.js`), in the offline spec's list, in `PAGES` (`e2e/helpers/pages.ts`) and in the map; `shell.headings.moderation` and `tips.hacks.moderation` in four languages.
 - e2e: the data mock's `moderator` and `queue` (aal2 only); `moderation.spec.ts` plays the three roles: a reader (no row, the page says so), the moderator at aal1 (sent to two-step sign-in) and the moderator at aal2 (hide, keep).
 
+**Chunk 8 (2026-11-05):**
+- `translateUrl` (`feed.ts`): Google Translate's page for a post's text (`sl=auto`, `tl=` the phone's language); unit-tested.
+- A post in another language than the phone's gets Translate under its text. The first use on a phone waits for the `translate` note (Google gets the text, which is in the address, and the phone's internet address); Continue opens the tab from the same tap. A post in the phone's language has none.
+- Texts: `tips.hacks.translate` and `common.privacy.translate` in four languages.
+- e2e: `hacks-translate.spec.ts` (the note, Cancel opens nothing, the tab's address, straight on the second time, and German: an English post translated into German), with Google answered in the test.
+- CLAUDE.md: the plan in the list at the top, the Translate link, the notes, and the feed's calls in the outgoing requests.
+
+**Left after chunk 8:**
+- `npx supabase db push` on the hosted project (chunks 1 and 3), then the moderator SQL below.
+- A real try on the live site with two accounts and the moderator, in Roshan's batch of postponed phone tries.
+- Later, not planned here: comments, house rules, the verified badge next to the username (waits for the email sender), community badges (Hack Hero), and the AI phase's moderation and cited hacks.
+
 **Making the moderator** (once chunk 3 is on the hosted project; in the dashboard's SQL editor, as the project owner):
 
 ```sql

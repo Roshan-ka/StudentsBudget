@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FEED_CACHE_KEY, forgetFeedCache, hackCategoryIds, linkHost, postOf, readFeedCache, saveFeedCache, type HackPost } from './feed';
+import {
+  FEED_CACHE_KEY,
+  forgetFeedCache,
+  hackCategoryIds,
+  linkHost,
+  postOf,
+  readFeedCache,
+  saveFeedCache,
+  translateUrl,
+  type HackPost,
+} from './feed';
 
 /** A row as `hacks_feed` returns it. */
 const row = (overrides: Record<string, unknown> = {}) => ({
@@ -102,5 +112,18 @@ describe('the kept list', () => {
 describe('a post’s link', () => {
   it('reads as its site', () => {
     expect(linkHost('https://www.rvv.de/tickets/semester')).toBe('www.rvv.de');
+  });
+});
+
+describe('the translate link', () => {
+  it('opens Google Translate with the text, from any language into the phone’s', () => {
+    const url = new URL(translateUrl('Das Semesterticket gilt am Wochenende & nachts?', 'en'));
+    expect(url.origin).toBe('https://translate.google.com');
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      sl: 'auto',
+      tl: 'en',
+      text: 'Das Semesterticket gilt am Wochenende & nachts?',
+      op: 'translate',
+    });
   });
 });
