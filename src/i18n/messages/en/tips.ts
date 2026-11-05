@@ -89,6 +89,29 @@ export const tips = {
     gone: "This post isn't there anymore.",
     voteFailed: "Your vote couldn't be saved. Try again.",
     reportFailed: "The report couldn't be sent. Try again.",
+    moderation: {
+      summary: 'Reported hacks',
+      intro:
+        'Posts students reported, newest report first. Hide takes a post out of every feed; Keep shows it again ' +
+        'and starts its report count afresh.',
+      signedOut: 'Sign in with the moderator account to moderate.',
+      notModerator: "This page is for the app's moderator.",
+      needsCode:
+        'Moderating needs a session that gave the authenticator code. Turn on two-step sign-in in Your account, ' +
+        'then sign in again with the code.',
+      loading: 'Loading reported posts…',
+      loadFailed: "The reported posts couldn't be loaded.",
+      tryAgain: 'Try again',
+      empty: 'No reported posts.',
+      queue: 'Reported posts',
+      reports: (count: number) => (count === 1 ? '1 report since last kept' : `${count} reports since last kept`),
+      states: { hand: 'Hidden by you', reports: 'Hidden by reports', visible: 'Visible' },
+      hide: 'Hide',
+      keep: 'Keep',
+      hidden: 'Hidden from every feed.',
+      kept: 'Kept: it shows again.',
+      failed: "That didn't work. Try again.",
+    },
     counts: (ups: number, worked: number, outdated: number) =>
       `Upvotes: ${ups} · Worked: ${worked} · Outdated: ${outdated}`,
   },

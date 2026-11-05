@@ -21,6 +21,7 @@ const PRECACHED_PAGES = [
   '/settings/appearance',
   '/settings/account',
   '/settings/backup',
+  '/settings/moderation',
   '/setup',
 ];
 

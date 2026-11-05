@@ -99,6 +99,33 @@ export const tips: Messages['tips'] = {
     gone: 'Esta publicación ya no está.',
     voteFailed: 'No se pudo guardar tu voto. Inténtalo de nuevo.',
     reportFailed: 'No se pudo enviar la denuncia. Inténtalo de nuevo.',
+    moderation: {
+      summary: 'Trucos denunciados',
+      intro:
+        'Publicaciones que los estudiantes han denunciado, la denuncia más reciente primero. Ocultar quita una ' +
+        'publicación de todos los feeds; Mantener la muestra otra vez y pone sus denuncias a cero.',
+      signedOut: 'Inicia sesión con la cuenta de moderación para moderar.',
+      notModerator: 'Esta página es para la moderación de la app.',
+      needsCode:
+        'Moderar necesita una sesión que haya dado el código de la app de autenticación. Activa la verificación en ' +
+        'dos pasos en «Tu cuenta» y vuelve a iniciar sesión con el código.',
+      loading: 'Cargando publicaciones denunciadas…',
+      loadFailed: 'No se pudieron cargar las publicaciones denunciadas.',
+      tryAgain: 'Intentar de nuevo',
+      empty: 'No hay publicaciones denunciadas.',
+      queue: 'Publicaciones denunciadas',
+      reports: (count) =>
+        byCount(count, {
+          one: `${count} denuncia desde la última vez que se mantuvo`,
+          other: `${count} denuncias desde la última vez que se mantuvo`,
+        }),
+      states: { hand: 'Ocultada por ti', reports: 'Ocultada por denuncias', visible: 'Visible' },
+      hide: 'Ocultar',
+      keep: 'Mantener',
+      hidden: 'Quitada de todos los feeds.',
+      kept: 'Mantenida: se ve otra vez.',
+      failed: 'No funcionó. Inténtalo de nuevo.',
+    },
     counts: (ups, worked, outdated) => `Votos: ${ups} · Funcionó: ${worked} · Desactualizado: ${outdated}`,
   },
   swap: {

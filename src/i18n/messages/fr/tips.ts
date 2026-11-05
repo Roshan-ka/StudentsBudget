@@ -98,6 +98,33 @@ export const tips: Messages['tips'] = {
     gone: 'Cette publication n’existe plus.',
     voteFailed: 'Ton vote n’a pas pu être enregistré. Réessaie.',
     reportFailed: 'Le signalement n’a pas pu être envoyé. Réessaie.',
+    moderation: {
+      summary: 'Astuces signalées',
+      intro:
+        'Les publications que des étudiants ont signalées, le signalement le plus récent d’abord. Masquer retire ' +
+        `une publication de tous les fils${NNBSP}; Garder la montre à nouveau et remet ses signalements à zéro.`,
+      signedOut: 'Connecte-toi avec le compte de modération pour modérer.',
+      notModerator: 'Cette page est pour la modération de l’app.',
+      needsCode:
+        'Modérer demande une session qui a donné le code de l’appli d’authentification. Active la validation en ' +
+        `deux étapes dans «${NNBSP}Ton compte${NNBSP}», puis reconnecte-toi avec le code.`,
+      loading: 'Chargement des publications signalées…',
+      loadFailed: 'Les publications signalées n’ont pas pu être chargées.',
+      tryAgain: 'Réessayer',
+      empty: 'Aucune publication signalée.',
+      queue: 'Publications signalées',
+      reports: (count) =>
+        byCount(count, {
+          one: `${count} signalement depuis la dernière fois qu’elle a été gardée`,
+          other: `${count} signalements depuis la dernière fois qu’elle a été gardée`,
+        }),
+      states: { hand: 'Masquée par toi', reports: 'Masquée par les signalements', visible: 'Visible' },
+      hide: 'Masquer',
+      keep: 'Garder',
+      hidden: 'Retirée de tous les fils.',
+      kept: `Gardée${NNBSP}: elle s’affiche à nouveau.`,
+      failed: 'Ça n’a pas marché. Réessaie.',
+    },
     counts: (ups, worked, outdated) =>
       `Votes${NNBSP}: ${ups} · A marché${NNBSP}: ${worked} · Dépassé${NNBSP}: ${outdated}`,
   },

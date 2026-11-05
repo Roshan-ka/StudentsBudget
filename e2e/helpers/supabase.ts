@@ -335,6 +335,24 @@ export type ServerTables = Map<string, Map<string, unknown>>;
 /** Each account's posting name (`public_profiles`, the hacks feed), by user id (`e2eUserIdOf`). */
 export type ServerProfiles = Map<string, { username: string; label: string | null; batch: number | null }>;
 
+/** One row of `moderation_queue`, as the database returns it to the moderator. */
+export type QueueRow = {
+  id: string;
+  body: string;
+  city: 'regensburg' | 'anywhere';
+  category: string;
+  link: string | null;
+  lang: string;
+  created_at: string;
+  username: string | null;
+  reports: number;
+  reports_since_kept: number;
+  hidden_by_hand: boolean;
+  hidden_by_reports: boolean;
+  kept_at: string | null;
+  last_report: string | null;
+};
+
 /** One row of `hacks_feed` (the hacks feed), as the database returns it to the signed-in account. */
 export type FeedRow = {
   id: string;
@@ -402,7 +420,9 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * `rpc/username_available`, which answers signed out too, says whether any of them has a name. `rpc/hacks_feed`
  * answers `feed`, the posts as the database returns them (none by default); `rpc/post_hack` adds to it (an account in
  * `profiles` only, and none with `dailyLimit`), `rpc/delete_hack` takes one's own post out, `rpc/vote_hack` moves a
- * post's totals and `rpc/report_hack` takes it out, as for the reporter. Returns the tables, to look at and to seed.
+ * post's totals and `rpc/report_hack` takes it out, as for the reporter. `moderator` makes the account the app's
+ * moderator: `rpc/moderation_queue` answers `queue` and `rpc/moderate_hack` changes it, at aal2 only. Returns the
+ * tables, to look at and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
@@ -414,6 +434,8 @@ export async function mockSupabaseData(
     profiles?: ServerProfiles;
     feed?: FeedRow[];
     dailyLimit?: boolean;
+    moderator?: boolean;
+    queue?: QueueRow[];
     confirmations?: { discount_id: string; last_works: string | null; works_since: number; outdated_since: number }[];
   } = {},
 ): Promise<ServerTables> {
@@ -536,6 +558,32 @@ export async function mockSupabaseData(
       row.outdated += step(row.my_verdict === 'outdated', verdict === 'outdated');
       row.my_up = up;
       row.my_verdict = verdict;
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    // am_i_moderator: `moderator`. moderation_queue and moderate_hack: the moderator only, at aal2 (42501 with the
+    // database's messages otherwise); 'hide' hides a `queue` row by hand, 'keep' shows it again and zeroes its reports.
+    if (path === 'rpc/am_i_moderator' && request.method() === 'POST') {
+      return route.fulfill({ status: 200, headers: CORS, json: options.moderator === true });
+    }
+    if ((path === 'rpc/moderation_queue' || path === 'rpc/moderate_hack') && request.method() === 'POST') {
+      const refuse = (message: string) =>
+        route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message, hint: null, details: null } });
+      if (options.moderator !== true) return refuse('not a moderator');
+      if (claimsOf(request).aal !== 'aal2') return refuse('the second step is owed');
+      const queue = options.queue ?? [];
+      if (path === 'rpc/moderation_queue') return route.fulfill({ status: 200, headers: CORS, json: queue });
+      const { p_id: id, p_action: action } = request.postDataJSON() as { p_id: string; p_action: 'hide' | 'keep' };
+      const item = queue.find((row) => row.id === id);
+      if (item === undefined) {
+        const json = { code: 'P0001', message: 'not-found', hint: 'not-found' };
+        return route.fulfill({ status: 400, headers: CORS, json });
+      }
+      item.hidden_by_hand = action === 'hide';
+      if (action === 'keep') {
+        item.hidden_by_reports = false;
+        item.reports_since_kept = 0;
+        item.kept_at = new Date().toISOString();
+      }
       return route.fulfill({ status: 204, headers: CORS });
     }
     // delete_hack: the signed-in account's own post leaves `feed`; any other is refused (hint 'not-found').

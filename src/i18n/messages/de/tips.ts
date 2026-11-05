@@ -90,6 +90,30 @@ export const tips: Messages['tips'] = {
     gone: 'Diesen Beitrag gibt es nicht mehr.',
     voteFailed: 'Deine Stimme konnte nicht gespeichert werden. Versuch es noch einmal.',
     reportFailed: 'Die Meldung konnte nicht gesendet werden. Versuch es noch einmal.',
+    moderation: {
+      summary: 'Gemeldete Hacks',
+      intro:
+        'Beiträge, die Studierende gemeldet haben, die neueste Meldung zuerst. Verstecken nimmt einen Beitrag aus ' +
+        'allen Feeds; Behalten zeigt ihn wieder und zählt seine Meldungen neu.',
+      signedOut: 'Melde dich mit dem Moderationskonto an, um zu moderieren.',
+      notModerator: 'Diese Seite ist für die Moderation der App.',
+      needsCode:
+        'Moderieren braucht eine Sitzung mit dem Code der Authenticator-App. Schalte unter „Dein Konto“ die ' +
+        'zweistufige Anmeldung ein und melde dich mit dem Code neu an.',
+      loading: 'Gemeldete Beiträge werden geladen …',
+      loadFailed: 'Die gemeldeten Beiträge konnten nicht geladen werden.',
+      tryAgain: 'Noch einmal versuchen',
+      empty: 'Keine gemeldeten Beiträge.',
+      queue: 'Gemeldete Beiträge',
+      reports: (count) =>
+        count === 1 ? '1 Meldung seit dem letzten Behalten' : `${count} Meldungen seit dem letzten Behalten`,
+      states: { hand: 'Von dir versteckt', reports: 'Durch Meldungen versteckt', visible: 'Sichtbar' },
+      hide: 'Verstecken',
+      keep: 'Behalten',
+      hidden: 'Aus allen Feeds genommen.',
+      kept: 'Behalten: Er ist wieder zu sehen.',
+      failed: 'Das hat nicht geklappt. Versuch es noch einmal.',
+    },
     counts: (ups, worked, outdated) => `Daumen hoch: ${ups} · Hat geklappt: ${worked} · Veraltet: ${outdated}`,
   },
   swap: {

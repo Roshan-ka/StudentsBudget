@@ -184,6 +184,12 @@ Next on the roadmap after the data-protection notes (#95, #97): the community ha
 - The list on screen is kept as it changes, so the fallback list shows one's own votes.
 - e2e: the data mock's `vote_hack` moves the totals and `report_hack` takes the post out; `hacks-votes.spec.ts` (the note, each toggle and its totals, the calls, no buttons on one's own post, the report question and the post leaving).
 
+**Chunk 7 (2026-11-05):**
+- `src/features/hacks/moderation.ts`: `amIModerator`, `readQueue` (the database's 42501 read as 'needs-code' or 'not-moderator' by its message), `queueItemOf` and `moderate`; unit-tested.
+- Settings → Moderation: a row (`ModerationLink` in `settings-links.tsx`) only when `am_i_moderator()` is true for the signed-in account, and the page `/settings/moderation` (`ModerationView`): the reported posts, newest report first, each with its category, place, day, text, author, "N reports since last kept" and whether it is hidden by hand, by reports or visible; Hide (not on one hidden by hand) and Keep. A reader is told the page is for the moderator; the moderator without the authenticator code (aal1) is sent to two-step sign-in.
+- The new route is precached (`public/sw.js`), in the offline spec's list, in `PAGES` (`e2e/helpers/pages.ts`) and in the map; `shell.headings.moderation` and `tips.hacks.moderation` in four languages.
+- e2e: the data mock's `moderator` and `queue` (aal2 only); `moderation.spec.ts` plays the three roles: a reader (no row, the page says so), the moderator at aal1 (sent to two-step sign-in) and the moderator at aal2 (hide, keep).
+
 **Making the moderator** (once chunk 3 is on the hosted project; in the dashboard's SQL editor, as the project owner):
 
 ```sql

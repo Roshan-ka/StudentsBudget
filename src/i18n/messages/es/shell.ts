@@ -18,6 +18,7 @@ export const shell: Messages['shell'] = {
     appearance: 'Apariencia',
     accounts: 'Cuentas y transferencias',
     backup: 'Copia de seguridad y datos',
+    moderation: 'Moderación',
     badges: 'Insignias',
     charts: 'Gráficos',
     checkIn: 'Revisión semanal',

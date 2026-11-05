@@ -21,7 +21,8 @@
     "/settings/backup": ["backup", "language-tour", "profile", "reflow", "theme"],
     "/settings/plan": ["accounts", "language-tour", "profile", "recurring", "reflow", "setup", "theme"],
     "/settings/profile": ["language-tour", "linking", "profile", "reflow", "theme", "two-step"],
-    "/settings/account": ["account", "account-deletion", "change-password", "discount-confirmations", "email-codes", "hacks-feed", "hacks-post", "hacks-votes", "language-tour", "linking", "passkeys", "posting-name", "privacy-notes", "reflow", "theme", "two-step"],
+    "/settings/account": ["account", "account-deletion", "change-password", "discount-confirmations", "email-codes", "hacks-feed", "hacks-post", "hacks-votes", "language-tour", "linking", "moderation", "passkeys", "posting-name", "privacy-notes", "reflow", "theme", "two-step"],
+    "/settings/moderation": ["language-tour", "moderation", "reflow", "theme"],
     "/setup": "all",
     "/tips": ["discount-confirmations", "discounts", "hacks-feed", "hacks-post", "hacks-votes", "language-tour", "privacy-notes", "reflow", "theme", "tips"]
   },
