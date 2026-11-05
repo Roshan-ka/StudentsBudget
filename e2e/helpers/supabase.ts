@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { expect, test, type Page, type Route } from '@playwright/test';
+import { expect, test, type Page, type Request, type Route } from '@playwright/test';
 
 /**
  * A Supabase project that is configured but never reached (`.invalid` never resolves). The Playwright configs start
@@ -332,6 +332,15 @@ export const SUPABASE_REST = '**/rest/v1/**';
 /** The account's tables as the mock keeps them: table → id → the row's data, null for a tombstone. */
 export type ServerTables = Map<string, Map<string, unknown>>;
 
+/** Each account's posting name (`public_profiles`, the hacks feed), by user id (`e2eUserIdOf`). */
+export type ServerProfiles = Map<string, { username: string; label: string | null; batch: number | null }>;
+
+/** The claims of the mocked session that sent a request. */
+function claimsOf(request: Request): { sub?: string; aal?: string } {
+  const token = (request.headers()['authorization'] ?? '').replace(/^Bearer /, '');
+  return JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString() || '{}') as { sub?: string; aal?: string };
+}
+
 /**
  * Each row's revision, as the database's stamp_sync trigger keeps it, per account (the tables object): the user's
  * next revision on every write. A row a spec seeds straight into the tables gets one when a pull first sees it.
@@ -368,7 +377,10 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * (P2.5) empties the tables; with `twoStep`, the account has two-step sign-in, so only a token at aal2 may, as the
  * database wants. `rpc/linked_account_exists` says yes for every user id but those in `gone` (deleted accounts, which a
  * spec may add to as it runs). `rpc/discount_confirmations` (P2.6) answers `confirmations`, other students' totals,
- * as the database returns them (none by default). Returns the tables, to look at and to seed.
+ * as the database returns them (none by default). `profiles` holds the accounts' posting names (the hacks feed): each
+ * signed-in account reads and saves only its own, a username another account has is refused (23505), and
+ * `rpc/username_available`, which answers signed out too, says whether any of them has a name. Returns the tables, to
+ * look at and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
@@ -377,10 +389,12 @@ export async function mockSupabaseData(
     tables?: ServerTables;
     twoStep?: boolean;
     gone?: ReadonlySet<string>;
+    profiles?: ServerProfiles;
     confirmations?: { discount_id: string; last_works: string | null; works_since: number; outdated_since: number }[];
   } = {},
 ): Promise<ServerTables> {
   const tables: ServerTables = options.tables ?? new Map();
+  const profiles: ServerProfiles = options.profiles ?? new Map();
   const table = (name: string) => {
     if (!tables.has(name)) tables.set(name, new Map());
     return tables.get(name)!;
@@ -393,6 +407,13 @@ export async function mockSupabaseData(
       return route.fulfill({ status: options.failWith, headers: CORS, json: { code: 'XX000', message: 'mock failure' } });
     }
 
+    // username_available: asked signed out too, before a sign-up. Free unless an account in `profiles` has it.
+    if (request.url().includes('/rest/v1/rpc/username_available') && request.method() === 'POST') {
+      const { p_username: wanted } = request.postDataJSON() as { p_username: string };
+      const taken = [...profiles.values()].some((profile) => profile.username === wanted);
+      return route.fulfill({ status: 200, headers: CORS, json: !taken });
+    }
+
     if (!(request.headers()['authorization'] ?? '').endsWith(SESSION_SIGNATURE)) {
       return route.fulfill({ status: 401, headers: CORS, json: { code: 'PGRST301', message: 'not signed in' } });
     }
@@ -401,13 +422,29 @@ export async function mockSupabaseData(
     const path = url.pathname.replace(/^.*\/rest\/v1\//, '');
     // delete_my_account: the account and every row go. An account with two-step sign-in needs the code given (aal2).
     if (path === 'rpc/delete_my_account' && request.method() === 'POST') {
-      const token = (request.headers()['authorization'] ?? '').replace(/^Bearer /, '');
-      const claims = JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString() || '{}') as { aal?: string };
-      if (options.twoStep && claims.aal !== 'aal2') {
+      if (options.twoStep && claimsOf(request).aal !== 'aal2') {
         return route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message: 'the second step is owed' } });
       }
       tables.clear();
       return route.fulfill({ status: 204, headers: CORS });
+    }
+    // public_profiles: each account reads and writes only its own posting name. A username another account has is
+    // refused as the unique index would refuse it (23505). The sign-up trigger isn't played: seed `profiles` instead.
+    if (path === 'public_profiles') {
+      const me = claimsOf(request).sub ?? '';
+      if (request.method() === 'GET') {
+        const own = profiles.get(me);
+        return route.fulfill({ status: 200, headers: CORS, json: own ? [own] : [] });
+      }
+      if (request.method() === 'POST') {
+        const sent = request.postDataJSON() as { username: string; label?: string | null; batch?: number | null };
+        const row = Array.isArray(sent) ? (sent[0] as typeof sent) : sent;
+        if ([...profiles].some(([user, profile]) => user !== me && profile.username === row.username)) {
+          return route.fulfill({ status: 409, headers: CORS, json: { code: '23505', message: 'duplicate key value' } });
+        }
+        profiles.set(me, { username: row.username, label: row.label ?? null, batch: row.batch ?? null });
+        return route.fulfill({ status: 201, headers: CORS });
+      }
     }
     // discount_confirmations: other students' totals per discount, since the date asked.
     if (path === 'rpc/discount_confirmations' && request.method() === 'POST') {

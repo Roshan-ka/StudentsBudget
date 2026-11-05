@@ -34,8 +34,10 @@ export const common: Messages['common'] = {
     cancel: 'Cancelar',
     account:
       'Tu cuenta la guarda Supabase, en Fráncfort (UE): tu correo electrónico, tu contraseña (guardada solo como ' +
-      'hash), el idioma de tu móvil y una copia de los datos que sincronizas. Si la cuenta necesita un código, para ' +
-      'confirmarla o para una nueva contraseña, llega por correo. Puedes eliminar la cuenta cuando quieras en Ajustes.',
+      'hash), el idioma de tu móvil, tu nombre de usuario, si estudias o ya terminaste y tu promoción, y una copia ' +
+      'de los datos que sincronizas. Otros estudiantes solo ven tu nombre de usuario, si estudias o ya terminaste y ' +
+      'tu promoción, junto a tus publicaciones. Si la cuenta necesita un código, para confirmarla o para una nueva ' +
+      'contraseña, llega por correo. Puedes eliminar la cuenta cuando quieras en Ajustes.',
     passkey:
       'El gestor de contraseñas de tu móvil guarda la llave de acceso y puede sincronizarla con tus otros ' +
       'dispositivos (el llavero de iCloud o el Gestor de contraseñas de Google, por ejemplo). Tu cuenta guarda ' +

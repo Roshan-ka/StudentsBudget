@@ -180,6 +180,37 @@ export const auth: Messages['auth'] = {
     cancelledElsewhere:
       'Cette configuration a été annulée, peut-être depuis un autre téléphone. Touche Activer pour recommencer.',
   },
+  /** Le nom sous lequel on publie dans le fil d’astuces : demandé à la création du compte, modifiable ensuite. */
+  postingName: {
+    heading: 'Ton nom sur les publications',
+    intro: 'Les autres étudiants le voient à côté de tes publications. Ton adresse e-mail reste cachée.',
+    username: 'Nom d’utilisateur',
+    usernameHint: `3 à 20 caractères${NNBSP}: lettres a–z, chiffres ou _. Les autres le voient comme @nom.`,
+    label: 'Tu es',
+    labels: { student: 'En études', graduate: 'Diplômé·e', alumni: 'Alumni' },
+    batch: 'Promo (facultatif)',
+    batchHint: 'L’année où tu finis ou as fini, par exemple 2027.',
+    batchShort: (year) => `Promo ${year}`,
+    none: 'Pas encore de nom. Choisis-en un maintenant, ou avant ta première publication.',
+    loading: 'Vérification de ton nom…',
+    loadFailed: 'Ton nom sur les publications n’a pas pu être lu. Réessaie plus tard.',
+    pick: 'Choisir un nom',
+    change: 'Modifier',
+    save: 'Enregistrer le nom',
+    cancel: 'Annuler',
+    saved: 'Nom enregistré.',
+    errors: {
+      empty: 'Saisis un nom d’utilisateur.',
+      characters: 'Utilise seulement des lettres a–z, des chiffres et _ dans le nom d’utilisateur.',
+      short: 'Le nom d’utilisateur doit avoir au moins 3 caractères.',
+      long: 'Le nom d’utilisateur peut avoir au plus 20 caractères.',
+      reserved: 'Ce nom d’utilisateur est réservé à l’app. Choisis-en un autre.',
+      taken: 'Ce nom d’utilisateur est déjà pris. Choisis-en un autre.',
+      batch: 'Saisis la promo comme une année, par exemple 2027.',
+      checkFailed: 'Le nom d’utilisateur n’a pas pu être vérifié. Vérifie ta connexion et réessaie.',
+      saveFailed: 'Ton nom n’a pas pu être enregistré. Réessaie.',
+    },
+  },
   /** Connexion et sécurité → Mot de passe : le nouveau ; l’actuel seulement si cette session a commencé avec. */
   changePassword: {
     heading: 'Mot de passe',

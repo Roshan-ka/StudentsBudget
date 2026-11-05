@@ -5,6 +5,15 @@ import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  checkDraft,
+  EMPTY_DRAFT,
+  usernameAvailable,
+  type PostingName,
+  type PostingNameDraft,
+} from '@/features/hacks/posting-name';
+import { PostingNameCard } from '@/features/hacks/posting-name-card';
+import { PostingNameFields } from '@/features/hacks/posting-name-fields';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useShowInstallHint } from '@/features/setup/install-hint';
@@ -389,6 +398,8 @@ function SignInForm() {
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Creating: the name the account will post under (the hacks feed).
+  const [nameDraft, setNameDraft] = useState<PostingNameDraft>(EMPTY_DRAFT);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   // A step that takes the form's place (P2.4): an emailed code, with whether it opens saying a new one was sent, or
@@ -461,6 +472,16 @@ function SignInForm() {
       setError(checked.error);
       return;
     }
+    // Creating: the name it will post under, checked here before anything is sent.
+    let name: PostingName | null = null;
+    if (mode === 'create') {
+      const named = checkDraft(nameDraft);
+      if (!named.ok) {
+        setError(t.auth.postingName.errors[named.problem]);
+        return;
+      }
+      name = named.name;
+    }
     if (!navigator.onLine) {
       setError(t.auth.offline);
       return;
@@ -483,12 +504,19 @@ function SignInForm() {
           if (signInError.code === 'email_not_confirmed') setUnconfirmed(checked.email);
           return;
         }
-      } else {
-        // The language goes along as user metadata, so the account's emails are written in it.
+      } else if (name !== null) {
+        // Asked first, so a taken username is said before the account exists: the database would only leave it out.
+        const free = await usernameAvailable(supabase, name.username);
+        if (free !== true) {
+          setError(free === false ? t.auth.postingName.errors.taken : t.auth.postingName.errors.checkFailed);
+          return;
+        }
+        // User metadata: the language, so the account's emails are written in it, and the name it posts under, which
+        // the database keeps in public_profiles (migration 20261105100426_public_profiles.sql).
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: checked.email,
           password,
-          options: { data: { lang } },
+          options: { data: { lang, username: name.username, label: name.label, batch: name.batch } },
         });
         if (signUpError) {
           setError(authErrorMessage(signUpError, lang));
@@ -595,6 +623,7 @@ function SignInForm() {
             </Button>
           )}
         </div>
+        {creating && <PostingNameFields draft={nameDraft} onChange={setNameDraft} />}
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
@@ -861,6 +890,7 @@ export function AccountView() {
         <>
           <SignedInPanel email={auth.email} passwordChanged={recovery === 'changed'} />
           <AccountLink />
+          <PostingNameCard userId={auth.userId} />
           {/* Last: syncing is what the page is for; passkeys and two-step sign-in are set once. */}
           <SignInSecurity />
           {/* At the very end: deleting the account is the rarest step, and the one that can't be undone. */}

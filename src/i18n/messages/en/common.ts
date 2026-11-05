@@ -37,8 +37,9 @@ export const common = {
     cancel: 'Cancel',
     account:
       'Your account is kept by Supabase, in Frankfurt (EU): your email, your password (stored only as a hash), ' +
-      'your phone’s language and a copy of the data you sync. If the account needs a code, to confirm it or for a ' +
-      'new password, it comes by email. You can delete the account at any time in Settings.',
+      'your phone’s language, your username, label and batch, and a copy of the data you sync. Other students see ' +
+      'only your username, label and batch, next to your posts. If the account needs a code, to confirm it or for ' +
+      'a new password, it comes by email. You can delete the account at any time in Settings.',
     passkey:
       'Your phone’s password manager keeps the passkey, and may sync it to your other devices (iCloud Keychain or ' +
       'Google Password Manager, for example). Your account keeps only its public key, which can’t sign anyone in.',

@@ -143,6 +143,13 @@ Next on the roadmap after the data-protection notes (#95, #97): the community ha
   - `src/features/hacks/public-profiles.contract.test.ts`: a real sign-up keeps its name, a second one with the same name gets none, and `username_available` answers signed out.
 - The hosted project needs `npx supabase db push` once this merges.
 
+**Chunk 2 (2026-11-05):**
+- `src/features/hacks/posting-name.ts`: the username rule (checked against the migration in its unit test), the labels, the batch, `checkDraft`, `postingNameText` ("@roshan · Student · Batch '27") and the calls (`usernameAvailable`, `readPostingName`, `savePostingName`).
+- `posting-name-fields.tsx` (the three fields, the username kept in lower case as typed) in the sign-up form and in `posting-name-card.tsx`, "Your name on posts" on Your account, after Sync. The plan's `public-profile.tsx` became these two files.
+- Sign-up: the phone checks the name, then the account note, then `username_available` (a taken name is said before the account exists), then `signUp` with `{ lang, username, label, batch }`. The label starts on Student.
+- Texts: `auth.postingName` in four languages; the account note now names the username, label and batch others see.
+- e2e: `mockSupabaseData` answers `username_available` (signed out too) and `public_profiles` per user (`profiles`); `posting-name.spec.ts` (sign-up checks and metadata, a check that fails, the card changing a name, a taken name, an account without one, German); the sign-up specs (`account`, `email-codes`, `privacy-notes`) give a username.
+
 ## Verification
 
 - **Each chunk, locally:** lint, typecheck and the touched unit tests only. The full suite, pgTAP and contract tests (the CI `db` job) and the e2e run in CI, on Roshan's OK.
