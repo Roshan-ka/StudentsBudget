@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import type { Entry } from '@/db/types';
@@ -9,6 +9,7 @@ import { categoryNameIn } from '@/i18n/category-name';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import type { Minor } from '@/lib/money';
+import { useChoicePref } from '@/lib/phone-pref';
 import {
   BUCKET_ID,
   categoryOverPeriod,
@@ -36,8 +37,6 @@ import { MonthSeries } from './series';
 const SHARE_STYLES = ['donut', 'bars', 'table'] as const;
 const SERIES_STYLES = ['columns', 'line', 'table'] as const;
 
-type ShareStyle = (typeof SHARE_STYLES)[number];
-type SeriesChoice = (typeof SERIES_STYLES)[number];
 
 /** A segmented control's options for a list of chart styles, named in the dictionary's language. */
 function styleOptions<T extends keyof Messages['charts']['styles']>(styles: readonly T[], t: Messages) {
@@ -104,7 +103,7 @@ export function SpendingSection({
 }) {
   const { t, locale } = useT();
   const text = t.charts.spending;
-  const [style, setStyle] = useState<ShareStyle>('donut');
+  const [style, setStyle] = useChoicePref('studentsbudget-chart-style-spending', SHARE_STYLES, 'donut');
   const rows = spending.map((row) => categoryRow(row.categoryId, row.spentMinor, row.plannedMinor, period.endMonth, t));
   const withPlanned = rows.some((row) => row.plannedMinor !== null);
   const slices = slicesOf(spending, (row) => row.spentMinor, period.endMonth, t);
@@ -184,7 +183,7 @@ export function IncomeSection({
 }) {
   const { t, locale } = useT();
   const text = t.charts.income;
-  const [style, setStyle] = useState<ShareStyle>('donut');
+  const [style, setStyle] = useChoicePref('studentsbudget-chart-style-income', SHARE_STYLES, 'donut');
   const rows = income.map((row) => categoryRow(row.categoryId, row.amountMinor, null, period.endMonth, t));
   const slices = slicesOf(income, (row) => row.amountMinor, period.endMonth, t);
   const caption = text.caption(periodText);
@@ -248,7 +247,7 @@ export function SavingsSection({
   const { t, locale } = useT();
   const text = t.charts.savings;
   const series = t.charts.series;
-  const [style, setStyle] = useState<SeriesChoice>('columns');
+  const [style, setStyle] = useChoicePref('studentsbudget-chart-style-savings', SERIES_STYLES, 'columns');
   const months = savingsByMonth(entries, period);
   const total = months.reduce((sum, m) => sum + m.savedMinor, 0);
   const rows: ChartRow[] = months.map((m) => ({
@@ -333,7 +332,7 @@ export function OverTimeSection({
   const selectId = useId();
   const { t, locale } = useT();
   const text = t.charts.overTime;
-  const [style, setStyle] = useState<SeriesChoice>('columns');
+  const [style, setStyle] = useChoicePref('studentsbudget-chart-style-over-time', SERIES_STYLES, 'columns');
   const name = chartLabel(categoryId, t);
   const fullName = categoryNameIn(t, categoryId);
   const color = chartColor(categoryId);

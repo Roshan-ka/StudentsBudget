@@ -71,7 +71,6 @@ export function BadgesView() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted-foreground">{t.badges.intro}</p>
       <ul aria-label={t.badges.listLabel} className="flex flex-col gap-3">
         {badges.map((b) => (
           <li key={b.id} className={cn(cardVariants(), 'flex-row items-start gap-3')}>
@@ -93,11 +92,27 @@ export function BadgesView() {
               <p className="text-sm break-words">
                 <DatedText text={b.progress} />
               </p>
-              <p className="text-sm text-muted-foreground">{rule(b.id, semesterWeeks, t)}</p>
             </div>
           </li>
         ))}
       </ul>
+      {/* The rules are published, not hidden, but read once: one fold for all of them (pain points, chunk 8). */}
+      <details className="text-sm">
+        <summary className="w-fit cursor-pointer py-3 font-semibold text-primary underline underline-offset-4">
+          {t.badges.howItWorks}
+        </summary>
+        <div className="flex flex-col gap-3 pb-2">
+          <p className="text-muted-foreground">{t.badges.intro}</p>
+          <ul className="flex flex-col gap-2">
+            {badges.map((b) => (
+              <li key={b.id} className="flex flex-col">
+                <span className="font-semibold">{b.title}</span>
+                <span className="text-muted-foreground">{rule(b.id, semesterWeeks, t)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </details>
     </div>
   );
 }

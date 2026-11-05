@@ -48,6 +48,7 @@ export const badges: Messages['badges'] = {
       'Obtenu pour un mois avec au plus la moitié des repas dehors de ton premier mois complet qui en avait. Seuls ' +
       'comptent les mois où tu saisis toi-même les dépenses des enveloppes.',
   },
+  howItWorks: 'Comment fonctionnent les badges',
   intro:
     'Chaque semaine est enregistrée à partir du mercredi qui suit sa fin, la prochaine fois que tu ouvres l’app, si ' +
     'bien que les dépenses saisies pour elle le lundi ou le mardi comptent encore. Tes badges viennent de ces ' +

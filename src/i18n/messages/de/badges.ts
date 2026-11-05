@@ -47,6 +47,7 @@ export const badges: Messages['badges'] = {
       'Du erhältst es für einen Monat mit höchstens halb so viel Essen auswärts wie in deinem ersten vollen Monat, in ' +
       'dem es welches gab. Es zählen nur Monate, in denen du Umschlag-Ausgaben selbst erfasst.',
   },
+  howItWorks: 'So funktionieren Abzeichen',
   intro:
     'Jede Woche wird ab dem Mittwoch nach ihrem Ende gespeichert, wenn du die App das nächste Mal öffnest, sodass ' +
     'Ausgaben, die du am Montag oder Dienstag dafür erfasst, noch zählen. Deine Abzeichen kommen aus diesen Wochen und ' +

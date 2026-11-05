@@ -153,6 +153,13 @@ Roshan finds Home annoying: whenever he opens it, the suggested budget is open, 
    - **Check-in:** "Add what you forgot" moves up, under the envelope summary (`check-in-view.tsx:247-269`).
    - **Badges:** the intro and each badge's rule go into one collapsed "How badges work" (`badges-view.tsx:74,96`).
 
+   - **As built (2026-11-05):**
+     - **`useChoicePref(key, allowed, fallback)`** (`phone-pref.ts`) is `useSyncExternalStore` over localStorage. It gives the fallback on the server and in the first render, and the stored choice right after. An unknown value counts as the fallback. `writePref` tells every reader.
+     - **Remembered:** the charts' period (`studentsbudget-charts-period`), each chart's style (`studentsbudget-chart-style-<spending|income|savings|over-time>`) and the Tips/Discounts tab (`studentsbudget-tips-tab`).
+     - **Check-in:** `WeekPart` takes children, shown between the week against the plan and what was logged. "Forgot something? Add it here" sits there for this week.
+     - **Badges:** each card keeps its title, status and progress. The intro and every badge's rule moved into one closed "How badges work" ("So funktionieren Abzeichen") under the list.
+     - **Specs:** `profile.spec.ts` opens the fold before reading the gold rule. The charts, tips and discounts specs pass as they are: every test starts with fresh storage, and none reloads expecting a default after choosing.
+
 ## Verification
 
 - **Unit tests:** `phone-pref` (default when storage throws, stored value, unknown value), the hub's summary helpers, the one swap line chosen, and the charts' €0 rows.

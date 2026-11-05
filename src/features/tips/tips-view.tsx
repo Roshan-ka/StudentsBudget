@@ -2,6 +2,7 @@
 
 import { ChevronDownIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useChoicePref } from '@/lib/phone-pref';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,7 +20,8 @@ import { sortTips, tipChipIds, tipTag } from './tips';
 const SORTED = sortTips(TIPS);
 const CHIPS = tipChipIds(TIPS);
 
-type View = 'tips' | 'discounts';
+const VIEWS = ['tips', 'discounts'] as const;
+type View = (typeof VIEWS)[number];
 
 /**
  * The Tips tab: the Regensburg tips or the student discounts, one at a time. Both stay mounted while the other is
@@ -27,7 +29,8 @@ type View = 'tips' | 'discounts';
  */
 export function TipsView() {
   const { t } = useT();
-  const [view, setView] = useState<View>('tips');
+  // Remembered on this phone (pain points, chunk 8): someone who reads the discounts opens on them.
+  const [view, setView] = useChoicePref<View>('studentsbudget-tips-tab', VIEWS, 'tips');
 
   return (
     <Tabs value={view} onValueChange={(value) => setView(value === 'discounts' ? 'discounts' : 'tips')}>
