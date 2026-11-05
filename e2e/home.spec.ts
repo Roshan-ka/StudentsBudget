@@ -313,12 +313,12 @@ test('says which rate is missing and shows a dash when nothing could be converte
   await expect(page.getByText('INR rate missing', { exact: true })).toBeVisible();
 });
 
-test('later in the month the suggested budget waits behind a link, and Not now puts it away again', async ({
+test('the suggested budget waits behind its link until it is tapped, and Not now puts it away again', async ({
   page,
 }) => {
   await completeSetup(page);
 
-  // The 16th, with the envelopes inside what is available: nothing asks for attention.
+  // It never opens by itself (Roshan, 05-11-2026).
   await expect(suggestion(page)).toHaveCount(0);
   await expect(suggestionLink(page)).toBeVisible();
 
@@ -333,7 +333,9 @@ test('later in the month the suggested budget waits behind a link, and Not now p
   await expect(suggestionLink(page)).toBeVisible();
 });
 
-test('the suggested budget leads when the envelopes are more than what is available', async ({ page }) => {
+test('the suggested budget waits behind its link even when the envelopes are more than what is available', async ({
+  page,
+}) => {
   await completeSetup(page);
   const [plan] = await readStore<Plan>(page, 'plan');
   // Food at €500 and eating out at €124 are €624 of €440.
@@ -343,8 +345,8 @@ test('the suggested budget leads when the envelopes are more than what is availa
   await writeStore(page, 'plan', [{ ...plan, envelopes: envelopeRows }]);
   await page.reload();
 
-  await expect(suggestion(page)).toBeVisible();
-  await expect(suggestionLink(page)).toHaveCount(0);
+  await expect(suggestionLink(page)).toBeVisible();
+  await expect(suggestion(page)).toHaveCount(0);
 });
 
 test('says calmly that nothing is available, and suggests €0', async ({ page }) => {
@@ -353,6 +355,7 @@ test('says calmly that nothing is available, and suggests €0', async ({ page }
   // No income at all: fixed costs and the set-aside are more than what comes in.
   await writeStore(page, 'plan', [{ ...plan, incomes: [] }]);
   await page.reload();
+  await suggestionLink(page).click();
 
   const panel = suggestion(page);
   const useBudget = panel.getByRole('button', { name: 'Use this budget', exact: true });
@@ -447,32 +450,38 @@ test('with an everyday budget, the suggestion keeps to it, or to what is availab
   await expect(panel.getByRole('button', { name: 'Use this budget', exact: true })).toBeEnabled();
 });
 
-test('Not now and the saved note last until the month turns', async ({ page }) => {
+test('in the first week too the suggested budget waits behind its link, after a reload as well; the saved note goes with the month', async ({
+  page,
+}) => {
   await completeSetup(page);
-  // Tuesday 3 Nov: the first week, so the suggestion leads.
+  // Tuesday 3 Nov, the first week: still behind its link.
   await reopenOn(page, new Date(2026, 10, 3, 12, 0, 0));
-  await expect(suggestion(page)).toBeVisible();
+  await expect(suggestionLink(page)).toBeVisible();
+  await expect(suggestion(page)).toHaveCount(0);
+  await suggestionLink(page).click();
   await suggestion(page).getByRole('button', { name: 'Not now', exact: true }).click();
   await expect(suggestion(page)).toHaveCount(0);
+
+  // Opened again the same day, it stays put away.
+  await reopenOn(page, new Date(2026, 10, 3, 18, 0, 0));
   await expect(suggestionLink(page)).toBeVisible();
+  await expect(suggestion(page)).toHaveCount(0);
 
-  // Tuesday 1 Dec, with the app still open: a new month, so it leads again.
-  await page.clock.setFixedTime(new Date(2026, 11, 1, 9, 0, 0));
-  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await expect(suggestion(page)).toBeVisible();
-
-  // Using it leaves a note, and that goes with the month too.
+  // Using it leaves a note, and that goes with the month.
+  await suggestionLink(page).click();
   await suggestion(page).getByRole('button', { name: 'Use this budget', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Envelopes updated.' })).toBeVisible();
   await expect(suggestion(page)).toHaveCount(0);
 
-  await page.clock.setFixedTime(new Date(2027, 0, 1, 9, 0, 0));
+  // Tuesday 1 Dec, with the app still open: a new month, and still only the link.
+  await page.clock.setFixedTime(new Date(2026, 11, 1, 9, 0, 0));
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await expect(suggestion(page)).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Envelopes updated.' })).toHaveCount(0);
+  await expect(suggestionLink(page)).toBeVisible();
+  await expect(suggestion(page)).toHaveCount(0);
 });
 
-test('in the first week of the month the suggested budget leads, and using it changes only the envelopes', async ({
+test('opened in the first week of the month, the suggested budget changes only the envelopes', async ({
   page,
 }) => {
   await completeSetup(page);
@@ -486,6 +495,8 @@ test('in the first week of the month the suggested budget leads, and using it ch
   // Tuesday 3 Nov: November is a full month for the plan, and its first week.
   await reopenOn(page, new Date(2026, 10, 3, 12, 0, 0));
   const panel = suggestion(page);
+  await expect(panel).toHaveCount(0);
+  await suggestionLink(page).click();
   await expect(panel).toBeVisible();
   await expect(suggestionLink(page)).toHaveCount(0);
 
@@ -512,6 +523,9 @@ test('in the first week of the month the suggested budget leads, and using it ch
   // Last month's €12 is rounded to €5. €2 rounds to €0 but is still spending, so its row keeps that basis (below);
   // a category with neither a range nor spending starts at €0.
   await expect(field('Health & pharmacy')).toHaveValue('10');
+  // The rows at €0 wait behind More categories.
+  await expect(field('Gifts')).toHaveCount(0);
+  await panel.getByRole('button', { name: 'More categories', exact: true }).click();
   await expect(field('Study materials')).toHaveValue('');
   await expect(field('Gifts')).toHaveValue('');
   await expect(panel.getByText('€0 left for savings', { exact: true })).toBeVisible();

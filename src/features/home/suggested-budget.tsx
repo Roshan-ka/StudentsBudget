@@ -1,6 +1,7 @@
 'use client';
 
 import { parseISO } from 'date-fns';
+import { ChevronDownIcon } from 'lucide-react';
 import { useId, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -19,7 +20,7 @@ import { useT } from '@/i18n/use-t';
 import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
 import { cn } from '@/lib/utils';
-import { suggestBudget, suggestionIsProminent, type Suggestion } from './suggest-budget';
+import { suggestBudget, type Suggestion } from './suggest-budget';
 
 /** "September". */
 const monthName = (month: IsoMonth, locale: string): string =>
@@ -91,8 +92,10 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   const headingId = useId();
   const { t, lang } = useT();
   const text = t.home.suggestedBudget;
-  // null follows the date and the plan; a choice made here overrides it.
-  const [expanded, setExpanded] = useState<boolean | null>(null);
+  // Behind its link until tapped, on every day of the month (Roshan, 05-11-2026): it never opens by itself.
+  const [shown, setShown] = useState(false);
+  // Rows the suggestion puts at €0 wait behind More categories while another row has an amount.
+  const [showZero, setShowZero] = useState(false);
   // Only the rows the person has typed in; every other row follows the suggestion.
   const [edits, setEdits] = useState<Record<string, Minor>>({});
   const [saving, setSaving] = useState(false);
@@ -103,7 +106,6 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   const { rows, availableMinor } = suggestBudget(plan, CITIES[plan.cityId], entries, month);
   const budgetMinor = plan.spendingBudgetMinor ?? 0;
   const amountOf = (row: Suggestion[number]): Minor => edits[row.categoryId] ?? row.amountMinor;
-  const shown = expanded ?? suggestionIsProminent(plan, today);
 
   async function applyBudget() {
     // Every flexible category, in category order. Only the envelopes: the plan's other fields are not touched.
@@ -115,7 +117,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
     try {
       await db.plan.update('current', { envelopes });
       setEdits({});
-      setExpanded(false);
+      setShown(false);
       setOutcome('saved');
     } catch (error) {
       console.error('StudentsBudget: could not save the suggested budget', error);
@@ -137,7 +139,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
           type="button"
           onClick={() => {
             setOutcome(null);
-            setExpanded(true);
+            setShown(true);
           }}
           className="inline-flex min-h-11 cursor-pointer items-center text-sm text-primary underline underline-offset-4"
         >
@@ -149,6 +151,10 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
 
   const invalid = Object.values(edits).some((minor) => !isAmount(minor));
   const total = rows.reduce((sum, row) => sum + (isAmount(amountOf(row)) ? amountOf(row) : 0), 0);
+  // A row typed into stays out, whatever its amount; with every row at €0 there is nothing to fold.
+  const folds = (row: Suggestion[number]) => row.amountMinor === 0 && !(row.categoryId in edits);
+  const folding = rows.some((row) => !folds(row)) && rows.some(folds);
+  const listed = folding && !showZero ? rows.filter((row) => !folds(row)) : rows;
 
   return (
     <section aria-labelledby={headingId} className={cn(cardVariants(), 'gap-4')}>
@@ -159,7 +165,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
         <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor, t, lang)}</p>
       </div>
 
-      {rows.map((row) => {
+      {listed.map((row) => {
         const value = amountOf(row);
         return (
           <div key={row.categoryId} className="grid gap-1.5">
@@ -173,6 +179,19 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
           </div>
         );
       })}
+
+      {folding && (
+        <Button
+          type="button"
+          variant="chip"
+          className="self-start"
+          aria-expanded={showZero}
+          onClick={() => setShowZero((open) => !open)}
+        >
+          {text.moreCategories}
+          <ChevronDownIcon aria-hidden="true" className={cn('transition-transform', showZero && 'rotate-180')} />
+        </Button>
+      )}
 
       {availableMinor > 0 && (
         <p aria-live="polite" className="rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
@@ -191,7 +210,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
           >
             {text.use}
           </Button>
-          <Button type="button" variant="outline" className="px-4" onClick={() => setExpanded(false)}>
+          <Button type="button" variant="outline" className="px-4" onClick={() => setShown(false)}>
             {text.notNow}
           </Button>
         </div>

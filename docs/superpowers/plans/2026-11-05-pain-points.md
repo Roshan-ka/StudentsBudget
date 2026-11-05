@@ -65,6 +65,12 @@ Roshan finds Home annoying: whenever he opens it, the suggested budget is open, 
    - The "See a suggested budget" link stays below the envelopes; its tap opens the form.
    - In the open form, rows at €0 sit behind "More categories", like the More chip in quick add.
    - `home.spec.ts`'s prominence tests become "opens only on tap".
+   - **As built (2026-11-05):**
+     - `shown` starts false on every mount. `suggestionIsProminent` and its tests are gone, since nothing else used them.
+     - Opening it again on a new day, after a reload, or in a new month (Home keys it by month) still shows only the link.
+     - A row folds when the suggestion puts it at €0 and it hasn't been typed into. The fold happens only while another row has an amount, so with nothing available every row stays out.
+     - The fold's chip is "More categories" ("Weitere Kategorien", "Plus de catégories", "Más categorías"), with the chevron Tips' More chip has.
+     - `home.spec.ts`: five tests follow, one of them now reopening the same day to prove it stays put away.
 2. **Home's quieter cards.**
    - **Check-in:** a single compact line Monday to Saturday; Sunday keeps the yellow card (`check-in-card.tsx`).
    - **Badges:** one row, e.g. "Badges · 2 of 4 · Next: …" (`badges-card.tsx`).

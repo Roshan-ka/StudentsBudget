@@ -2,7 +2,7 @@ import type { City, CityRange } from '@/data/cities';
 import type { Amount, Entry, Plan } from '@/db/types';
 import { FLEXIBLE_CATEGORIES } from '@/features/entries/categories';
 import { planSummary } from '@/lib/budget';
-import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
+import { monthOf, shiftMonth, type IsoMonth } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 
 /** One suggested envelope: where the amount comes from, and for a city amount the range it sits in. */
@@ -168,13 +168,4 @@ export function suggestBudget(
   const rows = splitBudget(start, targetMinor);
 
   return { rows, availableMinor, targetMinor, unallocatedMinor: Math.max(0, availableMinor - sum(rows)) };
-}
-
-/**
- * Whether Home should lead with the suggestion rather than tuck it behind a link: in the first week of the
- * month, when a plan is made, or whenever the envelopes add up to more than what is available.
- */
-export function suggestionIsProminent(plan: Plan, today: IsoDate): boolean {
-  const dayOfMonth = Number(today.slice(8, 10));
-  return dayOfMonth <= 7 || planSummary(plan, monthOf(today)).overByMinor > 0;
 }

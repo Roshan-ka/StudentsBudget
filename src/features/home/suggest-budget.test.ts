@@ -9,7 +9,6 @@ import {
   splitBudget,
   startingRows,
   suggestBudget,
-  suggestionIsProminent,
   type Suggestion,
 } from './suggest-budget';
 
@@ -755,32 +754,5 @@ describe('liveSuggestions', () => {
     expect(Object.fromEntries(liveSuggestions(odd, SETUP_ENVELOPE_IDS, 60000, CITIES.regensburg))).toEqual(
       amounts(splitBudget(start, 60000)),
     );
-  });
-});
-
-describe('suggestionIsProminent', () => {
-  // Available is €440 a month.
-  const base = planWithAvailable(44000);
-  const within: Plan = { ...base, envelopes: [{ categoryId: 'food', monthlyMinor: 31000 }] };
-  const over: Plan = { ...base, envelopes: [{ categoryId: 'food', monthlyMinor: 46000 }] };
-
-  it('is prominent through the 7th of the month', () => {
-    expect(suggestionIsProminent(within, '2026-11-01')).toBe(true);
-    expect(suggestionIsProminent(within, '2026-11-07')).toBe(true);
-  });
-
-  it('steps back from the 8th on', () => {
-    expect(suggestionIsProminent(within, '2026-11-08')).toBe(false);
-    expect(suggestionIsProminent(within, '2026-11-30')).toBe(false);
-  });
-
-  it('is prominent whatever the day when the envelopes are more than what is available', () => {
-    expect(suggestionIsProminent(over, '2026-11-08')).toBe(true);
-    expect(suggestionIsProminent(over, '2026-11-30')).toBe(true);
-  });
-
-  it('is not prominent when the envelopes use up exactly what is available', () => {
-    const exact: Plan = { ...base, envelopes: [{ categoryId: 'food', monthlyMinor: 44000 }] };
-    expect(suggestionIsProminent(exact, '2026-11-08')).toBe(false);
   });
 });

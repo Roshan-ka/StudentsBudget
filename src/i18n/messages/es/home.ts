@@ -46,6 +46,7 @@ export const home: Messages['home'] = {
     overAvailable: (amount) => `${amount} por encima de lo disponible`,
     use: 'Usar este presupuesto',
     notNow: 'Ahora no',
+    moreCategories: 'Más categorías',
     replaces: 'Al usarlo, se sustituyen los importes de tus sobres.',
     fixAmounts: 'Corrige los importes marcados arriba para usar este presupuesto.',
     enterOne: 'Escribe al menos un importe para usar este presupuesto.',
