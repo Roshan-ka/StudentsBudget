@@ -7,12 +7,10 @@ export const setup: Messages['setup'] = {
   headingEdit: 'Plan bearbeiten',
   stepOf: (step, total) => `Schritt ${step} von ${total}`,
   titles: {
-    'city-rent': 'Stadt und Miete',
     accounts: 'Konten',
     income: 'Einnahmen',
     fixed: 'Fixkosten',
     'one-offs': 'Einmalige Kosten',
-    guesses: 'Schätzungen',
     envelopes: 'Umschläge',
   },
   accountsInSettings: 'Deine Konten sind schon angelegt, unter Einstellungen → Konten und Umbuchungen.',
@@ -29,15 +27,8 @@ export const setup: Messages['setup'] = {
     nameOneOffs: 'Gib allen einmaligen Kosten einen Namen.',
     checkOneOff: (name, number) => `Prüfe den Betrag für ${name ?? `einmalige Kosten ${number}`}.`,
     dueMonth: 'Wähle einen Monat nach diesem.',
-    checkGuess: (name) => `Prüfe die Schätzung für ${name}.`,
     checkBudget: 'Prüfe den Betrag deines Alltagsbudgets.',
     addEnvelope: (name) => `Gib einen Betrag für ${name} ein`,
-  },
-  cityRent: {
-    city: 'Stadt',
-    onlyCity: 'Regensburg ist vorerst die einzige Stadt.',
-    rent: 'Miete pro Monat',
-    rooms: (range) => `Zimmer hier: ${range}`,
   },
   accounts: {
     intro: 'Wo liegt dein Geld? Der Anfangsstand ist das, was heute auf jedem Konto ist.',
@@ -65,10 +56,12 @@ export const setup: Messages['setup'] = {
     later: 'Bekommst du BAföG oder ein Stipendium? Trag es später unter Einstellungen → Plan → Plan bearbeiten ein.',
   },
   fixed: {
-    intro:
-      'Was zahlst du jeden Monat, in Euro? Deine Miete ist schon aus Schritt 1 drin. Lass weg, was du nicht zahlst.',
-    later: 'Abos, Fitnessstudio, Nebenkosten und Rundfunkbeitrag kannst du später unter Einstellungen → Plan → Plan bearbeiten ergänzen.',
-    rent: (amount) => `Miete: ${amount} im Monat`,
+    intro: 'Was zahlst du jeden Monat, in Euro? Lass weg, was du nicht zahlst.',
+    rentLabel: 'Miete pro Monat',
+    rooms: (range) => `Zimmer hier: ${range}`,
+    later:
+      'Abos, Fitnessstudio, Nebenkosten, Rundfunkbeitrag und einmalige Kosten wie den Semesterbeitrag kannst du ' +
+      'später unter Einstellungen → Plan → Plan bearbeiten ergänzen.',
   },
   oneOffs: {
     intro:
@@ -83,12 +76,6 @@ export const setup: Messages['setup'] = {
     remove: (number) => `Einmalige Kosten ${number} entfernen`,
     add: 'Einmalige Kosten hinzufügen',
     feeOffer: (amount, month) => `Semesterbeitrag hinzufügen${amount === null ? '' : `: ${amount}`}, fällig im ${month}`,
-  },
-  guesses: {
-    intro:
-      'Geh nach Gefühl, in Euro. Gib 0 ein, wenn du dafür nichts ausgibst. Lass weg, was du nicht weißt. ' +
-      'Schätzungen werden einmal gespeichert und lassen sich später nicht ändern.',
-    question: (topic) => `Wie viel gibst du schätzungsweise im Monat für ${topic} aus?`,
   },
   topics: {
     food: 'Lebensmittel',

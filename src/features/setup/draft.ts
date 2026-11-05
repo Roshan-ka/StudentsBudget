@@ -2,7 +2,6 @@ import { CATEGORIES } from '@/data/categories';
 import type { CityRange } from '@/data/cities';
 import type { Account, Amount, Category, Guess, OneOff, Plan, PlanLine, Schedule } from '@/db/types';
 import { defaultAccount } from '@/features/accounts/balances';
-import { GUESS_CATEGORIES } from '@/features/entries/categories';
 import { newSchedule, perOccurrence, restartSchedule } from '@/features/recurring/schedule';
 import { categoryNameIn } from '@/i18n/category-name';
 import { LANGUAGES, type Language } from '@/i18n/languages';
@@ -58,7 +57,7 @@ export type AccountOption = Pick<Account, 'id' | 'name' | 'currency'> & Partial<
  */
 export type SetupDraft = {
   rentMinor: Minor;
-  /** Rent's "Add it automatically", asked in the fixed costs step once the accounts are known. */
+  /** Rent's "Add it automatically", right under rent at the top of the fixed costs step. */
   rentSchedule?: DraftSchedule;
   accounts: DraftAccount[];
   incomes: DraftLine[];
@@ -72,13 +71,17 @@ export type SetupDraft = {
 
 export type DraftUpdate = (change: (d: SetupDraft) => SetupDraft) => void;
 
-export type StepId = 'city-rent' | 'accounts' | 'income' | 'fixed' | 'one-offs' | 'guesses' | 'envelopes';
+/**
+ * The wizard's steps. A new setup asks accounts, income, fixed costs (rent first) and envelopes; Edit plan asks income,
+ * fixed costs, one-off costs and envelopes (setup-wizard.tsx).
+ */
+export type StepId = 'accounts' | 'income' | 'fixed' | 'one-offs' | 'envelopes';
 
 const ofKind = (kind: Category['kind']): Category[] => CATEGORIES.filter((c) => c.kind === kind);
 
 export const FLEXIBLE_CATEGORIES = ofKind('flexible');
 export const INCOME_CATEGORIES = ofKind('income');
-/** The fixed costs step asks for these; rent has its own question in step 1. */
+/** The fixed costs step asks for these below rent, which has its own field at the top of the step. */
 export const FIXED_CATEGORIES = ofKind('fixed').filter((c) => c.id !== 'rent');
 
 const ORDER_OF = new Map(CATEGORIES.map((c) => [c.id, c.order]));
@@ -451,9 +454,6 @@ export function validateStep(
   const text = t.setup.problems;
   const options = accountOptions(d, stored, lang);
   switch (step) {
-    case 'city-rent':
-      return isAmount(d.rentMinor) ? [] : [text.checkAmount(categoryNameIn(t, 'rent'))];
-
     case 'accounts': {
       if (d.accounts.length === 0) return [text.addAccount];
       const problems: string[] = [];
@@ -472,9 +472,11 @@ export function validateStep(
       ];
 
     case 'fixed': {
-      // Rent's choices are asked in this step.
-      const rent = { name: categoryNameIn(t, 'rent'), monthlyMinor: d.rentMinor, schedule: d.rentSchedule };
+      // Rent is the first field of this step, with its choices under it.
+      const rentName = categoryNameIn(t, 'rent');
+      const rent = { name: rentName, monthlyMinor: d.rentMinor, schedule: d.rentSchedule };
       return [
+        ...(isAmount(d.rentMinor) ? [] : [text.checkAmount(rentName)]),
         ...amountProblems(d.fixed, FIXED_CATEGORIES, t),
         ...scheduleProblems([rent, ...namedLines(d.fixed, FIXED_CATEGORIES, t)], options, t),
       ];
@@ -492,13 +494,6 @@ export function validateStep(
       });
       return [...problems];
     }
-
-    case 'guesses':
-      // A blank guess is simply not saved: only one that did not parse is a problem.
-      return GUESS_CATEGORIES.flatMap((c) => {
-        const minor = amountOf(d.guesses, c.id);
-        return minor === undefined || isAmount(minor) ? [] : [text.checkGuess(categoryNameIn(t, c.id))];
-      });
 
     case 'envelopes':
       return [

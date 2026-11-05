@@ -47,7 +47,7 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
       await page.locator('a[href="/reveal"]:visible').click();
       await expect(page.getByRole('heading', { name: 'Guess vs. reality', exact: true })).toBeVisible();
     } else {
-      await expect(page.getByRole('heading', { name: 'City and rent' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
     }
     expect(errors).toEqual([]);
   });

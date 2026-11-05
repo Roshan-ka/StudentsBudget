@@ -13,8 +13,11 @@ export type SetupFixture = {
   /** Opening balances of the prefilled accounts, in order: Local bank (EUR), Home bank (INR), Cash (EUR). */
   openingBalances: [string, string, string];
   incomes: { parents: string; job: string };
+  /**
+   * A one-off cost, which a new setup no longer asks: `seedSetup` adds it as Edit plan would on the setup day, and the
+   * wizard walk leaves it out. Without an amount (`NO_ONE_OFF`) there is none.
+   */
   oneOff: { name: string; amount: string; dueMonth: string };
-  guesses: Record<FlexibleId, string>;
   /** The everyday budget, asked at the top of the envelopes step; blank skips the question. */
   budget: string;
   envelopes: Record<FlexibleId, string>;
@@ -25,10 +28,12 @@ export const DEFAULT_SETUP: SetupFixture = {
   openingBalances: ['1000', '50000', '50'],
   incomes: { parents: '500', job: '400' },
   oneOff: { name: 'Semester fee', amount: '300', dueMonth: '2027-03' },
-  guesses: { food: '200', 'eating-out': '80', 'going-out': '60', transport: '20', shopping: '40', other: '20' },
   budget: '',
   envelopes: { food: '310', 'eating-out': '124', 'going-out': '0', transport: '0', shopping: '0', other: '0' },
 };
+
+/** No one-off cost: what a setup walked through the wizard has. */
+export const NO_ONE_OFF: SetupFixture['oneOff'] = { name: '', amount: '', dueMonth: '' };
 
 /** The question of the everyday budget, at the top of the envelopes step. */
 export const BUDGET_LABEL =
@@ -39,15 +44,6 @@ export function budgetField(page: Page) {
   return page.getByRole('textbox', { name: BUDGET_LABEL, exact: true });
 }
 
-const GUESS_TOPIC: Record<FlexibleId, string> = {
-  food: 'food & groceries',
-  'eating-out': 'eating out',
-  'going-out': 'going out',
-  transport: 'transport',
-  shopping: 'shopping',
-  other: 'other things',
-};
-
 const ENVELOPE_LABEL: Record<FlexibleId, string> = {
   food: 'Food & groceries',
   'eating-out': 'Eating out',
@@ -57,7 +53,7 @@ const ENVELOPE_LABEL: Record<FlexibleId, string> = {
   other: 'Other',
 };
 
-export const FLEXIBLE_IDS = Object.keys(GUESS_TOPIC) as FlexibleId[];
+export const FLEXIBLE_IDS = Object.keys(ENVELOPE_LABEL) as FlexibleId[];
 
 /** Matches every request to the Frankfurter API; for tests that need the request to fail. */
 export const FRANKFURTER = '**/api.frankfurter.dev/**';
@@ -134,7 +130,8 @@ async function addByHand(page: Page, name: string) {
 }
 
 /**
- * Walks through every step of a new setup and stops on the envelopes step, before saving.
+ * Walks through every step of a new setup (Accounts, Income, Fixed costs with rent, Envelopes) and stops on the
+ * envelopes step, before saving. `oneOff` is not asked: a new setup has none.
  * Mocks Frankfurter and accepts the exchange-rate note first, and pins the date to `SETUP_DAY` unless the caller set
  * `page.clock` before calling it.
  * Rent and the incomes are added by hand (no schedules) unless `options.schedules` is set.
@@ -148,17 +145,15 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   await ensureClock(page);
 
   await openApp(page, '/setup');
-  // The wizard renders once it has read the database.
-  await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
-  // 7 steps, or 6 when the accounts already exist and the Accounts step is skipped.
-  await expect(page.getByText(`Step 1 of ${options.accountsExist ? 6 : 7}`, { exact: true })).toBeVisible();
-  await page.getByLabel('Rent per month').fill(f.rent);
-
+  // The wizard renders once it has read the database. 4 steps, or 3 when the accounts already exist and the Accounts
+  // step is skipped.
   if (options.accountsExist) {
-    await nextStep(page, 'Income');
+    await expect(page.getByRole('heading', { level: 3, name: 'Income' })).toBeVisible();
+    await expect(page.getByText('Step 1 of 3', { exact: true })).toBeVisible();
     await expect(page.getByText('Your accounts are already set up, in Settings → Accounts and transfers.')).toBeVisible();
   } else {
-    await nextStep(page, 'Accounts');
+    await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
+    await expect(page.getByText('Step 1 of 4', { exact: true })).toBeVisible();
     for (const [i, opening] of f.openingBalances.entries()) {
       await page.getByRole('group', { name: `Account ${i + 1}` }).getByLabel('Opening balance').fill(opening);
     }
@@ -173,22 +168,10 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   }
   await nextStep(page, 'Fixed costs');
 
-  // Rent's "Add it automatically" sits here, once the accounts are known.
+  // Rent opens the step, with its "Add it automatically" under it.
+  await page.getByRole('textbox', { name: 'Rent per month', exact: true }).fill(f.rent);
   if (!options.schedules && isPositive(f.rent)) await addByHand(page, 'Rent');
   // Every other fixed cost stays blank, which means 0.
-  await nextStep(page, 'One-off costs');
-
-  await page.getByRole('button', { name: 'Add a one-off cost' }).click();
-  const oneOff = page.getByRole('group', { name: 'One-off cost 1' });
-  await oneOff.getByLabel('Name').fill(f.oneOff.name);
-  await oneOff.getByLabel('Amount').fill(f.oneOff.amount);
-  // A blank month is the field's own state: there is nothing to clear.
-  if (f.oneOff.dueMonth !== '') await oneOff.getByLabel('Due month').fill(f.oneOff.dueMonth);
-  await nextStep(page, 'Guesses');
-
-  for (const id of FLEXIBLE_IDS) {
-    await page.getByLabel(`What do you think you spend on ${GUESS_TOPIC[id]} a month?`).fill(f.guesses[id]);
-  }
   await nextStep(page, 'Envelopes');
 
   if (f.budget !== '') await budgetField(page).fill(f.budget);

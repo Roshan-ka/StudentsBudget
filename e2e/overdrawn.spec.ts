@@ -33,9 +33,8 @@ async function openAccountsStep(page: Page) {
   await mockFrankfurter(page);
   await page.clock.setFixedTime(SETUP_DAY);
   await page.goto('/setup');
-  // The wizard renders once it has read the database, so the first heading proves the page is live.
-  await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
-  await nextStep(page, 'Accounts');
+  // The wizard renders once it has read the database, so its first step's heading proves the page is live.
+  await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
 }
 
 test('setup: the Accounts step with an overdrawn balance, a long name and an error fits a phone', async ({ page }) => {
@@ -90,7 +89,7 @@ test('setup: a waiting Overdrawn tick stays with its row when a row above is rem
 async function setupWithAccounts(page: Page, fill: () => Promise<void>) {
   await openAccountsStep(page);
   await fill();
-  for (const step of ['Income', 'Fixed costs', 'One-off costs', 'Guesses', 'Envelopes']) {
+  for (const step of ['Income', 'Fixed costs', 'Envelopes']) {
     await nextStep(page, step);
   }
   await page.getByRole('button', { name: 'Save plan' }).click();

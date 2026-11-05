@@ -8,12 +8,10 @@ export const setup: Messages['setup'] = {
   headingEdit: 'Modifier le plan',
   stepOf: (step, total) => `Étape ${step} sur ${total}`,
   titles: {
-    'city-rent': 'Ville et loyer',
     accounts: 'Comptes',
     income: 'Revenus',
     fixed: 'Charges fixes',
     'one-offs': 'Frais ponctuels',
-    guesses: 'Estimations',
     envelopes: 'Enveloppes',
   },
   accountsInSettings: 'Tes comptes sont déjà configurés, dans Réglages → Comptes et virements.',
@@ -32,15 +30,8 @@ export const setup: Messages['setup'] = {
     checkOneOff: (name, number) =>
       name === null ? `Vérifie le montant des frais ponctuels ${number}.` : `Vérifie le montant pour ${name}.`,
     dueMonth: 'Choisis un mois après celui-ci.',
-    checkGuess: (name) => `Vérifie l’estimation pour ${name}.`,
     checkBudget: 'Vérifie le montant de ton budget du quotidien.',
     addEnvelope: (name) => `Ajoute un montant pour ${name}`,
-  },
-  cityRent: {
-    city: 'Ville',
-    onlyCity: 'Regensburg est la seule ville pour l’instant.',
-    rent: 'Loyer par mois',
-    rooms: (range) => `Chambres ici${NNBSP}: ${range}`,
   },
   accounts: {
     intro: `Où vit ton argent${NNBSP}? Le solde initial, c’est ce qu’il y a aujourd’hui sur chaque compte.`,
@@ -67,13 +58,12 @@ export const setup: Messages['setup'] = {
     later: `Tu touches le BAföG ou une bourse${NNBSP}? Ajoute-le plus tard dans Réglages → Plan → Modifier le plan.`,
   },
   fixed: {
-    intro:
-      `Que paies-tu chaque mois, en euros${NNBSP}? Ton loyer est déjà pris en compte depuis l’étape 1. Laisse de ` +
-      'côté ce que tu ne paies pas.',
+    intro: `Que paies-tu chaque mois, en euros${NNBSP}? Laisse de côté ce que tu ne paies pas.`,
+    rentLabel: 'Loyer par mois',
+    rooms: (range) => `Chambres ici${NNBSP}: ${range}`,
     later:
-      'Les abonnements, la salle de sport, les charges et le Rundfunkbeitrag peuvent être ajoutés plus tard dans ' +
-      'Réglages → Plan → Modifier le plan.',
-    rent: (amount) => `Loyer${NNBSP}: ${amount} par mois`,
+      'Les abonnements, la salle de sport, les charges, le Rundfunkbeitrag et les frais ponctuels comme les frais de ' +
+      'semestre peuvent être ajoutés plus tard dans Réglages → Plan → Modifier le plan.',
   },
   oneOffs: {
     intro:
@@ -89,12 +79,6 @@ export const setup: Messages['setup'] = {
     add: 'Ajouter des frais ponctuels',
     feeOffer: (amount, month) =>
       `Ajouter les frais de semestre${amount === null ? '' : `${NNBSP}: ${amount}`}, à payer en ${month}`,
-  },
-  guesses: {
-    intro:
-      'Fie-toi à ton intuition, en euros. Saisis 0 si tu n’y dépenses rien. Passe celles dont tu doutes. Les ' +
-      'estimations sont enregistrées une fois et ne peuvent plus être modifiées ensuite.',
-    question: (topic) => `Combien penses-tu dépenser par mois en ${topic}${NNBSP}?`,
   },
   topics: {
     food: 'alimentation',

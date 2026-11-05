@@ -277,27 +277,6 @@ describe('draftFromPlan', () => {
 });
 
 describe('validateStep', () => {
-  it('lets every guess stay blank: a guess is optional', () => {
-    expect(validateStep('guesses', draft, TODAY)).toEqual([]);
-    const fresh = initialDraft();
-    expect(fresh.envelopes).toHaveLength(12);
-    expect(validateStep('guesses', fresh, TODAY)).toEqual([]);
-    const noEatingOut = { ...draft, guesses: draft.guesses.filter((g) => g.categoryId !== 'eating-out') };
-    expect(validateStep('guesses', noEatingOut, TODAY)).toEqual([]);
-  });
-
-  it('accepts a guess of 0', () => {
-    const zero = { ...draft, guesses: draft.guesses.map((g) => ({ ...g, monthlyMinor: 0 })) };
-    expect(validateStep('guesses', zero, TODAY)).toEqual([]);
-  });
-
-  it('rejects a guess that did not parse', () => {
-    const bad = withAmount(draft.guesses, 'food', Number.NaN);
-    expect(validateStep('guesses', { ...draft, guesses: bad }, TODAY)).toEqual([
-      'Check the guess for Food & groceries.',
-    ]);
-  });
-
   it('needs at least one account, each with a name and a readable balance', () => {
     expect(validateStep('accounts', { ...draft, accounts: [] }, TODAY)).toEqual(['Add at least one account']);
     expect(validateStep('accounts', draft, TODAY)).toEqual([]);
@@ -326,7 +305,7 @@ describe('validateStep', () => {
   });
 
   it('still wants every other amount to be 0 or more', () => {
-    expect(validateStep('city-rent', { ...draft, rentMinor: -100 }, TODAY)).toEqual(['Check the amount for Rent.']);
+    expect(validateStep('fixed', { ...draft, rentMinor: -100 }, TODAY)).toEqual(['Check the amount for Rent.']);
     const incomes = withAmount(draft.incomes, 'income-job', -100);
     expect(validateStep('income', { ...draft, incomes }, TODAY)).toEqual(['Check the amount for Job.']);
     const envelopes = withAmount(draft.envelopes, 'food', -100);
@@ -335,10 +314,13 @@ describe('validateStep', () => {
     ]);
   });
 
-  it('accepts a rent of 0 and rejects one that did not parse', () => {
-    expect(validateStep('city-rent', { ...draft, rentMinor: 0 }, TODAY)).toEqual([]);
-    expect(validateStep('city-rent', { ...draft, rentMinor: Number.NaN }, TODAY)).toEqual([
+  it('asks rent with the fixed costs: a rent of 0 is fine, one that did not parse comes first', () => {
+    expect(validateStep('fixed', { ...draft, rentMinor: 0 }, TODAY)).toEqual([]);
+    expect(validateStep('fixed', { ...draft, rentMinor: Number.NaN }, TODAY)).toEqual(['Check the amount for Rent.']);
+    const fixed = withAmount(draft.fixed, 'phone', Number.NaN);
+    expect(validateStep('fixed', { ...draft, rentMinor: Number.NaN, fixed }, TODAY)).toEqual([
       'Check the amount for Rent.',
+      'Check the amount for Phone & internet.',
     ]);
   });
 
@@ -473,7 +455,7 @@ describe('validateStep', () => {
 
   it('lets a fresh draft through every step, so setup can be saved with nothing filled in', () => {
     const fresh = initialDraft();
-    const steps = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'envelopes'] as const;
+    const steps = ['accounts', 'income', 'fixed', 'one-offs', 'envelopes'] as const;
     for (const step of steps) expect(validateStep(step, fresh, TODAY), step).toEqual([]);
   });
 });
@@ -839,9 +821,8 @@ describe('adding lines automatically', () => {
     expect(check({ ...inr, foreignMinor: Number.NaN })).toEqual(['Enter the amount in INR for Job.']);
     expect(check({ ...inr, foreignMinor: 100 })).toEqual([]);
     expect(check({ ...inr, on: false })).toEqual([]);
-    // Rent's choices sit in the fixed costs step.
+    // Rent and its choices sit in the fixed costs step.
     expect(validateStep('fixed', { ...d, rentSchedule: inr }, TODAY)).toEqual(['Enter the amount in INR for Rent.']);
-    expect(validateStep('city-rent', { ...d, rentSchedule: inr }, TODAY)).toEqual([]);
   });
 
   it('saves no schedule for a line that is off, or that has no amount', () => {

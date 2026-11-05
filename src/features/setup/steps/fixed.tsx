@@ -1,23 +1,32 @@
 'use client';
 
 import { SETUP_FIXED_IDS } from '@/data/categories';
+import { CITIES } from '@/data/cities';
 import { DraftScheduleFields } from '@/features/recurring/draft-schedule-fields';
 import { categoryNameIn } from '@/i18n/category-name';
+import { rangeIn } from '@/i18n/city';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
-import { formatMoney } from '@/lib/money';
+import { formatRange } from '@/lib/money';
 import {
   FIXED_CATEGORIES,
   askedCategories,
   setLineAmount,
   setLineSchedule,
+  setRentAmount,
   type AccountOption,
   type DraftUpdate,
   type SetupDraft,
 } from '../draft';
 import { AmountField } from './amount-field';
+import { RangeSource } from './range-source';
 
-/** The fixed costs, and rent's "Add it automatically": asked here rather than in step 1, once the accounts are known. */
+const rentRange = CITIES.regensburg.ranges.find((r) => r.categoryId === 'rent');
+
+/**
+ * Rent first, with what rooms in Regensburg cost and where that comes from, and its "Add it automatically" right under
+ * it; then the other fixed costs. Regensburg is the only city, so setup asks no city.
+ */
 export function FixedStep({
   draft,
   update,
@@ -32,15 +41,22 @@ export function FixedStep({
   /** Edit mode asks every fixed cost; a new setup asks the basic ones. */
   edit: boolean;
 }) {
-  const { t, locale } = useT();
+  const { t, lang, locale } = useT();
   const text = t.setup.fixed;
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground">{text.intro}</p>
-      {!edit && <p className="text-muted-foreground">{text.later}</p>}
-      {draft.rentSchedule && draft.rentMinor > 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">{text.rent(formatMoney(draft.rentMinor, 'EUR', { locale }))}</p>
+      <div className="flex flex-col gap-2">
+        <div className="grid gap-1.5">
+          <AmountField
+            label={text.rentLabel}
+            value={draft.rentMinor}
+            onChange={(minor) => update((d) => setRentAmount(d, minor ?? 0))}
+            hint={rentRange && text.rooms(formatRange(rentRange.minMinor, rentRange.maxMinor, locale))}
+          />
+          {rentRange && <RangeSource range={rangeIn(rentRange, lang)} />}
+        </div>
+        {draft.rentSchedule && draft.rentMinor > 0 && (
           <DraftScheduleFields
             name={categoryNameIn(t, 'rent')}
             categoryId="rent"
@@ -51,8 +67,8 @@ export function FixedStep({
             today={today}
             onChange={(schedule) => update((d) => ({ ...d, rentSchedule: schedule }))}
           />
-        </div>
-      )}
+        )}
+      </div>
       {askedCategories(FIXED_CATEGORIES, SETUP_FIXED_IDS, edit, draft.fixed).map((c) => {
         const line = draft.fixed.find((l) => l.categoryId === c.id);
         const name = categoryNameIn(t, c.id);
@@ -78,6 +94,7 @@ export function FixedStep({
           </div>
         );
       })}
+      {!edit && <p className="text-muted-foreground">{text.later}</p>}
     </div>
   );
 }
