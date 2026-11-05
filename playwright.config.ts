@@ -9,6 +9,8 @@ export default defineConfig({
   testDir: './e2e',
   // Needs a production build, which has the service worker; playwright.offline.config.ts runs it.
   testIgnore: '**/offline.spec.ts',
+  // Compiles every route once, after the web server is up and before the first test (e2e/global-setup.ts).
+  globalSetup: './e2e/global-setup.ts',
   forbidOnly: !!process.env.CI,
   // On CI an HTML report sits next to the dot output. ci.yml's e2e job doesn't use these: it passes
   // `--reporter=dot,blob` and merges the shards' blob reports, traces included, into playwright-report-e2e.

@@ -887,17 +887,28 @@ function withoutIds({ plan, accounts, guesses }: SetupRows) {
   };
 }
 
-/** Deletes the app's database, from a page of the same origin that is not the app, so its connection has closed. */
-async function deleteDatabase(page: Page) {
-  // An image: every browser shows it as a page of its own, where a JSON file may become a download.
-  await page.goto('/favicon.ico');
+/**
+ * Empties every store of the app's database in place, as a new phone has it apart from the schema. Deleting the
+ * database would need a page off the app first, and WebKit refuses to open the favicon as one ("Blocked by Web
+ * Inspector").
+ */
+async function emptyDatabase(page: Page) {
   await page.evaluate(
     () =>
       new Promise<void>((resolve, reject) => {
-        // A page kept in the back-forward cache may still hold a connection: "blocked" only means waiting for it.
-        const request = indexedDB.deleteDatabase('studentsbudget');
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        const open = indexedDB.open('studentsbudget');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const database = open.result;
+          const names = [...database.objectStoreNames];
+          const transaction = database.transaction(names, 'readwrite');
+          for (const name of names) transaction.objectStore(name).clear();
+          transaction.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
       }),
   );
 }
@@ -950,7 +961,7 @@ for (const { title, overrides = {}, options = {} } of SEED_CASES) {
     await completeSetup(page, overrides, options);
     const wizard = withoutIds(await setupRows(page));
 
-    await deleteDatabase(page);
+    await emptyDatabase(page);
     if (options.accountsExist) await addWalletBeforeSetup(page);
     await seedSetup(page, overrides, options);
     expect(withoutIds(await setupRows(page))).toEqual(wizard);

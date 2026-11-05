@@ -15,6 +15,10 @@ import { readStore } from './helpers/setup';
 // 375 px, the narrowest phone the app is made for: the badge pages, their dates and the switches must fit it.
 test.use({ viewport: { width: 375, height: 812 } });
 
+// Each test sets up, then opens pages on several days: about ten page loads, close to the default 30 s on the iPhone
+// project of a busy laptop (the week away one ran out at 31 s there).
+test.beforeEach(() => test.setTimeout(60_000));
+
 /** Noon on a local calendar day; month is 1-12. */
 const on = (year: number, month: number, day: number) => new Date(year, month - 1, day, 12, 0, 0);
 
