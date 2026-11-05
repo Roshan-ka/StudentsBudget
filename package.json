@@ -20,7 +20,7 @@
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "test:db": "supabase test db",
-    "test:contract": "vitest run .contract.test",
+    "test:contract": "vitest run .contract.test --no-file-parallelism",
     "mcp": "node mcp/server.ts"
   },
   "dependencies": {
