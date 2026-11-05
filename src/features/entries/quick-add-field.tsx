@@ -3,13 +3,14 @@
 import { ChevronDownIcon, Mic, Square } from 'lucide-react';
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { deleteEntry, saveEntry } from '@/db/repo';
 import type { Account } from '@/db/types';
+import { noteSeen } from '@/features/privacy/notes';
+import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
@@ -17,7 +18,6 @@ import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { buildEntry } from './build-entry';
 import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES } from './categories';
-import { markMicNoteSeen, micNoteSeen } from './mic-note';
 import {
   accountFor,
   checkReading,
@@ -130,7 +130,7 @@ function AmountChoice({
  * date are checked against the data first: an unknown one falls back to the chips, the default account or today.
  *
  * Where the browser has speech recognition, a mic button speaks a line instead (`speech.ts`): the first tap on a phone
- * shows where the speech goes (`mic-note.ts`), and what is heard is added like a typed line, with the same Saved line
+ * shows where the speech goes (`PrivacyNote`), and what is heard is added like a typed line, with the same Saved line
  * and Undo.
  */
 export function QuickAddField({ provider = localQuickAddProvider }: { provider?: QuickAddProvider }) {
@@ -324,7 +324,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
       stopListening.current();
       return;
     }
-    if (!micNoteSeen()) {
+    if (!noteSeen('mic')) {
       setNoteOpen(true);
       return;
     }
@@ -383,24 +383,18 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
       </form>
 
       {noteOpen && (
-        <div role="group" aria-label={words.mic} className={cn(cardVariants(), 'gap-2 text-sm')}>
-          <p>{words.micNote.text}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              onClick={() => {
-                markMicNoteSeen();
-                setNoteOpen(false);
-                startListening();
-              }}
-            >
-              {words.micNote.continue}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => setNoteOpen(false)}>
-              {words.micNote.cancel}
-            </Button>
-          </div>
-        </div>
+        <PrivacyNote
+          id="mic"
+          label={words.mic}
+          text={words.micNote.text}
+          continueLabel={words.micNote.continue}
+          cancelLabel={words.micNote.cancel}
+          onContinue={() => {
+            setNoteOpen(false);
+            startListening();
+          }}
+          onCancel={() => setNoteOpen(false)}
+        />
       )}
 
       {choice !== null && (

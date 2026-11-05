@@ -2,7 +2,8 @@ import { LANGUAGES, type Language } from '@/i18n/languages';
 
 // The browser's speech recognition, for the mic button in quick add (P2; plan in
 // docs/superpowers/plans/2026-11-04-mic-button.md). The app sends nothing itself: the browser turns speech into
-// text, and may send the recording to its own speech service to do it, which the app says once (mic-note.ts).
+// text, and may send the recording to its own speech service to do it, which the app says once
+// (`src/features/privacy/notes.ts`).
 
 /**
  * The part of the Web Speech API's recognizer the app uses. TypeScript's DOM types have its result types but not the

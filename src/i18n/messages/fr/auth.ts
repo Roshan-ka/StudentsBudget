@@ -180,6 +180,21 @@ export const auth: Messages['auth'] = {
     cancelledElsewhere:
       'Cette configuration a été annulée, peut-être depuis un autre téléphone. Touche Activer pour recommencer.',
   },
+  /** Notes uniques sur les données (`PrivacyNote`) : avant le premier compte et la première clé d’accès. */
+  privacy: {
+    label: 'À propos de tes données',
+    continue: 'Continuer',
+    cancel: 'Annuler',
+    account:
+      `Ton compte est gardé par Supabase, à Francfort (UE)${NNBSP}: ton adresse e-mail, ton mot de passe (stocké ` +
+      'seulement sous forme de hachage), la langue de ton téléphone et une copie des données que tu synchronises. ' +
+      'Si le compte a besoin d’un code, pour le confirmer ou pour un nouveau mot de passe, il arrive par e-mail. ' +
+      'Tu peux supprimer le compte à tout moment dans les Réglages.',
+    passkey:
+      'Le gestionnaire de mots de passe de ton téléphone garde la clé d’accès et peut la synchroniser avec tes ' +
+      'autres appareils (le trousseau iCloud ou le Gestionnaire de mots de passe de Google, par exemple). Ton ' +
+      'compte ne garde que sa clé publique, qui ne permet à personne de se connecter.',
+  },
   /** Connexion et sécurité → Mot de passe : le nouveau ; l’actuel seulement si cette session a commencé avec. */
   changePassword: {
     heading: 'Mot de passe',
