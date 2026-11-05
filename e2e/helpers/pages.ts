@@ -18,5 +18,7 @@ export const PAGES: { path: string; shown: (page: Page, t: Messages) => Locator 
   { path: '/check-in', shown: (page, t) => heading(page, t.shell.headings.checkIn) },
   { path: '/reveal', shown: (page, t) => heading(page, t.shell.headings.reveal) },
   { path: '/settings', shown: (page, t) => heading(page, t.shell.headings.settings) },
+  { path: '/settings/accounts', shown: (page, t) => heading(page, t.shell.headings.accounts) },
+  { path: '/settings/backup', shown: (page, t) => heading(page, t.shell.headings.backup) },
   { path: '/settings/account', shown: (page, t) => heading(page, t.shell.headings.account) },
 ];

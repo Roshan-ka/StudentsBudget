@@ -10,7 +10,11 @@ export const shell = {
   },
   /** The navigation's own name, for screen readers. */
   navLabel: 'Main',
+  /** The way back from a page of Settings to its list. */
+  backToSettings: 'Back to Settings',
   headings: {
+    accounts: 'Accounts and transfers',
+    backup: 'Backup and data',
     badges: 'Badges',
     charts: 'Charts',
     checkIn: 'Weekly check-in',

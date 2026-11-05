@@ -4,6 +4,8 @@ import type { Messages } from '../en';
 // die Wechselkurse.
 export const accounts: Messages['accounts'] = {
   heading: 'Konten',
+  summary: (count: number, total: string) => `${count} ${count === 1 ? 'Konto' : 'Konten'} · ${total}`,
+  summaryNone: 'Noch keine Konten',
   add: 'Konto hinzufügen',
   none: 'Noch keine Konten. Leg dein Bankkonto, dein Portemonnaie oder dein Konto zu Hause an.',
   kinds: { bank: 'Bank', cash: 'Bargeld' },
@@ -49,7 +51,6 @@ export const accounts: Messages['accounts'] = {
   },
   rates: {
     heading: 'Wechselkurse',
-    none: 'Kurse erscheinen hier, sobald du ein Konto in einer anderen Währung anlegst.',
     rate: (rate, currency, source) => `1 € = ${rate} ${currency} · ${source}`,
     setByYou: 'von dir festgelegt',
     ecb: (day) => `EZB, ${day}`,

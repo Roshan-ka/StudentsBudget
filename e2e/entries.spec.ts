@@ -176,7 +176,7 @@ test('making Cash the default account in Settings moves quick add, the entry for
 }) => {
   await completeSetup(page);
 
-  await page.goto('/settings');
+  await page.goto('/settings/accounts');
   // The row buttons only exist once the accounts have been read, so a click cannot hit the prerendered page.
   const makeCash = page.getByRole('button', { name: 'Make default: Cash', exact: true });
   await expect(makeCash).toBeVisible();

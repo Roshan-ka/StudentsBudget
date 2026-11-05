@@ -293,6 +293,9 @@ test.describe('on a desktop browser', () => {
     await saveProfile(page);
     const [before] = await readStore<Profile>(page, 'profile');
 
+    // Settings → Backup and data; Export is enabled once the page has read the data.
+    await page.goto('/settings/backup');
+    await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeEnabled();
     const downloaded = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Export backup', exact: true }).click();
     const download = await downloaded;

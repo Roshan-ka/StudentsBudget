@@ -87,6 +87,18 @@ Roshan finds Home annoying: whenever he opens it, the suggested budget is open, 
    - **Accounts page:** `AccountsPanel`, `TransferForm` and `RatesPanel`, the last only with a foreign-currency account.
    - **Backup page:** `BackupPanel`, with Restore and Delete everything in collapsed sections.
    - **Specs:** those that open these sections on `/settings` go to the new pages (`accounts`, `backup`, `overdrawn`, `rates`, `demo-backup`, …), plus the map and `PAGES`.
+   - **As built (2026-11-05):**
+     - **Names:** the pages are "Accounts and transfers" and "Backup and data" ("Konten und Umbuchungen", "Backup und Daten"). The panels keep their own h3 ("Accounts", "Backup"), so no heading shares a name.
+     - **The list:** `SettingsLinks` sits under the language picker, a card of link rows (icon, name, summary, chevron). The Accounts summary is `accountsSummary`: "2 accounts · €1,220", "No accounts yet", or a dash when nothing converts, as Home. Until chunk 4 the other sections stay on `/settings` below the list.
+     - **Changed from the plan:**
+       - Backup's summary is a fixed line ("Export, restore or delete the data on this phone"): nothing records when a backup was last exported, and adding that is new data.
+       - Restore and Delete everything stay open. On their own page the three parts read fine, and folds would only add taps.
+     - **Rates** render nothing while every account is in euros. Its empty-state text is gone from the four dictionaries.
+     - **`BackToSettings`** is "Back to Settings", not "Settings", so it never shares a link name with the bottom nav.
+     - **Specs:**
+       - `accounts`, `overdrawn`, `home`, `entries` and `insecure-origin` open `/settings/accounts`; `backup` opens `/settings/backup`; `profile` goes there to export.
+       - The map lists both routes; `overdrawn` and `insecure-origin` leave `allOnly`.
+       - `PAGES` has both, so `reflow`, `theme` and `language-tour` visit them.
 4. **Plan, Profile and Appearance pages, and the Your account row.**
    - Edit plan and the fixed costs editor on `/settings/plan`, and `ProfileSection` and `AppearanceSection` on their own pages.
    - The account card on the hub becomes its row.

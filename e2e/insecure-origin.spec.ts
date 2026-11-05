@@ -26,7 +26,7 @@ test('setup, quick add and a new account work where crypto.randomUUID does not e
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
 
   // Settings: a new account.
-  await page.goto('/settings');
+  await page.goto('/settings/accounts');
   // Setup's accounts come from the live query, so the form's button is wired up once they show.
   await expect(page.getByText('Cash', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add account' }).click();
