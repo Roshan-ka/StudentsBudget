@@ -77,6 +77,57 @@ self.addEventListener('fetch', (event) => {
   // fail, Next then opens the page as an ordinary navigation, and `openPage` answers that.
 });
 
+// The weekly reminder (docs/superpowers/plans/2026-11-05-weekly-reminder.md): the scheduled sender pushes
+// { title, body, url, lang }, encrypted, and this shows it. A push that can't be read still shows the app's name: a
+// push the worker leaves without a notification can cost the site its permission. One tag, so a reminder replaces an
+// older one still in the tray instead of stacking.
+const REMINDER_TAG = 'weekly-reminder';
+const REMINDER_URL = '/check-in';
+
+self.addEventListener('push', (event) => {
+  let message = {};
+  try {
+    message = (event.data && event.data.json()) || {};
+  } catch {
+    // Not JSON: the app's name and the check-in still show.
+  }
+  const title = typeof message.title === 'string' && message.title !== '' ? message.title : 'StudentsBudget';
+  const options = {
+    body: typeof message.body === 'string' ? message.body : '',
+    icon: '/icon-192.png',
+    tag: REMINDER_TAG,
+    data: { url: ownPath(message.url) ?? REMINDER_URL },
+  };
+  if (typeof message.lang === 'string') options.lang = message.lang;
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = ownPath(event.notification.data && event.notification.data.url) ?? REMINDER_URL;
+  event.waitUntil(
+    (async () => {
+      // An open window of the app is brought forward and taken to the check-in; otherwise a new one opens there.
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const open = windows.find((client) => new URL(client.url).origin === self.location.origin);
+      if (!open) return self.clients.openWindow(url);
+      await open.focus();
+      if (typeof open.navigate === 'function') await open.navigate(url).catch(() => undefined);
+    })(),
+  );
+});
+
+/** A path on this app ('/check-in'), whatever a message names: never another site. Null for anything else. */
+function ownPath(value) {
+  if (typeof value !== 'string') return null;
+  try {
+    const url = new URL(value, self.location.origin);
+    return url.origin === self.location.origin ? url.pathname + url.search : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Only a plain answer is worth keeping: not an error page, not a redirect, not another origin's. */
 function cacheable(response) {
   return response.ok && response.type === 'basic' && !response.redirected;
