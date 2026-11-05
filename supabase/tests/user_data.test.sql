@@ -38,11 +38,14 @@ end;
 $$;
 grant execute on function pg_temp.act_as(text) to authenticated, anon;
 
--- 1. Exactly the eight tables, each with row-level security on.
+-- 1. Exactly the eight tables, plus the posting names (public_profiles.test.sql), each with row-level security on.
 select tables_are(
   'public',
-  array['accounts', 'entries', 'plans', 'guesses', 'manual_rates', 'week_results', 'discount_votes', 'profiles'],
-  'public holds exactly the eight user-data tables'
+  array[
+    'accounts', 'entries', 'plans', 'guesses', 'manual_rates', 'week_results', 'discount_votes', 'profiles',
+    'public_profiles'
+  ],
+  'public holds exactly the eight user-data tables and public_profiles'
 );
 
 select is_empty(
