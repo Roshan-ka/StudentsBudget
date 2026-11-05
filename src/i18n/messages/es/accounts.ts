@@ -4,6 +4,8 @@ import type { Messages } from '../en';
 // tipos de cambio.
 export const accounts: Messages['accounts'] = {
   heading: 'Cuentas',
+  summary: (count: number, total: string) => `${count} ${count === 1 ? 'cuenta' : 'cuentas'} · ${total}`,
+  summaryNone: 'Aún no hay cuentas',
   add: 'Añadir cuenta',
   none: 'Aún no hay cuentas. Añade tu cuenta del banco, tu cartera o tu cuenta de casa.',
   kinds: { bank: 'Banco', cash: 'Efectivo' },
@@ -48,7 +50,6 @@ export const accounts: Messages['accounts'] = {
   },
   rates: {
     heading: 'Tipos de cambio',
-    none: 'Los tipos aparecen aquí en cuanto añades una cuenta en otra moneda.',
     rate: (rate, currency, source) => `1 € = ${rate} ${currency} · ${source}`,
     setByYou: 'puesto por ti',
     ecb: (day) => `BCE, ${day}`,

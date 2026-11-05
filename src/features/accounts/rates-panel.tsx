@@ -123,15 +123,15 @@ export function RatesPanel() {
       ? []
       : CURRENCIES.filter((code) => code !== 'EUR' && accounts.some((account) => account.currency === code));
 
+  // Only with an account in another currency: a student whose accounts are all in euros never needs it.
+  if (currencies.length === 0) return null;
+
   return (
     <section aria-labelledby="rates-heading" className={cardVariants()}>
       <h3 id="rates-heading" className="text-xl leading-tight font-extrabold">
         {t.accounts.rates.heading}
       </h3>
-      {accounts !== undefined && rates !== undefined && currencies.length === 0 && (
-        <p className="text-muted-foreground">{t.accounts.rates.none}</p>
-      )}
-      {rates !== undefined && currencies.length > 0 && (
+      {rates !== undefined && (
         <ul className="flex flex-col">
           {currencies.map((code) => (
             <RateRow key={code} currency={code} rate={rates[code]} />

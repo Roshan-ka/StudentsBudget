@@ -11,7 +11,10 @@ export const shell: Messages['shell'] = {
     settings: 'Optionen',
   },
   navLabel: 'Hauptmenü',
+  backToSettings: 'Zurück zu den Einstellungen',
   headings: {
+    accounts: 'Konten und Umbuchungen',
+    backup: 'Backup und Daten',
     badges: 'Abzeichen',
     charts: 'Grafiken',
     checkIn: 'Wöchentlicher Check-in',

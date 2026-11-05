@@ -168,7 +168,7 @@ test('setup: text that is not an amount stops the Accounts step, a lone minus si
 
 async function openSettings(page: Page) {
   await mockFrankfurter(page);
-  await page.goto('/settings');
+  await page.goto('/settings/accounts');
   // The empty-state text only renders once the page has hydrated and the live query has answered.
   await expect(page.getByText('No accounts yet')).toBeVisible();
 }

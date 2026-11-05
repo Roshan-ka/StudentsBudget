@@ -5,6 +5,7 @@ import { NNBSP } from './count';
 // et les vérifications de backup.ts.
 export const backup: Messages['backup'] = {
   heading: 'Sauvegarde',
+  summary: 'Exporter, restaurer ou supprimer les données de ce téléphone',
   intro:
     'Tout ce que tu saisis reste sur ce téléphone, sauf si tu l’associes à ton compte. Un fichier de sauvegarde est ' +
     'une copie que tu gardes toi-même, alors exportes-en une de temps en temps et garde-la en lieu sûr.',

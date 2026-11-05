@@ -11,7 +11,10 @@ export const shell: Messages['shell'] = {
     settings: 'Ajustes',
   },
   navLabel: 'Menú principal',
+  backToSettings: 'Volver a Ajustes',
   headings: {
+    accounts: 'Cuentas y transferencias',
+    backup: 'Copia de seguridad y datos',
     badges: 'Insignias',
     charts: 'Gráficos',
     checkIn: 'Revisión semanal',

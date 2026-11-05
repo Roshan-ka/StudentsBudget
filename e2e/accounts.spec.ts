@@ -9,7 +9,7 @@ function inlineAlert(page: Page) {
 }
 
 async function openSettings(page: Page) {
-  await page.goto('/settings');
+  await page.goto('/settings/accounts');
   // The empty-state text only renders once the page has hydrated and the live query has answered,
   // so clicking after it cannot hit the server-rendered buttons before React is listening.
   await expect(page.getByText('No accounts yet')).toBeVisible();
@@ -30,7 +30,7 @@ async function addAccount(
 test('a new INR account shows its balance and the ECB rate', async ({ page }) => {
   await mockFrankfurter(page);
   await openSettings(page);
-  await expect(page.getByRole('heading', { level: 2, name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Accounts and transfers' })).toBeVisible();
 
   await addAccount(page, { name: 'Home bank', currency: 'INR', opening: '50000' });
 

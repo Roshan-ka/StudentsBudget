@@ -4,6 +4,7 @@ import type { Messages } from '../en';
 // /setup und die Prüfungen aus backup.ts. "Backup" ist im Deutschen gängig und bleibt so.
 export const backup: Messages['backup'] = {
   heading: 'Backup',
+  summary: 'Daten auf diesem Handy exportieren, wiederherstellen oder löschen',
   intro:
     'Alles, was du eingibst, bleibt auf diesem Handy, außer du verknüpfst es mit deinem Konto. Eine Backup-Datei ist ' +
     'eine Kopie, die du selbst aufbewahrst: Exportier ab und zu eine und bewahr sie sicher auf.',

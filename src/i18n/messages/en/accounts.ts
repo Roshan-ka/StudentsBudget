@@ -3,6 +3,9 @@
 
 export const accounts = {
   heading: 'Accounts',
+  /** The Accounts row on the Settings list: how many, and their total in euros. */
+  summary: (count: number, total: string) => `${count} ${count === 1 ? 'account' : 'accounts'} · ${total}`,
+  summaryNone: 'No accounts yet',
   add: 'Add account',
   none: 'No accounts yet. Add your bank account, your wallet or your account back home.',
   kinds: { bank: 'Bank', cash: 'Cash' },
@@ -50,7 +53,6 @@ export const accounts = {
   },
   rates: {
     heading: 'Exchange rates',
-    none: 'Rates show up here once you add an account in another currency.',
     /** "1 € = 95.12 INR · ECB, 30 Oct". */
     rate: (rate: string, currency: string, source: string) => `1 € = ${rate} ${currency} · ${source}`,
     setByYou: 'set by you',

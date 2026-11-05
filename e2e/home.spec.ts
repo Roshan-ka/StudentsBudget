@@ -303,7 +303,7 @@ test('says which rate is missing and shows a dash when nothing could be converte
   await expect(page.getByText('Across all accounts: €1,050', { exact: true })).toBeVisible();
   await expect(page.getByText('INR rate missing', { exact: true })).toBeVisible();
 
-  await page.goto('/settings');
+  await page.goto('/settings/accounts');
   await page.getByRole('button', { name: 'Delete Local bank' }).click();
   await page.getByRole('button', { name: 'Delete Cash' }).click();
   await expect(page.getByRole('button', { name: 'Delete Cash' })).toHaveCount(0);

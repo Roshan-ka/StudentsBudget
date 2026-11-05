@@ -5,6 +5,8 @@ import { NNBSP } from './count';
 // transfer.ts) et les taux de change.
 export const accounts: Messages['accounts'] = {
   heading: 'Comptes',
+  summary: (count: number, total: string) => `${count} ${count === 1 ? 'compte' : 'comptes'} · ${total}`,
+  summaryNone: 'Pas encore de compte',
   add: 'Ajouter un compte',
   none: 'Pas encore de comptes. Ajoute ton compte bancaire, ton porte-monnaie ou ton compte du pays.',
   kinds: { bank: 'Banque', cash: 'Espèces' },
@@ -49,7 +51,6 @@ export const accounts: Messages['accounts'] = {
   },
   rates: {
     heading: 'Taux de change',
-    none: 'Les taux apparaissent ici dès que tu ajoutes un compte dans une autre devise.',
     rate: (rate, currency, source) => `1 € = ${rate} ${currency} · ${source}`,
     setByYou: 'fixé par toi',
     ecb: (day) => `BCE, ${day}`,

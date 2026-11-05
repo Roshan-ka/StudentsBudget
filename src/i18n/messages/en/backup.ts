@@ -3,6 +3,8 @@
 
 export const backup = {
   heading: 'Backup',
+  /** The Backup row on the Settings list. */
+  summary: 'Export, restore or delete the data on this phone',
   intro:
     'Everything you enter stays on this phone unless you link it to your account. A backup file is a copy you keep ' +
     'yourself, so export one now and then and keep it somewhere safe.',

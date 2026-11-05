@@ -4,6 +4,7 @@ import type { Messages } from '../en';
 // restauración en /setup y las comprobaciones de backup.ts.
 export const backup: Messages['backup'] = {
   heading: 'Copia de seguridad',
+  summary: 'Exportar, restaurar o borrar los datos de este móvil',
   intro:
     'Todo lo que escribes se queda en este móvil, salvo que lo vincules a tu cuenta. Un archivo de copia de ' +
     'seguridad es una copia que guardas tú, así que exporta una de vez en cuando y guárdala en un lugar seguro.',
