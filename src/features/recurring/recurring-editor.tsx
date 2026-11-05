@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useId, useState, type FormEvent, type ReactNode } from 'react';
+import { useId, useState, type FormEvent, type ReactNode, type Ref } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,12 +30,19 @@ import { RepeatFields, type Timing } from './repeat-fields';
 import { firstAddedOn, monthlyEquivalent } from './schedule';
 import { updatePlan } from './update-plan';
 import { useLineEntries } from './use-line-entries';
+import { useFocusAfter, useFocusOnMount } from '@/lib/focus';
 
 type Change = (mutate: (plan: Plan) => Plan) => Promise<boolean>;
 
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
 }
+
+
+/** Focus keys of the editor: a line's Edit button, the Add button, and the heading. */
+const editKey = (categoryId: string) => `edit:${categoryId}`;
+const ADD_KEY = 'add';
+const HEADING_KEY = 'heading';
 
 /**
  * The form for one line: whether it is added automatically, when, from or into which account and how much. With
@@ -122,11 +129,14 @@ function LineForm({
     if (saved) onDone();
   }
 
+  // It opens on its first field (accessibility, chunk 3).
+  const formRef = useFocusOnMount<HTMLFormElement>(true);
   const fixedChoices = addable.filter((c) => c.kind === 'fixed');
   const incomeChoices = addable.filter((c) => c.kind === 'income');
 
   return (
     <form
+      ref={formRef}
       aria-label={name ? text.change(name) : text.newLine}
       onSubmit={onSubmit}
       noValidate
@@ -260,18 +270,24 @@ function LineRow({
   accounts,
   change,
   onEdit,
+  onDelete,
+  editRef,
 }: {
   line: PlanLine;
   accounts: Account[];
   change: Change;
   onEdit: () => void;
+  onDelete: () => void;
+  /** Takes the focus back when the line's form closes, or when the line before it is deleted. */
+  editRef: Ref<HTMLButtonElement>;
 }) {
   const { t, lang } = useT();
   const text = t.recurring;
   const name = categoryNameIn(t, line.categoryId);
   const s = line.schedule;
-  // Delete asks first, as deleting an entry does.
+  // Delete asks first, as deleting an entry does; the question takes the focus, and Cancel gives it back.
   const [confirming, setConfirming] = useState(false);
+  const focus = useFocusAfter();
 
   return (
     <li className="flex flex-col gap-2 border-b py-3 last:border-b-0">
@@ -281,23 +297,26 @@ function LineRow({
       </div>
       {confirming ? (
         <div role="group" aria-label={text.deleteQuestion(name)} className="flex flex-col gap-2">
-          <p className="text-sm font-medium">{text.deleteNote(name)}</p>
+          <QuestionText text={text.deleteNote(name)} />
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="destructive"
-              className="px-4"
-              onClick={() => void change((plan) => removeLine(plan, line.categoryId))}
-            >
+            <Button variant="destructive" className="px-4" onClick={onDelete}>
               {text.delete}
             </Button>
-            <Button variant="outline" className="px-4" onClick={() => setConfirming(false)}>
+            <Button
+              variant="outline"
+              className="px-4"
+              onClick={() => {
+                focus.mark('delete');
+                setConfirming(false);
+              }}
+            >
               {text.cancel}
             </Button>
           </div>
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="px-4" aria-label={text.editLine(name)} onClick={onEdit}>
+          <Button ref={editRef} variant="outline" className="px-4" aria-label={text.editLine(name)} onClick={onEdit}>
             {text.edit}
           </Button>
           {s && (
@@ -311,6 +330,7 @@ function LineRow({
             </Button>
           )}
           <Button
+            ref={focus.refFor('delete')}
             variant="ghost"
             className="px-4"
             aria-label={text.deleteLine(name)}
@@ -321,6 +341,16 @@ function LineRow({
         </div>
       )}
     </li>
+  );
+}
+
+/** A delete question's text, which takes the focus as it shows, so a screen reader says it first. */
+function QuestionText({ text }: { text: string }) {
+  const ref = useFocusOnMount<HTMLParagraphElement>();
+  return (
+    <p ref={ref} tabIndex={-1} className="text-sm font-medium outline-none">
+      {text}
+    </p>
   );
 }
 
@@ -366,6 +396,8 @@ export function RecurringEditor() {
   // The category whose form is open, 'new' for the add form, or null.
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Where the focus goes as a form closes or a line goes: the line's Edit, the next line's, Add, or the heading.
+  const focus = useFocusAfter();
 
   if (plan === 'loading' || plan === null || accounts === undefined || today === null) return null;
 
@@ -384,6 +416,14 @@ export function RecurringEditor() {
     }
   };
 
+  const lines = [...plan.incomes, ...plan.fixed];
+  // A deleted line hands the focus to the next line's Edit, else the one before, else the editor's heading.
+  const neighbour = (categoryId: string): string => {
+    const index = lines.findIndex((l) => l.categoryId === categoryId);
+    const next = lines[index + 1] ?? lines[index - 1];
+    return next ? editKey(next.categoryId) : HEADING_KEY;
+  };
+
   const render = (line: PlanLine) =>
     open === line.categoryId ? (
       <li key={line.categoryId} className="py-3">
@@ -393,7 +433,10 @@ export function RecurringEditor() {
           accounts={accounts}
           today={today}
           change={change}
-          onDone={() => setOpen(null)}
+          onDone={() => {
+            focus.mark(editKey(line.categoryId));
+            setOpen(null);
+          }}
         />
       </li>
     ) : (
@@ -403,12 +446,23 @@ export function RecurringEditor() {
         accounts={accounts}
         change={change}
         onEdit={() => setOpen(line.categoryId)}
+        onDelete={() => {
+          // Marked first: the line goes when the plan's next version arrives.
+          focus.mark(neighbour(line.categoryId));
+          void change((p) => removeLine(p, line.categoryId));
+        }}
+        editRef={focus.refFor(editKey(line.categoryId))}
       />
     );
 
   return (
     <section aria-labelledby="recurring-heading" className={cardVariants()}>
-      <h3 id="recurring-heading" className="text-xl leading-tight font-extrabold">
+      <h3
+        ref={focus.refFor(HEADING_KEY)}
+        id="recurring-heading"
+        tabIndex={-1}
+        className="text-xl leading-tight font-extrabold outline-none"
+      >
         {text.heading}
       </h3>
       <p className="text-muted-foreground">{text.intro}</p>
@@ -421,10 +475,19 @@ export function RecurringEditor() {
         </p>
       )}
       {open === 'new' ? (
-        <LineForm addable={addable} accounts={accounts} today={today} change={change} onDone={() => setOpen(null)} />
+        <LineForm
+          addable={addable}
+          accounts={accounts}
+          today={today}
+          change={change}
+          onDone={() => {
+            focus.mark(ADD_KEY);
+            setOpen(null);
+          }}
+        />
       ) : (
         addable.length > 0 && (
-          <Button variant="outline" className="self-start px-4" onClick={() => setOpen('new')}>
+          <Button ref={focus.refFor(ADD_KEY)} variant="outline" className="self-start px-4" onClick={() => setOpen('new')}>
             {text.add}
           </Button>
         )

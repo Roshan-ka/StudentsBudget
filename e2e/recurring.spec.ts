@@ -164,11 +164,16 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
   await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
   const form = page.getByRole('form', { name: 'Change Rent' });
   await expect(form.getByText(`First added on ${formatDate('2026-12-01')}.`, { exact: true })).toBeVisible();
+  // The keyboard keeps its place: a form opens on its first field, and closing it returns to what opened it.
+  await expect(form.locator(':focus')).toHaveCount(1);
   await form.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Edit Rent', exact: true })).toBeFocused();
   await page.getByRole('button', { name: 'Add a fixed cost or income', exact: true }).click();
   const added = page.getByRole('form', { name: 'New fixed cost or income' });
   await expect(added.getByText(`First added on ${formatDate('2026-12-01')}.`, { exact: true })).toBeVisible();
+  await expect(added.locator(':focus')).toHaveCount(1);
   await added.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Add a fixed cost or income', exact: true })).toBeFocused();
 
   // Once the rent has started, it is no longer the first.
   await openOn(page, on(2026, 12, 2));
@@ -247,14 +252,18 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
   // Delete asks first; Cancel keeps the line.
   await page.getByRole('button', { name: 'Delete Gym & sports', exact: true }).click();
   const confirm = page.getByRole('group', { name: 'Delete Gym & sports?', exact: true });
-  await expect(confirm.getByText('Delete Gym & sports? Entries already added stay.', { exact: true })).toBeVisible();
+  // The question takes the focus, so a screen reader says it first; Cancel gives it back to Delete.
+  await expect(confirm.getByText('Delete Gym & sports? Entries already added stay.', { exact: true })).toBeFocused();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
   await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(confirm).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Delete Gym & sports', exact: true })).toBeFocused();
   expect(await line(page, 'gym')).toBeDefined();
   await page.getByRole('button', { name: 'Delete Gym & sports', exact: true }).click();
   await confirm.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit Gym & sports', exact: true })).toHaveCount(0);
+  // The line is gone, and the focus is on its neighbour's Edit.
+  await expect(page.locator(':focus')).toHaveAccessibleName(/^Edit /);
   await expect(page.getByText('Your plan is', { exact: false })).toHaveCount(0);
   expect(await line(page, 'gym')).toBeUndefined();
 });
