@@ -14,6 +14,7 @@ export const shell: Messages['shell'] = {
   backToSettings: 'Zurück zu den Einstellungen',
   backToSetup: 'Zurück zur Einrichtung',
   headings: {
+    home: 'Start',
     plan: 'Plan',
     profile: 'Profil',
     appearance: 'Aussehen',

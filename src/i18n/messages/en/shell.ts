@@ -15,6 +15,7 @@ export const shell = {
   /** The same link before a plan exists: setup is where the person was, and the nav doesn't show yet. */
   backToSetup: 'Back to setup',
   headings: {
+    home: 'Home',
     plan: 'Plan',
     profile: 'Profile',
     appearance: 'Appearance',

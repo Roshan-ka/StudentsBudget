@@ -12,6 +12,7 @@ import { CheckInCard } from '@/features/check-in/check-in-card';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RevealCard } from '@/features/reveal/reveal-view';
 import { listFormat } from '@/i18n/format';
+import { PageHeading } from '@/components/page-heading';
 import { useT } from '@/i18n/use-t';
 import { monthStatus, weekToSpend } from '@/lib/budget';
 import { monthOf } from '@/lib/dates';
@@ -112,6 +113,7 @@ export function HomeScreen({
 
   return (
     <div className="flex flex-col gap-5">
+      <PageHeading id="home" visuallyHidden />
       {name !== '' && (
         <p className="font-heading text-[28px] leading-tight font-extrabold tracking-tight break-words">
           {t.home.greeting(name)}

@@ -12,6 +12,7 @@ import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
+import { usePageTitle } from '@/lib/page-title';
 import { cn } from '@/lib/utils';
 import {
   accountOptions,
@@ -79,6 +80,7 @@ function Wizard({
   const existing = edit && stored ? stored : undefined;
   const problems = validateStep(step, draft, today, existing, storedAccounts, lang);
   const accounts = accountOptions(draft, storedAccounts, lang);
+  usePageTitle(edit ? text.headingEdit : text.headingNew);
 
   useEffect(() => {
     // Not on first render: the page just loaded and nothing moved.
@@ -137,7 +139,12 @@ function Wizard({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="font-sans text-sm font-semibold tracking-normal text-muted-foreground">
+      {/* The page's heading: it names the page in the title, and takes the focus after a page change (RouteFocus). */}
+      <h2
+        data-page-heading
+        tabIndex={-1}
+        className="font-sans text-sm font-semibold tracking-normal text-muted-foreground outline-none"
+      >
         {edit ? text.headingEdit : text.headingNew}
       </h2>
       <div className="flex flex-col gap-2">
