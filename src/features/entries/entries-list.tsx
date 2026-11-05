@@ -27,7 +27,7 @@ import { RecurringTag, isRecurring } from './recurring-tag';
 
 const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 
-const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline';
+const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline underline-offset-4';
 
 /** "Friday, 16 October". `parseISO` reads a date-only string as local midnight, so the day never shifts. */
 function headingOf(date: IsoDate, locale: string): string {
@@ -206,11 +206,14 @@ export function EntriesList() {
           )}
         </p>
         <nav aria-label={text.monthNav} className="flex items-center gap-4">
+          {/* The arrows are decoration: a screen reader says only "Previous" and "Next". */}
           <Link href={listHref(shiftMonth(loaded.month, -1), category)} className={LINK_CLASS}>
+            <span aria-hidden="true">‹&nbsp;</span>
             {text.previous}
           </Link>
           <Link href={listHref(shiftMonth(loaded.month, 1), category)} className={LINK_CLASS}>
             {text.next}
+            <span aria-hidden="true">&nbsp;›</span>
           </Link>
         </nav>
       </div>

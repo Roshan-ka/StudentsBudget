@@ -301,13 +301,13 @@ test.describe('on a desktop browser', () => {
     await expect(page.getByText(QUESTION)).toHaveCount(0);
     expect(await everything(page)).toEqual(before);
 
-    // Delete everything: the button stays off until DELETE is typed exactly.
+    // Delete everything: the button stays off until the word is typed, in any case.
     await page.getByRole('button', { name: 'Delete everything' }).click();
     const confirmDelete = page.getByRole('button', { name: 'Delete everything' });
     await expect(confirmDelete).toBeDisabled();
-    await page.getByLabel('Type DELETE to confirm').fill('delete');
+    await page.getByLabel('Type DELETE to confirm').fill('delet');
     await expect(confirmDelete).toBeDisabled();
-    await page.getByLabel('Type DELETE to confirm').fill('DELETE');
+    await page.getByLabel('Type DELETE to confirm').fill('delete');
     await expect(confirmDelete).toBeEnabled();
     await confirmDelete.click();
 

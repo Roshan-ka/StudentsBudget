@@ -40,7 +40,8 @@ export function DeleteAccountCard({ email }: { email: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
-  const confirmed = typed.trim() === word.word;
+  // In any case: the word is the safeguard, not its capitals.
+  const confirmed = typed.trim().toUpperCase() === word.word.toUpperCase();
 
   useEffect(() => {
     let current = true;
@@ -139,7 +140,7 @@ export function DeleteAccountCard({ email }: { email: string }) {
         {text.heading}
       </CardHeading>
       <p className="text-sm text-muted-foreground">{text.intro}</p>
-      <Link href="/settings#backup-heading" className="text-sm font-medium text-primary underline underline-offset-4">
+      <Link href="/settings/backup" className="text-sm font-medium text-primary underline underline-offset-4">
         {text.backup}
       </Link>
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
@@ -149,7 +150,6 @@ export function DeleteAccountCard({ email }: { email: string }) {
             id={`${id}-password`}
             type="password"
             autoComplete="current-password"
-            className="h-10"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
@@ -162,7 +162,6 @@ export function DeleteAccountCard({ email }: { email: string }) {
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}
-            className="h-10"
             value={typed}
             onChange={(event) => setTyped(event.target.value)}
           />
@@ -172,7 +171,7 @@ export function DeleteAccountCard({ email }: { email: string }) {
             {error}
           </p>
         )}
-        <Button type="submit" variant="destructive" className="h-10 self-start px-4" disabled={!confirmed || busy}>
+        <Button type="submit" variant="destructive" className="self-start px-4" disabled={!confirmed || busy}>
           {text.button}
         </Button>
       </form>

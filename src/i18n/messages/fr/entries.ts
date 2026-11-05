@@ -13,8 +13,8 @@ export const entries: Messages['entries'] = {
     unknownAccount: 'Compte inconnu',
     clear: 'Effacer',
     monthNav: 'Mois',
-    previous: '‹ Précédent',
-    next: 'Suivant ›',
+    previous: 'Précédent',
+    next: 'Suivant',
     nothingYet: 'Rien de saisi ici pour l’instant.',
   },
   edit: {

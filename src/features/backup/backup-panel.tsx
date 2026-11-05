@@ -142,7 +142,8 @@ function DeleteEverything() {
   const { t } = useT();
   const text = t.backup.delete;
   // The word to type is the phone's language's, so it can be typed on that phone's keyboard.
-  const confirmed = (typed: string) => typed.trim() === text.word;
+  // In any case: the word is the safeguard, not its capitals.
+  const confirmed = (typed: string) => typed.trim().toUpperCase() === text.word.toUpperCase();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
   const [deleting, setDeleting] = useState(false);

@@ -26,7 +26,7 @@ import { weekLine, weekTotalLine } from './week-line';
 import { weekRows } from './week-rows';
 import { weekSwaps } from './week-swaps';
 
-const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline';
+const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline underline-offset-4';
 
 /**
  * "Fri 16", or another locale's own short day ("Fr., 16."). English stays built from its two parts, as weekLabel's
@@ -186,7 +186,7 @@ function AwaySwitch({ day, label, hintId }: { day: IsoDate; label: string; hintI
       aria-describedby={hintId}
       disabled={away === null}
       onClick={toggle}
-      className="flex min-h-11 items-center gap-3 self-start rounded-md text-start font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+      className="flex min-h-11 items-center gap-3 self-start rounded-md text-start font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring disabled:opacity-50"
     >
       <span
         aria-hidden="true"

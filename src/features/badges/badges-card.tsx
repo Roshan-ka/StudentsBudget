@@ -40,7 +40,7 @@ export function BadgesCard({ badges }: { badges: Badge[] }) {
           </>
         )}
       </div>
-      <Link href="/badges" className="inline-flex min-h-11 items-center text-primary underline-offset-4 hover:underline">
+      <Link href="/badges" className="inline-flex min-h-11 items-center text-primary underline underline-offset-4">
         {text.seeAll}
       </Link>
     </section>

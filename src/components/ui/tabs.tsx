@@ -74,7 +74,11 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
     <TabsPrimitive.Panel
       data-slot="tabs-content"
-      className={cn("flex-1 text-sm outline-none", className)}
+      // A panel takes the focus (Base UI gives it tabIndex 0), so it shows the ring like any control.
+      className={cn(
+        "flex-1 rounded-md text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring",
+        className
+      )}
       {...props}
     />
   )

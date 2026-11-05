@@ -125,7 +125,6 @@ export function PasswordSection() {
                 id={`${id}-current`}
                 type="password"
                 autoComplete="current-password"
-                className="h-10"
                 value={current}
                 onChange={(event) => setCurrent(event.target.value)}
               />
@@ -137,7 +136,6 @@ export function PasswordSection() {
               id={`${id}-next`}
               type="password"
               autoComplete="new-password"
-              className="h-10"
               value={next}
               onChange={(event) => setNext(event.target.value)}
             />
@@ -149,16 +147,16 @@ export function PasswordSection() {
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" className="h-10 px-4" disabled={busy}>
+            <Button type="submit" className="px-4" disabled={busy}>
               {text.save}
             </Button>
-            <Button type="button" variant="outline" className="h-10 px-4" disabled={busy} onClick={close}>
+            <Button type="button" variant="outline" className="px-4" disabled={busy} onClick={close}>
               {text.cancel}
             </Button>
           </div>
         </form>
       ) : (
-        <Button type="button" variant="outline" className="h-10 self-start px-4" onClick={() => void openForm()}>
+        <Button type="button" variant="outline" className="self-start px-4" onClick={() => void openForm()}>
           {text.open}
         </Button>
       )}

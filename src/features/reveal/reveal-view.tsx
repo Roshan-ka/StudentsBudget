@@ -17,7 +17,7 @@ import { formatWeekAmount } from '@/lib/week-amount';
 import { REVEAL_MIN_DAYS, completedMonths, guessVsReality, monthRecap, unlockOn, type GuessRow } from './reveal';
 import { formatDay, recapLine } from './reveal-text';
 
-const LINK_CLASS = 'text-primary underline-offset-4 hover:underline';
+const LINK_CLASS = 'text-primary underline underline-offset-4';
 
 /** "You guessed €80. It was €190." Whole euros, except that a non-zero amount under 50 cents keeps its cents. */
 function guessLine(row: GuessRow, t: Messages, locale: string): string {
