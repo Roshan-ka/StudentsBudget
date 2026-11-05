@@ -171,9 +171,19 @@ test('Settings marks one default account, keeps it through an edit, and falls ba
   await page.getByRole('button', { name: 'Save account' }).click();
   await expect(row('Rupee bank').getByText('Default for new entries', { exact: true })).toBeVisible();
 
-  // Deleting it leaves no mark behind: the first euro bank account is the default again.
+  // Deleting it asks first, and the question takes the focus; Cancel gives it back to Delete.
   await page.getByRole('button', { name: 'Delete Rupee bank', exact: true }).click();
+  const question = page.getByRole('group', { name: 'Delete Rupee bank?', exact: true });
+  await expect(question.getByText('Delete Rupee bank?', { exact: true })).toBeFocused();
+  await question.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Delete Rupee bank', exact: true })).toBeFocused();
+
+  // Deleting it leaves no mark behind: the first euro bank account is the default again. The focus moves to the next
+  // account's Edit.
+  await page.getByRole('button', { name: 'Delete Rupee bank', exact: true }).click();
+  await question.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Edit Rupee bank', exact: true })).toHaveCount(0);
+  await expect(page.locator(':focus')).toHaveAccessibleName(/^Edit /);
   await expect(row('Bank').getByText('Default for new entries', { exact: true })).toBeVisible();
   await expect(marker).toHaveCount(1);
   expect((await readStore<Account>(page, 'accounts')).some((a) => a.isDefault)).toBe(false);

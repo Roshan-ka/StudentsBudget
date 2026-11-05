@@ -18,6 +18,7 @@ import { parseAmount, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { defaultAccount, sortAccounts } from './balances';
 import { buildTransfer } from './transfer';
+import { focusFirstControl, useFocusAfter } from '@/lib/focus';
 
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
@@ -207,6 +208,8 @@ export function TransferSection() {
   const text = t.accounts.transfer;
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  // The form opens on its first field; closing it gives the focus back to the button that opened it.
+  const focus = useFocusAfter();
 
   if (!open) {
     return (
@@ -217,6 +220,7 @@ export function TransferSection() {
           </p>
         )}
         <Button
+          ref={focus.refFor('open')}
           variant="outline"
           className="px-4"
           onClick={() => {
@@ -231,17 +235,25 @@ export function TransferSection() {
   }
 
   return (
-    <section aria-labelledby="transfer-heading" className={cardVariants()}>
+    <section ref={focusFirstControl} aria-labelledby="transfer-heading" className={cardVariants()}>
       <h3 id="transfer-heading" className="text-xl leading-tight font-extrabold">
         {text.open}
       </h3>
       <TransferForm
         onSaved={() => {
+          focus.mark('open');
           setSaved(true);
           setOpen(false);
         }}
       />
-      <Button variant="ghost" className="px-4" onClick={() => setOpen(false)}>
+      <Button
+        variant="ghost"
+        className="px-4"
+        onClick={() => {
+          focus.mark('open');
+          setOpen(false);
+        }}
+      >
         {text.cancel}
       </Button>
     </section>

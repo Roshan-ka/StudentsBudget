@@ -305,7 +305,9 @@ test('says which rate is missing and shows a dash when nothing could be converte
 
   await page.goto('/settings/accounts');
   await page.getByRole('button', { name: 'Delete Local bank' }).click();
+  await page.getByRole('group', { name: 'Delete Local bank?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
   await page.getByRole('button', { name: 'Delete Cash' }).click();
+  await page.getByRole('group', { name: 'Delete Cash?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Delete Cash' })).toHaveCount(0);
 
   await page.goto('/');

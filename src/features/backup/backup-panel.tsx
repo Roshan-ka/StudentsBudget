@@ -11,6 +11,7 @@ import { useT } from '@/i18n/use-t';
 import { cn } from '@/lib/utils';
 import { backupFileName, serializeBackup } from './backup';
 import { RestoreFromBackup } from './restore-from-backup';
+import { focusFirstControl, useFocusAfter } from '@/lib/focus';
 
 function buildFile(data: BackupData): File {
   const now = new Date();
@@ -148,6 +149,8 @@ function DeleteEverything() {
   const [typed, setTyped] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The form opens on its word field; Cancel gives the focus back to the button that opened it.
+  const focus = useFocusAfter();
 
   useEffect(() => {
     // The router keeps a page it has left mounted but hidden, with its state. A confirmation that is half
@@ -160,6 +163,7 @@ function DeleteEverything() {
   }, []);
 
   function close() {
+    focus.mark('open');
     setOpen(false);
     setTyped('');
     setError(null);
@@ -188,6 +192,7 @@ function DeleteEverything() {
       <p className="text-sm text-muted-foreground">{text.intro}</p>
       {open ? (
         <form
+          ref={focusFirstControl}
           onSubmit={(event) => void onDelete(event)}
           noValidate
           className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3"
@@ -221,7 +226,12 @@ function DeleteEverything() {
           </div>
         </form>
       ) : (
-        <Button variant="destructive" className="self-start px-4" onClick={() => setOpen(true)}>
+        <Button
+          ref={focus.refFor('open')}
+          variant="destructive"
+          className="self-start px-4"
+          onClick={() => setOpen(true)}
+        >
           {text.button}
         </Button>
       )}

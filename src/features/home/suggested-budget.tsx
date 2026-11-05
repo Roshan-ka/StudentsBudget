@@ -21,6 +21,7 @@ import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { suggestBudget, type Suggestion } from './suggest-budget';
+import { focusOnMount, useFocusAfter } from '@/lib/focus';
 
 /** "September". */
 const monthName = (month: IsoMonth, locale: string): string =>
@@ -94,6 +95,8 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   const text = t.home.suggestedBudget;
   // Behind its link until tapped, on every day of the month (Roshan, 05-11-2026): it never opens by itself.
   const [shown, setShown] = useState(false);
+  // It opens on its heading; Not now and Use give the focus back to the link that opened it.
+  const focus = useFocusAfter();
   // Rows the suggestion puts at €0 wait behind More categories while another row has an amount.
   const [showZero, setShowZero] = useState(false);
   // Only the rows the person has typed in; every other row follows the suggestion.
@@ -117,6 +120,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
     try {
       await db.plan.update('current', { envelopes });
       setEdits({});
+      focus.mark('show');
       setShown(false);
       setOutcome('saved');
     } catch (error) {
@@ -136,6 +140,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
           </p>
         )}
         <button
+          ref={focus.refFor('show')}
           type="button"
           onClick={() => {
             setOutcome(null);
@@ -159,7 +164,7 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   return (
     <section aria-labelledby={headingId} className={cn(cardVariants(), 'gap-4')}>
       <div className="flex flex-col gap-1">
-        <h2 id={headingId} className="text-[22px] leading-tight font-extrabold">
+        <h2 ref={focusOnMount} id={headingId} tabIndex={-1} className="text-[22px] leading-tight font-extrabold outline-none">
           {text.heading}
         </h2>
         <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor, t, lang)}</p>
@@ -210,7 +215,15 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
           >
             {text.use}
           </Button>
-          <Button type="button" variant="outline" className="px-4" onClick={() => setShown(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            className="px-4"
+            onClick={() => {
+              focus.mark('show');
+              setShown(false);
+            }}
+          >
             {text.notNow}
           </Button>
         </div>
