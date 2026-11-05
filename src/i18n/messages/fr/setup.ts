@@ -134,10 +134,11 @@ export const setup: Messages['setup'] = {
     `Installe d’abord l’app${NNBSP}: touche Partager → Sur l’écran d’accueil, puis configure-la là-bas. Ce que tu ` +
     'saisis dans Safari reste dans Safari.',
   editPlan: {
+    summary: 'Revenus, charges fixes et enveloppes',
     heading: 'Plan',
     body:
       'Modifie tes enveloppes et tes frais ponctuels, ajoute les sources de revenus, les charges fixes et les ' +
-      'enveloppes que la configuration a sautées, ou reprends tout le plan. Les comptes sont plus bas. Les ' +
+      'enveloppes que la configuration a sautées, ou reprends tout le plan. Les ' +
       'estimations de la configuration ne changent pas.',
     link: 'Modifier le plan',
   },

@@ -247,10 +247,8 @@ export function ProfileSection() {
   useEffect(() => () => setShowSaved(false), []);
 
   return (
+    // Named by its page's heading (/settings/profile), which has the id.
     <section aria-labelledby="profile-heading" className={cardVariants()}>
-      <h3 id="profile-heading" className="text-xl leading-tight font-extrabold">
-        {text.heading}
-      </h3>
       <p className="text-muted-foreground">{text.intro}</p>
       {saved !== 'loading' && today !== null && formKey > 0 && (
         <ProfileForm

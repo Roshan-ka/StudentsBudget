@@ -103,6 +103,17 @@ Roshan finds Home annoying: whenever he opens it, the suggested budget is open, 
    - Edit plan and the fixed costs editor on `/settings/plan`, and `ProfileSection` and `AppearanceSection` on their own pages.
    - The account card on the hub becomes its row.
    - **Specs:** `recurring`, `profile`, `account`, `theme`, `setup` (Edit plan) and the rest that open them follow. `account.spec.ts` and `profile.spec.ts`'s order checks become checks of the hub's rows.
+   - **As built (2026-11-05, stacked on chunk 3):**
+     - **`/settings`** is now only the language picker and the list: Accounts and transfers, Plan, Profile, Appearance, Your account, Backup and data.
+     - **Plan:** the row and `/settings/plan` show once a plan exists, with a fixed line ("Income, fixed costs and envelopes"). Edit plan's text no longer says "Accounts are below", in all four languages.
+     - **No repeated headings:** `PageHeading` takes an `htmlId`, and the Plan, Profile and Appearance sections lost their own h3 and are named by the page's heading. Their regions keep the same names, so specs that look up `region 'Appearance'` or `region 'Profile'` still work.
+     - **Profile's summary:** `profileSummary` gives the name and the university, or "Not filled in yet". Appearance's summary is the chosen theme, with its icon.
+     - **Your account:** the card became the row, carrying the sign-in status and, while linked, the sync status. `account-section.tsx` is gone; `/settings/account` gained Back to Settings.
+     - **Specs:**
+       - `account`, `linking` and `two-step` use the Your account row.
+       - `profile`, `linking` and `two-step` go to `/settings/profile`.
+       - `recurring` and `setup` reach the Plan page (by its row or URL), and `theme` goes to `/settings/appearance`.
+       - The map has the three routes; `recurring` leaves `allOnly`. `PAGES` has them.
 5. **Charts always shown.**
    - With nothing logged, the period still shows every section (`charts-view.tsx:126-139`), with "Nothing logged in October yet" as a line above them.
    - **Spending:** bars and table list each planned envelope at €0 spent. The donut draws its empty ring with "€0 of €X planned".

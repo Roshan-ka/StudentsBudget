@@ -13,6 +13,9 @@ export const shell = {
   /** The way back from a page of Settings to its list. */
   backToSettings: 'Back to Settings',
   headings: {
+    plan: 'Plan',
+    profile: 'Profile',
+    appearance: 'Appearance',
     accounts: 'Accounts and transfers',
     backup: 'Backup and data',
     badges: 'Badges',

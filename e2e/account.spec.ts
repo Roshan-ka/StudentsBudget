@@ -58,19 +58,16 @@ async function signIn(page: Page, email: string, password: string) {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 }
 
-test('Settings opens with Your account; signing in and out there keeps the plan on the phone', async ({ page }) => {
+test('Settings lists Your account; signing in and out there keeps the plan on the phone', async ({ page }) => {
   await skipUnlessAccountsShow(page);
   const calls = await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await completeSetup(page);
 
   await page.goto('/settings');
-  // The first section of Settings after this phone's own choices (Language, while more than one can be picked, and
-  // Appearance), before Profile.
-  const sections = page.getByRole('main').getByRole('heading', { level: 3 });
-  await expect(sections.filter({ hasNotText: /^(Language|Appearance)$/ }).first()).toHaveText('Your account');
-  const card = page.getByRole('region', { name: 'Your account', exact: true });
-  await expect(card.getByText('everything stays on this phone', { exact: false })).toBeVisible();
-  await card.getByRole('link', { name: 'Sign in', exact: true }).click();
+  // A row of the Settings list, with where the account stands as its line.
+  const row = page.getByRole('link', { name: /^Your account/ });
+  await expect(row).toContainText('everything stays on this phone');
+  await row.click();
 
   await expect(page).toHaveURL('/settings/account');
   await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
@@ -95,8 +92,8 @@ test('Settings opens with Your account; signing in and out there keeps the plan 
 
   // Settings says who is signed in.
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
-  await expect(card.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await card.getByRole('link', { name: 'Manage account', exact: true }).click();
+  await expect(row).toContainText(`Signed in as ${EMAIL}.`);
+  await row.click();
 
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();

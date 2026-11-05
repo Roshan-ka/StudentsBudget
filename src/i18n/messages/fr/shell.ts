@@ -13,6 +13,9 @@ export const shell: Messages['shell'] = {
   navLabel: 'Menu principal',
   backToSettings: 'Retour aux réglages',
   headings: {
+    plan: 'Plan',
+    profile: 'Profil',
+    appearance: 'Apparence',
     accounts: 'Comptes et virements',
     backup: 'Sauvegarde et données',
     badges: 'Badges',

@@ -5,6 +5,7 @@ import { byCount } from './count';
 // "Cuota semestral" es el nombre del gasto puntual que se ofrece.
 export const profile: Messages['profile'] = {
   heading: 'Perfil',
+  summaryNone: 'Aún sin rellenar',
   intro:
     'Tu perfil se guarda en este móvil y va en cualquier copia de seguridad que exportes, y en tu cuenta cuando ' +
     'guardas en ella.',

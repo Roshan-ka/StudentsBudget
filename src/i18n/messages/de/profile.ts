@@ -4,6 +4,7 @@ import type { Messages } from '../en';
 // "Semesterbeitrag" ist der Name der angebotenen einmaligen Kosten; eine so benannte Zeile zählt als Beitrag.
 export const profile: Messages['profile'] = {
   heading: 'Profil',
+  summaryNone: 'Noch nicht ausgefüllt',
   intro:
     'Dein Profil liegt auf diesem Handy. Es kommt in jedes Backup, das du exportierst, und in dein Konto, wenn du ' +
     'dorthin speicherst.',

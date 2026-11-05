@@ -19,10 +19,8 @@ export function AppearanceSection() {
   const choice = useThemeChoice();
 
   return (
+    // Named by its page's heading (/settings/appearance), which has the id.
     <section aria-labelledby="appearance-heading" className={cardVariants()}>
-      <h3 id="appearance-heading" className="text-xl leading-tight font-extrabold">
-        {t.theme.heading}
-      </h3>
       <div role="radiogroup" aria-labelledby="appearance-heading" className="flex flex-col gap-2">
         {THEME_CHOICES.map((option) => {
           const Icon = ICONS[option];

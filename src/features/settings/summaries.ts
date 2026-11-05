@@ -1,5 +1,6 @@
-import type { Account, Entry } from '@/db/types';
+import type { Account, Entry, Profile } from '@/db/types';
 import { totalInEur } from '@/features/accounts/balances';
+import { UNIVERSITIES } from '@/features/profile/profile';
 import type { Messages } from '@/i18n/messages';
 import type { RateMap } from '@/lib/fx';
 import { formatMoney } from '@/lib/money';
@@ -22,4 +23,16 @@ export function accountsSummary(
     accounts.length,
     nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { whole: true, locale }),
   );
+}
+
+/** The Profile row's line: the name and the university, as far as they are saved. "Other" is said in the language. */
+export function profileSummary(profile: Profile | undefined, t: Messages): string {
+  const university =
+    profile === undefined || profile.university === ''
+      ? ''
+      : profile.university === 'other'
+        ? t.profile.otherUniversity
+        : (UNIVERSITIES.find((u) => u.id === profile.university)?.name ?? '');
+  const parts = [profile?.name.trim() ?? '', university].filter((part) => part !== '');
+  return parts.length === 0 ? t.profile.summaryNone : parts.join(' · ');
 }

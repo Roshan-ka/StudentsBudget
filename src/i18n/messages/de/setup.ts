@@ -128,10 +128,11 @@ export const setup: Messages['setup'] = {
     'Installiere zuerst: Tippe auf Teilen → Zum Home-Bildschirm und richte die App dort ein. In Safari eingegebene ' +
     'Daten bleiben in Safari.',
   editPlan: {
+    summary: 'Einnahmen, Fixkosten und Umschläge',
     heading: 'Plan',
     body:
       'Ändere deine Umschläge und einmaligen Kosten, ergänze Einnahmen, Fixkosten und Umschläge, die die Einrichtung ' +
-      'übersprungen hat, oder geh den ganzen Plan noch einmal durch. Konten stehen weiter unten. Die Schätzungen aus ' +
+      'übersprungen hat, oder geh den ganzen Plan noch einmal durch. Die Schätzungen aus ' +
       'der Einrichtung bleiben, wie sie sind.',
     link: 'Plan bearbeiten',
   },

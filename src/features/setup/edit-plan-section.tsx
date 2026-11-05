@@ -16,10 +16,8 @@ export function EditPlanSection() {
   if (plan === 'loading' || plan === null) return null;
 
   return (
+    // Named by its page's heading (/settings/plan), which has the id.
     <section aria-labelledby="plan-heading" className={cardVariants()}>
-      <h3 id="plan-heading" className="text-xl leading-tight font-extrabold">
-        {text.heading}
-      </h3>
       <p className="text-muted-foreground">{text.body}</p>
       <Link href="/setup?edit=1" className={buttonVariants({ variant: 'outline', className: 'self-start px-4' })}>
         {text.link}

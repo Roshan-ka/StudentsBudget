@@ -5,6 +5,7 @@ import { byCount, NNBSP } from './count';
 // « Frais de semestre » est le nom des frais ponctuels proposés.
 export const profile: Messages['profile'] = {
   heading: 'Profil',
+  summaryNone: 'Pas encore rempli',
   intro:
     'Ton profil est enregistré sur ce téléphone et figure dans chaque sauvegarde que tu exportes, ainsi que dans ton ' +
     'compte quand tu y enregistres.',
