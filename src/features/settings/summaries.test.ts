@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { Account, Entry } from '@/db/types';
+import type { Account, Entry, Profile } from '@/db/types';
 import { LANGUAGES } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import type { CurrencyCode } from '@/lib/money';
-import { accountsSummary } from './summaries';
+import { accountsSummary, profileSummary } from './summaries';
 
 function account(id: string, currency: CurrencyCode, openingMinor: number): Account {
   return { id, name: id, kind: 'bank', currency, openingMinor, createdAt: '2026-10-01T08:00:00.000Z' };
@@ -42,5 +42,32 @@ describe('accountsSummary', () => {
   it('is in the phone’s language', () => {
     const accounts = [account('bank', 'EUR', 120000), account('cash', 'EUR', 6000)];
     expect(accountsSummary(accounts, [], {}, MESSAGES.de, LANGUAGES.de.locale)).toBe('2 Konten · 1.260 €');
+  });
+});
+
+describe('profileSummary', () => {
+  const en = MESSAGES.en;
+  const profile = (name: string, university: Profile['university']): Profile => ({
+    id: 'current',
+    name,
+    university,
+    semesterStart: '',
+    semesterEnd: '',
+    updatedAt: '2026-11-05T08:00:00.000Z',
+  });
+
+  it('says so before anything is saved, or when only blanks are', () => {
+    expect(profileSummary(undefined, en)).toBe('Not filled in yet');
+    expect(profileSummary(profile('  ', ''), en)).toBe('Not filled in yet');
+  });
+
+  it('names the person and the university, as far as they are saved', () => {
+    expect(profileSummary(profile('Jo', 'ur'), en)).toBe('Jo · Universität Regensburg');
+    expect(profileSummary(profile('', 'oth'), en)).toBe('OTH Regensburg');
+    expect(profileSummary(profile('Jo', ''), en)).toBe('Jo');
+  });
+
+  it('says "Other" in the phone’s language', () => {
+    expect(profileSummary(profile('Jo', 'other'), MESSAGES.de)).toBe(`Jo · ${MESSAGES.de.profile.otherUniversity}`);
   });
 });

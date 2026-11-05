@@ -16,7 +16,7 @@ const html = (page: Page) => page.locator('html');
 const choice = (page: Page, name: string) => page.getByRole('radio', { name, exact: true });
 
 async function openAppearance(page: Page) {
-  await page.goto('/settings');
+  await page.goto('/settings/appearance');
   await expect(page.getByRole('region', { name: t.theme.heading, exact: true })).toBeVisible();
 }
 

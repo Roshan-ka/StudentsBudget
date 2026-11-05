@@ -17,10 +17,13 @@
     "/reveal": ["demo-scenarios", "language-tour", "reflow", "reveal", "setup", "theme"],
     "/settings": "all",
     "/settings/accounts": ["accounts", "entries", "home", "insecure-origin", "language-tour", "overdrawn", "reflow", "theme"],
+    "/settings/appearance": ["language-tour", "reflow", "theme"],
     "/settings/backup": ["backup", "language-tour", "profile", "reflow", "theme"],
+    "/settings/plan": ["accounts", "language-tour", "profile", "recurring", "reflow", "setup", "theme"],
+    "/settings/profile": ["language-tour", "linking", "profile", "reflow", "theme", "two-step"],
     "/settings/account": ["account", "account-deletion", "change-password", "discount-confirmations", "email-codes", "language-tour", "linking", "passkeys", "privacy-notes", "reflow", "theme", "two-step"],
     "/setup": "all",
     "/tips": ["discount-confirmations", "discounts", "language-tour", "reflow", "theme", "tips"]
   },
-  "allOnly": ["dictation", "language", "recurring"]
+  "allOnly": ["dictation", "language"]
 }

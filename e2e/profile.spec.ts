@@ -33,8 +33,8 @@ function savedNotice(page: Page) {
 }
 
 async function openSettings(page: Page) {
-  await page.goto('/settings');
-  await expect(page.getByRole('heading', { level: 3, name: 'Profile', exact: true })).toBeVisible();
+  await page.goto('/settings/profile');
+  await expect(page.getByRole('heading', { level: 2, name: 'Profile', exact: true })).toBeVisible();
 }
 
 async function saveProfile(page: Page) {
@@ -46,8 +46,9 @@ async function overflow(page: Page) {
   return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
 
-/** From Settings through Edit plan to the one-off costs step. */
+/** From Settings' Plan page through Edit plan to the one-off costs step. */
 async function openOneOffsStep(page: Page) {
+  await page.goto('/settings/plan');
   await page.getByRole('link', { name: 'Edit plan', exact: true }).click();
   await expect(page.getByRole('heading', { level: 3, name: 'City and rent', exact: true })).toBeVisible();
   for (const heading of ['Income', 'Fixed costs', 'One-off costs']) {
@@ -56,16 +57,16 @@ async function openOneOffsStep(page: Page) {
   }
 }
 
-test('Profile comes first in Settings after Your account, prefills the semester and keeps what was saved after a reload', async ({
+test('Profile has its own page in Settings, prefills the semester and keeps what was saved after a reload', async ({
   page,
 }) => {
   await completeSetup(page);
-  await openSettings(page);
-  // The first section of Settings after this phone's own choices (Language, shown while more than one can be picked,
-  // and Appearance) and Your account (shown only when the build has a Supabase project).
-  const before = ['Language', 'Appearance', 'Your account'];
-  const headings = await page.getByRole('main').getByRole('heading', { level: 3 }).allTextContents();
-  expect(headings.filter((heading) => !before.includes(heading))[0]).toBe('Profile');
+  // A row of the Settings list, saying that nothing is saved yet.
+  await page.goto('/settings');
+  const row = page.getByRole('link', { name: /^Profile/ });
+  await expect(row).toContainText('Not filled in yet');
+  await row.click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Profile', exact: true })).toBeVisible();
   await expect(profileSection(page).getByText('stored on this phone and goes into any backup', { exact: false })).toBeVisible();
 
   await nameField(page).fill('Roshan');
@@ -167,6 +168,8 @@ test('Home says hi once a name is saved', async ({ page }) => {
   // A long name with no space to break at still fits the phone.
   const longName = 'Wolfeschlegelsteinhausenbergerdorff';
   await page.getByRole('link', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('link', { name: /^Profile/ })).toContainText('Roshan');
+  await page.getByRole('link', { name: /^Profile/ }).click();
   await nameField(page).fill(longName);
   await saveProfile(page);
   await page.getByRole('link', { name: 'Home', exact: true }).click();
@@ -249,7 +252,7 @@ test('the one-off costs step offers nothing without semester dates, or when the 
   await openOneOffsStep(page);
   await expect(page.getByRole('button', { name: /^Add semester fee/ })).toHaveCount(0);
 
-  await page.goto('/settings');
+  await page.goto('/settings/profile');
   await universityField(page).selectOption({ label: 'Universität Regensburg' });
   await saveProfile(page);
   await openOneOffsStep(page);

@@ -135,10 +135,12 @@ export const setup = {
   installHint:
     'Install first: tap Share → Add to Home Screen, then set up there. Data entered in Safari stays in Safari.',
   editPlan: {
+    /** The Plan row on the Settings list. */
+    summary: 'Income, fixed costs and envelopes',
     heading: 'Plan',
     body:
       'Change your envelopes and one-off costs, add the income sources, fixed costs and envelopes setup skipped, or ' +
-      "go through the whole plan again. Accounts are below. Guesses from setup aren't changed.",
+      "go through the whole plan again. Guesses from setup aren't changed.",
     link: 'Edit plan',
   },
 };

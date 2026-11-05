@@ -174,9 +174,9 @@ test('half signed in, the Settings card offers to finish, and a different accoun
   await expect(codeField(page)).toBeVisible();
 
   await page.goto('/settings');
-  const card = page.getByRole('region', { name: 'Your account', exact: true });
-  await expect(card.getByText(`Almost signed in as ${EMAIL}: enter the code from your authenticator app.`)).toBeVisible();
-  await card.getByRole('link', { name: 'Finish signing in', exact: true }).click();
+  const row = page.getByRole('link', { name: /^Your account/ });
+  await expect(row).toContainText(`Almost signed in as ${EMAIL}: enter the code from your authenticator app.`);
+  await row.click();
   await expect(codeField(page)).toBeVisible();
 
   await page.getByRole('button', { name: 'Use a different account', exact: true }).click();
@@ -255,7 +255,7 @@ test('leaving the page mid set-up and coming back keeps the set-up', async ({ pa
   // Off to Settings and back: the router keeps the account page mounted but hidden, and reads the account again.
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
   await expect(page).toHaveURL('/settings');
-  await page.getByRole('region', { name: 'Your account', exact: true }).getByRole('link', { name: 'Manage account', exact: true }).click();
+  await page.getByRole('link', { name: /^Your account/ }).click();
   await expect(page).toHaveURL('/settings/account');
   await expect(codeField(page)).toBeVisible();
   await expect(twoStep(page).getByText('JBSW Y3DP EHPK 3PXP', { exact: true })).toBeVisible();
@@ -321,7 +321,7 @@ test('a phone signed in before another turned it on asks for the code on Sync no
 
   await turnOnFromAnotherPhone(browser, factors);
   // A change on this phone, waiting to be sent.
-  await page.goto('/settings');
+  await page.goto('/settings/profile');
   await page.getByRole('region', { name: 'Profile', exact: true }).getByRole('textbox', { name: 'Your name', exact: true }).fill('Changed here');
   await page.getByRole('region', { name: 'Profile', exact: true }).getByRole('button', { name: 'Save profile', exact: true }).click();
   // Saved, and so waiting in the outbox, before the page goes.

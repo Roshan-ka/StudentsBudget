@@ -253,9 +253,9 @@ test('accounts made in Settings before setup are kept, and setup adds none of it
 
   const accounts = await readStore<Account>(page, 'accounts');
   expect(accounts.map((a) => [a.name, a.currency, a.openingMinor])).toEqual([['Wallet', 'EUR', 2500]]);
-  // With the plan saved, the navigation and the Edit plan link appear.
+  // With the plan saved, the navigation and Settings' Plan page appear.
   await page.getByRole('link', { name: 'Settings' }).click();
-  await expect(page.getByRole('link', { name: 'Edit plan' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Plan/ })).toBeVisible();
 });
 
 /** The Transfer tab of /entries/new, set to move money between the two euro accounts (no amount received to fill in). */

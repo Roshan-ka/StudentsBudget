@@ -2,6 +2,8 @@
 // offer's source note.
 export const profile = {
   heading: 'Profile',
+  /** The Profile row on the Settings list, before anything is saved. */
+  summaryNone: 'Not filled in yet',
   intro:
     'Your profile is stored on this phone and goes into any backup you export, and into your account when you save ' +
     'to it.',

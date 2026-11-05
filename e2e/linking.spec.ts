@@ -33,7 +33,7 @@ async function signOut(page: Page) {
 
 /** Renames the profile in Settings: a change this phone records, to be sent with the next sync. */
 async function renameProfile(page: Page, name: string) {
-  await page.goto('/settings');
+  await page.goto('/settings/profile');
   const profile = page.getByRole('region', { name: 'Profile', exact: true });
   await profile.getByRole('textbox', { name: 'Your name', exact: true }).fill(name);
   await profile.getByRole('button', { name: 'Save profile', exact: true }).click();
@@ -81,7 +81,7 @@ test('an empty phone links to an empty account at once, and says how sync stands
   await context.setOffline(false);
 
   await page.goto('/settings');
-  await expect(page.getByRole('region', { name: 'Your account', exact: true }).getByText('Synced just now.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Your account/ })).toContainText('Synced just now.');
 });
 
 test('a phone with a plan links by uploading, a second by loading, and Sync now carries changes both ways', async ({ page, browser }) => {
@@ -156,11 +156,11 @@ test('a phone linked to one account stays apart from another account', async ({ 
   await expect(linkRegion(page).getByRole('alert')).toHaveText(/^This phone holds another account's data/);
   await expect(syncRegion(page)).toHaveCount(0);
 
-  // The Settings card doesn't show the first account's sync status to this one.
+  // Settings' Your account row doesn't show the first account's sync status to this one.
   await page.goto('/settings');
-  const card = page.getByRole('region', { name: 'Your account', exact: true });
-  await expect(card.getByText('This phone is linked to another account.', { exact: true })).toBeVisible();
-  await expect(card.getByText(/^Synced /)).toHaveCount(0);
+  const row = page.getByRole('link', { name: /^Your account/ });
+  await expect(row).toContainText('This phone is linked to another account.');
+  await expect(row).not.toContainText('Synced ');
 });
 
 test('signing out sends the last change first, and keeps the data and the link', async ({ page }) => {
@@ -295,7 +295,7 @@ test('offline, Sync now says the change waits on this phone, on a page reached t
 
   // Back to the account page the way a person goes, so the page kept mounted but hidden shows again.
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
-  await page.getByRole('region', { name: 'Your account', exact: true }).getByRole('link', { name: 'Manage account', exact: true }).click();
+  await page.getByRole('link', { name: /^Your account/ }).click();
   await expect(page).toHaveURL('/settings/account');
   await expect(syncRegion(page).getByText('Synced just now. 1 change waiting.', { exact: true })).toBeVisible();
 

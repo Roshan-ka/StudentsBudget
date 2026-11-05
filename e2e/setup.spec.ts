@@ -427,6 +427,7 @@ test('saves and lands on home', async ({ page }) => {
 
   // Setup fetched the INR rate for the new account.
   await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('link', { name: /^Accounts and transfers/ }).click();
   await expect(page.getByText('50,000.00')).toBeVisible();
   await expect(page.getByText('1 € = 95 INR')).toBeVisible();
 });
@@ -526,6 +527,7 @@ test('editing the plan skips accounts and guesses and keeps what setup stored', 
   // A later day in a later month: a kept plan stays 'created on 2026-10-16' and a kept one-off 'from 2026-10'.
   await page.clock.setFixedTime(new Date(2026, 10, 5, 12, 0, 0));
   await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('link', { name: /^Plan/ }).click();
   await page.getByRole('link', { name: 'Edit plan' }).click();
 
   await expect(page.getByRole('heading', { level: 2, name: 'Adjust your plan' })).toBeVisible();
@@ -615,6 +617,7 @@ test('in Edit plan the suggested amounts fill only the envelopes that are not se
   const nothing = { food: '', 'eating-out': '', 'going-out': '', transport: '', shopping: '', other: '' };
   await completeSetup(page, { envelopes: nothing });
   await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('link', { name: /^Plan/ }).click();
   await page.getByRole('link', { name: 'Edit plan' }).click();
   for (const step of ['Income', 'Fixed costs', 'One-off costs', 'Envelopes']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
@@ -674,7 +677,7 @@ test('a one-off whose due month has passed does not block editing the plan', asy
 
   // April 2027: the semester fee was due in March and is still in the plan, untouched.
   await page.clock.setFixedTime(new Date(2027, 3, 10, 12, 0, 0));
-  await page.goto('/settings');
+  await page.goto('/settings/plan');
   await page.getByRole('link', { name: 'Edit plan' }).click();
   for (const step of ['Income', 'Fixed costs', 'One-off costs']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
@@ -804,7 +807,7 @@ test('editing the plan keeps each schedule and how far it has posted', async ({ 
   const [before] = await readStore<Plan>(page, 'plan');
   expect(before.fixed[0].schedule?.postedThrough).toBe('2026-11-30');
 
-  await page.goto('/settings');
+  await page.goto('/settings/plan');
   await page.getByRole('link', { name: 'Edit plan' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Adjust your plan' })).toBeVisible();
   await page.getByLabel('Rent per month').fill('390');

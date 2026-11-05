@@ -63,7 +63,8 @@ async function overflow(page: Page) {
 }
 
 async function openSettings(page: Page) {
-  await page.getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
+  await page.getByRole('link', { name: /^Plan/ }).click();
   await expect(page.getByRole('heading', { level: 3, name: 'Fixed costs and income', exact: true })).toBeVisible();
 }
 

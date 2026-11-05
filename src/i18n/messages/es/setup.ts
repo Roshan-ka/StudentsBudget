@@ -126,10 +126,11 @@ export const setup: Messages['setup'] = {
     'Instálala primero: toca Compartir → Añadir a pantalla de inicio y configúrala allí. Lo que escribas en Safari ' +
     'se queda en Safari.',
   editPlan: {
+    summary: 'Ingresos, gastos fijos y sobres',
     heading: 'Plan',
     body:
       'Cambia tus sobres y gastos puntuales, añade las fuentes de ingresos, los gastos fijos y los sobres que la ' +
-      'configuración se saltó, o repasa todo el plan otra vez. Las cuentas están más abajo. Las estimaciones de la ' +
+      'configuración se saltó, o repasa todo el plan otra vez. Las estimaciones de la ' +
       'configuración no cambian.',
     link: 'Editar plan',
   },

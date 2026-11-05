@@ -20,5 +20,8 @@ export const PAGES: { path: string; shown: (page: Page, t: Messages) => Locator 
   { path: '/settings', shown: (page, t) => heading(page, t.shell.headings.settings) },
   { path: '/settings/accounts', shown: (page, t) => heading(page, t.shell.headings.accounts) },
   { path: '/settings/backup', shown: (page, t) => heading(page, t.shell.headings.backup) },
+  { path: '/settings/plan', shown: (page, t) => heading(page, t.shell.headings.plan) },
+  { path: '/settings/profile', shown: (page, t) => heading(page, t.shell.headings.profile) },
+  { path: '/settings/appearance', shown: (page, t) => heading(page, t.shell.headings.appearance) },
   { path: '/settings/account', shown: (page, t) => heading(page, t.shell.headings.account) },
 ];
