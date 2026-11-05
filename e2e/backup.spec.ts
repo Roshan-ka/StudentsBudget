@@ -262,10 +262,12 @@ test.describe('on a desktop browser', () => {
     await putRows(page, 'weekResults', [WEEK_RESULT]);
     await putRows(page, 'discountVotes', [DISCOUNT_VOTE]);
     await putRows(page, 'profile', [PROFILE]);
-    await openSettings(page);
+    // Rates are on Settings → Accounts and transfers; the backup has its own page.
+    await page.goto('/settings/accounts');
     await page.getByLabel('Your rate for INR per €1').fill('97');
     await page.getByRole('button', { name: 'Save rate' }).click();
     await expect(page.getByText('1 € = 97 INR · set by you')).toBeVisible();
+    await openSettings(page);
     const before = await everything(page);
     expect(before.fxRates.map((rate) => rate.source).sort()).toEqual(['ecb', 'manual']);
     expect(before.weekResults).toEqual([WEEK_RESULT]);
@@ -335,7 +337,7 @@ test.describe('on a desktop browser', () => {
     await page.goto('/entries');
     await expect(page.getByRole('region', { name: 'Entries' }).getByText('döner')).toBeVisible();
     // The manual rate came back next to the ECB one.
-    await openSettings(page);
+    await page.goto('/settings/accounts');
     await expect(page.getByText('1 € = 97 INR · set by you')).toBeVisible();
     expect(pageErrors).toEqual([]);
   });
