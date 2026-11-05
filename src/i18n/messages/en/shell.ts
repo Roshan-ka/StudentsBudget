@@ -12,6 +12,8 @@ export const shell = {
   navLabel: 'Main',
   /** The way back from a page of Settings to its list. */
   backToSettings: 'Back to Settings',
+  /** The same link before a plan exists: setup is where the person was, and the nav doesn't show yet. */
+  backToSetup: 'Back to setup',
   headings: {
     plan: 'Plan',
     profile: 'Profile',

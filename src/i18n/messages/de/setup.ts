@@ -127,6 +127,7 @@ export const setup: Messages['setup'] = {
   installHint:
     'Installiere zuerst: Tippe auf Teilen → Zum Home-Bildschirm und richte die App dort ein. In Safari eingegebene ' +
     'Daten bleiben in Safari.',
+  setupRow: { title: 'Plan einrichten', summary: 'Dein Plan ist noch nicht eingerichtet' },
   editPlan: {
     summary: 'Einnahmen, Fixkosten und Umschläge',
     heading: 'Plan',

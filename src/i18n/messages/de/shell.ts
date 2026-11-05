@@ -12,6 +12,7 @@ export const shell: Messages['shell'] = {
   },
   navLabel: 'Hauptmenü',
   backToSettings: 'Zurück zu den Einstellungen',
+  backToSetup: 'Zurück zur Einrichtung',
   headings: {
     plan: 'Plan',
     profile: 'Profil',

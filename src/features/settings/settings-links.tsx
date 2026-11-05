@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ArchiveIcon,
   ChevronRightIcon,
+  ClipboardListIcon,
   CloudIcon,
   LandmarkIcon,
   ListChecksIcon,
@@ -148,6 +149,15 @@ export function SettingsLinks() {
 
   return (
     <ul className={cn(cardVariants(), 'gap-0 divide-y-[1.5px] divide-border p-0')}>
+      {/* Before a plan is saved the bottom nav doesn't show, so this is the way back to setup. */}
+      {plan === null && (
+        <SettingsLink
+          href="/setup"
+          icon={ClipboardListIcon}
+          title={t.setup.setupRow.title}
+          summary={t.setup.setupRow.summary}
+        />
+      )}
       <SettingsLink
         href="/settings/accounts"
         icon={LandmarkIcon}

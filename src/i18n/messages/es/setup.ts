@@ -125,6 +125,7 @@ export const setup: Messages['setup'] = {
   installHint:
     'Instálala primero: toca Compartir → Añadir a pantalla de inicio y configúrala allí. Lo que escribas en Safari ' +
     'se queda en Safari.',
+  setupRow: { title: 'Configura tu plan', summary: 'Tu plan aún no está configurado' },
   editPlan: {
     summary: 'Ingresos, gastos fijos y sobres',
     heading: 'Plan',
