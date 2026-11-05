@@ -21,7 +21,9 @@ export default defineConfig({
   use: { baseURL, trace: 'retain-on-failure', locale: 'en-GB' },
   projects: [
     { name: 'desktop-chrome', use: { ...devices['Desktop Chrome'] } },
-    { name: 'iphone', use: { ...devices['iPhone 15'] } },
+    // WebKit runs the dev build's scripts slowly: on a busy laptop a page load takes 3-6 s, so a test that sets up and
+    // opens two more pages ran out of the default 30 s (2026-11-05). Waits inside a test keep their own timeouts.
+    { name: 'iphone', use: { ...devices['iPhone 15'] }, timeout: 60_000 },
   ],
   webServer: {
     command: `npm run dev -- --port ${port}`,
