@@ -20,6 +20,7 @@ import { newId } from '@/lib/new-id';
 import { accountBalance, defaultAccount, sortAccounts, totalInEur } from './balances';
 import { isOverdrawn, parseSignedAmount, tickOverdrawn, typeOpening } from './opening-balance';
 import { setDefaultAccount } from './set-default-account';
+import { focusFirstControl, focusOnMount, useFocusAfter } from '@/lib/focus';
 
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
@@ -103,7 +104,8 @@ function AccountForm({
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4 rounded-lg border p-4">
+    // It opens on its first field (accessibility, chunk 4).
+    <form ref={focusFirstControl} onSubmit={onSubmit} noValidate className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
@@ -204,6 +206,12 @@ function AccountForm({
   );
 }
 
+/** Focus keys of the panel: an account's Edit and Delete, the Add button, and the heading. */
+const editKey = (id: string) => `edit:${id}`;
+const deleteKey = (id: string) => `delete:${id}`;
+const ADD_KEY = 'add';
+const HEADING_KEY = 'heading';
+
 export function AccountsPanel() {
   const { t, locale } = useT();
   const text = t.accounts;
@@ -217,12 +225,20 @@ export function AccountsPanel() {
   const editButtons = useRef(new Map<string, HTMLButtonElement>());
   // What a screen reader hears after "Make default"; it is spoken once, and only while that account is the default.
   const [defaultNotice, setDefaultNotice] = useState<{ id: string; message: string } | null>(null);
+  // The account whose delete question is open, and where the focus goes as forms close and questions go.
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const focus = useFocusAfter();
 
-  async function remove(account: Account) {
+  async function remove(account: Account, neighbour: string) {
     setRowError(null);
+    setConfirming(null);
     try {
+      // Marked first: the row goes as soon as the database answers.
+      focus.mark(neighbour);
       await deleteAccount(account.id);
     } catch (error) {
+      // Still there, and the reason under it: the focus goes back to its Delete.
+      focus.mark(deleteKey(account.id));
       if (error instanceof AccountInUseError) {
         setRowError({ id: account.id, message: text.errors.inUse });
       } else if (error instanceof AccountHasScheduleError) {
@@ -259,11 +275,17 @@ export function AccountsPanel() {
   return (
     <section aria-labelledby="accounts-heading" className={cardVariants()}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 id="accounts-heading" className="text-xl leading-tight font-extrabold">
+        <h3
+          ref={focus.refFor(HEADING_KEY)}
+          id="accounts-heading"
+          tabIndex={-1}
+          className="text-xl leading-tight font-extrabold outline-none"
+        >
           {text.heading}
         </h3>
         {editing !== 'new' && (
           <Button
+            ref={focus.refFor(ADD_KEY)}
             variant="outline"
             className="px-4"
             onClick={() => {
@@ -282,7 +304,15 @@ export function AccountsPanel() {
         {notice}
       </p>
 
-      {editing === 'new' && <AccountForm currencyLocked={false} onDone={() => setEditing(null)} />}
+      {editing === 'new' && (
+        <AccountForm
+          currencyLocked={false}
+          onDone={() => {
+            focus.mark(ADD_KEY);
+            setEditing(null);
+          }}
+        />
+      )}
 
       {loaded && accounts.length === 0 && editing !== 'new' && (
         <p className="text-muted-foreground">{text.none}</p>
@@ -290,13 +320,16 @@ export function AccountsPanel() {
 
       {loaded && accounts.length > 0 && (
         <ul className="flex flex-col">
-          {accounts.map((account) => (
+          {accounts.map((account, index) => (
             <li key={account.id} className="border-b py-3 last:border-b-0">
               {editing === account.id ? (
                 <AccountForm
                   account={account}
                   currencyLocked={hasEntries(account.id, entries)}
-                  onDone={() => setEditing(null)}
+                  onDone={() => {
+                    focus.mark(editKey(account.id));
+                    setEditing(null);
+                  }}
                 />
               ) : (
                 <div className="flex flex-col gap-2">
@@ -323,6 +356,7 @@ export function AccountsPanel() {
                       ref={(node: HTMLButtonElement | null) => {
                         if (node) editButtons.current.set(account.id, node);
                         else editButtons.current.delete(account.id);
+                        focus.refFor(editKey(account.id))(node);
                       }}
                       variant="outline"
                       className="px-4"
@@ -345,14 +379,50 @@ export function AccountsPanel() {
                       </Button>
                     )}
                     <Button
+                      ref={focus.refFor(deleteKey(account.id))}
                       variant="ghost"
                       className="px-4"
                       aria-label={text.deleteAccount(account.name)}
-                      onClick={() => void remove(account)}
+                      onClick={() => {
+                        setRowError(null);
+                        setConfirming(account.id);
+                      }}
                     >
                       {text.delete}
                     </Button>
                   </div>
+                  {/* Asks first, as deleting an entry or a fixed cost does: the question takes the focus. */}
+                  {confirming === account.id && (
+                    <div
+                      role="group"
+                      aria-label={text.deleteQuestion(account.name)}
+                      className="flex flex-wrap items-center gap-2"
+                    >
+                      <p ref={focusOnMount} tabIndex={-1} className="me-auto font-semibold outline-none">
+                        {text.deleteQuestion(account.name)}
+                      </p>
+                      <Button
+                        variant="destructive"
+                        className="px-4"
+                        onClick={() => {
+                          const next = accounts[index + 1] ?? accounts[index - 1];
+                          void remove(account, next ? editKey(next.id) : HEADING_KEY);
+                        }}
+                      >
+                        {text.delete}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="px-4"
+                        onClick={() => {
+                          focus.mark(deleteKey(account.id));
+                          setConfirming(null);
+                        }}
+                      >
+                        {text.cancel}
+                      </Button>
+                    </div>
+                  )}
                   {rowError?.id === account.id && (
                     <p role="alert" className="text-sm text-destructive">
                       {rowError.message}

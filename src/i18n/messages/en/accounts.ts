@@ -21,6 +21,7 @@ export const accounts = {
   makeDefault: 'Make default',
   editAccount: (name: string) => `Edit ${name}`,
   deleteAccount: (name: string) => `Delete ${name}`,
+  deleteQuestion: (name: string) => `Delete ${name}?`,
   makeDefaultOf: (name: string) => `Make default: ${name}`,
   defaultMark: 'Default for new entries',
   nowDefault: (name: string) => `${name} is now the default for new entries.`,

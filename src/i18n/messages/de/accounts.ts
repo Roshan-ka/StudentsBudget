@@ -21,6 +21,7 @@ export const accounts: Messages['accounts'] = {
   makeDefault: 'Als Standard',
   editAccount: (name) => `${name} bearbeiten`,
   deleteAccount: (name) => `${name} löschen`,
+  deleteQuestion: (name) => `${name} löschen?`,
   makeDefaultOf: (name) => `${name} als Standard festlegen`,
   defaultMark: 'Standard für neue Einträge',
   nowDefault: (name) => `${name} ist jetzt der Standard für neue Einträge.`,
