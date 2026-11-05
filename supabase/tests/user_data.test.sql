@@ -43,9 +43,9 @@ select tables_are(
   'public',
   array[
     'accounts', 'entries', 'plans', 'guesses', 'manual_rates', 'week_results', 'discount_votes', 'profiles',
-    'public_profiles', 'hacks', 'hack_votes', 'hack_reports'
+    'public_profiles', 'hacks', 'hack_votes', 'hack_reports', 'push_subscriptions'
   ],
-  'public holds exactly the eight user-data tables and the hacks feed''s four'
+  'public holds exactly the eight user-data tables, the hacks feed''s four and the reminders'
 );
 
 select is_empty(
