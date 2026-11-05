@@ -29,6 +29,7 @@ import { HackForm } from './hack-form';
 import { postingNameText } from './posting-name';
 import { deleteHack } from './posts';
 import { nextVote, reportHack, voteHack, withVote, type VoteButton } from './votes';
+import { useFocusAfter } from '@/lib/focus';
 
 /** The list on screen: loaded on this visit, or the one this phone kept from an earlier one. */
 type Shown = { posts: HackPost[]; loadedAt: string; fresh: boolean };
@@ -246,6 +247,8 @@ function HackCard({
   const [translateNote, setTranslateNote] = useState(false);
   const [asking, setAsking] = useState(false);
   const [askingReport, setAskingReport] = useState(false);
+  // Cancel and Keep give the focus back to Report and Delete (accessibility, chunk 5).
+  const focus = useFocusAfter();
   const [pending, setPending] = useState<CardAction | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -356,6 +359,7 @@ function HackCard({
             variant="ghost"
             className="px-3"
             disabled={busy}
+            ref={focus.refFor('report')}
             onClick={() => {
               setProblem(null);
               setAskingReport(true);
@@ -372,7 +376,16 @@ function HackCard({
             <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => tap({ kind: 'report' })}>
               {text.report}
             </Button>
-            <Button type="button" variant="outline" className="px-4" disabled={busy} onClick={() => setAskingReport(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="px-4"
+              disabled={busy}
+              onClick={() => {
+                focus.mark('report');
+                setAskingReport(false);
+              }}
+            >
               {text.reportCancel}
             </Button>
           </div>
@@ -391,6 +404,7 @@ function HackCard({
       )}
       {post.mine && !asking && (
         <Button
+          ref={focus.refFor('delete')}
           type="button"
           variant="outline"
           className="self-start px-4"
@@ -409,7 +423,16 @@ function HackCard({
             <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => void confirmDelete()}>
               {text.delete}
             </Button>
-            <Button type="button" variant="outline" className="px-4" disabled={busy} onClick={() => setAsking(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="px-4"
+              disabled={busy}
+              onClick={() => {
+                focus.mark('delete');
+                setAsking(false);
+              }}
+            >
               {text.keep}
             </Button>
           </div>

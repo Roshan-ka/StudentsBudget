@@ -290,6 +290,7 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: /^Accounts and transfers/ }).click();
   await page.getByRole('button', { name: 'Delete Home bank', exact: true }).click();
+  await page.getByRole('group', { name: 'Delete Home bank?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(
     page.getByText(
       'This account pays or receives a fixed cost or income. Change that first in Fixed costs and income.',

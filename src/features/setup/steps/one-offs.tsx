@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type Ref } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,7 @@ import { useT } from '@/i18n/use-t';
 import { formatMoney } from '@/lib/money';
 import { isDueMonthProblem, type DraftUpdate, type SetupDraft } from '../draft';
 import { AmountField } from './amount-field';
+import { firstField, useFocusAfter } from '@/lib/focus';
 
 type OneOffDraft = SetupDraft['oneOffs'][number];
 
@@ -38,6 +39,7 @@ function OneOffRow({
   feeOffer,
   onChange,
   onRemove,
+  containerRef,
 }: {
   oneOff: OneOffDraft;
   index: number;
@@ -47,6 +49,8 @@ function OneOffRow({
   feeOffer?: SemesterFeeOffer;
   onChange: (change: Partial<OneOffDraft>) => void;
   onRemove: () => void;
+  /** The row's outer element, for the focus after a row above or below it is removed. */
+  containerRef?: Ref<HTMLDivElement>;
 }) {
   const id = useId();
   const { t } = useT();
@@ -66,7 +70,12 @@ function OneOffRow({
   const leftOut = oneOff.name.trim() !== '' && oneOff.amountMinor === 0;
 
   return (
-    <div role="group" aria-label={text.oneOff(index + 1)} className="flex flex-col gap-4 rounded-lg border p-4">
+    <div
+      ref={containerRef}
+      role="group"
+      aria-label={text.oneOff(index + 1)}
+      className="flex flex-col gap-4 rounded-lg border p-4"
+    >
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
@@ -129,6 +138,8 @@ export function OneOffsStep({
 }) {
   const { t, lang, locale } = useT();
   const text = t.setup.oneOffs;
+  // Remove hands the focus to the next row's first field, the one before, or Add (accessibility, chunk 5).
+  const focus = useFocusAfter();
   // With semester dates in the profile, one tap adds the next semester fee, with its amount where a page states it.
   const profile = useLiveQuery(() => db.profile.get('current'), []);
   const feeOffer = semesterFeeOffer(profile, today, draft.oneOffs, lang);
@@ -156,8 +167,12 @@ export function OneOffsStep({
               if (a === null || a.index === index) return null;
               return index < a.index ? { ...a, index: a.index - 1 } : a;
             });
+            // Rows are keyed by place, so the next row takes this one's place.
+            const count = draft.oneOffs.length;
+            focus.mark(index + 1 < count ? String(index) : index > 0 ? String(index - 1) : 'add');
             update((d) => ({ ...d, oneOffs: d.oneOffs.filter((_, i) => i !== index) }));
           }}
+          containerRef={(element) => focus.refFor(String(index))(firstField(element))}
         />
       ))}
       {feeOffer && (
@@ -178,6 +193,7 @@ export function OneOffsStep({
         </div>
       )}
       <Button
+        ref={focus.refFor('add')}
         type="button"
         variant="outline"
         className="self-start px-4"

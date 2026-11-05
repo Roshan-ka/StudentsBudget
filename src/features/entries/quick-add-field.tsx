@@ -30,6 +30,7 @@ import {
   type QuickAddReading,
 } from './quick-add-provider';
 import { listen, recognizerFor } from './speech';
+import { focusFirstControl } from '@/lib/focus';
 
 // Whether the browser can turn speech into text: it never changes while the page is open, and the server renders
 // without the mic button, as for passkeys.
@@ -61,6 +62,7 @@ const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !GUESS_CATEGORIES.some
  */
 function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: string) => void }) {
   const { t } = useT();
+  const questionId = useId();
   const [showMore, setShowMore] = useState(false);
   const chip = (category: { id: string }) => (
     <Button
@@ -75,8 +77,16 @@ function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: s
   );
 
   return (
-    <div role="group" aria-label={t.entries.quickAdd.categoryGroup} className="flex flex-col gap-2">
-      <p className="text-sm text-muted-foreground">{t.entries.quickAdd.whichCategory}</p>
+    <div
+      ref={focusFirstControl}
+      role="group"
+      aria-label={t.entries.quickAdd.categoryGroup}
+      aria-describedby={questionId}
+      className="flex flex-col gap-2"
+    >
+      <p id={questionId} className="text-sm text-muted-foreground">
+        {t.entries.quickAdd.whichCategory}
+      </p>
       <div className="flex flex-wrap gap-2">
         {GUESS_CATEGORIES.map(chip)}
         <Button type="button" variant="chip" aria-expanded={showMore} onClick={() => setShowMore((open) => !open)}>
@@ -100,9 +110,18 @@ function AmountChoice({
   onPick: (amountMinor: Minor) => void;
 }) {
   const { t, locale } = useT();
+  const questionId = useId();
   return (
-    <div role="group" aria-label={t.entries.quickAdd.amountGroup} className="flex flex-col gap-2">
-      <p className="text-sm text-muted-foreground">{t.entries.quickAdd.whichAmount}</p>
+    <div
+      ref={focusFirstControl}
+      role="group"
+      aria-label={t.entries.quickAdd.amountGroup}
+      aria-describedby={questionId}
+      className="flex flex-col gap-2"
+    >
+      <p id={questionId} className="text-sm text-muted-foreground">
+        {t.entries.quickAdd.whichAmount}
+      </p>
       <div className="flex flex-wrap gap-2">
         {choice.options.map((option) => (
           <Button
@@ -163,12 +182,16 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
     [],
   );
 
-  // The line fades after a while: it says what happened some time ago, and Undo is for the moment after.
+  // The line fades after a while: it says what happened some time ago, and Undo is for the moment after. Not while
+  // the focus or the pointer is on it, so someone who needs longer to reach Undo still can (accessibility, chunk 5).
+  const [holding, setHolding] = useState(false);
   useEffect(() => {
-    if (saved === null) return;
+    if (saved === null || holding) return;
     const timer = setTimeout(() => setSaved(null), SAVED_LINE_MS);
     return () => clearTimeout(timer);
-  }, [saved]);
+  }, [saved, holding]);
+  // The field, which takes the focus back after a chip is picked or a save is undone.
+  const fieldRef = useRef<HTMLInputElement>(null);
 
   // The router keeps a page it has left mounted but hidden and runs its effect cleanups, so this clears the
   // line when the person leaves. Back on the page, an Undo that deletes an entry edited since would be a trap.
@@ -336,6 +359,8 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
     try {
       await deleteEntry(saved.id);
       setSaved(null);
+      setHolding(false);
+      fieldRef.current?.focus();
     } catch (deleteError) {
       console.error('StudentsBudget: could not undo the quick-add entry', deleteError);
       setError(words.undoFailed);
@@ -348,6 +373,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         <Label htmlFor={`${id}-text`}>{words.label}</Label>
         <div className="flex gap-2">
           <Input
+            ref={fieldRef}
             id={`${id}-text`}
             className="min-w-0 flex-1"
             value={text}
@@ -401,12 +427,21 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         <AmountChoice
           choice={choice}
           busy={busy}
-          onPick={(amountMinor) => void runOnce(() => saveOrAsk(chosenAmount(choice, amountMinor)))}
+          onPick={(amountMinor) => {
+            fieldRef.current?.focus();
+            void runOnce(() => saveOrAsk(chosenAmount(choice, amountMinor)));
+          }}
         />
       )}
 
       {pending !== null && (
-        <CategoryChips busy={busy} onPick={(categoryId) => void runOnce(() => save(pending, categoryId))} />
+        <CategoryChips
+          busy={busy}
+          onPick={(categoryId) => {
+            fieldRef.current?.focus();
+            void runOnce(() => save(pending, categoryId));
+          }}
+        />
       )}
 
       {error && (
@@ -419,6 +454,12 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         className={
           saved || listening ? 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 ps-4 pe-1' : undefined
         }
+        onFocus={() => setHolding(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setHolding(false);
+        }}
+        onPointerEnter={() => setHolding(true)}
+        onPointerLeave={() => setHolding(false)}
       >
         {/* Always rendered, so a screen reader is already listening when the text appears. The one status line for
             the field: it says "Listening…" while the mic is on, and what was saved after. */}

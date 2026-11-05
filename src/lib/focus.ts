@@ -24,6 +24,24 @@ export function useFocusOnMount<T extends HTMLElement>(first = false): RefObject
   return ref;
 }
 
+/**
+ * A callback ref that focuses its element's first control as it mounts: a form that opens inline, in a component that
+ * was already there. Stable, so React calls it only when the element mounts.
+ */
+export function focusFirstControl(element: HTMLElement | null): void {
+  if (element !== null) (element.querySelector<HTMLElement>(FOCUSABLE) ?? element).focus();
+}
+
+/** The same for an element that takes the focus itself as it mounts: a heading or a question, with `tabIndex={-1}`. */
+export function focusOnMount(element: HTMLElement | null): void {
+  element?.focus();
+}
+
+/** An element's first field, for a row that takes the focus after its neighbour goes. */
+export function firstField(element: HTMLElement | null): HTMLElement | null {
+  return element?.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled])') ?? null;
+}
+
 /** The bookkeeping of `useFocusAfter`, apart from React so it can be tested. */
 export function createFocusAfter() {
   let pending: string | null = null;

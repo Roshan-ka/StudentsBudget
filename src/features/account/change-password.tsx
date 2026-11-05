@@ -11,6 +11,7 @@ import { authErrorMessage } from './auth-errors';
 import { asksCurrentPassword, signInMethodsOf } from './auth-state';
 import { CardHeading, SECURITY_CARD } from './card-heading';
 import { checkNewPassword, MIN_PASSWORD_LENGTH } from './credentials';
+import { focusFirstControl, useFocusAfter } from '@/lib/focus';
 
 /**
  * Settings → Your account → Sign-in and security → Password: a new password for the account. The current one is asked
@@ -55,7 +56,11 @@ export function PasswordSection() {
     setOpen(true);
   }
 
+  // The form opens on its first field; closing it, or a saved password, gives the focus back to its button.
+  const focus = useFocusAfter();
+
   function close() {
+    focus.mark('open');
     setOpen(false);
     setCurrent('');
     setNext('');
@@ -117,7 +122,7 @@ export function PasswordSection() {
       </CardHeading>
       <p className="text-sm text-muted-foreground">{text.intro}</p>
       {open ? (
-        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
+        <form ref={focusFirstControl} onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
           {asksCurrent && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`${id}-current`}>{text.current}</Label>
@@ -156,7 +161,13 @@ export function PasswordSection() {
           </div>
         </form>
       ) : (
-        <Button type="button" variant="outline" className="self-start px-4" onClick={() => void openForm()}>
+        <Button
+          ref={focus.refFor('open')}
+          type="button"
+          variant="outline"
+          className="self-start px-4"
+          onClick={() => void openForm()}
+        >
           {text.open}
         </Button>
       )}
