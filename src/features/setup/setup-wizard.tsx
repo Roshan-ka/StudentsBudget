@@ -8,6 +8,8 @@ import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
+import { noteSeen } from '@/features/privacy/notes';
+import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import { cn } from '@/lib/utils';
@@ -64,6 +66,8 @@ function Wizard({
   const [attempted, setAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Next from the accounts step with a currency other than the euro waits for the note on the exchange rates.
+  const [ratesNote, setRatesNote] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const shownIndex = useRef(index);
 
@@ -83,9 +87,13 @@ function Wizard({
   // An account added in the accounts step gets its draft key here, so a line can pick it.
   const update: DraftUpdate = (change) => setDraft((d) => withAccountKeys(change(d)));
 
-  function next() {
+  /** `noteAccepted` comes from the note's Continue, so blocked storage can't loop the note. */
+  function next(noteAccepted = false) {
     if (problems.length > 0) return setAttempted(true);
     setAttempted(false);
+    const foreign = step === 'accounts' && draft.accounts.some((account) => account.currency !== 'EUR');
+    if (foreign && !noteAccepted && !noteSeen('rates')) return setRatesNote(true);
+    setRatesNote(false);
     setIndex((i) => i + 1);
   }
 
@@ -179,8 +187,20 @@ function Wizard({
         </p>
       )}
 
+      {ratesNote && (
+        <PrivacyNote
+          id="rates"
+          label={t.common.privacy.label}
+          text={t.common.privacy.rates}
+          continueLabel={t.common.privacy.continue}
+          cancelLabel={t.common.privacy.cancel}
+          onContinue={() => next(true)}
+          onCancel={() => setRatesNote(false)}
+        />
+      )}
+
       {/* Across the width at the end of the step, not stuck to the bottom: a phone's keyboard would cover that. */}
-      <div className="flex gap-3">
+      <div className={cn('flex gap-3', ratesNote && 'hidden')}>
         {index > 0 && (
           <Button type="button" variant="outline" size="lg" className="flex-1" onClick={back} disabled={saving}>
             {text.back}
@@ -191,7 +211,7 @@ function Wizard({
             {text.save}
           </Button>
         ) : (
-          <Button type="button" size="lg" className="flex-1" onClick={next}>
+          <Button type="button" size="lg" className="flex-1" onClick={() => next()}>
             {text.next}
           </Button>
         )}

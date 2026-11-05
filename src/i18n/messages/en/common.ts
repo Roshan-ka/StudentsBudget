@@ -30,4 +30,24 @@ export const common = {
   },
   /** What a number no page states says instead of a source (the data's `source: 'Estimate'`). */
   estimate: 'Estimate',
+  /** One-time data-protection notes (`PrivacyNote`), each shown once per phone before a feature first sends data. */
+  privacy: {
+    label: 'About your data',
+    continue: 'Continue',
+    cancel: 'Cancel',
+    account:
+      'Your account is kept by Supabase, in Frankfurt (EU): your email, your password (stored only as a hash), ' +
+      'your phone’s language and a copy of the data you sync. If the account needs a code, to confirm it or for a ' +
+      'new password, it comes by email. You can delete the account at any time in Settings.',
+    passkey:
+      'Your phone’s password manager keeps the passkey, and may sync it to your other devices (iCloud Keychain or ' +
+      'Google Password Manager, for example). Your account keeps only its public key, which can’t sign anyone in.',
+    rates:
+      'While an account uses a currency other than the euro, the app asks Frankfurter (frankfurter.dev) for the ' +
+      'European Central Bank’s rate, at most once a day. It sends only the currency codes; like any website, ' +
+      'Frankfurter sees your phone’s internet address.',
+    votes:
+      'Signed in, your votes go to your account when you sync, and count in the totals other students see for this ' +
+      'semester. Nobody sees who voted.',
+  },
 };

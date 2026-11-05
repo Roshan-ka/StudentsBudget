@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { DISCOUNTS } from '../src/data/discounts';
+import { acceptPrivacyNotes } from './helpers/privacy';
 import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow } from './helpers/supabase';
 
 // Shared discount confirmations (P2.6, docs/superpowers/plans/2026-11-04-shared-discount-confirmations.md): signed in,
@@ -7,6 +8,11 @@ import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow } from './he
 // the totals given to `mockSupabaseData`. How they move the list is unit-tested (`discounts.test.ts`).
 
 test.use({ viewport: { width: 375, height: 812 } });
+
+// The data-protection notes (the exchange rates, the discount votes) have their own spec (privacy-notes.spec.ts).
+test.beforeEach(async ({ page }) => {
+  await acceptPrivacyNotes(page);
+});
 
 const EMAIL = 'roshan@example.com';
 const PASSWORD = 'correct horse';

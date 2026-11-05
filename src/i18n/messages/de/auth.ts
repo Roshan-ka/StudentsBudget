@@ -178,21 +178,6 @@ export const auth: Messages['auth'] = {
     cancelledElsewhere:
       'Diese Einrichtung wurde abgebrochen, vielleicht auf einem anderen Handy. Tipp auf Einschalten, um neu zu beginnen.',
   },
-  /** Einmalige Datenschutzhinweise (`PrivacyNote`): vor dem ersten Konto und dem ersten Passkey auf einem Handy. */
-  privacy: {
-    label: 'Zu deinen Daten',
-    continue: 'Weiter',
-    cancel: 'Abbrechen',
-    account:
-      'Dein Konto liegt bei Supabase in Frankfurt (EU): deine E-Mail-Adresse, dein Passwort (nur als Hash ' +
-      'gespeichert), die Sprache deines Handys und eine Kopie der Daten, die du synchronisierst. Braucht das Konto ' +
-      'einen Code, zum Bestätigen oder für ein neues Passwort, kommt er per E-Mail. Du kannst das Konto jederzeit ' +
-      'in den Einstellungen löschen.',
-    passkey:
-      'Der Passwortmanager deines Handys bewahrt den Passkey auf und kann ihn mit deinen anderen Geräten ' +
-      'synchronisieren (zum Beispiel iCloud-Schlüsselbund oder Google Passwortmanager). Dein Konto speichert nur ' +
-      'den öffentlichen Schlüssel, mit dem sich niemand anmelden kann.',
-  },
   /** Anmeldung und Sicherheit → Passwort: ein neues Passwort; das aktuelle nur, wenn diese Sitzung damit begann. */
   changePassword: {
     heading: 'Passwort',

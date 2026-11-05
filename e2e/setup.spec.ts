@@ -1,11 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry, Guess, Plan } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
+import { acceptPrivacyNotes } from './helpers/privacy';
 import { DEFAULT_SETUP, budgetField, completeSetup, fillSetup, mockFrankfurter, readStore } from './helpers/setup';
 
 // The fixture's numbers depend on the month (the 300 fee is spread from the current month to March).
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 9, 16, 12, 0, 0));
+  // The prefilled INR account would stop at the exchange-rate note: privacy-notes.spec.ts tests it.
+  await acceptPrivacyNotes(page);
 });
 
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.

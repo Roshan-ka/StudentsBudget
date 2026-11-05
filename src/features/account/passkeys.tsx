@@ -333,10 +333,10 @@ export function PasskeysSection() {
           passkeyNote ? (
             <PrivacyNote
               id="passkey"
-              label={t.auth.privacy.label}
-              text={t.auth.privacy.passkey}
-              continueLabel={t.auth.privacy.continue}
-              cancelLabel={t.auth.privacy.cancel}
+              label={t.common.privacy.label}
+              text={t.common.privacy.passkey}
+              continueLabel={t.common.privacy.continue}
+              cancelLabel={t.common.privacy.cancel}
               onContinue={() => {
                 closeNote();
                 void add();

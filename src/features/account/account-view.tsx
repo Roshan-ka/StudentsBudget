@@ -614,10 +614,10 @@ function SignInForm() {
         {accountNote ? (
           <PrivacyNote
             id="account"
-            label={t.auth.privacy.label}
-            text={t.auth.privacy.account}
-            continueLabel={t.auth.privacy.continue}
-            cancelLabel={t.auth.privacy.cancel}
+            label={t.common.privacy.label}
+            text={t.common.privacy.account}
+            continueLabel={t.common.privacy.continue}
+            cancelLabel={t.common.privacy.cancel}
             onContinue={() => void submit(true)}
             onCancel={() => setAccountNote(false)}
           />

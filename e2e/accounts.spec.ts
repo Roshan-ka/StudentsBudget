@@ -1,7 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
+import { acceptPrivacyNotes } from './helpers/privacy';
 import { FRANKFURTER, completeSetup, mockFrankfurter, readStore } from './helpers/setup';
+
+// The data-protection notes (the exchange rates, the discount votes) have their own spec (privacy-notes.spec.ts).
+test.beforeEach(async ({ page }) => {
+  await acceptPrivacyNotes(page);
+});
 
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
 function inlineAlert(page: Page) {

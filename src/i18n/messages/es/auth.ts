@@ -178,20 +178,6 @@ export const auth: Messages['auth'] = {
     setupCancelled: 'Configuración cancelada.',
     cancelledElsewhere: 'Esta configuración se canceló, quizá desde otro móvil. Toca Activar para empezar de nuevo.',
   },
-  /** Notas únicas sobre los datos (`PrivacyNote`): antes de la primera cuenta y la primera llave de acceso. */
-  privacy: {
-    label: 'Sobre tus datos',
-    continue: 'Continuar',
-    cancel: 'Cancelar',
-    account:
-      'Tu cuenta la guarda Supabase, en Fráncfort (UE): tu correo electrónico, tu contraseña (guardada solo como ' +
-      'hash), el idioma de tu móvil y una copia de los datos que sincronizas. Si la cuenta necesita un código, para ' +
-      'confirmarla o para una nueva contraseña, llega por correo. Puedes eliminar la cuenta cuando quieras en Ajustes.',
-    passkey:
-      'El gestor de contraseñas de tu móvil guarda la llave de acceso y puede sincronizarla con tus otros ' +
-      'dispositivos (el llavero de iCloud o el Gestor de contraseñas de Google, por ejemplo). Tu cuenta guarda ' +
-      'solo su clave pública, con la que nadie puede iniciar sesión.',
-  },
   /** Inicio de sesión y seguridad → Contraseña: la nueva; la actual solo si esta sesión empezó con ella. */
   changePassword: {
     heading: 'Contraseña',

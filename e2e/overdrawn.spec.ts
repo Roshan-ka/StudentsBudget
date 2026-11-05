@@ -1,9 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account } from '../src/db/types';
+import { acceptPrivacyNotes } from './helpers/privacy';
 import { SETUP_DAY, mockFrankfurter, readStore } from './helpers/setup';
 
 // 375 px, the narrowest phone the app is made for: the checks below read the page at that width.
 test.use({ viewport: { width: 375, height: 812 } });
+
+// The data-protection notes (the exchange rates, the discount votes) have their own spec (privacy-notes.spec.ts).
+test.beforeEach(async ({ page }) => {
+  await acceptPrivacyNotes(page);
+});
 
 const OVERDRAWN = 'Overdrawn (below zero)';
 

@@ -11,6 +11,8 @@ import { db } from '@/db/db';
 import { loadRates, refreshRates } from '@/db/rates';
 import { AccountHasScheduleError, AccountInUseError, deleteAccount } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
+import { noteSeen } from '@/features/privacy/notes';
+import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import { CURRENCIES, formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
@@ -56,13 +58,25 @@ function AccountForm({
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // A newly chosen currency other than the euro waits for the note on the exchange rates (`PrivacyNote`).
+  const [ratesNote, setRatesNote] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await submit();
+  }
+
+  /** Saves the account; `noteAccepted` comes from the note's Continue, so blocked storage can't loop the note. */
+  async function submit(noteAccepted = false) {
     const trimmedName = name.trim();
     if (trimmedName === '') return setError(text.errors.name);
     const openingMinor = parseSignedAmount(opening);
     if (openingMinor === null) return setError(text.errors.opening);
+    if (currency !== 'EUR' && currency !== account?.currency && !noteAccepted && !noteSeen('rates')) {
+      setError(null);
+      return setRatesNote(true);
+    }
+    setRatesNote(false);
 
     setSaving(true);
     setError(null);
@@ -118,7 +132,10 @@ function AccountForm({
           className="w-full"
           value={currency}
           disabled={currencyLocked}
-          onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
+          onChange={(event) => {
+            setCurrency(event.target.value as CurrencyCode);
+            setRatesNote(false);
+          }}
         >
           {CURRENCIES.map((code) => (
             <NativeSelectOption key={code} value={code}>
@@ -163,14 +180,26 @@ function AccountForm({
           {error}
         </p>
       )}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" className="px-4" disabled={saving}>
-          {text.save}
-        </Button>
-        <Button type="button" variant="outline" className="px-4" onClick={onDone}>
-          {text.cancel}
-        </Button>
-      </div>
+      {ratesNote ? (
+        <PrivacyNote
+          id="rates"
+          label={t.common.privacy.label}
+          text={t.common.privacy.rates}
+          continueLabel={t.common.privacy.continue}
+          cancelLabel={t.common.privacy.cancel}
+          onContinue={() => void submit(true)}
+          onCancel={() => setRatesNote(false)}
+        />
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" className="px-4" disabled={saving}>
+            {text.save}
+          </Button>
+          <Button type="button" variant="outline" className="px-4" onClick={onDone}>
+            {text.cancel}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

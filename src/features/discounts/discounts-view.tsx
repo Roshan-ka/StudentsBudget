@@ -10,6 +10,8 @@ import type { DiscountVote } from '@/db/types';
 import { useAuth } from '@/features/account/use-auth';
 import { categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
+import { noteSeen } from '@/features/privacy/notes';
+import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { semesterOn } from '@/features/profile/profile';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
@@ -55,6 +57,8 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
   /** The answer just given, shown under its discount. */
   const [notice, setNotice] = useState<{ discountId: string; text: string } | null>(null);
   const [heard, setHeard] = useState('');
+  // Signed in, the first vote on this phone waits for the note on the shared totals (`PrivacyNote`).
+  const [pendingVote, setPendingVote] = useState<{ discountId: string; vote: DiscountVote['vote'] } | null>(null);
   const items = useRef(new Map<string, HTMLLIElement>());
   /** A discount just voted on: it moves in the list, and focus goes with it. */
   const follow = useRef<string | null>(null);
@@ -120,7 +124,23 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
   const rows = sortByFreshness(discounts, votes, today, totals);
   const shown = categoryId === null ? rows : rows.filter((row) => row.discount.categoryId === categoryId);
 
+  /** A vote, or first the note when signed in on a phone that hasn't accepted it. */
+  function tap(d: Discount, vote: DiscountVote['vote']) {
+    if (auth.status === 'signed-in' && !noteSeen('votes')) {
+      setNotice(null);
+      return setPendingVote({ discountId: d.id, vote });
+    }
+    choose(d, vote);
+  }
+
+  /** Closes the note and puts the focus back on the button that opened it. */
+  function cancelVote(d: Discount, vote: DiscountVote['vote']) {
+    setPendingVote(null);
+    items.current.get(d.id)?.querySelector<HTMLButtonElement>(`button[data-vote="${vote}"]`)?.focus();
+  }
+
   function choose(d: Discount, vote: DiscountVote['vote']) {
+    setPendingVote(null);
     follow.current = d.id;
     // Today at the moment of the tap, not of the last render.
     const row: DiscountVote = { discountId: d.id, vote, on: todayIso() };
@@ -229,12 +249,24 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
                     variant="chip"
                     aria-pressed={vote?.vote === option}
                     aria-describedby={placeId}
-                    onClick={() => choose(d, option)}
+                    data-vote={option}
+                    onClick={() => tap(d, option)}
                   >
                     {text.votes[option]}
                   </Button>
                 ))}
               </div>
+              {pendingVote?.discountId === d.id && (
+                <PrivacyNote
+                  id="votes"
+                  label={t.common.privacy.label}
+                  text={t.common.privacy.votes}
+                  continueLabel={t.common.privacy.continue}
+                  cancelLabel={t.common.privacy.cancel}
+                  onContinue={() => choose(d, pendingVote.vote)}
+                  onCancel={() => cancelVote(d, pendingVote.vote)}
+                />
+              )}
               {notice?.discountId === d.id && <p className="text-xs text-muted-foreground">{notice.text}</p>}
             </li>
           );
