@@ -33,9 +33,10 @@ export const common: Messages['common'] = {
     cancel: 'Abbrechen',
     account:
       'Dein Konto liegt bei Supabase in Frankfurt (EU): deine E-Mail-Adresse, dein Passwort (nur als Hash ' +
-      'gespeichert), die Sprache deines Handys und eine Kopie der Daten, die du synchronisierst. Braucht das Konto ' +
-      'einen Code, zum Bestätigen oder für ein neues Passwort, kommt er per E-Mail. Du kannst das Konto jederzeit ' +
-      'in den Einstellungen löschen.',
+      'gespeichert), die Sprache deines Handys, dein Benutzername mit Status und Jahrgang und eine Kopie der Daten, ' +
+      'die du synchronisierst. Andere Studierende sehen nur Benutzername, Status und Jahrgang, neben deinen ' +
+      'Beiträgen. Braucht das Konto einen Code, zum Bestätigen oder für ein neues Passwort, kommt er per E-Mail. ' +
+      'Du kannst das Konto jederzeit in den Einstellungen löschen.',
     passkey:
       'Der Passwortmanager deines Handys bewahrt den Passkey auf und kann ihn mit deinen anderen Geräten ' +
       'synchronisieren (zum Beispiel iCloud-Schlüsselbund oder Google Passwortmanager). Dein Konto speichert nur ' +

@@ -178,6 +178,37 @@ export const auth: Messages['auth'] = {
     cancelledElsewhere:
       'Diese Einrichtung wurde abgebrochen, vielleicht auf einem anderen Handy. Tipp auf Einschalten, um neu zu beginnen.',
   },
+  /** Der Name, unter dem jemand im Tipp-Feed postet: beim Erstellen des Kontos gefragt, unter „Dein Konto“ änderbar. */
+  postingName: {
+    heading: 'Dein Name bei Beiträgen',
+    intro: 'Andere Studierende sehen ihn neben deinen Beiträgen. Deine E-Mail-Adresse bleibt verborgen.',
+    username: 'Benutzername',
+    usernameHint: '3–20 Zeichen: Buchstaben a–z, Ziffern oder _. Andere sehen ihn als @name.',
+    label: 'Du bist',
+    labels: { student: 'Im Studium', graduate: 'Mit Abschluss', alumni: 'Alumni' },
+    batch: 'Jahrgang (optional)',
+    batchHint: 'Das Jahr deines Abschlusses, zum Beispiel 2027.',
+    batchShort: (year) => `Jahrgang ${year}`,
+    none: 'Noch kein Name. Wähl jetzt einen oder vor deinem ersten Beitrag.',
+    loading: 'Dein Name wird geprüft …',
+    loadFailed: 'Dein Name bei Beiträgen konnte nicht gelesen werden. Versuch es später noch einmal.',
+    pick: 'Namen wählen',
+    change: 'Ändern',
+    save: 'Namen speichern',
+    cancel: 'Abbrechen',
+    saved: 'Name gespeichert.',
+    errors: {
+      empty: 'Gib einen Benutzernamen ein.',
+      characters: 'Nutze im Benutzernamen nur Buchstaben a–z, Ziffern und _.',
+      short: 'Der Benutzername braucht mindestens 3 Zeichen.',
+      long: 'Der Benutzername darf höchstens 20 Zeichen haben.',
+      reserved: 'Dieser Benutzername ist für die App reserviert. Wähl einen anderen.',
+      taken: 'Dieser Benutzername ist vergeben. Wähl einen anderen.',
+      batch: 'Gib den Jahrgang als Jahr ein, zum Beispiel 2027.',
+      checkFailed: 'Der Benutzername konnte nicht geprüft werden. Prüf deine Verbindung und versuch es noch einmal.',
+      saveFailed: 'Dein Name konnte nicht gespeichert werden. Versuch es noch einmal.',
+    },
+  },
   /** Anmeldung und Sicherheit → Passwort: ein neues Passwort; das aktuelle nur, wenn diese Sitzung damit begann. */
   changePassword: {
     heading: 'Passwort',

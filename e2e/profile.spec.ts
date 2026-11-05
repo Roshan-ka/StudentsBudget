@@ -268,6 +268,7 @@ test('gold Under-Budget Week follows the saved semester', async ({ page }) => {
   await completeSetup(page);
   // Without semester dates: 26 weeks.
   await page.goto('/badges');
+  await page.getByText('How badges work', { exact: true }).click();
   await expect(page.getByText('gold at 26: a whole semester.', { exact: false })).toBeVisible();
 
   // OTH's winter semester, 1 Oct 2026 – 14 Mar 2027, is 24 weeks.
@@ -275,6 +276,7 @@ test('gold Under-Budget Week follows the saved semester', async ({ page }) => {
   await universityField(page).selectOption({ label: 'OTH Regensburg' });
   await saveProfile(page);
   await page.goto('/badges');
+  await page.getByText('How badges work', { exact: true }).click();
   await expect(page.getByText('gold at 24: a whole semester.', { exact: false })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
