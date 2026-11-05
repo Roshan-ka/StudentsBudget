@@ -134,6 +134,8 @@ export const setup = {
   },
   installHint:
     'Install first: tap Share → Add to Home Screen, then set up there. Data entered in Safari stays in Safari.',
+  /** The first row of the Settings list while no plan is saved: the way back to setup. */
+  setupRow: { title: 'Set up your plan', summary: "Your plan isn't set up yet" },
   editPlan: {
     /** The Plan row on the Settings list. */
     summary: 'Income, fixed costs and envelopes',

@@ -246,6 +246,22 @@ test('the settings page fits a phone without sideways scrolling', async ({ page 
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+test('before a plan is saved, Settings leads back to setup: from a page of it, and from its list', async ({ page }) => {
+  await mockFrankfurter(page);
+  await openSettings(page);
+  // No bottom navigation yet, so the page's own link goes back to setup, not to the Settings list.
+  await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Back to Settings', exact: true })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Back to setup', exact: true }).click();
+  await expect(page).toHaveURL('/setup');
+
+  // The Settings list starts with the way back to setup.
+  await page.goto('/settings');
+  await page.getByRole('link', { name: /^Set up your plan/ }).click();
+  await expect(page).toHaveURL('/setup');
+  await expect(page.getByRole('heading', { level: 3, name: 'City and rent', exact: true })).toBeVisible();
+});
+
 test('accounts made in Settings before setup are kept, and setup adds none of its own', async ({ page }) => {
   await mockFrankfurter(page);
   await openSettings(page);
