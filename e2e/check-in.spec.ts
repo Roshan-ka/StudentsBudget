@@ -205,13 +205,14 @@ test('a Sunday that starts the month also reviews the days of its week in the pr
 
   await page.goto('/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
-  // The previous month's days come first, then the Sunday; the quick add stays at the end, once.
+  // The previous month's days come first, then the Sunday. The quick add comes once, right after this week against
+  // the plan and before its list (pain points, chunk 8).
   await expect(page.getByRole('heading', { level: 3 })).toHaveText([
     'Earlier this week against your plan',
     'Earlier this week',
     'This week against your plan',
-    'This week',
     'Forgot something? Add it here',
+    'This week',
   ]);
   await expect(page.getByText('Mon 26 – Sat 31 Oct', { exact: true })).toBeVisible();
   await expect(page.getByText('Sun 1 Nov', { exact: true })).toBeVisible();
@@ -275,8 +276,8 @@ test('a plan set up on that Sunday has no earlier month to review', async ({ pag
   await expect(page.getByText('Sun 1 Nov', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 3 })).toHaveText([
     'This week against your plan',
-    'This week',
     'Forgot something? Add it here',
+    'This week',
   ]);
   await expect(page.getByText('Mon 26 – Sat 31 Oct')).toHaveCount(0);
 });
