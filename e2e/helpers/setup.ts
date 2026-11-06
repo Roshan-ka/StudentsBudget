@@ -155,7 +155,7 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
 
   if (options.accountsExist) {
     await nextStep(page, 'Income');
-    await expect(page.getByText('Your accounts are already set up in Settings.')).toBeVisible();
+    await expect(page.getByText('Your accounts are already set up, in Settings → Accounts and transfers.')).toBeVisible();
   } else {
     await nextStep(page, 'Accounts');
     for (const [i, opening] of f.openingBalances.entries()) {

@@ -114,8 +114,8 @@ test('a report asks first, then the post leaves the list', async ({ page }) => {
   await signInAndOpenHacks(page);
 
   const advert = post(page, 'An advert');
-  // Report says which post (accessibility, chunk 8).
-  const report = advert.getByRole('button', { name: /^Report: (the post by @\w+|a post from) / });
+  // Report says which post (accessibility, chunk 8): "Report: the post by @lena, 05.11.2026".
+  const report = advert.getByRole('button', { name: /^Report: (the post by @\w+, |a post from )\d{2}\.\d{2}\.\d{4}$/ });
   await report.click();
   await expect(advert).toContainText('Report this post? It disappears for you at once');
   await advert.getByRole('button', { name: 'Cancel', exact: true }).click();

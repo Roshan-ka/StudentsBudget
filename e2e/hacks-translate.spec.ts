@@ -66,8 +66,8 @@ test('a post in another language opens Google Translate, after its note the firs
   await expect(post(page, ENGLISH).getByRole('link', { name: /^Translate/ })).toHaveCount(0);
 
   const german = post(page, 'Semesterticket');
-  // Translate says which post (accessibility, chunk 8).
-  const translate = german.getByRole('link', { name: /^Translate: (the post by @\w+|a post from) / });
+  // Translate says which post (accessibility, chunk 8): "Translate: the post by @lena, 05.11.2026".
+  const translate = german.getByRole('link', { name: /^Translate: (the post by @\w+, |a post from )\d{2}\.\d{2}\.\d{4}$/ });
   await translate.click();
   const note = german.getByRole('group', { name: 'About your data', exact: true });
   await expect(note).toContainText('Google gets the text and your phone’s internet address.');
