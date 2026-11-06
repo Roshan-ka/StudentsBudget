@@ -31,6 +31,15 @@ import {
   type SetupOptions,
 } from './setup';
 
+/** How `seedSetup` starts, as `completeSetup` does, and where it ends. */
+export type SeedOptions = SetupOptions & {
+  /**
+   * `false` leaves the page where the rows were written (the app started, nothing about the plan shown), for a spec
+   * that writes more rows or moves the clock and then opens the page it needs itself. Home otherwise.
+   */
+  open?: false;
+};
+
 /** A field's text as the wizard's amount field reads it: blank is 0, text that is no amount is `NaN` (refused below). */
 const amount = (text: string): Minor => parseOptionalAmount(text) ?? Number.NaN;
 
@@ -102,11 +111,12 @@ async function writeSetup(page: Page, rows: { accounts: Account[]; plan: Plan })
 /**
  * Sets up a plan from `DEFAULT_SETUP` (or the overrides) without walking the wizard: the same rows the wizard's Save
  * writes, built in Node with its own `draftToRecords` from the draft `fillSetup` would type, with `f.oneOff` added as
- * Edit plan would on the setup day (so the fixture's numbers stay), then written straight into IndexedDB from /tips. Ends on Home with the plan shown, as `completeSetup` does. Same fixture, options and
- * preparation: mocks Frankfurter, accepts the exchange-rate note only, and pins the date to `SETUP_DAY` unless the
- * caller set `page.clock` first. setup.spec.ts checks that both write the same rows.
+ * Edit plan would on the setup day (so the fixture's numbers stay), then written straight into IndexedDB from /tips.
+ * Ends on Home with the plan shown, as `completeSetup` does, unless `options.open` says otherwise. Same fixture,
+ * options and preparation: mocks Frankfurter, accepts the exchange-rate note only, and pins the date to `SETUP_DAY`
+ * unless the caller set `page.clock` first. setup.spec.ts checks that both write the same rows.
  */
-export async function seedSetup(page: Page, overrides: Partial<SetupFixture> = {}, options: SetupOptions = {}) {
+export async function seedSetup(page: Page, overrides: Partial<SetupFixture> = {}, options: SeedOptions = {}) {
   const f: SetupFixture = { ...DEFAULT_SETUP, ...overrides };
   await mockFrankfurter(page);
   await acceptPrivacyNotes(page, ['rates']);
@@ -132,6 +142,8 @@ export async function seedSetup(page: Page, overrides: Partial<SetupFixture> = {
   if (problems.length > 0) throw new Error(`seedSetup: the wizard would refuse this setup: ${problems.join(' ')}`);
 
   await writeSetup(page, draftToRecords(draft, today, undefined, stored, now));
+  // A page load is the slow part on the iPhone project (WebKit): a spec that opens another page next saves one here.
+  if (options.open === false) return;
   await openApp(page, '/');
   await waitForHome(page);
 }

@@ -2,7 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 import { E2E_SUPABASE_ENV } from './e2e/helpers/supabase';
 
 // The service worker is only registered in a production build, so this config runs the one spec that needs it
-// against `next start`. Port 3100 keeps it apart from the dev server on 3000 that `playwright.config.ts` uses.
+// against `next start` with the worker allowed. Port 3100 keeps it apart from the dev server on 3000 and the e2e server
+// on 3200 (`playwright.config.ts`).
 export default defineConfig({
   testDir: './e2e',
   testMatch: 'offline.spec.ts',

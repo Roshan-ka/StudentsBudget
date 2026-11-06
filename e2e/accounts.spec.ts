@@ -304,7 +304,7 @@ async function openEuroTransfer(page: Page) {
 }
 
 test('a new transfer is dated the day it is saved, unless a date was picked', async ({ page }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   await openEuroTransfer(page);
   const date = page.getByLabel('Date', { exact: true });
   await expect(date).toHaveValue('2026-10-16');

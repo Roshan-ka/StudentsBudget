@@ -90,12 +90,11 @@ async function recordedWeek(page: Page, weekStart: string): Promise<WeekResult |
 }
 
 test('five finished weeks show on Home and earn the bronze Under-Budget Week', async ({ page }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   await seedFiveWeeks(page);
   // Wednesday 18 November: five weeks are over and past their two days of grace; the app records them when it opens.
   await page.clock.setFixedTime(on(2026, 11, 18));
-  await page.reload();
-  await waitForApp(page);
+  await openApp(page, '/');
 
   const card = page.getByRole('region', { name: 'Badges', exact: true });
   await expect(card.getByText('3 of 4 earned', { exact: true })).toBeVisible(RECORDING);
@@ -128,7 +127,7 @@ test('five finished weeks show on Home and earn the bronze Under-Budget Week', a
 });
 
 test('"I was away this week" is saved and keeps the logging streak waiting', async ({ page }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   await seedFiveWeeks(page);
   // Wednesday 18 November, a week with nothing logged.
   await page.clock.setFixedTime(on(2026, 11, 18));
@@ -184,7 +183,7 @@ test('"I was away this week" is saved and keeps the logging streak waiting', asy
 });
 
 test('a week away can still be marked on the Tuesday after it, before it is recorded', async ({ page }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   await seedFiveWeeks(page);
   // Tuesday 24 November: the app was not opened in the week of 16 November, which waits to be recorded.
   await page.clock.setFixedTime(on(2026, 11, 24));

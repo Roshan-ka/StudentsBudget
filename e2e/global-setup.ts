@@ -2,10 +2,10 @@ import type { FullConfig } from '@playwright/test';
 import { PAGES } from './helpers/pages';
 
 /**
- * Asks the dev server for every page once, all at once, before the first test. `next dev` compiles a route on its
- * first request; without this, the first test to open each route paid for that compile out of its own time and its
- * 5 s waits, and on the iPhone project of a busy laptop that alone ran some over. Playwright starts the web server
- * before this runs. A server that is already warm answers in moments.
+ * Asks the server for every page once, all at once, before the first test. Against the production build (the default)
+ * that costs a moment. Against a running `npm run dev` (`E2E_PORT=3000`), which compiles a route on its first request,
+ * it keeps that compile out of the first test to open each route, which on the iPhone project of a busy laptop ran
+ * some over. Playwright starts the web server before this runs.
  */
 export default async function warmUpRoutes(config: FullConfig) {
   const baseURL = config.projects[0]?.use.baseURL;
