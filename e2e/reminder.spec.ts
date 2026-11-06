@@ -32,12 +32,15 @@ async function signIn(page: Page, words = EN.auth) {
   await page.getByRole('button', { name: words.signIn.signIn, exact: true }).click();
 }
 
-/** Skips the spec when the reused dev server was started without the VAPID key: the page then has nothing to offer. */
-async function skipUnlessReminders(page: Page) {
+/**
+ * Skips the spec when the reused dev server was started without the VAPID key: the page then has nothing to offer.
+ * `t` is the language the page opens in (the spec's locale): its heading shows once that language is on.
+ */
+async function skipUnlessReminders(page: Page, t = EN) {
   await skipUnlessAccountsShow(page);
   await page.goto('/settings/reminder');
-  await expect(page.getByRole('heading', { level: 2, name: EN.shell.headings.reminder, exact: true })).toBeVisible();
-  const off = (await page.getByText(TEXT.unavailable, { exact: true }).count()) > 0;
+  await expect(page.getByRole('heading', { level: 2, name: t.shell.headings.reminder, exact: true })).toBeVisible();
+  const off = (await page.getByText(t.reminder.unavailable, { exact: true }).count()) > 0;
   test.skip(off, 'The reused dev server has no NEXT_PUBLIC_VAPID_PUBLIC_KEY: stop it, or run with E2E_PORT=3001.');
 }
 
@@ -225,7 +228,7 @@ test.describe('in German', () => {
     const reminders: ServerReminders = new Map();
     await mockSupabaseData(page, { reminders });
     await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
-    await skipUnlessReminders(page);
+    await skipUnlessReminders(page, de);
     await signIn(page, de.auth);
     await expect(page.getByText(`Angemeldet als ${EMAIL}.`, { exact: true })).toBeVisible();
     await page.goto('/settings/reminder');
