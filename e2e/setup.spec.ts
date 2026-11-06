@@ -235,7 +235,7 @@ test('the first setup asks only the basic questions, with the budget at the top 
     ),
   ).toBeVisible();
   await expect(
-    page.getByText('Get BAföG or a scholarship? Add it later under Edit plan in Settings.', { exact: true }),
+    page.getByText('Get BAföG or a scholarship? Add it later in Settings → Plan → Edit plan.', { exact: true }),
   ).toBeVisible();
 
   await go('Fixed costs');
@@ -247,7 +247,7 @@ test('the first setup asks only the basic questions, with the budget at the top 
   }
   await expect(
     page.getByText(
-      'Subscriptions, the gym, utilities and the Rundfunkbeitrag can be added later under Edit plan in Settings.',
+      'Subscriptions, the gym, utilities and the Rundfunkbeitrag can be added later in Settings → Plan → Edit plan.',
       { exact: true },
     ),
   ).toBeVisible();
@@ -280,7 +280,7 @@ test('the first setup asks only the basic questions, with the budget at the top 
   ).toBeVisible();
   await expect(
     page.getByText(
-      'How much do you want to allow yourself for each of these a month, in euros? You can change them, and add envelopes like study materials or travel, under Edit plan in Settings.',
+      'How much do you want to allow yourself for each of these a month, in euros? You can change them, and add envelopes like study materials or travel, in Settings → Plan → Edit plan.',
       { exact: true },
     ),
   ).toBeVisible();
@@ -533,7 +533,7 @@ test('editing the plan skips accounts and guesses and keeps what setup stored', 
   await page.getByRole('link', { name: /^Plan/ }).click();
   await page.getByRole('link', { name: 'Edit plan' }).click();
 
-  await expect(page.getByRole('heading', { level: 2, name: 'Adjust your plan' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Edit plan' })).toBeVisible();
   // Accounts and guesses are skipped: five steps.
   await expect(page.getByText('Step 1 of 5', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Rent per month')).toHaveValue('400');
@@ -817,7 +817,7 @@ test('editing the plan keeps each schedule and how far it has posted', async ({ 
 
   await page.goto('/settings/plan');
   await page.getByRole('link', { name: 'Edit plan' }).click();
-  await expect(page.getByRole('heading', { level: 2, name: 'Adjust your plan' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Edit plan' })).toBeVisible();
   await page.getByLabel('Rent per month').fill('390');
   for (const step of ['Income', 'Fixed costs']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();

@@ -63,12 +63,12 @@ export const sync = {
       'other phones when they next sync.',
     replaceWarning:
       "Using your account's data replaces everything on this phone. Want a copy first? Export a backup under " +
-      'Settings → Backup.',
+      'Settings → Backup and data.',
     keepPhone: "Keep this phone's data",
     useAccount: "Use my account's data",
     otherAccount:
       "This phone holds another account's data, so it stays apart from this one. To sync it, sign out and sign in " +
-      'with that account. To use this account here instead, delete everything on this phone (Settings → Backup); ' +
+      'with that account. To use this account here instead, delete everything on this phone (Settings → Backup and data); ' +
       'changes not synced yet are lost.',
     tryAgain: 'Try again',
     problems: {

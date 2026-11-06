@@ -384,7 +384,7 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
               setPending(null);
               setError(null);
             }}
-            placeholder={words.placeholder}
+            aria-describedby={`${id}-hint`}
             autoComplete="off"
             enterKeyHint="done"
           />
@@ -406,6 +406,10 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
             {words.add}
           </Button>
         </div>
+        {/* The example stays in sight while typing, where a placeholder went (accessibility, chunk 8). */}
+        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
+          {words.hint}
+        </p>
       </form>
 
       {noteOpen && (

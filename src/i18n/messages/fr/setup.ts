@@ -5,7 +5,7 @@ import { byCount, NNBSP } from './count';
 // et l'astuce d'installation. « Ajouter automatiquement » s'appelle pareil que dans les Réglages.
 export const setup: Messages['setup'] = {
   headingNew: 'Configure ton plan',
-  headingEdit: 'Ajuste ton plan',
+  headingEdit: 'Modifier le plan',
   stepOf: (step, total) => `Étape ${step} sur ${total}`,
   titles: {
     'city-rent': 'Ville et loyer',
@@ -16,7 +16,7 @@ export const setup: Messages['setup'] = {
     guesses: 'Estimations',
     envelopes: 'Enveloppes',
   },
-  accountsInSettings: 'Tes comptes sont déjà configurés dans les Réglages.',
+  accountsInSettings: 'Tes comptes sont déjà configurés, dans Réglages → Comptes et virements.',
   saveFailed: 'Impossible d’enregistrer ton plan. Réessaie.',
   back: 'Retour',
   next: 'Suivant',
@@ -64,15 +64,15 @@ export const setup: Messages['setup'] = {
       automatic: 'Ajouter automatiquement',
       after: ', pour que l’argent déjà sur ton compte ne compte pas deux fois.',
     },
-    later: `Tu touches le BAföG ou une bourse${NNBSP}? Ajoute-le plus tard sous Modifier le plan, dans les Réglages.`,
+    later: `Tu touches le BAföG ou une bourse${NNBSP}? Ajoute-le plus tard dans Réglages → Plan → Modifier le plan.`,
   },
   fixed: {
     intro:
       `Que paies-tu chaque mois, en euros${NNBSP}? Ton loyer est déjà pris en compte depuis l’étape 1. Laisse de ` +
       'côté ce que tu ne paies pas.',
     later:
-      'Les abonnements, la salle de sport, les charges et le Rundfunkbeitrag peuvent être ajoutés plus tard sous ' +
-      'Modifier le plan, dans les Réglages.',
+      'Les abonnements, la salle de sport, les charges et le Rundfunkbeitrag peuvent être ajoutés plus tard dans ' +
+      'Réglages → Plan → Modifier le plan.',
     rent: (amount) => `Loyer${NNBSP}: ${amount} par mois`,
   },
   oneOffs: {
@@ -114,7 +114,7 @@ export const setup: Messages['setup'] = {
     askEdit: `Combien veux-tu t’accorder par mois pour chacune, en euros${NNBSP}? Tu peux les modifier à tout moment.`,
     askNew:
       `Combien veux-tu t’accorder par mois pour chacune, en euros${NNBSP}? Tu peux les modifier, et ajouter des ` +
-      'enveloppes comme les études ou les voyages, sous Modifier le plan, dans les Réglages.',
+      'enveloppes comme les études ou les voyages, dans Réglages → Plan → Modifier le plan.',
     useSuggested: 'Utiliser les montants suggérés',
     fillsOnly: 'Ne remplit que les enveloppes que tu n’as pas encore définies.',
     studentsHere: 'Étudiants d’ici',

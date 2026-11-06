@@ -4,7 +4,7 @@ import type { Messages } from '../en';
 // der Hinweis zum Installieren. "Automatisch hinzufügen" muss so heißen wie der Schalter in recurring (Chunk 12).
 export const setup: Messages['setup'] = {
   headingNew: 'Richte deinen Plan ein',
-  headingEdit: 'Passe deinen Plan an',
+  headingEdit: 'Plan bearbeiten',
   stepOf: (step, total) => `Schritt ${step} von ${total}`,
   titles: {
     'city-rent': 'Stadt und Miete',
@@ -15,7 +15,7 @@ export const setup: Messages['setup'] = {
     guesses: 'Schätzungen',
     envelopes: 'Umschläge',
   },
-  accountsInSettings: 'Deine Konten sind schon in den Einstellungen angelegt.',
+  accountsInSettings: 'Deine Konten sind schon angelegt, unter Einstellungen → Konten und Umbuchungen.',
   saveFailed: 'Dein Plan konnte nicht gespeichert werden. Versuch es noch einmal.',
   back: 'Zurück',
   next: 'Weiter',
@@ -62,12 +62,12 @@ export const setup: Messages['setup'] = {
       automatic: 'Automatisch hinzufügen',
       after: ' aus, damit Geld, das schon auf deinem Konto ist, nicht doppelt zählt.',
     },
-    later: 'Bekommst du BAföG oder ein Stipendium? Trag es später unter Plan bearbeiten in den Einstellungen ein.',
+    later: 'Bekommst du BAföG oder ein Stipendium? Trag es später unter Einstellungen → Plan → Plan bearbeiten ein.',
   },
   fixed: {
     intro:
       'Was zahlst du jeden Monat, in Euro? Deine Miete ist schon aus Schritt 1 drin. Lass weg, was du nicht zahlst.',
-    later: 'Abos, Fitnessstudio, Nebenkosten und Rundfunkbeitrag kannst du später unter Plan bearbeiten in den Einstellungen ergänzen.',
+    later: 'Abos, Fitnessstudio, Nebenkosten und Rundfunkbeitrag kannst du später unter Einstellungen → Plan → Plan bearbeiten ergänzen.',
     rent: (amount) => `Miete: ${amount} im Monat`,
   },
   oneOffs: {
@@ -108,7 +108,7 @@ export const setup: Messages['setup'] = {
     askEdit: 'Wie viel willst du dir für jeden dieser Bereiche im Monat erlauben, in Euro? Du kannst das jederzeit ändern.',
     askNew:
       'Wie viel willst du dir für jeden dieser Bereiche im Monat erlauben, in Euro? Ändern und weitere Umschläge ' +
-      'wie Studienmaterial oder Reisen hinzufügen kannst du unter Plan bearbeiten in den Einstellungen.',
+      'wie Studienmaterial oder Reisen hinzufügen kannst du unter Einstellungen → Plan → Plan bearbeiten.',
     useSuggested: 'Vorschläge übernehmen',
     fillsOnly: 'Das füllt nur die Umschläge, die du noch nicht festgelegt hast.',
     studentsHere: 'Studierende hier',

@@ -62,13 +62,13 @@ export const sync: Messages['sync'] = {
       'otros móviles cuando sincronicen.',
     replaceWarning:
       'Usar los datos de tu cuenta sustituye todo lo que hay en este móvil. ¿Quieres una copia antes? Exporta una ' +
-      'copia de seguridad en Ajustes → Copia de seguridad.',
+      'copia de seguridad en Ajustes → Copia de seguridad y datos.',
     keepPhone: 'Conservar los datos de este móvil',
     useAccount: 'Usar los datos de mi cuenta',
     otherAccount:
       'Este móvil tiene los datos de otra cuenta, así que se mantiene separado de esta. Para sincronizarlo, cierra ' +
       'sesión e iníciala con esa cuenta. Para usar esta cuenta aquí, borra todo en este móvil (Ajustes → Copia de ' +
-      'seguridad); los cambios aún no sincronizados se pierden.',
+      'seguridad y datos); los cambios aún no sincronizados se pierden.',
     tryAgain: 'Intentar de nuevo',
     problems: {
       unfinished:

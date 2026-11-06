@@ -33,7 +33,7 @@ export const accounts: Messages['accounts'] = {
     opening: 'Saisis le solde initial sous forme de nombre, comme 250 ou 12,50.',
     saveFailed: 'Impossible d’enregistrer le compte.',
     inUse: 'Ce compte a des saisies. Supprime-les d’abord.',
-    hasSchedule: 'Ce compte a des charges fixes ou des revenus. Modifie-les d’abord sous Charges fixes et revenus.',
+    hasSchedule: 'Ce compte a des charges fixes ou des revenus. Modifie-les d’abord dans Réglages → Plan → Charges fixes et revenus.',
     deleteFailed: 'Impossible de supprimer le compte.',
     defaultFailed: 'Impossible de changer le compte par défaut.',
   },

@@ -100,9 +100,34 @@ export function savingText(minor: Minor, locale?: string): string {
  * what it is per are city content, in `lang` where translated (`swapIn`). A saving that rests on an assumption says
  * "(estimate)" on the line itself, where the number is shown, not only once the swap is opened.
  */
-export function swapLineText({ swap, savingPerUseMinor }: Suggestion, lang: Language = 'en'): string {
+export function swapLineText(suggestion: Suggestion, lang: Language = 'en'): string {
+  return swapLineParts(suggestion, lang)
+    .map((part) => part.text)
+    .join('');
+}
+
+/** A piece of a swap line: the app's words, or the swap's title or unit with the language they are in. */
+export type LinePart = { text: string; lang: 'en' | undefined };
+
+/** Where the swap's title and unit go in the line's words, until they are put in. */
+const TITLE_SLOT = '\u0001';
+const PER_SLOT = '\u0002';
+
+/**
+ * The swap line in pieces, so a title and unit still in English (a swap without a translation) can be marked
+ * `lang="en"` inside a line in another language (accessibility, chunk 8).
+ */
+export function swapLineParts({ swap, savingPerUseMinor }: Suggestion, lang: Language = 'en'): LinePart[] {
   const text = MESSAGES[lang].tips.swap;
   const words = swapIn(swap, lang);
-  const line = text.line(words.title, savingText(savingPerUseMinor, LANGUAGES[lang].locale), words.per);
-  return swap.estimate === true ? text.estimate(line) : line;
+  const line = text.line(TITLE_SLOT, savingText(savingPerUseMinor, LANGUAGES[lang].locale), PER_SLOT);
+  const whole = swap.estimate === true ? text.estimate(line) : line;
+  return whole
+    .split(/(\u0001|\u0002)/)
+    .filter((piece) => piece !== '')
+    .map((piece) => {
+      if (piece === TITLE_SLOT) return { text: words.title, lang: words.textLang };
+      if (piece === PER_SLOT) return { text: words.per, lang: words.textLang };
+      return { text: piece, lang: undefined };
+    });
 }

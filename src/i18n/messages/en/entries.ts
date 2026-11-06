@@ -4,7 +4,7 @@ export const entries = {
   addEntry: 'Add entry',
   transfer: 'Transfer',
   recurring: 'Recurring',
-  noAccount: 'Add an account in Settings first.',
+  noAccount: 'Add an account first, in Settings → Accounts and transfers.',
   saveFailed: 'Could not save the entry.',
   list: {
     label: 'Entries',
@@ -42,7 +42,8 @@ export const entries = {
   },
   quickAdd: {
     label: 'Quick add',
-    placeholder: 'What and how much, like “döner 6”',
+    /** Under the field, and read with it: an example of a line. */
+    hint: 'What and how much, like “döner 6”.',
     add: 'Add',
     noAmount: 'Add an amount, like “döner 6”',
     whichAmount: 'Which amount?',
@@ -78,6 +79,6 @@ export const entries = {
   /** buildEntry's answers to an expense or income it can't save. */
   errors: {
     enterAmount: 'Enter an amount.',
-    noRate: (currency: string) => `No exchange rate for ${currency} yet. Set one in Settings.`,
+    noRate: (currency: string) => `No exchange rate for ${currency} yet. Set one in Settings → Accounts and transfers.`,
   },
 };

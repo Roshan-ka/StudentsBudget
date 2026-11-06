@@ -450,231 +450,231 @@
     },
     {
       "path": "invalid/wrong-app.json",
-      "error": "This isn't a StudentsBudget backup file."
+      "error": "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup."
     },
     {
       "path": "invalid/newer-version.json",
-      "error": "This backup is from a newer version of the app."
+      "error": "This backup is from a newer version of the app. Reload the app while online to update it, then try again."
     },
     {
       "path": "invalid/missing-version.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-exported-at.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-data.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-data-accounts.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-data-categories.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-data-entries.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-data-plan.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-data-guesses.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-data-fx-rates.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/unsupported-version-zero.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/version-is-text.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/bad-export-timestamp.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/unknown-currency.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/unknown-city.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/rate-zero.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/rate-negative.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/bad-entry-date-2026-02-30.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/bad-entry-date-21-10-2026.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/fractional-minor-units.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/amount-is-text.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/entry-zero.json",
-      "error": "This backup file is damaged: an amount is zero or negative."
+      "error": "This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/entry-negative.json",
-      "error": "This backup file is damaged: an amount is zero or negative."
+      "error": "This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/entry-negative-euros.json",
-      "error": "This backup file is damaged: an amount is negative."
+      "error": "This backup file is damaged: an amount is negative. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-entry-account.json",
-      "error": "This backup file is damaged: an entry uses an account that isn't in the file."
+      "error": "This backup file is damaged: an entry uses an account that isn't in the file. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-entry-category.json",
-      "error": "This backup file is damaged: an entry uses a category that isn't in the file."
+      "error": "This backup file is damaged: an entry uses a category that isn't in the file. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/unknown-plan-category.json",
-      "error": "This backup file is damaged: the plan or the guesses use an unknown category."
+      "error": "This backup file is damaged: the plan or the guesses use an unknown category. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/negative-envelope.json",
-      "error": "This backup file is damaged: an amount is negative."
+      "error": "This backup file is damaged: an amount is negative. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/negative-spending-budget.json",
-      "error": "This backup file is damaged: an amount is negative."
+      "error": "This backup file is damaged: an amount is negative. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-transfer-target.json",
-      "error": "This backup file is damaged: a transfer goes to an account that isn't in the file."
+      "error": "This backup file is damaged: a transfer goes to an account that isn't in the file. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/transfer-without-target-field.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/transfer-received-zero.json",
-      "error": "This backup file is damaged: an amount is zero or negative."
+      "error": "This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/duplicate-accounts.json",
-      "error": "This backup file is damaged: two rows share the same id."
+      "error": "This backup file is damaged: two rows share the same id. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/duplicate-categories.json",
-      "error": "This backup file is damaged: two rows share the same id."
+      "error": "This backup file is damaged: two rows share the same id. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/duplicate-entries.json",
-      "error": "This backup file is damaged: two rows share the same id."
+      "error": "This backup file is damaged: two rows share the same id. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/duplicate-guesses.json",
-      "error": "This backup file is damaged: two rows share the same id."
+      "error": "This backup file is damaged: two rows share the same id. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/duplicate-fx-rates.json",
-      "error": "This backup file is damaged: two rows share the same id."
+      "error": "This backup file is damaged: two rows share the same id. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/duplicate-week-results.json",
-      "error": "This backup file is damaged: two rows share the same id."
+      "error": "This backup file is damaged: two rows share the same id. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/duplicate-discount-votes.json",
-      "error": "This backup file is damaged: two rows share the same id."
+      "error": "This backup file is damaged: two rows share the same id. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/duplicate-one-offs.json",
-      "error": "This backup file is damaged: two rows share the same id."
+      "error": "This backup file is damaged: two rows share the same id. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/duplicate-schedules.json",
-      "error": "This backup file is damaged: two rows share the same id."
+      "error": "This backup file is damaged: two rows share the same id. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/schedule-day-32.json",
-      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule."
+      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/schedule-weekday-8.json",
-      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule."
+      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/schedule-watermark-before-start.json",
-      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule."
+      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/schedule-before-plan-start.json",
-      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule."
+      "error": "This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/schedule-frequency-daily.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/week-start-not-monday.json",
-      "error": "This backup file is damaged: a saved week doesn't run from Monday to Sunday."
+      "error": "This backup file is damaged: a saved week doesn't run from Monday to Sunday. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/week-end-not-sunday.json",
-      "error": "This backup file is damaged: a saved week doesn't run from Monday to Sunday."
+      "error": "This backup file is damaged: a saved week doesn't run from Monday to Sunday. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/negative-week-amount.json",
-      "error": "This backup file is damaged: an amount is negative."
+      "error": "This backup file is damaged: an amount is negative. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/negative-log-count.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/unknown-discount-vote.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/unknown-university.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/invalid-semester-date.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/one-off-zero.json",
-      "error": "This backup file is damaged: an amount is zero or negative."
+      "error": "This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/one-off-invalid-month.json",
-      "error": "This backup file is incomplete."
+      "error": "This backup file is incomplete. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/malformed-json.json",
-      "error": "This isn't a StudentsBudget backup file."
+      "error": "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup."
     }
   ]
 }

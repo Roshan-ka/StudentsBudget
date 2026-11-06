@@ -5,7 +5,7 @@ import { byCount } from './count';
 // pista de instalación. "Añadir automáticamente" se llama igual que en Ajustes.
 export const setup: Messages['setup'] = {
   headingNew: 'Configura tu plan',
-  headingEdit: 'Ajusta tu plan',
+  headingEdit: 'Editar plan',
   stepOf: (step, total) => `Paso ${step} de ${total}`,
   titles: {
     'city-rent': 'Ciudad y alquiler',
@@ -16,7 +16,7 @@ export const setup: Messages['setup'] = {
     guesses: 'Estimaciones',
     envelopes: 'Sobres',
   },
-  accountsInSettings: 'Tus cuentas ya están configuradas en Ajustes.',
+  accountsInSettings: 'Tus cuentas ya están configuradas en Ajustes → Cuentas y transferencias.',
   saveFailed: 'No se ha podido guardar tu plan. Inténtalo de nuevo.',
   back: 'Atrás',
   next: 'Siguiente',
@@ -60,13 +60,13 @@ export const setup: Messages['setup'] = {
       automatic: 'Añadir automáticamente',
       after: ', para que el dinero que ya está en tu cuenta no cuente dos veces.',
     },
-    later: '¿Recibes BAföG o una beca? Añádelo más tarde en Editar plan, en Ajustes.',
+    later: '¿Recibes BAföG o una beca? Añádelo más tarde en Ajustes → Plan → Editar plan.',
   },
   fixed: {
     intro: '¿Qué pagas cada mes, en euros? Tu alquiler ya está incluido desde el paso 1. Deja fuera lo que no pagas.',
     later:
-      'Las suscripciones, el gimnasio, los suministros y el Rundfunkbeitrag se pueden añadir más tarde en Editar ' +
-      'plan, en Ajustes.',
+      'Las suscripciones, el gimnasio, los suministros y el Rundfunkbeitrag se pueden añadir más tarde en Ajustes ' +
+      '→ Plan → Editar plan.',
     rent: (amount) => `Alquiler: ${amount} al mes`,
   },
   oneOffs: {
@@ -106,7 +106,7 @@ export const setup: Messages['setup'] = {
     askEdit: '¿Cuánto quieres permitirte al mes para cada uno, en euros? Puedes cambiarlo cuando quieras.',
     askNew:
       '¿Cuánto quieres permitirte al mes para cada uno, en euros? Puedes cambiarlos, y añadir sobres como ' +
-      'material de estudio o viajes, en Editar plan, en Ajustes.',
+      'material de estudio o viajes, en Ajustes → Plan → Editar plan.',
     useSuggested: 'Usar los importes sugeridos',
     fillsOnly: 'Solo rellena los sobres que aún no has puesto.',
     studentsHere: 'Estudiantes aquí',

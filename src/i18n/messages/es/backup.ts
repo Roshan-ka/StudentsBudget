@@ -51,10 +51,10 @@ export const backup: Messages['backup'] = {
     failed: 'No se han podido borrar tus datos. Inténtalo de nuevo.',
   },
   file: {
-    notBackup: 'Este no es un archivo de copia de seguridad de StudentsBudget.',
-    newer: 'Esta copia es de una versión más nueva de la app.',
-    incomplete: 'Este archivo de copia está incompleto.',
-    damaged: (problem) => `Este archivo de copia está dañado: ${problem}.`,
+    notBackup: 'Este no es un archivo de copia de seguridad de StudentsBudget. Elige una que haya exportado la app: su nombre empieza por studentsbudget-backup.',
+    newer: 'Esta copia es de una versión más nueva de la app. Recarga la app con conexión para actualizarla y vuelve a intentarlo.',
+    incomplete: 'Este archivo de copia está incompleto. Elige otra copia o exporta una nueva.',
+    damaged: (problem) => `Este archivo de copia está dañado: ${problem}. Elige otra copia o exporta una nueva.`,
   },
   problems: {
     entryAccount: 'un registro usa una cuenta que no está en el archivo',

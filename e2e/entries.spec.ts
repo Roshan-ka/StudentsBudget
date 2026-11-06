@@ -257,7 +257,7 @@ test('quick add refuses an account whose currency has no rate yet', async ({ pag
   await quickAdd(page, 'chai 40');
   await page.getByRole('button', { name: 'Food & groceries' }).click();
 
-  await expect(inlineAlert(page)).toHaveText('No exchange rate for INR yet. Set one in Settings.');
+  await expect(inlineAlert(page)).toHaveText('No exchange rate for INR yet. Set one in Settings → Accounts and transfers.');
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
 });
 

@@ -5,6 +5,7 @@ import {
   createSuggestionProvider,
   furthestOver,
   localSuggestions,
+  swapLineParts,
   swapLineText,
   type SuggestionRow,
 } from './suggest';
@@ -226,6 +227,26 @@ describe('amountText', () => {
     expect(amountText(380)).toBe('€3.80');
     expect(amountText(3400)).toBe('€34');
     expect(amountText(2200)).toBe('€22');
+  });
+});
+
+describe('swapLineParts', () => {
+  it('marks a title and unit still in English inside a German line, and nothing in a translated one', () => {
+    const untranslated = { ...swap('x', 'eating-out', 1450, 380, 'meal'), title: 'Eat at the Mensa' };
+    const parts = swapLineParts({ categoryId: 'eating-out', swap: untranslated, savingPerUseMinor: 1070 }, 'de');
+    expect(parts.filter((part) => part.lang === 'en').map((part) => part.text)).toEqual(['Eat at the Mensa', 'meal']);
+    expect(parts.map((part) => part.text).join('')).toBe('Probier das: Eat at the Mensa · spar etwa 10\u00a0€ pro meal');
+
+    const mensa = SWAPS.find((s) => s.id === 'mensa-instead-of-restaurant');
+    if (mensa === undefined) throw new Error('the Mensa swap is gone');
+    const translated = swapLineParts({ categoryId: 'eating-out', swap: mensa, savingPerUseMinor: 1070 }, 'de');
+    expect(translated.every((part) => part.lang === undefined)).toBe(true);
+  });
+
+  it('marks nothing in English, where every word is the phone\'s language', () => {
+    const s = { ...swap('x', 'eating-out', 1450, 380, 'meal'), title: 'Eat at the Mensa' };
+    const parts = swapLineParts({ categoryId: 'eating-out', swap: s, savingPerUseMinor: 1070 });
+    expect(parts.every((part) => part.lang === undefined)).toBe(true);
   });
 });
 

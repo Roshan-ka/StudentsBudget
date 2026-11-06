@@ -47,7 +47,7 @@ describe('buildEntry', () => {
   it('refuses INR without a rate', () => {
     const result = buildEntry(expense, account('inr', 'INR'), {}, NOW);
 
-    expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account' });
+    expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings → Accounts and transfers.', field: 'account' });
   });
 
   it('needs no rate for EUR', () => {
@@ -211,7 +211,7 @@ describe('buildEntry', () => {
     it('an amount edit without a rate is refused', () => {
       const result = buildEntry({ ...edit, amountMinor: 190000 }, account('inr', 'INR'), {}, NOW, existing);
 
-      expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account' });
+      expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings → Accounts and transfers.', field: 'account' });
     });
 
     it('moving the entry to another account converts again', () => {
@@ -320,7 +320,7 @@ describe('buildEntry', () => {
 
     expect(buildEntry(transfer, inr, {}, NOW)).toEqual({
       ok: false,
-      error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account',
+      error: 'No exchange rate for INR yet. Set one in Settings → Accounts and transfers.', field: 'account',
     });
     expect(buildEntry({ ...transfer, toAccountId: 'inr' }, inr, INR_RATES, NOW)).toEqual({
       ok: false,

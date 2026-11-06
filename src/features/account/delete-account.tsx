@@ -136,7 +136,7 @@ export function DeleteAccountCard({ email }: { email: string }) {
 
   return (
     <section aria-labelledby={`${id}-heading`} className={SECURITY_CARD}>
-      <CardHeading id={`${id}-heading`} icon={<Trash2Icon />}>
+      <CardHeading id={`${id}-heading`} icon={<Trash2Icon />} level={3}>
         {text.heading}
       </CardHeading>
       <p className="text-sm text-muted-foreground">{text.intro}</p>

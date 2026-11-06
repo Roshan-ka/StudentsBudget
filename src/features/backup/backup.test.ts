@@ -8,9 +8,11 @@ const NOW = new Date('2026-10-16T10:00:00.000Z');
 
 const DEMO = readFileSync(new URL('../../../fixtures/studentsbudget-demo-2026-10.json', import.meta.url), 'utf8');
 
-const NOT_A_BACKUP = "This isn't a StudentsBudget backup file.";
-const NEWER = 'This backup is from a newer version of the app.';
-const INCOMPLETE = 'This backup file is incomplete.';
+const NOT_A_BACKUP =
+  "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.";
+const NEWER =
+  'This backup is from a newer version of the app. Reload the app while online to update it, then try again.';
+const INCOMPLETE = 'This backup file is incomplete. Choose another backup, or export a new one.';
 
 function sample(): BackupData {
   return {
@@ -492,7 +494,7 @@ function parseChanged(change: (data: BackupData) => void, base: () => BackupData
 }
 
 function damaged(reason: string): { ok: false; error: string } {
-  return { ok: false, error: `This backup file is damaged: ${reason}.` };
+  return { ok: false, error: `This backup file is damaged: ${reason}. Choose another backup, or export a new one.` };
 }
 
 function expenseRow(data: BackupData) {

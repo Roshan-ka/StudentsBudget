@@ -35,7 +35,7 @@ export const home: Messages['home'] = {
     nothingToGoOn: 'Aún no hay datos',
     nothingAvailable:
       'Todavía no hay nada que repartir: tus ingresos no dejan nada tras los gastos fijos y lo que apartas. ' +
-      'Puedes cambiar tu plan en Ajustes.',
+      'Puedes cambiar tu plan en Ajustes → Plan.',
     available,
     availableWithinBudget: (amount, budget) =>
       `${available(amount)} Estos importes se ajustan a tu presupuesto del día a día de ${budget}.`,

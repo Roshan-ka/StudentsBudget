@@ -52,10 +52,10 @@ export const backup: Messages['backup'] = {
     failed: 'Impossible de supprimer tes données. Réessaie.',
   },
   file: {
-    notBackup: 'Ce n’est pas un fichier de sauvegarde StudentsBudget.',
-    newer: 'Cette sauvegarde vient d’une version plus récente de l’app.',
-    incomplete: 'Ce fichier de sauvegarde est incomplet.',
-    damaged: (problem) => `Ce fichier de sauvegarde est endommagé${NNBSP}: ${problem}.`,
+    notBackup: 'Ce n’est pas un fichier de sauvegarde StudentsBudget. Choisis-en un exporté par l’app. Son nom commence par studentsbudget-backup.',
+    newer: 'Cette sauvegarde vient d’une version plus récente de l’app. Recharge l’app avec Internet pour la mettre à jour, puis réessaie.',
+    incomplete: 'Ce fichier de sauvegarde est incomplet. Choisis une autre sauvegarde ou exportes-en une nouvelle.',
+    damaged: (problem) => `Ce fichier de sauvegarde est endommagé${NNBSP}: ${problem}. Choisis une autre sauvegarde ou exportes-en une nouvelle.`,
   },
   problems: {
     entryAccount: 'une saisie utilise un compte qui n’est pas dans le fichier',

@@ -33,7 +33,7 @@ export const accounts: Messages['accounts'] = {
     saveFailed: 'Das Konto konnte nicht gespeichert werden.',
     inUse: 'Dieses Konto hat Einträge. Lösch zuerst diese.',
     hasSchedule:
-      'Über dieses Konto laufen Fixkosten oder Einnahmen. Ändere das zuerst unter Fixkosten und Einnahmen.',
+      'Über dieses Konto laufen Fixkosten oder Einnahmen. Ändere das zuerst unter Einstellungen → Plan → Fixkosten und Einnahmen.',
     deleteFailed: 'Das Konto konnte nicht gelöscht werden.',
     defaultFailed: 'Das Standardkonto konnte nicht geändert werden.',
   },

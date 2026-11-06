@@ -3,7 +3,7 @@
 
 export const setup = {
   headingNew: 'Set up your plan',
-  headingEdit: 'Adjust your plan',
+  headingEdit: 'Edit plan',
   stepOf: (step: number, total: number) => `Step ${step} of ${total}`,
   titles: {
     'city-rent': 'City and rent',
@@ -14,7 +14,7 @@ export const setup = {
     guesses: 'Guesses',
     envelopes: 'Envelopes',
   },
-  accountsInSettings: 'Your accounts are already set up in Settings.',
+  accountsInSettings: 'Your accounts are already set up, in Settings → Accounts and transfers.',
   saveFailed: 'Could not save your plan. Try again.',
   back: 'Back',
   next: 'Next',
@@ -65,11 +65,11 @@ export const setup = {
       automatic: 'Add it automatically',
       after: ", so money already in your account isn't counted twice.",
     },
-    later: 'Get BAföG or a scholarship? Add it later under Edit plan in Settings.',
+    later: 'Get BAföG or a scholarship? Add it later in Settings → Plan → Edit plan.',
   },
   fixed: {
     intro: 'What do you pay every month, in euros? Your rent is already in from step 1. Leave out what you do not pay.',
-    later: 'Subscriptions, the gym, utilities and the Rundfunkbeitrag can be added later under Edit plan in Settings.',
+    later: 'Subscriptions, the gym, utilities and the Rundfunkbeitrag can be added later in Settings → Plan → Edit plan.',
     rent: (amount: string) => `Rent: ${amount} a month`,
   },
   oneOffs: {
@@ -115,7 +115,7 @@ export const setup = {
       'How much do you want to allow yourself for each of these a month, in euros? You can change these any time.',
     askNew:
       'How much do you want to allow yourself for each of these a month, in euros? You can change them, and add ' +
-      'envelopes like study materials or travel, under Edit plan in Settings.',
+      'envelopes like study materials or travel, in Settings → Plan → Edit plan.',
     useSuggested: 'Use the suggested amounts',
     fillsOnly: "It fills only the envelopes you haven't set.",
     studentsHere: 'Students here',

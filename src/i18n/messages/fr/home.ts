@@ -36,7 +36,7 @@ export const home: Messages['home'] = {
     nothingToGoOn: 'Pas encore de données',
     nothingAvailable:
       `Rien à répartir pour l’instant${NNBSP}: tes revenus ne laissent rien après les charges fixes et ce que tu ` +
-      'mets de côté. Tu peux modifier ton plan dans les Réglages.',
+      'mets de côté. Tu peux modifier ton plan dans Réglages → Plan.',
     available,
     availableWithinBudget: (amount, budget) =>
       `${available(amount)} Ces montants respectent ton budget du quotidien de ${budget}.`,

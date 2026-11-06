@@ -15,22 +15,26 @@ export function CardHeading({
   icon,
   status,
   active = false,
+  level = 4,
   children,
 }: {
   id: string;
   icon: ReactNode;
   status?: string;
   active?: boolean;
+  /** 4 inside Sign-in and security; 3 for a card that sits beside it (Delete my account). */
+  level?: 3 | 4;
   children: ReactNode;
 }) {
+  const Heading = level === 3 ? 'h3' : 'h4';
   return (
     <div className="flex items-center gap-2">
       <span aria-hidden="true" className="text-primary [&_svg]:size-5">
         {icon}
       </span>
-      <h4 id={id} className="font-semibold">
+      <Heading id={id} className="font-semibold">
         {children}
-      </h4>
+      </Heading>
       {status !== undefined && (
         <span
           className={cn(

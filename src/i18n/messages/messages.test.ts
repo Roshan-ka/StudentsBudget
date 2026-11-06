@@ -40,6 +40,8 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'setup.lines.range',
     'setup.editPlan.heading',
     'shell.headings.plan',
+    // "Melden: …": the button's word, then the post, as in English.
+    'tips.hacks.named',
     'accounts.name',
     'accounts.kinds.bank',
     'accounts.rates.rate',
@@ -61,6 +63,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'setup.lines.range',
     'setup.editPlan.heading',
     'shell.headings.plan',
+    'tips.hacks.named',
     'accounts.total',
     'accounts.rates.rate',
     'backup.restore.question.after',

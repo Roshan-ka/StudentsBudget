@@ -114,14 +114,16 @@ test('a report asks first, then the post leaves the list', async ({ page }) => {
   await signInAndOpenHacks(page);
 
   const advert = post(page, 'An advert');
-  await advert.getByRole('button', { name: 'Report', exact: true }).click();
+  // Report says which post (accessibility, chunk 8).
+  const report = advert.getByRole('button', { name: /^Report: (the post by @\w+|a post from) / });
+  await report.click();
   await expect(advert).toContainText('Report this post? It disappears for you at once');
   await advert.getByRole('button', { name: 'Cancel', exact: true }).click();
   expect(reports).toHaveLength(0);
 
+  await report.click();
+  // The question's own Report button: the one among the vote buttons is named for its post.
   await advert.getByRole('button', { name: 'Report', exact: true }).click();
-  // The question's own Report button: the one among the vote buttons is still there, above it.
-  await advert.getByRole('button', { name: 'Report', exact: true }).last().click();
   await expect(panel(page).getByRole('status')).toHaveText('Reported. You won’t see this post anymore.');
   await expect(post(page, 'An advert')).toHaveCount(0);
   await expect(post(page, 'Bread is half price')).toHaveCount(1);

@@ -188,7 +188,9 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
               onChange={(minor) => setEdits((current) => ({ ...current, [row.categoryId]: minor ?? 0 }))}
               hint={<p>{basisLine(row, lastMonth, t, lang)}</p>}
             />
-            {row.basis === 'city' && row.range && <RangeSource range={rangeIn(row.range, lang)} />}
+            {row.basis === 'city' && row.range && (
+              <RangeSource range={rangeIn(row.range, lang)} about={categoryNameIn(t, row.categoryId)} />
+            )}
           </div>
         );
       })}

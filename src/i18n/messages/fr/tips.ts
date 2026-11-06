@@ -90,6 +90,9 @@ export const tips: Messages['tips'] = {
     deleteFailed: 'La publication n’a pas pu être supprimée. Réessaie.',
     vote: { group: 'Ton vote sur cette publication', up: 'Vote positif', worked: 'Ça a marché', outdated: 'Dépassé' },
     report: 'Signaler',
+    which: (author, date) => (author === null ? `une publication du ${date}` : `la publication de ${author}, ${date}`),
+    whichMine: (date) => `ta publication, ${date}`,
+    named: (button, post) => `${button}${NNBSP}: ${post}`,
     reportQuestion:
       `Signaler cette publication${NNBSP}? Elle disparaît pour toi tout de suite, et pour tous quand assez ` +
       'd’étudiants la signalent.',

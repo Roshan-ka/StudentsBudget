@@ -44,8 +44,8 @@ export const recurring = {
   deleteNote: (name: string) => `Delete ${name}? Entries already added stay.`,
   /** The setup wizard's "Add it automatically" group for one line. */
   schedule: (name: string) => `${name} schedule`,
-  noAccountSettings: 'Add an account in Settings to have this added automatically.',
-  pausedForNow: 'Paused for now. Resume it under Fixed costs and income in Settings.',
+  noAccountSettings: 'Add an account in Settings → Accounts and transfers to have this added automatically.',
+  pausedForNow: 'Paused for now. Resume it in Settings → Plan → Fixed costs and income.',
   keepsPlan: "Each time it's added. The euro amount stays your plan.",
   eachWeek: (amount: string) => `That's ${amount} each week.`,
   repeats: 'Repeats',

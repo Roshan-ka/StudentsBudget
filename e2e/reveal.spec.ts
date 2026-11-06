@@ -50,7 +50,7 @@ test('before 21 days home and the reveal page say when the guesses unlock', asyn
   await expect(page.getByText('Your guesses unlock on 6 Nov. Keep logging.', { exact: true })).toBeVisible();
   // Nothing to compare, and nothing to adjust yet; the setup month is still running, so no recap either.
   await expect(page.getByText(/You guessed/)).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Adjust my plan' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Edit plan' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Month by month' })).toHaveCount(0);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
@@ -99,7 +99,7 @@ test('on day 22 each guess shows next to what was spent, and the plan can be adj
   await expect(recaps(page)).toHaveText(['October 2026 (counted from 16 Oct): €274 left over']);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  const adjust = page.getByRole('link', { name: 'Adjust my plan' });
+  const adjust = page.getByRole('link', { name: 'Edit plan' });
   await expect(adjust).toHaveAttribute('href', '/setup?edit=1&step=envelopes');
   await adjust.click();
   await expect(page).toHaveURL('/setup?edit=1&step=envelopes');

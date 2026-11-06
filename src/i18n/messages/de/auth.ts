@@ -7,7 +7,7 @@ export const auth: Messages['auth'] = {
     invalidCredentials: 'E-Mail oder Passwort stimmt nicht.',
     accountExists: 'Für diese E-Mail gibt es schon ein Konto. Melde dich stattdessen an.',
     weakPassword: 'Dieses Passwort ist zu leicht zu erraten. Wähle ein längeres.',
-    checkEmail: 'Prüf die E-Mail-Adresse.',
+    checkEmail: 'Prüf die E-Mail-Adresse: Sie braucht ein @ und eine Domain, etwa name@example.com.',
     signupDisabled: 'Neue Konten sind gerade abgeschaltet.',
     emailDisabled: 'Die Anmeldung per E-Mail ist gerade abgeschaltet.',
     notConfirmed: 'Dieses Konto muss erst mit dem Code aus seiner E-Mail bestätigt werden.',

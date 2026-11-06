@@ -9,7 +9,7 @@ export const auth: Messages['auth'] = {
     invalidCredentials: 'El correo o la contraseña no son correctos.',
     accountExists: 'Este correo ya tiene una cuenta. Inicia sesión.',
     weakPassword: 'Esta contraseña es demasiado fácil de adivinar. Elige una más larga.',
-    checkEmail: 'Revisa la dirección de correo.',
+    checkEmail: 'Revisa la dirección de correo: necesita una @ y un dominio, como nombre@ejemplo.com.',
     signupDisabled: 'Ahora mismo no se pueden crear cuentas nuevas.',
     emailDisabled: 'Ahora mismo no se puede iniciar sesión con correo.',
     notConfirmed: 'Esta cuenta aún tiene que confirmarse con el código de su correo.',
