@@ -123,6 +123,8 @@ Roshan approved this plan on 05-11-2026, after a builder's read raised three que
 
 ## Go live (Roshan, after chunks 1, 3 and 4 merge)
 
+Until then nothing needs doing: the cron job runs, finds no settings in Vault and does nothing.
+
 1. Generate VAPID keys once:
 
    ```bash
@@ -130,20 +132,35 @@ Roshan approved this plan on 05-11-2026, after a builder's read raised three que
    ```
 
 2. Put the public key in Vercel and `.env.local` as `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, then redeploy.
-3. Set the function's secrets:
+3. Make the cron secret, a long random string only the job and the function know:
+
+   ```bash
+   node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+   ```
+
+4. Set the function's secrets (Supabase adds `SUPABASE_URL` and `SUPABASE_SECRET_KEYS` itself):
 
    ```bash
    npx supabase secrets set VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=… VAPID_SUBJECT=mailto:… CRON_SECRET=…
    ```
 
-4. Deploy the function:
+5. Deploy the function, without the platform's JWT check (the cron secret is the check):
 
    ```bash
-   npx supabase functions deploy weekly-reminder
+   npx supabase functions deploy weekly-reminder --no-verify-jwt
    ```
 
-5. In the SQL editor, store the project URL and the same `CRON_SECRET` in Vault, under the names the cron migration reads.
-6. Run `npx supabase db push`.
+6. Run `npx supabase db push` (the schedule's migration).
+7. In the SQL editor, store the project URL and the same cron secret in Vault:
+
+   ```sql
+   select vault.create_secret('https://<project-ref>.supabase.co', 'weekly_reminder_url');
+   select vault.create_secret('<the CRON_SECRET>', 'weekly_reminder_secret');
+   ```
+
+8. Check it once by hand, in the SQL editor: `select private.request_weekly_reminders();`, then a few seconds later
+   `select status_code, content from net._http_response order by id desc limit 1;` should show 200 and the run's counts
+   (`{"due":0,"sent":0,"gone":0,"failed":0}` before anyone turns the reminder on).
 
 ## As built
 
@@ -155,6 +172,12 @@ Roshan approved this plan on 05-11-2026, after a builder's read raised three que
 **Chunk 2 (2026-11-05):**
 - `public/sw.js`: `push` shows `{ title, body, url, lang }` with the app's icon under the tag `weekly-reminder`, so a new reminder replaces an old one still in the tray; a push that can't be read still shows "StudentsBudget", since a push left without a notification can cost the site its permission. `notificationclick` closes it, focuses an open window of the app and takes it to the check-in, or opens a new one there. `ownPath` keeps any message's URL on the app.
 - `src/lib/sw.test.ts`: the fake worker gained `registration.showNotification`, `clients.matchAll` and `openWindow`, and events with `data` and `notification`; four tests (the line, an unreadable push or another site's URL, an open window, none open).
+
+**Chunk 3 (2026-11-06):**
+- **The spike's call: no library.** `web-push` (npm) is built on Node's crypto module, which edge runtimes only partly provide; the Web Crypto ports (`web-push-neo`, `web-push-browser`, `@negrel/webpush`) would work, but each is a small project, and the app's tests couldn't load it as Deno does. Instead `supabase/functions/_shared/web-push.ts` writes RFC 8291 (aes128gcm) and RFC 8292 (VAPID) with Web Crypto alone, about 150 lines, and `src/features/reminder/web-push.test.ts` holds it to RFC 8291's example byte for byte, decrypts a fresh message as a phone would, and verifies the VAPID signature. (The RFC's request says Content-Length: 145; its own body is 144 bytes.) `PUSH_ENDPOINT` is the table's host check, compared with the migration in the test.
+- `supabase/functions/_shared/send-reminders.ts`: `sendDueReminders` reads every row, keeps the due ones (`isDue`), claims each (saves the week first, so overlapping runs never send twice; a failed push isn't retried that week), sends `{ title, body, url, lang }` ten at a time with a 12-hour TTL and the `weekly-reminder` topic, deletes a row on 404 or 410, and logs a failure with the push service's host only. `handleRun` answers 405 for anything but POST, 401 without the `x-reminder-secret` header's secret (compared in constant time), 500 naming a missing setting, and otherwise the counts. `adminKeyOf` takes `SUPABASE_SECRET_KEYS`' `default`, else the older service-role key. Tests: `src/features/reminder/sender.test.ts`.
+- `supabase/functions/weekly-reminder/index.ts`: only the wiring (env, supabase-js with the secret key, paging by id, the claim as a conditional update, `Deno.serve`), with `deno.json` mapping `@supabase/supabase-js` to the app's pinned version, so the app's typecheck reads it too. `verify_jwt = false` in `supabase/config.toml`. Not run in Deno locally (no Deno here, and the local stack has the edge runtime off): the deploy and the real try are its check.
+- Migration `20261106084903_weekly_reminder_schedule.sql`: `pg_cron` and `pg_net`, `private.request_weekly_reminders()` (reads `weekly_reminder_url` and `weekly_reminder_secret` from Vault, returns null without them, else queues a POST with the secret and a 60-second timeout; only its owner may run it), and the job every 15 minutes. pgTAP: `supabase/tests/weekly_reminder_schedule.test.sql` (17: the job, who may run it, nothing without the settings, the request with them, the service role's rights on the table).
 
 ## Verification
 
