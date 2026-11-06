@@ -71,6 +71,9 @@ export function openableBar(
             height={height}
             radius={direction === 'row' ? [0, 4, 4, 0] : down ? [0, 0, 4, 4] : [4, 4, 0, 0]}
             fill={row?.color ?? props.fill}
+            // An outline, so a pale bar stands out from the card at 3:1 (accessibility, chunk 7).
+            stroke="var(--outline)"
+            strokeWidth={1.5}
           />
         )}
         {text && (
@@ -171,6 +174,9 @@ const RowsChart = memo(function RowsChart({
             dataKey="plannedMinor"
             name="planned"
             fill="var(--color-planned)"
+            // The pale planned bar is under 3:1 on the card: its outline carries it.
+            stroke="var(--outline)"
+            strokeWidth={1.5}
             barSize={20}
             radius={[0, 4, 4, 0]}
             isAnimationActive={false}

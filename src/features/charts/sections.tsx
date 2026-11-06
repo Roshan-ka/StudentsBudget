@@ -63,6 +63,11 @@ function categoryRow(
   };
 }
 
+/** The rows the donut's legend links to its entries: the hidden table leaves their links out. */
+function linkedIn(slices: ChartRow[]): ReadonlySet<string> {
+  return new Set(slices.filter((slice) => slice.href !== null).map((slice) => slice.id));
+}
+
 /** A donut's slices: the rows with something in them, the top 6, and a bucket when it folds 2 or more. */
 function slicesOf<T extends { categoryId: string }>(
   rows: T[],
@@ -141,8 +146,9 @@ export function SpendingSection({
                   centreLabel={text.centre}
                   summary={text.donutSummary(periodText, slicesText(slices, locale), note)}
                 />
-                {/* Every category, planned and spent: what the donut folds into one slice is in the table. */}
-                <DataTable {...table} />
+                {/* Every category, planned and spent: what the donut folds into one slice is in the table. The legend
+                    links the slices, so the table links only what is folded. */}
+                <DataTable {...table} linkedElsewhere={linkedIn(slices)} />
               </>
             ))}
           {style === 'bars' && (
@@ -210,7 +216,13 @@ export function IncomeSection({
                 centreLabel={text.centre}
                 summary={text.donutSummary(periodText, slicesText(slices, locale))}
               />
-              <DataTable caption={caption} firstColumn={text.source} columns={columns} rows={tableRows} />
+              <DataTable
+                caption={caption}
+                firstColumn={text.source}
+                columns={columns}
+                rows={tableRows}
+                linkedElsewhere={linkedIn(slices)}
+              />
             </>
           )}
           {style === 'bars' && (

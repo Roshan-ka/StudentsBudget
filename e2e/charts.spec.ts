@@ -160,6 +160,15 @@ test('opens spending as a donut of the top 6 and "Everything else", with the tot
   await expect(rows.nth(6).getByRole('link')).toHaveCount(0);
   // Rent is planned, not spent, so it is not a slice (it is in the table that goes with the chart).
   await expect(rows.filter({ hasText: 'Rent' })).toHaveCount(0);
+  // The legend links each slice, so the table that goes with the chart doesn't link it again: one Tab stop each
+  // (accessibility, chunk 7). What the bucket folds, and what is only planned, is linked there.
+  const table = spending.getByRole('table', { name: /Spending by category, October 2026/ });
+  await expect(table.getByRole('link', { name: 'Food & groceries', exact: true })).toHaveCount(0);
+  await expect(table.getByRole('link', { name: 'Gifts', exact: true })).toHaveAttribute(
+    'href',
+    '/entries?category=gifts&month=2026-10',
+  );
+  await expect(table.getByRole('link', { name: 'Rent', exact: true })).toHaveCount(1);
 });
 
 test('a category keeps its colour, and the bucket is grey', async ({ page }) => {
@@ -197,6 +206,11 @@ test('a tapped slice opens that category for the month, and the bucket cannot be
   const onFood = await pointOnRing(spending, 0.2);
   await page.mouse.move(onFood.x, onFood.y);
   await expect(spending.getByRole('tooltip')).toHaveText(/Food & groceries.*Spent.*€200/);
+  // Escape puts it away while the pointer stays on the slice (accessibility, chunk 7).
+  await page.keyboard.press('Escape');
+  await expect(spending.getByRole('tooltip')).toHaveCount(0);
+  await page.mouse.move(onFood.x + 1, onFood.y + 1);
+  await expect(spending.getByRole('tooltip')).toHaveCount(0);
   await page.getByRole('heading', { level: 2, name: 'Charts' }).hover();
   await expect(spending.getByRole('tooltip')).toHaveCount(0);
 

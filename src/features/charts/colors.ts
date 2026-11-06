@@ -35,3 +35,15 @@ export const TINT_SHARE = 22;
 export function categoryTint(categoryId: string): string {
   return `color-mix(in oklch, ${chartColor(categoryId)} ${TINT_SHARE}%, var(--card))`;
 }
+
+/**
+ * How much of the category's colour an envelope's bar takes; the rest is the text colour. On its own tint the plain
+ * colour fell to 1.4:1 for the pale ones (Household); this holds every bar to 3:1 on its track (accessibility, chunk 7:
+ * Roshan's pick from the mockups, 05-11-2026; tokens.test.ts checks it).
+ */
+export const BAR_SHARE = 60;
+
+/** The fill of an envelope's bar on Home: its category's colour, deepened (lightened in dark) towards the text. */
+export function categoryBarFill(categoryId: string): string {
+  return `color-mix(in oklch, ${chartColor(categoryId)} ${BAR_SHARE}%, var(--foreground))`;
+}

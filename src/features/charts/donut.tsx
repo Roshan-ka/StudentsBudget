@@ -51,9 +51,10 @@ const Ring = memo(function Ring({
           startAngle={props.startAngle}
           endAngle={props.endAngle}
           fill={row?.color ?? props.fill}
-          // A 2 px gap in the surface colour between touching slices, not a border around each.
-          stroke="var(--card)"
-          strokeWidth={2}
+          // An outline round each slice, so a pale one stands out from the card at 3:1 (accessibility, chunk 7).
+          stroke="var(--outline)"
+          strokeWidth={1.5}
+          strokeLinejoin="round"
         />
       </g>
     );
@@ -135,8 +136,13 @@ export function Donut({
         {rows.map((row) => {
           const content = (
             <>
-              <span aria-hidden="true" className="size-3 shrink-0 rounded-sm" style={{ backgroundColor: row.color }} />
-              <span className="min-w-0 flex-1 truncate">{row.shortLabel}</span>
+              <span
+                aria-hidden="true"
+                className="size-3.5 shrink-0 rounded-sm border-[1.5px] border-outline"
+                style={{ backgroundColor: row.color }}
+              />
+              {/* Wraps rather than cuts off a long name ("Persönliche Pflege und Hygiene"). */}
+              <span className="min-w-0 flex-1 py-1 break-words">{row.shortLabel}</span>
               <span className="font-medium tabular-nums">{amountText(row.amountMinor, locale)}</span>
               <span className="w-10 text-end text-sm text-muted-foreground tabular-nums">
                 {percentText(row.amountMinor, total, locale)}

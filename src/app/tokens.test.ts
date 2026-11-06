@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { TINT_SHARE } from '@/features/charts/colors';
+import { BAR_SHARE, TINT_SHARE } from '@/features/charts/colors';
 
 // The themes' colours as the browser gets them, read from globals.css (redesign plan, chunks 1, 4 and 8). WCAG 2.2 AA:
 // text needs 4.5:1 against what it sits on, an outline or a focus ring 3:1, in the light theme and in the dark one,
@@ -80,10 +80,10 @@ function toOklch(hex: string): [number, number, number] {
 const ACHROMATIC = 0.0002;
 
 /**
- * The luminance of `color-mix(in oklch, <tint> <share>%, <base>)`, as CSS Color 5 mixes: lightness and chroma
+ * `color-mix(in oklch, <tint> <share>%, <base>)` as linear channels, as CSS Color 5 mixes: lightness and chroma
  * linearly, the hue along the shorter arc, and a colour without a hue taking the other's.
  */
-function mixedLuminance(tint: string, share: number, base: string): number {
+function mixed(tint: string, share: number, base: string): [number, number, number] {
   const [tl, tc, th] = toOklch(tint);
   const [bl, bc, bh] = toOklch(base);
   const w = share / 100;
@@ -99,7 +99,36 @@ function mixedLuminance(tint: string, share: number, base: string): number {
   const L = tl * w + bl * (1 - w);
   const C = tc * w + bc * (1 - w);
   const radians = (hue * Math.PI) / 180;
-  return luminanceOf(fromOklab([L, C * Math.cos(radians), C * Math.sin(radians)]));
+  return fromOklab([L, C * Math.cos(radians), C * Math.sin(radians)]);
+}
+
+function mixedLuminance(tint: string, share: number, base: string): number {
+  return luminanceOf(mixed(tint, share, base));
+}
+
+/** A linear channel as sRGB, 0 to 1. */
+function encode(channel: number): number {
+  return channel <= 0.0031308 ? 12.92 * channel : 1.055 * channel ** (1 / 2.4) - 0.055;
+}
+
+function decode(channel: number): number {
+  return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+}
+
+/** `color` at `alpha` over `under` (linear channels), blended as the browser blends: in sRGB. */
+function over(color: [number, number, number], alpha: number, under: [number, number, number]): number {
+  const blended = color.map((channel, i) => decode(alpha * encode(channel) + (1 - alpha) * encode(under[i])));
+  return luminanceOf(blended as [number, number, number]);
+}
+
+/** How much of the text colour `--track` lays over what is under it: `color-mix(in oklch, var(--foreground) N%, transparent)`. */
+function trackShareOf(source: string, selector: ':root' | '.dark'): number {
+  const blocks = new RegExp(`^${selector.replace('.', '\\.')}\\s*\\{([^}]*)\\}`, 'gm');
+  for (const block of source.matchAll(blocks)) {
+    const share = /--track:\s*color-mix\(in oklch, var\(--foreground\) (\d+)%, transparent\)/.exec(block[1]);
+    if (share) return Number(share[1]) / 100;
+  }
+  throw new Error(`no --track in ${selector}`);
 }
 
 /** Text and the surface it is read on. `primary` is also the colour of links; `destructive` of form errors. */
@@ -138,8 +167,9 @@ const GRAPHICS: [mark: string, surface: string][] = [
 ];
 
 const THEMES = { light: tokensOf(css, ':root'), dark: tokensOf(css, '.dark') };
+const TRACK_SHARES = { light: trackShareOf(css, ':root'), dark: trackShareOf(css, '.dark') };
 
-describe.each(Object.entries(THEMES))('the %s theme', (_, tokens) => {
+describe.each(Object.entries(THEMES))('the %s theme', (theme, tokens) => {
   it('defines every colour the pairs below name', () => {
     const named = new Set([...TEXT, ...GRAPHICS].flat());
     for (const name of named) expect(tokens.get(name), `--${name}`).toMatch(/^#[0-9a-f]{6}$/);
@@ -168,6 +198,20 @@ describe.each(Object.entries(THEMES))('the %s theme', (_, tokens) => {
         const value = ratio(luminance(tokens.get(text) ?? ''), tint);
         expect(value, `--${text} on the ${category} tint: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.6);
       }
+    }
+  });
+
+  // An envelope on Home: its bar's deeper fill against the track, which lies over the envelope's own tint
+  // (accessibility, chunk 7). The chart marks have an outline instead, which GRAPHICS holds to 3:1 on the card.
+  it('keeps every envelope bar at 3:1 on its track and tint, with a margin for rounding', () => {
+    const card = tokens.get('card') ?? '';
+    const foreground = tokens.get('foreground') ?? '';
+    const share = TRACK_SHARES[theme as keyof typeof TRACK_SHARES];
+    for (const category of [...tokens.keys()].filter((name) => name.startsWith('cat-'))) {
+      const color = tokens.get(category) ?? '';
+      const track = over(linear(foreground), share, mixed(color, TINT_SHARE, card));
+      const value = ratio(luminanceOf(mixed(color, BAR_SHARE, foreground)), track);
+      expect(value, `the ${category} bar on its track: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3.05);
     }
   });
 });
