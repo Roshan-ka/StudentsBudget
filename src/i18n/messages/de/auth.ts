@@ -111,9 +111,22 @@ export const auth: Messages['auth'] = {
   signedIn: {
     heading: 'Angemeldet',
     as: { before: 'Angemeldet als ', after: '.' },
-    keeps: 'Beim Abmelden bleiben deine Daten auf diesem Handy.',
+    keeps:
+      'Beim Abmelden wird zuerst synchronisiert, dann werden deine Daten von diesem Handy gelöscht. Mit deinem Konto holst du sie zurück.',
     signOut: 'Abmelden',
     syncing: 'Wird synchronisiert, dann abgemeldet …',
+    confirm: 'Von diesem Handy abmelden?',
+    cancel: 'Abbrechen',
+    unsynced: (count) =>
+      count === 1 ? '1 Änderung ist noch nicht in deinem Konto.' : `${count} Änderungen sind noch nicht in deinem Konto.`,
+    unsyncedOffline:
+      'Du bist offline. Bleib angemeldet und synchronisiere später, oder melde dich ab und verliere diese Änderungen.',
+    unsyncedFailed:
+      'Sie ließen sich nicht senden. Bleib angemeldet und synchronisiere später, oder melde dich ab und verliere diese Änderungen.',
+    stay: 'Angemeldet bleiben',
+    signOutAnyway: 'Abmelden und Änderungen verlieren',
+    wipeFailed:
+      'Du bist abgemeldet, aber die Daten ließen sich nicht von diesem Handy löschen. Lösche sie unter Backup und Daten.',
     passwordChanged: 'Passwort geändert.',
   },
   /** Einstellungen → Dein Konto → Mein Konto löschen (P2.5). Das Wort zum Eintippen ist das von Backup. */

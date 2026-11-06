@@ -8,6 +8,7 @@ import {
   e2eUserIdOf,
   mockSupabaseAuth,
   mockSupabaseData,
+  signOut,
   skipUnlessAccountsShow,
   SUPABASE_REST,
   type AuthFactors,
@@ -211,11 +212,10 @@ async function turnOnSignedIn(page: Page) {
   await expect(status(page)).toHaveText(TEXT.status.on('Sundays', '18:00'));
 }
 
-/** Signs out on Your account, and waits for the sign-in form. */
-async function signOut(page: Page) {
+/** Signs out on Your account: the question, then the start page (the phone is cleared, its choices stay). */
+async function signOutHere(page: Page) {
   await page.goto('/settings/account');
-  await button(page, EN.auth.signedIn.signOut).click();
-  await expect(page.getByRole('textbox', { name: EN.auth.signIn.email, exact: true })).toBeVisible();
+  await signOut(page);
 }
 
 // Chunk 5: the reminder follows the phone, quietly, and signing out turns it off.
@@ -257,7 +257,7 @@ test('signing out deletes this phone’s row and turns its reminder off', async 
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await turnOnSignedIn(page);
 
-  await signOut(page);
+  await signOutHere(page);
   expect(reminders.size).toBe(0);
   expect((await pushRecord(page)).unsubscribed).toBe(1);
   await page.goto('/settings');
@@ -280,7 +280,7 @@ test('signed out while the row can’t be deleted, the phone still drops the sub
       : route.fallback(),
   );
 
-  await signOut(page);
+  await signOutHere(page);
   await expect.poll(async () => (await pushRecord(page)).unsubscribed).toBe(1);
   expect(reminders.size).toBe(1);
   await page.goto('/settings');

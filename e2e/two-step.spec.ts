@@ -1,9 +1,11 @@
 import { expect, test, type Browser, type Page, type Route } from '@playwright/test';
+import { openApp } from './helpers/app';
 import { seedSetup } from './helpers/seed-setup';
 import {
   E2E_TOTP_CODE,
   mockSupabaseAuth,
   mockSupabaseData,
+  signOut,
   skipUnlessAccountsShow,
   SUPABASE_REST,
   type AuthCall,
@@ -41,8 +43,10 @@ async function signIn(page: Page) {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 }
 
-async function signOut(page: Page) {
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+/** Signs out (which clears the phone and opens the start page), then opens the account page again to sign in. */
+async function signOutAndBack(page: Page) {
+  await signOut(page);
+  await openApp(page, '/settings/account');
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
 }
 
@@ -149,7 +153,7 @@ test('with it on, signing in asks for the code before the account opens', async 
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signInAndTurnOn(page);
-  await signOut(page);
+  await signOutAndBack(page);
 
   await signIn(page);
   await expect(page.getByText(`Enter the code from your authenticator app for ${EMAIL}.`, { exact: true })).toBeVisible();
@@ -169,7 +173,7 @@ test('half signed in, the Settings card offers to finish, and a different accoun
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signInAndTurnOn(page);
-  await signOut(page);
+  await signOutAndBack(page);
   await signIn(page);
   await expect(codeField(page)).toBeVisible();
 
@@ -207,7 +211,7 @@ test('turning it off asks first, and then the password alone opens the account',
   await expect(twoStep(page).getByRole('status')).toHaveText('Two-step sign-in is off.');
   await expect(twoStep(page).getByRole('button', { name: 'Turn on', exact: true })).toBeFocused();
 
-  await signOut(page);
+  await signOutAndBack(page);
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
 });
@@ -370,7 +374,7 @@ test('a half sign-in the account server has ended asks to sign in again', async 
   await skipUnlessAccountsShow(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signInAndTurnOn(page);
-  await signOut(page);
+  await signOutAndBack(page);
   await signIn(page);
   await expect(codeField(page)).toBeVisible();
 

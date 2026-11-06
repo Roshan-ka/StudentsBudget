@@ -89,6 +89,24 @@ export async function syncBeforeSignOut(): Promise<void> {
   }
 }
 
+/**
+ * After a new setup on a phone that is already linked (an account made on the start page, or an empty one signed in
+ * to): one sync, so the plan reaches the account without Sync now. Only for the account the phone is linked to, and
+ * only online. Never throws.
+ */
+export async function syncAfterSetup(): Promise<void> {
+  const supabase = getSupabase();
+  if (supabase === null || !navigator.onLine) return;
+  try {
+    const [state, session] = await Promise.all([db.syncState.get('current'), supabase.auth.getSession()]);
+    const userId = session.data.session?.user.id;
+    if (userId === undefined || state?.userId !== userId) return;
+    await syncNow(supabaseStore(supabase), userId);
+  } catch (error) {
+    console.error('StudentsBudget: the sync after setup', error);
+  }
+}
+
 /** Settings → Your account → Sync: the status, and Sync now. Nothing while this phone isn't linked. */
 export function SyncSection() {
   const id = useId();

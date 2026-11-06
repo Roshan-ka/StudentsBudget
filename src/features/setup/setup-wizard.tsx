@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
+import { syncAfterSetup } from '@/features/account/sync-status';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
 import { noteSeen } from '@/features/privacy/notes';
@@ -135,6 +136,8 @@ function Wizard({
       void refreshRates(todayIso()).catch((error: unknown) =>
         console.error('StudentsBudget: could not refresh the exchange rates', error),
       );
+      // A phone linked from the start page sends its new plan to the account now. Not awaited either.
+      void syncAfterSetup();
     }
     router.replace('/');
   }

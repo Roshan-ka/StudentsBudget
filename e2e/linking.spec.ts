@@ -1,8 +1,17 @@
 import { expect, test, type Browser, type Page, type Route } from '@playwright/test';
+import { openApp } from './helpers/app';
 import type { Entry, Plan, Profile } from '../src/db/types';
 import { seedSetup } from './helpers/seed-setup';
 import { mockFrankfurter, readStore } from './helpers/setup';
-import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow, SUPABASE_REST, type ServerTables } from './helpers/supabase';
+import {
+  endSession,
+  mockSupabaseAuth,
+  mockSupabaseData,
+  signOut,
+  skipUnlessAccountsShow,
+  SUPABASE_REST,
+  type ServerTables,
+} from './helpers/supabase';
 
 // Linking and Sync now (P2.2 chunks 6–7) at 375 px, against the mocked account. Linking replaced P2.1's Save and Load:
 // signed in on the account page, a phone links to the account, and Sync now keeps both sides alike.
@@ -25,11 +34,6 @@ async function signIn(page: Page, email = EMAIL) {
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByText(`Signed in as ${email}.`, { exact: true })).toBeVisible();
-}
-
-async function signOut(page: Page) {
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
 }
 
 /** Renames the profile in Settings: a change this phone records, to be sent with the next sync. */
@@ -151,7 +155,8 @@ test('a phone linked to one account stays apart from another account', async ({ 
   await page.goto('/settings/account');
   await signIn(page);
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
-  await signOut(page);
+  // The session runs out with the link kept (signing out would clear the phone and the link).
+  await endSession(page);
 
   await signIn(page, OTHER);
   await expect(linkRegion(page).getByRole('alert')).toHaveText(/^This phone holds another account's data/);
@@ -164,7 +169,9 @@ test('a phone linked to one account stays apart from another account', async ({ 
   await expect(row).not.toContainText('Synced ');
 });
 
-test('signing out sends the last change first, and keeps the data and the link', async ({ page }) => {
+test('signing out sends the last change first, then clears this phone; signing in again brings it back', async ({
+  page,
+}) => {
   // A phone set up in full.
   test.setTimeout(60_000);
   await skipUnlessAccountsShow(page);
@@ -179,13 +186,15 @@ test('signing out sends the last change first, and keeps the data and the link',
   await page.goto('/settings/account');
   await signOut(page);
   expect((account.get('profiles')?.get('current') as Profile | undefined)?.name).toBe('Changed before signing out');
-  await expect(syncRegion(page)).toHaveCount(0);
-  expect(await profileName(page)).toBe('Changed before signing out');
+  // The phone is cleared, the link with it (06-11-2026).
+  expect(await readStore(page, 'plan')).toEqual([]);
+  expect(await readStore(page, 'syncState')).toEqual([]);
 
-  // The same account picks up where it left off: still linked, nothing to choose.
+  // Signing in again loads the account's data onto the empty phone.
+  await openApp(page, '/settings/account');
   await signIn(page);
-  await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
-  await expect(linkRegion(page)).toHaveCount(0);
+  await expect(page.getByText(/^Loaded from your account: /)).toBeVisible();
+  expect(await profileName(page)).toBe('Changed before signing out');
 });
 
 // Coverage the P2.2 review found missing (triage row 13, P2.2 chunk 11).

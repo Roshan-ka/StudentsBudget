@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openApp } from './helpers/app';
 import { DISCOUNTS } from '../src/data/discounts';
 import type { Account, DiscountVote } from '../src/db/types';
 import { PRIVACY_NOTES } from '../src/features/privacy/notes';
@@ -8,6 +9,7 @@ import {
   addVirtualAuthenticator,
   mockSupabaseAuth,
   mockSupabaseData,
+  signOut,
   skipUnlessAccountsShow,
   type AuthCall,
 } from './helpers/supabase';
@@ -88,7 +90,8 @@ test('the first account on a phone waits for the note on where its data is kept'
   expect(await noteFlag(page, PRIVACY_NOTES.account)).toBe('seen');
 
   // The next account on this phone goes straight on.
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await signOut(page);
+  await openApp(page, '/settings/account');
   await fillNewAccount(page, 'other@example.com', 'other_user');
   await expect.poll(() => signUps(calls).length).toBe(2);
   await expect(note(page)).toHaveCount(0);

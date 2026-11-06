@@ -17,4 +17,17 @@ export const account: Messages['account'] = {
     secondStep: 'Termina de iniciar sesión para traer tus datos',
     signedOut: 'Inicia sesión para traer tus datos',
   },
+  start: {
+    pitch: 'Tu presupuesto de estudiante en Regensburg: planifica, registra y ahorra.',
+    withAccount: 'Con cuenta',
+    signIn: 'Ya tengo una cuenta',
+    create: 'Crear una cuenta',
+    accountWhy: 'Con una cuenta, tu plan queda guardado y está en cada móvil en el que inicies sesión.',
+    withoutAccount: 'Sin cuenta',
+    guest: 'Seguir sin cuenta',
+    guestNote: 'Tus datos se quedan solo en este móvil. Puedes crear una cuenta más tarde en Ajustes.',
+    signedOut: 'Has cerrado sesión. Tus datos se han borrado de este móvil.',
+    back: 'Atrás',
+    afterSignIn: 'Cuando inicies sesión, la app trae tus datos desde tu cuenta. Si todavía está vacía, configuras tu plan a continuación.',
+  },
 };

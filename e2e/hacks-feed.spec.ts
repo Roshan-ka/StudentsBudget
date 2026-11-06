@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { FEED_CACHE_KEY } from '../src/features/hacks/feed';
 import { formatDate, todayIso } from '../src/lib/dates';
-import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow, type FeedRow } from './helpers/supabase';
+import { mockSupabaseAuth, mockSupabaseData, signOut, skipUnlessAccountsShow, type FeedRow } from './helpers/supabase';
 
 // Reading the hacks feed (chunk 4; docs/superpowers/plans/2026-11-05-hacks-feed.md): Tips → Hacks lists students'
 // posts for signed-in accounts, and falls back on the list this phone last loaded. Supabase is mocked: `feed` is what
@@ -132,8 +132,7 @@ test('when the posts can’t be loaded, the last list shows, and signing out for
   await expect(posts(page)).toHaveCount(2);
 
   await page.goto('/settings/account');
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+  await signOut(page);
   expect(await page.evaluate((key) => localStorage.getItem(key), FEED_CACHE_KEY)).toBeNull();
 });
 
