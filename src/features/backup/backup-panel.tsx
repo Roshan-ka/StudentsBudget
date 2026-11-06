@@ -175,9 +175,9 @@ function DeleteEverything() {
       setDeleting(false);
       return;
     }
-    // A full page load: the screens behind this one were reading the database that no longer exists. Home sends the
-    // empty phone on: to the start page, or to setup when someone is still signed in (firstRunPath).
-    window.location.replace('/');
+    // A full page load: the screens behind this one were reading the database that no longer exists. Setup, not the
+    // start page: whoever deletes everything has already chosen how to use the app.
+    window.location.replace('/setup');
   }
 
   return (
