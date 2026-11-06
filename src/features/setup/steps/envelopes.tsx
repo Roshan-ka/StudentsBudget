@@ -24,6 +24,7 @@ import {
   envelopesFooter,
   previewPlan,
   rangeLine,
+  suggestionTarget,
   summarizeDraft,
   topicOf,
   withAmount,
@@ -74,10 +75,14 @@ export function EnvelopesStep({
   const below = new Set(rangeWarnings(preview, city).map((w) => w.categoryId));
   const asked = askedCategories(FLEXIBLE_CATEGORIES, SETUP_ENVELOPE_IDS, edit, draft.envelopes);
 
-  // With a budget, every envelope is suggested what is left of it after the others that are set; typing into one
-  // moves the suggestions of the rest. A budget that comes to €0 everywhere (a euro or two) suggests €0.
+  // Every envelope is suggested what is left of the budget (without one, of what is available) after the others that
+  // are set; typing into one moves the suggestions of the rest. A target that comes to €0 everywhere suggests €0.
   const budget = draft.spendingBudgetMinor > 0 ? draft.spendingBudgetMinor : 0;
-  const suggested = liveSuggestions(preview.envelopes, SETUP_ENVELOPE_IDS, budget, city);
+  const summary = summarizeDraft(draft, today, existing);
+  const available = Math.max(0, summary.availableMinor);
+  // Whole euros, rounded down as the footer does: a set-aside can leave cents, and the line never shows more than there is.
+  const availableText = formatMoney(Math.floor(available / 100) * 100, 'EUR', { whole: true, locale });
+  const suggested = liveSuggestions(preview.envelopes, SETUP_ENVELOPE_IDS, suggestionTarget(budget, available), city);
   // The button fills the envelopes that are not set, and only where it has something to put in.
   const fillable = SETUP_ENVELOPE_IDS.filter(
     (id) => (amountOf(preview.envelopes, id) ?? 0) <= 0 && (suggested.get(id) ?? 0) > 0,
@@ -86,11 +91,13 @@ export function EnvelopesStep({
   // The totals follow the amounts once the typing pauses, so a screen reader reads them once, not after every key
   // (accessibility, chunk 6).
   const line = useSettled(budgetLine(plannedMinor, budget, lang));
-  const footer = useSettled(edit ? envelopesFooter(summarizeDraft(draft, today, existing), lang) : null);
+  const footer = useSettled(edit ? envelopesFooter(summary, lang) : null);
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-muted-foreground">{text.budgetIntro}</p>
+      <p className="text-muted-foreground">
+        {(edit ? text.budgetIntroEdit : text.budgetIntroNew)(availableText)}
+      </p>
       <div className="grid gap-1.5">
         <AmountField
           label={text.budgetQuestion}

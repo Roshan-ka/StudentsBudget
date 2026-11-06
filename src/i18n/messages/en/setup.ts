@@ -91,7 +91,12 @@ export const setup = {
     other: 'other things',
   },
   envelopes: {
-    budgetIntro: 'An everyday budget is optional: with one, each envelope below gets a suggested amount.',
+    /** "…what is left after rent and fixed costs: €500." */
+    budgetIntroNew: (amount: string) =>
+      `An everyday budget is optional. Without one, the suggestions share out what is left after rent and fixed costs: ${amount}.`,
+    budgetIntroEdit: (amount: string) =>
+      'An everyday budget is optional. Without one, the suggestions share out what is left after rent, fixed costs ' +
+      `and what is set aside for one-off costs: ${amount}.`,
     budgetQuestion:
       'How much do you want to spend in a month on everyday things, apart from rent and your fixed costs?',
     typicalSpend: (range: string) => `Students here typically spend about ${range} a month on these.`,

@@ -90,9 +90,15 @@ test('saves a plan that is over what is available, with no income math in the wa
   await expect(page.getByText('Students here: €180–335', { exact: true })).toBeVisible();
   await expect(page.getByText('Students here: €30–135 (estimate)', { exact: true })).toBeVisible();
   await expect(page.getByText('Below what students here typically need.')).toHaveCount(4);
-  // Without a budget there is nothing to suggest and no budget line.
+  // Without a budget the suggestions share out the €500 available, and the envelopes set take more than that, so
+  // there is nothing left to fill and no budget line.
   await expect(budgetField(page)).toHaveValue('');
-  await expect(page.getByText(/^Suggested: /)).toHaveCount(0);
+  await expect(
+    page.getByText(
+      'An everyday budget is optional. Without one, the suggestions share out what is left after rent and fixed costs: €500.',
+      { exact: true },
+    ),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Use the suggested amounts', exact: true })).toHaveCount(0);
   await expect(budgetTotal(page, '€[\\d,]+')).toHaveCount(0);
 
@@ -161,6 +167,30 @@ test('a budget of €600 suggests all of it, and Use the suggested amounts fills
   const [plan] = await readStore<Plan>(page, 'plan');
   expect(plan.spendingBudgetMinor).toBe(60000);
   expect(plan.envelopes.find((e) => e.categoryId === 'other')?.monthlyMinor).toBe(13000);
+});
+
+test('without a budget, Use the suggested amounts shares out what is left after rent and fixed costs', async ({
+  page,
+}) => {
+  const nothing = { food: '', 'eating-out': '', 'going-out': '', transport: '', shopping: '', other: '' };
+  // 900 income less 400 rent: €500 to share out, and no budget typed.
+  await fillSetup(page, { envelopes: nothing });
+  await expect(budgetField(page)).toHaveValue('');
+  await expect(page.getByText(/: €500\.$/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Use the suggested amounts', exact: true }).click();
+  const names = ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other'];
+  const values = await Promise.all(names.map(async (name) => Number(await box(page, name).inputValue())));
+  expect(values.every((value) => value > 0)).toBe(true);
+  expect(values.reduce((total, value) => total + value, 0)).toBe(500);
+  await expect(page.getByRole('button', { name: 'Use the suggested amounts', exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Save plan' }).click();
+  await expectOnHome(page);
+  const [plan] = await readStore<Plan>(page, 'plan');
+  // The suggestions fill the envelopes; no budget is saved.
+  expect(plan).not.toHaveProperty('spendingBudgetMinor');
+  expect(plan.envelopes.reduce((total, e) => total + e.monthlyMinor, 0)).toBe(50000);
 });
 
 test('typing into one envelope moves the suggestions of the others, and the button fills only the empty ones', async ({
@@ -265,7 +295,13 @@ test('the first setup asks only the basic questions, with the budget at the top 
 
   // The budget is the first question of this step, blank, with what students here typically spend: the six
   // minimums to the six maximums, and which of those are estimates.
-  await expect(page.getByText('An everyday budget is optional: with one, each envelope below gets a suggested amount.', { exact: true })).toBeVisible();
+  // Nothing was typed, so there is nothing left to share out.
+  await expect(
+    page.getByText(
+      'An everyday budget is optional. Without one, the suggestions share out what is left after rent and fixed costs: €0.',
+      { exact: true },
+    ),
+  ).toBeVisible();
   await expect(budgetField(page)).toHaveValue('');
   await expect(
     page.getByText(

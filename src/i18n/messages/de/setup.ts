@@ -86,7 +86,11 @@ export const setup: Messages['setup'] = {
     other: 'Sonstiges',
   },
   envelopes: {
-    budgetIntro: 'Ein Alltagsbudget ist freiwillig: Damit bekommt jeder Umschlag unten einen Vorschlag.',
+    budgetIntroNew: (amount) =>
+      `Ein Alltagsbudget ist freiwillig. Ohne eins teilen die Vorschläge auf, was nach Miete und Fixkosten übrig ist: ${amount}.`,
+    budgetIntroEdit: (amount) =>
+      'Ein Alltagsbudget ist freiwillig. Ohne eins teilen die Vorschläge auf, was nach Miete, Fixkosten und den ' +
+      `Rücklagen für einmalige Kosten übrig ist: ${amount}.`,
     budgetQuestion: 'Wie viel willst du im Monat für den Alltag ausgeben, ohne Miete und Fixkosten?',
     typicalSpend: (range) => `Studierende hier geben dafür meist etwa ${range} im Monat aus.`,
     estimates: (list, count) =>

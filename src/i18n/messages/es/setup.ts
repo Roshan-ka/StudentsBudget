@@ -83,7 +83,11 @@ export const setup: Messages['setup'] = {
     other: 'otras cosas',
   },
   envelopes: {
-    budgetIntro: 'Un presupuesto del día a día es opcional: con uno, cada sobre de abajo recibe un importe sugerido.',
+    budgetIntroNew: (amount) =>
+      `Un presupuesto del día a día es opcional. Sin él, las sugerencias reparten lo que queda tras el alquiler y los gastos fijos: ${amount}.`,
+    budgetIntroEdit: (amount) =>
+      'Un presupuesto del día a día es opcional. Sin él, las sugerencias reparten lo que queda tras el alquiler, los ' +
+      `gastos fijos y lo que se aparta para gastos puntuales: ${amount}.`,
     budgetQuestion: '¿Cuánto quieres gastar al mes en el día a día, sin contar el alquiler ni tus gastos fijos?',
     typicalSpend: (range) => `Los estudiantes de aquí suelen gastar unos ${range} al mes en esto.`,
     estimates: (list, count) =>

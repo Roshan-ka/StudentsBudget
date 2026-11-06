@@ -20,6 +20,7 @@ import {
   setLineSchedule,
   setRentAmount,
   shouldShowInstallHint,
+  suggestionTarget,
   summarizeDraft,
   topicOf,
   validateStep,
@@ -641,6 +642,20 @@ describe('rangeLine', () => {
 
   it("writes the range the language's way", () => {
     expect(rangeLine('Students here', { ...range, source: 'Estimate' }, 'de')).toContain('30–135 €');
+  });
+});
+
+describe('suggestionTarget', () => {
+  it('shares out the budget when there is one, whatever is available', () => {
+    expect(suggestionTarget(60000, 50000)).toBe(60000);
+    expect(suggestionTarget(30000, 50000)).toBe(30000);
+    expect(suggestionTarget(30000, -1000)).toBe(30000);
+  });
+
+  it('shares out what is available without a budget, and nothing when that is below 0', () => {
+    expect(suggestionTarget(0, 50000)).toBe(50000);
+    expect(suggestionTarget(0, 0)).toBe(0);
+    expect(suggestionTarget(0, -2500)).toBe(0);
   });
 });
 

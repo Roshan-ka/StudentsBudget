@@ -89,7 +89,12 @@ export const setup: Messages['setup'] = {
     other: 'autres choses',
   },
   envelopes: {
-    budgetIntro: `Un budget du quotidien est facultatif${NNBSP}: avec lui, chaque enveloppe ci-dessous reçoit un montant suggéré.`,
+    budgetIntroNew: (amount) =>
+      `Un budget du quotidien est facultatif. Sans lui, les suggestions répartissent ce qui reste après le loyer et ` +
+      `les charges fixes${NNBSP}: ${amount}.`,
+    budgetIntroEdit: (amount) =>
+      `Un budget du quotidien est facultatif. Sans lui, les suggestions répartissent ce qui reste après le loyer, ` +
+      `les charges fixes et ce qui est mis de côté pour les frais ponctuels${NNBSP}: ${amount}.`,
     budgetQuestion: `Combien veux-tu dépenser par mois pour le quotidien, hors loyer et charges fixes${NNBSP}?`,
     typicalSpend: (range) => `Les étudiants d’ici dépensent en général environ ${range} par mois pour cela.`,
     estimates: (list, count) =>

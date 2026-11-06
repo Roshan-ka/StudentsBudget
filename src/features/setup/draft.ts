@@ -501,6 +501,15 @@ export function validateStep(
   }
 }
 
+/**
+ * What the envelope suggestions share out: the everyday budget when there is one, else what the plan has available
+ * (income less rent, the fixed costs and the one-off set-asides), as Home does without a budget. Never below 0, so a
+ * plan that is short of money suggests nothing.
+ */
+export function suggestionTarget(budgetMinor: Minor, availableMinor: Minor): Minor {
+  return budgetMinor > 0 ? budgetMinor : Math.max(0, availableMinor);
+}
+
 const wholeEuros = (minor: Minor, lang: Language): string =>
   formatMoney(minor, 'EUR', { whole: true, locale: LANGUAGES[lang].locale });
 
