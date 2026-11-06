@@ -24,23 +24,25 @@ async function findings(page: Page): Promise<string[]> {
     });
 }
 
-for (const theme of ['light', 'dark'] as const satisfies readonly Theme[]) {
-  test(`every page passes axe's WCAG AA checks in ${theme}`, async ({ page }) => {
-    test.setTimeout(180_000);
-    // The theme as Settings → Appearance stores it, before the first paint of every page.
-    await page.addInitScript(
-      ([key, value]) => {
-        try {
-          localStorage.setItem(key, value);
-        } catch {
-          // Storage the test can't write leaves the page light, and the light run covers that.
-        }
-      },
-      [THEME_STORAGE_KEY, theme] as const,
-    );
+/** The theme as Settings → Appearance stores it, before the first paint of every page. */
+async function useTheme(page: Page, theme: Theme) {
+  await page.addInitScript(
+    ([key, value]) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Storage the test can't write leaves the page light, and the light run covers that.
+      }
+    },
+    [THEME_STORAGE_KEY, theme] as const,
+  );
+}
 
-    // Soft, so one run names every page with a finding, and what it is. First the start page and its two account
-    // pages, which a phone with no plan and nobody signed in sees.
+for (const theme of ['light', 'dark'] as const satisfies readonly Theme[]) {
+  // The start page and its two account pages: what a phone with no plan and nobody signed in sees. A test of their
+  // own, so they don't add to the long walk below.
+  test(`the start pages pass axe's WCAG AA checks in ${theme}`, async ({ page }) => {
+    await useTheme(page, theme);
     const form = (name: string) => page.getByRole('heading', { level: 3, name, exact: true });
     const start = [
       { path: '/start', shown: heading(page, t.shell.headings.start) },
@@ -50,9 +52,16 @@ for (const theme of ['light', 'dark'] as const satisfies readonly Theme[]) {
     for (const { path, shown } of start) {
       await page.goto(path);
       await expect(shown, path).toBeVisible();
+      // Soft, so one run names every page with a finding, and what it is.
       expect.soft(await findings(page), path).toEqual([]);
     }
+  });
 
+  test(`every page passes axe's WCAG AA checks in ${theme}`, async ({ page }) => {
+    test.setTimeout(180_000);
+    await useTheme(page, theme);
+
+    // Soft, so one run names every page with a finding, and what it is.
     await page.goto('/setup');
     await expect(heading(page, t.setup.headingNew)).toBeVisible();
     expect.soft(await findings(page), '/setup').toEqual([]);
