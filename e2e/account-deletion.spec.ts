@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan } from '../src/db/types';
-import { completeSetup, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import { readStore } from './helpers/setup';
 import {
   E2E_TOTP_CODE,
   e2eUserIdOf,
@@ -58,7 +59,7 @@ test('the account and its rows go, the phone keeps its data and unlinks', async 
   await skipUnlessAccountsShow(page);
   const tables = await mockSupabaseData(page);
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   await expect(page.getByText(ENGLISH.signedIn, { exact: true })).toBeVisible();

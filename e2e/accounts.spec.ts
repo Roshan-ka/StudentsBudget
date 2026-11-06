@@ -1,7 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
+import { openApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
+import { seedSetup } from './helpers/seed-setup';
 import { FRANKFURTER, completeSetup, mockFrankfurter, readStore } from './helpers/setup';
 
 // The data-protection notes (the exchange rates, the discount votes) have their own spec (privacy-notes.spec.ts).
@@ -15,9 +17,9 @@ function inlineAlert(page: Page) {
 }
 
 async function openSettings(page: Page) {
-  await page.goto('/settings/accounts');
-  // The empty-state text only renders once the page has hydrated and the live query has answered,
-  // so clicking after it cannot hit the server-rendered buttons before React is listening.
+  // Ready means React is listening, so a click cannot hit the server-rendered buttons; the empty-state text then
+  // says the live query has answered.
+  await openApp(page, '/settings/accounts');
   await expect(page.getByText('No accounts yet')).toBeVisible();
 }
 
@@ -269,7 +271,7 @@ test('before a plan is saved, Settings leads back to setup: from a page of it, a
   await expect(page).toHaveURL('/setup');
 
   // The Settings list starts with the way back to setup.
-  await page.goto('/settings');
+  await openApp(page, '/settings');
   await page.getByRole('link', { name: /^Set up your plan/ }).click();
   await expect(page).toHaveURL('/setup');
   await expect(page.getByRole('heading', { level: 3, name: 'City and rent', exact: true })).toBeVisible();
@@ -295,14 +297,14 @@ test('accounts made in Settings before setup are kept, and setup adds none of it
 
 /** The Transfer tab of /entries/new, set to move money between the two euro accounts (no amount received to fill in). */
 async function openEuroTransfer(page: Page) {
-  await page.goto('/entries/new');
+  await openApp(page, '/entries/new');
   await page.getByRole('tab', { name: 'Transfer' }).click();
   await page.getByLabel('From', { exact: true }).selectOption({ label: 'Local bank (EUR)' });
   await page.getByLabel('To', { exact: true }).selectOption({ label: 'Cash (EUR)' });
 }
 
 test('a new transfer is dated the day it is saved, unless a date was picked', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await openEuroTransfer(page);
   const date = page.getByLabel('Date', { exact: true });
   await expect(date).toHaveValue('2026-10-16');

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { PRIVACY_NOTES } from '../src/features/privacy/notes';
 import { chooseLanguage } from './helpers/languages';
-import { completeSetup } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
 
 // The mic button in quick add (P2; docs/superpowers/plans/2026-11-04-mic-button.md). No browser here can really listen,
 // so each test puts a stand-in for the speech recognizer on the page before it loads. It hears whatever
@@ -60,7 +60,7 @@ test('the first tap says where speech goes; Continue listens and adds the line, 
   page,
 }) => {
   await fakeSpeech(page);
-  await completeSetup(page);
+  await seedSetup(page);
 
   await willHear(page, 'coffee 3');
   await mic(page).click();
@@ -84,7 +84,7 @@ test('the first tap says where speech goes; Continue listens and adds the line, 
 
 test('Cancel on the note leaves the mic off', async ({ page }) => {
   await fakeSpeech(page);
-  await completeSetup(page);
+  await seedSetup(page);
   await mic(page).click();
   const note = page.getByRole('group', { name: 'Speak an entry', exact: true });
   await note.getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -95,7 +95,7 @@ test('Cancel on the note leaves the mic off', async ({ page }) => {
 test('a blocked microphone says how to allow it, and offline says it needs a connection', async ({ page, context }) => {
   await fakeSpeech(page);
   await page.addInitScript((key) => localStorage.setItem(key, 'seen'), PRIVACY_NOTES.mic);
-  await completeSetup(page);
+  await seedSetup(page);
 
   await page.evaluate(() => {
     (window as unknown as SpeechWindow).speechError = 'not-allowed';
@@ -117,7 +117,7 @@ test('there is no mic button where the browser has no speech recognition', async
       Object.defineProperty(window, name, { value: undefined, configurable: true });
     }
   });
-  await completeSetup(page);
+  await seedSetup(page);
   await expect(page.getByRole('textbox', { name: 'Quick add' })).toBeVisible();
   await expect(mic(page)).toHaveCount(0);
 });
@@ -125,7 +125,7 @@ test('there is no mic button where the browser has no speech recognition', async
 test('it listens in the language the phone shows', async ({ page }) => {
   await fakeSpeech(page);
   await page.addInitScript((key) => localStorage.setItem(key, 'seen'), PRIVACY_NOTES.mic);
-  await completeSetup(page);
+  await seedSetup(page);
   await chooseLanguage(page, 'de');
 
   await willHear(page, 'Kaffee 4');

@@ -1,7 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Account, Entry, Plan, PlanLine, Rate } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
-import { FRANKFURTER, completeSetup, fillSetup, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import { FRANKFURTER, fillSetup, readStore } from './helpers/setup';
 
 /** Noon on a local calendar day; month is 1–12. */
 const on = (year: number, month: number, day: number) => new Date(year, month - 1, day, 12, 0, 0);
@@ -76,7 +77,7 @@ test.beforeEach(() => test.setTimeout(90_000));
 
 test('rent is added on its day, a changed day posts once, and a deleted one stays deleted', async ({ page }) => {
   await page.clock.setFixedTime(on(2026, 10, 16));
-  await completeSetup(page, {}, { schedules: true });
+  await seedSetup(page, {}, { schedules: true });
 
   const local = (await readStore<Account>(page, 'accounts')).find((a) => a.name === 'Local bank');
   expect((await line(page, 'rent'))?.schedule).toMatchObject({
@@ -201,7 +202,7 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
 
 test('in Settings a line can be added automatically, paused, resumed, added and deleted', async ({ page }) => {
   await page.clock.setFixedTime(on(2026, 10, 16));
-  await completeSetup(page);
+  await seedSetup(page);
   await openSettings(page);
   await expect(page.getByText('€400.00 a month · Not added automatically', { exact: true })).toHaveCount(2);
 
@@ -270,7 +271,7 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
 
 test('a line on a foreign account waits for a rate, then catches up', async ({ page }) => {
   await page.clock.setFixedTime(on(2026, 10, 16));
-  await completeSetup(page);
+  await seedSetup(page);
   // From here Frankfurter is down and the rate setup fetched is gone: INR has no rate.
   await page.unrouteAll();
   await page.route(FRANKFURTER, (route) => route.abort());
@@ -345,7 +346,7 @@ async function expectTextFits(select: Locator, text: string) {
 test('the repeat fields show their whole text at 375 px', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.clock.setFixedTime(on(2026, 10, 16));
-  await completeSetup(page, {}, { schedules: true });
+  await seedSetup(page, {}, { schedules: true });
   await openSettings(page);
   await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
   const form = page.getByRole('form', { name: 'Change Rent' });

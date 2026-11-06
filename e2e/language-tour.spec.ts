@@ -4,7 +4,7 @@ import { MESSAGES } from '../src/i18n/messages';
 import { chooseLanguage, tourLanguages } from './helpers/languages';
 import { horizontalOverflow } from './helpers/layout';
 import { heading, PAGES } from './helpers/pages';
-import { completeSetup } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
 
 // Every page at 375 px in each offered language besides English, when the run asks for every language
 // (E2E_LANGUAGES=all, e2e/helpers/languages.ts): the page is in that language, and nothing is wider than the phone.
@@ -25,7 +25,7 @@ for (const code of OFFERED.filter((offered) => offered !== DEFAULT_LANGUAGE)) {
     expect(await horizontalOverflow(page), '/setup').toBe(0);
 
     await chooseLanguage(page, 'en');
-    await completeSetup(page);
+    await seedSetup(page);
     await chooseLanguage(page, code);
 
     for (const { path, shown } of PAGES) {

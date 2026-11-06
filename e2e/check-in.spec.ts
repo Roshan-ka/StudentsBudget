@@ -1,8 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { formatDate } from '../src/lib/dates';
-import { DEFAULT_SETUP, completeSetup, readStore } from './helpers/setup';
+import { openApp } from './helpers/app';
+import { seedSetup } from './helpers/seed-setup';
+import { DEFAULT_SETUP, readStore } from './helpers/setup';
 
-// `completeSetup` pins the clock to Friday 2026-10-16 and creates the plan that day. October is planned in full, and
+// `seedSetup` pins the clock to Friday 2026-10-16 and creates the plan that day. October is planned in full, and
 // three of its weeks are left that day (12-18, 19-25 and 26-31), so the week Mon 12 - Sun 18 Oct has a third of it:
 // food 31000 / 3 = 10333, so €103, and eating out 12400 / 3 = 4133, so €41. Going out, transport, shopping and other
 // are planned at €0 and unused.
@@ -29,7 +31,7 @@ async function quickAdd(page: Page, text: string) {
  * the check-in itself, so the clock has to be set before it.
  */
 async function addExpenseFromCheckIn(page: Page, expense: { amount: string; category: string; date: string }) {
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   // The heading only renders once the page has hydrated and read its data, so the link is live.
   await expect(page.getByRole('heading', { level: 3, name: 'Forgot something? Add it here' })).toBeVisible();
   await page.getByRole('link', { name: 'Add something from an earlier day' }).click();
@@ -49,18 +51,18 @@ async function overflow(page: Page) {
 /** Moves the browser's date to Sunday 18 Oct, noon, and opens the check-in on that day. */
 async function openCheckInOnSunday(page: Page) {
   await page.clock.setFixedTime(new Date(2026, 9, 18, 12, 0, 0));
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
 }
 
 test('shows each envelope against this week and what was logged', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   // The first "döner" has no learned category, so quick add asks.
   await quickAdd(page, 'döner 6');
   await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
 
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
   await expect(page.getByText('Mon 12 – Sun 18 Oct', { exact: true })).toBeVisible();
 
@@ -102,7 +104,7 @@ async function putEntries(page: Page, entries: unknown[]) {
 }
 
 test('an entry a schedule posted shows a Recurring tag on the check-in', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const accounts = await readStore<{ id: string; name: string }>(page, 'accounts');
   const accountId = accounts.find((a) => a.name === 'Cash')?.id;
   const base = { type: 'expense', accountId, categoryId: 'food', createdAt: '2026-10-16T10:00:00.000Z' };
@@ -121,7 +123,7 @@ test('an entry a schedule posted shows a Recurring tag on the check-in', async (
     { ...base, id: 'once', date: '2026-10-16', amountMinor: 650, eurMinor: 650, note: 'Rewe' },
   ]);
 
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
   const entries = section(page, 'This week').getByRole('listitem');
   await expect(entries).toHaveCount(2);
@@ -136,8 +138,8 @@ test('an entry a schedule posted shows a Recurring tag on the check-in', async (
 });
 
 test('the reminder link points at a calendar file that is served as a calendar', async ({ page }) => {
-  await completeSetup(page);
-  await page.goto('/check-in');
+  await seedSetup(page);
+  await openApp(page, '/check-in');
 
   await expect(page.getByRole('link', { name: 'Add weekly reminder to calendar' })).toHaveAttribute(
     'href',
@@ -156,7 +158,7 @@ test('the reminder link points at a calendar file that is served as a calendar',
 test('on Sunday a forgotten purchase is added from today or from an earlier day, and the lines follow', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await openCheckInOnSunday(page);
   await expect(page.getByText('Mon 12 – Sun 18 Oct', { exact: true })).toBeVisible();
   await expectWeekLine(page, 'Eating out', '€41 planned · €0 spent · €41 under');
@@ -180,7 +182,7 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await page.getByRole('button', { name: 'Save expense' }).click();
   await expect(page).toHaveURL('/check-in');
 
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expectWeekLine(page, 'Eating out', '€41 planned · €50 spent · €9 over');
   await expectWeekLine(page, 'Food & groceries', '€103 planned · €103 spent · on plan');
   // €144.67 less €153.33 spent: the week as a whole is €8.66 over.
@@ -198,12 +200,12 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
 });
 
 test('a Sunday that starts the month also reviews the days of its week in the previous month', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   // Sunday 1 Nov: its week is Mon 26 Oct - Sun 1 Nov, and the month's own part is just the Sunday.
   await page.clock.setFixedTime(new Date(2026, 10, 1, 12, 0, 0));
   await addExpenseFromCheckIn(page, { amount: '20', category: 'Eating out', date: '2026-10-28' });
 
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
   // The previous month's days come first, then the Sunday. The quick add comes once, right after this week against
   // the plan and before its list (pain points, chunk 8).
@@ -241,12 +243,12 @@ test("a plan set up late in the month reviews the previous month's tail from its
 }) => {
   // Wed 28 Oct: spending counts from then, so Mon 26 and Tue 27 come before it.
   await page.clock.setFixedTime(new Date(2026, 9, 28, 12, 0, 0));
-  await completeSetup(page);
+  await seedSetup(page);
   await addExpenseFromCheckIn(page, { amount: '20', category: 'Eating out', date: '2026-10-26' });
   await addExpenseFromCheckIn(page, { amount: '10', category: 'Eating out', date: '2026-10-29' });
 
   await page.clock.setFixedTime(new Date(2026, 10, 1, 12, 0, 0));
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByText('Mon 26 – Sat 31 Oct', { exact: true })).toBeVisible();
 
   // October's whole budget is still there for its last week, and only the €10 from the 29th is against it.
@@ -269,9 +271,9 @@ test("a plan set up late in the month reviews the previous month's tail from its
 test('a plan set up on that Sunday has no earlier month to review', async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 1, 12, 0, 0));
   // The fee has one month fewer to be spread over than on 16 Oct, so it falls due a month later.
-  await completeSetup(page, { oneOff: { ...DEFAULT_SETUP.oneOff, dueMonth: '2027-04' } });
+  await seedSetup(page, { oneOff: { ...DEFAULT_SETUP.oneOff, dueMonth: '2027-04' } });
 
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
   await expect(page.getByText('Sun 1 Nov', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 3 })).toHaveText([
@@ -283,13 +285,13 @@ test('a plan set up on that Sunday has no earlier month to review', async ({ pag
 });
 
 test('an expense dated before the plan started is listed with a note that it is not counted', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await page.clock.setFixedTime(new Date(2026, 9, 18, 12, 0, 0));
   // Tue 13 is in the week Mon 12 - Sun 18, but the plan only starts on Fri 16.
   await addExpenseFromCheckIn(page, { amount: '20', category: 'Eating out', date: '2026-10-13' });
   await addExpenseFromCheckIn(page, { amount: '5', category: 'Eating out', date: '2026-10-17' });
 
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expectWeekLine(page, 'Eating out', '€41 planned · €5 spent · €36 under');
   const entries = section(page, 'This week').getByRole('listitem');
   await expect(entries).toHaveCount(2);
@@ -307,7 +309,7 @@ test('an expense dated before the plan started is listed with a note that it is 
 test('in a later week, an envelope that is used up is listed as used up and the total agrees with Home', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const accounts = await readStore<{ id: string; name: string }>(page, 'accounts');
   const accountId = accounts.find((a) => a.name === 'Cash')?.id;
   // €506 on eating out on Sat 17 Oct, against its €124 for the month.
@@ -328,12 +330,12 @@ test('in a later week, an envelope that is used up is listed as used up and the 
   // Mon 19 Oct, with two weeks of October left (19-25 and 26-31) and nothing spent yet this week: the €434 for the
   // month is €72 over, which is €36 over for each of the two weeks.
   await page.clock.setFixedTime(new Date(2026, 9, 19, 12, 0, 0));
-  await page.goto('/');
+  await openApp(page, '/');
   const card = page.getByRole('region', { name: 'Left to spend this month' });
   await expect(card.getByText('€72 over this month', { exact: true })).toBeVisible();
   await expect(card.getByText('This week: €36 over', { exact: true })).toBeVisible();
 
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
   await expect(page.getByText('Mon 19 – Sun 25 Oct', { exact: true })).toBeVisible();
   await expect(page.getByText('In total: €36 over this week', { exact: true })).toBeVisible();
@@ -351,13 +353,13 @@ test('in a later week, an envelope that is used up is listed as used up and the 
   await expect(page.getByText('In total: €42 over this week', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  await page.goto('/');
+  await openApp(page, '/');
   await expect(card.getByText('€78 over this month', { exact: true })).toBeVisible();
   await expect(card.getByText('This week: €42 over', { exact: true })).toBeVisible();
 });
 
 test('home says when the check-in is and highlights it on Sunday', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   const card = page.getByRole('link', { name: /Weekly check-in/ });
   // On a weekday it is one quiet line; Sunday makes it the yellow accent card (and says so in words).
   const fill = () => card.evaluate((element) => getComputedStyle(element).backgroundColor);
@@ -386,7 +388,7 @@ test('home says when the check-in is and highlights it on Sunday', async ({ page
 });
 
 test('without a plan the check-in points to setup', async ({ page }) => {
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByText('Set up your plan to check in on your week.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Start setup' })).toHaveAttribute('href', '/setup');
 });

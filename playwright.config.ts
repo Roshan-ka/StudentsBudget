@@ -9,6 +9,13 @@ export default defineConfig({
   testDir: './e2e',
   // Needs a production build, which has the service worker; playwright.offline.config.ts runs it.
   testIgnore: '**/offline.spec.ts',
+  // Compiles every route once, after the web server is up and before the first test (e2e/global-setup.ts).
+  globalSetup: './e2e/global-setup.ts',
+  // The dev build on a busy laptop (2026-11-05/06, 10x runs at 2 workers): a WebKit page load took 3-6 s, and a client
+  // navigation in Chrome waited up to 3.4 s for each of its chunks. Tests that open several pages ran past 30 s, and a
+  // navigation past the 5 s of an expect. A test that hangs still fails, only later.
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   forbidOnly: !!process.env.CI,
   // On CI an HTML report sits next to the dot output. ci.yml's e2e job doesn't use these: it passes
   // `--reporter=dot,blob` and merges the shards' blob reports, traces included, into playwright-report-e2e.

@@ -1,9 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, WeekResult } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
-import { completeSetup, readStore } from './helpers/setup';
+import { openApp, waitForApp } from './helpers/app';
+import { seedSetup } from './helpers/seed-setup';
+import { readStore } from './helpers/setup';
 
-// `completeSetup` creates the plan on Friday 16 October 2026: food €310 and eating out €124 a month (€434). The seed
+// `seedSetup` creates the plan on Friday 16 October 2026: food €310 and eating out €124 a month (€434). The seed
 // below logs groceries by hand in each of the five weeks after that. A week plans what was left of the month when it
 // began, split over the weeks left in it: €144.67 for the week of setup (three weeks left), then €212.00, then the
 // whole of what is left of October (€404.00) plus a sixth of November (€72.33) for the split week of 26 October -
@@ -88,11 +90,12 @@ async function recordedWeek(page: Page, weekStart: string): Promise<WeekResult |
 }
 
 test('five finished weeks show on Home and earn the bronze Under-Budget Week', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedFiveWeeks(page);
   // Wednesday 18 November: five weeks are over and past their two days of grace; the app records them when it opens.
   await page.clock.setFixedTime(on(2026, 11, 18));
   await page.reload();
+  await waitForApp(page);
 
   const card = page.getByRole('region', { name: 'Badges', exact: true });
   await expect(card.getByText('3 of 4 earned', { exact: true })).toBeVisible(RECORDING);
@@ -125,11 +128,11 @@ test('five finished weeks show on Home and earn the bronze Under-Budget Week', a
 });
 
 test('"I was away this week" is saved and keeps the logging streak waiting', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedFiveWeeks(page);
   // Wednesday 18 November, a week with nothing logged.
   await page.clock.setFixedTime(on(2026, 11, 18));
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
 
   const away = page.getByRole('switch', { name: 'I was away this week', exact: true });
   await expect(away).not.toBeChecked();
@@ -140,6 +143,7 @@ test('"I was away this week" is saved and keeps the logging streak waiting', asy
 
   // Saved, not just shown: a reload keeps it, and so does Home and back, where the router keeps the page mounted.
   await page.reload();
+  await waitForApp(page);
   await expect(away).toBeChecked();
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home', exact: true }).click();
   await expect(page).toHaveURL('/');
@@ -151,7 +155,7 @@ test('"I was away this week" is saved and keeps the logging streak waiting', asy
   // The week is still running: only the mark is saved, and the streak already reads as paused.
   const mark = (await readStore<WeekResult>(page, 'weekResults')).find((w) => w.weekStart === '2026-11-16');
   expect(mark).toMatchObject({ weekEnd: '2026-11-22', paused: true, recordedAt: '' });
-  await page.goto('/badges');
+  await openApp(page, '/badges');
   const streak = badge(page, 'Logging Streak');
   await expect(streak.getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible(RECORDING);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
@@ -159,32 +163,32 @@ test('"I was away this week" is saved and keeps the logging streak waiting', asy
   // The next Monday the week waits to be recorded: the check-in shows it as last week, still marked, next to a new
   // week without the mark.
   await page.clock.setFixedTime(on(2026, 11, 23));
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByRole('switch', { name: 'I was away last week', exact: true })).toBeChecked();
   await expect(page.getByRole('switch', { name: 'I was away this week', exact: true })).not.toBeChecked();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
-  await page.goto('/badges');
+  await openApp(page, '/badges');
   await expect(streak.getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible(RECORDING);
 
   // On Wednesday the week is recorded as a week away, and the streak of five waits instead of starting over.
   await page.clock.setFixedTime(on(2026, 11, 25));
-  await page.goto('/badges');
+  await openApp(page, '/badges');
   const recorded = await recordedWeek(page, '2026-11-16');
   expect(recorded).toMatchObject({ paused: true, handLoggedCount: 0 });
   await expect(streak.getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible();
 
   // The new week starts without the mark, and last week can no longer be changed.
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
   await expect(page.getByRole('switch', { name: 'I was away this week', exact: true })).not.toBeChecked();
   await expect(page.getByRole('switch', { name: 'I was away last week', exact: true })).toHaveCount(0);
 });
 
 test('a week away can still be marked on the Tuesday after it, before it is recorded', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await seedFiveWeeks(page);
   // Tuesday 24 November: the app was not opened in the week of 16 November, which waits to be recorded.
   await page.clock.setFixedTime(on(2026, 11, 24));
-  await page.goto('/check-in');
+  await openApp(page, '/check-in');
 
   const lastWeek = page.getByRole('switch', { name: 'I was away last week', exact: true });
   const thisWeek = page.getByRole('switch', { name: 'I was away this week', exact: true });
@@ -201,7 +205,7 @@ test('a week away can still be marked on the Tuesday after it, before it is reco
 
   // Wednesday: the week is recorded as a week away, so the streak of five waits instead of starting over.
   await page.clock.setFixedTime(on(2026, 11, 25));
-  await page.goto('/badges');
+  await openApp(page, '/badges');
   const recorded = await recordedWeek(page, '2026-11-16');
   expect(recorded).toMatchObject({ paused: true, handLoggedCount: 0 });
   await expect(badge(page, 'Logging Streak').getByText('Your streak is paused at 5 weeks', { exact: true })).toBeVisible();

@@ -1,7 +1,7 @@
 {
   "$comment": [
     "Which e2e specs a pull request runs (scripts/ci-affected.mjs). A changed module picks the specs of every route whose page imports it, directly or through other modules.",
-    "routes: each route (a folder under src/app with a page.tsx, and the manifest) and the specs that open it. 'all' marks a route every spec passes through: setup (18 of 24 specs start in the wizard), Home (where setup ends; it holds the check-in, badges, reveal and quick-add cards) and Settings (the panels of eight features).",
+    "routes: each route (a folder under src/app with a page.tsx, and the manifest) and the specs that open it. 'all' marks a route every spec passes through: setup (setup.spec walks the wizard, and seedSetup builds its rows with the wizard's own draft functions, so a change here reaches every spec that starts from it), Home (where setup ends; it holds the check-in, badges, reveal and quick-add cards) and Settings (the panels of eight features).",
     "allOnly: specs that open only routes marked 'all', so they run whenever one of those is reached.",
     "offline.spec.ts is never listed: the offline check runs on its own (playwright.offline.config.ts). smoke.spec.ts runs with every list.",
     "The unit tests fail when a route or a spec is missing here."

@@ -158,6 +158,17 @@ describe('draftToRecords', () => {
     expect(defaultAccount(sortAccounts(accounts))?.name).toBe('Local bank');
   });
 
+  it('creates the accounts at the moment it is given, ending at it, one millisecond apart', () => {
+    const now = Date.parse('2026-10-16T10:00:00.000Z');
+    const { accounts } = draftToRecords(draft, TODAY, undefined, [], now);
+
+    expect(accounts.map((a) => a.createdAt)).toEqual([
+      '2026-10-16T09:59:59.998Z',
+      '2026-10-16T09:59:59.999Z',
+      '2026-10-16T10:00:00.000Z',
+    ]);
+  });
+
   it('saves one account with a time of its own as well, and none for a draft without accounts', () => {
     expect(draftToRecords({ ...draft, accounts: draft.accounts.slice(0, 1) }, TODAY).accounts).toHaveLength(1);
     expect(draftToRecords({ ...draft, accounts: [] }, TODAY).accounts).toEqual([]);

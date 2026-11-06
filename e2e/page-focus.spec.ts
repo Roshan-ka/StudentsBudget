@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { completeSetup } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
 
 // Accessibility, chunk 2 (docs/superpowers/plans/2026-11-05-accessibility.md): each page names itself in the browser's
 // title, which Next's route announcer reads out, and after a page change the focus is on the new page's heading, not
@@ -9,7 +9,7 @@ import { completeSetup } from './helpers/setup';
 const FIRST_VISIT = { timeout: 15_000 };
 
 test('a page change puts the focus on the new page’s heading, and the title names the page', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await expect(page).toHaveTitle('Home · StudentsBudget');
   const nav = page.getByRole('navigation', { name: 'Main' });
 
@@ -36,7 +36,7 @@ test('a page change puts the focus on the new page’s heading, and the title na
 });
 
 test('the first load leaves the focus alone, and the title is in the phone’s language', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/charts');
   await expect(page).toHaveTitle('Charts · StudentsBudget');
   await expect(page.getByRole('heading', { level: 2, name: 'Charts', exact: true })).not.toBeFocused();

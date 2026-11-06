@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan } from '../src/db/types';
 import { acceptPrivacyNotes } from './helpers/privacy';
-import { completeSetup, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import { readStore } from './helpers/setup';
 import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow, SUPABASE_AUTH, type AuthCall } from './helpers/supabase';
 
 // 375 px, the narrowest phone the app is made for. Supabase Auth is mocked: the configs point the app at a project
@@ -61,7 +62,7 @@ async function signIn(page: Page, email: string, password: string) {
 test('Settings lists Your account; signing in and out there keeps the plan on the phone', async ({ page }) => {
   await skipUnlessAccountsShow(page);
   const calls = await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
-  await completeSetup(page);
+  await seedSetup(page);
 
   await page.goto('/settings');
   // A row of the Settings list, with where the account stands as its line.

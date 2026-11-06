@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account } from '../src/db/types';
+import { openApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import { SETUP_DAY, mockFrankfurter, readStore } from './helpers/setup';
 
@@ -172,8 +173,8 @@ test('setup: text that is not an amount stops the Accounts step, a lone minus si
 
 async function openSettings(page: Page) {
   await mockFrankfurter(page);
-  await page.goto('/settings/accounts');
-  // The empty-state text only renders once the page has hydrated and the live query has answered.
+  // Ready means React is listening; the empty-state text then says the live query has answered.
+  await openApp(page, '/settings/accounts');
   await expect(page.getByText('No accounts yet')).toBeVisible();
 }
 

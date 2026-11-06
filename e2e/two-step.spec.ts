@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page, type Route } from '@playwright/test';
-import { completeSetup } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
 import {
   E2E_TOTP_CODE,
   mockSupabaseAuth,
@@ -245,7 +245,7 @@ test('leaving the page mid set-up and coming back keeps the set-up', async ({ pa
   test.setTimeout(60_000);
   await skipUnlessAccountsShow(page);
   const calls = await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   await linked(page);
@@ -313,7 +313,7 @@ test('a phone signed in before another turned it on asks for the code on Sync no
   await skipUnlessAccountsShow(page);
   const factors: AuthFactors = new Map();
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
-  await completeSetup(page);
+  await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
   // Linked: the phone's data went to the account.

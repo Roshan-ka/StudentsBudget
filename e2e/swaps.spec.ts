@@ -2,9 +2,9 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { SWAPS, type Swap } from '../src/data/swaps';
 import { TIPS } from '../src/data/tips';
 import { formatDate } from '../src/lib/dates';
-import { completeSetup } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
 
-// 375 px, the narrowest phone the app is made for. `completeSetup` pins the clock to Friday 2026-10-16 and creates the
+// 375 px, the narrowest phone the app is made for. `seedSetup` pins the clock to Friday 2026-10-16 and creates the
 // plan that day: eating out 124 is planned in full (€124 this month), and the week Mon 12 - Sun 18 Oct has a third of
 // it, with three weeks of October left (€41). Transport and going out are planned at €0.
 test.use({ viewport: { width: 375, height: 812 } });
@@ -81,7 +81,7 @@ async function openCheckInFromHome(page: Page) {
 }
 
 test('an eating-out envelope that runs over shows a sourced swap on Home and in the check-in', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'döner 150', 'Eating out');
 
   const mensa = swapById('mensa-instead-of-restaurant');
@@ -131,7 +131,7 @@ test('an eating-out envelope that runs over shows a sourced swap on Home and in 
 });
 
 test('nothing shows while every envelope is on track, or when the envelope over has no swap', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'döner 6', 'Eating out');
   await expect(homeRow(page, 'Eating out').getByText('€118 left of €124 this month', { exact: true })).toBeVisible();
   await expect(anyTryThis(page)).toHaveCount(0);
@@ -154,7 +154,7 @@ test('nothing shows while every envelope is on track, or when the envelope over 
 });
 
 test('past 90% of the plan early in the month counts, and the last 7 days of the month do not', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   // €115 of the €124 is 93%.
   await quickAdd(page, 'döner 115', 'Eating out');
   const row = homeRow(page, 'Eating out');
@@ -169,7 +169,7 @@ test('past 90% of the plan early in the month counts, and the last 7 days of the
 });
 
 test('an envelope planned at €0 that has spending gets its swap, and an estimate says so up front', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'bus 15', 'Transport');
 
   const swap = swapById('deutschlandticket-for-travel-months');
@@ -195,7 +195,7 @@ test('an envelope planned at €0 that has spending gets its swap, and an estima
 });
 
 test('a swap whose two amounts sit on one page shows a single source block', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await quickAdd(page, 'film 20', 'Going out');
 
   const swap = swapById('cinema-student-price');

@@ -1,8 +1,19 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { Account, Entry, Guess, Plan } from '../src/db/types';
+import type { Account, Entry, Guess, Plan, PlanLine } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
+import { openApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
-import { DEFAULT_SETUP, budgetField, completeSetup, fillSetup, mockFrankfurter, readStore } from './helpers/setup';
+import { seedSetup } from './helpers/seed-setup';
+import {
+  DEFAULT_SETUP,
+  budgetField,
+  completeSetup,
+  fillSetup,
+  mockFrankfurter,
+  readStore,
+  type SetupFixture,
+  type SetupOptions,
+} from './helpers/setup';
 
 // The fixture's numbers depend on the month (the 300 fee is spread from the current month to March).
 test.beforeEach(async ({ page }) => {
@@ -841,3 +852,118 @@ test('editing the plan keeps each schedule and how far it has posted', async ({ 
   });
   expect(after.incomes).toEqual(before.incomes);
 });
+
+// seedSetup (helpers/seed-setup.ts) writes the finished setup without walking the wizard, for the specs that only need
+// a plan. These tests hold it to what the wizard's Save really writes, so the two cannot drift apart.
+
+type SetupRows = { plan: Plan; accounts: Account[]; guesses: Guess[] };
+
+async function setupRows(page: Page): Promise<SetupRows> {
+  const plans = await readStore<Plan>(page, 'plan');
+  expect(plans).toHaveLength(1);
+  return { plan: plans[0], accounts: await readStore<Account>(page, 'accounts'), guesses: await readStore<Guess>(page, 'guesses') };
+}
+
+/**
+ * The rows with their random ids replaced, so two setups made apart can be compared: an account's id by its name
+ * (also where a schedule names it), a schedule's and a one-off's id by a placeholder. Everything else must match as
+ * it is: with the clock pinned, both write the same creation times.
+ */
+function withoutIds({ plan, accounts, guesses }: SetupRows) {
+  const nameOf = new Map(accounts.map((a) => [a.id, a.name]));
+  const line = (l: PlanLine): PlanLine =>
+    l.schedule
+      ? { ...l, schedule: { ...l.schedule, id: 'schedule', accountId: nameOf.get(l.schedule.accountId) ?? 'missing' } }
+      : l;
+  return {
+    plan: {
+      ...plan,
+      incomes: plan.incomes.map(line),
+      fixed: plan.fixed.map(line),
+      oneOffs: plan.oneOffs.map((o) => ({ ...o, id: 'one-off' })),
+    },
+    accounts: [...accounts].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((a) => ({ ...a, id: a.name })),
+    guesses: [...guesses].sort((a, b) => a.categoryId.localeCompare(b.categoryId)),
+  };
+}
+
+/**
+ * Empties every store of the app's database in place, as a new phone has it apart from the schema. Deleting the
+ * database would need a page off the app first, and WebKit refuses to open the favicon as one ("Blocked by Web
+ * Inspector").
+ */
+async function emptyDatabase(page: Page) {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('studentsbudget');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const database = open.result;
+          const names = [...database.objectStoreNames];
+          const transaction = database.transaction(names, 'readwrite');
+          for (const name of names) transaction.objectStore(name).clear();
+          transaction.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+  );
+}
+
+/** A cash account added before setup, as Settings would save it, so the wizard skips its Accounts step. */
+async function addWalletBeforeSetup(page: Page) {
+  await openApp(page, '/setup');
+  await page.evaluate(
+    (wallet) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('studentsbudget');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const database = open.result;
+          const transaction = database.transaction('accounts', 'readwrite');
+          transaction.objectStore('accounts').put(wallet);
+          transaction.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+    {
+      id: 'wallet',
+      name: 'Wallet',
+      kind: 'cash',
+      currency: 'EUR',
+      openingMinor: 2000,
+      createdAt: '2026-10-15T09:00:00.000Z',
+    } satisfies Account,
+  );
+}
+
+const SEED_CASES: { title: string; overrides?: Partial<SetupFixture>; options?: SetupOptions }[] = [
+  { title: 'the default setup' },
+  { title: 'with "Add it automatically" on', options: { schedules: true } },
+  {
+    title: 'with accounts saved first, a budget and no guess for transport',
+    overrides: { budget: '600', guesses: { ...DEFAULT_SETUP.guesses, transport: '' } },
+    options: { accountsExist: true },
+  },
+];
+
+for (const { title, overrides = {}, options = {} } of SEED_CASES) {
+  test(`seedSetup writes what the wizard saves: ${title}`, async ({ page }) => {
+    // The wizard twice over, then a seed: slow on a busy phone run.
+    test.setTimeout(90_000);
+    if (options.accountsExist) await addWalletBeforeSetup(page);
+    await completeSetup(page, overrides, options);
+    const wizard = withoutIds(await setupRows(page));
+
+    await emptyDatabase(page);
+    if (options.accountsExist) await addWalletBeforeSetup(page);
+    await seedSetup(page, overrides, options);
+    expect(withoutIds(await setupRows(page))).toEqual(wizard);
+  });
+}

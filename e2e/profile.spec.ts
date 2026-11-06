@@ -1,9 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan, Profile } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
-import { completeSetup, readStore } from './helpers/setup';
+import { openApp } from './helpers/app';
+import { seedSetup } from './helpers/seed-setup';
+import { readStore } from './helpers/setup';
 
-// 375 px, the narrowest phone the app is made for. `completeSetup` pins the clock to Friday 2026-10-16, which falls in
+// 375 px, the narrowest phone the app is made for. `seedSetup` pins the clock to Friday 2026-10-16, which falls in
 // the winter semester 2026/27: 1 Oct 2026 – 31 Mar 2027 at Universität Regensburg, 1 Oct 2026 – 14 Mar 2027 at OTH.
 test.use({ viewport: { width: 375, height: 812 } });
 
@@ -33,7 +35,8 @@ function savedNotice(page: Page) {
 }
 
 async function openSettings(page: Page) {
-  await page.goto('/settings/profile');
+  // The heading is prerendered; ready means React is listening.
+  await openApp(page, '/settings/profile');
   await expect(page.getByRole('heading', { level: 2, name: 'Profile', exact: true })).toBeVisible();
 }
 
@@ -60,7 +63,7 @@ async function openOneOffsStep(page: Page) {
 test('Profile has its own page in Settings, prefills the semester and keeps what was saved after a reload', async ({
   page,
 }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   // A row of the Settings list, saying that nothing is saved yet.
   await page.goto('/settings');
   const row = page.getByRole('link', { name: /^Profile/ });
@@ -110,7 +113,7 @@ test('Profile has its own page in Settings, prefills the semester and keeps what
 });
 
 test('an end before the start is not saved, and the end field says why', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await openSettings(page);
   await startField(page).fill('2027-03-31');
   await endField(page).fill('2026-10-01');
@@ -127,7 +130,7 @@ test('an end before the start is not saved, and the end field says why', async (
 });
 
 test('one date alone is not saved, and both can be cleared again', async ({ page }, testInfo) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await openSettings(page);
   await nameField(page).fill('Roshan');
   await startField(page).fill('2026-10-01');
@@ -155,7 +158,7 @@ test('one date alone is not saved, and both can be cleared again', async ({ page
 });
 
 test('Home says hi once a name is saved', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   await expect(page.getByRole('textbox', { name: 'Quick add', exact: true })).toBeVisible();
   await expect(page.getByText('Hi Roshan', { exact: true })).toHaveCount(0);
 
@@ -179,7 +182,7 @@ test('Home says hi once a name is saved', async ({ page }) => {
 
 test('the one-off costs step offers the next semester fee with its sourced amount', async ({ page }) => {
   // Not the default "Semester fee" one-off: the offer is for a plan that has none yet.
-  await completeSetup(page, { oneOff: { name: 'Laptop', amount: '300', dueMonth: '2027-03' } });
+  await seedSetup(page, { oneOff: { name: 'Laptop', amount: '300', dueMonth: '2027-03' } });
   await openSettings(page);
   await universityField(page).selectOption({ label: 'Universität Regensburg' });
   await saveProfile(page);
@@ -214,7 +217,7 @@ test('the one-off costs step offers the next semester fee with its sourced amoun
 test('the one-off costs step leaves the amount empty where no page states the fee, and saves without that row', async ({
   page,
 }) => {
-  await completeSetup(page, { oneOff: { name: 'Laptop', amount: '300', dueMonth: '2027-03' } });
+  await seedSetup(page, { oneOff: { name: 'Laptop', amount: '300', dueMonth: '2027-03' } });
   await openSettings(page);
   await universityField(page).selectOption({ label: 'Other' });
   await startField(page).fill('2026-10-01');
@@ -247,7 +250,7 @@ test('the one-off costs step offers nothing without semester dates, or when the 
   page,
 }) => {
   // The default plan already has "Semester fee", due March 2027.
-  await completeSetup(page);
+  await seedSetup(page);
   await openSettings(page);
   await openOneOffsStep(page);
   await expect(page.getByRole('button', { name: /^Add semester fee/ })).toHaveCount(0);
@@ -265,7 +268,7 @@ test('the one-off costs step offers nothing without semester dates, or when the 
 });
 
 test('gold Under-Budget Week follows the saved semester', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
   // Without semester dates: 26 weeks.
   await page.goto('/badges');
   await page.getByText('How badges work', { exact: true }).click();
@@ -291,7 +294,7 @@ test.describe('on a desktop browser', () => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'canShare', { value: undefined, configurable: true });
     });
-    await completeSetup(page);
+    await seedSetup(page);
     await openSettings(page);
     await nameField(page).fill('Roshan');
     await universityField(page).selectOption({ label: 'OTH Regensburg' });
