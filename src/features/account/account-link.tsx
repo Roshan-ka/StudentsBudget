@@ -37,8 +37,11 @@ async function sessionUserId(): Promise<string | undefined> {
   return (await getSupabase()?.auth.getSession())?.data.session?.user.id;
 }
 
-/** Settings → Your account, signed in: links this phone to the account, then shows the Sync section. */
-export function AccountLink() {
+/**
+ * Settings → Your account, signed in: links this phone to the account, then shows the Sync section. `onLinked` runs
+ * once the phone is linked (the start page goes on from there to Home, or to setup for an empty account).
+ */
+export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.sync.link;
@@ -94,6 +97,10 @@ export function AccountLink() {
       current = false;
     };
   }, [attempt]);
+
+  useEffect(() => {
+    if (view.kind === 'linked') onLinked?.();
+  }, [view.kind, onLinked]);
 
   function linkAgain() {
     followFocus.current = true;

@@ -27,5 +27,8 @@ export const account = {
     withoutAccount: 'Without an account',
     guest: 'Continue as guest',
     guestNote: 'Your data stays on this phone only. You can create an account later in Settings.',
+    back: 'Back',
+    /** Under the sign-in form on the start page. */
+    afterSignIn: 'Once you are signed in, the app gets your data from your account. If it is still empty, you set up your plan next.',
   },
 };

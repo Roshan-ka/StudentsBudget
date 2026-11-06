@@ -26,5 +26,7 @@ export const account: Messages['account'] = {
     withoutAccount: 'Ohne Konto',
     guest: 'Ohne Konto weiter',
     guestNote: 'Deine Daten bleiben nur auf diesem Handy. Ein Konto kannst du später in den Einstellungen anlegen.',
+    back: 'Zurück',
+    afterSignIn: 'Nach der Anmeldung holt die App deine Daten aus deinem Konto. Ist es noch leer, richtest du als Nächstes deinen Plan ein.',
   },
 };

@@ -26,6 +26,8 @@
     "/settings/reminder": ["axe", "language-tour", "reflow", "reminder", "theme"],
     "/setup": "all",
     "/start": ["backup", "profile", "setup"],
+    "/start/new-account": ["setup"],
+    "/start/sign-in": ["setup"],
     "/tips": ["axe", "discount-confirmations", "discounts", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "privacy-notes", "reflow", "theme", "tips"]
   },
   "allOnly": ["dictation", "language"]

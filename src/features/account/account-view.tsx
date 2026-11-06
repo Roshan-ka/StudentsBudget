@@ -300,7 +300,7 @@ function ResetEmailStep({
  * The last step of "Forgot password" (P2.4): the emailed code signed in (and the authenticator's, for an account with
  * two-step sign-in), and a new password finishes it. Until it is saved, the account panel and linking wait.
  */
-function NewPasswordForm({ email }: { email: string }) {
+export function NewPasswordForm({ email }: { email: string }) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.newPassword;
@@ -400,11 +400,12 @@ function NewPasswordForm({ email }: { email: string }) {
 /** The sign-in form's fields a message can be about. */
 type SignInField = 'email' | 'password' | 'username' | 'batch';
 
-function SignInForm() {
+/** `initialMode`: the start page's "Create an account" opens the form in its create mode. */
+export function SignInForm({ initialMode = 'sign-in' }: { initialMode?: AuthMode }) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.signIn;
-  const [mode, setMode] = useState<AuthMode>('sign-in');
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // Creating: the name the account will post under (the hacks feed).
@@ -710,7 +711,7 @@ function SignInForm() {
  * The second step of signing in, for an account with two-step sign-in: the code from its authenticator app. Until it
  * is given, the account shows this session nothing, so Save and Load wait. A different account is a sign-out away.
  */
-function SecondStepForm({ email, factorId }: { email: string; factorId: string }) {
+export function SecondStepForm({ email, factorId }: { email: string; factorId: string }) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.secondStep;
