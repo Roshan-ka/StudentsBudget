@@ -5,6 +5,7 @@ import { forgetFeedCache } from '@/features/hacks/feed';
 import { forgetReminderOnPhone } from '@/features/reminder/reminder';
 import { getSupabase } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
+import { forgetSignedOut } from '@/features/start/signed-out';
 import { forgetAccountDeleted } from './account-deleted';
 import { authStateOf, type AuthState } from './auth-state';
 import { endRecovery, startRecovery } from './recovery';
@@ -35,7 +36,11 @@ export function useAuth(): AuthState {
         void forgetReminderOnPhone();
       }
       // A new sign-in after deleting an account (P2.5): the "deleted" line has said what it had to.
-      if (event === 'SIGNED_IN') forgetAccountDeleted();
+      if (event === 'SIGNED_IN') {
+        forgetAccountDeleted();
+        // The start page's "You're signed out" has said what it had to.
+        forgetSignedOut();
+      }
       setState(authStateOf(session));
     });
     return () => data.subscription.unsubscribe();

@@ -20,7 +20,8 @@ export function SetupAccountLink() {
   return (
     <p className="text-sm text-muted-foreground">
       {text.question}{' '}
-      <Link href="/settings/account" className="font-medium text-primary underline underline-offset-4">
+      {/* The start page's sign-in links the phone, then goes on to Home with the account's data. */}
+      <Link href="/start/sign-in" className="font-medium text-primary underline underline-offset-4">
         {/* Signed in already, for example after Delete everything, which keeps the sign-in. */}
         {auth.status === 'signed-in'
           ? text.signedIn

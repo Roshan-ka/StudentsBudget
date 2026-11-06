@@ -3,7 +3,14 @@ import type { Plan } from '../src/db/types';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import { seedSetup } from './helpers/seed-setup';
 import { readStore } from './helpers/setup';
-import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow, SUPABASE_AUTH, type AuthCall } from './helpers/supabase';
+import {
+  mockSupabaseAuth,
+  mockSupabaseData,
+  signOut,
+  skipUnlessAccountsShow,
+  SUPABASE_AUTH,
+  type AuthCall,
+} from './helpers/supabase';
 
 // 375 px, the narrowest phone the app is made for. Supabase Auth is mocked: the configs point the app at a project
 // that never resolves, and `mockSupabaseAuth` answers its calls.
@@ -96,11 +103,13 @@ test('Settings lists Your account; signing in and out there keeps the plan on th
   await expect(row).toContainText(`Signed in as ${EMAIL}.`);
   await row.click();
 
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
-  expect(calls.at(-1)).toMatchObject({ method: 'POST', path: '/logout', search: '?scope=local' });
-  // Signing out leaves the data where it was.
-  expect(await readStore<Plan>(page, 'plan')).toHaveLength(1);
+  // Signing out (06-11-2026) asks, syncs, clears this phone and ends on the start page, which says so.
+  await signOut(page);
+  expect(calls).toContainEqual(expect.objectContaining({ method: 'POST', path: '/logout', search: '?scope=local' }));
+  await expect(
+    page.getByText("You're signed out. Your data was removed from this phone.", { exact: true }),
+  ).toBeVisible();
+  expect(await readStore<Plan>(page, 'plan')).toEqual([]);
 });
 
 test('a new account is checked first, then signed in at once and still signed in after a reload', async ({ page }) => {

@@ -25,6 +25,9 @@
     "/settings/moderation": ["axe", "language-tour", "moderation", "reflow", "theme"],
     "/settings/reminder": ["axe", "language-tour", "reflow", "reminder", "theme"],
     "/setup": "all",
+    "/start": ["account", "axe", "change-password", "hacks-feed", "linking", "passkeys", "privacy-notes", "reminder", "setup", "start", "two-step"],
+    "/start/new-account": ["axe", "start"],
+    "/start/sign-in": ["axe", "start"],
     "/tips": ["axe", "discount-confirmations", "discounts", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "privacy-notes", "reflow", "theme", "tips"]
   },
   "allOnly": ["dictation", "language"]

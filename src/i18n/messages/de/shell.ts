@@ -29,6 +29,7 @@ export const shell: Messages['shell'] = {
     newEntry: 'Neuer Eintrag',
     reveal: 'Monat für Monat',
     account: 'Dein Konto',
+    start: 'Willkommen',
     settings: 'Einstellungen',
     tips: 'Tipps und Rabatte in Regensburg',
   },

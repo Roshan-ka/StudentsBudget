@@ -175,7 +175,8 @@ function DeleteEverything() {
       setDeleting(false);
       return;
     }
-    // A full page load: the screens behind this one were reading the database that no longer exists.
+    // A full page load: the screens behind this one were reading the database that no longer exists. Setup, not the
+    // start page: whoever deletes everything has already chosen how to use the app.
     window.location.replace('/setup');
   }
 

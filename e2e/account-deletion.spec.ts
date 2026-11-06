@@ -5,6 +5,7 @@ import { readStore } from './helpers/setup';
 import {
   E2E_TOTP_CODE,
   e2eUserIdOf,
+  endSession,
   mockSupabaseAuth,
   mockSupabaseData,
   skipUnlessAccountsShow,
@@ -145,8 +146,8 @@ test('a phone linked to an account deleted elsewhere links to a new one instead 
   await signIn(page);
   await expect(page.getByText(ENGLISH.signedIn, { exact: true })).toBeVisible();
   await linked(page);
-  // Signed out with the link kept, as when a session runs out.
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  // The session runs out with the link kept (signing out would clear the phone and the link).
+  await endSession(page);
   await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
 
   // The account is deleted on another phone; this one signs in to a new account.

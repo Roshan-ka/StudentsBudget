@@ -30,6 +30,7 @@ export const shell = {
     newEntry: 'New entry',
     reveal: 'Month by month',
     account: 'Your account',
+    start: 'Welcome',
     settings: 'Settings',
     tips: 'Regensburg tips and discounts',
   },

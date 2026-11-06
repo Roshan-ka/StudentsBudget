@@ -6,6 +6,8 @@ import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatusLine } from '@/components/status-line';
+import { deleteEverything } from '@/db/bulk';
+import { db } from '@/db/db';
 import {
   checkDraft,
   EMPTY_DRAFT,
@@ -19,6 +21,7 @@ import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { reminderOffBeforeSignOut } from '@/features/reminder/reminder';
 import { useShowInstallHint } from '@/features/setup/install-hint';
+import { markSignedOut } from '@/features/start/signed-out';
 import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
@@ -300,7 +303,7 @@ function ResetEmailStep({
  * The last step of "Forgot password" (P2.4): the emailed code signed in (and the authenticator's, for an account with
  * two-step sign-in), and a new password finishes it. Until it is saved, the account panel and linking wait.
  */
-function NewPasswordForm({ email }: { email: string }) {
+export function NewPasswordForm({ email }: { email: string }) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.newPassword;
@@ -400,11 +403,12 @@ function NewPasswordForm({ email }: { email: string }) {
 /** The sign-in form's fields a message can be about. */
 type SignInField = 'email' | 'password' | 'username' | 'batch';
 
-function SignInForm() {
+/** `initialMode`: the start page's "Create an account" opens the form in its create mode. */
+export function SignInForm({ initialMode = 'sign-in' }: { initialMode?: AuthMode }) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.signIn;
-  const [mode, setMode] = useState<AuthMode>('sign-in');
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // Creating: the name the account will post under (the hacks feed).
@@ -710,7 +714,7 @@ function SignInForm() {
  * The second step of signing in, for an account with two-step sign-in: the code from its authenticator app. Until it
  * is given, the account shows this session nothing, so Save and Load wait. A different account is a sign-out away.
  */
-function SecondStepForm({ email, factorId }: { email: string; factorId: string }) {
+export function SecondStepForm({ email, factorId }: { email: string; factorId: string }) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.secondStep;
@@ -820,18 +824,45 @@ function SecondStepForm({ email, factorId }: { email: string; factorId: string }
 const PASSWORD_CHANGED_MS = 10_000;
 
 /**
- * Who is signed in, and the way out. Signing out leaves every entry on the phone. `passwordChanged`: a "Forgot
- * password" reset was just finished, which the status line says for a while.
+ * Where signing out stands: the button; the question first; the last sync; changes that didn't reach the account
+ * (`offline` says why); then signing out and clearing the phone.
+ */
+type SignOutStep =
+  | { at: 'idle' }
+  | { at: 'asking' }
+  | { at: 'syncing' }
+  | { at: 'unsynced'; count: number; offline: boolean }
+  | { at: 'leaving' };
+
+/**
+ * Who is signed in, and the way out. Signing out (06-11-2026) syncs first, then clears this phone and opens the start
+ * page; signing in again brings the data back. Changes the last sync couldn't send are said first, with the choice to
+ * stay. `passwordChanged`: a "Forgot password" reset was just finished, which the status line says for a while.
  */
 function SignedInPanel({ email, passwordChanged }: { email: string; passwordChanged: boolean }) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.signedIn;
-  const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState<SignOutStep>({ at: 'idle' });
+  const busy = step.at === 'syncing' || step.at === 'leaving';
   const [error, setError] = useState<string | null>(null);
+  // The question and the warning take the focus, so a screen reader reads them out.
+  const questionRef = useRef<HTMLParagraphElement>(null);
+  const warningRef = useRef<HTMLParagraphElement>(null);
 
   // Cleared when the person leaves the page (it stays mounted but hidden), like the form's messages.
-  useEffect(() => () => setError(null), []);
+  useEffect(
+    () => () => {
+      setError(null);
+      setStep({ at: 'idle' });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (step.at === 'asking') questionRef.current?.focus();
+    if (step.at === 'unsynced') warningRef.current?.focus();
+  }, [step.at]);
 
   // A timer, not a cleanup: React's development double run calls cleanups right after the first mount, which would
   // take the line away before anyone saw it.
@@ -841,28 +872,57 @@ function SignedInPanel({ email, passwordChanged }: { email: string; passwordChan
     return () => clearTimeout(timer);
   }, [passwordChanged]);
 
-  async function signOut() {
+  /** The last sync, then what it left behind: nothing signs out, anything asks first. */
+  async function syncThenSignOut() {
+    setError(null);
+    setStep({ at: 'syncing' });
+    await syncBeforeSignOut();
+    const count = await db.outbox.count().catch(() => 0);
+    if (count > 0) {
+      setStep({ at: 'unsynced', count, offline: !navigator.onLine });
+      return;
+    }
+    await leave();
+  }
+
+  /**
+   * Signs out, then clears the phone and opens the start page. The session goes first: with it, `deleteEverything`'s
+   * `db.delete()` takes the outbox and the link along, so nothing is queued to delete in the account.
+   */
+  async function leave() {
     const supabase = getSupabase();
     if (supabase === null) return;
-    setBusy(true);
-    setError(null);
+    setStep({ at: 'leaving' });
     try {
-      // This phone's last changes go to the account first; the data and the link stay on the phone, and sync pauses.
-      // Beside it, this phone's weekly reminder is turned off, while the account still lets it delete the row.
-      await Promise.all([syncBeforeSignOut(), reminderOffBeforeSignOut(supabase)]);
+      // This phone's weekly reminder goes off first, while the account still lets it delete the row (at most 8 s).
+      await reminderOffBeforeSignOut(supabase);
       const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
       if (signOutError) {
-        // supabase-js drops the session on this phone even when the server can't be told, and useAuth then shows the
-        // form. A message is only due if the session is somehow still here.
+        // supabase-js drops the session on this phone even when the server can't be told. Only a session that is
+        // somehow still here stops the sign-out.
         const { data } = await supabase.auth.getSession();
-        if (data.session !== null) setError(authErrorMessage(signOutError, lang));
+        if (data.session !== null) {
+          setError(authErrorMessage(signOutError, lang));
+          setStep({ at: 'idle' });
+          return;
+        }
       }
     } catch (thrown) {
       console.error('StudentsBudget: could not sign out', thrown);
       setError(authErrorMessage(thrown, lang));
-    } finally {
-      setBusy(false);
+      setStep({ at: 'idle' });
+      return;
     }
+    try {
+      await deleteEverything();
+    } catch (wipeError) {
+      console.error('StudentsBudget: signed out, but could not clear this phone', wipeError);
+      setError(text.wipeFailed);
+      return;
+    }
+    markSignedOut();
+    // A full page load: every screen behind this one was reading the data that is gone.
+    window.location.replace('/start');
   }
 
   return (
@@ -881,15 +941,46 @@ function SignedInPanel({ email, passwordChanged }: { email: string; passwordChan
           {error}
         </p>
       )}
-      <Button
-        type="button"
-        variant="outline"
-        className="self-start px-4"
-        disabled={busy}
-        onClick={() => void signOut()}
-      >
-        {text.signOut}
-      </Button>
+      {step.at === 'asking' ? (
+        <>
+          <p ref={questionRef} tabIndex={-1} className="font-medium outline-none">
+            {text.confirm}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" variant="outline" className="flex-1 px-4" onClick={() => setStep({ at: 'idle' })}>
+              {text.cancel}
+            </Button>
+            <Button type="button" className="flex-1 px-4" onClick={() => void syncThenSignOut()}>
+              {text.signOut}
+            </Button>
+          </div>
+        </>
+      ) : step.at === 'unsynced' ? (
+        <>
+          <p ref={warningRef} tabIndex={-1} className="font-medium outline-none">
+            {text.unsynced(step.count)}
+          </p>
+          <p className="text-sm text-muted-foreground">{step.offline ? text.unsyncedOffline : text.unsyncedFailed}</p>
+          <div className="flex flex-col gap-3">
+            <Button type="button" className="px-4" onClick={() => setStep({ at: 'idle' })}>
+              {text.stay}
+            </Button>
+            <Button type="button" variant="outline" className="px-4" onClick={() => void leave()}>
+              {text.signOutAnyway}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          className="self-start px-4"
+          disabled={busy}
+          onClick={() => setStep({ at: 'asking' })}
+        >
+          {text.signOut}
+        </Button>
+      )}
       {/* The last sync can take up to 8 seconds (syncBeforeSignOut): said, so the disabled button doesn't look stuck. */}
       <p role="status" className="text-sm text-muted-foreground">
         {busy ? text.syncing : passwordChanged ? text.passwordChanged : null}

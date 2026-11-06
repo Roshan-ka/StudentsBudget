@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { expect, test, type Page, type Request, type Route } from '@playwright/test';
 import { MESSAGES } from '../../src/i18n/messages';
-import { openApp } from './app';
+import { openApp, waitForApp } from './app';
 
 /**
  * A Supabase project that is configured but never reached (`.invalid` never resolves). The Playwright configs start
@@ -700,6 +700,27 @@ export async function mockSupabaseData(
   });
 
   return tables;
+}
+
+/**
+ * Signs out from Settings → Your account, in English (06-11-2026): the question, the last sync, then the phone is
+ * cleared and the start page opens.
+ */
+export async function signOut(page: Page) {
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByText('Sign out of this phone?', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page).toHaveURL('/start');
+  await waitForApp(page);
+}
+
+/**
+ * The session runs out on this phone, as an expired one does: it is dropped from storage (AUTH_STORAGE_KEY in
+ * src/lib/supabase/client.ts) and the account page opens again. Unlike signing out, the data and the link stay.
+ */
+export async function endSession(page: Page) {
+  await page.evaluate(() => localStorage.removeItem('studentsbudget-auth'));
+  await openApp(page, '/settings/account');
 }
 
 /** "Accounts aren't set up in this copy of the app…" in every language: a spec may run under any locale. */

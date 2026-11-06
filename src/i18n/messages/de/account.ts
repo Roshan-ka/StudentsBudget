@@ -17,4 +17,17 @@ export const account: Messages['account'] = {
     secondStep: 'Schließ die Anmeldung ab, um deine Daten zu holen',
     signedOut: 'Melde dich an, um deine Daten zu holen',
   },
+  start: {
+    pitch: 'Dein Budget fürs Studium in Regensburg: planen, erfassen, sparen.',
+    withAccount: 'Mit Konto',
+    signIn: 'Ich habe ein Konto',
+    create: 'Konto erstellen',
+    accountWhy: 'Mit Konto ist dein Plan gesichert und auf jedem Handy da, auf dem du dich anmeldest.',
+    withoutAccount: 'Ohne Konto',
+    guest: 'Ohne Konto weiter',
+    guestNote: 'Deine Daten bleiben nur auf diesem Handy. Ein Konto kannst du später in den Einstellungen anlegen.',
+    signedOut: 'Du bist abgemeldet. Deine Daten sind von diesem Handy gelöscht.',
+    back: 'Zurück',
+    afterSignIn: 'Nach der Anmeldung holt die App deine Daten aus deinem Konto. Ist es noch leer, richtest du als Nächstes deinen Plan ein.',
+  },
 };
