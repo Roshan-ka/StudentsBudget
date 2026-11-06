@@ -12,7 +12,7 @@ export const common: Messages['common'] = {
     letters: { day: 'J', month: 'M', year: 'A' },
     hint: (example) => `Saisis la date, par exemple ${example}, ou ouvre le calendrier.`,
     notADate: (example) => `Ce n’est pas une date. Saisis-la comme ${example}.`,
-    openCalendar: 'Ouvrir le calendrier',
+    openCalendar: (field) => `Ouvrir le calendrier${NNBSP}: ${field}`,
     calendarTitle: 'Choisir une date',
     previousMonth: 'Mois précédent',
     nextMonth: 'Mois suivant',

@@ -10,7 +10,7 @@ export const common: Messages['common'] = {
     letters: { day: 'T', month: 'M', year: 'J' },
     hint: (example) => `Tippe es ein, etwa ${example}, oder öffne den Kalender.`,
     notADate: (example) => `Das ist kein Datum. Tippe es etwa so ein: ${example}.`,
-    openCalendar: 'Kalender öffnen',
+    openCalendar: (field) => `Kalender öffnen: ${field}`,
     calendarTitle: 'Datum wählen',
     previousMonth: 'Voriger Monat',
     nextMonth: 'Nächster Monat',

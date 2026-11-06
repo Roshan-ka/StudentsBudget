@@ -1,6 +1,5 @@
 'use client';
 
-import { CalendarIcon } from 'lucide-react';
 import { useId, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { useT } from '@/i18n/use-t';
 import { describedBy as describedByIds } from '@/lib/described-by';
 import { formatDate, todayIso, type IsoDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
+import { DateCalendar } from './date-calendar';
 import { DATE_CHIPS, chipDate, selectedChip } from './date-field-helpers';
 import { readTypedDate, typedDateText } from './date-input';
 
@@ -35,14 +35,15 @@ type FieldState = { value: IsoDate; typed: string; notADate: boolean };
  * the person leaves the field or presses Enter, which rewrites it in full or, for text that is no date, says so in
  * place of the hint and gives the form an empty date, which its own check refuses. Today follows the clock
  * (`useToday`). `invalid` and `describedBy` mark the field and point at the form's error. The label is "Date" in the
- * phone's language unless `label` names it. `min` is the earliest date the calendar offers (docs/superpowers/plans/
- * 2026-11-06-date-field.md, chunk 3); a typed date before it is left to the form's own check.
+ * phone's language unless `label` names it. The button at the end opens the calendar (`DateCalendar`), where `min`
+ * is the earliest day that can be picked; a typed date before it is left to the form's own check.
  */
 export function DateField({
   value,
   onChange,
   label,
   chips = true,
+  min,
   invalid = false,
   describedBy,
 }: {
@@ -61,6 +62,7 @@ export function DateField({
   const today = useToday();
   const selected = today === null ? null : selectedChip(value, today);
   const form = datePlaceholder(text.letters);
+  const name = label ?? text.label;
 
   // The text follows `value` only when the date changes from outside: a chip, the clock, an entry opened to edit, a
   // university's semester. A date the field reported itself is already `field.value`, so what the person typed stays,
@@ -98,12 +100,14 @@ export function DateField({
 
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label ?? text.label}</Label>
+      <Label htmlFor={id}>{name}</Label>
       <div
         data-slot="date-field"
-        className="flex min-h-[50px] items-center gap-2 rounded-md border-[1.5px] border-input bg-card px-3.5 text-base transition-colors has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring has-[[aria-invalid]]:border-destructive md:text-sm dark:bg-input/30"
+        className="flex min-h-[50px] items-center gap-2 rounded-md border-[1.5px] border-input bg-card ps-3.5 pe-1.5 text-base transition-colors has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring has-[[aria-invalid]]:border-destructive md:text-sm dark:bg-input/30"
       >
-        {/* 16 px on a phone, so iOS does not zoom in on it. A number pad: the separators fill in by themselves. */}
+        {/* 16 px on a phone, so iOS does not zoom in on it. A number pad: the separators fill in by themselves. No width
+            of its own (w-0, then flex-1 fills the row): an input is 20 characters wide by default, which at 200 % text
+            made the field wider than the phone (reflow.spec). */}
         <input
           id={id}
           type="text"
@@ -117,9 +121,14 @@ export function DateField({
           onChange={type}
           onBlur={commit}
           onKeyDown={keyDown}
-          className="min-w-0 flex-1 self-stretch bg-transparent tabular-nums outline-none placeholder:text-muted-foreground"
+          className="w-0 min-w-0 flex-1 self-stretch bg-transparent tabular-nums outline-none placeholder:text-muted-foreground"
         />
-        <CalendarIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        <DateCalendar
+          value={value}
+          min={min}
+          field={name}
+          onPick={(day) => report({ value: day, typed: formatDate(day), notADate: false })}
+        />
       </div>
       {/* The hint, or in its place why the typed text is no date; read out when it changes. */}
       <p

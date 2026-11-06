@@ -11,7 +11,8 @@ export const common = {
     hint: (example: string) => `Type it like ${example}, or open the calendar.`,
     /** In place of the hint, for typed text that isn't a date. */
     notADate: (example: string) => `That’s not a date. Type it like ${example}.`,
-    openCalendar: 'Open the calendar',
+    /** The calendar button's name, with the field's label: two date fields on a page are told apart. */
+    openCalendar: (field: string) => `Open the calendar: ${field}`,
     calendarTitle: 'Choose a date',
     previousMonth: 'Previous month',
     nextMonth: 'Next month',
