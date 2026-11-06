@@ -85,6 +85,14 @@ Test-first. Each line below is an existing test that now asserts the opposite, o
 
 These three specs assert the old rule, and the fast-setup session's branch `test/e2e-seed-setup` rewrites the same three files (`seedSetup`). **Base this chunk on `main` after that branch has merged.** If it's still open when chunk 1 is done, ask Roshan whether to wait or stack on it; never let a stacked PR merge into a stale base.
 
+- **As built (2026-11-06):**
+  - `test/e2e-seed-setup` had merged (#135), so the branch was rebased onto `main` first (clean), and the specs were changed on its `seedSetup` versions.
+  - **`charts.spec.ts`:** the setup-month test counts food €200 of €310, the €180 dated 3 Oct included, with no note in the chart or its table. The 3-month test no longer expects the note, and the file's header says the setup month counts whole.
+  - **`check-in.spec.ts`:** the late-setup tail counts both entries (Eating out €124 planned · €30 spent · €94 under). The before-setup test reads €41 planned · €25 spent · €16 under, with no note. Three checks for the absence of "not counted" went, since that text no longer exists.
+  - **`reveal.spec.ts`:** October reads "€274 left over → savings", "€66 over plan" and "€434 left over → savings". Its amounts don't change, because no entry there is dated before the 16th.
+  - **Other specs:** those seeding dates before the 16th were checked. They are income, transfers, fixed costs or entries-list tests, or dated after the 16th (badges), so none changes.
+  - **The run:** a CI run rather than the lane. The branch reaches Home through `budget.ts`, so CI's `changed` scope runs every spec. Locally, a Turbopack dev server on a linked `node_modules` with under 1 GB free was the worse bet.
+
 - **`charts.spec.ts`:** the test at 587 becomes "the setup month counts every expense of the month, one dated before setup included, with no counted-from note".
 - **`check-in.spec.ts`:**
   - 239: keep the previous month's tail rule; drop the "not counted" check.

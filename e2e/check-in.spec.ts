@@ -228,7 +228,6 @@ test('a Sunday that starts the month also reviews the days of its week in the pr
   await expect(earlier).toContainText('Eating out');
   await expect(earlier).toContainText('Wed 28');
   await expect(earlier).toContainText('€20.00');
-  await expect(earlier).not.toContainText('not counted');
 
   // November has six weeks left on its first Sunday, whose week began on Mon 26 Oct, and none of the entries:
   // food 31000 / 6 = 5167 and eating out 12400 / 6 = 2067.
@@ -238,10 +237,11 @@ test('a Sunday that starts the month also reviews the days of its week in the pr
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
-test("a plan set up late in the month reviews the previous month's tail from its setup day, and says what is not counted", async ({
+// Roshan, 2026-11-06: the setup month counts whole, so the days before the setup day count too.
+test("a plan set up late in the month reviews the previous month's tail, the days before setup included", async ({
   page,
 }) => {
-  // Wed 28 Oct: spending counts from then, so Mon 26 and Tue 27 come before it.
+  // Set up on Wed 28 Oct; Mon 26 and Tue 27 come before it.
   await page.clock.setFixedTime(new Date(2026, 9, 28, 12, 0, 0));
   await seedSetup(page);
   await addExpenseFromCheckIn(page, { amount: '20', category: 'Eating out', date: '2026-10-26' });
@@ -251,20 +251,18 @@ test("a plan set up late in the month reviews the previous month's tail from its
   await openApp(page, '/check-in');
   await expect(page.getByText('Mon 26 – Sat 31 Oct', { exact: true })).toBeVisible();
 
-  // October's whole budget is still there for its last week, and only the €10 from the 29th is against it.
+  // October's whole budget is still there for its last week, against both: the €20 from Monday and the €10 from the 29th.
   const earlierPlan = 'Earlier this week against your plan';
   await expectWeekLine(page, 'Food & groceries', '€310 planned · €0 spent · €310 under', earlierPlan);
-  await expectWeekLine(page, 'Eating out', '€124 planned · €10 spent · €114 under', earlierPlan);
+  await expectWeekLine(page, 'Eating out', '€124 planned · €30 spent · €94 under', earlierPlan);
 
-  // Newest day first. Monday's €20 is listed, with the reason it is not in the line above.
+  // Newest day first, both listed like any other entry.
   const earlier = section(page, 'Earlier this week').getByRole('listitem');
   await expect(earlier).toHaveCount(2);
   await expect(earlier.nth(0)).toContainText('Thu 29');
   await expect(earlier.nth(0)).toContainText('€10.00');
-  await expect(earlier.nth(0)).not.toContainText('not counted');
   await expect(earlier.nth(1)).toContainText('Mon 26');
   await expect(earlier.nth(1)).toContainText('€20.00');
-  await expect(earlier.nth(1).getByText('Before your plan started, not counted', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
@@ -284,23 +282,23 @@ test('a plan set up on that Sunday has no earlier month to review', async ({ pag
   await expect(page.getByText('Mon 26 – Sat 31 Oct')).toHaveCount(0);
 });
 
-test('an expense dated before the plan started is listed with a note that it is not counted', async ({ page }) => {
+test('an expense dated before the plan started is listed and counted like any other', async ({ page }) => {
   await seedSetup(page);
   await page.clock.setFixedTime(new Date(2026, 9, 18, 12, 0, 0));
-  // Tue 13 is in the week Mon 12 - Sun 18, but the plan only starts on Fri 16.
+  // Tue 13 is in the week Mon 12 - Sun 18, before the plan started on Fri 16, in the month the plan counts whole.
   await addExpenseFromCheckIn(page, { amount: '20', category: 'Eating out', date: '2026-10-13' });
   await addExpenseFromCheckIn(page, { amount: '5', category: 'Eating out', date: '2026-10-17' });
 
   await openApp(page, '/check-in');
-  await expectWeekLine(page, 'Eating out', '€41 planned · €5 spent · €36 under');
+  // Three weeks left on Sun 18: 12400 / 3, less the week's €25.
+  await expectWeekLine(page, 'Eating out', '€41 planned · €25 spent · €16 under');
   const entries = section(page, 'This week').getByRole('listitem');
   await expect(entries).toHaveCount(2);
   await expect(entries.nth(0)).toContainText('Sat 17');
-  await expect(entries.nth(0)).not.toContainText('not counted');
   await expect(entries.nth(1)).toContainText('Tue 13');
   await expect(entries.nth(1)).toContainText('€20.00');
-  await expect(entries.nth(1).getByText('Before your plan started, not counted', { exact: true })).toBeVisible();
-  await expect(page.getByText('Before your plan started, not counted')).toHaveCount(1);
+  // The note the check-in had for it until 2026-11-06 is gone.
+  await expect(page.getByText('Before your plan started, not counted')).toHaveCount(0);
   // No tail on this Sunday: its week starts in its own month.
   await expect(page.getByRole('heading', { level: 3, name: 'Earlier this week' })).toHaveCount(0);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
