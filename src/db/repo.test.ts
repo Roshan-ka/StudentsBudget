@@ -5,15 +5,13 @@ import { db, requestPersistence } from './db';
 import {
   AccountHasScheduleError,
   AccountInUseError,
-  GuessesLockedError,
   deleteAccount,
   deleteEntry,
   ensureSeeded,
   entriesInRange,
   saveEntry,
-  saveGuesses,
 } from './repo';
-import type { Account, Entry, Guess, Plan, PlanLine, Schedule } from './types';
+import type { Account, Entry, Plan, PlanLine, Schedule } from './types';
 
 const FLEXIBLE_IDS = [
   'food',
@@ -68,10 +66,6 @@ function transfer(id: string, accountId: string, toAccountId: string): Entry {
     note: '',
     createdAt: '2026-10-05T08:00:00.000Z',
   };
-}
-
-function guess(categoryId: string, monthlyMinor: number): Guess {
-  return { categoryId, monthlyMinor, guessedOn: '2026-10-16' };
 }
 
 beforeEach(async () => {
@@ -179,15 +173,6 @@ describe('entries', () => {
     await deleteEntry('e1');
 
     expect((await entriesInRange('2026-10-01', '2026-10-31')).map((e) => e.id)).toEqual(['e2']);
-  });
-});
-
-describe('saveGuesses', () => {
-  it('saveGuesses refuses to overwrite', async () => {
-    await saveGuesses([guess('food', 20_000)]);
-
-    await expect(saveGuesses([guess('food', 99_999)])).rejects.toBeInstanceOf(GuessesLockedError);
-    expect(await db.guesses.toArray()).toEqual([guess('food', 20_000)]);
   });
 });
 

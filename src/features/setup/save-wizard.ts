@@ -1,12 +1,11 @@
 import { db } from '@/db/db';
-import { saveGuesses } from '@/db/repo';
 import { keepScheduleState, updatePlan } from '@/features/recurring/update-plan';
 import type { draftToRecords } from './draft';
 
-/** Saves what the setup wizard made: a new setup's accounts, plan and guesses, or in edit mode the changed plan. */
+/** Saves what the setup wizard made: a new setup's accounts and plan, or in edit mode the changed plan. */
 export async function saveWizard(records: ReturnType<typeof draftToRecords>, edit: boolean): Promise<void> {
   if (edit) {
-    // Accounts and guesses are not part of editing; only the plan changes. `updatePlan` keeps each schedule's
+    // Accounts are not part of editing; only the plan changes. `updatePlan` keeps each schedule's
     // watermark where the poster left it, even if it moved while the wizard was open, and `keepScheduleState` keeps
     // a pause, a resume or a move to another account made meanwhile in another tab. The accounts are read in the same
     // transaction, so one deleted there is not named again.
@@ -16,9 +15,8 @@ export async function saveWizard(records: ReturnType<typeof draftToRecords>, edi
     });
     return;
   }
-  await db.transaction('rw', db.accounts, db.plan, db.guesses, async () => {
+  await db.transaction('rw', db.accounts, db.plan, async () => {
     await db.accounts.bulkAdd(records.accounts);
     await db.plan.put(records.plan);
-    await saveGuesses(records.guesses);
   });
 }

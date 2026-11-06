@@ -40,12 +40,13 @@ test('setup, quick add and a new account work where crypto.randomUUID does not e
   expect(accounts).toHaveLength(4);
   const entries = await readStore<Entry>(page, 'entries');
   expect(entries).toHaveLength(1);
-  // Schedules live on the plan's lines, one-off costs on the plan itself.
+  // Schedules live on the plan's lines. A new setup asks no one-off costs (they are added in Edit plan), so the plan
+  // has none to check here.
   const [plan] = await readStore<Plan>(page, 'plan');
   const schedules = [...plan.incomes, ...plan.fixed].flatMap((line) => (line.schedule ? [line.schedule] : []));
   expect(schedules.length).toBeGreaterThan(0);
-  expect(plan.oneOffs).toHaveLength(1);
-  for (const row of [...accounts, ...entries, ...schedules, ...plan.oneOffs]) expect(row.id).toMatch(V4_UUID);
+  expect(plan.oneOffs).toEqual([]);
+  for (const row of [...accounts, ...entries, ...schedules]) expect(row.id).toMatch(V4_UUID);
 
   expect(pageErrors).toEqual([]);
 });

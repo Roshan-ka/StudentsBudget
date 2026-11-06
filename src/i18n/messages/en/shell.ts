@@ -28,7 +28,7 @@ export const shell = {
     checkIn: 'Weekly check-in',
     entries: 'Entries',
     newEntry: 'New entry',
-    reveal: 'Guess vs. reality',
+    reveal: 'Month by month',
     account: 'Your account',
     settings: 'Settings',
     tips: 'Regensburg tips and discounts',

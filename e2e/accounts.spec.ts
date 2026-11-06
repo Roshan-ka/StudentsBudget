@@ -274,7 +274,7 @@ test('before a plan is saved, Settings leads back to setup: from a page of it, a
   await openApp(page, '/settings');
   await page.getByRole('link', { name: /^Set up your plan/ }).click();
   await expect(page).toHaveURL('/setup');
-  await expect(page.getByRole('heading', { level: 3, name: 'City and rent', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 3, name: 'Accounts', exact: true })).toBeVisible();
 });
 
 test('accounts made in Settings before setup are kept, and setup adds none of its own', async ({ page }) => {

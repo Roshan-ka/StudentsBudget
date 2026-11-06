@@ -5,7 +5,7 @@ import { CATEGORIES } from '@/data/categories';
 import { replaceAll } from '@/db/bulk';
 import { db } from '@/db/db';
 import { clearManualRate, refreshRates, setManualRate } from '@/db/rates';
-import { deleteAccount, deleteEntry, ensureSeeded, saveEntry, saveGuesses } from '@/db/repo';
+import { deleteAccount, deleteEntry, ensureSeeded, saveEntry } from '@/db/repo';
 import type { Account, Entry, Plan, Rate } from '@/db/types';
 import { setDefaultAccount } from '@/features/accounts/set-default-account';
 import { recordCompletedWeeks, setAway } from '@/features/badges/week-results';
@@ -86,7 +86,7 @@ describe('while the phone is not linked', () => {
     await db.plan.put(PLAN);
     await saveEntry(expense('e1'));
     await deleteEntry('e1');
-    await saveGuesses([{ categoryId: 'food', monthlyMinor: 20000, guessedOn: '2026-10-16' }]);
+    await db.guesses.bulkAdd([{ categoryId: 'food', monthlyMinor: 20000, guessedOn: '2026-10-16' }]);
     await setManualRate('INR', 97, '2026-10-16');
     await db.profile.put({
       id: 'current',
@@ -155,8 +155,9 @@ describe('while the phone is linked', () => {
     expect(await recorded()).toEqual(['entries:rec:rent-s:2026-11-01', 'plans:current']);
   });
 
+  // Nothing writes guesses since Guess vs. reality went, but older ones still sync.
   it('records guesses, by category', async () => {
-    await saveGuesses([
+    await db.guesses.bulkAdd([
       { categoryId: 'food', monthlyMinor: 20000, guessedOn: '2026-10-16' },
       { categoryId: 'transport', monthlyMinor: 5000, guessedOn: '2026-10-16' },
     ]);

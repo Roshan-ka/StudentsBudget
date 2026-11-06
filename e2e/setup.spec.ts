@@ -1,11 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { Account, Entry, Guess, Plan, PlanLine } from '../src/db/types';
+import type { Account, Entry, Plan, PlanLine } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
 import { openApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import { seedSetup } from './helpers/seed-setup';
 import {
   DEFAULT_SETUP,
+  NO_ONE_OFF,
   budgetField,
   completeSetup,
   fillSetup,
@@ -77,8 +78,8 @@ const SUGGESTED_AT_600 = {
 };
 
 test('saves a plan that is over what is available, with no income math in the way', async ({ page }) => {
-  // €310 + €155 = €465 of envelopes against €440 available (900 income, 400 rent, 60 set aside).
-  await fillSetup(page, { envelopes: { ...DEFAULT_SETUP.envelopes, 'eating-out': '155' } });
+  // €310 + €230 = €540 of envelopes against €500 available (900 income, 400 rent; a new setup has no one-off).
+  await fillSetup(page, { envelopes: { ...DEFAULT_SETUP.envelopes, 'eating-out': '230' } });
 
   await expect(page.getByRole('heading', { level: 3, name: 'Envelopes' })).toBeVisible();
   await expect(incomeMath(page)).toHaveCount(0);
@@ -89,29 +90,28 @@ test('saves a plan that is over what is available, with no income math in the wa
   await expect(page.getByText('Students here: €180–335', { exact: true })).toBeVisible();
   await expect(page.getByText('Students here: €30–135 (estimate)', { exact: true })).toBeVisible();
   await expect(page.getByText('Below what students here typically need.')).toHaveCount(4);
-  // Without a budget there is nothing to suggest and no budget line.
+  // Without a budget the suggestions share out the €500 available, and the envelopes set take more than that, so
+  // there is nothing left to fill and no budget line.
   await expect(budgetField(page)).toHaveValue('');
-  await expect(page.getByText(/^Suggested: /)).toHaveCount(0);
+  await expect(
+    page.getByText(
+      'An everyday budget is optional. Without one, the suggestions share out what is left after rent and fixed costs: €500.',
+      { exact: true },
+    ),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Use the suggested amounts', exact: true })).toHaveCount(0);
   await expect(budgetTotal(page, '€[\\d,]+')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Save plan' }).click();
   await expectOnHome(page);
   const [plan] = await readStore<Plan>(page, 'plan');
-  expect(plan.envelopes.find((e) => e.categoryId === 'eating-out')?.monthlyMinor).toBe(15500);
+  expect(plan.envelopes.find((e) => e.categoryId === 'eating-out')?.monthlyMinor).toBe(23000);
   expect(plan).not.toHaveProperty('spendingBudgetMinor');
 });
 
-test('saves a plan with everything at €0 and every guess left blank', async ({ page }) => {
+test('saves a plan with everything at €0', async ({ page }) => {
   const blank = { food: '', 'eating-out': '', 'going-out': '', transport: '', shopping: '', other: '' };
-  await fillSetup(page, {
-    rent: '0',
-    incomes: { parents: '', job: '' },
-    // A row without an amount is left out, whatever else it holds.
-    oneOff: { name: 'Laptop', amount: '', dueMonth: '' },
-    guesses: blank,
-    envelopes: blank,
-  });
+  await fillSetup(page, { rent: '0', incomes: { parents: '', job: '' }, envelopes: blank });
 
   await expect(incomeMath(page)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Save plan' })).toBeEnabled();
@@ -124,19 +124,8 @@ test('saves a plan with everything at €0 and every guess left blank', async ({
   expect(plan.oneOffs).toEqual([]);
   expect(plan.envelopes.every((e) => e.monthlyMinor === 0)).toBe(true);
   expect(plan).not.toHaveProperty('spendingBudgetMinor');
-  // A guess left blank is not saved, so there is nothing to compare later.
-  expect(await readStore<Guess>(page, 'guesses')).toEqual([]);
-
-  // So home has no guesses card to wait for (it has found its data once it shows the total), and the reveal page
-  // says there is nothing to compare, with no unlock date.
+  // Home has found its data once it shows the total.
   await expect(page.getByText(/^Across all accounts/)).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Your guesses' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'See how your guesses compare' })).toHaveCount(0);
-  await page.goto('/reveal');
-  await expect(
-    page.getByText('No guesses were saved in setup, so there is nothing to compare.', { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText(/unlock on/)).toHaveCount(0);
 });
 
 test('a budget of €600 suggests all of it, and Use the suggested amounts fills the six envelopes', async ({ page }) => {
@@ -178,6 +167,30 @@ test('a budget of €600 suggests all of it, and Use the suggested amounts fills
   const [plan] = await readStore<Plan>(page, 'plan');
   expect(plan.spendingBudgetMinor).toBe(60000);
   expect(plan.envelopes.find((e) => e.categoryId === 'other')?.monthlyMinor).toBe(13000);
+});
+
+test('without a budget, Use the suggested amounts shares out what is left after rent and fixed costs', async ({
+  page,
+}) => {
+  const nothing = { food: '', 'eating-out': '', 'going-out': '', transport: '', shopping: '', other: '' };
+  // 900 income less 400 rent: €500 to share out, and no budget typed.
+  await fillSetup(page, { envelopes: nothing });
+  await expect(budgetField(page)).toHaveValue('');
+  await expect(page.getByText(/: €500\.$/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Use the suggested amounts', exact: true }).click();
+  const names = ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other'];
+  const values = await Promise.all(names.map(async (name) => Number(await box(page, name).inputValue())));
+  expect(values.every((value) => value > 0)).toBe(true);
+  expect(values.reduce((total, value) => total + value, 0)).toBe(500);
+  await expect(page.getByRole('button', { name: 'Use the suggested amounts', exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Save plan' }).click();
+  await expectOnHome(page);
+  const [plan] = await readStore<Plan>(page, 'plan');
+  // The suggestions fill the envelopes; no budget is saved.
+  expect(plan).not.toHaveProperty('spendingBudgetMinor');
+  expect(plan.envelopes.reduce((total, e) => total + e.monthlyMinor, 0)).toBe(50000);
 });
 
 test('typing into one envelope moves the suggestions of the others, and the button fills only the empty ones', async ({
@@ -225,8 +238,10 @@ test('the first setup asks only the basic questions, with the budget at the top 
   await page.setViewportSize({ width: 375, height: 812 });
   await mockFrankfurter(page);
   await page.goto('/setup');
-  await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
-  await expect(page.getByText('Step 1 of 7', { exact: true })).toBeVisible();
+  // No city to pick: Regensburg is the only one, so setup opens on the accounts.
+  await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
+  await expect(page.getByText('Step 1 of 4', { exact: true })).toBeVisible();
+  await expect(page.getByText('City', { exact: true })).toHaveCount(0);
   const next = page.getByRole('button', { name: 'Next', exact: true });
   const heading = (name: string) => page.getByRole('heading', { level: 3, name, exact: true });
 
@@ -235,7 +250,6 @@ test('the first setup asks only the basic questions, with the budget at the top 
     await expect(heading(name)).toBeVisible();
   };
 
-  await go('Accounts');
   await go('Income');
   for (const name of ['Job', 'Parents', 'Blocked account', 'Other income']) await expect(box(page, name)).toBeVisible();
   for (const name of ['BAföG', 'Scholarship']) await expect(box(page, name)).toHaveCount(0);
@@ -250,6 +264,10 @@ test('the first setup asks only the basic questions, with the budget at the top 
   ).toBeVisible();
 
   await go('Fixed costs');
+  // Rent opens the step, above the basic fixed costs.
+  const rentBox = await box(page, 'Rent per month').boundingBox();
+  const phoneBox = await box(page, 'Phone & internet').boundingBox();
+  expect(rentBox && phoneBox && rentBox.y < phoneBox.y).toBe(true);
   for (const name of ['Phone & internet', 'Insurance', 'Deutschlandticket / semester ticket']) {
     await expect(box(page, name)).toBeVisible();
   }
@@ -258,18 +276,14 @@ test('the first setup asks only the basic questions, with the budget at the top 
   }
   await expect(
     page.getByText(
-      'Subscriptions, the gym, utilities and the Rundfunkbeitrag can be added later in Settings → Plan → Edit plan.',
+      'Subscriptions, the gym, utilities, the Rundfunkbeitrag and one-off costs like the semester fee can be added later in Settings → Plan → Edit plan.',
       { exact: true },
     ),
   ).toBeVisible();
 
-  await go('One-off costs');
-  await expect(page.getByText(/A cost without an amount isn't saved\./)).toBeVisible();
-  await go('Guesses');
-  await expect(page.getByText(/Skip any you're not sure about\./)).toBeVisible();
-  // Every guess is blank, and Next goes on.
+  // No one-off costs: the envelopes come next, and last.
   await go('Envelopes');
-  await expect(page.getByText('Step 7 of 7', { exact: true })).toBeVisible();
+  await expect(page.getByText('Step 4 of 4', { exact: true })).toBeVisible();
   for (const name of ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other']) {
     await expect(box(page, name)).toBeVisible();
   }
@@ -281,7 +295,13 @@ test('the first setup asks only the basic questions, with the budget at the top 
 
   // The budget is the first question of this step, blank, with what students here typically spend: the six
   // minimums to the six maximums, and which of those are estimates.
-  await expect(page.getByText('An everyday budget is optional: with one, each envelope below gets a suggested amount.', { exact: true })).toBeVisible();
+  // Nothing was typed, so there is nothing left to share out.
+  await expect(
+    page.getByText(
+      'An everyday budget is optional. Without one, the suggestions share out what is left after rent and fixed costs: €0.',
+      { exact: true },
+    ),
+  ).toBeVisible();
   await expect(budgetField(page)).toHaveValue('');
   await expect(
     page.getByText(
@@ -345,7 +365,11 @@ test('text that is not an amount in the everyday budget is named, and fixing it 
 test('the rent range shows where it comes from, collapsed until asked for', async ({ page }) => {
   await mockFrankfurter(page);
   await page.goto('/setup');
-  await expect(page.getByLabel('Rent per month')).toBeVisible();
+  for (const step of ['Income', 'Fixed costs']) {
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
+  }
+  await expect(box(page, 'Rent per month')).toBeVisible();
 
   await expect(page.getByText('Rooms here: €215–561', { exact: true })).toBeVisible();
   await expect(page.getByText('Source', { exact: true })).toHaveCount(1);
@@ -413,15 +437,10 @@ test('saves and lands on home', async ({ page }) => {
   });
   // The helper adds rent and income by hand unless a test asks for schedules.
   expect([...plan.incomes, ...plan.fixed].some((line) => line.schedule)).toBe(false);
-  expect(plan.oneOffs).toMatchObject([
-    { name: 'Semester fee', amountMinor: 30000, createdMonth: '2026-10', dueMonth: '2027-03' },
-  ]);
+  // A new setup asks no one-off costs, and writes no guesses (Guess vs. reality is gone).
+  expect(plan.oneOffs).toEqual([]);
   expect(plan.envelopes.find((e) => e.categoryId === 'eating-out')?.monthlyMinor).toBe(12400);
-
-  const guesses = await readStore<Guess>(page, 'guesses');
-  expect(guesses).toHaveLength(6);
-  expect(guesses.every((g) => g.guessedOn === '2026-10-16')).toBe(true);
-  expect(guesses.find((g) => g.categoryId === 'eating-out')?.monthlyMinor).toBe(8000);
+  expect(await readStore(page, 'guesses')).toEqual([]);
 
   const accounts = await readStore<Account>(page, 'accounts');
   expect(accounts.map((a) => [a.name, a.currency, a.openingMinor]).sort()).toEqual([
@@ -449,7 +468,7 @@ test('saves and lands on home', async ({ page }) => {
 test('home sends a first-time visitor to setup', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveURL('/setup');
-  await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
 });
 
 test('setup cannot run a second time', async ({ page }) => {
@@ -461,10 +480,21 @@ test('setup cannot run a second time', async ({ page }) => {
 test('explains what is missing before moving on and keeps what was typed', async ({ page }) => {
   await mockFrankfurter(page);
   await page.goto('/setup');
-  const rent = page.getByLabel('Rent per month');
-  await expect(rent).toBeVisible();
-  await expect(page.getByText('Rooms here: €215–561', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
+  for (let i = 0; i < 3; i += 1) await page.getByRole('button', { name: 'Remove account 1' }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(inlineAlert(page)).toHaveText('Add at least one account');
+  await page.getByRole('button', { name: 'Add account' }).click();
+  await page.getByRole('group', { name: 'Account 1' }).getByLabel('Name').fill('Wallet');
+  await expect(inlineAlert(page)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 3, name: 'Income' })).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
 
+  // Rent opens the fixed costs, with what rooms here cost.
+  await expect(page.getByRole('heading', { level: 3, name: 'Fixed costs' })).toBeVisible();
+  const rent = box(page, 'Rent per month');
+  await expect(page.getByText('Rooms here: €215–561', { exact: true })).toBeVisible();
   await rent.fill('abc');
   await rent.blur();
   await expect(page.getByText('Enter a number, like 250 or 12.50.')).toBeVisible();
@@ -473,14 +503,10 @@ test('explains what is missing before moving on and keeps what was typed', async
   await rent.fill('400');
   await expect(inlineAlert(page)).toHaveCount(0);
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-
-  await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
-  for (let i = 0; i < 3; i += 1) await page.getByRole('button', { name: 'Remove account 1' }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await expect(inlineAlert(page)).toHaveText('Add at least one account');
+  await expect(page.getByRole('heading', { level: 3, name: 'Envelopes' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Back' }).click();
-  await expect(page.getByLabel('Rent per month')).toHaveValue('400');
+  await expect(box(page, 'Rent per month')).toHaveValue('400');
 });
 
 test.describe('the install hint', () => {
@@ -501,7 +527,7 @@ test.describe('the install hint', () => {
     test('is hidden once the app runs from the home screen', async ({ page }) => {
       await page.addInitScript(() => Object.defineProperty(navigator, 'standalone', { value: true }));
       await page.goto('/setup');
-      await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
       await expect(page.getByText('Install first')).toHaveCount(0);
     });
   });
@@ -529,14 +555,15 @@ test.describe('the install hint', () => {
         Object.defineProperty(navigator, 'maxTouchPoints', { value: 0 });
       });
       await page.goto('/setup');
-      await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
       await expect(page.getByText('Install first')).toHaveCount(0);
     });
   });
 });
 
-test('editing the plan skips accounts and guesses and keeps what setup stored', async ({ page }) => {
-  await completeSetup(page);
+test('editing the plan skips accounts and keeps what setup stored', async ({ page }) => {
+  // With the semester fee, which Edit plan adds: a new setup asks no one-off costs.
+  await seedSetup(page);
 
   // A later day in a later month: a kept plan stays 'created on 2026-10-16' and a kept one-off 'from 2026-10'.
   await page.clock.setFixedTime(new Date(2026, 10, 5, 12, 0, 0));
@@ -545,11 +572,8 @@ test('editing the plan skips accounts and guesses and keeps what setup stored', 
   await page.getByRole('link', { name: 'Edit plan' }).click();
 
   await expect(page.getByRole('heading', { level: 2, name: 'Edit plan' })).toBeVisible();
-  // Accounts and guesses are skipped: five steps.
-  await expect(page.getByText('Step 1 of 5', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Rent per month')).toHaveValue('400');
-  await page.getByLabel('Rent per month').fill('410');
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  // Accounts are skipped, and the one-off costs are asked: four steps.
+  await expect(page.getByText('Step 1 of 4', { exact: true })).toBeVisible();
 
   // Edit plan asks about every income source and every fixed cost, not only the basic ones.
   await expect(page.getByRole('heading', { level: 3, name: 'Income' })).toBeVisible();
@@ -562,6 +586,8 @@ test('editing the plan skips accounts and guesses and keeps what setup stored', 
   await page.getByRole('button', { name: 'Next', exact: true }).click();
 
   await expect(page.getByRole('heading', { level: 3, name: 'Fixed costs' })).toBeVisible();
+  await expect(box(page, 'Rent per month')).toHaveValue('400');
+  await box(page, 'Rent per month').fill('410');
   for (const name of [
     'Phone & internet',
     'Insurance',
@@ -583,7 +609,7 @@ test('editing the plan skips accounts and guesses and keeps what setup stored', 
 
   // The everyday budget is the first question of the envelopes step. Nothing is asked of it.
   await expect(page.getByRole('heading', { level: 3, name: 'Envelopes' })).toBeVisible();
-  await expect(page.getByText('Step 5 of 5', { exact: true })).toBeVisible();
+  await expect(page.getByText('Step 4 of 4', { exact: true })).toBeVisible();
   await expect(budgetField(page)).toHaveValue('');
   await expect(
     page.getByText(
@@ -618,22 +644,21 @@ test('editing the plan skips accounts and guesses and keeps what setup stored', 
   expect(plans[0].oneOffs).toMatchObject([{ name: 'Semester fee', createdMonth: '2026-10' }]);
   expect(plans[0].envelopes.find((e) => e.categoryId === 'eating-out')?.monthlyMinor).toBe(12000);
   expect(plans[0].spendingBudgetMinor).toBe(50000);
-  // Neither accounts nor guesses were touched.
+  // The accounts were not touched.
   expect(await readStore<Account>(page, 'accounts')).toHaveLength(3);
-  const guesses = await readStore<Guess>(page, 'guesses');
-  expect(guesses).toHaveLength(6);
-  expect(guesses.every((g) => g.guessedOn === '2026-10-16')).toBe(true);
 });
 
 test('in Edit plan the suggested amounts fill only the envelopes that are not set, whatever the plan already holds', async ({
   page,
 }) => {
   const nothing = { food: '', 'eating-out': '', 'going-out': '', transport: '', shopping: '', other: '' };
-  await completeSetup(page, { envelopes: nothing });
+  await seedSetup(page, { envelopes: nothing });
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: /^Plan/ }).click();
   await page.getByRole('link', { name: 'Edit plan' }).click();
-  for (const step of ['Income', 'Fixed costs', 'One-off costs', 'Envelopes']) {
+  // Edit plan opens on the income.
+  await expect(page.getByRole('heading', { level: 3, name: 'Income' })).toBeVisible();
+  for (const step of ['Fixed costs', 'One-off costs', 'Envelopes']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
@@ -687,13 +712,15 @@ test('in Edit plan the suggested amounts fill only the envelopes that are not se
 });
 
 test('a one-off whose due month has passed does not block editing the plan', async ({ page }) => {
-  await completeSetup(page);
+  await seedSetup(page);
 
   // April 2027: the semester fee was due in March and is still in the plan, untouched.
   await page.clock.setFixedTime(new Date(2027, 3, 10, 12, 0, 0));
   await page.goto('/settings/plan');
   await page.getByRole('link', { name: 'Edit plan' }).click();
-  for (const step of ['Income', 'Fixed costs', 'One-off costs']) {
+  // Edit plan opens on the income.
+  await expect(page.getByRole('heading', { level: 3, name: 'Income' })).toBeVisible();
+  for (const step of ['Fixed costs', 'One-off costs']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
@@ -710,29 +737,18 @@ test('the wizard fits a phone without sideways scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await mockFrankfurter(page);
   await page.goto('/setup');
-  await expect(page.getByRole('heading', { level: 3, name: 'City and rent' })).toBeVisible();
-  expect(await overflow(page)).toBeLessThanOrEqual(0);
-
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  for (const step of ['Income', 'Fixed costs', 'One-off costs']) {
+  for (const step of ['Income', 'Fixed costs']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
-  await page.getByRole('button', { name: 'Add a one-off cost' }).click();
-  await expect(page.getByLabel('Due month')).toBeVisible();
-  expect(await overflow(page)).toBeLessThanOrEqual(0);
-  // A named cost with no amount says, under its amount, that it is not saved, and nothing stops the step.
-  const oneOff = page.getByRole('group', { name: 'One-off cost 1' });
-  await expect(oneOff.getByText("Without an amount, this cost isn't saved.")).toHaveCount(0);
-  await oneOff.getByLabel('Name').fill('Laptop');
-  await expect(oneOff.getByText("Without an amount, this cost isn't saved.", { exact: true })).toBeVisible();
-  expect(await overflow(page)).toBeLessThanOrEqual(0);
-
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 3, name: 'Guesses' })).toBeVisible();
+  // Rent with its source opened and its "Add it automatically" choices: the widest the step gets.
+  await box(page, 'Rent per month').fill('400');
+  await page.getByText('Source', { exact: true }).click();
+  await expect(page.getByText('Universität Regensburg: cheapest Studierendenwerk room')).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Rent schedule', exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   await page.getByRole('button', { name: 'Next', exact: true }).click();
@@ -749,7 +765,7 @@ test('the wizard fits a phone without sideways scrolling', async ({ page }) => {
 test('rent and income can be added on their day, from any account', async ({ page }) => {
   await fillSetup(page, {}, { schedules: true });
   await page.setViewportSize({ width: 375, height: 812 });
-  for (const step of ['Guesses', 'One-off costs', 'Fixed costs', 'Income']) {
+  for (const step of ['Fixed costs', 'Income']) {
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
@@ -776,7 +792,7 @@ test('rent and income can be added on their day, from any account', async ({ pag
   expect(await overflow(page)).toBeLessThanOrEqual(0);
   await page.getByRole('button', { name: 'Next', exact: true }).click();
 
-  // Rent's choice sits with the fixed costs, once the accounts are known.
+  // Rent and its choice open the fixed costs.
   await expect(page.getByRole('heading', { level: 3, name: 'Fixed costs' })).toBeVisible();
   const rent = page.getByRole('group', { name: 'Rent schedule', exact: true });
   await expect(rent.getByLabel('Account', { exact: true }).locator('option:checked')).toHaveText('Local bank (EUR)');
@@ -786,10 +802,8 @@ test('rent and income can be added on their day, from any account', async ({ pag
   await expect(page.getByRole('group', { name: 'Phone & internet schedule', exact: true })).toHaveCount(0);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  for (const step of ['One-off costs', 'Guesses', 'Envelopes']) {
-    await page.getByRole('button', { name: 'Next', exact: true }).click();
-    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
-  }
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 3, name: 'Envelopes' })).toBeVisible();
   await page.getByRole('button', { name: 'Save plan' }).click();
   await expectOnHome(page);
 
@@ -829,11 +843,10 @@ test('editing the plan keeps each schedule and how far it has posted', async ({ 
   await page.goto('/settings/plan');
   await page.getByRole('link', { name: 'Edit plan' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Edit plan' })).toBeVisible();
-  await page.getByLabel('Rent per month').fill('390');
-  for (const step of ['Income', 'Fixed costs']) {
-    await page.getByRole('button', { name: 'Next', exact: true }).click();
-    await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
-  }
+  await expect(page.getByRole('heading', { level: 3, name: 'Income' })).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 3, name: 'Fixed costs' })).toBeVisible();
+  await box(page, 'Rent per month').fill('390');
   const rent = page.getByRole('group', { name: 'Rent schedule', exact: true });
   await expect(rent.getByRole('checkbox', { name: 'Add it automatically', exact: true })).toBeChecked();
   await expect(rent.getByLabel('Account', { exact: true }).locator('option:checked')).toHaveText('Local bank (EUR)');
@@ -856,12 +869,12 @@ test('editing the plan keeps each schedule and how far it has posted', async ({ 
 // seedSetup (helpers/seed-setup.ts) writes the finished setup without walking the wizard, for the specs that only need
 // a plan. These tests hold it to what the wizard's Save really writes, so the two cannot drift apart.
 
-type SetupRows = { plan: Plan; accounts: Account[]; guesses: Guess[] };
+type SetupRows = { plan: Plan; accounts: Account[] };
 
 async function setupRows(page: Page): Promise<SetupRows> {
   const plans = await readStore<Plan>(page, 'plan');
   expect(plans).toHaveLength(1);
-  return { plan: plans[0], accounts: await readStore<Account>(page, 'accounts'), guesses: await readStore<Guess>(page, 'guesses') };
+  return { plan: plans[0], accounts: await readStore<Account>(page, 'accounts') };
 }
 
 /**
@@ -869,7 +882,7 @@ async function setupRows(page: Page): Promise<SetupRows> {
  * (also where a schedule names it), a schedule's and a one-off's id by a placeholder. Everything else must match as
  * it is: with the clock pinned, both write the same creation times.
  */
-function withoutIds({ plan, accounts, guesses }: SetupRows) {
+function withoutIds({ plan, accounts }: SetupRows) {
   const nameOf = new Map(accounts.map((a) => [a.id, a.name]));
   const line = (l: PlanLine): PlanLine =>
     l.schedule
@@ -883,7 +896,6 @@ function withoutIds({ plan, accounts, guesses }: SetupRows) {
       oneOffs: plan.oneOffs.map((o) => ({ ...o, id: 'one-off' })),
     },
     accounts: [...accounts].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((a) => ({ ...a, id: a.name })),
-    guesses: [...guesses].sort((a, b) => a.categoryId.localeCompare(b.categoryId)),
   };
 }
 
@@ -943,12 +955,13 @@ async function addWalletBeforeSetup(page: Page) {
   );
 }
 
+// Without the fixture's one-off, which seedSetup adds as Edit plan would and a new setup does not ask.
 const SEED_CASES: { title: string; overrides?: Partial<SetupFixture>; options?: SetupOptions }[] = [
-  { title: 'the default setup' },
-  { title: 'with "Add it automatically" on', options: { schedules: true } },
+  { title: 'the default setup', overrides: { oneOff: NO_ONE_OFF } },
+  { title: 'with "Add it automatically" on', overrides: { oneOff: NO_ONE_OFF }, options: { schedules: true } },
   {
-    title: 'with accounts saved first, a budget and no guess for transport',
-    overrides: { budget: '600', guesses: { ...DEFAULT_SETUP.guesses, transport: '' } },
+    title: 'with accounts saved first and a budget',
+    overrides: { oneOff: NO_ONE_OFF, budget: '600' },
     options: { accountsExist: true },
   },
 ];

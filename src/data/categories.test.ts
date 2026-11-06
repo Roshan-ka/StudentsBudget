@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORIES, GUESS_CATEGORY_IDS } from './categories';
+import { CATEGORIES, CORE_FLEXIBLE_IDS } from './categories';
 
 const idsOf = (kind: string) => CATEGORIES.filter((c) => c.kind === kind).map((c) => c.id);
 
@@ -47,9 +47,9 @@ describe('CATEGORIES', () => {
   });
 });
 
-describe('GUESS_CATEGORY_IDS', () => {
+describe('CORE_FLEXIBLE_IDS', () => {
   it('are the six categories of the first version, all flexible', () => {
-    expect(GUESS_CATEGORY_IDS).toEqual(['food', 'eating-out', 'going-out', 'transport', 'shopping', 'other']);
-    for (const id of GUESS_CATEGORY_IDS) expect(idsOf('flexible')).toContain(id);
+    expect(CORE_FLEXIBLE_IDS).toEqual(['food', 'eating-out', 'going-out', 'transport', 'shopping', 'other']);
+    for (const id of CORE_FLEXIBLE_IDS) expect(idsOf('flexible')).toContain(id);
   });
 });

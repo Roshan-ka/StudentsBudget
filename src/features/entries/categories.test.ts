@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES, categoryName, orderOf } from './categories';
+import { FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_CATEGORIES, categoryName, orderOf } from './categories';
 
 describe('orderOf', () => {
   it('follows the built-in list', () => {
@@ -20,9 +20,9 @@ describe('orderOf', () => {
   });
 });
 
-describe('GUESS_CATEGORIES', () => {
+describe('CORE_FLEXIBLE_CATEGORIES', () => {
   it('are the six categories people guess, a part of the flexible ones', () => {
-    expect(GUESS_CATEGORIES.map((c) => c.id)).toEqual([
+    expect(CORE_FLEXIBLE_CATEGORIES.map((c) => c.id)).toEqual([
       'food',
       'eating-out',
       'going-out',
@@ -31,7 +31,7 @@ describe('GUESS_CATEGORIES', () => {
       'other',
     ]);
     expect(FLEXIBLE_CATEGORIES).toHaveLength(12);
-    for (const c of GUESS_CATEGORIES) expect(FLEXIBLE_CATEGORIES).toContainEqual(c);
+    for (const c of CORE_FLEXIBLE_CATEGORIES) expect(FLEXIBLE_CATEGORIES).toContainEqual(c);
   });
 });
 

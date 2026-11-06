@@ -1,31 +1,17 @@
 import type { Messages } from '../en';
 import { NNBSP } from './count';
 
-// La comparaison des estimations en français : sa carte sur l'accueil, la page et le mois par mois de reveal-text.ts.
+// Le mois par mois en français : la ligne de l'accueil, la page et les lignes de reveal-text.ts.
 export const reveal: Messages['reveal'] = {
-  card: {
-    open: 'Vois ce que valaient tes estimations',
-    label: 'Tes estimations',
-    unlocksOn: (day) => `Tes estimations se débloquent le ${day}.`,
-    whatsThis: `C’est quoi${NNBSP}?`,
-  },
-  locked: {
-    unlocksOn: (day) => `Tes estimations se débloquent le ${day}. Continue de saisir.`,
-    explain: (days) =>
-      'Lors de la configuration, tu as estimé ce que tu dépenses chaque mois. ' +
-      `Après ${days} jours de saisies, tu verras comment tes estimations se comparent à ce que tu as vraiment dépensé.`,
-  },
-  listLabel: 'Tes estimations',
-  guessLine: (guessed, actual) => `Tu avais estimé ${guessed}. C’était ${actual}.`,
-  scaled: (from, to) => `Tes dépenses du ${from} au ${to}, ramenées à un mois de 30 jours.`,
-  adjust: 'Modifier le plan',
-  noGuesses: 'Aucune estimation n’a été enregistrée lors de la configuration, il n’y a donc rien à comparer.',
-  monthByMonth: 'Mois par mois',
+  link: (month) => `Vois comment s’est passé ${month}`,
+  intro: 'Comment chaque mois écoulé s’est passé par rapport à tes enveloppes.',
+  notYet: (month) => `Ton premier bilan arrive une fois ${month} terminé.`,
+  adjust: 'Modifier mes enveloppes',
   recap: {
     savings: (label, amount) => `${label}${NNBSP}: ${amount} restants → épargne`,
     over: (label, amount) => `${label}${NNBSP}: ${amount} au-delà du plan`,
     onPlan: (label) => `${label}${NNBSP}: pile dans le plan`,
   },
-  noPlan: 'Configure ton plan pour comparer tes estimations à tes dépenses.',
+  noPlan: 'Configure ton plan pour voir comment se passe chaque mois.',
   startSetup: 'Commencer la configuration',
 };

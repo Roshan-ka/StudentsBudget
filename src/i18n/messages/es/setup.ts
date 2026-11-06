@@ -8,12 +8,10 @@ export const setup: Messages['setup'] = {
   headingEdit: 'Editar plan',
   stepOf: (step, total) => `Paso ${step} de ${total}`,
   titles: {
-    'city-rent': 'Ciudad y alquiler',
     accounts: 'Cuentas',
     income: 'Ingresos',
     fixed: 'Gastos fijos',
     'one-offs': 'Gastos puntuales',
-    guesses: 'Estimaciones',
     envelopes: 'Sobres',
   },
   accountsInSettings: 'Tus cuentas ya están configuradas en Ajustes → Cuentas y transferencias.',
@@ -30,15 +28,8 @@ export const setup: Messages['setup'] = {
     nameOneOffs: 'Ponle nombre a cada gasto puntual.',
     checkOneOff: (name, number) => `Revisa el importe de ${name ?? `el gasto puntual ${number}`}.`,
     dueMonth: 'Elige un mes posterior a este.',
-    checkGuess: (name) => `Revisa la estimación de ${name}.`,
     checkBudget: 'Revisa el importe de tu presupuesto del día a día.',
     addEnvelope: (name) => `Añade un importe para ${name}`,
-  },
-  cityRent: {
-    city: 'Ciudad',
-    onlyCity: 'Por ahora, Regensburg es la única ciudad.',
-    rent: 'Alquiler al mes',
-    rooms: (range) => `Habitaciones aquí: ${range}`,
   },
   accounts: {
     intro: '¿Dónde está tu dinero? El saldo inicial es lo que hay hoy en cada cuenta.',
@@ -63,11 +54,12 @@ export const setup: Messages['setup'] = {
     later: '¿Recibes BAföG o una beca? Añádelo más tarde en Ajustes → Plan → Editar plan.',
   },
   fixed: {
-    intro: '¿Qué pagas cada mes, en euros? Tu alquiler ya está incluido desde el paso 1. Deja fuera lo que no pagas.',
+    intro: '¿Qué pagas cada mes, en euros? Deja fuera lo que no pagas.',
+    rentLabel: 'Alquiler al mes',
+    rooms: (range) => `Habitaciones aquí: ${range}`,
     later:
-      'Las suscripciones, el gimnasio, los suministros y el Rundfunkbeitrag se pueden añadir más tarde en Ajustes ' +
-      '→ Plan → Editar plan.',
-    rent: (amount) => `Alquiler: ${amount} al mes`,
+      'Las suscripciones, el gimnasio, los suministros, el Rundfunkbeitrag y los gastos puntuales como la cuota ' +
+      'semestral se pueden añadir más tarde en Ajustes → Plan → Editar plan.',
   },
   oneOffs: {
     intro:
@@ -82,12 +74,6 @@ export const setup: Messages['setup'] = {
     add: 'Añadir un gasto puntual',
     feeOffer: (amount, month) => `Añadir la cuota semestral${amount === null ? '' : `: ${amount}`}, a pagar en ${month}`,
   },
-  guesses: {
-    intro:
-      'Hazle caso a tu intuición, en euros. Pon 0 si no gastas nada en ello. Sáltate las que no tengas claras. ' +
-      'Las estimaciones se guardan una vez y no se pueden cambiar después.',
-    question: (topic) => `¿Cuánto crees que gastas al mes en ${topic}?`,
-  },
   topics: {
     food: 'comida y súper',
     'eating-out': 'comer fuera',
@@ -97,7 +83,11 @@ export const setup: Messages['setup'] = {
     other: 'otras cosas',
   },
   envelopes: {
-    budgetIntro: 'Un presupuesto del día a día es opcional: con uno, cada sobre de abajo recibe un importe sugerido.',
+    budgetIntroNew: (amount) =>
+      `Un presupuesto del día a día es opcional. Sin él, las sugerencias reparten lo que queda tras el alquiler y los gastos fijos: ${amount}.`,
+    budgetIntroEdit: (amount) =>
+      'Un presupuesto del día a día es opcional. Sin él, las sugerencias reparten lo que queda tras el alquiler, los ' +
+      `gastos fijos y lo que se aparta para gastos puntuales: ${amount}.`,
     budgetQuestion: '¿Cuánto quieres gastar al mes en el día a día, sin contar el alquiler ni tus gastos fijos?',
     typicalSpend: (range) => `Los estudiantes de aquí suelen gastar unos ${range} al mes en esto.`,
     estimates: (list, count) =>
@@ -130,9 +120,8 @@ export const setup: Messages['setup'] = {
     summary: 'Ingresos, gastos fijos y sobres',
     heading: 'Plan',
     body:
-      'Cambia tus sobres y gastos puntuales, añade las fuentes de ingresos, los gastos fijos y los sobres que la ' +
-      'configuración se saltó, o repasa todo el plan otra vez. Las estimaciones de la ' +
-      'configuración no cambian.',
+      'Cambia tus sobres, añade gastos puntuales como la cuota semestral y las fuentes de ingresos, los gastos ' +
+      'fijos y los sobres que la configuración se saltó, o repasa todo el plan otra vez.',
     link: 'Editar plan',
   },
 };

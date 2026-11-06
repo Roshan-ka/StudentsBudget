@@ -1,11 +1,11 @@
-import { CATEGORIES, GUESS_CATEGORY_IDS } from '@/data/categories';
+import { CATEGORIES, CORE_FLEXIBLE_IDS } from '@/data/categories';
 import type { Category } from '@/db/types';
 
 /** What quick add offers when it cannot tell the category from the note. */
 export const FLEXIBLE_CATEGORIES: Category[] = CATEGORIES.filter((c) => c.kind === 'flexible');
 
-/** The flexible categories setup asks a guess for. */
-export const GUESS_CATEGORIES: Category[] = FLEXIBLE_CATEGORIES.filter((c) => GUESS_CATEGORY_IDS.includes(c.id));
+/** The original six flexible categories (`CORE_FLEXIBLE_IDS`), in category order. */
+export const CORE_FLEXIBLE_CATEGORIES: Category[] = FLEXIBLE_CATEGORIES.filter((c) => CORE_FLEXIBLE_IDS.includes(c.id));
 
 /** Everything an expense can be filed under. */
 export const EXPENSE_CATEGORIES: Category[] = CATEGORIES.filter((c) => c.kind !== 'income');

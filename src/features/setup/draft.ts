@@ -1,8 +1,7 @@
 import { CATEGORIES } from '@/data/categories';
 import type { CityRange } from '@/data/cities';
-import type { Account, Amount, Category, Guess, OneOff, Plan, PlanLine, Schedule } from '@/db/types';
+import type { Account, Amount, Category, OneOff, Plan, PlanLine, Schedule } from '@/db/types';
 import { defaultAccount } from '@/features/accounts/balances';
-import { GUESS_CATEGORIES } from '@/features/entries/categories';
 import { newSchedule, perOccurrence, restartSchedule } from '@/features/recurring/schedule';
 import { categoryNameIn } from '@/i18n/category-name';
 import { LANGUAGES, type Language } from '@/i18n/languages';
@@ -47,24 +46,23 @@ export type AccountOption = Pick<Account, 'id' | 'name' | 'currency'> & Partial<
  * A `NaN` amount stands for text in a field that did not parse. `validateStep` rejects it with a
  * message, so the draft alone decides whether a step may be left.
  *
- * `accounts` and `guesses` stay empty in edit mode: accounts are edited in Settings, guesses are locked.
+ * `accounts` stays empty in edit mode: accounts are edited in Settings.
  * `accounts` is empty in a new setup too when accounts already exist (added in Settings first), so Save adds none.
  * A one-off that carries an `id` came from the saved plan and keeps its `createdMonth` when saved again.
  * An income or fixed line without a `schedule` is added by hand. A line that gets an amount in the wizard starts with
  * "Add it automatically" on; a line opened from a plan that has no schedule for it starts with it off.
  *
- * Nothing in the draft blocks saving. A guess left blank is not saved, a one-off row without an amount is left out,
+ * Nothing in the draft blocks saving. A one-off row without an amount is left out,
  * and `spendingBudgetMinor` (0 for none) is saved only when it is above 0 and only guides the envelope suggestion.
  */
 export type SetupDraft = {
   rentMinor: Minor;
-  /** Rent's "Add it automatically", asked in the fixed costs step once the accounts are known. */
+  /** Rent's "Add it automatically", right under rent at the top of the fixed costs step. */
   rentSchedule?: DraftSchedule;
   accounts: DraftAccount[];
   incomes: DraftLine[];
   fixed: DraftLine[];
   oneOffs: (Pick<OneOff, 'name' | 'amountMinor' | 'dueMonth'> & { id?: string })[];
-  guesses: Amount[];
   /** The monthly everyday-spending budget in EUR, rent and fixed costs left out. 0 when none was entered. */
   spendingBudgetMinor: Minor;
   envelopes: Amount[];
@@ -72,13 +70,17 @@ export type SetupDraft = {
 
 export type DraftUpdate = (change: (d: SetupDraft) => SetupDraft) => void;
 
-export type StepId = 'city-rent' | 'accounts' | 'income' | 'fixed' | 'one-offs' | 'guesses' | 'envelopes';
+/**
+ * The wizard's steps. A new setup asks accounts, income, fixed costs (rent first) and envelopes; Edit plan asks income,
+ * fixed costs, one-off costs and envelopes (setup-wizard.tsx).
+ */
+export type StepId = 'accounts' | 'income' | 'fixed' | 'one-offs' | 'envelopes';
 
 const ofKind = (kind: Category['kind']): Category[] => CATEGORIES.filter((c) => c.kind === kind);
 
 export const FLEXIBLE_CATEGORIES = ofKind('flexible');
 export const INCOME_CATEGORIES = ofKind('income');
-/** The fixed costs step asks for these; rent has its own question in step 1. */
+/** The fixed costs step asks for these below rent, which has its own field at the top of the step. */
 export const FIXED_CATEGORIES = ofKind('fixed').filter((c) => c.id !== 'rent');
 
 const ORDER_OF = new Map(CATEGORIES.map((c) => [c.id, c.order]));
@@ -206,8 +208,6 @@ export function initialDraft(accountsExist = false, lang: Language = 'en'): Setu
     incomes: [],
     fixed: [],
     oneOffs: [],
-    // A blank guess is not a 0: it is not saved, and a typed 0 is.
-    guesses: [],
     spendingBudgetMinor: 0,
     envelopes: FLEXIBLE_CATEGORIES.map((c) => ({ categoryId: c.id, monthlyMinor: 0 })),
   };
@@ -228,7 +228,6 @@ export function draftFromPlan(plan: Plan): SetupDraft {
     incomes: plan.incomes.map(toDraft),
     fixed: plan.fixed.filter((a) => a.categoryId !== 'rent').map(toDraft),
     oneOffs: plan.oneOffs.map(({ id, name, amountMinor, dueMonth }) => ({ id, name, amountMinor, dueMonth })),
-    guesses: [],
     spendingBudgetMinor: plan.spendingBudgetMinor ?? 0,
     envelopes: FLEXIBLE_CATEGORIES.map((c) => ({
       categoryId: c.id,
@@ -258,7 +257,7 @@ export function draftToRecords(
   existing?: Plan,
   stored: AccountOption[] = [],
   now: number = Date.now(),
-): { plan: Plan; guesses: Guess[]; accounts: Account[] } {
+): { plan: Plan; accounts: Account[] } {
   const thisMonth = monthOf(today);
   const unclaimed = [...(existing?.oneOffs ?? [])];
   const claim = (row: SetupDraft['oneOffs'][number]): OneOff | undefined => {
@@ -337,14 +336,12 @@ export function draftToRecords(
     ...(d.spendingBudgetMinor > 0 && { spendingBudgetMinor: d.spendingBudgetMinor }),
     createdOn: existing?.createdOn ?? today,
   };
-  const guesses = d.guesses.map((g): Guess => ({ ...g, guessedOn: today }));
-  return { plan, guesses, accounts };
+  return { plan, accounts };
 }
 
 /** Turns every amount that did not parse into 0, or removes its row where 0 would be a real answer. */
 export function dropUnparsed(d: SetupDraft): SetupDraft {
   const zero = (m: Minor): Minor => (Number.isNaN(m) ? 0 : m);
-  const parsed = (list: Amount[]): Amount[] => list.filter((a) => !Number.isNaN(a.monthlyMinor));
   const cleanSchedule = (s: DraftSchedule | undefined): DraftSchedule | undefined =>
     s && { ...s, foreignMinor: zero(s.foreignMinor) };
   // A line with choices keeps them at 0, as `setLineAmount` does.
@@ -361,7 +358,6 @@ export function dropUnparsed(d: SetupDraft): SetupDraft {
     incomes: lines(d.incomes),
     fixed: lines(d.fixed),
     oneOffs: d.oneOffs.map((o) => ({ ...o, amountMinor: zero(o.amountMinor) })),
-    guesses: parsed(d.guesses),
     spendingBudgetMinor: zero(d.spendingBudgetMinor),
     envelopes: d.envelopes.map((a) => ({ ...a, monthlyMinor: zero(a.monthlyMinor) })),
   };
@@ -451,9 +447,6 @@ export function validateStep(
   const text = t.setup.problems;
   const options = accountOptions(d, stored, lang);
   switch (step) {
-    case 'city-rent':
-      return isAmount(d.rentMinor) ? [] : [text.checkAmount(categoryNameIn(t, 'rent'))];
-
     case 'accounts': {
       if (d.accounts.length === 0) return [text.addAccount];
       const problems: string[] = [];
@@ -472,9 +465,11 @@ export function validateStep(
       ];
 
     case 'fixed': {
-      // Rent's choices are asked in this step.
-      const rent = { name: categoryNameIn(t, 'rent'), monthlyMinor: d.rentMinor, schedule: d.rentSchedule };
+      // Rent is the first field of this step, with its choices under it.
+      const rentName = categoryNameIn(t, 'rent');
+      const rent = { name: rentName, monthlyMinor: d.rentMinor, schedule: d.rentSchedule };
       return [
+        ...(isAmount(d.rentMinor) ? [] : [text.checkAmount(rentName)]),
         ...amountProblems(d.fixed, FIXED_CATEGORIES, t),
         ...scheduleProblems([rent, ...namedLines(d.fixed, FIXED_CATEGORIES, t)], options, t),
       ];
@@ -493,13 +488,6 @@ export function validateStep(
       return [...problems];
     }
 
-    case 'guesses':
-      // A blank guess is simply not saved: only one that did not parse is a problem.
-      return GUESS_CATEGORIES.flatMap((c) => {
-        const minor = amountOf(d.guesses, c.id);
-        return minor === undefined || isAmount(minor) ? [] : [text.checkGuess(categoryNameIn(t, c.id))];
-      });
-
     case 'envelopes':
       return [
         // The everyday budget is asked at the top of this step. Blank, 0 and an amount are all fine.
@@ -511,6 +499,15 @@ export function validateStep(
         }),
       ];
   }
+}
+
+/**
+ * What the envelope suggestions share out: the everyday budget when there is one, else what the plan has available
+ * (income less rent, the fixed costs and the one-off set-asides), as Home does without a budget. Never below 0, so a
+ * plan that is short of money suggests nothing.
+ */
+export function suggestionTarget(budgetMinor: Minor, availableMinor: Minor): Minor {
+  return budgetMinor > 0 ? budgetMinor : Math.max(0, availableMinor);
 }
 
 const wholeEuros = (minor: Minor, lang: Language): string =>
@@ -555,7 +552,7 @@ export function rangeLine(
   return range.source === 'Estimate' ? text.rangeEstimate(prefix, amounts) : text.range(prefix, amounts);
 }
 
-/** How a sentence names one of the six guess and envelope categories: "eating out", "other things". */
+/** How a sentence names one of the six core envelope categories: "eating out", "other things". */
 export function topicOf(categoryId: string, lang: Language = 'en'): string {
   const t = MESSAGES[lang];
   return (t.setup.topics as Record<string, string>)[categoryId] ?? categoryNameIn(t, categoryId);

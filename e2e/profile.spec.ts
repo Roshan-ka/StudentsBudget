@@ -53,8 +53,8 @@ async function overflow(page: Page) {
 async function openOneOffsStep(page: Page) {
   await page.goto('/settings/plan');
   await page.getByRole('link', { name: 'Edit plan', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 3, name: 'City and rent', exact: true })).toBeVisible();
-  for (const heading of ['Income', 'Fixed costs', 'One-off costs']) {
+  await expect(page.getByRole('heading', { level: 3, name: 'Income', exact: true })).toBeVisible();
+  for (const heading of ['Fixed costs', 'One-off costs']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: heading, exact: true })).toBeVisible();
   }

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import type { Account, Guess, Plan } from '../../src/db/types';
+import type { Account, Plan } from '../../src/db/types';
 import { sortAccounts } from '../../src/features/accounts/balances';
 import { parseOptionalAmount, parseSignedAmount } from '../../src/features/accounts/opening-balance';
 import {
@@ -34,9 +34,6 @@ import {
 /** A field's text as the wizard's amount field reads it: blank is 0, text that is no amount is `NaN` (refused below). */
 const amount = (text: string): Minor => parseOptionalAmount(text) ?? Number.NaN;
 
-/** A guess field: blank is no answer, so no row (`blank="unset"`). */
-const guess = (text: string): Minor | undefined => (text.trim() === '' ? undefined : amount(text));
-
 /** "Add it automatically" unticked, as `fillSetup`'s `addByHand` leaves a line. The other choices stay. */
 function byHand(lines: DraftLine[], categoryId: string): DraftLine[] {
   const schedule = lines.find((l) => l.categoryId === categoryId)?.schedule;
@@ -44,8 +41,9 @@ function byHand(lines: DraftLine[], categoryId: string): DraftLine[] {
 }
 
 /**
- * The draft the wizard holds once `fillSetup` has typed `f` into it, built with the wizard's own functions. `lang` is
- * the page's language, which names the prefilled accounts; `stored` are the accounts already saved (`accountsExist`).
+ * The draft the wizard holds once `fillSetup` has typed `f` into it, built with the wizard's own functions, plus
+ * `f.oneOff` as Edit plan would add it. `lang` is the page's language, which names the prefilled accounts; `stored` are
+ * the accounts already saved (`accountsExist`).
  */
 function draftOf(f: SetupFixture, options: SetupOptions, lang: Language, stored: AccountOption[]): SetupDraft {
   let d = initialDraft(stored.length > 0, lang);
@@ -62,37 +60,33 @@ function draftOf(f: SetupFixture, options: SetupOptions, lang: Language, stored:
   incomes = setLineAmount(incomes, 'income-job', amount(f.incomes.job));
   if (!options.schedules) incomes = byHand(byHand(incomes, 'income-parents'), 'income-job');
 
-  // `fillSetup` always adds one one-off row; a row without an amount is left out when saving.
+  // A new setup asks no one-off cost; Edit plan's step adds this one on the setup day. A row without an amount is left
+  // out when saving.
   const oneOffs: SetupDraft['oneOffs'] = [
     { name: f.oneOff.name, amountMinor: amount(f.oneOff.amount), dueMonth: f.oneOff.dueMonth },
   ];
 
-  let guesses = d.guesses;
   let envelopes = d.envelopes;
-  for (const id of FLEXIBLE_IDS) {
-    guesses = withAmount(guesses, id, guess(f.guesses[id]));
-    envelopes = withAmount(envelopes, id, amount(f.envelopes[id]));
-  }
+  for (const id of FLEXIBLE_IDS) envelopes = withAmount(envelopes, id, amount(f.envelopes[id]));
 
-  return withAccountKeys({ ...d, incomes, oneOffs, guesses, spendingBudgetMinor: amount(f.budget), envelopes });
+  return withAccountKeys({ ...d, incomes, oneOffs, spendingBudgetMinor: amount(f.budget), envelopes });
 }
 
-/** Every step the new-setup wizard has; one it would refuse to leave stops the seed. */
-const STEPS: StepId[] = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'envelopes'];
+/** The new setup's steps, and Edit plan's one-off costs for `f.oneOff`; one the wizard would refuse stops the seed. */
+const STEPS: StepId[] = ['accounts', 'income', 'fixed', 'one-offs', 'envelopes'];
 
-/** Writes the rows in one transaction, as `saveWizard` does: the accounts are added, the plan put, the guesses added. */
-async function writeSetup(page: Page, rows: { accounts: Account[]; plan: Plan; guesses: Guess[] }) {
+/** Writes the rows in one transaction, as `saveWizard` does: the accounts are added and the plan put. */
+async function writeSetup(page: Page, rows: { accounts: Account[]; plan: Plan }) {
   await page.evaluate(
-    ({ accounts, plan, guesses }) =>
+    ({ accounts, plan }) =>
       new Promise<void>((resolve, reject) => {
         const open = indexedDB.open('studentsbudget');
         open.onerror = () => reject(open.error);
         open.onsuccess = () => {
           const database = open.result;
-          const transaction = database.transaction(['accounts', 'plan', 'guesses'], 'readwrite');
+          const transaction = database.transaction(['accounts', 'plan'], 'readwrite');
           for (const account of accounts) transaction.objectStore('accounts').add(account);
           transaction.objectStore('plan').put(plan);
-          for (const row of guesses) transaction.objectStore('guesses').add(row);
           transaction.oncomplete = () => {
             database.close();
             resolve();
@@ -107,8 +101,8 @@ async function writeSetup(page: Page, rows: { accounts: Account[]; plan: Plan; g
 
 /**
  * Sets up a plan from `DEFAULT_SETUP` (or the overrides) without walking the wizard: the same rows the wizard's Save
- * writes, built in Node with its own `draftToRecords` from the draft `fillSetup` would type, then written straight into
- * IndexedDB from /tips. Ends on Home with the plan shown, as `completeSetup` does. Same fixture, options and
+ * writes, built in Node with its own `draftToRecords` from the draft `fillSetup` would type, with `f.oneOff` added as
+ * Edit plan would on the setup day (so the fixture's numbers stay), then written straight into IndexedDB from /tips. Ends on Home with the plan shown, as `completeSetup` does. Same fixture, options and
  * preparation: mocks Frankfurter, accepts the exchange-rate note only, and pins the date to `SETUP_DAY` unless the
  * caller set `page.clock` first. setup.spec.ts checks that both write the same rows.
  */

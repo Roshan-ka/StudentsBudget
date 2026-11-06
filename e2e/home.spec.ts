@@ -491,9 +491,7 @@ test('opened in the first week of the month, the suggested budget changes only t
   // October spending in a category the city has no range for: November's suggestion starts from it.
   await seedExpense(page, 'health', '2026-10-20', 1200);
   await seedExpense(page, 'study', '2026-10-21', 200);
-  const guessesBefore = await readStore(page, 'guesses');
   const [planBefore] = await readStore<Plan>(page, 'plan');
-  expect(guessesBefore).toHaveLength(6);
 
   // Tuesday 3 Nov: November is a full month for the plan, and its first week.
   await reopenOn(page, new Date(2026, 10, 3, 12, 0, 0));
@@ -563,8 +561,6 @@ test('opened in the first week of the month, the suggested budget changes only t
   // €420 / 5 = €84.
   await expect(card.getByText('This week: €84 safe to spend', { exact: true })).toBeVisible();
 
-  // Only the envelopes were written: the guesses and the rest of the plan are as they were.
-  expect(await readStore(page, 'guesses')).toEqual(guessesBefore);
   const [planAfter] = await readStore<Plan>(page, 'plan');
   expect(planAfter).toEqual({
     ...planBefore,

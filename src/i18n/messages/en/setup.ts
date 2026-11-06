@@ -6,12 +6,10 @@ export const setup = {
   headingEdit: 'Edit plan',
   stepOf: (step: number, total: number) => `Step ${step} of ${total}`,
   titles: {
-    'city-rent': 'City and rent',
     accounts: 'Accounts',
     income: 'Income',
     fixed: 'Fixed costs',
     'one-offs': 'One-off costs',
-    guesses: 'Guesses',
     envelopes: 'Envelopes',
   },
   accountsInSettings: 'Your accounts are already set up, in Settings → Accounts and transfers.',
@@ -32,15 +30,8 @@ export const setup = {
     /** `name` is null for a cost still without one. */
     checkOneOff: (name: string | null, number: number) => `Check the amount for ${name ?? `one-off cost ${number}`}.`,
     dueMonth: 'Pick a month after this one.',
-    checkGuess: (name: string) => `Check the guess for ${name}.`,
     checkBudget: 'Check the amount for your everyday budget.',
     addEnvelope: (name: string) => `Add an amount for ${name}`,
-  },
-  cityRent: {
-    city: 'City',
-    onlyCity: 'Regensburg is the only city for now.',
-    rent: 'Rent per month',
-    rooms: (range: string) => `Rooms here: ${range}`,
   },
   accounts: {
     intro: 'Where does your money live? The opening balance is what is in each account today.',
@@ -68,9 +59,12 @@ export const setup = {
     later: 'Get BAföG or a scholarship? Add it later in Settings → Plan → Edit plan.',
   },
   fixed: {
-    intro: 'What do you pay every month, in euros? Your rent is already in from step 1. Leave out what you do not pay.',
-    later: 'Subscriptions, the gym, utilities and the Rundfunkbeitrag can be added later in Settings → Plan → Edit plan.',
-    rent: (amount: string) => `Rent: ${amount} a month`,
+    intro: 'What do you pay every month, in euros? Leave out what you do not pay.',
+    rentLabel: 'Rent per month',
+    rooms: (range: string) => `Rooms here: ${range}`,
+    later:
+      'Subscriptions, the gym, utilities, the Rundfunkbeitrag and one-off costs like the semester fee can be added ' +
+      'later in Settings → Plan → Edit plan.',
   },
   oneOffs: {
     intro:
@@ -87,13 +81,7 @@ export const setup = {
     feeOffer: (amount: string | null, month: string) =>
       `Add semester fee${amount === null ? '' : `: ${amount}`}, due ${month}`,
   },
-  guesses: {
-    intro:
-      "Go with your gut, in euros. Enter 0 if you spend nothing on it. Skip any you're not sure about. Guesses " +
-      "are saved once and can't be changed later.",
-    question: (topic: string) => `What do you think you spend on ${topic} a month?`,
-  },
-  /** How a sentence names each of the six guess and envelope categories (topicOf). */
+  /** How a sentence names each of the six core envelope categories (topicOf). */
   topics: {
     food: 'food & groceries',
     'eating-out': 'eating out',
@@ -103,7 +91,12 @@ export const setup = {
     other: 'other things',
   },
   envelopes: {
-    budgetIntro: 'An everyday budget is optional: with one, each envelope below gets a suggested amount.',
+    /** "…what is left after rent and fixed costs: €500." */
+    budgetIntroNew: (amount: string) =>
+      `An everyday budget is optional. Without one, the suggestions share out what is left after rent and fixed costs: ${amount}.`,
+    budgetIntroEdit: (amount: string) =>
+      'An everyday budget is optional. Without one, the suggestions share out what is left after rent, fixed costs ' +
+      `and what is set aside for one-off costs: ${amount}.`,
     budgetQuestion:
       'How much do you want to spend in a month on everyday things, apart from rent and your fixed costs?',
     typicalSpend: (range: string) => `Students here typically spend about ${range} a month on these.`,
@@ -141,8 +134,8 @@ export const setup = {
     summary: 'Income, fixed costs and envelopes',
     heading: 'Plan',
     body:
-      'Change your envelopes and one-off costs, add the income sources, fixed costs and envelopes setup skipped, or ' +
-      "go through the whole plan again. Guesses from setup aren't changed.",
+      'Change your envelopes, add one-off costs like the semester fee and the income sources, fixed costs and ' +
+      'envelopes setup skipped, or go through the whole plan again.',
     link: 'Edit plan',
   },
 };

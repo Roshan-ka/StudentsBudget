@@ -30,16 +30,16 @@ import {
 import { saveWizard } from './save-wizard';
 import { StepProblemsContext } from './step-problems';
 import { AccountsStep } from './steps/accounts';
-import { CityRentStep } from './steps/city-rent';
 import { EnvelopesStep } from './steps/envelopes';
 import { FixedStep } from './steps/fixed';
-import { GuessesStep } from './steps/guesses';
 import { IncomeStep } from './steps/income';
 import { OneOffsStep } from './steps/one-offs';
 
-const NEW_STEPS: StepId[] = ['city-rent', 'accounts', 'income', 'fixed', 'one-offs', 'guesses', 'envelopes'];
-// Accounts are edited in Settings and guesses are locked, so editing skips both.
-const EDIT_STEPS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts' && s !== 'guesses');
+// The shorter setup (2026-11-05): Regensburg is the only city, so rent opens the fixed costs step, and one-off costs
+// such as the semester fee are added later in Edit plan.
+const NEW_STEPS: StepId[] = ['accounts', 'income', 'fixed', 'envelopes'];
+// Accounts are edited in Settings, so editing skips them; it asks the one-off costs.
+const EDIT_STEPS: StepId[] = ['income', 'fixed', 'one-offs', 'envelopes'];
 // Accounts that already exist (added in Settings before setup) are kept, so a new setup skips that step.
 const NEW_STEPS_WITH_ACCOUNTS: StepId[] = NEW_STEPS.filter((s) => s !== 'accounts');
 
@@ -169,7 +169,6 @@ function Wizard({
       {/* The step's fields in one card. While the problems show, the fields they name point at them. */}
       <StepProblemsContext value={attempted && problems.length > 0 ? problemsId : null}>
         <div className={cn(cardVariants(), 'gap-4')}>
-          {step === 'city-rent' && <CityRentStep draft={draft} update={update} />}
           {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
           {step === 'income' && !edit && accountsExist && (
             <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
@@ -179,7 +178,6 @@ function Wizard({
           )}
           {step === 'fixed' && <FixedStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />}
           {step === 'one-offs' && <OneOffsStep draft={draft} update={update} today={today} existing={existing} />}
-          {step === 'guesses' && <GuessesStep draft={draft} update={update} />}
           {step === 'envelopes' && (
             <EnvelopesStep draft={draft} update={update} today={today} existing={existing} edit={edit} />
           )}

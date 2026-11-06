@@ -4,7 +4,7 @@ import { RevealView } from '@/features/reveal/reveal-view';
 export default function RevealPage() {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeading id="reveal" />
+      <PageHeading id="reveal" htmlId="reveal-heading" />
       <RevealView />
     </div>
   );

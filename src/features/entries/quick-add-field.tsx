@@ -17,7 +17,7 @@ import { todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { buildEntry } from './build-entry';
-import { FLEXIBLE_CATEGORIES, GUESS_CATEGORIES } from './categories';
+import { FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_CATEGORIES } from './categories';
 import {
   accountFor,
   checkReading,
@@ -54,7 +54,7 @@ async function loadContext(): Promise<QuickAddContext> {
 const SAVED_LINE_MS = 10_000;
 
 /** The flexible categories added after the original six: they sit behind the More chip. */
-const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !GUESS_CATEGORIES.some((g) => g.id === c.id));
+const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !CORE_FLEXIBLE_CATEGORIES.some((g) => g.id === c.id));
 
 /**
  * One chip per flexible category: the original six, then a More chip that shows the rest. It is only on screen
@@ -88,7 +88,7 @@ function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: s
         {t.entries.quickAdd.whichCategory}
       </p>
       <div className="flex flex-wrap gap-2">
-        {GUESS_CATEGORIES.map(chip)}
+        {CORE_FLEXIBLE_CATEGORIES.map(chip)}
         <Button type="button" variant="chip" aria-expanded={showMore} onClick={() => setShowMore((open) => !open)}>
           {t.entries.quickAdd.more}
           <ChevronDownIcon aria-hidden="true" className={cn('transition-transform', showMore && 'rotate-180')} />

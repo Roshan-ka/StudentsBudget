@@ -44,10 +44,17 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
       await page.getByRole('link', { name: /Weekly check-in/ }).click();
       await expect(page.getByRole('heading', { name: 'This week against your plan', exact: true })).toBeVisible();
       await nav.getByRole('link', { name: 'Home', exact: true }).click();
-      await page.locator('a[href="/reveal"]:visible').click();
-      await expect(page.getByRole('heading', { name: 'Guess vs. reality', exact: true })).toBeVisible();
+      // Home links to the month-by-month recaps once a month is over: only the year of history has one.
+      const recaps = page.getByRole('link', { name: /^See how .* went$/ });
+      if (name.startsWith('01')) {
+        await recaps.click();
+        await expect(page.getByRole('heading', { name: 'Month by month', exact: true })).toBeVisible();
+      } else {
+        await expect(page.getByRole('heading', { name: 'Left to spend this month', exact: true })).toBeVisible();
+        await expect(recaps).toHaveCount(0);
+      }
     } else {
-      await expect(page.getByRole('heading', { name: 'City and rent' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
     }
     expect(errors).toEqual([]);
   });

@@ -10,7 +10,7 @@ import { badgeHistory, badgesFrom, semesterWeeksFor } from '@/features/badges/ba
 import { BadgesCard } from '@/features/badges/badges-card';
 import { CheckInCard } from '@/features/check-in/check-in-card';
 import { QuickAddField } from '@/features/entries/quick-add-field';
-import { RevealCard } from '@/features/reveal/reveal-view';
+import { RecapLink } from '@/features/reveal/reveal-view';
 import { listFormat } from '@/i18n/format';
 import { PageHeading } from '@/components/page-heading';
 import { useT } from '@/i18n/use-t';
@@ -43,20 +43,19 @@ export function HomeScreen({
   const today = useToday();
   const data = useLiveQuery(async () => {
     if (today === null) return null;
-    const [entries, accounts, rates, weekResults, guessCount] = await Promise.all([
+    const [entries, accounts, rates, weekResults] = await Promise.all([
       db.entries.toArray(),
       db.accounts.toArray(),
       loadRates(),
       db.weekResults.toArray(),
-      db.guesses.count(),
     ]);
-    return { today, entries, accounts, rates, weekResults, guessCount };
+    return { today, entries, accounts, rates, weekResults };
   }, [today]);
 
   let content = null;
   // Rendered from the date the data was read for, so a new day swaps in as one piece.
   if (data) {
-    const { today, entries, accounts, rates, weekResults, guessCount } = data;
+    const { today, entries, accounts, rates, weekResults } = data;
     const week = weekToSpend(plan, entries, today);
     const month = monthStatus(plan, entries, monthOf(today));
     const plannedMinor = month.reduce((total, status) => total + status.plannedMinor, 0);
@@ -92,8 +91,8 @@ export function HomeScreen({
         <div className="flex flex-col gap-1">
           <CheckInCard today={today} />
           <BadgesCard badges={badges} />
-          {/* Guesses are optional: with none saved there is nothing to unlock. */}
-          {guessCount > 0 && <RevealCard startedOn={plan.createdOn} today={today} />}
+          {/* Shows once a month is over. */}
+          <RecapLink startedOn={plan.createdOn} today={today} />
         </div>
         <div className={cn(cardVariants(), 'gap-1')}>
           <p className="font-semibold">

@@ -1,31 +1,18 @@
-// The guess reveal in English: its card on Home, the page, and reveal-text.ts's month by month.
+// The month-by-month recaps in English: Home's line to them, the page, and reveal-text.ts's lines.
 
 export const reveal = {
-  card: {
-    open: 'See how your guesses compare',
-    label: 'Your guesses',
-    unlocksOn: (day: string) => `Your guesses unlock on ${day}.`,
-    whatsThis: "What's this?",
-  },
-  locked: {
-    unlocksOn: (day: string) => `Your guesses unlock on ${day}. Keep logging.`,
-    explain: (days: number) =>
-      'At setup you guessed what you spend each month. ' +
-      `After ${days} days of logging, you will see how your guesses compare with what you really spent.`,
-  },
-  listLabel: 'Your guesses',
-  /** "You guessed €80. It was €190." */
-  guessLine: (guessed: string, actual: string) => `You guessed ${guessed}. It was ${actual}.`,
-  scaled: (from: string, to: string) => `Your spending from ${from} to ${to}, scaled to a month of 30 days.`,
-  adjust: 'Edit plan',
-  noGuesses: 'No guesses were saved in setup, so there is nothing to compare.',
-  monthByMonth: 'Month by month',
+  /** Home's line, for the latest month that is over: "See how October went". */
+  link: (month: string) => `See how ${month} went`,
+  intro: 'How each month that is over went against your envelopes.',
+  /** Before the setup month is over: "Your first recap comes once October is over." */
+  notYet: (month: string) => `Your first recap comes once ${month} is over.`,
+  adjust: 'Change my envelopes',
   /** One finished month (recapLine): "October 2026: €15 left over → savings". */
   recap: {
     savings: (label: string, amount: string) => `${label}: ${amount} left over → savings`,
     over: (label: string, amount: string) => `${label}: ${amount} over plan`,
     onPlan: (label: string) => `${label}: right on plan`,
   },
-  noPlan: 'Set up your plan to compare your guesses with what you spend.',
+  noPlan: 'Set up your plan to see how each month goes.',
   startSetup: 'Start setup',
 };
