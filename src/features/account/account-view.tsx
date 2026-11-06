@@ -17,6 +17,7 @@ import { PostingNameCard } from '@/features/hacks/posting-name-card';
 import { PostingNameFields } from '@/features/hacks/posting-name-fields';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
+import { reminderOffBeforeSignOut } from '@/features/reminder/reminder';
 import { useShowInstallHint } from '@/features/setup/install-hint';
 import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
@@ -847,7 +848,8 @@ function SignedInPanel({ email, passwordChanged }: { email: string; passwordChan
     setError(null);
     try {
       // This phone's last changes go to the account first; the data and the link stay on the phone, and sync pauses.
-      await syncBeforeSignOut();
+      // Beside it, this phone's weekly reminder is turned off, while the account still lets it delete the row.
+      await Promise.all([syncBeforeSignOut(), reminderOffBeforeSignOut(supabase)]);
       const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
       if (signOutError) {
         // supabase-js drops the session on this phone even when the server can't be told, and useAuth then shows the

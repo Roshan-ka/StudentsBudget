@@ -123,7 +123,7 @@ Roshan approved this plan on 05-11-2026, after a builder's read raised three que
 
 ## Go live (Roshan, after chunks 1, 3, 4 and 5 merge)
 
-Until then nothing needs doing: the cron job runs, finds no settings in Vault and does nothing, and without `NEXT_PUBLIC_VAPID_PUBLIC_KEY` the app shows no reminder. Wait for chunk 5 as well: the `reminder` note says the zone and language follow the phone, which chunk 5 adds.
+Until then nothing needs doing: the cron job runs, finds no settings in Vault and does nothing, and without `NEXT_PUBLIC_VAPID_PUBLIC_KEY` the app shows no reminder. Chunk 5 belongs in it too: the `reminder` note says the zone and language follow the phone, and signing out must turn the reminder off.
 
 1. Generate VAPID keys once:
 
@@ -186,6 +186,14 @@ Until then nothing needs doing: the cron job runs, finds no settings in Vault an
 - Texts: the `reminder` area, `shell.headings.reminder`, `common.privacy.reminder` and `checkIn.reminderOr`/`reminderOrLink` in English, German, French and Spanish. The note already says the zone and language follow the phone: chunk 5 adds that, before go-live.
 - The route joins `sw.js`'s precache list, `PAGES` and the map. e2e: `e2e/reminder.spec.ts` (signed out; the note, then the prompt, then the saved row; a new day and time, then off; a refused prompt; no push; the code owed; an iPhone tab; German), with `stubPush` and `mockSupabaseData`'s `reminders`. `E2E_SUPABASE_ENV` carries RFC 8291's example public key as the VAPID key.
 - Not run locally: no e2e, build or install on this machine (Roshan, 2026-11-06: heavy checks go to GitHub CI). The local typecheck still lacks `@axe-core/playwright`, which `main` added; everything else passes.
+
+**Chunk 5 (2026-11-06):**
+- The phone's copy also keeps the time zone and language last saved (`timeZone`, `lang`; none in a copy from before, which then saves once). `followPhone` saves a new zone or language, with the day and time as they are, for the subscription the phone has: never a new subscribe or a prompt, so it runs without a tap, and nothing at all while the reminder is off or the phone is as last saved. A refusal (offline, the code still owed) keeps the old place in the copy, so the next call tries again.
+- `src/features/reminder/in-step.ts`: `keepReminderInStep`, which `AppInit` calls as the app opens, on each return to it (an installed app can stay suspended for days, across a time zone: the likeliest way the zone changes) and on a language change (`subscribeToLanguage`: this tab's picker or another tab's). It does nothing without the build's settings, with the reminder off or signed out (the session from this phone's storage), runs one at a time, and runs once more when called meanwhile, so a language picked during a save isn't lost.
+- Signing out: Sign out runs `reminderOffBeforeSignOut` beside `syncBeforeSignOut` (Turn off's delete, then the unsubscribe, at most 8 s, so the wait stays the sync's). `useAuth`'s `SIGNED_OUT` runs `forgetReminderOnPhone`: off in the copy first (each page's `useAuth` hears it; the second finds nothing to do), then the unsubscribe, whatever the delete did. So a sign-out where the delete fails, one in another tab, an ended session and a deleted account (whose rows cascade) all stop it on the phone; a row left behind goes at its next send, when the push service answers 410.
+- Tests: `reminder.test.ts` (25: the copy's zone and language, `followPhone`'s cases, a turn-off or sign-out during its save, the sign-out pair). e2e in `reminder.spec.ts`: the language picked in Settings and an older zone at the app's start reach the row with no prompt; Sign out deletes the row and turns it off; with the delete failing, the phone still unsubscribes and says Off. `stubPush` now keeps the answer and the subscription across page loads (sessionStorage), as a browser does.
+- `CLAUDE.md`: the Weekly reminder rule, the one server-side code under what the app leaves out, and the quiet writes and the sign-out's delete under Outgoing requests.
+- Left for the real try, after go-live: the installed iPhone app gets the line at the chosen time and a tap opens the check-in; off, and signing out, stop it; a German phone gets the German line; changing the language changes the reminder's.
 
 ## Verification
 

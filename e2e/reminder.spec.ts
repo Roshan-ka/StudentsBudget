@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { PRIVACY_NOTES } from '../src/features/privacy/notes';
+import { REMINDER_PREF } from '../src/features/reminder/reminder';
 import { MESSAGES } from '../src/i18n/messages';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import { E2E_PUSH_ENDPOINT, pushRecord, stubPush } from './helpers/push';
@@ -8,14 +9,16 @@ import {
   mockSupabaseAuth,
   mockSupabaseData,
   skipUnlessAccountsShow,
+  SUPABASE_REST,
   type AuthFactors,
   type ServerReminders,
 } from './helpers/supabase';
 
-// Settings → Weekly reminder (docs/superpowers/plans/2026-11-05-weekly-reminder.md, chunk 4): turning it on asks once
-// about the data, then the browser, and saves this phone's day, time, zone and language; changing and turning off
-// follow; where it can't work the page says why. The browser's push is played (`stubPush`, since `next dev` starts no
-// service worker), and Supabase is mocked (`reminders` holds what `save_push_subscription` got).
+// Settings → Weekly reminder (docs/superpowers/plans/2026-11-05-weekly-reminder.md, chunks 4 and 5): turning it on asks
+// once about the data, then the browser, and saves this phone's day, time, zone and language; changing and turning off
+// follow; where it can't work the page says why. The zone and language then follow the phone without a tap, and signing
+// out turns it off. The browser's push is played (`stubPush`, since `next dev` starts no service worker), and Supabase is
+// mocked (`reminders` holds what `save_push_subscription` got).
 
 test.use({ viewport: { width: 375, height: 812 }, timezoneId: 'Europe/Berlin' });
 
@@ -196,6 +199,92 @@ test('an account with two-step sign-in gives its code first', async ({ page }) =
 
   await expect(page.getByText(TEXT.needsCode, { exact: true })).toBeVisible();
   await expect(button(page, TEXT.turnOn)).toHaveCount(0);
+});
+
+/** Signs in and turns the reminder on from its page (the note already seen), on Sunday at 18:00. */
+async function turnOnSignedIn(page: Page) {
+  await skipUnlessReminders(page);
+  await signIn(page);
+  await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
+  await page.goto('/settings/reminder');
+  await button(page, TEXT.turnOn).click();
+  await expect(status(page)).toHaveText(TEXT.status.on('Sundays', '18:00'));
+}
+
+/** Signs out on Your account, and waits for the sign-in form. */
+async function signOut(page: Page) {
+  await page.goto('/settings/account');
+  await button(page, EN.auth.signedIn.signOut).click();
+  await expect(page.getByRole('textbox', { name: EN.auth.signIn.email, exact: true })).toBeVisible();
+}
+
+// Chunk 5: the reminder follows the phone, quietly, and signing out turns it off.
+
+test('the reminder follows the phone’s language and time zone without a tap', async ({ page }) => {
+  await stubPush(page);
+  await acceptPrivacyNotes(page, ['reminder']);
+  const reminders: ServerReminders = new Map();
+  await mockSupabaseData(page, { reminders });
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await turnOnSignedIn(page);
+  const row = () => reminders.get(E2E_PUSH_ENDPOINT);
+  expect(row()).toMatchObject({ p_time_zone: 'Europe/Berlin', p_lang: 'en' });
+
+  // A language picked in Settings: the reminder comes in it from then on, with the day and time as they were.
+  await page.goto('/settings');
+  await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('de');
+  await expect.poll(() => row()?.p_lang).toBe('de');
+  expect(row()).toMatchObject({ p_weekday: 7, p_local_time: '18:00', p_time_zone: 'Europe/Berlin' });
+
+  // Last saved in another zone (the phone has travelled since): the app's start saves the phone's own.
+  row()!.p_time_zone = 'Asia/Kolkata';
+  await page.evaluate((key) => {
+    const copy = JSON.parse(localStorage.getItem(key) ?? '{}') as Record<string, unknown>;
+    localStorage.setItem(key, JSON.stringify({ ...copy, timeZone: 'Asia/Kolkata' }));
+  }, REMINDER_PREF);
+  await page.reload();
+  await expect.poll(() => row()?.p_time_zone).toBe('Europe/Berlin');
+  expect(row()?.p_lang).toBe('de');
+  // Never a prompt or a new subscription for it.
+  expect(await pushRecord(page)).toMatchObject({ asked: 1, subscribed: 1, unsubscribed: 0 });
+});
+
+test('signing out deletes this phone’s row and turns its reminder off', async ({ page }) => {
+  await stubPush(page);
+  await acceptPrivacyNotes(page, ['reminder']);
+  const reminders: ServerReminders = new Map();
+  await mockSupabaseData(page, { reminders });
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await turnOnSignedIn(page);
+
+  await signOut(page);
+  expect(reminders.size).toBe(0);
+  expect((await pushRecord(page)).unsubscribed).toBe(1);
+  await page.goto('/settings');
+  await expect(reminderRow(page)).toContainText(TEXT.summaryOff);
+});
+
+test('signed out while the row can’t be deleted, the phone still drops the subscription and turns it off', async ({
+  page,
+}) => {
+  await stubPush(page);
+  await acceptPrivacyNotes(page, ['reminder']);
+  const reminders: ServerReminders = new Map();
+  await mockSupabaseData(page, { reminders });
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await turnOnSignedIn(page);
+  // The delete never reaches the account. Its row goes at the next send, when the push service says the address is gone.
+  await page.route(SUPABASE_REST, (route) =>
+    route.request().method() === 'DELETE' && route.request().url().includes('/push_subscriptions')
+      ? route.abort('internetdisconnected')
+      : route.fallback(),
+  );
+
+  await signOut(page);
+  await expect.poll(async () => (await pushRecord(page)).unsubscribed).toBe(1);
+  expect(reminders.size).toBe(1);
+  await page.goto('/settings');
+  await expect(reminderRow(page)).toContainText(TEXT.summaryOff);
 });
 
 test.describe('on an iPhone, in a Safari tab', () => {

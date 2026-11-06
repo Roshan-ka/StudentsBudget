@@ -6,6 +6,8 @@ import { refreshRates } from '@/db/rates';
 import { ensureSeeded } from '@/db/repo';
 import { recordCompletedWeeks } from '@/features/badges/week-results';
 import { postDueRecurring } from '@/features/recurring/post-due';
+import { keepReminderInStep } from '@/features/reminder/in-step';
+import { subscribeToLanguage } from '@/i18n/store';
 import { todayIso } from '@/lib/dates';
 import { registerServiceWorker } from '@/lib/sw-register';
 
@@ -62,16 +64,20 @@ async function startServiceWorker() {
 
 /**
  * Prepares the local database on mount, keeps the exchange rates current, adds the fixed costs and income that are
- * due, saves the weeks that are over, and starts the service worker that opens the app offline (production builds
- * only). Renders nothing.
+ * due, saves the weeks that are over, keeps this phone's weekly reminder on its time zone and language, and starts the
+ * service worker that opens the app offline (production builds only). Renders nothing.
  */
 export function AppInit() {
   useEffect(() => {
     // An installed iPhone app can stay suspended for days without remounting, so check again on return.
     function onVisibilityChange() {
-      if (document.visibilityState === 'visible') void refreshThenPost();
+      if (document.visibilityState !== 'visible') return;
+      void refreshThenPost();
+      void keepReminderInStep();
     }
     document.addEventListener('visibilitychange', onVisibilityChange);
+    // A language picked here or in another tab: the reminder comes in it from then on.
+    const stopFollowingLanguage = subscribeToLanguage(() => void keepReminderInStep());
 
     // The effect of a dev remount (StrictMode) must not mark the page once it has been cleaned up.
     let live = true;
@@ -89,6 +95,7 @@ export function AppInit() {
       // Neither waits for the other: a hung connection holds the rates (and the posting after them) for the 10 s
       // fetch timeout, and some browsers hold the persistence promise open until the person answers a prompt.
       void refreshThenPost();
+      void keepReminderInStep();
       try {
         await requestPersistence();
       } catch (error) {
@@ -102,6 +109,7 @@ export function AppInit() {
       live = false;
       document.documentElement.removeAttribute(APP_READY_ATTRIBUTE);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      stopFollowingLanguage();
     };
   }, []);
 
