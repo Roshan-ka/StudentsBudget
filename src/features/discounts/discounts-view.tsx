@@ -240,7 +240,7 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
                   <p className="text-muted-foreground">{text.notWorking(others.outdated)}</p>
                 )}
               </div>
-              <RangeSource range={d} />
+              <RangeSource range={d} about={d.place} />
               <div role="group" aria-label={text.voteGroup(d.place)} className="mt-1 flex flex-wrap gap-2">
                 {VOTES.map((option) => (
                   <Button

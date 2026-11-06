@@ -1,13 +1,13 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { Fragment, useId, useState } from 'react';
 import type { Swap } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { swapIn, tipIn, type InLanguage } from '@/i18n/city';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
-import { amountText, swapLineText, type Suggestion } from './suggest';
+import { amountText, swapLineParts, type Suggestion } from './suggest';
 
 /**
  * One source block per amount: a swap whose cheaper amount sits on another page says where each one comes from. Both
@@ -56,7 +56,10 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
         // The foreground colour, bold and underlined: it sits on an envelope's tint, where cobalt is under 4.5:1.
         className="inline-flex min-h-11 w-fit max-w-full cursor-pointer items-center text-start text-sm font-semibold break-words text-foreground underline underline-offset-4"
       >
-        {swapLineText(suggestion, lang)}
+        {/* A title still in English is marked so, inside a line in the phone's language. */}
+        {swapLineParts(suggestion, lang).map((part, i) => (
+          <Fragment key={i}>{part.lang ? <span lang={part.lang}>{part.text}</span> : part.text}</Fragment>
+        ))}
       </button>
       {open && (
         <div
@@ -76,7 +79,7 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
                 <p className="font-medium">{tip.title}</p>
                 <p className="text-muted-foreground">{tip.body}</p>
               </div>
-              <RangeSource range={tip} />
+              <RangeSource range={tip} about={tip.title} />
             </div>
           )}
         </div>

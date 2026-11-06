@@ -94,6 +94,8 @@ test('the Tips tab switches to a sourced discount list and back', async ({ page 
 
   // Where it comes from, collapsed until asked for.
   await expect(first.locator('details[open]')).toHaveCount(0);
+  // It says whose source it is, as every discount has one (accessibility, chunk 8).
+  await expect(first.locator('summary')).toHaveAccessibleName(`Source: ${FIRST.place}`);
   await first.getByText('Source', { exact: true }).click();
   await expect(first.getByText(FIRST.source, { exact: true })).toBeVisible();
   await expect(first.getByText(`checked ${formatDate('2026-10-20')}`, { exact: true })).toBeVisible();

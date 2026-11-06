@@ -9,7 +9,7 @@ export const auth: Messages['auth'] = {
     invalidCredentials: 'E-mail ou mot de passe incorrect.',
     accountExists: 'Cet e-mail a déjà un compte. Connecte-toi plutôt.',
     weakPassword: 'Ce mot de passe est trop facile à deviner. Choisis-en un plus long.',
-    checkEmail: 'Vérifie l’adresse e-mail.',
+    checkEmail: 'Vérifie l’adresse e-mail. Il faut un @ et un domaine, comme nom@exemple.com.',
     signupDisabled: 'La création de comptes est désactivée pour l’instant.',
     emailDisabled: 'La connexion par e-mail est désactivée pour l’instant.',
     notConfirmed: 'Ce compte doit encore être confirmé avec le code reçu par e-mail.',

@@ -300,11 +300,11 @@ const extras = base(); extras.futureField = 'ignored'; extras.data.accounts[0].c
 add('24-unknown-extra-fields', extras, 'Unknown object fields are ignored for forward-compatible additions.', ['Restore succeeds with the same values as 02-clean-budget. Export does not retain unknown fields.']);
 
 // Deliberately corrupt one thing at a time so the expected refusal is unambiguous.
-const notBackup = "This isn't a StudentsBudget backup file.";
-const incomplete = 'This backup file is incomplete.';
-const damaged = (reason) => `This backup file is damaged: ${reason}.`;
+const notBackup = "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.";
+const incomplete = 'This backup file is incomplete. Choose another backup, or export a new one.';
+const damaged = (reason) => `This backup file is damaged: ${reason}. Choose another backup, or export a new one.`;
 reject('wrong-app', (f) => f.app = 'another-app', notBackup);
-reject('newer-version', (f) => f.version = 4, 'This backup is from a newer version of the app.');
+reject('newer-version', (f) => f.version = 4, 'This backup is from a newer version of the app. Reload the app while online to update it, then try again.');
 for (const [key, name] of [['version', 'version'], ['exportedAt', 'exported-at'], ['data', 'data']]) reject(`missing-${name}`, (f) => delete f[key], incomplete);
 for (const [key, name] of [['accounts', 'accounts'], ['categories', 'categories'], ['entries', 'entries'], ['plan', 'plan'], ['guesses', 'guesses'], ['fxRates', 'fx-rates']]) reject(`missing-data-${name}`, (f) => delete f.data[key], incomplete);
 reject('unsupported-version-zero', (f) => f.version = 0, incomplete);

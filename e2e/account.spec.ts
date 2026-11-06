@@ -120,7 +120,7 @@ test('a new account is checked first, then signed in at once and still signed in
   await expect(passwordField(page)).toHaveAccessibleDescription('At least 8 characters.');
   await emailField(page).fill('roshan@');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
-  await expect(alert(page)).toHaveText('Check the email address.');
+  await expect(alert(page)).toHaveText('Check the email address: it needs an @ and a domain, like name@example.com.');
   await emailField(page).fill(EMAIL);
   await passwordField(page).fill('short');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();

@@ -83,6 +83,9 @@ export const tips: Messages['tips'] = {
     deleteFailed: 'Der Beitrag konnte nicht gelöscht werden. Versuch es noch einmal.',
     vote: { group: 'Deine Stimme zu diesem Beitrag', up: 'Daumen hoch', worked: 'Hat geklappt', outdated: 'Veraltet' },
     report: 'Melden',
+    which: (author, date) => (author === null ? `ein Beitrag vom ${date}` : `Beitrag von ${author}, ${date}`),
+    whichMine: (date) => `dein Beitrag, ${date}`,
+    named: (button, post) => `${button}: ${post}`,
     reportQuestion:
       'Diesen Beitrag melden? Er verschwindet für dich sofort und für alle, wenn genug Studierende ihn melden.',
     reportCancel: 'Abbrechen',

@@ -53,10 +53,10 @@ export const backup = {
   },
   /** parseBackup's answers to a file it can't restore. */
   file: {
-    notBackup: "This isn't a StudentsBudget backup file.",
-    newer: 'This backup is from a newer version of the app.',
-    incomplete: 'This backup file is incomplete.',
-    damaged: (problem: string) => `This backup file is damaged: ${problem}.`,
+    notBackup: "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.",
+    newer: 'This backup is from a newer version of the app. Reload the app while online to update it, then try again.',
+    incomplete: 'This backup file is incomplete. Choose another backup, or export a new one.',
+    damaged: (problem: string) => `This backup file is damaged: ${problem}. Choose another backup, or export a new one.`,
   },
   /** What the rows of a file or the account say about each other that can't be true (backup.ts's findProblem). */
   problems: {

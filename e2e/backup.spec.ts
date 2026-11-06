@@ -10,9 +10,12 @@ const QUESTION = `Replace all data with ${FILE_NAME}?`;
 // Made on the pinned day with the 3 accounts and the 1 entry of the test; the day as the region writes it, escaped.
 const PINNED_DAY = formatDate('2026-10-16').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const SUMMARY = new RegExp(`^Saved ${PINNED_DAY}, \\d{2}:\\d{2} · 3 accounts · 1 entry$`);
-const NOT_A_BACKUP = "This isn't a StudentsBudget backup file.";
-const NEWER = 'This backup is from a newer version of the app.';
-const DAMAGED = "This backup file is damaged: an entry uses an account that isn't in the file.";
+const NOT_A_BACKUP =
+  "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.";
+const NEWER =
+  'This backup is from a newer version of the app. Reload the app while online to update it, then try again.';
+const DAMAGED =
+  "This backup file is damaged: an entry uses an account that isn't in the file. Choose another backup, or export a new one.";
 
 const EMPTY_BACKUP = {
   app: 'studentsbudget',

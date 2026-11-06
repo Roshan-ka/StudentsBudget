@@ -142,9 +142,10 @@ function EditPanel({ entry, onClose, onDeleted }: { entry: Entry; onClose: () =>
 
   return (
     <section aria-label={text.heading} className={cn(cardVariants(), 'my-2 gap-4')}>
-      <h3 ref={headingRef} tabIndex={-1} className="text-xl leading-tight font-extrabold outline-none">
+      {/* Inside a day's group, whose date is the h3. */}
+      <h4 ref={headingRef} tabIndex={-1} className="text-xl leading-tight font-extrabold outline-none">
         {text.heading}
-      </h3>
+      </h4>
       <EntryForm entry={entry} onSaved={onClose} />
       {error && (
         <p role="alert" className="text-sm text-destructive">

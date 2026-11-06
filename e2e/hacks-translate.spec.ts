@@ -63,16 +63,18 @@ test('a post in another language opens Google Translate, after its note the firs
   await page.getByRole('tablist', { name: 'Tips, discounts or hacks', exact: true }).getByRole('tab', { name: 'Hacks', exact: true }).click();
 
   // A post in the phone's own language has none.
-  await expect(post(page, ENGLISH).getByRole('link', { name: 'Translate', exact: true })).toHaveCount(0);
+  await expect(post(page, ENGLISH).getByRole('link', { name: /^Translate/ })).toHaveCount(0);
 
   const german = post(page, 'Semesterticket');
-  await german.getByRole('link', { name: 'Translate', exact: true }).click();
+  // Translate says which post (accessibility, chunk 8): "Translate: the post by @lena, 05.11.2026".
+  const translate = german.getByRole('link', { name: /^Translate: (the post by @\w+, |a post from )\d{2}\.\d{2}\.\d{4}$/ });
+  await translate.click();
   const note = german.getByRole('group', { name: 'About your data', exact: true });
   await expect(note).toContainText('Google gets the text and your phone’s internet address.');
   await note.getByRole('button', { name: 'Cancel', exact: true }).click();
   expect(context.pages()).toHaveLength(1);
 
-  await german.getByRole('link', { name: 'Translate', exact: true }).click();
+  await translate.click();
   const opened = page.waitForEvent('popup');
   await note.getByRole('button', { name: 'Continue', exact: true }).click();
   const tab = new URL((await opened).url());
@@ -82,7 +84,7 @@ test('a post in another language opens Google Translate, after its note the firs
 
   // From then on the link opens straight away.
   const again = page.waitForEvent('popup');
-  await german.getByRole('link', { name: 'Translate', exact: true }).click();
+  await translate.click();
   expect(new URL((await again).url()).searchParams.get('tl')).toBe('en');
   await expect(note).toHaveCount(0);
 });
@@ -101,9 +103,9 @@ test.describe('in German', () => {
     await page.goto('/tips');
     await page.getByRole('tablist', { name: 'Tipps, Rabatte oder Hacks', exact: true }).getByRole('tab', { name: 'Hacks', exact: true }).click();
 
-    await expect(post(page, 'Semesterticket', 'Beiträge').getByRole('link', { name: 'Übersetzen', exact: true })).toHaveCount(0);
+    await expect(post(page, 'Semesterticket', 'Beiträge').getByRole('link', { name: /^Übersetzen/ })).toHaveCount(0);
     const opened = page.waitForEvent('popup');
-    await post(page, 'Bread is half price', 'Beiträge').getByRole('link', { name: 'Übersetzen', exact: true }).click();
+    await post(page, 'Bread is half price', 'Beiträge').getByRole('link', { name: /^Übersetzen: / }).click();
     expect(new URL((await opened).url()).searchParams.get('tl')).toBe('de');
   });
 });

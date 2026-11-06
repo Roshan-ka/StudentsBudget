@@ -92,6 +92,9 @@ export const tips: Messages['tips'] = {
       outdated: 'Desactualizado',
     },
     report: 'Denunciar',
+    which: (author, date) => (author === null ? `una publicación del ${date}` : `la publicación de ${author}, ${date}`),
+    whichMine: (date) => `tu publicación, ${date}`,
+    named: (button, post) => `${button}: ${post}`,
     reportQuestion: '¿Denunciar esta publicación? Desaparece para ti al momento, y para todos cuando suficientes ' +
       'estudiantes la denuncian.',
     reportCancel: 'Cancelar',

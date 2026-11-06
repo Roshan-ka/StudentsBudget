@@ -5,7 +5,7 @@ export const entries: Messages['entries'] = {
   addEntry: 'Eintrag hinzufügen',
   transfer: 'Umbuchung',
   recurring: 'Wiederkehrend',
-  noAccount: 'Lege zuerst in den Einstellungen ein Konto an.',
+  noAccount: 'Lege zuerst ein Konto an, unter Einstellungen → Konten und Umbuchungen.',
   saveFailed: 'Der Eintrag konnte nicht gespeichert werden.',
   list: {
     label: 'Einträge',
@@ -42,7 +42,7 @@ export const entries: Messages['entries'] = {
   },
   quickAdd: {
     label: 'Schnell erfassen',
-    placeholder: 'Was und wie viel, etwa „Döner 6“',
+    hint: 'Was und wie viel, etwa „Döner 6“.',
     add: 'Hinzufügen',
     noAmount: 'Gib einen Betrag an, etwa „Döner 6“',
     whichAmount: 'Welcher Betrag?',
@@ -73,6 +73,6 @@ export const entries: Messages['entries'] = {
   },
   errors: {
     enterAmount: 'Gib einen Betrag ein.',
-    noRate: (currency) => `Für ${currency} gibt es noch keinen Wechselkurs. Leg einen in den Einstellungen fest.`,
+    noRate: (currency) => `Für ${currency} gibt es noch keinen Wechselkurs. Leg einen unter Einstellungen → Konten und Umbuchungen fest.`,
   },
 };

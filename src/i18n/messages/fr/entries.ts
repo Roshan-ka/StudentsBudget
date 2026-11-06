@@ -6,7 +6,7 @@ export const entries: Messages['entries'] = {
   addEntry: 'Ajouter une saisie',
   transfer: 'Virement',
   recurring: 'Récurrent',
-  noAccount: 'Ajoute d’abord un compte dans les Réglages.',
+  noAccount: 'Ajoute d’abord un compte, dans Réglages → Comptes et virements.',
   saveFailed: 'Impossible d’enregistrer la saisie.',
   list: {
     label: 'Saisies',
@@ -43,7 +43,7 @@ export const entries: Messages['entries'] = {
   },
   quickAdd: {
     label: 'Ajout rapide',
-    placeholder: `Quoi et combien, comme «${NNBSP}döner 6${NNBSP}»`,
+    hint: `Quoi et combien, comme «${NNBSP}döner 6${NNBSP}».`,
     add: 'Ajouter',
     noAmount: `Ajoute un montant, comme «${NNBSP}döner 6${NNBSP}»`,
     whichAmount: `Quel montant${NNBSP}?`,
@@ -74,6 +74,6 @@ export const entries: Messages['entries'] = {
   },
   errors: {
     enterAmount: 'Saisis un montant.',
-    noRate: (currency) => `Pas encore de taux de change pour ${currency}. Indiques-en un dans les Réglages.`,
+    noRate: (currency) => `Pas encore de taux de change pour ${currency}. Indiques-en un dans Réglages → Comptes et virements.`,
   },
 };

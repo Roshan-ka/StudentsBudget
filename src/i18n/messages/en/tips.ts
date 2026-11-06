@@ -83,6 +83,13 @@ export const tips = {
     deleteFailed: "The post couldn't be deleted. Try again.",
     vote: { group: 'Your vote on this post', up: 'Upvote', worked: 'Worked for me', outdated: 'Outdated' },
     report: 'Report',
+    /**
+     * A post's Report, Delete and Translate say which post (accessibility, chunk 8): the button's own word, then the
+     * post. `author` is the @username, null for a post without one.
+     */
+    which: (author: string | null, date: string) => (author === null ? `a post from ${date}` : `the post by ${author}, ${date}`),
+    whichMine: (date: string) => `your post, ${date}`,
+    named: (button: string, post: string) => `${button}: ${post}`,
     reportQuestion: 'Report this post? It disappears for you at once, and for everyone once enough students report it.',
     reportCancel: 'Cancel',
     reported: 'Reported. You won’t see this post anymore.',

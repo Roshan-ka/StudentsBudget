@@ -165,7 +165,6 @@ function AccountForm({
         <Input
           id={`${id}-opening`}
           inputMode="decimal"
-          placeholder="0"
           value={opening}
           onChange={(event) => {
             const typed = typeOpening(event.target.value, waiting);

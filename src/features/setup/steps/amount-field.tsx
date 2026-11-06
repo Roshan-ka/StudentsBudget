@@ -120,7 +120,6 @@ export function AmountField({
           ref={inputRef}
           className={unit.length > 1 ? 'ps-12' : 'ps-8'}
           inputMode="decimal"
-          placeholder="0"
           autoComplete="off"
           value={shown}
           aria-invalid={invalid || undefined}

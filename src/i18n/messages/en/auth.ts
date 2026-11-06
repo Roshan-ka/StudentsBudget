@@ -7,7 +7,7 @@ export const auth = {
     invalidCredentials: 'Email or password is wrong.',
     accountExists: 'This email already has an account. Sign in instead.',
     weakPassword: 'This password is too easy to guess. Choose a longer one.',
-    checkEmail: 'Check the email address.',
+    checkEmail: 'Check the email address: it needs an @ and a domain, like name@example.com.',
     signupDisabled: 'New accounts are switched off right now.',
     emailDisabled: 'Signing in with email is switched off right now.',
     notConfirmed: 'This account still has to be confirmed with the code from its email.',

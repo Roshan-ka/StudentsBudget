@@ -115,7 +115,7 @@ function TipList() {
                 <h3 className="text-xl leading-snug font-extrabold">{words.title}</h3>
                 <p className="text-sm text-muted-foreground">{words.body}</p>
               </div>
-              <RangeSource range={words} />
+              <RangeSource range={words} about={words.title} />
             </li>
           );
         })}

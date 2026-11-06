@@ -117,7 +117,7 @@ describe('buildTransfer', () => {
       expect(result.ok && result.entry.eurMinor).toBe(1900);
       expect(buildTransfer({ ...input, amountMinor: 190000 }, account('inr', 'INR'), {}, NOW, existing)).toEqual({
         ok: false,
-        error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account',
+        error: 'No exchange rate for INR yet. Set one in Settings → Accounts and transfers.', field: 'account',
       });
     });
 
@@ -155,7 +155,7 @@ describe('buildTransfer', () => {
   it('reports a missing rate with the currency code', () => {
     const result = buildTransfer(input, account('inr', 'INR'), {}, NOW);
 
-    expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings.', field: 'account' });
+    expect(result).toEqual({ ok: false, error: 'No exchange rate for INR yet. Set one in Settings → Accounts and transfers.', field: 'account' });
   });
 
   it('rejects the same account on both sides', () => {

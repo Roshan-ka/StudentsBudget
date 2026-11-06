@@ -14,14 +14,17 @@ function hostOf(url: string): string {
  * Where a city range comes from, collapsed under the range line: source text, check date and link. `label` is the
  * words on the collapsed line ("Source" in the phone's language without it); a swap with two amounts has two sources,
  * which it tells apart by what each one covers. An item from `src/i18n/city` brings its `textLang`; anything else is
- * still English in another language (`contentLang`).
+ * still English in another language (`contentLang`). `about` names the item for a screen reader when the words on
+ * the line are just "Source" and a page has several ("Source: Eating out"; accessibility, chunk 8).
  */
 export function RangeSource({
   range,
   label,
+  about,
 }: {
   range: Pick<CityRange, 'source' | 'url' | 'checked'> & { textLang?: 'en' | undefined };
   label?: string;
+  about?: string;
 }) {
   const { t, lang } = useT();
   const estimate = range.source === 'Estimate';
@@ -30,7 +33,10 @@ export function RangeSource({
     <details className="text-xs text-muted-foreground">
       {/* A line and 28 px of padding: at least a 44 px tap target, as everywhere else in the app. Bold cobalt and
           underlined, so it reads as something to open; it sits on the card colour, where cobalt is 6.9:1. */}
-      <summary className="w-fit cursor-pointer py-3.5 text-[13px] font-semibold text-primary underline underline-offset-4">
+      <summary
+        aria-label={label === undefined && about !== undefined ? t.common.source.of(about) : undefined}
+        className="w-fit cursor-pointer py-3.5 text-[13px] font-semibold text-primary underline underline-offset-4"
+      >
         {label ?? t.common.source.label}
       </summary>
       {/* Space below: a card ends flush with the closed summary, which is tall enough on its own. */}

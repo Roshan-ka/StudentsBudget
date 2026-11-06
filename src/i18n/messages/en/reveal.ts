@@ -17,7 +17,7 @@ export const reveal = {
   /** "You guessed €80. It was €190." */
   guessLine: (guessed: string, actual: string) => `You guessed ${guessed}. It was ${actual}.`,
   scaled: (from: string, to: string) => `Your spending from ${from} to ${to}, scaled to a month of 30 days.`,
-  adjust: 'Adjust my plan',
+  adjust: 'Edit plan',
   noGuesses: 'No guesses were saved in setup, so there is nothing to compare.',
   monthByMonth: 'Month by month',
   /** One finished month (recapLine): "October 2026: €15 left over → savings". */

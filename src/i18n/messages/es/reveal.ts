@@ -17,7 +17,7 @@ export const reveal: Messages['reveal'] = {
   listLabel: 'Tus estimaciones',
   guessLine: (guessed, actual) => `Estimaste ${guessed}. Fueron ${actual}.`,
   scaled: (from, to) => `Tus gastos del ${from} al ${to}, llevados a un mes de 30 días.`,
-  adjust: 'Ajustar mi plan',
+  adjust: 'Editar plan',
   noGuesses: 'Al configurar el plan no se guardaron estimaciones, así que no hay nada que comparar.',
   monthByMonth: 'Mes a mes',
   recap: {

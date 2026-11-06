@@ -38,7 +38,7 @@ export const common: Messages['common'] = {
       'seulement sous forme de hachage), la langue de ton téléphone, ton nom d’utilisateur, ton statut et ta promo, ' +
       'et une copie des données que tu synchronises. Les autres étudiants ne voient que ton nom d’utilisateur, ton ' +
       'statut et ta promo, à côté de tes publications. Si le compte a besoin d’un code, pour le confirmer ou pour ' +
-      'un nouveau mot de passe, il arrive par e-mail. Tu peux supprimer le compte à tout moment dans les Réglages.',
+      'un nouveau mot de passe, il arrive par e-mail. Tu peux supprimer le compte à tout moment dans Réglages → Ton compte.',
     passkey:
       'Le gestionnaire de mots de passe de ton téléphone garde la clé d’accès et peut la synchroniser avec tes ' +
       'autres appareils (le trousseau iCloud ou le Gestionnaire de mots de passe de Google, par exemple). Ton ' +

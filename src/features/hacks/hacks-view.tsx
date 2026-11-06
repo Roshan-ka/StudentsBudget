@@ -244,6 +244,9 @@ function HackCard({
   const Icon = CATEGORY_ICONS[post.categoryId] ?? OTHER_ICON;
   // A post in another language than the phone's has Translate (chunk 8); its first use waits for its note.
   const translation = post.lang === lang ? null : translateUrl(post.body, lang);
+  // Report, Delete and Translate say which post, for a screen reader that lists them (accessibility, chunk 8).
+  const posted = formatDate(todayIso(new Date(post.createdAt)));
+  const which = post.mine ? text.whichMine(posted) : text.which(post.author ? `@${post.author.username}` : null, posted);
   const [translateNote, setTranslateNote] = useState(false);
   const [asking, setAsking] = useState(false);
   const [askingReport, setAskingReport] = useState(false);
@@ -288,7 +291,7 @@ function HackCard({
           {categoryNameIn(t, post.categoryId)}
         </span>
         <span className="text-xs text-muted-foreground">
-          {text.cities[post.city]} · {formatDate(todayIso(new Date(post.createdAt)))}
+          {text.cities[post.city]} · {posted}
         </span>
       </div>
       {/* A student's own words, in the language they wrote them in. */}
@@ -306,6 +309,7 @@ function HackCard({
             event.preventDefault();
             setTranslateNote(true);
           }}
+          aria-label={text.named(text.translate, which)}
         >
           {text.translate}
         </a>
@@ -360,6 +364,7 @@ function HackCard({
             className="px-3"
             disabled={busy}
             ref={focus.refFor('report')}
+            aria-label={text.named(text.report, which)}
             onClick={() => {
               setProblem(null);
               setAskingReport(true);
@@ -408,6 +413,7 @@ function HackCard({
           type="button"
           variant="outline"
           className="self-start px-4"
+          aria-label={text.named(text.delete, which)}
           onClick={() => {
             setProblem(null);
             setAsking(true);

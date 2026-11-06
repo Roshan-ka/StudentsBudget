@@ -57,13 +57,13 @@ export const sync: Messages['sync'] = {
       'deinen anderen Handys, sobald sie das nächste Mal synchronisieren.',
     replaceWarning:
       'Die Daten deines Kontos ersetzen alles auf diesem Handy. Vorher eine Kopie? Exportier ein Backup unter ' +
-      'Einstellungen → Backup.',
+      'Einstellungen → Backup und Daten.',
     keepPhone: 'Daten dieses Handys behalten',
     useAccount: 'Daten meines Kontos nutzen',
     otherAccount:
       'Dieses Handy enthält die Daten eines anderen Kontos und bleibt deshalb von diesem getrennt. Um es zu ' +
       'synchronisieren, melde dich ab und mit jenem Konto an. Um stattdessen dieses Konto hier zu nutzen, lösch alles ' +
-      'auf diesem Handy (Einstellungen → Backup); noch nicht synchronisierte Änderungen gehen verloren.',
+      'auf diesem Handy (Einstellungen → Backup und Daten); noch nicht synchronisierte Änderungen gehen verloren.',
     tryAgain: 'Noch einmal versuchen',
     problems: {
       unfinished:

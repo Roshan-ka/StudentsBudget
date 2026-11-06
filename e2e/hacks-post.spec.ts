@@ -151,14 +151,16 @@ test('one’s own post can be deleted, after a question; others’ cannot', asyn
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signInAndOpenHacks(page);
 
-  await expect(posts(page).filter({ hasText: 'Bea’s hack' }).getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
+  await expect(posts(page).filter({ hasText: 'Bea’s hack' }).getByRole('button', { name: /^Delete/ })).toHaveCount(0);
   const mine = posts(page).filter({ hasText: 'My own hack' });
-  await mine.getByRole('button', { name: 'Delete', exact: true }).click();
+  // Delete says which post (accessibility, chunk 8).
+  const deleteMine = mine.getByRole('button', { name: /^Delete: your post, \d{2}\.\d{2}\.\d{4}$/ });
+  await deleteMine.click();
   await expect(mine).toContainText('Delete this post? Nobody will see it anymore.');
   await mine.getByRole('button', { name: 'Keep it', exact: true }).click();
   await expect(posts(page)).toHaveCount(2);
 
-  await mine.getByRole('button', { name: 'Delete', exact: true }).click();
+  await deleteMine.click();
   await mine.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(panel(page).getByRole('status')).toHaveText('Post deleted.');
   await expect(posts(page)).toHaveCount(1);

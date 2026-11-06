@@ -114,7 +114,7 @@ describe('checkCredentials', () => {
   it('asks for the email first, then a valid one', () => {
     expect(checkCredentials('  ', 'whatever1', 'sign-in')).toEqual({ ok: false, error: 'Enter your email.' });
     for (const bad of ['roshan', 'roshan@', '@example.com', 'roshan@example', 'ro shan@example.com']) {
-      expect(checkCredentials(bad, 'whatever1', 'sign-in'), bad).toEqual({ ok: false, error: 'Check the email address.' });
+      expect(checkCredentials(bad, 'whatever1', 'sign-in'), bad).toEqual({ ok: false, error: 'Check the email address: it needs an @ and a domain, like name@example.com.' });
     }
   });
 
@@ -163,7 +163,7 @@ describe('checkEmail and checkNewPassword ("Forgot password", P2.4)', () => {
   it('takes the email alone, trimmed, as signing in does', () => {
     expect(checkEmail('  roshan@example.com ')).toEqual({ ok: true, email: 'roshan@example.com' });
     expect(checkEmail(' ')).toEqual({ ok: false, error: 'Enter your email.' });
-    expect(checkEmail('roshan@example')).toEqual({ ok: false, error: 'Check the email address.' });
+    expect(checkEmail('roshan@example')).toEqual({ ok: false, error: 'Check the email address: it needs an @ and a domain, like name@example.com.' });
   });
 
   it('wants a new password as long as a new account’s, taken as typed', () => {

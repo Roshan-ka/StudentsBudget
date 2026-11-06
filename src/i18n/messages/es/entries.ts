@@ -5,7 +5,7 @@ export const entries: Messages['entries'] = {
   addEntry: 'Añadir registro',
   transfer: 'Transferencia',
   recurring: 'Recurrente',
-  noAccount: 'Primero añade una cuenta en Ajustes.',
+  noAccount: 'Primero añade una cuenta en Ajustes → Cuentas y transferencias.',
   saveFailed: 'No se ha podido guardar el registro.',
   list: {
     label: 'Registros',
@@ -42,7 +42,7 @@ export const entries: Messages['entries'] = {
   },
   quickAdd: {
     label: 'Añadir rápido',
-    placeholder: 'Qué y cuánto, como “döner 6”',
+    hint: 'Qué y cuánto, como “döner 6”.',
     add: 'Añadir',
     noAmount: 'Añade un importe, como “döner 6”',
     whichAmount: '¿Qué importe?',
@@ -73,6 +73,6 @@ export const entries: Messages['entries'] = {
   },
   errors: {
     enterAmount: 'Escribe un importe.',
-    noRate: (currency) => `Aún no hay tipo de cambio para ${currency}. Pon uno en Ajustes.`,
+    noRate: (currency) => `Aún no hay tipo de cambio para ${currency}. Pon uno en Ajustes → Cuentas y transferencias.`,
   },
 };

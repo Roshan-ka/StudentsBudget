@@ -34,7 +34,7 @@ export const accounts = {
     saveFailed: 'Could not save the account.',
     inUse: 'This account has entries. Delete them first.',
     hasSchedule:
-      'This account pays or receives a fixed cost or income. Change that first in Fixed costs and income.',
+      'This account pays or receives a fixed cost or income. Change that first in Settings → Plan → Fixed costs and income.',
     deleteFailed: 'Could not delete the account.',
     defaultFailed: 'Could not change the default account.',
   },

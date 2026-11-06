@@ -32,7 +32,7 @@ export const accounts: Messages['accounts'] = {
     opening: 'Escribe el saldo inicial como número, como 250 o 12,50.',
     saveFailed: 'No se ha podido guardar la cuenta.',
     inUse: 'Esta cuenta tiene registros. Bórralos primero.',
-    hasSchedule: 'Esta cuenta tiene gastos fijos o ingresos. Cámbialos primero en Gastos fijos e ingresos.',
+    hasSchedule: 'Esta cuenta tiene gastos fijos o ingresos. Cámbialos primero en Ajustes → Plan → Gastos fijos e ingresos.',
     deleteFailed: 'No se ha podido borrar la cuenta.',
     defaultFailed: 'No se ha podido cambiar la cuenta por defecto.',
   },

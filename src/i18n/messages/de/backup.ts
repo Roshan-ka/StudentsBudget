@@ -50,10 +50,10 @@ export const backup: Messages['backup'] = {
     failed: 'Deine Daten konnten nicht gelöscht werden. Versuch es noch einmal.',
   },
   file: {
-    notBackup: 'Das ist keine Backup-Datei von StudentsBudget.',
-    newer: 'Dieses Backup stammt aus einer neueren Version der App.',
-    incomplete: 'Diese Backup-Datei ist unvollständig.',
-    damaged: (problem) => `Diese Backup-Datei ist beschädigt: ${problem}.`,
+    notBackup: 'Das ist keine Backup-Datei von StudentsBudget. Wähl eine, die die App exportiert hat: Ihr Name beginnt mit studentsbudget-backup.',
+    newer: 'Dieses Backup stammt aus einer neueren Version der App. Lade die App mit Internet neu, um sie zu aktualisieren, und versuch es dann noch einmal.',
+    incomplete: 'Diese Backup-Datei ist unvollständig. Wähl ein anderes Backup oder exportier ein neues.',
+    damaged: (problem) => `Diese Backup-Datei ist beschädigt: ${problem}. Wähl ein anderes Backup oder exportier ein neues.`,
   },
   problems: {
     entryAccount: 'ein Eintrag nutzt ein Konto, das nicht in der Datei steht',

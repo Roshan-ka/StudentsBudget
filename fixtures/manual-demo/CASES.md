@@ -274,60 +274,60 @@ For each file: restore 02-clean-budget first, choose the invalid file, check the
 
 | File | Expected message |
 |---|---|
-| [wrong-app.json](invalid/wrong-app.json) | This isn't a StudentsBudget backup file. |
-| [newer-version.json](invalid/newer-version.json) | This backup is from a newer version of the app. |
-| [missing-version.json](invalid/missing-version.json) | This backup file is incomplete. |
-| [missing-exported-at.json](invalid/missing-exported-at.json) | This backup file is incomplete. |
-| [missing-data.json](invalid/missing-data.json) | This backup file is incomplete. |
-| [missing-data-accounts.json](invalid/missing-data-accounts.json) | This backup file is incomplete. |
-| [missing-data-categories.json](invalid/missing-data-categories.json) | This backup file is incomplete. |
-| [missing-data-entries.json](invalid/missing-data-entries.json) | This backup file is incomplete. |
-| [missing-data-plan.json](invalid/missing-data-plan.json) | This backup file is incomplete. |
-| [missing-data-guesses.json](invalid/missing-data-guesses.json) | This backup file is incomplete. |
-| [missing-data-fx-rates.json](invalid/missing-data-fx-rates.json) | This backup file is incomplete. |
-| [unsupported-version-zero.json](invalid/unsupported-version-zero.json) | This backup file is incomplete. |
-| [version-is-text.json](invalid/version-is-text.json) | This backup file is incomplete. |
-| [bad-export-timestamp.json](invalid/bad-export-timestamp.json) | This backup file is incomplete. |
-| [unknown-currency.json](invalid/unknown-currency.json) | This backup file is incomplete. |
-| [unknown-city.json](invalid/unknown-city.json) | This backup file is incomplete. |
-| [rate-zero.json](invalid/rate-zero.json) | This backup file is incomplete. |
-| [rate-negative.json](invalid/rate-negative.json) | This backup file is incomplete. |
-| [bad-entry-date-2026-02-30.json](invalid/bad-entry-date-2026-02-30.json) | This backup file is incomplete. |
-| [bad-entry-date-21-10-2026.json](invalid/bad-entry-date-21-10-2026.json) | This backup file is incomplete. |
-| [fractional-minor-units.json](invalid/fractional-minor-units.json) | This backup file is incomplete. |
-| [amount-is-text.json](invalid/amount-is-text.json) | This backup file is incomplete. |
-| [entry-zero.json](invalid/entry-zero.json) | This backup file is damaged: an amount is zero or negative. |
-| [entry-negative.json](invalid/entry-negative.json) | This backup file is damaged: an amount is zero or negative. |
-| [entry-negative-euros.json](invalid/entry-negative-euros.json) | This backup file is damaged: an amount is negative. |
-| [missing-entry-account.json](invalid/missing-entry-account.json) | This backup file is damaged: an entry uses an account that isn't in the file. |
-| [missing-entry-category.json](invalid/missing-entry-category.json) | This backup file is damaged: an entry uses a category that isn't in the file. |
-| [unknown-plan-category.json](invalid/unknown-plan-category.json) | This backup file is damaged: the plan or the guesses use an unknown category. |
-| [negative-envelope.json](invalid/negative-envelope.json) | This backup file is damaged: an amount is negative. |
-| [negative-spending-budget.json](invalid/negative-spending-budget.json) | This backup file is damaged: an amount is negative. |
-| [missing-transfer-target.json](invalid/missing-transfer-target.json) | This backup file is damaged: a transfer goes to an account that isn't in the file. |
-| [transfer-without-target-field.json](invalid/transfer-without-target-field.json) | This backup file is incomplete. |
-| [transfer-received-zero.json](invalid/transfer-received-zero.json) | This backup file is damaged: an amount is zero or negative. |
-| [duplicate-accounts.json](invalid/duplicate-accounts.json) | This backup file is damaged: two rows share the same id. |
-| [duplicate-categories.json](invalid/duplicate-categories.json) | This backup file is damaged: two rows share the same id. |
-| [duplicate-entries.json](invalid/duplicate-entries.json) | This backup file is damaged: two rows share the same id. |
-| [duplicate-guesses.json](invalid/duplicate-guesses.json) | This backup file is damaged: two rows share the same id. |
-| [duplicate-fx-rates.json](invalid/duplicate-fx-rates.json) | This backup file is damaged: two rows share the same id. |
-| [duplicate-week-results.json](invalid/duplicate-week-results.json) | This backup file is damaged: two rows share the same id. |
-| [duplicate-discount-votes.json](invalid/duplicate-discount-votes.json) | This backup file is damaged: two rows share the same id. |
-| [duplicate-one-offs.json](invalid/duplicate-one-offs.json) | This backup file is damaged: two rows share the same id. |
-| [duplicate-schedules.json](invalid/duplicate-schedules.json) | This backup file is damaged: two rows share the same id. |
-| [schedule-day-32.json](invalid/schedule-day-32.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. |
-| [schedule-weekday-8.json](invalid/schedule-weekday-8.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. |
-| [schedule-watermark-before-start.json](invalid/schedule-watermark-before-start.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. |
-| [schedule-before-plan-start.json](invalid/schedule-before-plan-start.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. |
-| [schedule-frequency-daily.json](invalid/schedule-frequency-daily.json) | This backup file is incomplete. |
-| [week-start-not-monday.json](invalid/week-start-not-monday.json) | This backup file is damaged: a saved week doesn't run from Monday to Sunday. |
-| [week-end-not-sunday.json](invalid/week-end-not-sunday.json) | This backup file is damaged: a saved week doesn't run from Monday to Sunday. |
-| [negative-week-amount.json](invalid/negative-week-amount.json) | This backup file is damaged: an amount is negative. |
-| [negative-log-count.json](invalid/negative-log-count.json) | This backup file is incomplete. |
-| [unknown-discount-vote.json](invalid/unknown-discount-vote.json) | This backup file is incomplete. |
-| [unknown-university.json](invalid/unknown-university.json) | This backup file is incomplete. |
-| [invalid-semester-date.json](invalid/invalid-semester-date.json) | This backup file is incomplete. |
-| [one-off-zero.json](invalid/one-off-zero.json) | This backup file is damaged: an amount is zero or negative. |
-| [one-off-invalid-month.json](invalid/one-off-invalid-month.json) | This backup file is incomplete. |
-| [malformed-json.json](invalid/malformed-json.json) | This isn't a StudentsBudget backup file. |
+| [wrong-app.json](invalid/wrong-app.json) | This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup. |
+| [newer-version.json](invalid/newer-version.json) | This backup is from a newer version of the app. Reload the app while online to update it, then try again. |
+| [missing-version.json](invalid/missing-version.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [missing-exported-at.json](invalid/missing-exported-at.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [missing-data.json](invalid/missing-data.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [missing-data-accounts.json](invalid/missing-data-accounts.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [missing-data-categories.json](invalid/missing-data-categories.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [missing-data-entries.json](invalid/missing-data-entries.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [missing-data-plan.json](invalid/missing-data-plan.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [missing-data-guesses.json](invalid/missing-data-guesses.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [missing-data-fx-rates.json](invalid/missing-data-fx-rates.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [unsupported-version-zero.json](invalid/unsupported-version-zero.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [version-is-text.json](invalid/version-is-text.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [bad-export-timestamp.json](invalid/bad-export-timestamp.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [unknown-currency.json](invalid/unknown-currency.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [unknown-city.json](invalid/unknown-city.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [rate-zero.json](invalid/rate-zero.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [rate-negative.json](invalid/rate-negative.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [bad-entry-date-2026-02-30.json](invalid/bad-entry-date-2026-02-30.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [bad-entry-date-21-10-2026.json](invalid/bad-entry-date-21-10-2026.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [fractional-minor-units.json](invalid/fractional-minor-units.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [amount-is-text.json](invalid/amount-is-text.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [entry-zero.json](invalid/entry-zero.json) | This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one. |
+| [entry-negative.json](invalid/entry-negative.json) | This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one. |
+| [entry-negative-euros.json](invalid/entry-negative-euros.json) | This backup file is damaged: an amount is negative. Choose another backup, or export a new one. |
+| [missing-entry-account.json](invalid/missing-entry-account.json) | This backup file is damaged: an entry uses an account that isn't in the file. Choose another backup, or export a new one. |
+| [missing-entry-category.json](invalid/missing-entry-category.json) | This backup file is damaged: an entry uses a category that isn't in the file. Choose another backup, or export a new one. |
+| [unknown-plan-category.json](invalid/unknown-plan-category.json) | This backup file is damaged: the plan or the guesses use an unknown category. Choose another backup, or export a new one. |
+| [negative-envelope.json](invalid/negative-envelope.json) | This backup file is damaged: an amount is negative. Choose another backup, or export a new one. |
+| [negative-spending-budget.json](invalid/negative-spending-budget.json) | This backup file is damaged: an amount is negative. Choose another backup, or export a new one. |
+| [missing-transfer-target.json](invalid/missing-transfer-target.json) | This backup file is damaged: a transfer goes to an account that isn't in the file. Choose another backup, or export a new one. |
+| [transfer-without-target-field.json](invalid/transfer-without-target-field.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [transfer-received-zero.json](invalid/transfer-received-zero.json) | This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one. |
+| [duplicate-accounts.json](invalid/duplicate-accounts.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
+| [duplicate-categories.json](invalid/duplicate-categories.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
+| [duplicate-entries.json](invalid/duplicate-entries.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
+| [duplicate-guesses.json](invalid/duplicate-guesses.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
+| [duplicate-fx-rates.json](invalid/duplicate-fx-rates.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
+| [duplicate-week-results.json](invalid/duplicate-week-results.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
+| [duplicate-discount-votes.json](invalid/duplicate-discount-votes.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
+| [duplicate-one-offs.json](invalid/duplicate-one-offs.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
+| [duplicate-schedules.json](invalid/duplicate-schedules.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
+| [schedule-day-32.json](invalid/schedule-day-32.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one. |
+| [schedule-weekday-8.json](invalid/schedule-weekday-8.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one. |
+| [schedule-watermark-before-start.json](invalid/schedule-watermark-before-start.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one. |
+| [schedule-before-plan-start.json](invalid/schedule-before-plan-start.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one. |
+| [schedule-frequency-daily.json](invalid/schedule-frequency-daily.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [week-start-not-monday.json](invalid/week-start-not-monday.json) | This backup file is damaged: a saved week doesn't run from Monday to Sunday. Choose another backup, or export a new one. |
+| [week-end-not-sunday.json](invalid/week-end-not-sunday.json) | This backup file is damaged: a saved week doesn't run from Monday to Sunday. Choose another backup, or export a new one. |
+| [negative-week-amount.json](invalid/negative-week-amount.json) | This backup file is damaged: an amount is negative. Choose another backup, or export a new one. |
+| [negative-log-count.json](invalid/negative-log-count.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [unknown-discount-vote.json](invalid/unknown-discount-vote.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [unknown-university.json](invalid/unknown-university.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [invalid-semester-date.json](invalid/invalid-semester-date.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [one-off-zero.json](invalid/one-off-zero.json) | This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one. |
+| [one-off-invalid-month.json](invalid/one-off-invalid-month.json) | This backup file is incomplete. Choose another backup, or export a new one. |
+| [malformed-json.json](invalid/malformed-json.json) | This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup. |

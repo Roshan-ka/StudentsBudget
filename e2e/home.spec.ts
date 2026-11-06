@@ -364,7 +364,7 @@ test('says calmly that nothing is available, and suggests €0', async ({ page }
   const food = panel.getByRole('textbox', { name: 'Food & groceries per month', exact: true });
   await expect(panel).toBeVisible();
   await expect(panel.getByText('Nothing is available to budget yet', { exact: false })).toBeVisible();
-  await expect(panel.getByText('You can change your plan in Settings.', { exact: false })).toBeVisible();
+  await expect(panel.getByText('You can change your plan in Settings → Plan.', { exact: false })).toBeVisible();
   await expect(food).toHaveValue('');
   await expect(panel.getByText('left for savings', { exact: false })).toHaveCount(0);
 

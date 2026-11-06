@@ -62,13 +62,13 @@ export const sync: Messages['sync'] = {
       'autres téléphones à leur prochaine synchronisation.',
     replaceWarning:
       'Utiliser les données de ton compte remplace tout ce qui est sur ce téléphone. Tu veux une copie ' +
-      `avant${NNBSP}? Exporte une sauvegarde dans Réglages → Sauvegarde.`,
+      `avant${NNBSP}? Exporte une sauvegarde dans Réglages → Sauvegarde et données.`,
     keepPhone: 'Garder les données de ce téléphone',
     useAccount: 'Utiliser les données de mon compte',
     otherAccount:
       'Ce téléphone contient les données d’un autre compte, il reste donc séparé de celui-ci. Pour le synchroniser, ' +
       'déconnecte-toi et connecte-toi avec ce compte-là. Pour utiliser ce compte ici à la place, supprime tout sur ' +
-      `ce téléphone (Réglages → Sauvegarde)${NNBSP}; les modifications pas encore synchronisées sont perdues.`,
+      `ce téléphone (Réglages → Sauvegarde et données)${NNBSP}; les modifications pas encore synchronisées sont perdues.`,
     tryAgain: 'Réessayer',
     problems: {
       unfinished:
