@@ -40,7 +40,8 @@ concurrency:
 
 jobs:
   # What this run needs: `run` (anything but notes), `e2e` (none, all, or the specs as Playwright file arguments),
-  # `offline`, `db`, the Playwright `projects` argument and the `languages`, plus the commit every later job checks out.
+  # `offline`, `db`, the Playwright `projects` argument and the `languages`, plus the commit every later job checks out
+  # and the lockfile's Playwright version, whose image the browser jobs run in.
   changes:
     # A draft runs nothing: the person is still working on it.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
@@ -54,6 +55,7 @@ jobs:
       db: ${{ steps.affected.outputs.db }}
       projects: ${{ steps.affected.outputs.projects }}
       languages: ${{ steps.affected.outputs.languages }}
+      playwright: ${{ steps.playwright.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -61,6 +63,11 @@ jobs:
           fetch-depth: 0
       - id: head
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      # A version missing from the lockfile fails here, not as an image that doesn't exist.
+      - id: playwright
+        run: |
+          version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -101,6 +108,14 @@ jobs:
     needs: changes
     if: needs.changes.outputs.e2e != 'none'
     runs-on: ubuntu-latest
+    # Playwright's own image for the lockfile's version holds every browser and the system libraries they need, so
+    # nothing comes from the Ubuntu mirror: on 05-11-2026 it served one shard WebKit's packages at ~37 kB/s, twice, and
+    # `playwright install --with-deps` took that shard's whole 30 minutes (runs 42048610913 and 42054650180). The pull
+    # shows as "Initialize containers". `resolute` is the runner's Ubuntu (26.04); uid 1001 is the runner's user, who
+    # owns the workspace, as in Playwright's CI docs.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.changes.outputs.playwright }}-resolute
+      options: --user 1001
     # The whole suite has taken 10 to 16 minutes on one runner, and npm ci up to 4.
     timeout-minutes: 30
     strategy:
@@ -116,15 +131,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - env:
-          PROJECTS: ${{ needs.changes.outputs.projects }}
-        # Chromium alone when the run is limited to it; WebKit too for the iPhone project.
-        run: |
-          if [ -n "$PROJECTS" ]; then
-            npx playwright install --with-deps chromium
-          else
-            npx playwright install --with-deps chromium webkit
-          fi
       - env:
           SPECS: ${{ needs.changes.outputs.e2e }}
           SHARD: ${{ matrix.shard }}
@@ -177,6 +183,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.offline == 'true'
     runs-on: ubuntu-latest
+    # The same image as e2e, for the same reason: no browser install from the Ubuntu mirror.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.changes.outputs.playwright }}-resolute
+      options: --user 1001
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -187,7 +197,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
       - id: offline
         run: npm run test:offline
       - if: failure() && steps.offline.outcome == 'failure'
