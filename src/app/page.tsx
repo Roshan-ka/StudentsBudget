@@ -4,7 +4,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { db } from '@/db/db';
+import { useAuth } from '@/features/account/use-auth';
 import { HomeScreen } from '@/features/home/home';
+import { firstRunPath } from '@/features/start/first-run';
 
 export default function Home() {
   const router = useRouter();
@@ -21,22 +23,25 @@ export default function Home() {
     'loading' as const,
   );
   const plan = loaded === 'loading' ? 'loading' : loaded.plan;
+  // Without a plan, where to go depends on who is signed in (firstRunPath): the start page, its code step, or setup.
+  const auth = useAuth();
+  const path = firstRunPath(auth.status);
 
   useEffect(() => {
-    if (plan !== null) return;
+    if (plan !== null || path === null) return;
     // The router keeps a page it has left mounted but hidden, so `plan` can still be the null from before
     // setup when the person comes back. Ask the database again before sending them away.
     let cancelled = false;
     db.plan.get('current').then(
       (saved) => {
-        if (!cancelled && !saved) router.replace('/setup');
+        if (!cancelled && !saved) router.replace(path);
       },
       (error: unknown) => console.error('StudentsBudget: could not read the saved plan', error),
     );
     return () => {
       cancelled = true;
     };
-  }, [plan, router]);
+  }, [plan, path, router]);
 
   if (loaded === 'loading' || loaded.plan === null) return null;
 

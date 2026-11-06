@@ -175,8 +175,9 @@ function DeleteEverything() {
       setDeleting(false);
       return;
     }
-    // A full page load: the screens behind this one were reading the database that no longer exists.
-    window.location.replace('/setup');
+    // A full page load: the screens behind this one were reading the database that no longer exists. Home sends the
+    // empty phone on: to the start page, or to setup when someone is still signed in (firstRunPath).
+    window.location.replace('/');
   }
 
   return (

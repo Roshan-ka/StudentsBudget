@@ -20,4 +20,14 @@ export const account: Messages['account'] = {
     secondStep: 'Termine la connexion pour récupérer tes données',
     signedOut: 'Connecte-toi pour récupérer tes données',
   },
+  start: {
+    pitch: `Ton budget d’étudiant à Regensburg${NNBSP}: planifier, noter, épargner.`,
+    withAccount: 'Avec un compte',
+    signIn: 'J’ai un compte',
+    create: 'Créer un compte',
+    accountWhy: 'Avec un compte, ton plan est sauvegardé et disponible sur chaque téléphone où tu te connectes.',
+    withoutAccount: 'Sans compte',
+    guest: 'Continuer sans compte',
+    guestNote: 'Tes données restent uniquement sur ce téléphone. Tu pourras créer un compte plus tard dans les Réglages.',
+  },
 };

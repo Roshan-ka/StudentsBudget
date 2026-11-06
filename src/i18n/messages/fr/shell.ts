@@ -29,6 +29,7 @@ export const shell: Messages['shell'] = {
     newEntry: 'Nouvelle saisie',
     reveal: 'Mois par mois',
     account: 'Ton compte',
+    start: 'Bienvenue',
     settings: 'Réglages',
     tips: 'Conseils et réductions à Regensburg',
   },

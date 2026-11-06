@@ -31,6 +31,7 @@ const PAGES = [
   '/settings/moderation',
   '/settings/reminder',
   '/setup',
+  '/start',
 ];
 
 // Files that keep their name. They are looked up ignoring the query string, because Next links the favicon and
