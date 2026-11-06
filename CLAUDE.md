@@ -31,6 +31,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | vitest | 5.0.5 |
 | fake-indexeddb | 6.2.5 |
 | @playwright/test | 1.64.1 |
+| @axe-core/playwright (axe-core 4.14.0 with it; `e2e/axe.spec.ts`) | 4.14.0 |
 | @types/node | 24.19.2 |
 | @types/react | 19.3.0 |
 | @types/react-dom | 19.3.0 |
@@ -137,6 +138,7 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
   - A category's tint is `categoryTint(id)` and its icon `CATEGORY_ICONS[id] ?? OTHER_ICON`, looked up while rendering (a function returning a component trips React's static-components rule). Icons are `aria-hidden`; the name is always written beside them.
   - Every category colour reads at 3:1 (accessibility, chunk 7). A chart mark (a donut slice, a bar, a column, a legend swatch) has a 1.5 px `--outline` edge. An envelope's bar on Home is `categoryBarFill(id)`: the colour mixed 60 % with the text colour, Roshan's pick from the mockups (05-11-2026). `tokens.test.ts` checks every bar on its track and tint.
   - Headings are Bricolage Grotesque (`h1`–`h4` take `font-heading`), text DM Sans. Overspending is never red: a full bar or ring in the same colours, and words.
+- **Automatic check** (accessibility plan, chunk 9): `e2e/axe.spec.ts` runs axe-core over setup and every page in `PAGES`, in light and in dark, against WCAG 2.0–2.2 A and AA, and fails on a serious or critical finding (soft, so one run lists them all). It can't judge focus, names that make sense or what is read out: those stay with their specs.
 - **Page headings and focus** (accessibility plan, chunk 2, `docs/superpowers/plans/2026-11-05-accessibility.md`): every page has one `h2` marked `data-page-heading` (`PageHeading`; Home has it visually hidden; setup's small heading carries it). It names the page in the browser's title (`usePageTitle`: "Settings · StudentsBudget"), which Next's route announcer reads, and `RouteFocus` (in the layout) moves the focus to it after a page change, never on the first load or for a query change. A new page uses `PageHeading`. Within a page (chunk 3), a part that replaces what opened it keeps the focus: it opens on its heading, question or first field (`useFocusOnMount`), and closing, saving or deleting hands the focus to what opened it, the next row or the list (`useFocusAfter`: `mark(key)` before the change, `refFor(key)` on the target; `src/lib/focus.ts`).
 - **Forms and live lines** (accessibility plan, chunk 6):
   - An error keeps the field it is about: the form's message has an id, and that field gets `aria-invalid` and `aria-describedby` (`describedBy()` in `src/lib/described-by.ts`). `buildEntry` and `buildTransfer` return the `field`. Setup's problem list is named by `StepProblemsContext`, which the unnamed names and a missing amount in another currency point at.
