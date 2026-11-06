@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { forgetFeedCache } from '@/features/hacks/feed';
+import { forgetReminderOnPhone } from '@/features/reminder/reminder';
 import { getSupabase } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
 import { forgetAccountDeleted } from './account-deleted';
@@ -30,6 +31,8 @@ export function useAuth(): AuthState {
         endRecovery();
         // The hacks feed this phone kept for the account goes too, so the next person never sees it.
         forgetFeedCache();
+        // So does the weekly reminder: nothing more arrives on a signed-out phone.
+        void forgetReminderOnPhone();
       }
       // A new sign-in after deleting an account (P2.5): the "deleted" line has said what it had to.
       if (event === 'SIGNED_IN') forgetAccountDeleted();

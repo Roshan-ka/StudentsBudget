@@ -4,12 +4,15 @@ import { MESSAGES } from '@/i18n/messages';
 import {
   changeReminder,
   DEFAULT_REMINDER,
+  followPhone,
+  forgetReminderOnPhone,
   keyBytes,
   parsePhoneReminder,
   pushSupport,
   QUARTER_HOURS,
   readPhoneReminder,
   REMINDER_PREF,
+  reminderOffBeforeSignOut,
   reminderSummary,
   turnOffReminder,
   turnOnReminder,
@@ -17,8 +20,9 @@ import {
   type PushPlatform,
 } from './reminder';
 
-// The weekly reminder on this phone (chunk 4): whether the browser can show it, and turning it on, changing it and
-// turning it off, with the browser's push and the account played here.
+// The weekly reminder on this phone (chunks 4 and 5): whether the browser can show it, turning it on, changing it and
+// turning it off, keeping it on the phone's zone and language, and signing out, with the browser's push and the account
+// played here.
 
 let stored: Record<string, string>;
 
@@ -129,6 +133,21 @@ describe('this phone’s copy', () => {
     }
   });
 
+  it('keeps the zone and language last saved, and drops what isn’t text', () => {
+    expect(parsePhoneReminder('{"on":true,"weekday":7,"time":"18:00","timeZone":"Europe/Berlin","lang":"de"}')).toEqual({
+      on: true,
+      weekday: 7,
+      time: '18:00',
+      timeZone: 'Europe/Berlin',
+      lang: 'de',
+    });
+    expect(parsePhoneReminder('{"on":true,"weekday":7,"time":"18:00","timeZone":3,"lang":null}')).toStrictEqual({
+      on: true,
+      weekday: 7,
+      time: '18:00',
+    });
+  });
+
   it('offers every quarter hour', () => {
     expect(QUARTER_HOURS).toHaveLength(96);
     expect([QUARTER_HOURS[0], QUARTER_HOURS[1], QUARTER_HOURS[72], QUARTER_HOURS[95]]).toEqual(['00:00', '00:15', '18:00', '23:45']);
@@ -170,8 +189,10 @@ describe('turnOnReminder', () => {
       p_time_zone: 'Europe/Berlin',
       p_lang: 'de',
     });
-    expect(readPhoneReminder()).toEqual({ on: true, weekday: 7, time: '18:00' });
-    expect(JSON.parse(stored[REMINDER_PREF])).toEqual({ on: true, weekday: 7, time: '18:00' });
+    // The copy holds the zone and language saved with it, for `followPhone`.
+    const saved = { on: true, weekday: 7, time: '18:00', timeZone: 'Europe/Berlin', lang: 'de' };
+    expect(readPhoneReminder()).toEqual(saved);
+    expect(JSON.parse(stored[REMINDER_PREF])).toEqual(saved);
   });
 
   it('uses the subscription the phone already has', async () => {
@@ -221,7 +242,7 @@ describe('changeReminder', () => {
     expect(await changeReminder(db, { weekday: 5, time: '20:30' }, PLACE, KEY, phone.platform)).toBe('saved');
     expect(phone.platform.requestPermission).not.toHaveBeenCalled();
     expect(rpc.mock.calls[0][1]).toMatchObject({ p_weekday: 5, p_local_time: '20:30' });
-    expect(readPhoneReminder()).toEqual({ on: true, weekday: 5, time: '20:30' });
+    expect(readPhoneReminder()).toEqual({ on: true, weekday: 5, time: '20:30', ...PLACE });
   });
 });
 
@@ -253,5 +274,128 @@ describe('turnOffReminder', () => {
     expect(await turnOffReminder(db, browser('granted').platform)).toBe('off');
     expect(deletes).toEqual([]);
     expect(readPhoneReminder().on).toBe(false);
+  });
+});
+
+describe('followPhone', () => {
+  const ON = { on: true, weekday: 3, time: '07:45', ...PLACE };
+
+  it('sends nothing while the reminder is off, or the zone and language are those last saved', async () => {
+    const { db, rpc } = account();
+    const phone = browser('granted', subscription());
+    expect(await followPhone(db, PLACE, phone.platform)).toBe('off');
+    stored[REMINDER_PREF] = JSON.stringify(ON);
+    expect(await followPhone(db, PLACE, phone.platform)).toBe('same');
+    expect(rpc).not.toHaveBeenCalled();
+    expect(phone.registration).not.toHaveBeenCalled();
+  });
+
+  it('saves a new zone or language with the day and time as they are, for the subscription the phone has', async () => {
+    stored[REMINDER_PREF] = JSON.stringify(ON);
+    const { db, rpc } = account();
+    const phone = browser('granted', subscription());
+
+    const travelled = { timeZone: 'Asia/Kolkata', lang: 'en' };
+    expect(await followPhone(db, travelled, phone.platform)).toBe('saved');
+    expect(phone.platform.requestPermission).not.toHaveBeenCalled();
+    expect(phone.subscribe).not.toHaveBeenCalled();
+    expect(rpc.mock.calls[0][1]).toEqual({
+      p_endpoint: ENDPOINT,
+      p_p256dh: 'BPhoneKey',
+      p_auth: 'phone-auth',
+      p_weekday: 3,
+      p_local_time: '07:45',
+      p_time_zone: 'Asia/Kolkata',
+      p_lang: 'en',
+    });
+    expect(readPhoneReminder()).toEqual({ ...ON, ...travelled });
+    // Saved: the next call has nothing to send.
+    expect(await followPhone(db, travelled, phone.platform)).toBe('same');
+  });
+
+  it('saves once for a copy from before the zone and language were kept', async () => {
+    stored[REMINDER_PREF] = JSON.stringify({ on: true, weekday: 7, time: '18:00' });
+    const { db, rpc } = account();
+    expect(await followPhone(db, PLACE, browser('granted', subscription()).platform)).toBe('saved');
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the copy off when the reminder was turned off, or the phone signed out, while it was saving', async () => {
+    stored[REMINDER_PREF] = JSON.stringify(ON);
+    const { db, rpc } = account();
+    rpc.mockImplementation(async () => {
+      stored[REMINDER_PREF] = JSON.stringify({ ...ON, on: false });
+      return { error: null };
+    });
+    expect(await followPhone(db, { timeZone: 'Asia/Kolkata', lang: 'de' }, browser('granted', subscription()).platform)).toBe(
+      'saved',
+    );
+    expect(readPhoneReminder()).toEqual({ ...ON, on: false });
+  });
+
+  it('never subscribes anew, and keeps the old place when the account refuses, for the next try', async () => {
+    stored[REMINDER_PREF] = JSON.stringify(ON);
+    const travelled = { timeZone: 'Asia/Kolkata', lang: 'de' };
+
+    const noSubscription = browser('granted');
+    const first = account();
+    expect(await followPhone(first.db, travelled, noSubscription.platform)).toBe('failed');
+    expect(noSubscription.subscribe).not.toHaveBeenCalled();
+    expect(first.rpc).not.toHaveBeenCalled();
+
+    const offline = account({ code: '', message: 'TypeError: Failed to fetch' });
+    expect(await followPhone(offline.db, travelled, browser('granted', subscription()).platform)).toBe('failed');
+    expect(readPhoneReminder()).toEqual(ON);
+
+    const noWorker = browser('granted', subscription());
+    noWorker.registration.mockRejectedValue(new Error('The service worker is not running'));
+    expect(await followPhone(account().db, travelled, noWorker.platform)).toBe('failed');
+  });
+});
+
+describe('signing out', () => {
+  it('deletes the row and drops the subscription first, while the account still lets it', async () => {
+    stored[REMINDER_PREF] = JSON.stringify({ on: true, weekday: 7, time: '18:00', ...PLACE });
+    const phone = browser('granted', subscription());
+    const { db, deletes } = account();
+
+    await reminderOffBeforeSignOut(db, phone.platform);
+    expect(deletes).toEqual([['push_subscriptions', 'endpoint', ENDPOINT]]);
+    expect(phone.current()?.unsubscribe).toHaveBeenCalled();
+    expect(readPhoneReminder().on).toBe(false);
+  });
+
+  it('touches nothing while the reminder is off', async () => {
+    const phone = browser('granted', subscription());
+    const { db, deletes } = account();
+    await reminderOffBeforeSignOut(db, phone.platform);
+    await forgetReminderOnPhone(phone.platform);
+    expect(deletes).toEqual([]);
+    expect(phone.registration).not.toHaveBeenCalled();
+  });
+
+  it('once signed out, turns it off here and drops the subscription even when the row couldn’t be deleted', async () => {
+    stored[REMINDER_PREF] = JSON.stringify({ on: true, weekday: 7, time: '18:00', ...PLACE });
+    const phone = browser('granted', subscription());
+    const offline = account(null, { code: '', message: 'TypeError: Failed to fetch' });
+
+    await reminderOffBeforeSignOut(offline.db, phone.platform);
+    // The delete failed: Turn off's rule leaves it all on...
+    expect(readPhoneReminder().on).toBe(true);
+    // ...until the phone is signed out (each page's useAuth hears it). The account's row goes at its next send.
+    await Promise.all([forgetReminderOnPhone(phone.platform), forgetReminderOnPhone(phone.platform)]);
+    expect(readPhoneReminder()).toEqual({ on: false, weekday: 7, time: '18:00', ...PLACE });
+    expect(phone.current()?.unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it('turns it off here even when the subscription can’t be reached', async () => {
+    stored[REMINDER_PREF] = JSON.stringify({ on: true, weekday: 7, time: '18:00' });
+    const noWorker = browser('granted', subscription());
+    noWorker.registration.mockRejectedValue(new Error('The service worker is not running'));
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await forgetReminderOnPhone(noWorker.platform);
+    expect(readPhoneReminder().on).toBe(false);
+    expect(logged).toHaveBeenCalledTimes(1);
+    logged.mockRestore();
   });
 });

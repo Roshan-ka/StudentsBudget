@@ -7,14 +7,17 @@ import { isSupabaseConfigured } from '@/lib/supabase/env';
 // can show one, turning it on (the permission, the push subscription, the account's row through
 // `save_push_subscription`), changing its day or time, and turning it off. This phone keeps a copy of what it chose
 // (localStorage, like the other per-phone choices: not synced, not backed up), so Settings can say "Off" or "Sundays at
-// 18:00" without asking the account.
+// 18:00" without asking the account. Since chunk 5 the copy also holds the time zone and language last saved, so the
+// app can keep the account's row in step with the phone without asking it (`followPhone`), and signing out turns the
+// reminder off (`reminderOffBeforeSignOut`, then `forgetReminderOnPhone`).
 
 /** Where this phone keeps its reminder. */
 export const REMINDER_PREF = 'studentsbudget-reminder';
 
 /** A day (1–7, Monday = 1) and a quarter hour ('HH:MM') on this phone's clock. */
 export type ReminderChoice = { weekday: number; time: string };
-export type PhoneReminder = ReminderChoice & { on: boolean };
+/** This phone's copy: on or off, the day and time, and the zone and language last saved with them (none before then). */
+export type PhoneReminder = ReminderChoice & { on: boolean; timeZone?: string; lang?: string };
 
 /** Off, and Sunday at 18:00 once turned on (Roshan, 05-11-2026). */
 export const DEFAULT_REMINDER: PhoneReminder = { on: false, weekday: 7, time: '18:00' };
@@ -31,7 +34,7 @@ export function parsePhoneReminder(value: string | null): PhoneReminder {
   try {
     const parsed: unknown = JSON.parse(value);
     if (typeof parsed !== 'object' || parsed === null) return DEFAULT_REMINDER;
-    const { on, weekday, time } = parsed as Record<string, unknown>;
+    const { on, weekday, time, timeZone, lang } = parsed as Record<string, unknown>;
     if (
       typeof on === 'boolean' &&
       typeof weekday === 'number' &&
@@ -41,7 +44,13 @@ export function parsePhoneReminder(value: string | null): PhoneReminder {
       typeof time === 'string' &&
       QUARTER_HOURS.includes(time)
     ) {
-      return { on, weekday, time };
+      return {
+        on,
+        weekday,
+        time,
+        ...(typeof timeZone === 'string' && { timeZone }),
+        ...(typeof lang === 'string' && { lang }),
+      };
     }
   } catch {
     // Not JSON: the default.
@@ -208,22 +217,59 @@ async function subscribeAndSave(
     const subscription =
       (await pushManager.getSubscription()) ??
       (await pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) }));
-    const { endpoint, keys } = subscription.toJSON();
-    if (!endpoint || !keys?.p256dh || !keys.auth) return 'failed';
-    const { error } = await db.rpc('save_push_subscription', {
-      p_endpoint: endpoint,
-      p_p256dh: keys.p256dh,
-      p_auth: keys.auth,
-      p_weekday: choice.weekday,
-      p_local_time: choice.time,
-      p_time_zone: place.timeZone,
-      p_lang: place.lang,
-    });
-    if (error) {
-      // The table refuses an address at a push service it doesn't know.
-      return error.code === '23514' && error.message.includes('endpoint') ? 'not-supported' : 'failed';
-    }
-    savePhoneReminder({ on: true, ...choice });
+    const result = await saveRow(db, subscription, choice, place);
+    if (result === 'saved') savePhoneReminder({ on: true, weekday: choice.weekday, time: choice.time, ...place });
+    return result;
+  } catch {
+    return 'failed';
+  }
+}
+
+/** Saves this phone's row for `subscription`. The phone's copy is the caller's, once the account has it. */
+async function saveRow(
+  db: Db,
+  subscription: PushSubscription,
+  choice: ReminderChoice,
+  place: ReminderPlace,
+): Promise<SaveResult> {
+  const { endpoint, keys } = subscription.toJSON();
+  if (!endpoint || !keys?.p256dh || !keys.auth) return 'failed';
+  const { error } = await db.rpc('save_push_subscription', {
+    p_endpoint: endpoint,
+    p_p256dh: keys.p256dh,
+    p_auth: keys.auth,
+    p_weekday: choice.weekday,
+    p_local_time: choice.time,
+    p_time_zone: place.timeZone,
+    p_lang: place.lang,
+  });
+  if (error) {
+    // The table refuses an address at a push service it doesn't know.
+    return error.code === '23514' && error.message.includes('endpoint') ? 'not-supported' : 'failed';
+  }
+  return 'saved';
+}
+
+/** What `followPhone` came to: `off` and `same` send nothing. */
+export type FollowResult = 'off' | 'same' | 'saved' | 'failed';
+
+/**
+ * Keeps the account's row in step with the phone (chunk 5): while this phone's reminder is on, a time zone or language
+ * other than the one last saved is saved, with the day and time as they are. Only for the subscription the phone has:
+ * it never subscribes anew or asks for anything, so it can run without a tap. Never throws.
+ */
+export async function followPhone(db: Db, place: ReminderPlace, push: PushPlatform = browserPush): Promise<FollowResult> {
+  const reminder = readPhoneReminder();
+  if (!reminder.on) return 'off';
+  if (reminder.timeZone === place.timeZone && reminder.lang === place.lang) return 'same';
+  try {
+    const { pushManager } = await push.registration();
+    const subscription = await pushManager.getSubscription();
+    if (subscription === null) return 'failed';
+    if ((await saveRow(db, subscription, reminder, place)) !== 'saved') return 'failed';
+    // Turned off, or signed out, while it was saving: the copy stays off (the row goes with the 410 of its next send).
+    const now = readPhoneReminder();
+    if (now.on) savePhoneReminder({ ...now, ...place });
     return 'saved';
   } catch {
     return 'failed';
@@ -248,4 +294,37 @@ export async function turnOffReminder(db: Db, push: PushPlatform = browserPush):
   }
   savePhoneReminder({ ...readPhoneReminder(), on: false });
   return 'off';
+}
+
+/** How long signing out waits for the row's delete: as long as for its last sync, which runs beside it. */
+const SIGN_OUT_MS = 8_000;
+
+/**
+ * Before signing out (chunk 5): while this phone's reminder is on, its row is deleted and its subscription dropped, as
+ * Turn off does, waiting a few seconds at most. Whatever doesn't make it, `forgetReminderOnPhone` finishes once the
+ * phone is signed out. Never throws.
+ */
+export async function reminderOffBeforeSignOut(db: Db, push: PushPlatform = browserPush): Promise<void> {
+  if (!readPhoneReminder().on) return;
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, SIGN_OUT_MS));
+  await Promise.race([turnOffReminder(db, push), timeout]);
+}
+
+/**
+ * Once this phone is signed out (`useAuth`'s SIGNED_OUT: a sign-out here or in another tab, a session that ended, a
+ * deleted account): the reminder goes off here, and its subscription is dropped, so nothing more arrives. A row the
+ * account still holds for it goes at its next send, when the push service answers that the address is gone. Never
+ * throws.
+ */
+export async function forgetReminderOnPhone(push: PushPlatform = browserPush): Promise<void> {
+  const reminder = readPhoneReminder();
+  if (!reminder.on) return;
+  // Off first, so a second call (each page's useAuth hears the event) finds nothing to do.
+  savePhoneReminder({ ...reminder, on: false });
+  try {
+    const { pushManager } = await push.registration();
+    await (await pushManager.getSubscription())?.unsubscribe();
+  } catch (error) {
+    console.error('StudentsBudget: could not drop the weekly reminder’s subscription after signing out', error);
+  }
 }
