@@ -104,7 +104,7 @@ async function putEntries(page: Page, entries: unknown[]) {
 }
 
 test('an entry a schedule posted shows a Recurring tag on the check-in', async ({ page }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   const accounts = await readStore<{ id: string; name: string }>(page, 'accounts');
   const accountId = accounts.find((a) => a.name === 'Cash')?.id;
   const base = { type: 'expense', accountId, categoryId: 'food', createdAt: '2026-10-16T10:00:00.000Z' };
@@ -138,7 +138,7 @@ test('an entry a schedule posted shows a Recurring tag on the check-in', async (
 });
 
 test('the reminder link points at a calendar file that is served as a calendar', async ({ page }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   await openApp(page, '/check-in');
 
   await expect(page.getByRole('link', { name: 'Add weekly reminder to calendar' })).toHaveAttribute(
@@ -158,7 +158,7 @@ test('the reminder link points at a calendar file that is served as a calendar',
 test('on Sunday a forgotten purchase is added from today or from an earlier day, and the lines follow', async ({
   page,
 }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   await openCheckInOnSunday(page);
   await expect(page.getByText('Mon 12 – Sun 18 Oct', { exact: true })).toBeVisible();
   await expectWeekLine(page, 'Eating out', '€41 planned · €0 spent · €41 under');
@@ -200,7 +200,7 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
 });
 
 test('a Sunday that starts the month also reviews the days of its week in the previous month', async ({ page }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   // Sunday 1 Nov: its week is Mon 26 Oct - Sun 1 Nov, and the month's own part is just the Sunday.
   await page.clock.setFixedTime(new Date(2026, 10, 1, 12, 0, 0));
   await addExpenseFromCheckIn(page, { amount: '20', category: 'Eating out', date: '2026-10-28' });
@@ -243,7 +243,7 @@ test("a plan set up late in the month reviews the previous month's tail, the day
 }) => {
   // Set up on Wed 28 Oct; Mon 26 and Tue 27 come before it.
   await page.clock.setFixedTime(new Date(2026, 9, 28, 12, 0, 0));
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   await addExpenseFromCheckIn(page, { amount: '20', category: 'Eating out', date: '2026-10-26' });
   await addExpenseFromCheckIn(page, { amount: '10', category: 'Eating out', date: '2026-10-29' });
 
@@ -269,7 +269,7 @@ test("a plan set up late in the month reviews the previous month's tail, the day
 test('a plan set up on that Sunday has no earlier month to review', async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 10, 1, 12, 0, 0));
   // The fee has one month fewer to be spread over than on 16 Oct, so it falls due a month later.
-  await seedSetup(page, { oneOff: { ...DEFAULT_SETUP.oneOff, dueMonth: '2027-04' } });
+  await seedSetup(page, { oneOff: { ...DEFAULT_SETUP.oneOff, dueMonth: '2027-04' } }, { open: false });
 
   await openApp(page, '/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
@@ -283,7 +283,7 @@ test('a plan set up on that Sunday has no earlier month to review', async ({ pag
 });
 
 test('an expense dated before the plan started is listed and counted like any other', async ({ page }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   await page.clock.setFixedTime(new Date(2026, 9, 18, 12, 0, 0));
   // Tue 13 is in the week Mon 12 - Sun 18, before the plan started on Fri 16, in the month the plan counts whole.
   await addExpenseFromCheckIn(page, { amount: '20', category: 'Eating out', date: '2026-10-13' });
@@ -307,7 +307,7 @@ test('an expense dated before the plan started is listed and counted like any ot
 test('in a later week, an envelope that is used up is listed as used up and the total agrees with Home', async ({
   page,
 }) => {
-  await seedSetup(page);
+  await seedSetup(page, {}, { open: false });
   const accounts = await readStore<{ id: string; name: string }>(page, 'accounts');
   const accountId = accounts.find((a) => a.name === 'Cash')?.id;
   // €506 on eating out on Sat 17 Oct, against its €124 for the month.
