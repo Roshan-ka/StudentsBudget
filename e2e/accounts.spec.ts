@@ -204,14 +204,12 @@ test('the transfer form shows its date as DD.MM.YYYY, and Yesterday dates the tr
   const date = page.getByLabel('Date', { exact: true });
   const today = page.getByRole('button', { name: 'Today', exact: true });
   const yesterday = page.getByRole('button', { name: 'Yesterday', exact: true });
-  await expect(date).toHaveValue('2026-10-16');
-  await expect(page.getByText(formatDate('2026-10-16'), { exact: true })).toBeVisible();
+  await expect(date).toHaveValue(formatDate('2026-10-16'));
   await expect(today).toHaveAttribute('aria-pressed', 'true');
   await expect(yesterday).toHaveAttribute('aria-pressed', 'false');
 
   await yesterday.click();
-  await expect(date).toHaveValue('2026-10-15');
-  await expect(page.getByText(formatDate('2026-10-15'), { exact: true })).toBeVisible();
+  await expect(date).toHaveValue(formatDate('2026-10-15'));
   await expect(yesterday).toHaveAttribute('aria-pressed', 'true');
   await expect(today).toHaveAttribute('aria-pressed', 'false');
 
@@ -307,14 +305,13 @@ test('a new transfer is dated the day it is saved, unless a date was picked', as
   await seedSetup(page, {}, { open: false });
   await openEuroTransfer(page);
   const date = page.getByLabel('Date', { exact: true });
-  await expect(date).toHaveValue('2026-10-16');
+  await expect(date).toHaveValue(formatDate('2026-10-16'));
 
   // The form stays open past midnight with no date picked: it is today's date that counts, not the one at mount.
   // Nothing is typed: the app only comes back to the front, which is when it looks at the date again.
   await page.clock.setFixedTime(new Date(2026, 9, 17, 0, 5, 0));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await expect(date).toHaveValue('2026-10-17');
-  await expect(page.getByText(formatDate('2026-10-17'), { exact: true })).toBeVisible();
+  await expect(date).toHaveValue(formatDate('2026-10-17'));
   await expect(page.getByRole('button', { name: 'Today', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Amount', { exact: true }).fill('20');
   await page.getByRole('button', { name: 'Move money', exact: true }).click();
@@ -322,12 +319,11 @@ test('a new transfer is dated the day it is saved, unless a date was picked', as
 
   // A date that was picked stays, whatever the clock does afterwards.
   await openEuroTransfer(page);
-  await date.fill('2026-10-10');
+  await date.fill(formatDate('2026-10-10'));
   await page.clock.setFixedTime(new Date(2026, 9, 18, 0, 5, 0));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await page.getByLabel('Amount', { exact: true }).fill('5');
-  await expect(date).toHaveValue('2026-10-10');
-  await expect(page.getByText(formatDate('2026-10-10'), { exact: true })).toBeVisible();
+  await expect(date).toHaveValue(formatDate('2026-10-10'));
   await page.getByRole('button', { name: 'Move money', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
 
