@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { Account, Entry, Guess, Plan, PlanLine } from '../src/db/types';
+import type { Account, Entry, Plan, PlanLine } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
 import { openApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
@@ -118,19 +118,8 @@ test('saves a plan with everything at €0', async ({ page }) => {
   expect(plan.oneOffs).toEqual([]);
   expect(plan.envelopes.every((e) => e.monthlyMinor === 0)).toBe(true);
   expect(plan).not.toHaveProperty('spendingBudgetMinor');
-  // A guess left blank is not saved, so there is nothing to compare later.
-  expect(await readStore<Guess>(page, 'guesses')).toEqual([]);
-
-  // So home has no guesses card to wait for (it has found its data once it shows the total), and the reveal page
-  // says there is nothing to compare, with no unlock date.
+  // Home has found its data once it shows the total.
   await expect(page.getByText(/^Across all accounts/)).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Your guesses' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'See how your guesses compare' })).toHaveCount(0);
-  await page.goto('/reveal');
-  await expect(
-    page.getByText('No guesses were saved in setup, so there is nothing to compare.', { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText(/unlock on/)).toHaveCount(0);
 });
 
 test('a budget of €600 suggests all of it, and Use the suggested amounts fills the six envelopes', async ({ page }) => {
@@ -262,7 +251,7 @@ test('the first setup asks only the basic questions, with the budget at the top 
     ),
   ).toBeVisible();
 
-  // No one-off costs and no guesses: the envelopes come next, and last.
+  // No one-off costs: the envelopes come next, and last.
   await go('Envelopes');
   await expect(page.getByText('Step 4 of 4', { exact: true })).toBeVisible();
   for (const name of ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other']) {
@@ -412,10 +401,10 @@ test('saves and lands on home', async ({ page }) => {
   });
   // The helper adds rent and income by hand unless a test asks for schedules.
   expect([...plan.incomes, ...plan.fixed].some((line) => line.schedule)).toBe(false);
-  // A new setup asks no one-off costs and no guesses.
+  // A new setup asks no one-off costs, and writes no guesses (Guess vs. reality is gone).
   expect(plan.oneOffs).toEqual([]);
   expect(plan.envelopes.find((e) => e.categoryId === 'eating-out')?.monthlyMinor).toBe(12400);
-  expect(await readStore<Guess>(page, 'guesses')).toEqual([]);
+  expect(await readStore(page, 'guesses')).toEqual([]);
 
   const accounts = await readStore<Account>(page, 'accounts');
   expect(accounts.map((a) => [a.name, a.currency, a.openingMinor]).sort()).toEqual([
@@ -840,12 +829,12 @@ test('editing the plan keeps each schedule and how far it has posted', async ({ 
 // seedSetup (helpers/seed-setup.ts) writes the finished setup without walking the wizard, for the specs that only need
 // a plan. These tests hold it to what the wizard's Save really writes, so the two cannot drift apart.
 
-type SetupRows = { plan: Plan; accounts: Account[]; guesses: Guess[] };
+type SetupRows = { plan: Plan; accounts: Account[] };
 
 async function setupRows(page: Page): Promise<SetupRows> {
   const plans = await readStore<Plan>(page, 'plan');
   expect(plans).toHaveLength(1);
-  return { plan: plans[0], accounts: await readStore<Account>(page, 'accounts'), guesses: await readStore<Guess>(page, 'guesses') };
+  return { plan: plans[0], accounts: await readStore<Account>(page, 'accounts') };
 }
 
 /**
@@ -853,7 +842,7 @@ async function setupRows(page: Page): Promise<SetupRows> {
  * (also where a schedule names it), a schedule's and a one-off's id by a placeholder. Everything else must match as
  * it is: with the clock pinned, both write the same creation times.
  */
-function withoutIds({ plan, accounts, guesses }: SetupRows) {
+function withoutIds({ plan, accounts }: SetupRows) {
   const nameOf = new Map(accounts.map((a) => [a.id, a.name]));
   const line = (l: PlanLine): PlanLine =>
     l.schedule
@@ -867,7 +856,6 @@ function withoutIds({ plan, accounts, guesses }: SetupRows) {
       oneOffs: plan.oneOffs.map((o) => ({ ...o, id: 'one-off' })),
     },
     accounts: [...accounts].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((a) => ({ ...a, id: a.name })),
-    guesses: [...guesses].sort((a, b) => a.categoryId.localeCompare(b.categoryId)),
   };
 }
 

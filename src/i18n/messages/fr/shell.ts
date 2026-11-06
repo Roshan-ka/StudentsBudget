@@ -26,7 +26,7 @@ export const shell: Messages['shell'] = {
     checkIn: 'Bilan hebdomadaire',
     entries: 'Saisies',
     newEntry: 'Nouvelle saisie',
-    reveal: 'Estimation et réalité',
+    reveal: 'Mois par mois',
     account: 'Ton compte',
     settings: 'Réglages',
     tips: 'Conseils et réductions à Regensburg',

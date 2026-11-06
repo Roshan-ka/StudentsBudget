@@ -81,7 +81,7 @@ export const setup = {
     feeOffer: (amount: string | null, month: string) =>
       `Add semester fee${amount === null ? '' : `: ${amount}`}, due ${month}`,
   },
-  /** How a sentence names each of the six guess and envelope categories (topicOf). */
+  /** How a sentence names each of the six core envelope categories (topicOf). */
   topics: {
     food: 'food & groceries',
     'eating-out': 'eating out',
@@ -129,8 +129,8 @@ export const setup = {
     summary: 'Income, fixed costs and envelopes',
     heading: 'Plan',
     body:
-      'Change your envelopes and one-off costs, add the income sources, fixed costs and envelopes setup skipped, or ' +
-      "go through the whole plan again. Guesses from setup aren't changed.",
+      'Change your envelopes, add one-off costs like the semester fee and the income sources, fixed costs and ' +
+      'envelopes setup skipped, or go through the whole plan again.',
     link: 'Edit plan',
   },
 };

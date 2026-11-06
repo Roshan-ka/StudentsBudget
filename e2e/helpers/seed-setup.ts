@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import type { Account, Guess, Plan } from '../../src/db/types';
+import type { Account, Plan } from '../../src/db/types';
 import { sortAccounts } from '../../src/features/accounts/balances';
 import { parseOptionalAmount, parseSignedAmount } from '../../src/features/accounts/opening-balance';
 import {
@@ -75,19 +75,18 @@ function draftOf(f: SetupFixture, options: SetupOptions, lang: Language, stored:
 /** The new setup's steps, and Edit plan's one-off costs for `f.oneOff`; one the wizard would refuse stops the seed. */
 const STEPS: StepId[] = ['accounts', 'income', 'fixed', 'one-offs', 'envelopes'];
 
-/** Writes the rows in one transaction, as `saveWizard` does: the accounts are added, the plan put, the guesses added. */
-async function writeSetup(page: Page, rows: { accounts: Account[]; plan: Plan; guesses: Guess[] }) {
+/** Writes the rows in one transaction, as `saveWizard` does: the accounts are added and the plan put. */
+async function writeSetup(page: Page, rows: { accounts: Account[]; plan: Plan }) {
   await page.evaluate(
-    ({ accounts, plan, guesses }) =>
+    ({ accounts, plan }) =>
       new Promise<void>((resolve, reject) => {
         const open = indexedDB.open('studentsbudget');
         open.onerror = () => reject(open.error);
         open.onsuccess = () => {
           const database = open.result;
-          const transaction = database.transaction(['accounts', 'plan', 'guesses'], 'readwrite');
+          const transaction = database.transaction(['accounts', 'plan'], 'readwrite');
           for (const account of accounts) transaction.objectStore('accounts').add(account);
           transaction.objectStore('plan').put(plan);
-          for (const row of guesses) transaction.objectStore('guesses').add(row);
           transaction.oncomplete = () => {
             database.close();
             resolve();

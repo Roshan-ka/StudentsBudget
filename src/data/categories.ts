@@ -33,10 +33,10 @@ const ROWS: Omit<Category, 'order'>[] = [
 export const CATEGORIES: Category[] = ROWS.map((row, order) => ({ ...row, order }));
 
 /**
- * The flexible categories setup asks a guess for: the original six. Guesses are saved once and the city
- * ranges cover only these, so the categories added later are planned but never guessed.
+ * The original six flexible categories: the ones the city ranges cover, a new setup asks an envelope for, quick add
+ * offers first and Tips leads with. The categories added later are planned in Edit plan.
  */
-export const GUESS_CATEGORY_IDS: readonly string[] = [
+export const CORE_FLEXIBLE_IDS: readonly string[] = [
   'food',
   'eating-out',
   'going-out',
@@ -57,4 +57,4 @@ export const SETUP_INCOME_IDS: readonly string[] = [
 export const SETUP_FIXED_IDS: readonly string[] = ['phone', 'insurance', 'transport-pass'];
 
 /** The envelopes a new setup asks about: the original six, the ones the city ranges cover. */
-export const SETUP_ENVELOPE_IDS: readonly string[] = GUESS_CATEGORY_IDS;
+export const SETUP_ENVELOPE_IDS: readonly string[] = CORE_FLEXIBLE_IDS;

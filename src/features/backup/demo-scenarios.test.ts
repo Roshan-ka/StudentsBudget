@@ -7,7 +7,7 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { accountBalance, totalInEur } from '@/features/accounts/balances';
 import { postDueRecurring } from '@/features/recurring/post-due';
-import { guessVsReality } from '@/features/reveal/reveal';
+import { completedMonths } from '@/features/reveal/reveal';
 import { monthStatus } from '@/lib/budget';
 import { parseBackup } from './backup';
 
@@ -40,11 +40,11 @@ describe('uploadable demo scenarios', () => {
     expect(result.plan).toEqual(data.plan);
   });
 
-  it('history covers twelve months and every category, with the reveal unlocked', () => {
+  it('history covers twelve months and every category, with finished months to recap', () => {
     const { data, exportedAt } = valid(files[0]);
     expect(new Set(data.entries.map((e) => e.date.slice(0, 7))).size).toBe(12);
     expect(new Set(data.entries.flatMap((e) => e.type === 'transfer' ? [] : [e.categoryId])).size).toBe(CATEGORIES.length);
-    expect(guessVsReality(data.guesses, data.entries, data.plan!.createdOn, exportedAt.slice(0, 10)).unlocked).toBe(true);
+    expect(completedMonths(data.plan!.createdOn, exportedAt.slice(0, 10))).toHaveLength(11);
     expect(data.entries.every((e) => e.date <= exportedAt.slice(0, 10))).toBe(true);
   });
 
@@ -55,9 +55,9 @@ describe('uploadable demo scenarios', () => {
     expect(food.spentMinor).toBeGreaterThan(food.plannedMinor);
   });
 
-  it('the fresh plan counts the whole month’s flexible spending, the €18 before setup too, and keeps the reveal locked', () => {
+  it('the fresh plan counts the whole month’s flexible spending, the €18 before setup too, and has no month to recap yet', () => {
     const { data, exportedAt } = valid('03-new-student-mid-month.json');
-    expect(guessVsReality(data.guesses, data.entries, data.plan!.createdOn, exportedAt.slice(0, 10)).unlocked).toBe(false);
+    expect(completedMonths(data.plan!.createdOn, exportedAt.slice(0, 10))).toEqual([]);
     expect(monthStatus(data.plan!, data.entries, exportedAt.slice(0, 7)).find((s) => s.categoryId === 'food')?.spentMinor).toBe(2450);
   });
 

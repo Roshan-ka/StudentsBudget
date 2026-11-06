@@ -119,9 +119,8 @@ export const setup: Messages['setup'] = {
     summary: 'Einnahmen, Fixkosten und Umschläge',
     heading: 'Plan',
     body:
-      'Ändere deine Umschläge und einmaligen Kosten, ergänze Einnahmen, Fixkosten und Umschläge, die die Einrichtung ' +
-      'übersprungen hat, oder geh den ganzen Plan noch einmal durch. Die Schätzungen aus ' +
-      'der Einrichtung bleiben, wie sie sind.',
+      'Ändere deine Umschläge, ergänze einmalige Kosten wie den Semesterbeitrag und die Einnahmen, Fixkosten und ' +
+      'Umschläge, die die Einrichtung übersprungen hat, oder geh den ganzen Plan noch einmal durch.',
     link: 'Plan bearbeiten',
   },
 };

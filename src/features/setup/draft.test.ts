@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORIES, GUESS_CATEGORY_IDS, SETUP_FIXED_IDS, SETUP_INCOME_IDS } from '@/data/categories';
+import { CATEGORIES, CORE_FLEXIBLE_IDS, SETUP_FIXED_IDS, SETUP_INCOME_IDS } from '@/data/categories';
 import type { Plan, Schedule } from '@/db/types';
 import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
 import {
@@ -43,14 +43,6 @@ const draft: SetupDraft = {
   ],
   fixed: [],
   oneOffs: [{ name: 'Semester fee', amountMinor: 30000, dueMonth: '2027-03' }],
-  guesses: [
-    { categoryId: 'food', monthlyMinor: 20000 },
-    { categoryId: 'eating-out', monthlyMinor: 8000 },
-    { categoryId: 'going-out', monthlyMinor: 6000 },
-    { categoryId: 'transport', monthlyMinor: 2000 },
-    { categoryId: 'shopping', monthlyMinor: 4000 },
-    { categoryId: 'other', monthlyMinor: 2000 },
-  ],
   spendingBudgetMinor: 0,
   envelopes: [
     { categoryId: 'food', monthlyMinor: 31000 },
@@ -94,13 +86,6 @@ describe('draftToRecords', () => {
     expect(plan.oneOffs[0].id).toEqual(expect.any(String));
   });
 
-  it('stamps every guess with today', () => {
-    const { guesses } = draftToRecords(draft, TODAY);
-    expect(guesses).toHaveLength(6);
-    expect(guesses.every((g) => g.guessedOn === TODAY)).toBe(true);
-    expect(guesses).toContainEqual({ categoryId: 'eating-out', monthlyMinor: 8000, guessedOn: TODAY });
-  });
-
   it('creates the plan today', () => {
     const { plan } = draftToRecords(draft, TODAY);
     expect(plan).toMatchObject({ id: 'current', cityId: 'regensburg', createdOn: TODAY });
@@ -124,19 +109,6 @@ describe('draftToRecords', () => {
     ];
     const { plan } = draftToRecords({ ...draft, oneOffs: rows }, TODAY);
     expect(plan.oneOffs.map((o) => o.name)).toEqual(['Semester fee']);
-  });
-
-  it('saves only the guesses that were answered, a typed 0 included', () => {
-    const answered = [
-      { categoryId: 'food', monthlyMinor: 20000 },
-      { categoryId: 'going-out', monthlyMinor: 0 },
-    ];
-    const { guesses } = draftToRecords({ ...draft, guesses: answered }, TODAY);
-    expect(guesses).toEqual([
-      { categoryId: 'food', monthlyMinor: 20000, guessedOn: TODAY },
-      { categoryId: 'going-out', monthlyMinor: 0, guessedOn: TODAY },
-    ]);
-    expect(draftToRecords({ ...draft, guesses: [] }, TODAY).guesses).toEqual([]);
   });
 
   it('gives each account its own id and creation time', () => {
@@ -246,7 +218,7 @@ describe('draftToRecords', () => {
 });
 
 describe('draftFromPlan', () => {
-  it('takes rent out of the fixed costs and leaves accounts and guesses to Settings', () => {
+  it('takes rent out of the fixed costs and leaves accounts to Settings', () => {
     const plan: Plan = {
       id: 'current',
       cityId: 'regensburg',
@@ -267,7 +239,6 @@ describe('draftFromPlan', () => {
     expect(d.fixed[0].schedule?.on).toBe(false);
     expect(d.rentSchedule?.on).toBe(false);
     expect(d.accounts).toEqual([]);
-    expect(d.guesses).toEqual([]);
     expect(d.envelopes).toHaveLength(12);
     expect(d.envelopes[0]).toEqual({ categoryId: 'food', monthlyMinor: 31000 });
     expect(d.envelopes[1]).toEqual({ categoryId: 'eating-out', monthlyMinor: 0 });
@@ -475,7 +446,7 @@ describe('askedCategories', () => {
       'insurance',
       'transport-pass',
     ]);
-    expect(ids(askedCategories(FLEXIBLE_CATEGORIES, GUESS_CATEGORY_IDS, false, []))).toEqual([
+    expect(ids(askedCategories(FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_IDS, false, []))).toEqual([
       'food',
       'eating-out',
       'going-out',
@@ -488,7 +459,7 @@ describe('askedCategories', () => {
   it('asks every category in edit mode', () => {
     expect(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, true, [])).toEqual(INCOME_CATEGORIES);
     expect(askedCategories(FIXED_CATEGORIES, SETUP_FIXED_IDS, true, [])).toEqual(FIXED_CATEGORIES);
-    expect(askedCategories(FLEXIBLE_CATEGORIES, GUESS_CATEGORY_IDS, true, [])).toEqual(FLEXIBLE_CATEGORIES);
+    expect(askedCategories(FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_IDS, true, [])).toEqual(FLEXIBLE_CATEGORIES);
   });
 
   it('asks a category that already has an amount, whatever the mode', () => {
@@ -501,7 +472,7 @@ describe('askedCategories', () => {
 
   it('names only categories that exist, and rent stays out of the fixed ones', () => {
     const known = new Set(CATEGORIES.map((c) => c.id));
-    for (const id of [...SETUP_INCOME_IDS, ...SETUP_FIXED_IDS, ...GUESS_CATEGORY_IDS]) expect(known.has(id)).toBe(true);
+    for (const id of [...SETUP_INCOME_IDS, ...SETUP_FIXED_IDS, ...CORE_FLEXIBLE_IDS]) expect(known.has(id)).toBe(true);
     expect(SETUP_FIXED_IDS).not.toContain('rent');
   });
 });
@@ -539,7 +510,6 @@ describe('dropUnparsed', () => {
       incomes: withAmount(draft.incomes, 'income-bafoeg', Number.NaN),
       fixed: withAmount([], 'phone', Number.NaN),
       oneOffs: [{ name: 'Fee', amountMinor: Number.NaN, dueMonth: '2027-03' }],
-      guesses: withAmount(draft.guesses, 'food', Number.NaN),
       spendingBudgetMinor: Number.NaN,
       envelopes: withAmount(draft.envelopes, 'food', Number.NaN),
     };
@@ -550,7 +520,6 @@ describe('dropUnparsed', () => {
     expect(clean.incomes).toEqual(draft.incomes);
     expect(clean.fixed).toEqual([]);
     expect(clean.oneOffs[0].amountMinor).toBe(0);
-    expect(clean.guesses.some((g) => g.categoryId === 'food')).toBe(false);
     expect(clean.envelopes.find((e) => e.categoryId === 'food')?.monthlyMinor).toBe(0);
   });
 });
@@ -676,9 +645,9 @@ describe('rangeLine', () => {
 });
 
 describe('topicOf', () => {
-  it('asks about each guess category by its lowercase name, and about Other as "other things"', () => {
+  it('names each core category by its lowercase name, and Other as "other things"', () => {
     const names = new Map(CATEGORIES.map((c) => [c.id, c.name]));
-    for (const id of GUESS_CATEGORY_IDS) {
+    for (const id of CORE_FLEXIBLE_IDS) {
       expect(topicOf(id)).toBe(id === 'other' ? 'other things' : names.get(id)?.toLowerCase());
     }
   });

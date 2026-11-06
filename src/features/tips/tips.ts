@@ -1,4 +1,4 @@
-import { GUESS_CATEGORY_IDS } from '@/data/categories';
+import { CORE_FLEXIBLE_IDS } from '@/data/categories';
 import type { Tip } from '@/data/tips';
 import { orderOf } from '@/features/entries/categories';
 import { categoryNameIn } from '@/i18n/category-name';
@@ -22,8 +22,8 @@ export function tipCategoryIds(tips: readonly Tip[]): string[] {
 export function tipChipIds(tips: readonly Tip[]): { main: string[]; more: string[] } {
   const ids = tipCategoryIds(tips);
   return {
-    main: ids.filter((id) => GUESS_CATEGORY_IDS.includes(id)),
-    more: ids.filter((id) => !GUESS_CATEGORY_IDS.includes(id)),
+    main: ids.filter((id) => CORE_FLEXIBLE_IDS.includes(id)),
+    more: ids.filter((id) => !CORE_FLEXIBLE_IDS.includes(id)),
   };
 }
 

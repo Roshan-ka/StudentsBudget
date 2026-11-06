@@ -26,7 +26,7 @@ export const shell: Messages['shell'] = {
     checkIn: 'Wöchentlicher Check-in',
     entries: 'Einträge',
     newEntry: 'Neuer Eintrag',
-    reveal: 'Schätzung und Wirklichkeit',
+    reveal: 'Monat für Monat',
     account: 'Dein Konto',
     settings: 'Einstellungen',
     tips: 'Tipps und Rabatte in Regensburg',

@@ -122,9 +122,8 @@ export const setup: Messages['setup'] = {
     summary: 'Revenus, charges fixes et enveloppes',
     heading: 'Plan',
     body:
-      'Modifie tes enveloppes et tes frais ponctuels, ajoute les sources de revenus, les charges fixes et les ' +
-      'enveloppes que la configuration a sautées, ou reprends tout le plan. Les ' +
-      'estimations de la configuration ne changent pas.',
+      'Modifie tes enveloppes, ajoute des frais ponctuels comme les frais de semestre et les sources de revenus, ' +
+      'les charges fixes et les enveloppes que la configuration a sautées, ou reprends tout le plan.',
     link: 'Modifier le plan',
   },
 };

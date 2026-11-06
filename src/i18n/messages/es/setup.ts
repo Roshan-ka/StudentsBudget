@@ -116,9 +116,8 @@ export const setup: Messages['setup'] = {
     summary: 'Ingresos, gastos fijos y sobres',
     heading: 'Plan',
     body:
-      'Cambia tus sobres y gastos puntuales, añade las fuentes de ingresos, los gastos fijos y los sobres que la ' +
-      'configuración se saltó, o repasa todo el plan otra vez. Las estimaciones de la ' +
-      'configuración no cambian.',
+      'Cambia tus sobres, añade gastos puntuales como la cuota semestral y las fuentes de ingresos, los gastos ' +
+      'fijos y los sobres que la configuración se saltó, o repasa todo el plan otra vez.',
     link: 'Editar plan',
   },
 };

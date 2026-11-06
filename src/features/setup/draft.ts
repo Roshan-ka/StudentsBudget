@@ -1,6 +1,6 @@
 import { CATEGORIES } from '@/data/categories';
 import type { CityRange } from '@/data/cities';
-import type { Account, Amount, Category, Guess, OneOff, Plan, PlanLine, Schedule } from '@/db/types';
+import type { Account, Amount, Category, OneOff, Plan, PlanLine, Schedule } from '@/db/types';
 import { defaultAccount } from '@/features/accounts/balances';
 import { newSchedule, perOccurrence, restartSchedule } from '@/features/recurring/schedule';
 import { categoryNameIn } from '@/i18n/category-name';
@@ -46,13 +46,13 @@ export type AccountOption = Pick<Account, 'id' | 'name' | 'currency'> & Partial<
  * A `NaN` amount stands for text in a field that did not parse. `validateStep` rejects it with a
  * message, so the draft alone decides whether a step may be left.
  *
- * `accounts` and `guesses` stay empty in edit mode: accounts are edited in Settings, guesses are locked.
+ * `accounts` stays empty in edit mode: accounts are edited in Settings.
  * `accounts` is empty in a new setup too when accounts already exist (added in Settings first), so Save adds none.
  * A one-off that carries an `id` came from the saved plan and keeps its `createdMonth` when saved again.
  * An income or fixed line without a `schedule` is added by hand. A line that gets an amount in the wizard starts with
  * "Add it automatically" on; a line opened from a plan that has no schedule for it starts with it off.
  *
- * Nothing in the draft blocks saving. A guess left blank is not saved, a one-off row without an amount is left out,
+ * Nothing in the draft blocks saving. A one-off row without an amount is left out,
  * and `spendingBudgetMinor` (0 for none) is saved only when it is above 0 and only guides the envelope suggestion.
  */
 export type SetupDraft = {
@@ -63,7 +63,6 @@ export type SetupDraft = {
   incomes: DraftLine[];
   fixed: DraftLine[];
   oneOffs: (Pick<OneOff, 'name' | 'amountMinor' | 'dueMonth'> & { id?: string })[];
-  guesses: Amount[];
   /** The monthly everyday-spending budget in EUR, rent and fixed costs left out. 0 when none was entered. */
   spendingBudgetMinor: Minor;
   envelopes: Amount[];
@@ -209,8 +208,6 @@ export function initialDraft(accountsExist = false, lang: Language = 'en'): Setu
     incomes: [],
     fixed: [],
     oneOffs: [],
-    // A blank guess is not a 0: it is not saved, and a typed 0 is.
-    guesses: [],
     spendingBudgetMinor: 0,
     envelopes: FLEXIBLE_CATEGORIES.map((c) => ({ categoryId: c.id, monthlyMinor: 0 })),
   };
@@ -231,7 +228,6 @@ export function draftFromPlan(plan: Plan): SetupDraft {
     incomes: plan.incomes.map(toDraft),
     fixed: plan.fixed.filter((a) => a.categoryId !== 'rent').map(toDraft),
     oneOffs: plan.oneOffs.map(({ id, name, amountMinor, dueMonth }) => ({ id, name, amountMinor, dueMonth })),
-    guesses: [],
     spendingBudgetMinor: plan.spendingBudgetMinor ?? 0,
     envelopes: FLEXIBLE_CATEGORIES.map((c) => ({
       categoryId: c.id,
@@ -261,7 +257,7 @@ export function draftToRecords(
   existing?: Plan,
   stored: AccountOption[] = [],
   now: number = Date.now(),
-): { plan: Plan; guesses: Guess[]; accounts: Account[] } {
+): { plan: Plan; accounts: Account[] } {
   const thisMonth = monthOf(today);
   const unclaimed = [...(existing?.oneOffs ?? [])];
   const claim = (row: SetupDraft['oneOffs'][number]): OneOff | undefined => {
@@ -340,14 +336,12 @@ export function draftToRecords(
     ...(d.spendingBudgetMinor > 0 && { spendingBudgetMinor: d.spendingBudgetMinor }),
     createdOn: existing?.createdOn ?? today,
   };
-  const guesses = d.guesses.map((g): Guess => ({ ...g, guessedOn: today }));
-  return { plan, guesses, accounts };
+  return { plan, accounts };
 }
 
 /** Turns every amount that did not parse into 0, or removes its row where 0 would be a real answer. */
 export function dropUnparsed(d: SetupDraft): SetupDraft {
   const zero = (m: Minor): Minor => (Number.isNaN(m) ? 0 : m);
-  const parsed = (list: Amount[]): Amount[] => list.filter((a) => !Number.isNaN(a.monthlyMinor));
   const cleanSchedule = (s: DraftSchedule | undefined): DraftSchedule | undefined =>
     s && { ...s, foreignMinor: zero(s.foreignMinor) };
   // A line with choices keeps them at 0, as `setLineAmount` does.
@@ -364,7 +358,6 @@ export function dropUnparsed(d: SetupDraft): SetupDraft {
     incomes: lines(d.incomes),
     fixed: lines(d.fixed),
     oneOffs: d.oneOffs.map((o) => ({ ...o, amountMinor: zero(o.amountMinor) })),
-    guesses: parsed(d.guesses),
     spendingBudgetMinor: zero(d.spendingBudgetMinor),
     envelopes: d.envelopes.map((a) => ({ ...a, monthlyMinor: zero(a.monthlyMinor) })),
   };
@@ -550,7 +543,7 @@ export function rangeLine(
   return range.source === 'Estimate' ? text.rangeEstimate(prefix, amounts) : text.range(prefix, amounts);
 }
 
-/** How a sentence names one of the six guess and envelope categories: "eating out", "other things". */
+/** How a sentence names one of the six core envelope categories: "eating out", "other things". */
 export function topicOf(categoryId: string, lang: Language = 'en'): string {
   const t = MESSAGES[lang];
   return (t.setup.topics as Record<string, string>)[categoryId] ?? categoryNameIn(t, categoryId);

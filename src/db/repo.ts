@@ -1,14 +1,7 @@
 import { CATEGORIES } from '@/data/categories';
 import type { IsoDate } from '@/lib/dates';
 import { db } from './db';
-import type { Entry, Guess } from './types';
-
-export class GuessesLockedError extends Error {
-  constructor() {
-    super('Guesses are saved once and cannot be changed.');
-    this.name = 'GuessesLockedError';
-  }
-}
+import type { Entry } from './types';
 
 export class AccountInUseError extends Error {
   constructor() {
@@ -53,14 +46,6 @@ export async function deleteEntry(id: string): Promise<void> {
 /** Entries dated from `from` to `to`, both days included. */
 export async function entriesInRange(from: IsoDate, to: IsoDate): Promise<Entry[]> {
   return db.entries.where('date').between(from, to, true, true).toArray();
-}
-
-/** Guesses are saved once in setup. Rejects with `GuessesLockedError` when any exist. */
-export async function saveGuesses(gs: Guess[]): Promise<void> {
-  await db.transaction('rw', db.guesses, async () => {
-    if ((await db.guesses.count()) > 0) throw new GuessesLockedError();
-    await db.guesses.bulkAdd(gs);
-  });
 }
 
 /**
