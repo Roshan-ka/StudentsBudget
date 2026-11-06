@@ -294,28 +294,31 @@ describe('weekToSpend', () => {
     expect(s.envelopes[0]).toMatchObject({ weekShareMinor: 12500, spentThisWeekMinor: 30000, safeMinor: -17500 });
   });
 
-  it('does not count spending before the setup day', () => {
-    // Set up Wed 21 Oct: the Monday and the Tuesday of that week are before the plan.
+  // Roshan, 2026-11-06: the whole month counts, the month of setup too, so spending typed in for days before the setup
+  // day (by hand, from a backup or an import) is measured like any other.
+  it('counts spending before the setup day like any other spending of the month', () => {
+    // Set up Wed 21 Oct; the Monday and the Tuesday of that week are before the plan.
     const entries = [
       expense('food', '2026-10-19', 9000),
       expense('food', '2026-10-20', 3000),
       expense('food', '2026-10-21', 1000),
     ];
     const week = weekToSpend(setUpOn21st, entries, '2026-10-21');
-    expect(week.totalMinor).toBe(24000);
-    expect(week.envelopes[0]).toMatchObject({ weekShareMinor: 12500, spentThisWeekMinor: 1000 });
+    expect(week.totalMinor).toBe(12000);
+    expect(week.envelopes[0]).toMatchObject({ weekShareMinor: 12500, spentThisWeekMinor: 13000, safeMinor: -500 });
 
-    // Nor in the weeks after it: only the €10 from the setup day is gone from food.
+    // And in the weeks after it: all €130 are gone from food.
     const next = weekToSpend(setUpOn21st, entries, '2026-10-26');
-    expect(next.envelopes[0].weekShareMinor).toBe(24000);
-    expect(next.totalMinor).toBe(49000);
+    expect(next.envelopes[0].weekShareMinor).toBe(12000);
+    expect(next.totalMinor).toBe(37000);
   });
 
-  it('has no budget in a week that ended before the setup day', () => {
+  it('budgets a week of the setup month that ended before the setup day, like the rest of the month', () => {
     const setUpOn16th: Plan = { ...setUpOn1st, createdOn: '2026-10-16' };
+    // Four weeks left from Thu 8 Oct (5–11, 12–18, 19–25, 26–31): 50000 / 4, less the week's €40.
     const s = weekToSpend(setUpOn16th, [expense('food', '2026-10-08', 4000)], '2026-10-08');
-    expect(s.totalMinor).toBe(0);
-    expect(s.envelopes.every((e) => e.weekShareMinor === 0 && e.spentThisWeekMinor === 0 && e.safeMinor === 0)).toBe(true);
+    expect(s.totalMinor).toBe(8500);
+    expect(s.envelopes[0]).toMatchObject({ weekShareMinor: 6250, spentThisWeekMinor: 4000, safeMinor: 2250 });
   });
 
   it('adds a €0 row for each flexible category the plan has no envelope for, so its spending still counts', () => {
@@ -532,17 +535,18 @@ describe('weekAllowance', () => {
     expect(weekAllowance(food, entries, '2026-11-01')).toBe(3333);
   });
 
-  it('counts spending from the setup day in the month of setup, against the whole monthly amount', () => {
+  it('counts the whole month of setup, spending before the setup day included, against the whole monthly amount', () => {
     const setUp: Plan = { ...food, createdOn: '2026-10-21' };
-    // Mon 19 is before the setup day: its €90 does not count. Two weeks left: 20000 / 2.
-    expect(weekAllowance(setUp, [expense('food', '2026-10-19', 9000)], '2026-10-21')).toBe(10000);
-    // The next week: what was spent from the setup day on is gone. (20000 − 4000) / 1.
+    // Mon 12 is before the setup day and before the week: its €90 is gone. Two weeks left: (20000 − 9000) / 2.
+    expect(weekAllowance(setUp, [expense('food', '2026-10-12', 9000)], '2026-10-21')).toBe(5500);
+    // The next week: what was spent in the week of setup is gone. (20000 − 4000) / 1.
     expect(weekAllowance(setUp, [expense('food', '2026-10-22', 4000)], '2026-10-28')).toBe(16000);
   });
 
-  it('is 0 for a week that ended before the setup day', () => {
+  it('budgets a week of the setup month that ended before the setup day', () => {
     const setUp: Plan = { ...food, createdOn: '2026-10-16' };
-    expect(weekAllowance(setUp, [expense('food', '2026-10-08', 4000)], '2026-10-08')).toBe(0);
+    // Four weeks left from Thu 8 Oct: 20000 / 4. The week's own spending does not change it.
+    expect(weekAllowance(setUp, [expense('food', '2026-10-08', 4000)], '2026-10-08')).toBe(5000);
   });
 
   it('counts the flexible categories without an envelope, which only take away', () => {
@@ -624,14 +628,14 @@ describe('monthStatus', () => {
       ]);
     });
 
-    it('counts spending from the setup day on', () => {
+    it('counts the whole month’s spending, before the setup day too', () => {
       const entries = [
         expense('food', '2026-10-10', 9000),
         expense('food', '2026-10-16', 700),
         expense('food', '2026-10-20', 300),
       ];
       expect(ownRows(setUpOn16th, monthStatus(setUpOn16th, entries, '2026-10'))).toEqual([
-        { categoryId: 'food', plannedMinor: 31000, spentMinor: 1000 },
+        { categoryId: 'food', plannedMinor: 31000, spentMinor: 10000 },
       ]);
     });
 

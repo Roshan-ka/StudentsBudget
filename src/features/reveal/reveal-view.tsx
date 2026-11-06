@@ -103,7 +103,7 @@ function Recaps({ guesses, plan, entries, today }: { guesses: Guess[]; plan: Pla
       <ul aria-labelledby={headingId} className="flex flex-col gap-2">
         {months.map((month) => (
           <li key={month}>
-            {recapLine(month, monthRecap(guesses, plan, entries, month).leftoverMinor, plan.createdOn, lang)}
+            {recapLine(month, monthRecap(guesses, plan, entries, month).leftoverMinor, lang)}
           </li>
         ))}
       </ul>

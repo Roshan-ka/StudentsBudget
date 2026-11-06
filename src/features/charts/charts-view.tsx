@@ -1,6 +1,5 @@
 'use client';
 
-import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -8,10 +7,9 @@ import { useChoicePref } from '@/lib/phone-pref';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import type { Entry, Plan } from '@/db/types';
-import { dateFormat } from '@/i18n/format';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
-import { firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
+import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
 import {
   defaultOverTimeCategory,
@@ -27,17 +25,6 @@ import { IncomeSection, OverTimeSection, SavingsSection, SpendingSection } from 
 const PERIODS = [1, 3, 6, 12] as const;
 /** The periods as the phone stores them. */
 const PERIOD_KEYS = ['1', '3', '6', '12'] as const;
-
-/**
- * "Envelope spending counts from 16 Oct, the day you set up.", if the plan was set up in a month of the period,
- * unless that was on the 1st; null otherwise. The envelopes are planned for the whole month, but spending before the
- * setup day is left out.
- */
-function countedFromNote(plan: Plan, months: IsoMonth[], t: Messages, locale: string): string | null {
-  const { createdOn } = plan;
-  if (!months.includes(monthOf(createdOn)) || createdOn === firstOfMonth(monthOf(createdOn))) return null;
-  return t.charts.countedFrom(dateFormat(locale, { day: 'numeric', month: 'short' }).format(parseISO(createdOn)));
-}
 
 /** The months of a period in a sentence or a caption: "October 2026", or "August 2026 to October 2026". */
 function periodText(months: IsoMonth[], t: Messages, locale: string): string {
@@ -133,7 +120,6 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
         spending={spending}
         period={period}
         periodText={text}
-        note={countedFromNote(plan, inPeriod, t, locale)}
         noneText={t.charts.noSpending(monthIn)}
       />
       <IncomeSection income={income} period={period} periodText={text} noneText={t.charts.noIncome(monthIn)} />

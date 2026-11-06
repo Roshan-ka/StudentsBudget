@@ -21,8 +21,6 @@ export const charts = {
   noIncome: (when: string) => `No income logged in ${when} yet.`,
   nothing: (when: string) => `Nothing logged in ${when} yet.`,
   lastSixMonths: 'Last 6 months',
-  /** Under the spending chart for the month the plan was set up in, when that wasn't on the 1st. */
-  countedFrom: (day: string) => `Envelope spending counts from ${day}, the day you set up.`,
   /** The series' names, in the legend and the tooltip. */
   series: {
     spent: 'Spent',
@@ -46,14 +44,12 @@ export const charts = {
     nothingSpent: (period: string) => `Nothing spent in ${period} yet.`,
     /** The word under the total in the donut's middle. */
     centre: 'spent',
-    caption: (period: string, note: string | null) =>
-      sentences(`Spending by category, ${period}.`, note, 'Each category links to its entries.'),
-    donutSummary: (period: string, slices: string, note: string | null) =>
-      sentences(`Donut chart of what was spent in ${period}: ${slices}.`, note, 'The same numbers are listed under it.'),
-    barsSummary: (period: string, withPlanned: boolean, note: string | null) =>
+    caption: (period: string) => sentences(`Spending by category, ${period}.`, 'Each category links to its entries.'),
+    donutSummary: (period: string, slices: string) =>
+      sentences(`Donut chart of what was spent in ${period}: ${slices}.`, 'The same numbers are listed under it.'),
+    barsSummary: (period: string, withPlanned: boolean) =>
       sentences(
         `Bar chart of what was spent in each category in ${period}${withPlanned ? ', against what was planned' : ''}.`,
-        note,
         'The same numbers are in the table.',
       ),
   },

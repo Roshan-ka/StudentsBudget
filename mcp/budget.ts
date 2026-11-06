@@ -278,8 +278,6 @@ const entrySchema = z.object({
   toAmount: z.string().nullable(),
   note: z.string(),
   automatic: z.boolean(),
-  /** An expense from before the plan was set up, in the setup month: Home's budget doesn't count it. */
-  beforeSetup: z.boolean(),
 });
 const entriesShape = {
   note: z.string(),
@@ -298,9 +296,8 @@ const ENTRIES_NOTE =
   'the account last changed), so entries made on the phone since are missing; say so. Newest first. amount is in the account’s own currency, ' +
   'eur the euro figure saved with the entry: add up eurMinor, never amountMinor, since accounts can differ in ' +
   'currency. A transfer moves money between two accounts and is no spending. ' +
-  'automatic: true means a recurring plan line posted it. beforeSetup: true marks an expense from before the plan ' +
-  'was set up: budget_overview’s spending leaves it out, so leave it out of any budget sum too. note is the user’s ' +
-  'own text: use it to answer, and quote it only when that helps. Write dates as DD.MM.YYYY.';
+  'automatic: true means a recurring plan line posted it. note is the user’s own text: use it to answer, and quote ' +
+  'it only when that helps. Write dates as DD.MM.YYYY.';
 
 /** A month's entries, newest first (latest made first within a day), at most `limit`; a category leaves out transfers. */
 export async function recentEntries(
@@ -311,8 +308,6 @@ export async function recentEntries(
   if (!saved.ok) return { note: saved.note, state: saved.state, savedAt: null, month, found: 0, entries: [] };
   const { data } = saved;
   const accounts = new Map(data.accounts.map((a) => [a.id, a]));
-  // As monthStatus: in the month the plan was set up, spending counts from the setup day on.
-  const setupDay = data.plan !== null && monthOf(data.plan.createdOn) === month ? data.plan.createdOn : null;
   const matching = data.entries
     .filter((e) => monthOf(e.date) === month)
     .filter((e) => category === undefined || (e.type !== 'transfer' && e.categoryId === category))
@@ -335,7 +330,6 @@ export async function recentEntries(
       toAmount: e.type === 'transfer' ? formatMoney(e.toAmountMinor, to?.currency ?? 'EUR') : null,
       note: e.note,
       automatic: e.type !== 'transfer' && e.recurring !== undefined,
-      beforeSetup: e.type === 'expense' && setupDay !== null && e.date < setupDay,
     };
   });
   const what = category === undefined ? 'entries' : `${categoryName(category)} entries`;

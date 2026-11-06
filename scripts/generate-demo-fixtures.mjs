@@ -115,8 +115,7 @@ function add(name, file, description, checks, extra = {}) {
   }));
   const counted = new Set(file.data.plan?.envelopes.map((e) => e.categoryId) ?? []);
   for (const c of CATEGORIES) if (c.kind === 'flexible') counted.add(c.id);
-  const start = file.data.plan?.createdOn.startsWith(month) ? file.data.plan.createdOn : `${month}-01`;
-  const spent = file.data.entries.filter((e) => e.type === 'expense' && counted.has(e.categoryId) && e.date >= start && e.date.startsWith(month))
+  const spent = file.data.entries.filter((e) => e.type === 'expense' && counted.has(e.categoryId) && e.date.startsWith(month))
     .reduce((sum, e) => sum + e.eurMinor, 0);
   const expected = { balances, accounts: file.data.accounts.length, entries: file.data.entries.length,
     ...(file.data.plan && { leftMinor: file.data.plan.envelopes.reduce((sum, e) => sum + e.monthlyMinor, 0) - spent }), ...extra };
@@ -254,12 +253,12 @@ add('14-fresh-setup', empty, 'Accepted empty backup to demonstrate onboarding.',
 ]);
 const late = base();
 late.data.plan.createdOn = today;
-entry(late, 'food', 1000, { date: day(today, -1), note: 'Before setup: excluded from envelopes' });
+entry(late, 'food', 1000, { date: day(today, -1), note: 'Before setup: counted too' });
 entry(late, 'food', 2000, { note: 'After setup: counted' });
-add('15-setup-date-boundary', late, 'Spending before setup affects balances but not the setup month\'s envelopes.', [
-  'Home has EUR 480 left. Combined accounts EUR 1,070: both purchases affect balances.',
-  'Charts for the demo month count only EUR 20 of grocery spending. On the first of a month, the earlier EUR 10 belongs to the previous month instead.',
-  'Check-in lists a pre-setup purchase with an exclusion note when it falls in the displayed week; otherwise find it through Entries.',
+add('15-setup-date-boundary', late, 'Spending before setup counts in the setup month\'s envelopes, like any other spending of the month.', [
+  'Home has EUR 470 left: both purchases count. Combined accounts EUR 1,070: both purchases affect balances.',
+  'Charts for the demo month count EUR 30 of grocery spending, with no counted-from note. On the first of a month, the earlier EUR 10 belongs to the previous month instead.',
+  'Check-in lists the pre-setup purchase like any other, with no note, when it falls in the displayed week; otherwise find it through Entries.',
 ]);
 const oneoffs = base();
 oneoffs.data.plan.oneOffs = [

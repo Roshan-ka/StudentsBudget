@@ -5,7 +5,7 @@ import { readStore } from './helpers/setup';
 
 // `seedSetup` pins the clock to Friday 2026-10-16 and creates the plan that day: food 310 and eating out 124
 // are planned in full for October, though the plan starts on the 16th, and rent is €400.
-// Flexible spending only counts from the 16th on, so the seeds for October flexible categories are dated after it.
+// The setup month counts whole (since 2026-11-06); the October seeds happen to be dated after the 16th.
 
 // The charts have to work on a phone: 375 px wide, whatever the project's device.
 test.use({ viewport: { width: 375, height: 812 } });
@@ -351,8 +351,6 @@ test('a period of 3 months adds up the months, and the month switcher moves wher
   await expect(monthSwitcher(page)).toContainText('October 2026');
   await expect(monthSwitcher(page)).toContainText('Aug – Oct 2026');
   await expect(spending.getByRole('img', { name: /August 2026 to October 2026/ })).toBeVisible();
-  // The plan started on the 16th, which is inside the period.
-  await expect(spending.getByText('Envelope spending counts from 16 Oct, the day you set up.', { exact: true })).toBeVisible();
   await expect(spending.getByRole('listitem').first()).toHaveText('Food & groceries€30051%');
 
   // Bars: food was spent €300 over three months, against the €310 planned for October (there was no plan before).
@@ -585,11 +583,12 @@ test('the month switcher moves between months, and a month with nothing in it sa
   await expect(spendingSection(page)).toBeVisible();
 });
 
-test('the setup month plans the whole envelope, counts spending from the setup day on and says so', async ({ page }) => {
+// Roshan, 2026-11-06: spending typed in for a day before setup is real spending of that month.
+test('the setup month plans the whole envelope and counts its whole month, before the setup day too', async ({ page }) => {
   await seedSetup(page);
   await quickAdd(page, 'rewe 20', 'Food & groceries', 'Saved €20.00 · rewe · Food & groceries');
   await seedEntries(page, [
-    // Backdated to before the setup day: in the entries list, but not counted against food's envelope.
+    // Backdated to before the setup day: counted against food's envelope like any other day of October.
     { type: 'expense', categoryId: 'food', date: '2026-10-03', eurMinor: 18000 },
     // Before the setup month there was no plan; after it, the envelope is whole.
     { type: 'expense', categoryId: 'food', date: '2026-09-10', eurMinor: 3000 },
@@ -601,11 +600,10 @@ test('the setup month plans the whole envelope, counts spending from the setup d
   const food = spending.getByRole('row', { name: /Food & groceries/ }).getByRole('cell');
   const note = /Envelope spending counts/;
 
-  // October: €20 of the whole €310, not €200 of it, and the line that explains why the €180 is left out.
-  await expect(spending.getByText('Envelope spending counts from 16 Oct, the day you set up.', { exact: true })).toBeVisible();
-  await expect(food).toHaveText(['€20', '€310']);
-  // The table carries the line too.
-  await expect(spending.getByRole('table')).toContainText('Envelope spending counts from 16 Oct, the day you set up.');
+  // October: €200 of the whole €310, the €180 from before the setup day included, and no "counts from" line.
+  await expect(food).toHaveText(['€200', '€310']);
+  await expect(spending.getByText(note)).toHaveCount(0);
+  await expect(spending.getByRole('table')).not.toContainText('Envelope spending counts');
 
   // September came before the plan: what was spent, with nothing to measure it against.
   await monthSwitcher(page).getByRole('button', { name: 'Previous' }).click();

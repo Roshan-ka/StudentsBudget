@@ -1,6 +1,6 @@
 import type { Messages } from '../en';
 
-// Der wöchentliche Check-in auf Deutsch: seine Karte auf der Startseite, die Seite, week-line.ts und not-counted.ts.
+// Der wöchentliche Check-in auf Deutsch: seine Karte auf der Startseite, die Seite und week-line.ts.
 // Der MCP-Server ruft sie weiter auf Englisch auf.
 export const checkIn: Messages['checkIn'] = {
   card: {
@@ -32,7 +32,6 @@ export const checkIn: Messages['checkIn'] = {
     toSpend: (amount) => `Insgesamt: ${amount} für diese Woche`,
     over: (amount) => `Insgesamt: ${amount} zu viel diese Woche`,
   },
-  notCounted: 'Vor dem Start deines Plans, zählt nicht',
   away: {
     lastWeek: 'Ich war letzte Woche weg',
     thisWeek: 'Ich war diese Woche weg',

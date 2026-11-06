@@ -119,8 +119,8 @@ describe('spendingByCategory', () => {
     expect(spendingByCategory([], setUpOn16th, '2026-11')[0]?.plannedMinor).toBe(31000);
   });
 
-  it('leaves spending before the setup day out of an envelope, as home does, but not out of a fixed or unplanned category', () => {
-    // Set up on the 16th: €180 of groceries backdated to the 3rd must not read as "€180 of €310".
+  it('counts spending before the setup day in every category of the setup month, as home does', () => {
+    // Set up on the 16th: €180 of groceries backdated to the 3rd is real spending of October (Roshan, 2026-11-06).
     const setUpOn16th: Plan = { ...plan, createdOn: '2026-10-16' };
     const entries = [
       expense('food', '2026-10-03', 18000),
@@ -132,7 +132,7 @@ describe('spendingByCategory', () => {
     const rows = spendingByCategory(entries, setUpOn16th, '2026-10');
 
     const fromHome = monthStatus(setUpOn16th, entries, '2026-10').find((s) => s.categoryId === 'food');
-    expect(rows.find((r) => r.categoryId === 'food')).toEqual({ categoryId: 'food', spentMinor: 2000, plannedMinor: 31000 });
+    expect(rows.find((r) => r.categoryId === 'food')).toEqual({ categoryId: 'food', spentMinor: 20000, plannedMinor: 31000 });
     expect(rows.find((r) => r.categoryId === 'food')?.spentMinor).toBe(fromHome?.spentMinor);
     // Rent paid on the 1st still counts against the whole month's amount.
     expect(rows.find((r) => r.categoryId === 'rent')).toEqual({ categoryId: 'rent', spentMinor: 40000, plannedMinor: 40000 });
@@ -143,11 +143,11 @@ describe('spendingByCategory', () => {
     });
   });
 
-  it('keeps an envelope whose only spending was before the setup day, at nothing spent of its plan', () => {
+  it('counts an envelope whose only spending was before the setup day against its plan', () => {
     const setUpOn16th: Plan = { ...foodOnly, createdOn: '2026-10-16' };
 
     expect(spendingByCategory([expense('food', '2026-10-03', 18000)], setUpOn16th, '2026-10')).toEqual([
-      { categoryId: 'food', spentMinor: 0, plannedMinor: 31000 },
+      { categoryId: 'food', spentMinor: 18000, plannedMinor: 31000 },
     ]);
   });
 
@@ -486,12 +486,12 @@ describe('spendingByCategoryOver', () => {
     expect(ids).toEqual(['food', 'shopping', 'transport']);
   });
 
-  it('counts the setup month from the setup day on, plans it in full, and has no plan before it', () => {
+  it('counts the whole setup month, plans it in full, and has no plan before it', () => {
     const setUpOn16th: Plan = { ...foodOnly, createdOn: '2026-10-16' };
     const entries = [
       expense('food', '2026-08-15', 3000),
       expense('food', '2026-09-10', 2000),
-      // Before the setup day: not counted against the envelope.
+      // Before the setup day: counted, as it is in October.
       expense('food', '2026-10-03', 18000),
       expense('food', '2026-10-20', 2000),
     ];
@@ -499,7 +499,7 @@ describe('spendingByCategoryOver', () => {
     const rows = spendingByCategoryOver(entries, setUpOn16th, period('2026-10', 3));
 
     // August and September had no plan; October's is the whole envelope.
-    expect(rows).toEqual([{ categoryId: 'food', spentMinor: 7000, plannedMinor: 31000 }]);
+    expect(rows).toEqual([{ categoryId: 'food', spentMinor: 25000, plannedMinor: 31000 }]);
   });
 
   it('leaves the plan null for a period that ends before the plan starts', () => {

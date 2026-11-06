@@ -33,7 +33,10 @@ export type MonthSpend = { month: IsoMonth; eatingOutMinor: Minor; handLoggedCou
 
 /** What the badges need besides the recorded weeks. */
 export type BadgeHistory = {
-  /** The setup day: the week it falls in is only partly planned, unless it is a Monday. */
+  /**
+   * The setup day. Ramen Royalty leaves out the week it falls in: a record saved before 2026-11-06 measured that week
+   * only from the setup day (unless it was a Monday), and recorded weeks are never rewritten.
+   */
   planStart: IsoDate;
   /** Each finished calendar month from the first full month after setup, oldest first. */
   months: MonthSpend[];

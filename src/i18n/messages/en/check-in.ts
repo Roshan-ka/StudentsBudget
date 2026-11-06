@@ -1,4 +1,4 @@
-// The weekly check-in in English: its card on Home, the page, and week-line.ts and not-counted.ts (which the MCP server
+// The weekly check-in in English: its card on Home, the page, and week-line.ts (which the MCP server
 // calls in English).
 
 export const checkIn = {
@@ -33,7 +33,6 @@ export const checkIn = {
     toSpend: (amount: string) => `In total: ${amount} to spend this week`,
     over: (amount: string) => `In total: ${amount} over this week`,
   },
-  notCounted: 'Before your plan started, not counted',
   away: {
     lastWeek: 'I was away last week',
     thisWeek: 'I was away this week',

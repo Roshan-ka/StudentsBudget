@@ -48,12 +48,11 @@ export function weekAwaitingRecord(plan: Plan, today: IsoDate): Week | null {
  * to spend when it began. That is what was left of the month at its start, split over the weeks left in the month
  * (`weekAllowance`, the "This week" number Home showed on the Monday), and never below 0, so the saved amount is never
  * negative. A week a month boundary splits is the sum of its two parts, each measured against its own month for the
- * part's last day. A part that ends before setup had no budget and is left out, as the check-in leaves it out; in the
- * week of setup, spending counts from the setup day.
- * `handLoggedCount` is the expenses that count as logged (`loggedExpenseTest`) and are dated in the week, whenever
- * they were typed in (a Monday batch for the week before counts for that week): typed in by hand, in a category the
- * envelopes measure, and on or after the setup day. Transfers, income, fixed costs and what a schedule posted are not
- * counted.
+ * part's last day. A part that ends before setup is in a month before the setup month, which had no budget, so it is
+ * left out, as the check-in leaves it out; the setup month counts whole, the days before the setup day included.
+ * `handLoggedCount` is the expenses that count as logged (`loggedExpenseTest`) and are dated in the week's measured
+ * days, whenever they were typed in (a Monday batch for the week before counts for that week): typed in by hand, in a
+ * category the envelopes measure. Transfers, income, fixed costs and what a schedule posted are not counted.
  */
 export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<WeekResult, 'paused' | 'recordedAt'> {
   const split = monthOf(week.start) !== monthOf(week.end);
@@ -73,8 +72,10 @@ export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<Wee
     }
   }
 
+  // What is dated in a part that was left out is not logged either.
+  const measuredFrom = split && partEnds[0] < plan.createdOn ? firstOfMonth(monthOf(week.end)) : week.start;
   const isLogged = loggedExpenseTest(plan);
-  const handLoggedCount = entries.filter((e) => isLogged(e) && e.date >= week.start && e.date <= week.end).length;
+  const handLoggedCount = entries.filter((e) => isLogged(e) && e.date >= measuredFrom && e.date <= week.end).length;
 
   return {
     weekStart: week.start,

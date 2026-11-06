@@ -22,7 +22,6 @@ export const charts: Messages['charts'] = {
   noIncome: (when) => `Aún no hay ingresos registrados en ${when}.`,
   nothing: (when) => `Aún no hay nada registrado en ${when}.`,
   lastSixMonths: 'Últimos 6 meses',
-  countedFrom: (day) => `Los gastos de los sobres cuentan desde el ${day}, el día en que configuraste el plan.`,
   series: {
     spent: 'Gastado',
     planned: 'Previsto',
@@ -43,14 +42,13 @@ export const charts: Messages['charts'] = {
     // El periodo puede ser un rango, así que va tras dos puntos.
     nothingSpent: (period) => `Todavía no hay gastos: ${period}.`,
     centre: 'gastado',
-    caption: (period, note) =>
-      sentences(`Gastos por categoría, ${period}.`, note, 'Cada categoría lleva a sus registros.'),
-    donutSummary: (period, slices, note) =>
-      sentences(`Gráfico de anillo de lo gastado, ${period}: ${slices}.`, note, 'Debajo están las mismas cifras.'),
-    barsSummary: (period, withPlanned, note) =>
+    caption: (period) =>
+      sentences(`Gastos por categoría, ${period}.`, 'Cada categoría lleva a sus registros.'),
+    donutSummary: (period, slices) =>
+      sentences(`Gráfico de anillo de lo gastado, ${period}: ${slices}.`, 'Debajo están las mismas cifras.'),
+    barsSummary: (period, withPlanned) =>
       sentences(
         `Gráfico de barras de lo gastado en cada categoría, ${period}${withPlanned ? ', frente a lo previsto' : ''}.`,
-        note,
         'Las mismas cifras están en la tabla.',
       ),
   },

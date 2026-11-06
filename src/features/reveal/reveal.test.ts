@@ -189,17 +189,17 @@ describe('monthRecap', () => {
     expect(recap.leftoverMinor).toBe(1500);
   });
 
-  it('in the setup month plans the whole month and counts spending only from the setup day on', () => {
+  it('in the setup month plans the whole month and counts the whole month’s spending', () => {
     const plan = planOf('2026-10-16', [{ categoryId: 'food', monthlyMinor: 31000 }]);
-    // The whole 31000, not the part from the 16th. The food bought on the 10th is from before the plan.
+    // The whole 31000, not the part from the 16th. The food bought on the 10th, before the plan, counts too.
     const before = monthRecap(guesses, plan, [entry('food', '2026-10-10', 9000)], '2026-10');
-    expect(used(before.rows)).toEqual([{ categoryId: 'food', guessMinor: 20000, plannedMinor: 31000, spentMinor: 0 }]);
-    expect(before.leftoverMinor).toBe(31000);
+    expect(used(before.rows)).toEqual([{ categoryId: 'food', guessMinor: 20000, plannedMinor: 31000, spentMinor: 9000 }]);
+    expect(before.leftoverMinor).toBe(22000);
 
     const logged = [entry('food', '2026-10-10', 9000), entry('food', '2026-10-20', 5000)];
     const after = monthRecap(guesses, plan, logged, '2026-10');
-    expect(after.rows[0].spentMinor).toBe(5000);
-    expect(after.leftoverMinor).toBe(26000);
+    expect(after.rows[0].spentMinor).toBe(14000);
+    expect(after.leftoverMinor).toBe(17000);
   });
 
   it('is negative when more was spent than planned', () => {

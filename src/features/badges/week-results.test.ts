@@ -214,14 +214,14 @@ describe('weekResultOf', () => {
     expect(result.spentMinor).toBe(october.spentMinor + november.spentMinor);
   });
 
-  it('counts the week of setup only from the setup day', () => {
+  it('counts the whole week of setup, the days before the setup day too', () => {
     const entries = [expense('2026-10-14', 'food', 800), expense('2026-10-17', 'food', 1000)];
 
-    // Three weeks of October are left on the Friday of setup: 43400 / 3. The Wednesday before setup is not counted.
+    // Three weeks of October are left in the week of setup: 43400 / 3. The Wednesday before setup counts as well.
     expect(weekResultOf(PLAN, entries, { start: '2026-10-12', end: '2026-10-18' })).toMatchObject({
       plannedMinor: 14467,
-      spentMinor: 1000,
-      foodSpentMinor: 1000,
+      spentMinor: 1800,
+      foodSpentMinor: 1800,
     });
   });
 
@@ -290,18 +290,17 @@ describe('weekResultOf', () => {
     expect(weekResultOf(PLAN, entries, WEEK)).toMatchObject({ spentMinor: 2400, handLoggedCount: 2 });
   });
 
-  it('does not count an expense dated before the setup day, so it cannot make the week of setup logged', () => {
-    // Set up on Friday 16 October: the Wednesday before has no plan, and the week's spending leaves it out.
+  it('counts an expense dated before the setup day in the week of setup, so it makes that week logged', () => {
+    // Set up on Friday 16 October; the Wednesday before is in the setup month, which counts whole.
     const setupWeek = { start: '2026-10-12', end: '2026-10-18' };
     const before = [expense('2026-10-14', 'food', 800)];
 
-    expect(weekResultOf(PLAN, before, setupWeek)).toMatchObject({ spentMinor: 0, handLoggedCount: 0 });
-    // From the setup day on it counts, and so does an expense on the day itself.
+    expect(weekResultOf(PLAN, before, setupWeek)).toMatchObject({ spentMinor: 800, handLoggedCount: 1 });
     expect(weekResultOf(PLAN, [...before, expense('2026-10-16', 'food', 500)], setupWeek)).toMatchObject({
-      spentMinor: 500,
-      handLoggedCount: 1,
+      spentMinor: 1300,
+      handLoggedCount: 2,
     });
-    // A split week whose first part ends before setup: nothing dated in that part counts either.
+    // A split week whose first part is in a month before the setup month: nothing dated in that part counts.
     const plan = { ...PLAN, createdOn: '2026-11-01' };
     const split = { start: '2026-10-26', end: '2026-11-01' };
     expect(weekResultOf(plan, [expense('2026-10-27', 'food', 2000)], split)).toMatchObject({ handLoggedCount: 0 });

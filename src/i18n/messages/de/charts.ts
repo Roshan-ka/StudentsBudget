@@ -22,7 +22,6 @@ export const charts: Messages['charts'] = {
   noIncome: (when) => `Für ${when} sind noch keine Einnahmen erfasst.`,
   nothing: (when) => `Für ${when} ist noch nichts erfasst.`,
   lastSixMonths: 'Letzte 6 Monate',
-  countedFrom: (day) => `Umschlag-Ausgaben zählen ab dem ${day}, dem Tag deiner Einrichtung.`,
   series: {
     spent: 'Ausgegeben',
     planned: 'Geplant',
@@ -42,14 +41,13 @@ export const charts: Messages['charts'] = {
     notPlanned: 'Nicht geplant',
     nothingSpent: (period) => `Für ${period} noch nichts ausgegeben.`,
     centre: 'ausgegeben',
-    caption: (period, note) =>
-      sentences(`Ausgaben nach Kategorie, ${period}.`, note, 'Jede Kategorie führt zu ihren Einträgen.'),
-    donutSummary: (period, slices, note) =>
-      sentences(`Ringdiagramm der Ausgaben, ${period}: ${slices}.`, note, 'Darunter stehen dieselben Zahlen.'),
-    barsSummary: (period, withPlanned, note) =>
+    caption: (period) =>
+      sentences(`Ausgaben nach Kategorie, ${period}.`, 'Jede Kategorie führt zu ihren Einträgen.'),
+    donutSummary: (period, slices) =>
+      sentences(`Ringdiagramm der Ausgaben, ${period}: ${slices}.`, 'Darunter stehen dieselben Zahlen.'),
+    barsSummary: (period, withPlanned) =>
       sentences(
         `Balkendiagramm der Ausgaben je Kategorie, ${period}${withPlanned ? ', im Vergleich zum Plan' : ''}.`,
-        note,
         'Dieselben Zahlen stehen in der Tabelle.',
       ),
   },

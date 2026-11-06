@@ -22,8 +22,6 @@ export const reveal: Messages['reveal'] = {
   noGuesses: 'Aucune estimation n’a été enregistrée lors de la configuration, il n’y a donc rien à comparer.',
   monthByMonth: 'Mois par mois',
   recap: {
-    partial: (month, from) => `${month} (compté à partir du ${from})`,
-    leftOver: (label, amount) => `${label}${NNBSP}: ${amount} restants`,
     savings: (label, amount) => `${label}${NNBSP}: ${amount} restants → épargne`,
     over: (label, amount) => `${label}${NNBSP}: ${amount} au-delà du plan`,
     onPlan: (label) => `${label}${NNBSP}: pile dans le plan`,

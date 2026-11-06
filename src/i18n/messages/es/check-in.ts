@@ -1,6 +1,6 @@
 import type { Messages } from '../en';
 
-// La revisión semanal en español: su tarjeta en Inicio, la página, week-line.ts y not-counted.ts. El servidor MCP la
+// La revisión semanal en español: su tarjeta en Inicio, la página y week-line.ts. El servidor MCP la
 // sigue llamando en inglés.
 export const checkIn: Messages['checkIn'] = {
   card: {
@@ -32,7 +32,6 @@ export const checkIn: Messages['checkIn'] = {
     toSpend: (amount) => `En total: ${amount} para gastar esta semana`,
     over: (amount) => `En total: ${amount} de más esta semana`,
   },
-  notCounted: 'Antes de empezar tu plan, no cuenta',
   away: {
     lastWeek: 'Estuve fuera la semana pasada',
     thisWeek: 'Estuve fuera esta semana',
