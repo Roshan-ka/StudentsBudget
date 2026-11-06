@@ -26,6 +26,7 @@ export const account: Messages['account'] = {
     withoutAccount: 'Sin cuenta',
     guest: 'Seguir sin cuenta',
     guestNote: 'Tus datos se quedan solo en este móvil. Puedes crear una cuenta más tarde en Ajustes.',
+    signedOut: 'Has cerrado sesión. Tus datos se han borrado de este móvil.',
     back: 'Atrás',
     afterSignIn: 'Cuando inicies sesión, la app trae tus datos desde tu cuenta. Si todavía está vacía, configuras tu plan a continuación.',
   },

@@ -113,9 +113,25 @@ export const auth: Messages['auth'] = {
   signedIn: {
     heading: 'Sesión iniciada',
     as: { before: 'Sesión iniciada como ', after: '.' },
-    keeps: 'Al cerrar sesión, tus datos se quedan en este móvil.',
+    keeps:
+      'Al cerrar sesión, primero se sincroniza y luego se borran tus datos de este móvil. Al volver a iniciar sesión, tu cuenta te los devuelve.',
     signOut: 'Cerrar sesión',
     syncing: 'Sincronizando y cerrando sesión…',
+    confirm: '¿Cerrar sesión en este móvil?',
+    cancel: 'Cancelar',
+    unsynced: (count) =>
+      byCount(count, {
+        one: `${count} cambio todavía no está en tu cuenta.`,
+        other: `${count} cambios todavía no están en tu cuenta.`,
+      }),
+    unsyncedOffline:
+      'No tienes conexión. Mantén la sesión iniciada y sincroniza más tarde, o cierra sesión y pierde estos cambios.',
+    unsyncedFailed:
+      'No se pudieron enviar. Mantén la sesión iniciada y sincroniza más tarde, o cierra sesión y pierde estos cambios.',
+    stay: 'Mantener la sesión',
+    signOutAnyway: 'Cerrar sesión y perderlos',
+    wipeFailed:
+      'Has cerrado sesión, pero no se pudieron borrar los datos de este móvil. Bórralos en Copia de seguridad y datos.',
     passwordChanged: 'Contraseña cambiada.',
   },
   /** Ajustes → Tu cuenta → Eliminar mi cuenta (P2.5). La palabra que se escribe es la de la copia de seguridad. */

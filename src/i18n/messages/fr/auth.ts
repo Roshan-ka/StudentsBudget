@@ -114,9 +114,25 @@ export const auth: Messages['auth'] = {
   signedIn: {
     heading: 'Session ouverte',
     as: { before: 'Session ouverte avec ', after: '.' },
-    keeps: 'Te déconnecter garde tes données sur ce téléphone.',
+    keeps:
+      'Te déconnecter synchronise d’abord, puis supprime tes données de ce téléphone. Ton compte te les rend à la prochaine connexion.',
     signOut: 'Se déconnecter',
     syncing: 'Synchronisation, puis déconnexion…',
+    confirm: `Te déconnecter de ce téléphone${NNBSP}?`,
+    cancel: 'Annuler',
+    unsynced: (count) =>
+      byCount(count, {
+        one: `${count} modification n’est pas encore dans ton compte.`,
+        other: `${count} modifications ne sont pas encore dans ton compte.`,
+      }),
+    unsyncedOffline:
+      'Tu n’as pas de connexion. Garde ta session ouverte et synchronise plus tard, ou déconnecte-toi et perds ces modifications.',
+    unsyncedFailed:
+      'Elles n’ont pas pu être envoyées. Garde ta session ouverte et synchronise plus tard, ou déconnecte-toi et perds ces modifications.',
+    stay: 'Garder ma session ouverte',
+    signOutAnyway: 'Me déconnecter et les perdre',
+    wipeFailed:
+      'Ta session est fermée, mais tes données n’ont pas pu être supprimées de ce téléphone. Supprime-les dans Sauvegarde et données.',
     passwordChanged: 'Mot de passe modifié.',
   },
   /** Réglages → Ton compte → Supprimer mon compte (P2.5). Le mot à saisir est celui de Sauvegarde. */

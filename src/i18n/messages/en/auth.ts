@@ -110,9 +110,20 @@ export const auth = {
   signedIn: {
     heading: 'Signed in',
     as: { before: 'Signed in as ', after: '.' },
-    keeps: 'Signing out keeps your data on this phone.',
+    keeps: 'Signing out syncs first, then removes your data from this phone. Signing in again brings it back.',
     signOut: 'Sign out',
     syncing: 'Syncing, then signing out…',
+    /** The question before signing out (06-11-2026: signing out clears the phone). */
+    confirm: 'Sign out of this phone?',
+    cancel: 'Cancel',
+    /** The last sync left changes in the outbox. */
+    unsynced: (count: number) =>
+      count === 1 ? "1 change isn't in your account yet." : `${count} changes aren't in your account yet.`,
+    unsyncedOffline: "You're offline. Stay signed in and sync later, or sign out and lose these changes.",
+    unsyncedFailed: "They couldn't be sent. Stay signed in and sync later, or sign out and lose these changes.",
+    stay: 'Stay signed in',
+    signOutAnyway: 'Sign out and lose them',
+    wipeFailed: "You're signed out, but this phone's data couldn't be removed. Remove it under Backup and data.",
     passwordChanged: 'Password changed.',
   },
   /** Settings → Your account → Delete my account (P2.5). The word to type is Backup's (`backup.delete.word`). */
