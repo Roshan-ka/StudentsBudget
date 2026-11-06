@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow, type AuthCall } from './helpers/supabase';
+import { openApp } from './helpers/app';
+import { mockSupabaseAuth, mockSupabaseData, signOut, skipUnlessAccountsShow, type AuthCall } from './helpers/supabase';
 
 // Change password (Settings → Your account → Sign-in and security → Password). Supabase Auth is mocked; its sessions
 // carry how they signed in (`amr`), so after a password sign-in the card asks for the current password. The rule for
@@ -54,6 +55,7 @@ test('after a password sign-in it asks for the current password, and the new one
   ]);
 
   // The new password is the one that signs in now.
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await signOut(page);
+  await openApp(page, '/settings/account');
   await signIn(page, NEW_PASSWORD);
 });

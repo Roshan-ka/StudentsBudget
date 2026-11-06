@@ -39,7 +39,20 @@ for (const theme of ['light', 'dark'] as const satisfies readonly Theme[]) {
       [THEME_STORAGE_KEY, theme] as const,
     );
 
-    // Soft, so one run names every page with a finding, and what it is.
+    // Soft, so one run names every page with a finding, and what it is. First the start page and its two account
+    // pages, which a phone with no plan and nobody signed in sees.
+    const form = (name: string) => page.getByRole('heading', { level: 3, name, exact: true });
+    const start = [
+      { path: '/start', shown: heading(page, t.shell.headings.start) },
+      { path: '/start/sign-in', shown: form(t.auth.signIn.headingSignIn) },
+      { path: '/start/new-account', shown: form(t.auth.signIn.headingCreate) },
+    ];
+    for (const { path, shown } of start) {
+      await page.goto(path);
+      await expect(shown, path).toBeVisible();
+      expect.soft(await findings(page), path).toEqual([]);
+    }
+
     await page.goto('/setup');
     await expect(heading(page, t.setup.headingNew)).toBeVisible();
     expect.soft(await findings(page), '/setup').toEqual([]);

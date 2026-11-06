@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { openApp } from './helpers/app';
 import { formatDate, todayIso } from '../src/lib/dates';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import {
@@ -6,6 +7,7 @@ import {
   E2E_TOTP_CODE,
   mockSupabaseAuth,
   mockSupabaseData,
+  signOut,
   skipUnlessAccountsShow,
   type AuthCall,
 } from './helpers/supabase';
@@ -62,8 +64,10 @@ async function signIn(page: Page) {
   await expect(page.getByRole('region', { name: 'Sync', exact: true }).getByRole('button', { name: 'Sync now', exact: true })).toBeVisible();
 }
 
-async function signOut(page: Page) {
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+/** Signs out (which clears the phone and opens the start page), then opens the account page again to sign in. */
+async function signOutAndBack(page: Page) {
+  await signOut(page);
+  await openApp(page, '/settings/account');
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
 }
 
@@ -87,7 +91,7 @@ test('a passkey added in Settings signs in instead of the password, and stops wh
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
 
   // No email, no password: the device's passkey is enough.
-  await signOut(page);
+  await signOutAndBack(page);
   await passkeyButton(page).click();
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
   await expect(item.getByText(new RegExp(`^Added ${today()}, \\d{2}:\\d{2}; last used ${today()}$`))).toBeVisible();
@@ -111,7 +115,7 @@ test('a passkey added in Settings signs in instead of the password, and stops wh
   await expect(add).toBeFocused();
 
   // The device still holds it, but the account no longer takes it.
-  await signOut(page);
+  await signOutAndBack(page);
   await passkeyButton(page).click();
   await expect(alert(page)).toHaveText('That passkey didn’t work. Try again, or sign in with your email and password.');
 });
@@ -133,7 +137,7 @@ test('with two-step sign-in on, a passkey stands in for the password, not for th
   await passkeys(page).getByRole('button', { name: 'Add a passkey', exact: true }).click();
   await expect(passkeys(page).getByRole('listitem')).toHaveCount(1);
 
-  await signOut(page);
+  await signOutAndBack(page);
   await passkeyButton(page).click();
   await expect(page.getByText(`Enter the code from your authenticator app for ${EMAIL}.`, { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Sync', exact: true })).toHaveCount(0);
