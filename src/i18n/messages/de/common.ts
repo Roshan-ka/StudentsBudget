@@ -58,5 +58,10 @@ export const common: Messages['common'] = {
     translate:
       'Übersetzen öffnet Google Übersetzer in einem neuen Tab, mit dem Text des Beitrags in der Adresse. Google ' +
       'bekommt den Text und die Internetadresse deines Handys.',
+    reminder:
+      'Dein Konto (Supabase, in Frankfurt) speichert die Push-Adresse dieses Handys, den Tag und die Uhrzeit, die ' +
+      'du wählst, deine Zeitzone und deine Sprache, und passt Zeitzone und Sprache an, wenn sie sich auf dem Handy ' +
+      'ändern. Die Erinnerung läuft über den Push-Dienst deines Browser-Herstellers (Apple, Google, Mozilla oder ' +
+      'Microsoft), der sieht, dass eine Nachricht ankommt, aber nicht, was darin steht.',
   },
 };

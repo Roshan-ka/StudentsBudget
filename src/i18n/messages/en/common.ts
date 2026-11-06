@@ -59,5 +59,10 @@ export const common = {
     translate:
       'Translate opens Google Translate in a new tab, with the post’s text in its address. Google gets the text and ' +
       'your phone’s internet address.',
+    reminder:
+      'Your account (Supabase, in Frankfurt) keeps this phone’s push address, the day and time you pick, your time ' +
+      'zone and your language, and updates the time zone and language when they change on the phone. The reminder ' +
+      'goes through your browser maker’s push service (Apple, Google, Mozilla or Microsoft), which sees that a ' +
+      'message arrives, but not what it says.',
   },
 };

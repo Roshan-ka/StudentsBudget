@@ -22,6 +22,7 @@ export const shell = {
     accounts: 'Accounts and transfers',
     backup: 'Backup and data',
     moderation: 'Moderation',
+    reminder: 'Weekly reminder',
     badges: 'Badges',
     charts: 'Charts',
     checkIn: 'Weekly check-in',

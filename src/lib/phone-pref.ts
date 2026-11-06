@@ -34,6 +34,15 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
+/** The stored value as a hook: null on the server and in the first render, the stored value right after. */
+export function usePref(key: string): string | null {
+  return useSyncExternalStore(
+    subscribe,
+    () => readPref(key),
+    () => null,
+  );
+}
+
 /**
  * One of `allowed`, as this phone last chose it, and the way to choose: `fallback` on the server and in the first
  * render (so prerendered pages hydrate as they were built), the stored choice right after, and `fallback` for a value
@@ -44,11 +53,7 @@ export function useChoicePref<T extends string>(
   allowed: readonly T[],
   fallback: T,
 ): [T, (value: T) => void] {
-  const stored = useSyncExternalStore(
-    subscribe,
-    () => readPref(key),
-    () => null,
-  );
+  const stored = usePref(key);
   const value = allowed.find((option) => option === stored) ?? fallback;
   return [value, (next: T) => writePref(key, next)];
 }

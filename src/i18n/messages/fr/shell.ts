@@ -21,6 +21,7 @@ export const shell: Messages['shell'] = {
     accounts: 'Comptes et virements',
     backup: 'Sauvegarde et données',
     moderation: 'Modération',
+    reminder: 'Rappel hebdomadaire',
     badges: 'Badges',
     charts: 'Graphiques',
     checkIn: 'Bilan hebdomadaire',

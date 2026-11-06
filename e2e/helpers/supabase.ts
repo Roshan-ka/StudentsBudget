@@ -3,11 +3,13 @@ import { expect, test, type Page, type Request, type Route } from '@playwright/t
 
 /**
  * A Supabase project that is configured but never reached (`.invalid` never resolves). The Playwright configs start
- * the server with it, so the account UI shows; the specs answer its calls with `mockSupabaseAuth`.
+ * the server with it, so the account UI shows; the specs answer its calls with `mockSupabaseAuth`. The VAPID key (RFC
+ * 8291's example public key) shows the weekly reminder; nothing is ever sent with it.
  */
 export const E2E_SUPABASE_ENV = {
   NEXT_PUBLIC_SUPABASE_URL: 'https://e2e.supabase.invalid',
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e',
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: 'BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8',
 };
 
 /** Every Supabase Auth call. Matched by path, so it also catches a dev server that has the real project in .env.local. */
@@ -332,6 +334,21 @@ export const SUPABASE_REST = '**/rest/v1/**';
 /** The account's tables as the mock keeps them: table → id → the row's data, null for a tombstone. */
 export type ServerTables = Map<string, Map<string, unknown>>;
 
+/** A phone's weekly reminder as `save_push_subscription` got it (the weekly reminder), and whose it is. */
+export type ReminderRow = {
+  user: string;
+  p_endpoint: string;
+  p_p256dh: string;
+  p_auth: string;
+  p_weekday: number;
+  p_local_time: string;
+  p_time_zone: string;
+  p_lang: string;
+};
+
+/** The weekly reminders (`push_subscriptions`), by push address. */
+export type ServerReminders = Map<string, ReminderRow>;
+
 /** Each account's posting name (`public_profiles`, the hacks feed), by user id (`e2eUserIdOf`). */
 export type ServerProfiles = Map<string, { username: string; label: string | null; batch: number | null }>;
 
@@ -421,8 +438,10 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * answers `feed`, the posts as the database returns them (none by default); `rpc/post_hack` adds to it (an account in
  * `profiles` only, and none with `dailyLimit`), `rpc/delete_hack` takes one's own post out, `rpc/vote_hack` moves a
  * post's totals and `rpc/report_hack` takes it out, as for the reporter. `moderator` makes the account the app's
- * moderator: `rpc/moderation_queue` answers `queue` and `rpc/moderate_hack` changes it, at aal2 only. Returns the
- * tables, to look at and to seed.
+ * moderator: `rpc/moderation_queue` answers `queue` and `rpc/moderate_hack` changes it, at aal2 only.
+ * `rpc/save_push_subscription` keeps a phone's weekly reminder in `reminders` by its address (with `twoStep`, at aal2
+ * only), and a delete of `push_subscriptions` by `endpoint` takes the owner's row out. Returns the tables, to look at
+ * and to seed.
  */
 export async function mockSupabaseData(
   page: Page,
@@ -436,12 +455,14 @@ export async function mockSupabaseData(
     dailyLimit?: boolean;
     moderator?: boolean;
     queue?: QueueRow[];
+    reminders?: ServerReminders;
     confirmations?: { discount_id: string; last_works: string | null; works_since: number; outdated_since: number }[];
   } = {},
 ): Promise<ServerTables> {
   const tables: ServerTables = options.tables ?? new Map();
   const profiles: ServerProfiles = options.profiles ?? new Map();
   const feed: FeedRow[] = options.feed ?? [];
+  const reminders: ServerReminders = options.reminders ?? new Map();
   const table = (name: string) => {
     if (!tables.has(name)) tables.set(name, new Map());
     return tables.get(name)!;
@@ -473,6 +494,21 @@ export async function mockSupabaseData(
         return route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message: 'the second step is owed' } });
       }
       tables.clear();
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    // save_push_subscription (the weekly reminder): this phone's row, by its address, for whoever saves it.
+    if (path === 'rpc/save_push_subscription' && request.method() === 'POST') {
+      if (options.twoStep && claimsOf(request).aal !== 'aal2') {
+        return route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message: 'the second step is owed' } });
+      }
+      const sent = request.postDataJSON() as Omit<ReminderRow, 'user'>;
+      reminders.set(sent.p_endpoint, { user: claimsOf(request).sub ?? '', ...sent });
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    // push_subscriptions: the owner deletes a phone's reminder by its address.
+    if (path === 'push_subscriptions' && request.method() === 'DELETE') {
+      const endpoint = url.searchParams.get('endpoint')?.replace(/^eq\./, '') ?? '';
+      if (reminders.get(endpoint)?.user === claimsOf(request).sub) reminders.delete(endpoint);
       return route.fulfill({ status: 204, headers: CORS });
     }
     // public_profiles: each account reads and writes only its own posting name. A username another account has is

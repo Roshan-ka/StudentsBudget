@@ -59,5 +59,10 @@ export const common: Messages['common'] = {
     translate:
       'Traducir abre el Traductor de Google en una pestaña nueva, con el texto de la publicación en su dirección. ' +
       'Google recibe el texto y la dirección de internet de tu móvil.',
+    reminder:
+      'Tu cuenta (Supabase, en Fráncfort) guarda la dirección push de este móvil, el día y la hora que elijas, tu ' +
+      'zona horaria y tu idioma, y actualiza la zona y el idioma cuando cambian en el móvil. El recordatorio pasa ' +
+      'por el servicio push del fabricante de tu navegador (Apple, Google, Mozilla o Microsoft), que ve que llega ' +
+      'un mensaje, pero no lo que dice.',
   },
 };
