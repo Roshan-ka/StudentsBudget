@@ -21,8 +21,6 @@ export const reveal: Messages['reveal'] = {
   noGuesses: 'Al configurar el plan no se guardaron estimaciones, así que no hay nada que comparar.',
   monthByMonth: 'Mes a mes',
   recap: {
-    partial: (month, from) => `${month} (contado desde el ${from})`,
-    leftOver: (label, amount) => `${label}: sobraron ${amount}`,
     savings: (label, amount) => `${label}: sobraron ${amount} → ahorro`,
     over: (label, amount) => `${label}: ${amount} por encima del plan`,
     onPlan: (label) => `${label}: justo según el plan`,

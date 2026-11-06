@@ -55,10 +55,10 @@ describe('uploadable demo scenarios', () => {
     expect(food.spentMinor).toBeGreaterThan(food.plannedMinor);
   });
 
-  it('the fresh plan keeps earlier flexible spending out of its budget and the reveal locked', () => {
+  it('the fresh plan counts the whole month’s flexible spending, the €18 before setup too, and keeps the reveal locked', () => {
     const { data, exportedAt } = valid('03-new-student-mid-month.json');
     expect(guessVsReality(data.guesses, data.entries, data.plan!.createdOn, exportedAt.slice(0, 10)).unlocked).toBe(false);
-    expect(monthStatus(data.plan!, data.entries, exportedAt.slice(0, 7)).find((s) => s.categoryId === 'food')?.spentMinor).toBe(650);
+    expect(monthStatus(data.plan!, data.entries, exportedAt.slice(0, 7)).find((s) => s.categoryId === 'food')?.spentMinor).toBe(2450);
   });
 
   it('manual rates cover every currency, while the missing-rate scenario excludes TRY', async () => {

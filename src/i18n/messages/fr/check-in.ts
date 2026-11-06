@@ -1,7 +1,7 @@
 import type { Messages } from '../en';
 import { NNBSP } from './count';
 
-// Le bilan hebdomadaire en français : sa carte sur l'accueil, la page, week-line.ts et not-counted.ts. Le serveur MCP
+// Le bilan hebdomadaire en français : sa carte sur l'accueil, la page et week-line.ts. Le serveur MCP
 // continue de l'appeler en anglais. « En déplacement » plutôt que « absent », qui obligerait à choisir un genre.
 export const checkIn: Messages['checkIn'] = {
   card: {
@@ -33,7 +33,6 @@ export const checkIn: Messages['checkIn'] = {
     toSpend: (amount) => `Au total${NNBSP}: ${amount} à dépenser cette semaine`,
     over: (amount) => `Au total${NNBSP}: ${amount} de trop cette semaine`,
   },
-  notCounted: 'Avant le début de ton plan, non compté',
   away: {
     lastWeek: 'J’étais en déplacement la semaine dernière',
     thisWeek: 'J’étais en déplacement cette semaine',

@@ -36,7 +36,7 @@ function entry(date: IsoDate, categoryId: string, overrides: Partial<Entry> = {}
 const logged = (e: Entry, plan: Plan = PLAN) => loggedExpenseTest(plan)(e);
 
 describe('loggedExpenseTest', () => {
-  it('counts an expense typed in by hand in an envelope, on the setup day or later', () => {
+  it('counts an expense typed in by hand in an envelope', () => {
     expect(logged(entry('2026-10-16', 'food'))).toBe(true);
     expect(logged(entry('2026-10-20', 'eating-out'))).toBe(true);
   });
@@ -71,16 +71,17 @@ describe('loggedExpenseTest', () => {
     expect(logged(transfer)).toBe(false);
   });
 
-  it('does not count an expense dated before the setup day', () => {
-    expect(logged(entry('2026-10-15', 'food'))).toBe(false);
-    expect(logged(entry('2026-09-30', 'eating-out'))).toBe(false);
+  // Roshan, 2026-11-06: the whole month counts, so an expense typed in for a day before setup is logged like any other.
+  // Which weeks have a record at all is for the week records to say (from the week of setup on).
+  it('counts an expense dated before the setup day too', () => {
+    expect(logged(entry('2026-10-15', 'food'))).toBe(true);
+    expect(logged(entry('2026-10-05', 'eating-out'))).toBe(true);
   });
 
-  it('follows the plan it is made for: its envelopes, and its setup day', () => {
+  it('follows the plan it is made for: its envelopes', () => {
     // A category outside the flexible ones counts when the plan has an envelope for it, as `weekToSpend` sums it.
     const odd: Plan = { ...PLAN, envelopes: [...PLAN.envelopes, { categoryId: 'rent', monthlyMinor: 10000 }] };
     expect(logged(entry('2026-10-20', 'rent'), odd)).toBe(true);
-    expect(logged(entry('2026-10-10', 'food'), { ...PLAN, createdOn: '2026-10-01' })).toBe(true);
   });
 
   it('measures the categories weekToSpend adds up, not a list of its own', () => {

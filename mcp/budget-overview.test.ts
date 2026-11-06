@@ -381,19 +381,18 @@ describe('recent_entries', () => {
     expect(r).toMatchObject({ state: 'empty', found: 0, entries: [], savedAt: null });
   });
 
-  it('marks the expenses from before the setup day, which the budget leaves out', async () => {
+  // Roshan, 2026-11-06: the month of setup counts whole, as the app does.
+  it('counts every expense of the setup month in the budget, one from before the setup day too', async () => {
     const data = demo();
-    // As if the plan had been set up on 10 October: October spending counts from that day on.
+    // As if the plan had been set up on 10 October.
     const plan = { ...data.plan!, createdOn: '2026-10-10' };
     const { read } = await savedAccount({ ...data, plan });
     const { data: r } = await entries(read, { category: 'shopping' });
-    expect(r.entries.map((e) => [e.date, e.beforeSetup])).toEqual([
-      ['2026-10-17', false],
-      ['2026-10-08', true],
-    ]);
+    expect(r.entries.map((e) => e.date)).toEqual(['2026-10-17', '2026-10-08']);
+    expect(r.entries.every((e) => !('beforeSetup' in e))).toBe(true);
     const { data: o } = await overview(read);
-    const counted = r.entries.filter((e) => !e.beforeSetup).reduce((n, e) => n + e.eurMinor, 0);
-    expect(counted).toBe(o.budget!.envelopes.find((e) => e.categoryId === 'shopping')!.spentMinor);
-    expect(r.note).toContain('beforeSetup: true marks an expense from before the plan was set up');
+    const all = r.entries.reduce((n, e) => n + e.eurMinor, 0);
+    expect(all).toBe(o.budget!.envelopes.find((e) => e.categoryId === 'shopping')!.spentMinor);
+    expect(r.note).not.toContain('beforeSetup');
   });
 });

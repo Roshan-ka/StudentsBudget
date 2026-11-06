@@ -88,22 +88,18 @@ function slicesText(slices: ChartRow[], locale: string): string {
 
 /**
  * Spending by category over the period. The donut is the overview: the top 6 by spent, and "Everything else" for
- * the rest. Bars and Table list every category, spent against planned. `note` is the line for the month the plan
- * was set up in ("Envelope spending counts from 16 Oct, the day you set up."), which explains why earlier spending
- * in the envelopes is left out. Where nothing is planned (a period before the setup month) it is spending alone: no
- * legend, no Planned column.
+ * the rest. Bars and Table list every category, spent against planned. Where nothing is planned (a period before the
+ * setup month) it is spending alone: no legend, no Planned column.
  */
 export function SpendingSection({
   spending,
   period,
   periodText,
-  note,
   noneText,
 }: {
   spending: SpendingRow[];
   period: Period;
   periodText: string;
-  note: string | null;
   noneText: string;
 }) {
   const { t, locale } = useT();
@@ -113,7 +109,7 @@ export function SpendingSection({
   const withPlanned = rows.some((row) => row.plannedMinor !== null);
   const slices = slicesOf(spending, (row) => row.spentMinor, period.endMonth, t);
   const table = {
-    caption: text.caption(periodText, note),
+    caption: text.caption(periodText),
     firstColumn: text.category,
     columns: withPlanned ? [t.charts.series.spent, t.charts.series.planned] : [t.charts.series.spent],
     rows: rows.map((row) => ({ row, cells: spendingCells(row, withPlanned, t, locale) })),
@@ -125,7 +121,6 @@ export function SpendingSection({
         <p className="text-muted-foreground">{noneText}</p>
       ) : (
         <>
-          {note && <p className="text-sm text-muted-foreground">{note}</p>}
           <SegmentedControl
             label={text.styleLabel}
             options={styleOptions(SHARE_STYLES, t)}
@@ -144,7 +139,7 @@ export function SpendingSection({
                   rows={slices}
                   valueLabel={t.charts.series.spent}
                   centreLabel={text.centre}
-                  summary={text.donutSummary(periodText, slicesText(slices, locale), note)}
+                  summary={text.donutSummary(periodText, slicesText(slices, locale))}
                 />
                 {/* Every category, planned and spent: what the donut folds into one slice is in the table. The legend
                     links the slices, so the table links only what is folded. */}
@@ -157,7 +152,7 @@ export function SpendingSection({
                 rows={rows}
                 seriesKey="spent"
                 withPlanned={withPlanned}
-                summary={text.barsSummary(periodText, withPlanned, note)}
+                summary={text.barsSummary(periodText, withPlanned)}
               />
               <DataTable {...table} />
             </>

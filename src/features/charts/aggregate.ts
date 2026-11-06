@@ -36,8 +36,7 @@ export type SpendingRow = { categoryId: string; spentMinor: Minor; plannedMinor:
  *
  * Spent and planned are the same as home shows:
  * - A flexible category takes both from `monthStatus`, which gives every flexible category a row: the plan's
- *   envelope, or €0 for one without an envelope. In the month of setup that is the whole envelope against only the
- *   spending from the setup day on, so the two are not like-for-like there; the charts say so in a note.
+ *   envelope, or €0 for one without an envelope, against the whole month's spending, the month of setup included.
  * - A fixed category is planned at the plan's monthly amount, not prorated, and counts the whole month's spending
  *   (rent paid on the 1st is still rent). A fixed line whose schedule is paused is planned at 0.
  * - Any other category (a one-off cost, or a fixed one the plan has no line for) has no plan (`plannedMinor`

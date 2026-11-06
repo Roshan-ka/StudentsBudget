@@ -189,7 +189,7 @@
         "categoryId": "food",
         "amountMinor": 1000,
         "eurMinor": 1000,
-        "note": "Before setup: excluded from envelopes",
+        "note": "Before setup: counted too",
         "createdAt": "2026-10-21T10:00:00.000Z"
       },
       {

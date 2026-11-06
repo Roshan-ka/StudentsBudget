@@ -23,8 +23,6 @@ export const charts: Messages['charts'] = {
   noIncome: (when) => `Aucun revenu saisi en ${when} pour l’instant.`,
   nothing: (when) => `Rien de saisi en ${when} pour l’instant.`,
   lastSixMonths: '6 derniers mois',
-  countedFrom: (day) =>
-    `Les dépenses des enveloppes comptent à partir du ${day}, le jour où tu as configuré ton plan.`,
   series: {
     spent: 'Dépensé',
     planned: 'Prévu',
@@ -45,18 +43,16 @@ export const charts: Messages['charts'] = {
     // La période peut être un intervalle, d'où les deux-points.
     nothingSpent: (period) => `Pas encore de dépense${NNBSP}: ${period}.`,
     centre: 'dépensé',
-    caption: (period, note) =>
-      sentences(`Dépenses par catégorie, ${period}.`, note, 'Chaque catégorie mène à ses saisies.'),
-    donutSummary: (period, slices, note) =>
+    caption: (period) =>
+      sentences(`Dépenses par catégorie, ${period}.`, 'Chaque catégorie mène à ses saisies.'),
+    donutSummary: (period, slices) =>
       sentences(
         `Graphique en anneau des dépenses, ${period}${NNBSP}: ${slices}.`,
-        note,
         'Les mêmes chiffres figurent en dessous.',
       ),
-    barsSummary: (period, withPlanned, note) =>
+    barsSummary: (period, withPlanned) =>
       sentences(
         `Graphique en barres des dépenses par catégorie, ${period}${withPlanned ? ', par rapport au prévu' : ''}.`,
-        note,
         'Les mêmes chiffres figurent dans le tableau.',
       ),
   },

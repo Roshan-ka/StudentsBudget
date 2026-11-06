@@ -165,15 +165,15 @@ Before automatic processing: **0 accounts · 0 entries**.
 
 ### [15-setup-date-boundary.json](valid/15-setup-date-boundary.json)
 
-Spending before setup affects balances but not the setup month's envelopes.
+Spending before setup counts in the setup month's envelopes, like any other spending of the month.
 
-Before automatic processing: **2 accounts · 2 entries** · envelope remainder €480.00.
+Before automatic processing: **2 accounts · 2 entries** · envelope remainder €470.00.
 
 Account balances: Demo EUR bank: €970.00; Demo cash: €100.00.
 
-- [ ] Home has EUR 480 left. Combined accounts EUR 1,070: both purchases affect balances.
-- [ ] Charts for the demo month count only EUR 20 of grocery spending. On the first of a month, the earlier EUR 10 belongs to the previous month instead.
-- [ ] Check-in lists a pre-setup purchase with an exclusion note when it falls in the displayed week; otherwise find it through Entries.
+- [ ] Home has EUR 470 left: both purchases count. Combined accounts EUR 1,070: both purchases affect balances.
+- [ ] Charts for the demo month count EUR 30 of grocery spending, with no counted-from note. On the first of a month, the earlier EUR 10 belongs to the previous month instead.
+- [ ] Check-in lists the pre-setup purchase like any other, with no note, when it falls in the displayed week; otherwise find it through Entries.
 
 ### [16-one-off-reserves.json](valid/16-one-off-reserves.json)
 

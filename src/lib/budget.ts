@@ -89,16 +89,6 @@ export function envelopeCategoryIds(plan: Plan): Set<string> {
   return new Set(envelopesOf(plan).map((e) => e.categoryId));
 }
 
-/**
- * The first day spending counts in `month`: the 1st, except in the month the plan was set up, which starts on the
- * setup day. Spending before it does not count; the monthly amounts themselves are always whole.
- */
-function spendingStart(plan: Plan, month: IsoMonth): IsoDate {
-  const first = firstOfMonth(month);
-  // ISO date strings sort chronologically, so plain comparison is enough.
-  return monthOf(plan.createdOn) === month && plan.createdOn > first ? plan.createdOn : first;
-}
-
 /** The euro amount of the expenses dated from `from` to `to`, both days included. */
 function spentBetween(expenses: { date: IsoDate; eurMinor: Minor }[], from: IsoDate, to: IsoDate): Minor {
   return sum(expenses.filter((x) => x.date >= from && x.date <= to).map((x) => x.eurMinor));
@@ -113,37 +103,36 @@ function spentAfterIn(expenses: { date: IsoDate; eurMinor: Minor }[], after: Iso
 type EnvelopeMonth = {
   categoryId: string;
   monthlyMinor: Minor;
-  /** Spent from the first counting day of the month up to the day before the week. */
+  /** Spent from the 1st of the month up to the day before the week. */
   spentBeforeMinor: Minor;
-  /** Spent in the week itself, from the first counting day on. */
+  /** Spent in the week itself. */
   spentThisWeekMinor: Minor;
   /** Spent after the week, later in the month (an expense dated ahead of today). */
   spentLaterMinor: Minor;
 };
 
 /**
- * The week containing `today`, cut at the month's edges, and each envelope's month around it. `budgeted` is false
- * for a week that ended before the setup day: it had no budget. `weeksLeft` is the Monday–Sunday weeks left in the
- * month, this one included.
+ * The week containing `today`, cut at the month's edges, and each envelope's month around it. The whole month counts,
+ * the month of setup too (Roshan, 2026-11-06: spending typed in for days before setup is real spending). `weeksLeft` is
+ * the Monday–Sunday weeks left in the month, this one included.
  */
 function monthAround(plan: Plan, entries: Entry[], today: IsoDate) {
   const { start: weekStart, end: weekEnd } = weekInMonth(today);
   const month = monthOf(today);
-  const start = spendingStart(plan, month);
+  const first = firstOfMonth(month);
   const dayBeforeWeek = addDays(weekStart, -1);
-  const weekFrom = weekStart > start ? weekStart : start;
 
   const rows = envelopesOf(plan).map((e): EnvelopeMonth => {
     const expenses = expensesIn(entries, e.categoryId);
     return {
       categoryId: e.categoryId,
       monthlyMinor: e.monthlyMinor,
-      spentBeforeMinor: spentBetween(expenses, start, dayBeforeWeek),
-      spentThisWeekMinor: spentBetween(expenses, weekFrom, weekEnd),
+      spentBeforeMinor: spentBetween(expenses, first, dayBeforeWeek),
+      spentThisWeekMinor: spentBetween(expenses, weekStart, weekEnd),
       spentLaterMinor: spentAfterIn(expenses, weekEnd, month),
     };
   });
-  return { weekStart, weekEnd, budgeted: weekEnd >= start, weeksLeft: weeksLeftInMonth(today), rows };
+  return { weekStart, weekEnd, weeksLeft: weeksLeftInMonth(today), rows };
 }
 
 /** An envelope's share of the week: its month's amount less what was spent before the week, split over the weeks left. */
@@ -154,17 +143,14 @@ const shareOf = (leftMinor: Minor, weeksLeft: number): Minor => Math.max(0, Math
  * (the monthly amounts minus what was spent before it) is split evenly over the Monday–Sunday weeks left in the
  * month, this one included (`weeksLeftInMonth`). What was spent this week comes off that, so a bad week lowers the
  * weeks after it and the total can go negative. An expense dated later in the month comes off what is left too, as it
- * does in "Left to spend this month", so this week's total is never more than what the month has left. In the month of
- * setup spending counts from the setup day, and the monthly amounts are whole all the same. An envelope's share never
- * goes below 0, but its `safeMinor` can.
+ * does in "Left to spend this month", so this week's total is never more than what the month has left. The month of
+ * setup counts whole, its amounts and its spending. An envelope's share never goes below 0, but its `safeMinor` can.
  */
 export function weekToSpend(plan: Plan, entries: Entry[], today: IsoDate): WeekToSpend {
-  const { weekStart, weekEnd, budgeted, weeksLeft, rows } = monthAround(plan, entries, today);
+  const { weekStart, weekEnd, weeksLeft, rows } = monthAround(plan, entries, today);
 
   const envelopes = rows.map((row): EnvelopeWeek => {
-    const weekShareMinor = budgeted
-      ? shareOf(row.monthlyMinor - row.spentBeforeMinor - row.spentLaterMinor, weeksLeft)
-      : 0;
+    const weekShareMinor = shareOf(row.monthlyMinor - row.spentBeforeMinor - row.spentLaterMinor, weeksLeft);
     return {
       categoryId: row.categoryId,
       weekShareMinor,
@@ -177,7 +163,7 @@ export function weekToSpend(plan: Plan, entries: Entry[], today: IsoDate): WeekT
   // up has a share of 0, but its overspending still comes off what is left.
   const leftMinor = sum(rows.map((row) => row.monthlyMinor - row.spentBeforeMinor - row.spentLaterMinor));
   const spentThisWeekMinor = sum(rows.map((row) => row.spentThisWeekMinor));
-  const totalMinor = budgeted ? Math.round(leftMinor / weeksLeft) - spentThisWeekMinor : 0;
+  const totalMinor = Math.round(leftMinor / weeksLeft) - spentThisWeekMinor;
   return {
     weekStart,
     weekEnd,
@@ -189,35 +175,33 @@ export function weekToSpend(plan: Plan, entries: Entry[], today: IsoDate): WeekT
 
 /**
  * What the week containing `day` had to spend when it began: what was left of the month then (the monthly amounts
- * minus what was spent before the week, from the setup day in the month of setup), split over the weeks left. It is
- * the "This week" number Home showed on the Monday, before anything was spent in the week. It reads only spending
- * before the week, so an expense dated later does not change it. It is negative when the month was already
- * overspent, and 0 for a week that ended before the setup day. The badges' week records are measured against it.
+ * minus what was spent before the week), split over the weeks left. It is the "This week" number Home showed on the
+ * Monday, before anything was spent in the week. It reads only spending before the week, so an expense dated later
+ * does not change it. It is negative when the month was already overspent. The badges' week records are measured
+ * against it.
  */
 export function weekAllowance(plan: Plan, entries: Entry[], day: IsoDate): Minor {
-  const { budgeted, weeksLeft, rows } = monthAround(plan, entries, day);
-  if (!budgeted) return 0;
+  const { weeksLeft, rows } = monthAround(plan, entries, day);
   const allowance = Math.round(sum(rows.map((row) => row.monthlyMinor - row.spentBeforeMinor)) / weeksLeft);
   return allowance === 0 ? 0 : allowance;
 }
 
 /**
  * Planned and spent per envelope for one calendar month: the plan's envelopes in their order, then a €0 row for
- * each other flexible category. Planned is the whole monthly amount, in the month of setup too; spending counts from
- * the setup day on in that month.
+ * each other flexible category. Planned is the whole monthly amount and spent the whole month's spending, in the month
+ * of setup too, so an expense typed in for a day before setup counts.
  */
 export function monthStatus(
   plan: Plan,
   entries: Entry[],
   month: IsoMonth,
 ): { categoryId: string; plannedMinor: Minor; spentMinor: Minor }[] {
-  const start = spendingStart(plan, month);
   return envelopesOf(plan).map((e) => ({
     categoryId: e.categoryId,
     plannedMinor: e.monthlyMinor,
     spentMinor: sum(
       expensesIn(entries, e.categoryId)
-        .filter((x) => monthOf(x.date) === month && x.date >= start)
+        .filter((x) => monthOf(x.date) === month)
         .map((x) => x.eurMinor),
     ),
   }));

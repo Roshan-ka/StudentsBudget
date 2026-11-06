@@ -22,9 +22,6 @@ export const reveal = {
   monthByMonth: 'Month by month',
   /** One finished month (recapLine): "October 2026: €15 left over → savings". */
   recap: {
-    /** The month the plan was set up in, when that wasn't on the 1st: "October 2026 (counted from 16 Oct)". */
-    partial: (month: string, from: string) => `${month} (counted from ${from})`,
-    leftOver: (label: string, amount: string) => `${label}: ${amount} left over`,
     savings: (label: string, amount: string) => `${label}: ${amount} left over → savings`,
     over: (label: string, amount: string) => `${label}: ${amount} over plan`,
     onPlan: (label: string) => `${label}: right on plan`,

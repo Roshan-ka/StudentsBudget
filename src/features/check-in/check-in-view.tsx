@@ -21,7 +21,6 @@ import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { cn } from '@/lib/utils';
 import { weekLabel } from '@/lib/week-label';
-import { notCountedNote } from './not-counted';
 import { weekLine, weekTotalLine } from './week-line';
 import { weekRows } from './week-rows';
 import { weekSwaps } from './week-swaps';
@@ -46,12 +45,11 @@ function entriesOfWeek(entries: Entry[], start: IsoDate, end: IsoDate): Entry[] 
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 }
 
-function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Account[]; planStart: IsoDate }) {
-  const { t, lang, locale } = useT();
+function EntryItem({ entry, accounts }: { entry: Entry; accounts: Account[] }) {
+  const { t, locale } = useT();
   const currency = accounts.find((a) => a.id === entry.accountId)?.currency ?? 'EUR';
   const { title, label } = entryTitle(entry, t);
   const details = [label, dayLabel(entry.date, locale)].filter((part) => part !== null);
-  const notCounted = notCountedNote(entry, planStart, lang);
 
   return (
     <li className="flex items-center justify-between gap-3 py-2">
@@ -61,7 +59,6 @@ function EntryItem({ entry, accounts, planStart }: { entry: Entry; accounts: Acc
           {isRecurring(entry) && <RecurringTag className="ms-2 align-middle" />}
         </span>
         <span className="block text-sm text-muted-foreground">{details.join(' · ')}</span>
-        {notCounted !== null && <span className="block text-sm text-muted-foreground">{notCounted}</span>}
       </span>
       <span className="shrink-0 font-medium tabular-nums">
         {entry.type === 'income' ? '+' : ''}
@@ -154,7 +151,7 @@ function WeekPart({
         ) : (
           <ul aria-labelledby={weekId} className="flex flex-col divide-y">
             {thisWeek.map((entry) => (
-              <EntryItem key={entry.id} entry={entry} accounts={accounts} planStart={plan.createdOn} />
+              <EntryItem key={entry.id} entry={entry} accounts={accounts} />
             ))}
           </ul>
         )}
@@ -244,7 +241,8 @@ function CheckIn({
   const { t } = useT();
   // On the Sunday a month starts mid-week, the week's days in the previous month would otherwise never be
   // reviewed. They come first, measured against that month's budget, with its last day standing in for today.
-  // A month before the plan was set up has no budget, so a tail that ends before the setup day is left out.
+  // A month before the setup month has no budget, so its tail is left out (the tail is a month's last days, so ending
+  // before the setup day means it is in an earlier month).
   const tail = previousMonthTail(today);
   const earlierDay = tail !== null && tail.end >= plan.createdOn ? tail.end : null;
 

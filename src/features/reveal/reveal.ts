@@ -65,8 +65,7 @@ export type RecapRow = { categoryId: string; guessMinor: Minor | null; plannedMi
 /**
  * How one calendar month went against the envelopes: planned and spent per envelope with the original guess
  * alongside (`null` where there was none), and what is left over in total (negative when more was spent than
- * planned). It uses `monthStatus`, so in the month of setup planned is the whole month's amount and spent counts
- * from the setup day on.
+ * planned). It uses `monthStatus`, so the month of setup counts whole, its plan and its spending.
  */
 export function monthRecap(
   guesses: Guess[],

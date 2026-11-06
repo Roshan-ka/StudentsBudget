@@ -74,7 +74,7 @@ write('02-overspent-and-overdrawn.json', over);
 const fresh = base(today);
 fresh.data.plan.envelopes.find((c) => c.categoryId === 'travel').monthlyMinor = 0;
 fresh.data.plan.oneOffs = [{ id: 'move-in', name: 'Move-in equipment', amountMinor: 20000, createdMonth: month, dueMonth: month }];
-entry(fresh, before(today), 'expense', 'food', 1800, 'Before setup: excluded from flexible budget');
+entry(fresh, before(today), 'expense', 'food', 1800, 'Before setup: counted in the flexible budget');
 entry(fresh, before(today), 'expense', 'rent', 45000, 'Rent before setup: still counts as fixed');
 entry(fresh, today, 'expense', 'food', 650, 'First lunch after setup');
 entry(fresh, today, 'expense', 'travel', 1200, 'Travel with no envelope');

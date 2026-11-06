@@ -188,7 +188,7 @@
         "accountId": "bank",
         "amountMinor": 1800,
         "eurMinor": 1800,
-        "note": "Before setup: excluded from flexible budget",
+        "note": "Before setup: counted in the flexible budget",
         "createdAt": "2026-10-19T10:00:00.000Z"
       },
       {
