@@ -656,7 +656,9 @@ test('in Edit plan the suggested amounts fill only the envelopes that are not se
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: /^Plan/ }).click();
   await page.getByRole('link', { name: 'Edit plan' }).click();
-  for (const step of ['Income', 'Fixed costs', 'One-off costs', 'Envelopes']) {
+  // Edit plan opens on the income.
+  await expect(page.getByRole('heading', { level: 3, name: 'Income' })).toBeVisible();
+  for (const step of ['Fixed costs', 'One-off costs', 'Envelopes']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
@@ -716,7 +718,9 @@ test('a one-off whose due month has passed does not block editing the plan', asy
   await page.clock.setFixedTime(new Date(2027, 3, 10, 12, 0, 0));
   await page.goto('/settings/plan');
   await page.getByRole('link', { name: 'Edit plan' }).click();
-  for (const step of ['Income', 'Fixed costs', 'One-off costs']) {
+  // Edit plan opens on the income.
+  await expect(page.getByRole('heading', { level: 3, name: 'Income' })).toBeVisible();
+  for (const step of ['Fixed costs', 'One-off costs']) {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
