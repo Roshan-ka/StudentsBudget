@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MESSAGES } from '@/i18n/messages';
-import { DATE_CHIPS, chipDate, dateText, selectedChip } from './date-field-helpers';
+import { datePlaceholder } from '@/i18n/regions';
+import { DATE_CHIPS, chipDate, selectedChip } from './date-field-helpers';
 
 describe('DATE_CHIPS', () => {
   it('offers Today first, then Yesterday', () => {
@@ -53,18 +54,12 @@ describe('selectedChip', () => {
   });
 });
 
-describe('dateText', () => {
-  const english = MESSAGES.en.common.dateField.letters;
-
-  it("shows an ISO date in the region's form, whatever the language", () => {
-    expect(dateText('2026-10-16', english)).toBe('16.10.2026');
-    expect(dateText('2027-01-05', MESSAGES.fr.common.dateField.letters)).toBe('05.01.2027');
-  });
-
-  it("shows the region's form in the language's letters while the field is empty", () => {
-    expect(dateText('', english)).toBe('DD.MM.YYYY');
-    expect(dateText('', MESSAGES.de.common.dateField.letters)).toBe('TT.MM.JJJJ');
-    expect(dateText('', MESSAGES.fr.common.dateField.letters)).toBe('JJ.MM.AAAA');
-    expect(dateText('', MESSAGES.es.common.dateField.letters)).toBe('DD.MM.AAAA');
+describe("the empty field's form", () => {
+  it("is the region's form in the language's letters, which the placeholder and the hint show", () => {
+    expect(datePlaceholder(MESSAGES.en.common.dateField.letters)).toBe('DD.MM.YYYY');
+    expect(datePlaceholder(MESSAGES.de.common.dateField.letters)).toBe('TT.MM.JJJJ');
+    expect(datePlaceholder(MESSAGES.fr.common.dateField.letters)).toBe('JJ.MM.AAAA');
+    expect(datePlaceholder(MESSAGES.es.common.dateField.letters)).toBe('DD.MM.AAAA');
+    expect(MESSAGES.en.common.dateField.hint('DD.MM.YYYY')).toBe('Type it like DD.MM.YYYY, or open the calendar.');
   });
 });

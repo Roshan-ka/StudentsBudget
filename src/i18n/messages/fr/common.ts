@@ -10,6 +10,16 @@ export const common: Messages['common'] = {
     today: 'Aujourd’hui',
     yesterday: 'Hier',
     letters: { day: 'J', month: 'M', year: 'A' },
+    hint: (example) => `Saisis la date, par exemple ${example}, ou ouvre le calendrier.`,
+    notADate: (example) => `Ce n’est pas une date. Saisis-la comme ${example}.`,
+    openCalendar: (field) => `Ouvrir le calendrier${NNBSP}: ${field}`,
+    calendarTitle: 'Choisir une date',
+    previousMonth: 'Mois précédent',
+    nextMonth: 'Mois suivant',
+    goToToday: 'Aller à aujourd’hui',
+    close: 'Fermer',
+    // Le jour de la semaine sans virgule, comme on l'écrit en français : « vendredi 06.11.2026 ».
+    day: (weekday, date) => `${weekday} ${date}`,
   },
   amountField: {
     positive: 'Saisis un montant supérieur à 0, comme 250 ou 12,50.',

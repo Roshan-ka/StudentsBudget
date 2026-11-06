@@ -7,6 +7,19 @@ export const common = {
     yesterday: 'Yesterday',
     /** A full date's parts as letters, which the empty field shows in the region's form: "DD.MM.YYYY". */
     letters: { day: 'D', month: 'M', year: 'Y' },
+    /** Under the field; `example` is today's date in the region's form. */
+    hint: (example: string) => `Type it like ${example}, or open the calendar.`,
+    /** In place of the hint, for typed text that isn't a date. */
+    notADate: (example: string) => `That’s not a date. Type it like ${example}.`,
+    /** The calendar button's name, with the field's label: two date fields on a page are told apart. */
+    openCalendar: (field: string) => `Open the calendar: ${field}`,
+    calendarTitle: 'Choose a date',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    goToToday: 'Go to today',
+    close: 'Close',
+    /** A calendar day's name: "Friday, 06.11.2026" (the date in the region's form). */
+    day: (weekday: string, date: string) => `${weekday}, ${date}`,
   },
   amountField: {
     positive: 'Enter an amount above 0, like 250 or 12.50.',

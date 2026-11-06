@@ -333,7 +333,7 @@ test('the entry form saves an expense in a foreign currency, converted at save t
   await page.getByRole('link', { name: 'Add entry' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'New entry' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Expense' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByLabel('Date', { exact: true })).toHaveValue('2026-10-16');
+  await expect(page.getByLabel('Date', { exact: true })).toHaveValue(formatDate('2026-10-16'));
 
   await page.getByLabel('Amount', { exact: true }).fill('950');
   await page.getByLabel('Account', { exact: true }).selectOption({ label: 'Home bank (INR)' });
@@ -581,7 +581,7 @@ test('a manual entry dated in another month opens that month, and the month link
   await page.getByRole('link', { name: 'Add entry' }).click();
   await expect(page.getByLabel('Amount', { exact: true })).toBeVisible();
   await page.getByLabel('Amount', { exact: true }).fill('9,50');
-  await page.getByLabel('Date', { exact: true }).fill('2026-09-30');
+  await page.getByLabel('Date', { exact: true }).fill(formatDate('2026-09-30'));
   await page.getByLabel('Note', { exact: true }).fill('Mensa');
   await page.getByRole('button', { name: 'Save expense' }).click();
 
@@ -660,25 +660,66 @@ async function openNewEntry(page: Page) {
   await expect(page.getByLabel('Amount', { exact: true })).toBeVisible();
 }
 
-test('the date field shows DD.MM.YYYY and the native input keeps the ISO value and the label', async ({ page }) => {
+test('the date field is a text box in DD.MM.YYYY, and digits typed on a number pad get their dots', async ({ page }) => {
   await setupAndOpenEntries(page);
   await openNewEntry(page);
-  const date = page.getByLabel('Date', { exact: true });
+  const date = page.getByRole('textbox', { name: 'Date', exact: true });
 
-  await expect(date).toHaveValue('2026-10-16');
-  await expect(date).toHaveAttribute('type', 'date');
-  const shown = page.getByText(formatDate('2026-10-16'), { exact: true });
-  await expect(shown).toBeVisible();
-  // The text is for the eye: the input says the date to a screen reader.
-  await expect(shown).toHaveAttribute('aria-hidden', 'true');
+  await expect(date).toHaveValue(formatDate('2026-10-16'));
+  await expect(date).toHaveAttribute('inputmode', 'numeric');
+  await expect(date).toHaveAccessibleDescription('Type it like DD.MM.YYYY, or open the calendar.');
 
-  await date.fill('2026-10-09');
-  await expect(date).toHaveValue('2026-10-09');
-  await expect(page.getByText(formatDate('2026-10-09'), { exact: true })).toBeVisible();
-  await expect(page.getByText(formatDate('2026-10-16'), { exact: true })).toHaveCount(0);
+  // A phone's number pad has no dot: the field puts them in, and a date without its year is this year's.
+  await date.fill('');
+  await expect(date).toHaveAttribute('placeholder', 'DD.MM.YYYY');
+  await date.pressSequentially('0910');
+  await expect(date).toHaveValue('09.10.');
+  await date.blur();
+  await expect(date).toHaveValue(formatDate('2026-10-09'));
   // Neither chip stands for another date.
   await expect(dateChip(page, 'Today')).toHaveAttribute('aria-pressed', 'false');
   await expect(dateChip(page, 'Yesterday')).toHaveAttribute('aria-pressed', 'false');
+
+  // Short forms with dots, and a two-digit year, are written out in full once the field is left.
+  await date.fill('1.10.26');
+  await date.blur();
+  await expect(date).toHaveValue(formatDate('2026-10-01'));
+
+  // A whole date counts as it is typed: the chip that matches lights up before the field is left.
+  await date.fill(formatDate('2026-10-15'));
+  await expect(dateChip(page, 'Yesterday')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel('Amount', { exact: true }).fill('8,40');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+  await expect(page).toHaveURL('/entries?month=2026-10');
+  const [entry] = await readStore<Entry>(page, 'entries');
+  expect(entry).toMatchObject({ amountMinor: 840, date: '2026-10-15' });
+});
+
+test('a typed date that does not exist says so in place of the hint, and nothing is saved', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await openNewEntry(page);
+  const date = page.getByRole('textbox', { name: 'Date', exact: true });
+  await page.getByLabel('Amount', { exact: true }).fill('8,40');
+
+  await date.fill('31.02.2026');
+  await date.blur();
+  await expect(date).toHaveValue('31.02.2026');
+  await expect(date).toHaveAttribute('aria-invalid', 'true');
+  await expect(date).toHaveAccessibleDescription('That’s not a date. Type it like DD.MM.YYYY.');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+  await expect(page.getByText('Pick a date.', { exact: true })).toBeVisible();
+  expect(await readStore<Entry>(page, 'entries')).toEqual([]);
+
+  // Enter reads a short form and stays on the page; the next Enter saves.
+  await date.fill('15.10');
+  await expect(date).not.toHaveAccessibleDescription(/not a date/);
+  await date.press('Enter');
+  await expect(date).toHaveValue(formatDate('2026-10-15'));
+  await expect(page).toHaveURL(/\/entries\/new/);
+  await date.press('Enter');
+  await expect(page).toHaveURL('/entries?month=2026-10');
+  const [entry] = await readStore<Entry>(page, 'entries');
+  expect(entry).toMatchObject({ amountMinor: 840, date: '2026-10-15' });
 });
 
 test('Yesterday dates the entry the day before, and Today takes it back', async ({ page }) => {
@@ -693,13 +734,12 @@ test('Yesterday dates the entry the day before, and Today takes it back', async 
   await expect(yesterday).toHaveAttribute('aria-pressed', 'false');
 
   await yesterday.click();
-  await expect(date).toHaveValue('2026-10-15');
-  await expect(page.getByText(formatDate('2026-10-15'), { exact: true })).toBeVisible();
+  await expect(date).toHaveValue(formatDate('2026-10-15'));
   await expect(yesterday).toHaveAttribute('aria-pressed', 'true');
   await expect(today).toHaveAttribute('aria-pressed', 'false');
 
   await today.click();
-  await expect(date).toHaveValue('2026-10-16');
+  await expect(date).toHaveValue(formatDate('2026-10-16'));
   await expect(today).toHaveAttribute('aria-pressed', 'true');
 
   await yesterday.click();
@@ -721,15 +761,15 @@ test('Today and Yesterday follow the clock, and a picked date stays', async ({ p
   // The form stays open past midnight: "today" is the date now, not the one when it opened.
   await page.clock.setFixedTime(new Date(2026, 9, 17, 0, 5, 0));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await expect(date).toHaveValue('2026-10-17');
+  await expect(date).toHaveValue(formatDate('2026-10-17'));
   await expect(dateChip(page, 'Today')).toHaveAttribute('aria-pressed', 'true');
   await dateChip(page, 'Yesterday').click();
-  await expect(date).toHaveValue('2026-10-16');
+  await expect(date).toHaveValue(formatDate('2026-10-16'));
 
   // A picked date stays where it was, and the chips now say it is neither of the two.
   await page.clock.setFixedTime(new Date(2026, 9, 18, 0, 5, 0));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await expect(date).toHaveValue('2026-10-16');
+  await expect(date).toHaveValue(formatDate('2026-10-16'));
   await expect(dateChip(page, 'Today')).toHaveAttribute('aria-pressed', 'false');
   await expect(dateChip(page, 'Yesterday')).toHaveAttribute('aria-pressed', 'false');
 });
@@ -756,8 +796,7 @@ test('editing an entry shows its date as DD.MM.YYYY, with the chip that matches'
 
   await entriesList(page).getByRole('button', { name: /Rewe/ }).click();
   const panel = page.getByRole('region', { name: 'Edit entry' });
-  await expect(panel.getByLabel('Date', { exact: true })).toHaveValue('2026-10-15');
-  await expect(panel.getByText(formatDate('2026-10-15'), { exact: true })).toBeVisible();
+  await expect(panel.getByLabel('Date', { exact: true })).toHaveValue(formatDate('2026-10-15'));
   await expect(panel.getByRole('button', { name: 'Yesterday', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   // Today moves the entry to today's date and keeps it the same entry.
@@ -767,44 +806,6 @@ test('editing an entry shows its date as DD.MM.YYYY, with the chip that matches'
   const after = await readStore<Entry>(page, 'entries');
   expect(after).toHaveLength(1);
   expect(after[0]).toMatchObject({ id: 'e', date: '2026-10-16' });
-});
-
-test('a tap anywhere on the date field lands on the native date input', async ({ page, isMobile }) => {
-  await setupAndOpenEntries(page);
-  await openNewEntry(page);
-  const date = page.getByLabel('Date', { exact: true });
-  const shown = await page.getByText(formatDate('2026-10-16'), { exact: true }).boundingBox();
-  const input = await date.boundingBox();
-  const inputId = await date.getAttribute('id');
-  expect(shown && input && inputId).toBeTruthy();
-
-  // The input lies over the whole field: the text, the calendar icon and the padding around them.
-  expect(input!.width).toBeGreaterThan(shown!.width * 2);
-  expect(input!.x).toBeLessThanOrEqual(shown!.x);
-  const y = input!.y + input!.height / 2;
-  const xs = [input!.x + 3, shown!.x + shown!.width / 2, input!.x + input!.width - 3];
-  for (const x of xs) {
-    const topId = await page.evaluate(([px, py]) => document.elementFromPoint(px, py)?.id, [x, y] as const);
-    expect(topId).toBe(inputId);
-  }
-
-  // A tap at the far end, over the icon, reaches it. A mouse click also asks the browser for the picker.
-  await page.evaluate(() => {
-    const calls = { count: 0 };
-    Object.assign(window, { pickerCalls: calls });
-    HTMLInputElement.prototype.showPicker = () => {
-      calls.count += 1;
-    };
-  });
-  const tapX = xs[xs.length - 1];
-  if (isMobile) await page.touchscreen.tap(tapX, y);
-  else await page.mouse.click(tapX, y);
-  await expect(date).toBeFocused();
-  const pickerCalls = await page.evaluate(
-    () => (window as unknown as { pickerCalls: { count: number } }).pickerCalls.count,
-  );
-  // A touch tap is left to the browser, which opens the picker by itself.
-  expect(pickerCalls).toBe(isMobile ? 0 : 1);
 });
 
 test('quick add shows the original six categories first, and More shows the other six', async ({ page }) => {
