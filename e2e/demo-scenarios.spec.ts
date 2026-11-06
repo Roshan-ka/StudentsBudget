@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect as baseExpect, test } from '@playwright/test';
+import { collectPageErrors } from './helpers/page-errors';
 import { FRANKFURTER, readStore } from './helpers/setup';
 
 const root = new URL('../fixtures/scenarios/', import.meta.url);
@@ -18,8 +19,7 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
       json: [],
       headers: { 'access-control-allow-origin': '*' },
     }));
-    const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(error.message));
+    const errors = collectPageErrors(page);
     await page.goto('/setup');
     await page.getByLabel('File to restore').setInputFiles(fileURLToPath(new URL(name, root)));
     await expect(page.getByRole('group', { name: 'Confirm restore' })).toContainText(name);

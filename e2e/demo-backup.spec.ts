@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { formatDate } from '../src/lib/dates';
+import { collectPageErrors } from './helpers/page-errors';
 import { mockFrankfurter, readStore } from './helpers/setup';
 
 const demoFile = fileURLToPath(new URL('../fixtures/studentsbudget-demo-2026-10.json', import.meta.url));
@@ -11,8 +12,7 @@ test.use({ timezoneId: 'Europe/Berlin' });
 test('the demo backup restores from setup and populates home, entries and charts', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-10-19T12:00:00+02:00'));
   await mockFrankfurter(page);
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  const errors = collectPageErrors(page);
   await page.goto('/setup');
   // The wizard renders once the page is live, so the file input below has its handler before the file is picked.
   await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
