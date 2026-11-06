@@ -45,6 +45,8 @@ export const checkIn = {
     earlier: 'Add something from an earlier day',
   },
   reminder: 'Add weekly reminder to calendar',
+  reminderOr: 'Or a notification on this phone instead:',
+  reminderOrLink: 'Weekly reminder',
   noPlan: 'Set up your plan to check in on your week.',
   startSetup: 'Start setup',
 };

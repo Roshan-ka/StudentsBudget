@@ -121,9 +121,9 @@ Roshan approved this plan on 05-11-2026, after a builder's read raised three que
    - CLAUDE.md;
    - the real try with Roshan.
 
-## Go live (Roshan, after chunks 1, 3 and 4 merge)
+## Go live (Roshan, after chunks 1, 3, 4 and 5 merge)
 
-Until then nothing needs doing: the cron job runs, finds no settings in Vault and does nothing.
+Until then nothing needs doing: the cron job runs, finds no settings in Vault and does nothing, and without `NEXT_PUBLIC_VAPID_PUBLIC_KEY` the app shows no reminder. Wait for chunk 5 as well: the `reminder` note says the zone and language follow the phone, which chunk 5 adds.
 
 1. Generate VAPID keys once:
 
@@ -178,6 +178,14 @@ Until then nothing needs doing: the cron job runs, finds no settings in Vault an
 - `supabase/functions/_shared/send-reminders.ts`: `sendDueReminders` reads every row, keeps the due ones (`isDue`), claims each (saves the week first, so overlapping runs never send twice; a failed push isn't retried that week), sends `{ title, body, url, lang }` ten at a time with a 12-hour TTL and the `weekly-reminder` topic, deletes a row on 404 or 410, and logs a failure with the push service's host only. `handleRun` answers 405 for anything but POST, 401 without the `x-reminder-secret` header's secret (compared in constant time), 500 naming a missing setting, and otherwise the counts. `adminKeyOf` takes `SUPABASE_SECRET_KEYS`' `default`, else the older service-role key. Tests: `src/features/reminder/sender.test.ts`.
 - `supabase/functions/weekly-reminder/index.ts`: only the wiring (env, supabase-js with the secret key, paging by id, the claim as a conditional update, `Deno.serve`), with `deno.json` mapping `@supabase/supabase-js` to the app's pinned version, so the app's typecheck reads it too. `verify_jwt = false` in `supabase/config.toml`. Not run in Deno locally (no Deno here, and the local stack has the edge runtime off): the deploy and the real try are its check.
 - Migration `20261106084903_weekly_reminder_schedule.sql`: `pg_cron` and `pg_net`, `private.request_weekly_reminders()` (reads `weekly_reminder_url` and `weekly_reminder_secret` from Vault, returns null without them, else queues a POST with the secret and a 60-second timeout; only its owner may run it), and the job every 15 minutes. pgTAP: `supabase/tests/weekly_reminder_schedule.test.sql` (17: the job, who may run it, nothing without the settings, the request with them, the service role's rights on the table).
+
+**Chunk 4 (2026-11-06):**
+- `src/features/reminder/reminder.ts`: the phone's copy (`studentsbudget-reminder`: on, day, time; `usePhoneReminder` through the new `usePref`), `QUARTER_HOURS`, `reminderSummary`, `remindersInBuild` (Supabase settings and `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, read at build time), `pushSupport` over `browserFacts` (an iPhone or iPad tab: `install-first`; no service worker, `PushManager` or `Notification`: `no-push`; blocked: `denied`), and `turnOnReminder` (the permission prompt first, from the tap, then the service worker's push manager: the subscription the phone has, or a new one with the VAPID key, then `save_push_subscription` with the zone and language), `changeReminder` and `turnOffReminder` (the row's delete by endpoint first, then the unsubscribe; a failed delete leaves it on). A table check on the address reads as `not-supported`. Tests: `reminder.test.ts`.
+- `ReminderView` on `/settings/reminder`: the day (Intl's weekday names) and the quarter hour, the hint, Turn on (the `reminder` note the first time, in its place), Save changes and Turn off, a status line, and the calendar cross-link. Where it can't work it says why and offers nothing: no VAPID key or Supabase, signed out, the code still owed, an iPhone tab, no push, blocked. Focus goes to Turn off after turning on and back to Turn on after turning off.
+- Settings' row (`BellIcon`, after Your account), hidden when the build can't send reminders; its summary is "Off" or "Sundays at 18:00" from the phone's copy. The check-in's calendar link gains a line to the page.
+- Texts: the `reminder` area, `shell.headings.reminder`, `common.privacy.reminder` and `checkIn.reminderOr`/`reminderOrLink` in English, German, French and Spanish. The note already says the zone and language follow the phone: chunk 5 adds that, before go-live.
+- The route joins `sw.js`'s precache list, `PAGES` and the map. e2e: `e2e/reminder.spec.ts` (signed out; the note, then the prompt, then the saved row; a new day and time, then off; a refused prompt; no push; the code owed; an iPhone tab; German), with `stubPush` and `mockSupabaseData`'s `reminders`. `E2E_SUPABASE_ENV` carries RFC 8291's example public key as the VAPID key.
+- Not run locally: no e2e, build or install on this machine (Roshan, 2026-11-06: heavy checks go to GitHub CI). The local typecheck still lacks `@axe-core/playwright`, which `main` added; everything else passes.
 
 ## Verification
 

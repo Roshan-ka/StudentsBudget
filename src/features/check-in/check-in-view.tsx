@@ -10,6 +10,7 @@ import type { Account, Entry, Plan } from '@/db/types';
 import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
 import { entryTitle } from '@/features/entries/entry-title';
 import { QuickAddField } from '@/features/entries/quick-add-field';
+import { remindersInBuild } from '@/features/reminder/reminder';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
 import { SwapLine } from '@/features/swaps/swap-line';
 import { categoryNameIn } from '@/i18n/category-name';
@@ -278,6 +279,15 @@ function CheckIn({
       <a href="/weekly-check-in.ics" className={`${LINK_CLASS} self-start`}>
         {t.checkIn.reminder}
       </a>
+      {/* The other way to be reminded (weekly reminder, chunk 4): the two point to each other, so nobody gets both. */}
+      {remindersInBuild() && (
+        <p className="text-sm">
+          {t.checkIn.reminderOr}{' '}
+          <Link href="/settings/reminder" className={LINK_CLASS}>
+            {t.checkIn.reminderOrLink}
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

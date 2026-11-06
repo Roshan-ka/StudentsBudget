@@ -29,6 +29,7 @@ const PAGES = [
   '/settings/account',
   '/settings/backup',
   '/settings/moderation',
+  '/settings/reminder',
   '/setup',
 ];
 

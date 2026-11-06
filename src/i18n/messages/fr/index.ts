@@ -13,6 +13,7 @@ import { home } from './home';
 import { language } from './language';
 import { profile } from './profile';
 import { recurring } from './recurring';
+import { reminder } from './reminder';
 import { reveal } from './reveal';
 import { setup } from './setup';
 import { shell } from './shell';
@@ -64,4 +65,5 @@ export const fr: Messages = {
   badges,
   reveal,
   tips,
+  reminder,
 };

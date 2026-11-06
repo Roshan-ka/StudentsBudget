@@ -3,6 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ArchiveIcon,
+  BellIcon,
   ChevronRightIcon,
   ClipboardListIcon,
   CloudIcon,
@@ -23,6 +24,7 @@ import { loadRates } from '@/db/rates';
 import { useSyncStatus } from '@/features/account/sync-status';
 import { useAuth } from '@/features/account/use-auth';
 import { amIModerator } from '@/features/hacks/moderation';
+import { reminderSummary, remindersInBuild, usePhoneReminder } from '@/features/reminder/reminder';
 import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -130,6 +132,24 @@ function ModerationLink() {
 }
 
 /**
+ * The way to the weekly reminder (weekly reminder, chunk 4), with what this phone chose: "Off" or "Sundays at 18:00",
+ * from the phone's own copy, so it shows offline too. Hidden in a build that can't send reminders.
+ */
+function ReminderLink() {
+  const { t } = useT();
+  const reminder = usePhoneReminder();
+  if (!remindersInBuild()) return null;
+  return (
+    <SettingsLink
+      href="/settings/reminder"
+      icon={BellIcon}
+      title={t.shell.headings.reminder}
+      summary={reminderSummary(reminder, t.reminder)}
+    />
+  );
+}
+
+/**
  * The pages of Settings, as one list under the language picker (pain points, chunk 3): each opens its own page, so
  * Settings itself stays short. The summaries read the phone's data, so they appear once it has been read.
  */
@@ -185,6 +205,7 @@ export function SettingsLinks() {
         summary={t.theme.choices[choice]}
       />
       <AccountLink />
+      <ReminderLink />
       <ModerationLink />
       <SettingsLink href="/settings/backup" icon={ArchiveIcon} title={t.shell.headings.backup} summary={t.backup.summary} />
     </ul>

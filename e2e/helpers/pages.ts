@@ -25,4 +25,5 @@ export const PAGES: { path: string; shown: (page: Page, t: Messages) => Locator 
   { path: '/settings/appearance', shown: (page, t) => heading(page, t.shell.headings.appearance) },
   { path: '/settings/account', shown: (page, t) => heading(page, t.shell.headings.account) },
   { path: '/settings/moderation', shown: (page, t) => heading(page, t.shell.headings.moderation) },
+  { path: '/settings/reminder', shown: (page, t) => heading(page, t.shell.headings.reminder) },
 ];

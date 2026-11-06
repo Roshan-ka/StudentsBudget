@@ -23,6 +23,7 @@
     "/settings/profile": ["axe", "language-tour", "linking", "page-focus", "profile", "reflow", "theme", "two-step"],
     "/settings/account": ["account", "account-deletion", "axe", "change-password", "discount-confirmations", "email-codes", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "linking", "moderation", "passkeys", "posting-name", "privacy-notes", "reflow", "theme", "two-step"],
     "/settings/moderation": ["axe", "language-tour", "moderation", "reflow", "theme"],
+    "/settings/reminder": ["axe", "language-tour", "reflow", "reminder", "theme"],
     "/setup": "all",
     "/tips": ["axe", "discount-confirmations", "discounts", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "privacy-notes", "reflow", "theme", "tips"]
   },
