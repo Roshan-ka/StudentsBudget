@@ -1,5 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { expect, test, type Page, type Request, type Route } from '@playwright/test';
+import { MESSAGES } from '../../src/i18n/messages';
+import { openApp } from './app';
 
 /**
  * A Supabase project that is configured but never reached (`.invalid` never resolves). The Playwright configs start
@@ -700,17 +702,23 @@ export async function mockSupabaseData(
   return tables;
 }
 
+/** "Accounts aren't set up in this copy of the app…" in every language: a spec may run under any locale. */
+const ACCOUNTS_OFF = Object.values(MESSAGES).map((messages) => messages.auth.view.off);
+
 /**
- * Skips the spec when the server shows no account UI: Playwright reused a dev server that was started without the
- * Supabase settings. Stop that server, or run on another port (E2E_PORT=3001), to run the spec.
+ * Skips the spec when the server shows no account UI: Playwright reused a server that was started without the
+ * Supabase settings. Stop that server, or run on another port (E2E_PORT=3201), to run the spec.
+ *
+ * Whatever the phone's language: the page prerenders in English and switches to the phone's language right after it
+ * hydrates, so a check for the English heading missed a German phone once the production build switched that fast.
  */
 export async function skipUnlessAccountsShow(page: Page) {
-  await page.goto('/settings/account');
-  const heading = page.getByRole('heading', { level: 2, name: 'Your account', exact: true });
-  await expect(heading).toBeVisible();
-  // The first render already says so: without settings the view starts 'off', never 'loading'.
-  const isOff = (await page.getByText("Accounts aren't set up in this copy of the app.", { exact: false }).count()) > 0;
-  test.skip(isOff, 'The reused dev server has no Supabase settings: stop it, or run with E2E_PORT=3001.');
+  await openApp(page, '/settings/account');
+  await expect(page.locator('h2[data-page-heading]')).toBeVisible();
+  // Without settings the view starts 'off', never 'loading', so the text is there once the app has started.
+  let isOff = false;
+  for (const text of ACCOUNTS_OFF) isOff ||= (await page.getByText(text).count()) > 0;
+  test.skip(isOff, 'The reused server has no Supabase settings: stop it, or run with E2E_PORT=3201.');
 }
 
 /**
