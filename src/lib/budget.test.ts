@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { City } from '@/data/cities';
 import type { Entry, OneOff, Plan, Schedule } from '@/db/types';
-import { monthStatus, planSummary, rangeWarnings, setAsideMonthly, weekAllowance, weekToSpend } from './budget';
+import { monthStatus, planSummary, rangeWarnings, setAsideBy, setAsideMonthly, weekAllowance, weekToSpend } from './budget';
 import { addDays, firstOfMonth, monthOf } from './dates';
 
 const fee: OneOff = {
@@ -92,6 +92,43 @@ function transfer(date: string, eurMinor: number): Entry {
     createdAt: `${date}T12:00:00.000Z`,
   };
 }
+
+describe('setAsideMonthly after an edit (setAsideBefore)', () => {
+  // €300 due in April, set aside from October: €50 a month. In February it is raised to €360, with €200 put aside
+  // (Oct–Jan); the €160 left is spread over February and March (Roshan, 09-11-2026).
+  const raised: OneOff = {
+    id: 'fee',
+    name: 'Semester fee',
+    amountMinor: 36000,
+    createdMonth: '2026-10',
+    dueMonth: '2027-04',
+    setAsideBefore: { month: '2027-02', minor: 20000 },
+  };
+
+  it('keeps the months before the edit as they were and spreads the rest over the months left', () => {
+    expect(setAsideMonthly(raised, '2026-10')).toBe(5000);
+    expect(setAsideMonthly(raised, '2027-01')).toBe(5000);
+    expect(setAsideMonthly(raised, '2027-02')).toBe(8000);
+    expect(setAsideMonthly(raised, '2027-03')).toBe(8000);
+    expect(setAsideMonthly(raised, '2027-04')).toBe(0);
+  });
+
+  it('puts the full amount aside by the due month', () => {
+    expect(setAsideBy(raised, '2027-04')).toBe(36000);
+  });
+
+  it('sets nothing more aside when the amount was lowered below what is already put aside', () => {
+    expect(setAsideMonthly({ ...raised, amountMinor: 15000 }, '2027-02')).toBe(0);
+  });
+});
+
+describe('setAsideBy', () => {
+  it('adds up the months before the given one, from the created month, up to the due month', () => {
+    expect(setAsideBy(fee, '2026-10')).toBe(0);
+    expect(setAsideBy(fee, '2027-01')).toBe(18000);
+    expect(setAsideBy(fee, '2027-06')).toBe(setAsideBy(fee, '2027-03'));
+  });
+});
 
 describe('setAsideMonthly', () => {
   it('spreads a one-off evenly from the created month up to, not including, the due month', () => {

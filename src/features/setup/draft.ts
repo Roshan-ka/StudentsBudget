@@ -6,7 +6,7 @@ import { newSchedule, perOccurrence, restartSchedule } from '@/features/recurrin
 import { categoryNameIn } from '@/i18n/category-name';
 import { LANGUAGES, type Language } from '@/i18n/languages';
 import { MESSAGES, type Messages } from '@/i18n/messages';
-import { planSummary, type PlanSummary } from '@/lib/budget';
+import { planSummary, setAsideBy, type PlanSummary } from '@/lib/budget';
 import { monthOf, todayIso, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney, formatRange, type Minor } from '@/lib/money';
 import { newId } from '@/lib/new-id';
@@ -274,12 +274,20 @@ export function draftToRecords(
     .filter((row) => row.amountMinor > 0)
     .map((row): OneOff => {
       const kept = claim(row);
+      // A new amount or due month after the set-aside began: what is already set aside stays as it was, and the rest is
+      // spread over the months left (Roshan, 09-11-2026). Unchanged, an earlier edit's record stays.
+      const changed = kept !== undefined && (kept.amountMinor !== row.amountMinor || kept.dueMonth !== row.dueMonth);
+      const setAsideBefore =
+        changed && kept.createdMonth < thisMonth
+          ? { month: thisMonth, minor: setAsideBy(kept, thisMonth) }
+          : kept?.setAsideBefore;
       return {
         id: kept?.id ?? newId(),
         name: row.name,
         amountMinor: row.amountMinor,
         createdMonth: kept?.createdMonth ?? thisMonth,
         dueMonth: row.dueMonth,
+        ...(setAsideBefore !== undefined && { setAsideBefore }),
       };
     });
 

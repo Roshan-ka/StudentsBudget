@@ -2,7 +2,7 @@ import type { City } from '@/data/cities';
 import { CATEGORIES } from '@/data/categories';
 import type { Amount, Entry, OneOff, Plan, PlanLine } from '@/db/types';
 import type { IsoDate, IsoMonth } from './dates';
-import { addDays, firstOfMonth, monthOf, monthsBetween, weekInMonth, weeksLeftInMonth } from './dates';
+import { addDays, firstOfMonth, monthOf, monthsBetween, shiftMonth, weekInMonth, weeksLeftInMonth } from './dates';
 import type { Minor } from './money';
 
 const sum = (values: Minor[]): Minor => values.reduce((total, value) => total + value, 0);
@@ -14,8 +14,19 @@ const sum = (values: Minor[]): Minor => values.reduce((total, value) => total + 
 export function setAsideMonthly(o: OneOff, month: IsoMonth): Minor {
   // 'YYYY-MM' strings sort chronologically, so plain comparison is enough.
   if (month < o.createdMonth || month >= o.dueMonth) return 0;
-  const n = Math.max(1, monthsBetween(o.createdMonth, o.dueMonth));
-  return Math.ceil(o.amountMinor / n);
+  const before = o.setAsideBefore;
+  if (before === undefined) return Math.ceil(o.amountMinor / Math.max(1, monthsBetween(o.createdMonth, o.dueMonth)));
+  // Edited after the set-aside began: the months before the edit as they were, the rest spread over the months left.
+  if (month < before.month) return Math.ceil(before.minor / Math.max(1, monthsBetween(o.createdMonth, before.month)));
+  const rest = Math.max(0, o.amountMinor - before.minor);
+  return Math.ceil(rest / Math.max(1, monthsBetween(before.month, o.dueMonth)));
+}
+
+/** What a one-off has set aside before `month` began: every month from its created month up to it, due month excluded. */
+export function setAsideBy(o: OneOff, month: IsoMonth): Minor {
+  let total = 0;
+  for (let m = o.createdMonth; m < month && m < o.dueMonth; m = shiftMonth(m, 1)) total += setAsideMonthly(o, m);
+  return total;
 }
 
 export type PlanSummary = {
