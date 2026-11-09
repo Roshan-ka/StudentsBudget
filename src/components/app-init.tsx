@@ -4,11 +4,15 @@ import { useEffect } from 'react';
 import { requestPersistence } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import { ensureSeeded } from '@/db/repo';
+import { finishPendingWipe, wipePending } from '@/features/account/pending-wipe';
+import { followSessionForPhone } from '@/features/account/signed-out-effects';
 import { recordCompletedWeeks } from '@/features/badges/week-results';
 import { postDueRecurring } from '@/features/recurring/post-due';
 import { keepReminderInStep } from '@/features/reminder/in-step';
+import { markSignedOut } from '@/features/start/signed-out';
 import { subscribeToLanguage } from '@/i18n/store';
 import { todayIso } from '@/lib/dates';
+import { getSupabase } from '@/lib/supabase/client';
 import { registerServiceWorker } from '@/lib/sw-register';
 
 /** Set on `<html>` once the app has started (see `init` below). e2e/helpers/app.ts waits on the same name. */
@@ -49,6 +53,26 @@ async function refreshThenPost() {
   await recordWeeks();
 }
 
+/**
+ * A wipe a sign-out still owes this phone (`pending-wipe.ts`): done now, while nobody is signed in, and then the start
+ * page opens as after a sign-out. Returns true when the page is on its way there.
+ */
+async function finishSignOut(): Promise<boolean> {
+  const supabase = getSupabase();
+  if (supabase === null || !wipePending()) return false;
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session !== null) return false;
+  } catch (error) {
+    console.error('StudentsBudget: could not read the session', error);
+    return false;
+  }
+  if ((await finishPendingWipe()) !== 'done') return false;
+  markSignedOut();
+  window.location.replace('/start');
+  return true;
+}
+
 async function startServiceWorker() {
   try {
     await registerServiceWorker({
@@ -78,11 +102,15 @@ export function AppInit() {
     document.addEventListener('visibilitychange', onVisibilityChange);
     // A language picked here or in another tab: the reminder comes in it from then on.
     const stopFollowingLanguage = subscribeToLanguage(() => void keepReminderInStep());
+    // What goes with the account when the session ends, heard here for every page, hidden ones included.
+    const stopFollowingSession = followSessionForPhone();
 
     // The effect of a dev remount (StrictMode) must not mark the page once it has been cleaned up.
     let live = true;
 
     async function init() {
+      // A sign-out whose wipe failed or never finished clears the phone first.
+      if (await finishSignOut()) return;
       try {
         await ensureSeeded();
       } catch (error) {
@@ -110,6 +138,7 @@ export function AppInit() {
       document.documentElement.removeAttribute(APP_READY_ATTRIBUTE);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       stopFollowingLanguage();
+      stopFollowingSession();
     };
   }, []);
 
