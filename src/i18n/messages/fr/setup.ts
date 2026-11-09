@@ -132,4 +132,39 @@ export const setup: Messages['setup'] = {
       'les charges fixes et les enveloppes que la configuration a sautées, ou reprends tout le plan.',
     link: 'Modifier le plan',
   },
+  /** Le chat de configuration (phase IA, chunk 12) : à la première étape d’une nouvelle configuration, connecté, avec l’IA. */
+  chat: {
+    open: 'Configurer en discutant',
+    openHint: 'Parle de ton argent avec tes propres mots, et le chat remplit les étapes pour que tu les vérifies.',
+    switchedOff: 'Le chat de configuration est désactivé sur ce téléphone. Les fonctions d’IA s’activent dans Réglages → Ton compte.',
+    heading: 'Configurer en discutant',
+    intro:
+      'Dis ce qui rentre chaque mois, ton loyer et tes autres charges fixes, et comment tu veux dépenser le reste. Le ' +
+      'chat remplit les étapes. Rien n’est enregistré avant que tu les vérifies et touches Enregistrer le plan.',
+    message: 'Ton message',
+    messageHint: 'Par exemple « Je reçois 500 € de mes parents et je paie 400 € de loyer ».',
+    send: 'Envoyer',
+    thinking: 'Réflexion…',
+    you: 'Toi',
+    reply: 'Le chat',
+    filled: 'Rempli',
+    sources: 'Sources',
+    budget: 'Budget du quotidien',
+    accounts: 'Tes comptes',
+    /** Une chose qu’une réponse a remplie : « Loyer : 400,00 € ». */
+    line: (name: string, amount: string) => `${name} : ${amount}`,
+    full: 'Un chat n’en contient pas plus. Vérifie les étapes pour continuer.',
+    review: 'Vérifier les étapes',
+    problems: {
+      dailyLimit: 'Les messages du chat sont épuisés pour aujourd’hui. Remplis les étapes toi-même, ou réessaie demain.',
+      busy: 'Le chat est occupé pour l’instant. Réessaie dans un moment, ou remplis les étapes toi-même.',
+      refused: 'Le chat ne peut pas répondre à cela ici. Essaie de le dire autrement.',
+      unavailable: 'Le chat est injoignable pour l’instant. Réessaie plus tard, ou remplis les étapes toi-même.',
+      offline: 'Tu es hors ligne. Le chat a besoin d’une connexion.',
+      timeout: 'Le chat a mis trop de temps à répondre. Réessaie.',
+      signedOut: 'Reconnecte-toi dans Ton compte pour utiliser le chat.',
+      needsCode: 'Saisis le code de ton appli d’authentification dans Réglages → Ton compte pour utiliser le chat.',
+      failed: 'Quelque chose s’est mal passé avec cette réponse. Réessaie.',
+    },
+  },
 };

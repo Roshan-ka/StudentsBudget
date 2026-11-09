@@ -7,8 +7,10 @@ import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import { syncAfterSetup } from '@/features/account/sync-status';
+import { useAuth } from '@/features/account/use-auth';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
+import { aiInBuild, useAiSwitch } from '@/features/ai/switch';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
@@ -29,6 +31,7 @@ import {
   type StepId,
 } from './draft';
 import { saveWizard, type SaveResult } from './save-wizard';
+import { SetupChatView } from './setup-chat-view';
 import { StepProblemsContext } from './step-problems';
 import { AccountsStep } from './steps/accounts';
 import { EnvelopesStep } from './steps/envelopes';
@@ -74,6 +77,12 @@ function Wizard({
   const [saveError, setSaveError] = useState<string | null>(null);
   // Next from the accounts step with a currency other than the euro waits for the note on the exchange rates.
   const [ratesNote, setRatesNote] = useState(false);
+  // The setup chat (the AI phase, chunk 12): offered on a new setup's first step in a build with the AI, while someone
+  // is signed in; it takes the step card's place until "Review the steps".
+  const auth = useAuth();
+  const [aiOn] = useAiSwitch();
+  const [chatting, setChatting] = useState(false);
+  const chatOffered = !edit && index === 0 && aiInBuild() && auth.status === 'signed-in';
   const headingRef = useRef<HTMLHeadingElement>(null);
   const shownIndex = useRef(index);
   const problemsId = useId();
@@ -103,6 +112,12 @@ function Wizard({
     if (foreign && !noteAccepted && !noteSeen('rates')) return setRatesNote(true);
     setRatesNote(false);
     setIndex((i) => i + 1);
+  }
+
+  /** Closes the chat on the first step, whose heading takes the focus: the student goes through the steps from here. */
+  function closeChat() {
+    setChatting(false);
+    requestAnimationFrame(() => headingRef.current?.focus());
   }
 
   function back() {
@@ -171,13 +186,30 @@ function Wizard({
           tabIndex={-1}
           className="text-[30px] leading-tight font-extrabold text-balance break-words outline-none"
         >
-          {text.titles[step]}
+          {chatting ? text.chat.heading : text.titles[step]}
         </h3>
       </div>
 
+      {chatOffered &&
+        !chatting &&
+        (aiOn ? (
+          <div className="flex flex-col gap-2">
+            <Button type="button" variant="outline" size="lg" onClick={() => setChatting(true)}>
+              {text.chat.open}
+            </Button>
+            <p className="text-sm text-muted-foreground">{text.chat.openHint}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">{text.chat.switchedOff}</p>
+        ))}
+
+      {chatting && (
+        <SetupChatView draft={draft} update={update} accountsExist={accountsExist} today={today} onClose={closeChat} />
+      )}
+
       {/* The step's fields in one card. While the problems show, the fields they name point at them. */}
       <StepProblemsContext value={attempted && problems.length > 0 ? problemsId : null}>
-        <div className={cn(cardVariants(), 'gap-4')}>
+        <div className={cn(cardVariants(), 'gap-4', chatting && 'hidden')}>
           {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
           {step === 'income' && !edit && accountsExist && (
             <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
@@ -193,7 +225,7 @@ function Wizard({
         </div>
       </StepProblemsContext>
 
-      {attempted && problems.length > 0 && (
+      {attempted && problems.length > 0 && !chatting && (
         <div id={problemsId} role="alert" className="text-sm text-destructive">
           <ul className="list-disc ps-5">
             {problems.map((problem) => (
@@ -221,7 +253,7 @@ function Wizard({
       )}
 
       {/* Across the width at the end of the step, not stuck to the bottom: a phone's keyboard would cover that. */}
-      <div className={cn('flex flex-wrap gap-3', ratesNote && 'hidden')}>
+      <div className={cn('flex flex-wrap gap-3', (ratesNote || chatting) && 'hidden')}>
         {index > 0 && (
           <Button type="button" variant="outline" size="lg" className="flex-1" onClick={back} disabled={saving}>
             {text.back}

@@ -140,4 +140,39 @@ export const setup = {
       'envelopes setup skipped, or go through the whole plan again.',
     link: 'Edit plan',
   },
+  /** The setup chat (the AI phase, chunk 12): on a new setup's first step, signed in, in a build with the AI. */
+  chat: {
+    open: 'Set up by chatting',
+    openHint: 'Tell the app about your money in your own words, and it fills in the steps for you to check.',
+    switchedOff: 'The setup chat is off on this phone. AI features can be turned on in Settings → Your account.',
+    heading: 'Set up by chatting',
+    intro:
+      'Say what comes in each month, your rent and other fixed costs, and how you’d like to spend the rest. The chat ' +
+      'fills in the steps; nothing is saved until you check them and tap Save plan.',
+    message: 'Your message',
+    messageHint: 'Like “I get €500 from my parents and pay €400 rent”.',
+    send: 'Send',
+    thinking: 'Thinking…',
+    you: 'You',
+    reply: 'The chat',
+    filled: 'Filled in',
+    sources: 'Sources',
+    budget: 'Everyday budget',
+    accounts: 'Your accounts',
+    /** One thing a reply filled in: "Rent: €400.00". */
+    line: (name: string, amount: string) => `${name}: ${amount}`,
+    full: 'That’s as much as one chat holds. Review the steps to go on.',
+    review: 'Review the steps',
+    problems: {
+      dailyLimit: 'Today’s setup chat messages are used up. Fill in the steps yourself, or try again tomorrow.',
+      busy: 'The chat is busy right now. Try again in a moment, or fill in the steps yourself.',
+      refused: 'The chat can’t answer that here. Try saying it another way.',
+      unavailable: 'The chat can’t be reached right now. Try again later, or fill in the steps yourself.',
+      offline: 'You’re offline. The chat needs a connection.',
+      timeout: 'The chat took too long to answer. Try again.',
+      signedOut: 'Sign in again on Your account to use the chat.',
+      needsCode: 'Give your authenticator app’s code in Settings → Your account to use the chat.',
+      failed: 'Something went wrong with that reply. Try again.',
+    },
+  },
 };

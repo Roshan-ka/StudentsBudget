@@ -7,6 +7,8 @@ import {
   type AskRequest,
   type QuickAddAnswer,
   type QuickAddRequest,
+  type SetupAnswer,
+  type SetupRequest,
 } from '../../src/features/ai/contract';
 import { AI_PREF } from '../../src/features/ai/switch';
 import { signedInRequest } from './supabase';
@@ -57,6 +59,7 @@ export async function mockAiFunction(
       'quick-add'?: Answer<QuickAddRequest, QuickAddAnswer>;
       /** Ask's answer as the function sends it: the model's, with the amounts nothing backs (`askReply`). */
       ask?: Answer<AskRequest, AskReply>;
+      setup?: Answer<SetupRequest, SetupAnswer>;
     };
     left?: number | null;
     dailyLimit?: boolean;
@@ -95,6 +98,9 @@ export async function mockAiFunction(
       answer = typeof given === 'function' ? given(made) : given;
     } else if (made.feature === 'ask') {
       const given = options.answers?.ask;
+      answer = typeof given === 'function' ? given(made) : given;
+    } else {
+      const given = options.answers?.setup;
       answer = typeof given === 'function' ? given(made) : given;
     }
     if (answer === undefined) return problem('unavailable');
