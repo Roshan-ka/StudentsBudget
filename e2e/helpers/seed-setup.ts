@@ -24,6 +24,7 @@ import { acceptPrivacyNotes } from './privacy';
 import {
   DEFAULT_SETUP,
   FLEXIBLE_IDS,
+  HOME_BANK,
   ensureClock,
   mockFrankfurter,
   readStore,
@@ -59,10 +60,13 @@ function draftOf(f: SetupFixture, options: SetupOptions, lang: Language, stored:
   d = setRentAmount(d, amount(f.rent));
   if (!options.schedules && d.rentSchedule && d.rentMinor > 0) d = { ...d, rentSchedule: { ...d.rentSchedule, on: false } };
 
-  // Opening balances of the prefilled accounts, in order; the Accounts step is skipped when accounts exist.
+  // The rows fillSetup leaves on the Accounts step (skipped when accounts exist): Local bank, the fixture's Home bank in
+  // rupees, then Cash, with their opening balances in that order.
+  const rows =
+    d.accounts.length === 2 ? [d.accounts[0], { ...HOME_BANK, key: 'draft-home', openingMinor: 0 }, d.accounts[1]] : d.accounts;
   d = {
     ...d,
-    accounts: d.accounts.map((a, i) => ({ ...a, openingMinor: parseSignedAmount(f.openingBalances[i]) ?? Number.NaN })),
+    accounts: rows.map((a, i) => ({ ...a, openingMinor: parseSignedAmount(f.openingBalances[i]) ?? Number.NaN })),
   };
 
   let incomes = setLineAmount(d.incomes, 'income-parents', amount(f.incomes.parents));

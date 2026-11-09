@@ -174,8 +174,9 @@ test('a first account in another currency, in Settings, waits for the note on th
 test('setup with an account in another currency asks once, when the accounts step is done', async ({ page }) => {
   await countFrankfurter(page);
   await page.goto('/setup');
-  // Setup opens on the accounts; the draft starts with Home bank in INR.
+  // Setup opens on the accounts, in euros: one is changed to rupees, as a student from abroad keeps money at home.
   await expect(page.getByRole('heading', { level: 3, name: EN.setup.titles.accounts, exact: true })).toBeVisible();
+  await page.getByRole('group', { name: 'Account 2' }).getByLabel('Currency', { exact: true }).selectOption('INR');
 
   // Cancel: the step stays, with Next back.
   await page.getByRole('button', { name: EN.setup.next, exact: true }).click();

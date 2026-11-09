@@ -19,7 +19,7 @@ import {
 // The fixture's numbers depend on the month (the 300 fee is spread from the current month to March).
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 9, 16, 12, 0, 0));
-  // The prefilled INR account would stop at the exchange-rate note: privacy-notes.spec.ts tests it.
+  // The fixture's Home bank in INR would stop at the exchange-rate note: privacy-notes.spec.ts tests it.
   await acceptPrivacyNotes(page);
 });
 
@@ -487,7 +487,8 @@ test('explains what is missing before moving on and keeps what was typed', async
   await mockFrankfurter(page);
   await page.goto('/setup');
   await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
-  for (let i = 0; i < 3; i += 1) await page.getByRole('button', { name: 'Remove account 1' }).click();
+  // Setup starts with two accounts: both go.
+  for (let i = 0; i < 2; i += 1) await page.getByRole('button', { name: 'Remove account 1' }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(inlineAlert(page)).toHaveText('Add at least one account');
   await page.getByRole('button', { name: 'Add account' }).click();
