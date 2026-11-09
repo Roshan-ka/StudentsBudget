@@ -32,7 +32,8 @@ import { nextVote, reportHack, voteHack, withVote, type VoteButton } from './vot
 import { useFocusAfter } from '@/lib/focus';
 
 /** The list on screen: loaded on this visit, or the one this phone kept from an earlier one. */
-type Shown = { posts: HackPost[]; loadedAt: string; fresh: boolean };
+/** The list on screen, and whose it is: another account's list never shows or is kept for this one. */
+type Shown = { userId: string; posts: HackPost[]; loadedAt: string; fresh: boolean };
 
 /**
  * Tips → Hacks (docs/superpowers/plans/2026-11-05-hacks-feed.md, chunk 4): students' money-saving posts, newest first,
@@ -58,7 +59,7 @@ export function HacksView() {
     let current = true;
     void (async () => {
       const kept = readFeedCache(userId);
-      if (current && kept !== null) setShown({ ...kept, fresh: false });
+      if (current && kept !== null) setShown({ ...kept, userId, fresh: false });
       const supabase = getSupabase();
       const posts = supabase !== null && navigator.onLine ? await readFeed(supabase) : null;
       if (!current) return;
@@ -68,7 +69,7 @@ export function HacksView() {
       }
       const loadedAt = new Date().toISOString();
       saveFeedCache(userId, posts, loadedAt);
-      setShown({ posts, loadedAt, fresh: true });
+      setShown({ userId, posts, loadedAt, fresh: true });
       setFailed(false);
     })();
     return () => {
@@ -78,7 +79,7 @@ export function HacksView() {
 
   // A vote or a report changes the list on screen: the phone keeps that list as it now is.
   useEffect(() => {
-    if (userId !== null && shown !== null && shown.fresh) saveFeedCache(userId, shown.posts, shown.loadedAt);
+    if (shown !== null && shown.userId === userId && shown.fresh) saveFeedCache(shown.userId, shown.posts, shown.loadedAt);
   }, [userId, shown]);
 
   if (auth.status === 'off') return <p className="text-sm text-muted-foreground">{text.off}</p>;
@@ -144,7 +145,8 @@ export function HacksView() {
   }
 
   // Another account's list never shows, even for the moment before the effect runs again.
-  const posts = shown?.posts ?? null;
+  const mine = shown !== null && shown.userId === userId ? shown : null;
+  const posts = mine?.posts ?? null;
   const chips = posts === null ? [] : hackCategoryIds(posts);
   // A chosen category whose posts have all gone shows everything again.
   const chosen = categoryId !== null && chips.includes(categoryId) ? categoryId : null;
@@ -194,8 +196,8 @@ export function HacksView() {
           </Button>
         </div>
       )}
-      {shown !== null && !shown.fresh && (
-        <p className="text-sm text-muted-foreground">{text.lastLoaded(formatDateTime(shown.loadedAt))}</p>
+      {mine !== null && !mine.fresh && (
+        <p className="text-sm text-muted-foreground">{text.lastLoaded(formatDateTime(mine.loadedAt))}</p>
       )}
       {posts !== null && posts.length === 0 && <p className="text-sm text-muted-foreground">{text.empty}</p>}
       {chips.length > 1 && (
