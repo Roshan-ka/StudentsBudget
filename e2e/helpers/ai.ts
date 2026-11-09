@@ -8,6 +8,7 @@ import {
   type QuickAddAnswer,
   type QuickAddRequest,
 } from '../../src/features/ai/contract';
+import { AI_PREF } from '../../src/features/ai/switch';
 import { signedInRequest } from './supabase';
 
 /** The `ai` Edge Function, wherever the build's Supabase project is. */
@@ -26,6 +27,15 @@ type Answer<Request, Value> = Value | ((request: Request) => Value);
 /** One request the mock received: its feature and body as the app sent them, and whether it carried a session. */
 export type AiCall = { feature: string | null; body: unknown; signedIn: boolean };
 
+/**
+ * Turns this phone's "Use AI features" off before its pages load. For a spec about something else that signs in and
+ * uses quick add: the e2e build has the AI, so a signed-in line would wait for the `ai` note and then ask the function.
+ * With the switch off it is read on the phone, as before the AI phase (ai-quick-add.spec.ts tests the AI).
+ */
+export async function aiSwitchedOff(page: Page) {
+  await page.addInitScript((key) => localStorage.setItem(key, 'off'), AI_PREF);
+}
+
 /** Answers on a route the page may have dropped meanwhile (an aborted read): nothing is left to answer then. */
 async function reply(route: Route, status: number, json: unknown) {
   await route.fulfill({ status, headers: CORS, json }).catch(() => {});
@@ -37,8 +47,8 @@ async function reply(route: Route, status: number, json: unknown) {
  * contract refuses is `bad-request`. Then `fail` answers that problem, `dailyLimit` the account's limit (429), and
  * `answers` the feature's answer with `left` uses left today (49 by default, null for no limit, as for a moderator); a
  * feature without an answer is `unavailable`, as the function is without its builder. `slowMs` waits that long first,
- * for a phone that gives up. Returns every request, in order, so a spec can check that a guest, or a phone with the
- * switch off, sends nothing.
+ * for a phone that gives up; `hold` waits until the spec settles it, for a read the phone stops on its own. Returns
+ * every request, in order, so a spec can check that a guest, or a phone with the switch off, sends nothing.
  */
 export async function mockAiFunction(
   page: Page,
@@ -50,6 +60,7 @@ export async function mockAiFunction(
     left?: number | null;
     dailyLimit?: boolean;
     slowMs?: number;
+    hold?: Promise<void>;
     fail?: AiProblem;
   } = {},
 ): Promise<AiCall[]> {
@@ -66,6 +77,7 @@ export async function mockAiFunction(
     const feature = typeof body === 'object' && body !== null && 'feature' in body ? String(body.feature) : null;
     calls.push({ feature, body, signedIn: signedInRequest(request) });
     if (options.slowMs !== undefined) await new Promise((resolve) => setTimeout(resolve, options.slowMs));
+    if (options.hold !== undefined) await options.hold;
 
     const problem = (name: AiProblem) => reply(route, PROBLEM_STATUS[name], { ok: false, problem: name });
     if (request.method() !== 'POST') return problem('bad-request');

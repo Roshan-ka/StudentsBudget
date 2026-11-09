@@ -59,6 +59,14 @@ export const entries = {
     mic: 'Speak an entry',
     stopMic: 'Stop listening',
     listening: 'Listening…',
+    /** The status while the AI reads a line (the AI phase, chunk 7). */
+    reading: 'Reading…',
+    /** Under the field when the AI said no and the line was read on the phone instead. */
+    aiHint: {
+      'daily-limit': 'Today’s AI reads are used up, so quick add reads your lines on this phone for now.',
+      'second-step':
+        'This line was read on the phone. To use the AI, give your authenticator app’s code in Settings → Your account.',
+    },
     /** Shown once per phone before the first use: where the speech goes. */
     micNote: {
       text:

@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type Page, type Route } from '@playwright/test';
+import { aiSwitchedOff } from './helpers/ai';
 import { openApp } from './helpers/app';
 import type { Entry, Plan, Profile } from '../src/db/types';
 import { seedSetup } from './helpers/seed-setup';
@@ -16,6 +17,11 @@ import {
 // Linking and Sync now (P2.2 chunks 6–7) at 375 px, against the mocked account. Linking replaced P2.1's Save and Load:
 // signed in on the account page, a phone links to the account, and Sync now keeps both sides alike.
 test.use({ viewport: { width: 375, height: 812 } });
+
+// About sync, not the AI: quick add reads its lines on the phone (aiSwitchedOff), with no note and no call.
+test.beforeEach(async ({ page }) => {
+  await aiSwitchedOff(page);
+});
 
 const EMAIL = 'roshan@example.com';
 const OTHER = 'other@example.com';
