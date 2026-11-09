@@ -1,5 +1,6 @@
 import type { Messages } from '../en';
 import { account } from './account';
+import { ask } from './ask';
 import { accounts } from './accounts';
 import { auth } from './auth';
 import { backup } from './backup';
@@ -64,4 +65,5 @@ export const de: Messages = {
   reveal,
   tips,
   reminder,
+  ask,
 };

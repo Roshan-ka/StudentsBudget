@@ -6,6 +6,7 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import type { Plan, Profile } from '@/db/types';
 import { totalInEur } from '@/features/accounts/balances';
+import { AskLink } from '@/features/ask/ask-link';
 import { badgeHistory, badgesFrom, semesterWeeksFor } from '@/features/badges/badges';
 import { BadgesCard } from '@/features/badges/badges-card';
 import { CheckInCard } from '@/features/check-in/check-in-card';
@@ -90,6 +91,8 @@ export function HomeScreen({
         {/* Quiet lines, not cards (pain points, chunk 2); only Sunday's check-in is a card. */}
         <div className="flex flex-col gap-1">
           <CheckInCard today={today} />
+          {/* Only in a build with the AI features (the AI phase, chunk 10). */}
+          <AskLink />
           <BadgesCard badges={badges} />
           {/* Shows once a month is over. */}
           <RecapLink startedOn={plan.createdOn} today={today} />

@@ -17,6 +17,7 @@ export const PAGES: { path: string; shown: (page: Page, t: Messages) => Locator 
   { path: '/badges', shown: (page, t) => heading(page, t.shell.headings.badges) },
   { path: '/check-in', shown: (page, t) => heading(page, t.shell.headings.checkIn) },
   { path: '/reveal', shown: (page, t) => heading(page, t.shell.headings.reveal) },
+  { path: '/ask', shown: (page, t) => heading(page, t.shell.headings.ask) },
   { path: '/settings', shown: (page, t) => heading(page, t.shell.headings.settings) },
   { path: '/settings/accounts', shown: (page, t) => heading(page, t.shell.headings.accounts) },
   { path: '/settings/backup', shown: (page, t) => heading(page, t.shell.headings.backup) },
