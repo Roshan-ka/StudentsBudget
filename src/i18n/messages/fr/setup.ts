@@ -109,6 +109,7 @@ export const setup: Messages['setup'] = {
     studentsHere: 'Étudiants d’ici',
     suggested: (amount) => `Suggéré${NNBSP}: ${amount}`,
     below: 'En dessous de ce dont les étudiants d’ici ont besoin en général.',
+    belowSome: (count) => `${count} de ces enveloppes sont en dessous de ce dont les étudiants d’ici ont besoin en général.`,
   },
   lines: {
     available: (amount) => `Disponible${NNBSP}: ${amount}`,

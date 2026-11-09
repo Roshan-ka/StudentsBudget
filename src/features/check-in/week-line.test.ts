@@ -26,9 +26,18 @@ describe('weekLine', () => {
   });
 
   it('keeps the cents of a non-zero amount under 50 cents, like the rest of the week lines', () => {
-    expect(weekLine(week(7000, 6960))).toBe('€70 planned · €70 spent · €0.40 under');
-    expect(weekLine(week(7000, 7040))).toBe('€70 planned · €70 spent · €0.40 over');
     expect(weekLine(week(40, 0))).toBe('€0.40 planned · €0 spent · €0.40 under');
+  });
+
+  it('shows the cents of planned and spent when their whole euros read the same, so the line adds up', () => {
+    // "€6 planned · €6 spent · €0.25 under" read as a contradiction (review, 09-11-2026).
+    expect(weekLine(week(625, 600))).toBe('€6.25 planned · €6.00 spent · €0.25 under');
+    expect(weekLine(week(7000, 6960))).toBe('€70.00 planned · €69.60 spent · €0.40 under');
+    expect(weekLine(week(7000, 7040))).toBe('€70.00 planned · €70.40 spent · €0.40 over');
+    // German money has a no-break space before the euro sign.
+    expect(weekLine(week(625, 600), false, 'de')).toBe('6,25 € geplant · 6,00 € ausgegeben · 0,25 € unter Plan');
+    // Equal amounts stay whole: nothing to add up.
+    expect(weekLine(week(7000, 7000))).toBe('€70 planned · €70 spent · on plan');
   });
 
   it('reads spending in an envelope that has no share this week as over', () => {

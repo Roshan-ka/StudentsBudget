@@ -105,6 +105,7 @@ export const setup: Messages['setup'] = {
     studentsHere: 'Studierende hier',
     suggested: (amount) => `Vorschlag: ${amount}`,
     below: 'Weniger, als Studierende hier meist brauchen.',
+    belowSome: (count) => `${count} davon liegen unter dem, was Studierende hier meist brauchen.`,
   },
   lines: {
     available: (amount) => `Verfügbar ${amount}`,

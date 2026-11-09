@@ -59,7 +59,12 @@ export function HacksView() {
     let current = true;
     void (async () => {
       const kept = readFeedCache(userId);
-      if (current && kept !== null) setShown({ ...kept, userId, fresh: false });
+      // The kept copy only stands in while nothing of this account is on screen: after a post, a delete or Try again,
+      // the list as it now is stays until the new one comes, rather than an older copy marked "last loaded" (review,
+      // 09-11-2026: a deleted post came back with its Delete button).
+      if (current && kept !== null) {
+        setShown((now) => (now !== null && now.userId === userId ? now : { ...kept, userId, fresh: false }));
+      }
       const supabase = getSupabase();
       const posts = supabase !== null && navigator.onLine ? await readFeed(supabase) : null;
       if (!current) return;
@@ -106,6 +111,8 @@ export function HacksView() {
   async function remove(id: string): Promise<boolean> {
     const supabase = getSupabase();
     if (supabase === null || (await deleteHack(supabase, id)) !== 'deleted') return false;
+    // Gone at once, here and in the kept copy, whether or not the reload below works.
+    update((posts) => posts.filter((post) => post.id !== id));
     setStatus(text.deleted);
     setAttempt((n) => n + 1);
     return true;

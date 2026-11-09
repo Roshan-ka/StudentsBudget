@@ -12,6 +12,7 @@ import { keepReminderInStep } from '@/features/reminder/in-step';
 import { markSignedOut } from '@/features/start/signed-out';
 import { subscribeToLanguage } from '@/i18n/store';
 import { todayIso } from '@/lib/dates';
+import { msUntilNextMidnight } from '@/lib/use-today';
 import { getSupabase } from '@/lib/supabase/client';
 import { registerServiceWorker } from '@/lib/sw-register';
 
@@ -100,6 +101,19 @@ export function AppInit() {
       void keepReminderInStep();
     }
     document.addEventListener('visibilitychange', onVisibilityChange);
+    // A desktop tab can stay visible overnight, as useToday knows: the window coming back to the front and each
+    // midnight post what came due and record the week that ended too (review, 09-11-2026). Cheap when nothing is due:
+    // the rates are fetched at most once a day, and posting and recording are idempotent.
+    function onFocus() {
+      void refreshThenPost();
+    }
+    window.addEventListener('focus', onFocus);
+    let midnight: ReturnType<typeof setTimeout> | undefined;
+    function atMidnight() {
+      void refreshThenPost();
+      midnight = setTimeout(atMidnight, msUntilNextMidnight());
+    }
+    midnight = setTimeout(atMidnight, msUntilNextMidnight());
     // A language picked here or in another tab: the reminder comes in it from then on.
     const stopFollowingLanguage = subscribeToLanguage(() => void keepReminderInStep());
     // What goes with the account when the session ends, heard here for every page, hidden ones included.
@@ -137,6 +151,8 @@ export function AppInit() {
       live = false;
       document.documentElement.removeAttribute(APP_READY_ATTRIBUTE);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onFocus);
+      clearTimeout(midnight);
       stopFollowingLanguage();
       stopFollowingSession();
     };

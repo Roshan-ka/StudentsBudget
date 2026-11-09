@@ -72,7 +72,14 @@ export function EnvelopesStep({
   const text = t.setup.envelopes;
   const city = CITIES.regensburg;
   const preview = previewPlan(draft, today, existing);
-  const below = new Set(rangeWarnings(preview, city).map((w) => w.categoryId));
+  // Only an envelope with an amount can be below what students here need; one still at €0 is just not set yet. Two or
+  // more say so once, above them, rather than under each (review, 09-11-2026: all six said it at once).
+  const below = new Set(
+    rangeWarnings(preview, city)
+      .map((w) => w.categoryId)
+      .filter((id) => (amountOf(draft.envelopes, id) ?? 0) > 0),
+  );
+  const belowEach = below.size === 1;
   const asked = askedCategories(FLEXIBLE_CATEGORIES, SETUP_ENVELOPE_IDS, edit, draft.envelopes);
 
   // Every envelope is suggested what is left of the budget (without one, of what is available) after the others that
@@ -141,6 +148,7 @@ export function EnvelopesStep({
           </p>
         </div>
       )}
+      {below.size > 1 && <p className="text-sm text-muted-foreground">{text.belowSome(below.size)}</p>}
       {asked.map((c) => {
         const range = city.ranges.find((r) => r.categoryId === c.id);
         const suggestion = suggested.get(c.id);
@@ -157,7 +165,7 @@ export function EnvelopesStep({
                     {suggestion !== undefined && (
                       <p>{text.suggested(formatMoney(suggestion, 'EUR', { whole: true, locale }))}</p>
                     )}
-                    {below.has(c.id) && <p>{text.below}</p>}
+                    {belowEach && below.has(c.id) && <p>{text.below}</p>}
                   </>
                 )
               }
