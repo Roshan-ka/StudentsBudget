@@ -126,9 +126,11 @@ test('the semester end offers no day before the start', async ({ page }) => {
   await calendarButton(page, 'Semester end').click();
   const sunday = day(page, 'Sunday 11 October 2026');
   await expect(sunday).toHaveAttribute('aria-disabled', 'true');
-  // Playwright waits for an aria-disabled cell to become enabled before it clicks, so a plain click would wait out the
-  // test. `force` sends the tap a person can still make on it, which picks nothing: the sheet stays open.
-  await sunday.click({ force: true });
+  // The tap a person can still make on a day before the start picks nothing: the sheet stays open. Sent as a click event
+  // on the cell itself: Playwright's click waits for an aria-disabled cell to become enabled (so it waited out the test),
+  // and a forced one skips the wait for the sheet to settle, so it was sent while the sheet still slid up from below and
+  // missed the cell (CI runs 394 and 401, 09-11-2026).
+  await sunday.dispatchEvent('click');
   await expect(sheet(page)).toBeVisible();
 
   // The lists hold the same line: September and 2025 end before the start.
@@ -137,7 +139,8 @@ test('the semester end offers no day before the start', async ({ page }) => {
   await expect(monthList(page).getByRole('button', { name: 'Oct', exact: true })).not.toHaveAttribute('aria-disabled');
   await headerButton(page, '2026').click();
   await expect(yearList(page).getByRole('button', { name: '2025', exact: true })).toHaveAttribute('aria-disabled', 'true');
-  await yearList(page).getByRole('button', { name: '2025', exact: true }).click({ force: true });
+  // As for the day above: a click event on the disabled year itself.
+  await yearList(page).getByRole('button', { name: '2025', exact: true }).dispatchEvent('click');
   await expect(yearList(page)).toBeVisible();
   await yearList(page).getByRole('button', { name: '2026', exact: true }).click();
 
