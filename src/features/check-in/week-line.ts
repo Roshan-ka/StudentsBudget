@@ -1,7 +1,7 @@
 import { LANGUAGES, type Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import type { EnvelopeWeek } from '@/lib/budget';
-import type { Minor } from '@/lib/money';
+import { formatMoney, type Minor } from '@/lib/money';
 import { formatWeekAmount } from '@/lib/week-amount';
 
 /**
@@ -15,9 +15,15 @@ import { formatWeekAmount } from '@/lib/week-amount';
 export function weekLine(e: EnvelopeWeek, usedUp = false, lang: Language = 'en'): string {
   const text = MESSAGES[lang].checkIn.line;
   const { locale } = LANGUAGES[lang];
-  const planned = formatWeekAmount(e.weekShareMinor, locale).text;
-  const spent = formatWeekAmount(e.spentThisWeekMinor, locale).text;
   const difference = e.weekShareMinor - e.spentThisWeekMinor;
+  let planned = formatWeekAmount(e.weekShareMinor, locale).text;
+  let spent = formatWeekAmount(e.spentThisWeekMinor, locale).text;
+  // Whole euros that read the same while the amounts differ ("€6 planned · €6 spent · €0.25 under"): the two show their
+  // cents too, so the line adds up (review, 09-11-2026).
+  if (difference !== 0 && planned === spent) {
+    planned = formatMoney(Math.abs(e.weekShareMinor), 'EUR', { locale });
+    spent = formatMoney(Math.abs(e.spentThisWeekMinor), 'EUR', { locale });
+  }
   // formatWeekAmount's text is the absolute value, so the sign only decides the word.
   const amount = formatWeekAmount(difference, locale).text;
   if (usedUp) return difference < 0 ? text.usedUpOver(spent, amount) : text.usedUp(spent);
