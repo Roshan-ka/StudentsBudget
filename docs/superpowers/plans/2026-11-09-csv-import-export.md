@@ -321,3 +321,33 @@ All of it is in `src/features/import/`, pure TypeScript, and nothing in the app 
   - the DKB Visa file, and an unknown CSV with money out and money in apart.
 - **Tests:** 42, in six files (`decode`, `csv`, `amounts`, `dates`, `read-rows`, `statement`).
 - **Left for chunk 4:** masking the card numbers and IBANs some purposes hold (`Debitk.1 2029-12`). Revolut Business has no profile: its layout is unknown, so it goes to the column matching.
+
+**Chunk 3 (09-11-2026): categories**
+- **`merchants.ts`:**
+  - `fold` writes umlauts and ß out in lower case, so one pattern fits "BAföG", "BAFOEG" and "Bafög".
+  - The chain list is `OUT_RULES` and `IN_RULES`, each rule a label, a whole-word pattern and a category. Order matters, narrowest first:
+    - rent ("Miete", "Wohnheim") comes before the Mensa and Studierendenwerk;
+    - Aldi Talk comes before Aldi, and Amazon Prime before Amazon.
+  - Compared with the plan's list:
+    - added: insurance (TK, AOK, Barmer, DAK), the Deutschlandticket (`transport-pass`), Flixbus, McFit, FitX and Hochschulsport (`gym`), IKEA (`household`), cinemas (`going-out`), airlines and booking sites (`travel`), and "Taschengeld" (`income-parents`);
+    - left out: Müller (a common surname, so "Bäckerei Müller" would turn into personal care).
+  - `chainRule(text, direction)` is the first rule that fits.
+  - `merchantKey(payee, purpose)` is the name the mark keeps: folded, without numbered words or legal forms, at most two words. "REWE Markt GmbH" and "REWE SAGT DANKE 1234" are both `rewe`.
+- **`categorize.ts`:** `categorize(row, history, categories)` gives the category, where it came from (`yours`, `typed`, `chain` or `fallback`) and the merchant.
+  - It tries, in order:
+    1. the newest imported entry of the shop whose category the student moved away from its `guess`;
+    2. a typed entry of the same type whose first word is one of the row's words (as quick add learns; scheduled and imported entries don't count);
+    3. the chain list;
+    4. Other, or Other income.
+  - Money back from a listed shop is a refund: Other income.
+  - A learned category that no longer exists, or of the wrong kind, is passed over.
+- **Tests:** 16 in `merchants.test.ts` and `categorize.test.ts`:
+  - every rule's category exists and has the right kind;
+  - spellings, and the narrower rules first;
+  - whole words only;
+  - a changed guess teaches, and an unchanged one never does;
+  - typed entries teach;
+  - money in learns only from money in;
+  - refunds.
+
+  There are 58 import tests in all.
