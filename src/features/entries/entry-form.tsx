@@ -23,7 +23,7 @@ import { describedBy } from '@/lib/described-by';
 import { amountInputText, parseAmount } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { buildEntry } from './build-entry';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './categories';
+import { categoryName, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './categories';
 import { readLastChoice, rememberChoice } from './last-choice';
 
 type EntryType = Entry['type'];
@@ -69,7 +69,12 @@ function MoneyEntryForm({
   const amountRef = useRef<HTMLInputElement>(null);
   // null means today, so a form left open over midnight follows the date; a date that was picked stays.
   const [dateChoice, setDateChoice] = useState<IsoDate | null>(editing?.date ?? null);
-  const [note, setNote] = useState(editing?.note ?? '');
+  // The poster writes a scheduled entry's note as its category's English name (post-due.ts), which the lists show in the
+  // phone's language (entryTitle). The form starts it empty instead: in German it read "Rent", and a changed category
+  // then left "Rent" as the entry's title (review, 09-11-2026).
+  const [note, setNote] = useState(
+    editing && editing.note === categoryName(editing.categoryId) ? '' : (editing?.note ?? ''),
+  );
   const [error, setError] = useState<FormError | null>(null);
   const [saving, setSaving] = useState(false);
 
