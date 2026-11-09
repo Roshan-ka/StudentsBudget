@@ -118,6 +118,10 @@ test('a tap picks any day the sheet shows, and the month buttons and Go to today
 });
 
 test('the semester end offers no day before the start', async ({ page }) => {
+  // The taps on disabled days below are forced, and a forced tap doesn't wait for the sheet to stop moving: sent while it
+  // slides up (or, on a wide screen, re-centres as it grows), it lands below the screen or on another day (run 401 on
+  // main). Reduced motion opens the sheet in place (`motion-reduce:transition-none`).
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await seedSetup(page);
   await openApp(page, '/settings/profile');
   const profile = page.getByRole('region', { name: 'Profile', exact: true });
