@@ -11,6 +11,7 @@
 import { askAnswer, type AskAnswer, type AskReply, type AskRequest } from './contract.ts';
 import { CITY_PACK } from './city-pack.ts';
 import type { FeatureBuilder } from './handle.ts';
+import { withoutLinks } from './links.ts';
 import type { ModelCall } from './model.ts';
 import { moneyIn } from './money.ts';
 import { renderPack, type PackItem } from './pack.ts';
@@ -112,17 +113,11 @@ export function unbackedAmounts(answer: string, given: readonly number[]): strin
   return unbacked.slice(0, MAX_UNBACKED);
 }
 
-/** Links of any kind, which the answer never carries. */
-const LINK = /\bhttps?:\/\/\S+|\bwww\.\S+/gi;
-
 /** The model's answer as the app gets it: known sources only, no links, and what it couldn't back. */
 export function finishAsk(answer: AskAnswer, request: AskRequest, pack: readonly PackItem[] = CITY_PACK): AskReply {
   const known = new Set(pack.map((item) => item.id));
   const sourceIds = [...new Set(answer.sourceIds)].filter((id) => known.has(id));
-  const text = answer.answer
-    .replace(LINK, '')
-    .replace(/[^\S\n]{2,}/g, ' ')
-    .trim();
+  const text = withoutLinks(answer.answer);
   const given = [...snapshotCents(request.snapshot as Json), ...moneyIn(renderPack(pack)).map((m) => m.cents)];
   return { answer: text, sourceIds, unbacked: unbackedAmounts(text, given) };
 }

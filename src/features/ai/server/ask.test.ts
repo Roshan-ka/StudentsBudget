@@ -99,7 +99,7 @@ describe('finishAsk', () => {
       { answer: 'Eat at the Mensa, see https://stwno.de or www.example.com.', sourceIds: ['swap:mensa-instead-of-restaurant', 'tip:made-up', 'swap:mensa-instead-of-restaurant'] },
       REQUEST,
     );
-    expect(reply).toEqual({ answer: 'Eat at the Mensa, see or', sourceIds: ['swap:mensa-instead-of-restaurant'], unbacked: [] });
+    expect(reply).toEqual({ answer: 'Eat at the Mensa, see or .', sourceIds: ['swap:mensa-instead-of-restaurant'], unbacked: [] });
   });
 
   it('backs amounts with the snapshot and the city data, and lists the rest', () => {

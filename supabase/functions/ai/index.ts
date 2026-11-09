@@ -17,6 +17,7 @@ import { allowedOrigins } from '../_shared/ai/cors.ts';
 import { handleAi, type FeatureBuilders } from '../_shared/ai/handle.ts';
 import { ModelUnavailable, type ModelClient } from '../_shared/ai/model.ts';
 import { quickAddBuilder } from '../_shared/ai/quick-add.ts';
+import { setupBuilder } from '../_shared/ai/setup.ts';
 
 // The two things this file takes from Deno, declared here so the app's typecheck reads it too.
 declare const Deno: {
@@ -27,8 +28,8 @@ declare const Deno: {
 /** The beta that lets a declined Opus request run again on Anthropic's recommended model (`fallbacks: "default"`). */
 const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 
-/** The features the function answers so far: quick add (chunk 4) and Ask (chunk 8); chunk 11 adds the setup chat. */
-const BUILDERS: FeatureBuilders = { 'quick-add': quickAddBuilder, ask: askBuilder };
+/** The three features: quick add (chunk 4), Ask (chunk 8) and the setup chat (chunk 11). */
+const BUILDERS: FeatureBuilders = { 'quick-add': quickAddBuilder, ask: askBuilder, setup: setupBuilder };
 
 /** The key that plays the caller's own token: the `default` publishable key, or the older anon key. */
 function publicKeyOf(publishableKeys: string | undefined, anonKey: string | undefined): string | undefined {

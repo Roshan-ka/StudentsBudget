@@ -41,6 +41,9 @@ export const packId = {
   fee: (university: string, starts: string) => `fee:${university}:${starts}`,
 };
 
+/** An app category as the AI's rules name it, in English (src/data/categories.ts), written into city-pack.ts too. */
+export type PackCategory = { id: string; name: string; kind: 'flexible' | 'fixed' | 'oneoff' | 'income' };
+
 /** The pack as the model reads it: one item per line, its id first. */
 export function renderPack(items: readonly PackItem[]): string {
   return items

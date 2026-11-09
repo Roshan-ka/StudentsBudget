@@ -172,6 +172,39 @@ export type AskAnswer = z.infer<typeof askAnswer>;
 export const askReply = askAnswer.extend({ unbacked: z.array(z.string()).max(20) });
 export type AskReply = z.infer<typeof askReply>;
 
+/** The largest amount the setup chat may fill in, in euros: anything above is a misreading. */
+export const MAX_SETUP_AMOUNT = 20_000;
+
+/** One plan line the setup chat fills in: a category and its amount in euros a month. */
+const setupLine = z.strictObject({ categoryId: z.string(), amount: z.number() });
+
+/**
+ * What one setup chat turn changes in the wizard's draft, in euros. Only what this turn changes: a line the patch
+ * doesn't name, rent or the budget as null, and accounts as null stay as they are. The amounts' bounds are checked
+ * after the answer arrives (the function's `finishSetup`, the app's `applyPatch`), so one bad amount drops that line,
+ * not the answer.
+ */
+export const setupPatch = z.strictObject({
+  rent: z.number().nullable(),
+  incomes: z.array(setupLine).max(20),
+  fixed: z.array(setupLine).max(20),
+  envelopes: z.array(setupLine).max(30),
+  spendingBudget: z.number().nullable(),
+  accounts: z
+    .array(z.strictObject({ name: z.string().max(60), kind: z.enum(['bank', 'cash']), currency: z.string(), balance: z.number() }))
+    .max(10)
+    .nullable(),
+});
+export type SetupPatch = z.infer<typeof setupPatch>;
+
+/** The model's setup chat turn, and the app's: the reply, the city data it used by id, and the patch. */
+export const setupAnswer = z.strictObject({
+  reply: z.string().min(1).max(MAX_REPLY),
+  sourceIds: z.array(z.string()).max(MAX_SOURCES),
+  patch: setupPatch,
+});
+export type SetupAnswer = z.infer<typeof setupAnswer>;
+
 /** What the function answers: the feature's answer and the uses left today (null: no limit), or the problem. */
 export const aiProblemBody = z.strictObject({ ok: z.literal(false), problem: z.enum(AI_PROBLEMS) });
 export const aiAnswerBody = <Answer extends z.ZodType>(answer: Answer) =>

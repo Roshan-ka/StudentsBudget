@@ -10,7 +10,7 @@ import { DISCOUNTS } from '../../../data/discounts.ts';
 import { SEMESTER_FEES, SEMESTER_PERIODS } from '../../../data/semesters.ts';
 import { SWAPS } from '../../../data/swaps.ts';
 import { TIPS } from '../../../data/tips.ts';
-import { packId, type PackItem } from '../../../../supabase/functions/_shared/ai/pack.ts';
+import { packId, type PackCategory, type PackItem } from '../../../../supabase/functions/_shared/ai/pack.ts';
 
 /** Prices the pack never carries, by their label in cities.ts. */
 export const LEFT_OUT_PRICES: readonly string[] = ['Deutschlandticket per month', 'Beer in a bar (0.5 l)'];
@@ -149,16 +149,23 @@ export function buildCityPack(): PackItem[] {
  */
 const PACK_MODULE = ['.', 'pack.ts'].join('/');
 
-/** The text of supabase/functions/_shared/ai/city-pack.ts for these items. */
-export function cityPackFile(items: readonly PackItem[]): string {
+/** The app's categories, in English, for the setup chat's rules and its checks (chunk 11). */
+export function buildCategories(): PackCategory[] {
+  return CATEGORIES.map(({ id, name, kind }) => ({ id, name, kind }));
+}
+
+/** The text of supabase/functions/_shared/ai/city-pack.ts for these items and categories. */
+export function cityPackFile(items: readonly PackItem[], categories: readonly PackCategory[]): string {
   return [
-    '// The Regensburg data the AI may quote, written from src/data by scripts/write-city-pack.mjs: do not edit by hand.',
-    '// Run `node scripts/write-city-pack.mjs` after changing src/data; src/features/ai/server/city-pack.test.ts fails',
-    '// while this file is stale.',
+    '// The Regensburg data the AI may quote, and the app categories, written from src/data by',
+    '// scripts/write-city-pack.mjs: do not edit by hand. Run `node scripts/write-city-pack.mjs` after changing src/data;',
+    '// src/features/ai/server/city-pack.test.ts fails while this file is stale.',
     '',
-    `import type { PackItem } from '${PACK_MODULE}';`,
+    `import type { PackCategory, PackItem } from '${PACK_MODULE}';`,
     '',
     `export const CITY_PACK: readonly PackItem[] = ${JSON.stringify(items, null, 2)};`,
+    '',
+    `export const APP_CATEGORIES: readonly PackCategory[] = ${JSON.stringify(categories, null, 2)};`,
     '',
   ].join('\n');
 }
