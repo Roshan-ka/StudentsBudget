@@ -22,12 +22,16 @@ export type QuickAddReading =
 export type QuickAddAmountReading = Extract<QuickAddReading, { kind: 'amount' }>;
 export type QuickAddChoiceReading = Extract<QuickAddReading, { kind: 'choice' }>;
 
+/** How a read may be cut short: `signal` aborts a read in flight when the line changes or the page goes. */
+export type QuickAddReadOptions = { signal?: AbortSignal };
+
 /**
  * Reads one typed or dictated line. The local provider below is the parser quick add has always used; the AI phase
- * plugs in its own. Quick add passes every reading through `checkReading`, whichever provider made it.
+ * plugs in its own (`aiQuickAddProvider`, which asks the model and stops when `signal` aborts). Quick add passes every
+ * reading through `checkReading`, whichever provider made it.
  */
 export interface QuickAddProvider {
-  read(text: string, ctx: QuickAddContext): Promise<QuickAddReading | null>;
+  read(text: string, ctx: QuickAddContext, options?: QuickAddReadOptions): Promise<QuickAddReading | null>;
 }
 
 /**
@@ -35,7 +39,7 @@ export interface QuickAddProvider {
  * become ₹6. The first euro bank account, else any euro account. Undefined when the default is in euros already (the
  * field saves there), or when there is no euro account at all (the default stays).
  */
-function euroAccountId(accounts: Account[]): string | undefined {
+export function euroAccountId(accounts: Account[]): string | undefined {
   const ordered = sortAccounts(accounts);
   const fallback = defaultAccount(ordered);
   return fallback === undefined || fallback.currency === 'EUR' ? undefined : euroAccount(ordered)?.id;
