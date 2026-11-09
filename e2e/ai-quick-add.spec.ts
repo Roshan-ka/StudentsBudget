@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry } from '../src/db/types';
 import type { QuickAddAnswer, QuickAddRequest } from '../src/features/ai/contract';
 import { formatDate } from '../src/lib/dates';
-import { mockAiFunction } from './helpers/ai';
+import { aiSwitchedOff, mockAiFunction } from './helpers/ai';
 import { waitForHome } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import { seedSetup } from './helpers/seed-setup';
@@ -147,7 +147,7 @@ test('a guest sends nothing to the AI, and sees no note about it', async ({ page
 });
 
 test('signed in with the switch off, nothing goes to the AI', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('studentsbudget-ai', 'off'));
+  await aiSwitchedOff(page);
   const ai = await mockAiFunction(page, { answers: { 'quick-add': readLine } });
   await signedInHome(page);
 

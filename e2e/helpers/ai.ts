@@ -8,6 +8,7 @@ import {
   type QuickAddAnswer,
   type QuickAddRequest,
 } from '../../src/features/ai/contract';
+import { AI_PREF } from '../../src/features/ai/switch';
 import { signedInRequest } from './supabase';
 
 /** The `ai` Edge Function, wherever the build's Supabase project is. */
@@ -25,6 +26,15 @@ type Answer<Request, Value> = Value | ((request: Request) => Value);
 
 /** One request the mock received: its feature and body as the app sent them, and whether it carried a session. */
 export type AiCall = { feature: string | null; body: unknown; signedIn: boolean };
+
+/**
+ * Turns this phone's "Use AI features" off before its pages load. For a spec about something else that signs in and
+ * uses quick add: the e2e build has the AI, so a signed-in line would wait for the `ai` note and then ask the function.
+ * With the switch off it is read on the phone, as before the AI phase (ai-quick-add.spec.ts tests the AI).
+ */
+export async function aiSwitchedOff(page: Page) {
+  await page.addInitScript((key) => localStorage.setItem(key, 'off'), AI_PREF);
+}
 
 /** Answers on a route the page may have dropped meanwhile (an aborted read): nothing is left to answer then. */
 async function reply(route: Route, status: number, json: unknown) {
