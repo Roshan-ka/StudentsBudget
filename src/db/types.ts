@@ -21,6 +21,15 @@ export type CategoryKind = 'flexible' | 'fixed' | 'oneoff' | 'income';
 
 export type Category = { id: string; name: string; kind: CategoryKind; order: number };
 
+/**
+ * The mark of an entry that an imported bank statement row made (CSV import,
+ * docs/superpowers/plans/2026-11-09-csv-import-export.md). `batchId` names the import, so Undo removes it whole;
+ * `merchant` is the shop name the import read, so learning categories works even after the note is edited; `guess` is
+ * the category the import gave the row (none for a transfer), so a category that differs from it is the student's own
+ * choice, and only that is learned from.
+ */
+export type ImportMark = { batchId: string; merchant: string; guess?: string };
+
 type EntryBase = {
   id: string;
   date: IsoDate;
@@ -31,6 +40,8 @@ type EntryBase = {
   eurMinor: Minor;
   note: string;
   createdAt: string;
+  /** Set on an entry a statement import made. It stays when the entry is edited; not indexed, so no new schema version. */
+  imported?: ImportMark;
 };
 
 export type Entry =

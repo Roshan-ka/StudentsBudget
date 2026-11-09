@@ -80,6 +80,28 @@ describe('buildTransfer', () => {
       date: '2026-10-16',
       note: 'Rent top-up',
     });
+    expect(result.entry).not.toHaveProperty('imported');
+  });
+
+  it('editing keeps the import mark of a transfer a statement import made', () => {
+    const imported = { batchId: 'import-1', merchant: 'revolut' };
+    const existing: Entry = {
+      id: 'transfer-2',
+      type: 'transfer',
+      date: '2026-10-10',
+      accountId: 'inr',
+      amountMinor: 95000,
+      eurMinor: 1000,
+      toAccountId: 'bank',
+      toAmountMinor: 1000,
+      note: 'Top-up',
+      createdAt: '2026-10-10T11:00:00.000Z',
+      imported,
+    };
+
+    const result = buildTransfer(input, account('inr', 'INR'), {}, NOW, existing);
+
+    expect(result.ok && result.entry).toMatchObject({ id: 'transfer-2', note: 'Rent top-up', imported });
   });
 
   describe('editing and the stored EUR value', () => {

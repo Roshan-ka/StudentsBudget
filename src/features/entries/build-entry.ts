@@ -15,8 +15,8 @@ export type EntryInput =
  * Builds the entry to save, or says what is wrong with the input. `account` is the account the entry is
  * booked on (the sending account of a transfer). `eurMinor` is converted with the rate on file, so a
  * currency without one is an error. Transfers go through `buildTransfer` and report its errors.
- * With `existing` (an edit) the entry keeps that entry's `id`, `createdAt` and `recurring` marker; otherwise it keeps
- * `input.id` when there is one and gets a new id. An edit that leaves the account and the amount alone also
+ * With `existing` (an edit) the entry keeps that entry's `id`, `createdAt`, `recurring` marker and `imported` mark;
+ * otherwise it keeps `input.id` when there is one and gets a new id. An edit that leaves the account and the amount alone also
  * keeps `eurMinor` and needs no rate: the EUR value was fixed when the amount was entered.
  * The error is in `lang`, with the field it is about.
  */
@@ -55,6 +55,8 @@ function build(
 
   // A transfer has no marker; an expense or income that a schedule posted keeps it, whatever else is edited.
   const recurring = existing?.type === 'transfer' ? undefined : existing?.recurring;
+  // An entry a statement import made keeps its mark through any edit, a change of type included.
+  const imported = existing?.imported;
   return {
     ok: true,
     entry: {
@@ -68,6 +70,7 @@ function build(
       note: input.note.trim(),
       createdAt: existing?.createdAt ?? now.toISOString(),
       ...(recurring && { recurring }),
+      ...(imported && { imported }),
     },
   };
 }

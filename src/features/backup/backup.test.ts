@@ -467,6 +467,26 @@ describe('serializeBackup and parseBackup', () => {
     expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
   });
 
+  it('round-trips the import mark of entries a statement import made, and entries without it stay without', () => {
+    const data = sampleV2();
+    const [first, second] = data.entries;
+    data.entries[0] = { ...first, imported: { batchId: 'import-1', merchant: 'rewe', guess: 'groceries' } };
+    data.entries[1] = { ...second, imported: { batchId: 'import-1', merchant: 'revolut' } };
+
+    const result = parseBackup(serializeBackup(data, NOW));
+
+    expect(result).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(result.ok && result.data.entries.slice(2).some((entry) => 'imported' in entry)).toBe(false);
+  });
+
+  it('says it is incomplete for an import mark without its batch', () => {
+    const text = fileOf((file) => {
+      (file.data.entries as Record<string, unknown>[])[0].imported = { merchant: 'rewe' };
+    });
+
+    expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
+  });
+
   it('says it is incomplete for a recurring marker without its schedule', () => {
     const text = fileOf((file) => {
       const posted = (file.data.entries as { recurring?: Record<string, unknown> }[]).at(-1);
