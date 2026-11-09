@@ -75,5 +75,10 @@ export const common: Messages['common'] = {
       'du wählst, deine Zeitzone und deine Sprache, und passt Zeitzone und Sprache an, wenn sie sich auf dem Handy ' +
       'ändern. Die Erinnerung läuft über den Push-Dienst deines Browser-Herstellers (Apple, Google, Mozilla oder ' +
       'Microsoft), der sieht, dass eine Nachricht ankommt, aber nicht, was darin steht.',
+    ai:
+      'Die KI-Funktionen schicken, was du schreibst, mit dem, was jede aus deinem Budget braucht (etwa die Namen ' +
+      'deiner Kategorien und Konten oder die Zahlen deines Plans), an Anthropic (Claude) in den USA, damit es ' +
+      'beantwortet wird. Konto- und Kartennummern, E-Mail-Adressen und Telefonnummern werden vorher entfernt. Dein ' +
+      'Konto zählt, wie oft du jede Funktion am Tag nutzt. Du kannst sie unter Einstellungen → Dein Konto ausschalten.',
   },
 };

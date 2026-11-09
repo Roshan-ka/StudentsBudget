@@ -196,6 +196,14 @@ export const auth: Messages['auth'] = {
     cancelledElsewhere:
       'Cette configuration a été annulée, peut-être depuis un autre téléphone. Touche Activer pour recommencer.',
   },
+  /** Ton compte → Fonctions d’IA (phase IA, chunk 5) : l’interrupteur de ce téléphone, activé au départ. */
+  ai: {
+    heading: 'Fonctions d’IA',
+    use: 'Utiliser les fonctions d’IA sur ce téléphone',
+    hint:
+      'Elles envoient ce que tu écris à Anthropic (Claude), aux États-Unis, dans la limite d’un quota quotidien ' +
+      'pour ton compte. Désactivées, rien ne part chez Anthropic, et l’Ajout rapide lit tes lignes sur ce téléphone.',
+  },
   /** Le nom sous lequel on publie dans le fil d’astuces : demandé à la création du compte, modifiable ensuite. */
   postingName: {
     heading: 'Ton nom sur les publications',

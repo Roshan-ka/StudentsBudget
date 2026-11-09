@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan } from '../src/db/types';
+import { mockAiFunction } from './helpers/ai';
+import { waitForApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import { seedSetup } from './helpers/seed-setup';
 import { readStore } from './helpers/setup';
@@ -188,4 +190,42 @@ test('says calmly what went wrong: a wrong password, a taken email, offline, no 
     "The account server can't be reached. Check your connection and try again.",
   );
   await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
+});
+
+test('signed in, AI features holds this phone’s switch: on until turned off, and kept after a reload', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  const ai = await mockAiFunction(page);
+  const use = page
+    .getByRole('region', { name: 'AI features', exact: true })
+    .getByRole('checkbox', { name: 'Use AI features on this phone', exact: true });
+
+  // Signed out there is none: the AI features are for accounts only.
+  await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: 'Use AI features on this phone' })).toHaveCount(0);
+
+  await signIn(page, EMAIL, PASSWORD);
+  await expect(signedInLine(page, EMAIL)).toBeVisible();
+  await expect(use).toBeChecked();
+  await expect(use).toHaveAccessibleDescription(
+    'They send what you write to Anthropic (Claude), in the USA, within a daily allowance for your account. Off, ' +
+      'nothing goes to Anthropic, and quick add reads your lines on this phone.',
+  );
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+  await use.uncheck();
+  await expect(use).not.toBeChecked();
+  expect(await page.evaluate(() => localStorage.getItem('studentsbudget-ai'))).toBe('off');
+
+  // Per phone, like the language: kept after a reload, and turned back on from here.
+  await page.reload();
+  await waitForApp(page);
+  await expect(signedInLine(page, EMAIL)).toBeVisible();
+  await expect(use).not.toBeChecked();
+  await use.check();
+  await expect(use).toBeChecked();
+  expect(await page.evaluate(() => localStorage.getItem('studentsbudget-ai'))).toBe('on');
+
+  // The page itself never asks the AI.
+  expect(ai).toEqual([]);
 });

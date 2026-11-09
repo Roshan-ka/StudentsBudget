@@ -16,6 +16,8 @@ export const PRIVACY_NOTES = {
   hackVotes: 'studentsbudget-hack-votes-note',
   translate: 'studentsbudget-translate-note',
   reminder: 'studentsbudget-reminder-note',
+  // The AI features (the AI phase, chunk 5): one note for all three, before the first use on a phone.
+  ai: 'studentsbudget-ai-note',
 } as const;
 
 export type PrivacyNoteId = keyof typeof PRIVACY_NOTES;
