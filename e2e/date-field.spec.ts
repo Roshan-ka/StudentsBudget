@@ -126,16 +126,17 @@ test('the semester end offers no day before the start', async ({ page }) => {
   await calendarButton(page, 'Semester end').click();
   const sunday = day(page, 'Sunday 11 October 2026');
   await expect(sunday).toHaveAttribute('aria-disabled', 'true');
-  await sunday.click();
+  // Forced: Playwright waits for an aria-disabled cell to be enabled; the tap itself must do nothing.
+  await sunday.click({ force: true });
   await expect(sheet(page)).toBeVisible();
 
   // The lists hold the same line: September and 2025 end before the start.
   await headerButton(page, 'October').click();
-  await expect(monthList(page).getByRole('button', { name: 'September', exact: true })).toHaveAttribute('aria-disabled', 'true');
-  await expect(monthList(page).getByRole('button', { name: 'October', exact: true })).not.toHaveAttribute('aria-disabled');
+  await expect(monthList(page).getByRole('button', { name: 'Sept', exact: true })).toHaveAttribute('aria-disabled', 'true');
+  await expect(monthList(page).getByRole('button', { name: 'Oct', exact: true })).not.toHaveAttribute('aria-disabled');
   await headerButton(page, '2026').click();
   await expect(yearList(page).getByRole('button', { name: '2025', exact: true })).toHaveAttribute('aria-disabled', 'true');
-  await yearList(page).getByRole('button', { name: '2025', exact: true }).click();
+  await yearList(page).getByRole('button', { name: '2025', exact: true }).click({ force: true });
   await expect(yearList(page)).toBeVisible();
   await yearList(page).getByRole('button', { name: '2026', exact: true }).click();
 
@@ -153,15 +154,14 @@ test('the month and the year each open their list, and a pick shows that monthâ€
   await expect(headerButton(page, 'October')).toHaveAccessibleDescription('Choose a month');
   await expect(headerButton(page, '2026')).toHaveAccessibleDescription('Choose a year');
 
-  // The months, in the days' look: short names, the shown one marked. A pick opens its days, on the same day number.
+  // The months, in the days' look and named by their short names, the shown one marked. A pick opens its days, on the
+  // same day number.
   await headerButton(page, 'October').click();
   await expect(headerButton(page, 'October', true)).toBeVisible();
   await expect(sheet(page).getByRole('grid')).toHaveCount(0);
   await expect(monthList(page).getByRole('button')).toHaveCount(12);
-  await expect(monthList(page).getByRole('button', { name: 'October', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  const march = monthList(page).getByRole('button', { name: 'March', exact: true });
-  await expect(march).toHaveText('Mar');
-  await march.click();
+  await expect(monthList(page).getByRole('button', { name: 'Oct', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await monthList(page).getByRole('button', { name: 'Mar', exact: true }).click();
   await expect(sheet(page).getByText('March 2026', { exact: true })).toBeAttached();
   await expect(day(page, 'Monday 16 March 2026')).toBeFocused();
 

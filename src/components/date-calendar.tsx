@@ -246,8 +246,6 @@ export function DateCalendar({
                       <button
                         key={isoMonth}
                         type="button"
-                        // The full name, which holds the short one the cell shows ("November", "Nov").
-                        aria-label={monthOn(isoMonth, { month: 'long' })}
                         aria-pressed={isoMonth === month}
                         aria-current={isoMonth === thisMonth ? 'date' : undefined}
                         aria-disabled={disabled || undefined}
@@ -259,6 +257,8 @@ export function DateCalendar({
                           cellClass({ now: isoMonth === thisMonth, chosen: isoMonth === month, disabled }),
                         )}
                       >
+                        {/* Its name is the short word it shows ("Sept"): a full name ("September") would not hold it,
+                            which WCAG 2.5.3 asks (axe's label-content-name-mismatch, CI on 09-11-2026). */}
                         {monthOn(isoMonth, { month: 'short' })}
                       </button>
                     );

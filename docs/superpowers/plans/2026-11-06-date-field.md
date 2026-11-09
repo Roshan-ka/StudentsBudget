@@ -124,7 +124,7 @@ Roshan, 06-11-2026: "in the entries make the calendar more intuitive and easy to
 Roshan tried the sheet ("good visually"), but reaching another month or year took the ‹ › arrows over and over. Three mockup rounds settled it: "do not show arrow, just an outline around the month and year and show them similar to like the dates", then "show both month and year on top but with different sections".
 
 - **The header:** above the days are two outlined buttons with no arrow, the month ("November") and the year ("2026"), each with `aria-expanded` and a description ("Choose a month", "Choose a year").
-- **Months:** 12 cells in the days' look, round, with this month ringed and the shown one filled. Each shows the short name, and its name is the full one.
+- **Months:** 12 cells in the days' look, round, with this month ringed and the shown one filled. Each shows the short name ("Sept"), which is also its name: a full name would not hold the visible word (WCAG 2.5.3, axe in CI on 09-11).
 - **Years:** 12 years, the shown one with 7 before and 4 after (`yearPage`). Here ‹ › page 12 years at a time.
 - **After a pick:** picking a month or a year shows its days, with the focus on the same day number, clamped (`sameDayIn`).
 - **`min`:** months and years that end before `min` can't be picked.
