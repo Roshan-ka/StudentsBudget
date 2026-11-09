@@ -404,3 +404,25 @@ All of it is in `src/features/import/`, pure TypeScript, and nothing in the app 
   - the start of an account added after some rows;
   - a missing rate or account writes nothing;
   - Undo keeps other entries and moves the start back, does nothing the second time, and records the deletes.
+
+**Chunk 6 (09-11-2026): the page and the export**
+- **`src/components/export-file-button.tsx`:** `ExportFileButton` and `downloadFile`, taken out of `backup-panel.tsx`.
+  - It shares or downloads, and offers "Download instead" when the share sheet fails, with a status line.
+  - `build` is synchronous, from data read before the tap (iOS).
+  - The Backup panel uses it with its own texts; its markup is unchanged. The plan's name was `src/lib/share-file.ts`: it holds JSX, so it went into components.
+- **`src/i18n/regions.ts`:** `RegionInfo.csv`, which is `{ separator: ';', decimal: ',' }` for `de`.
+- **`src/features/export/entries-csv.ts`:**
+  - `entriesCsv(entries, accounts, t, region)`: a BOM, CRLF, oldest first.
+  - Headers from the entry form's own words (date, entry type, category, account, amount, note), plus currency and amount in EUR.
+  - Types and category names in the language. A transfer's category cell is "To Cash".
+  - Amounts are unsigned with no thousands separator; the EUR amount comes from `eurMinor`.
+  - Fields with the separator, a quote or a line break are quoted. Text that starts like a formula gets a `'`.
+  - `entriesFileName` gives `studentsbudget-entries-YYYY-MM-DD.csv`.
+- **`src/features/export/export-entries.tsx`:** the "Export to a spreadsheet" card. It reads the entries and accounts before the tap, and with no entries yet it says so instead of showing the button.
+- **The page:**
+  - `/settings/import` (`PageHeading id="importExport"`), with its Settings row (`FileSpreadsheetIcon`, before Backup and data).
+  - It joins `sw.js`'s precache list, `PAGES` and the map (`axe`, `import`, `language-tour`, `reflow`, `theme`).
+- **Texts:** a new area, `importExport`, and `shell.headings.importExport`, in en, de, fr and es.
+- **Tests:**
+  - `entries-csv.test.ts` (4: English and German, quoting, the formula guard, no entries);
+  - `e2e/import.spec.ts` (2: the row and the empty page; the download's name, BOM, `;`, decimal comma and day-first date).

@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { StatusLine } from '@/components/status-line';
+import { ExportFileButton } from '@/components/export-file-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,114 +19,26 @@ function buildFile(data: BackupData): File {
   return new File([serializeBackup(data, now)], backupFileName(now), { type: 'application/json' });
 }
 
-function download(file: File) {
-  const url = URL.createObjectURL(file);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = file.name;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  // Not right away: some browsers start reading the file after the click has returned.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
-
-type Notice =
-  | { kind: 'shared' }
-  | { kind: 'downloaded'; name: string }
-  // The share sheet did not open: a fresh tap on "Download instead" is a real user gesture.
-  | { kind: 'share-failed' };
-
 function ExportBackup() {
   const { t } = useT();
   const text = t.backup.export;
   // Read before the tap, not in it. iOS opens the share sheet only from inside the tap itself, and waiting
   // on the database first would let that moment pass. The live query also keeps the snapshot current.
   const snapshot = useLiveQuery(() => exportAll(), []);
-  const [sharing, setSharing] = useState(false);
-  const [notice, setNotice] = useState<Notice | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  function startDownload(file: File) {
-    download(file);
-    setNotice({ kind: 'downloaded', name: file.name });
-  }
-
-  function onShareFailed(shareError: unknown) {
-    // Closing the share sheet is a choice, not a failure.
-    if (shareError instanceof DOMException && shareError.name === 'AbortError') return;
-    // NotAllowedError is the expected way a browser says no, and the message below covers it; log anything else.
-    if (!(shareError instanceof DOMException && shareError.name === 'NotAllowedError')) {
-      console.error('StudentsBudget: the share sheet did not open', shareError);
-    }
-    setNotice({ kind: 'share-failed' });
-  }
-
-  // Nothing here waits before it shares or downloads: the browser only allows both from inside the tap.
-  function onExport() {
-    if (!snapshot) return;
-    setNotice(null);
-    setError(null);
-    let file: File;
-    try {
-      file = buildFile(snapshot);
-    } catch (exportError) {
-      console.error('StudentsBudget: could not export the backup', exportError);
-      return setError(text.failed);
-    }
-
-    if (!navigator.canShare?.({ files: [file] })) return startDownload(file);
-
-    setSharing(true);
-    try {
-      navigator
-        .share({ files: [file], title: text.shareTitle })
-        .then(() => setNotice({ kind: 'shared' }), onShareFailed)
-        .finally(() => setSharing(false));
-    } catch (shareError) {
-      setSharing(false);
-      onShareFailed(shareError);
-    }
-  }
-
-  function onDownloadInstead() {
-    if (!snapshot) return;
-    setError(null);
-    try {
-      startDownload(buildFile(snapshot));
-    } catch (exportError) {
-      console.error('StudentsBudget: could not export the backup', exportError);
-      setError(text.failed);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-2">
       <h4 className="font-medium">{text.heading}</h4>
       <p className="text-sm text-muted-foreground">{text.hint}</p>
-      <Button
-        variant="outline"
-        className="self-start px-4"
-        onClick={onExport}
-        disabled={snapshot === undefined || sharing}
-      >
-        {text.button}
-      </Button>
-      {notice?.kind === 'shared' && <StatusLine className="text-sm">{text.shared}</StatusLine>}
-      {notice?.kind === 'downloaded' && <StatusLine className="text-sm">{text.downloaded(notice.name)}</StatusLine>}
-      {notice?.kind === 'share-failed' && (
-        <div role="alert" className="flex flex-col gap-2 text-sm">
-          <p>{text.shareFailed}</p>
-          <Button variant="outline" className="self-start px-4" onClick={onDownloadInstead}>
-            {text.downloadInstead}
-          </Button>
-        </div>
-      )}
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
+      <ExportFileButton
+        build={() => {
+          // Only called once ready, which means the snapshot is there.
+          if (snapshot === undefined) throw new Error('The backup is not read yet');
+          return buildFile(snapshot);
+        }}
+        ready={snapshot !== undefined}
+        text={text}
+      />
     </div>
   );
 }

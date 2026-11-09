@@ -21,6 +21,7 @@ export const shell = {
     appearance: 'Appearance',
     accounts: 'Accounts and transfers',
     backup: 'Backup and data',
+    importExport: 'Import and export',
     moderation: 'Moderation',
     reminder: 'Weekly reminder',
     badges: 'Badges',

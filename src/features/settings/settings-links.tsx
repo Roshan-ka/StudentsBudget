@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   ClipboardListIcon,
   CloudIcon,
+  FileSpreadsheetIcon,
   LandmarkIcon,
   ListChecksIcon,
   MonitorSmartphoneIcon,
@@ -207,6 +208,12 @@ export function SettingsLinks() {
       <AccountLink />
       <ReminderLink />
       <ModerationLink />
+      <SettingsLink
+        href="/settings/import"
+        icon={FileSpreadsheetIcon}
+        title={t.shell.headings.importExport}
+        summary={t.importExport.summary}
+      />
       <SettingsLink href="/settings/backup" icon={ArchiveIcon} title={t.shell.headings.backup} summary={t.backup.summary} />
     </ul>
   );

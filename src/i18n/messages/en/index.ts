@@ -9,6 +9,7 @@ import { checkIn } from './check-in';
 import { common } from './common';
 import { entries } from './entries';
 import { home } from './home';
+import { importExport } from './import-export';
 import { language } from './language';
 import { profile } from './profile';
 import { recurring } from './recurring';
@@ -37,6 +38,7 @@ export const en = {
   recurring,
   accounts,
   backup,
+  importExport,
   sync,
   account,
   auth,
