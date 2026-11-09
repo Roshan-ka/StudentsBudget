@@ -167,4 +167,23 @@ describe('the dictionaries', () => {
       }
     }
   });
+
+  it('names a button repeated once per item starting with the word it shows (WCAG 2.5.3, review of 09-11-2026)', () => {
+    // Voice control says the visible word ("Mettre en pause"); the name must start with it, then say which item.
+    for (const code of Object.keys(LANGUAGES) as (keyof typeof LANGUAGES)[]) {
+      const { accounts, recurring } = MESSAGES[code];
+      const pairs: [string, (name: string) => string][] = [
+        [accounts.edit, accounts.editAccount],
+        [accounts.delete, accounts.deleteAccount],
+        [accounts.makeDefault, accounts.makeDefaultOf],
+        [recurring.edit, recurring.editLine],
+        [recurring.delete, recurring.deleteLine],
+        [recurring.pause, recurring.pauseLine],
+        [recurring.resume, recurring.resumeLine],
+      ];
+      for (const [shown, named] of pairs) {
+        expect(named('Miete').toLowerCase().startsWith(shown.toLowerCase()), `${code}: "${named('Miete')}"`).toBe(true);
+      }
+    }
+  });
 });

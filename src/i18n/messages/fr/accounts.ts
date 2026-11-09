@@ -23,7 +23,7 @@ export const accounts: Messages['accounts'] = {
   editAccount: (name) => `Modifier ${name}`,
   deleteAccount: (name) => `Supprimer ${name}`,
   deleteQuestion: (name) => `Supprimer ${name}\u202f?`,
-  makeDefaultOf: (name) => `Définir ${name} par défaut`,
+  makeDefaultOf: (name) => `Définir par défaut${NNBSP}: ${name}`,
   defaultMark: 'Par défaut pour les nouvelles saisies',
   nowDefault: (name) => `${name} est désormais le compte par défaut pour les nouvelles saisies.`,
   total: 'Total',

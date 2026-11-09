@@ -40,7 +40,7 @@ export const recurring: Messages['recurring'] = {
   resume: 'Reprendre',
   editLine: (name) => `Modifier ${name}`,
   deleteLine: (name) => `Supprimer ${name}`,
-  pauseLine: (name) => `Mettre ${name} en pause`,
+  pauseLine: (name) => `Mettre en pause${NNBSP}: ${name}`,
   resumeLine: (name) => `Reprendre ${name}`,
   deleteQuestion: (name) => `Supprimer ${name}${NNBSP}?`,
   deleteNote: (name) => `Supprimer ${name}${NNBSP}? Les saisies déjà ajoutées restent.`,
