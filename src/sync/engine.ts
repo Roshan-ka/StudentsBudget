@@ -7,6 +7,7 @@ import { heldBack, problemText, type SyncProblem } from './problem';
 import { pull } from './pull';
 import { push } from './push';
 import { StoreError, type UserDataStore } from './store';
+import { bringBackUsedAccounts } from './used-accounts';
 
 /**
  * How a sync ended: done (rows sent, and rows taken from the account), or not run because this phone isn't linked to
@@ -22,7 +23,8 @@ export type SyncResult =
 let running: Promise<SyncResult> | null = null;
 
 /**
- * Syncs this phone with the account of `userId` (P2.2): its changes first (push), then the account's (pull). One sync
+ * Syncs this phone with the account of `userId` (P2.2): its changes first (push), then the account's (pull), then the
+ * accounts this phone deleted, which wait for the pull in case another phone booked on one meanwhile. One sync
  * at a time: a call while one runs gets that one's result. It runs only while this phone is linked to that account
  * and online, and records when it last synced, or what stopped it, in `syncState`. Nothing calls it on a timer yet:
  * the person taps Sync now.
@@ -39,11 +41,14 @@ async function sync(store: UserDataStore, userId: string): Promise<SyncResult> {
   if (state?.userId !== userId) return { kind: 'not-linked' };
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return { kind: 'offline' };
   try {
-    const pushed = await push(store);
+    const pushed = await push(store, { holdAccountDeletes: true });
     const pulled = await pull(store);
     if (pulled.kind === 'invalid') return await stopped(pulled.problem);
-    // A pull can queue a row to go back (an account another phone deleted while this one still uses it): sent now. The
-    // rows push held back stay queued, so only more than those means the pull queued something.
+    // An account deleted here that a pulled entry now uses comes back from the account; the other deletes go below.
+    await bringBackUsedAccounts(store);
+    // A pull can queue a row to go back (an account another phone deleted while this one still uses it), and the
+    // account deletes held above still wait: sent now. The rows push held back stay queued, so only more than those
+    // means something is left to send.
     const again = (await db.outbox.count()) > pushed.held ? await push(store) : null;
     const held = again?.held ?? pushed.held;
     // Synced, but a change this app's own checks refuse stays on the phone: said, so it isn't lost unnoticed.

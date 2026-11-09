@@ -13,7 +13,7 @@ export const accounts: Messages['accounts'] = {
   type: 'Tipo',
   currency: 'Moneda',
   opening: 'Saldo inicial',
-  currencyLocked: 'La moneda ya no se puede cambiar cuando la cuenta tiene registros.',
+  currencyLocked: 'La moneda ya no se puede cambiar cuando la cuenta tiene registros, gastos fijos o ingresos.',
   save: 'Guardar cuenta',
   cancel: 'Cancelar',
   edit: 'Editar',

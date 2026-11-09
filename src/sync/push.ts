@@ -19,8 +19,14 @@ export type PushResult = { sent: number; deleted: number; held: number };
  * changed (`auto`) is added only where the account has none; where it has one, the account's copy comes back instead.
  * Once a table's rows are written, their outbox entries go, except those whose row changed again meanwhile (their seq
  * moved on): that change stays queued for the next push. A refused write throws, and leaves the rest queued.
+ *
+ * `holdAccountDeletes` keeps the accounts this phone deleted queued: Sync now sends them only after its pull, once it
+ * knows whether another phone booked on one meanwhile (`bringBackUsedAccounts`).
  */
-export async function push(store: UserDataStore): Promise<PushResult> {
+export async function push(
+  store: UserDataStore,
+  { holdAccountDeletes = false }: { holdAccountDeletes?: boolean } = {},
+): Promise<PushResult> {
   const queue = await db.outbox.toArray();
   const result: PushResult = { sent: 0, deleted: 0, held: 0 };
   const gone = new Map<ServerTable, OutboxEntry[]>();
@@ -52,7 +58,7 @@ export async function push(store: UserDataStore): Promise<PushResult> {
   // with an entry on a deleted account.
   for (const table of DELETE_ORDER) {
     const deletes = gone.get(table) ?? [];
-    if (deletes.length === 0) continue;
+    if (deletes.length === 0 || (holdAccountDeletes && table === 'accounts')) continue;
     await store.tombstone(table, deletes.map((entry) => entry.id));
     await settle(deletes);
     result.deleted += deletes.length;

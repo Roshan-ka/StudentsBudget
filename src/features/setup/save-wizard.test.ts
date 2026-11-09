@@ -99,9 +99,22 @@ describe('saveWizard', () => {
     await Promise.all(db.tables.map((table) => table.clear()));
     const draft = { ...initialDraft(), rentMinor: 40000 };
 
-    await saveWizard(draftToRecords(draft, TODAY), false);
+    expect(await saveWizard(draftToRecords(draft, TODAY), false)).toBe('saved');
 
     expect((await db.accounts.toArray()).map((a) => a.name).sort()).toEqual(['Cash', 'Home bank', 'Local bank']);
     expect(await db.plan.get('current')).toMatchObject({ createdOn: TODAY, fixed: [{ categoryId: 'rent', monthlyMinor: 40000 }] });
+  });
+
+  it('writes nothing when a plan arrived while a new setup was open, so that plan and its accounts stay', async () => {
+    // The wizard opened on an empty phone; meanwhile the account's data came down (or another tab saved its setup).
+    await Promise.all(db.tables.map((table) => table.clear()));
+    const draft = { ...initialDraft(), rentMinor: 99900 };
+    await db.accounts.bulkAdd([account('local'), account('other')]);
+    await db.plan.put(PLAN);
+
+    expect(await saveWizard(draftToRecords(draft, TODAY), false)).toBe('already-set-up');
+
+    expect((await db.accounts.toArray()).map((a) => a.id).sort()).toEqual(['local', 'other']);
+    expect(await db.plan.get('current')).toEqual(PLAN);
   });
 });

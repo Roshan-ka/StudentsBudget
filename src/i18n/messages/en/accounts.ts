@@ -13,7 +13,7 @@ export const accounts = {
   type: 'Type',
   currency: 'Currency',
   opening: 'Opening balance',
-  currencyLocked: "The currency can't change once the account has entries.",
+  currencyLocked: "The currency can't change once the account has entries, or a fixed cost or income runs through it.",
   save: 'Save account',
   cancel: 'Cancel',
   edit: 'Edit',

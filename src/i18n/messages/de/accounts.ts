@@ -13,7 +13,7 @@ export const accounts: Messages['accounts'] = {
   type: 'Art',
   currency: 'Währung',
   opening: 'Anfangsstand',
-  currencyLocked: 'Die Währung lässt sich nicht mehr ändern, sobald das Konto Einträge hat.',
+  currencyLocked: 'Die Währung lässt sich nicht mehr ändern, sobald das Konto Einträge hat oder Fixkosten oder Einnahmen darüber laufen.',
   save: 'Konto speichern',
   cancel: 'Abbrechen',
   edit: 'Bearbeiten',

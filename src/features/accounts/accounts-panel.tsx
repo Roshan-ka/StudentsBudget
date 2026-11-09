@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { db } from '@/db/db';
 import { loadRates, refreshRates } from '@/db/rates';
-import { AccountHasScheduleError, AccountInUseError, deleteAccount } from '@/db/repo';
-import type { Account, Entry } from '@/db/types';
+import { AccountHasScheduleError, AccountInUseError, accountUse, deleteAccount } from '@/db/repo';
+import type { Account } from '@/db/types';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
@@ -19,16 +19,13 @@ import { describedBy } from '@/lib/described-by';
 import { CURRENCIES, formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { newId } from '@/lib/new-id';
 import { accountBalance, defaultAccount, sortAccounts, totalInEur } from './balances';
+import { currencyFixed } from './currency-lock';
 import { isOverdrawn, parseSignedAmount, tickOverdrawn, typeOpening } from './opening-balance';
 import { setDefaultAccount } from './set-default-account';
 import { focusFirstControl, focusOnMount, useFocusAfter } from '@/lib/focus';
 
 function minorToInput(minor: Minor): string {
   return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
-}
-
-function hasEntries(accountId: string, entries: Entry[]): boolean {
-  return entries.some((e) => e.accountId === accountId || (e.type === 'transfer' && e.toAccountId === accountId));
 }
 
 async function refreshExchangeRates() {
@@ -86,6 +83,13 @@ function AccountForm({
     setSaving(true);
     setError(null);
     try {
+      // The field is locked while something uses the account (`currencyFixed`); this asks again, since another tab may
+      // have booked on it or planned a line on it since the form opened.
+      if (account && currency !== account.currency && (await accountUse(account.id)) !== null) {
+        setError({ text: text.currencyLocked, field: null });
+        setSaving(false);
+        return;
+      }
       await db.accounts.put({
         // The spread keeps what the form does not edit, such as the default mark.
         ...account,
@@ -233,6 +237,8 @@ export function AccountsPanel() {
   const text = t.accounts;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
   const entries = useLiveQuery(() => db.entries.toArray(), []);
+  // A fixed cost or income line posting to an account fixes its currency too (`currencyFixed`).
+  const plan = useLiveQuery(() => db.plan.get('current'), []);
   const rates = useLiveQuery(() => loadRates(), []);
   // 'new' is the add form; an account id is that account's edit form.
   const [editing, setEditing] = useState<string | null>(null);
@@ -341,7 +347,7 @@ export function AccountsPanel() {
               {editing === account.id ? (
                 <AccountForm
                   account={account}
-                  currencyLocked={hasEntries(account.id, entries)}
+                  currencyLocked={currencyFixed(account.id, entries ?? [], plan)}
                   onDone={() => {
                     focus.mark(editKey(account.id));
                     setEditing(null);
