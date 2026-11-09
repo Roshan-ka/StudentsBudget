@@ -203,6 +203,25 @@ describe('serializeBackup and parseBackup', () => {
     expect(without.ok && without.data.plan).not.toHaveProperty('spendingBudgetMinor');
   });
 
+  it('round-trips what a one-off had set aside before an edit, and a one-off without the record stays without', () => {
+    const data = sample();
+    const [fee] = data.plan!.oneOffs;
+    data.plan = { ...data.plan!, oneOffs: [{ ...fee, setAsideBefore: { month: '2026-12', minor: 12_000 } }, { ...fee, id: 'o2' }] };
+
+    const result = parseBackup(serializeBackup(data, NOW));
+    expect(result).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(result.ok && result.data.plan?.oneOffs[1]).not.toHaveProperty('setAsideBefore');
+  });
+
+  it('says it is incomplete for a one-off that had set aside less than nothing', () => {
+    const text = fileOf((file) => {
+      const plan = file.data.plan as { oneOffs: Record<string, unknown>[] };
+      plan.oneOffs[0].setAsideBefore = { month: '2026-12', minor: -1 };
+    });
+
+    expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
+  });
+
   it('round-trips the default account, and accounts without the mark stay without it', () => {
     const data = sample();
     data.accounts[1] = { ...data.accounts[1], isDefault: true };

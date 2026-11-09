@@ -85,7 +85,15 @@ export const planRow = z.object({
   incomes: z.array(planLine),
   fixed: z.array(planLine),
   oneOffs: z.array(
-    z.object({ id, name: text, amountMinor: minor, createdMonth: isoMonth, dueMonth: isoMonth }),
+    z.object({
+      id,
+      name: text,
+      amountMinor: minor,
+      createdMonth: isoMonth,
+      dueMonth: isoMonth,
+      // Optional, as on `OneOff`: a one-off never edited after its set-aside began has none.
+      setAsideBefore: z.object({ month: isoMonth, minor: minor.nonnegative() }).optional(),
+    }),
   ),
   envelopes: z.array(amount),
   // Optional, as on `Plan`: older files have none, and the check in backup.ts needs the two types to agree.

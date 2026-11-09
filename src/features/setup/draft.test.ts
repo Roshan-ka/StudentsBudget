@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CATEGORIES, CORE_FLEXIBLE_IDS, SETUP_FIXED_IDS, SETUP_INCOME_IDS } from '@/data/categories';
 import type { Plan, Schedule } from '@/db/types';
 import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
+import { setAsideBy, setAsideMonthly } from '@/lib/budget';
 import {
   FIXED_CATEGORIES,
   FLEXIBLE_CATEGORIES,
@@ -186,8 +187,70 @@ describe('draftToRecords', () => {
       };
       const { plan } = draftToRecords(edited, TODAY, existing);
       expect(plan.oneOffs).toEqual([
-        { id: 'fee', name: 'Semester fee', amountMinor: 35000, createdMonth: '2026-09', dueMonth: '2027-04' },
+        {
+          id: 'fee',
+          name: 'Semester fee',
+          amountMinor: 35000,
+          createdMonth: '2026-09',
+          dueMonth: '2027-04',
+          // September's €50 (€300 over six months) was set aside before the edit.
+          setAsideBefore: { month: '2026-10', minor: 5000 },
+        },
       ]);
+    });
+
+    /** The saved plan opened in Edit plan, with the fee's row changed to the amount, due month and name given. */
+    const feeEdited = (base: Plan, amountMinor: number, dueMonth: string, name = 'Semester fee'): SetupDraft => ({
+      ...draftFromPlan(base),
+      oneOffs: [{ id: 'fee', name, amountMinor, dueMonth }],
+    });
+    const recorded = (amountMinor: number): Plan => ({
+      ...existing,
+      oneOffs: [{ ...existing.oneOffs[0], amountMinor, setAsideBefore: { month: '2026-10', minor: 5000 } }],
+    });
+
+    it('spreads a raised amount over the months left, so the whole of it is set aside by the due month', () => {
+      const fee = draftToRecords(feeEdited(existing, 36000, '2027-03'), TODAY, existing).plan.oneOffs[0];
+
+      // September stays as it was; October to February share the other €310.
+      expect(setAsideMonthly(fee, '2026-09')).toBe(5000);
+      expect(setAsideMonthly(fee, '2026-10')).toBe(6200);
+      expect(setAsideMonthly(fee, '2027-02')).toBe(6200);
+      expect(setAsideBy(fee, '2027-03')).toBe(36000);
+    });
+
+    it('spreads the rest over the new months when the due month moves later', () => {
+      const fee = draftToRecords(feeEdited(existing, 30000, '2027-06'), TODAY, existing).plan.oneOffs[0];
+
+      expect(fee.setAsideBefore).toEqual({ month: '2026-10', minor: 5000 });
+      expect(setAsideMonthly(fee, '2026-10')).toBe(3125);
+      expect(setAsideBy(fee, '2027-06')).toBe(30000);
+    });
+
+    it('records nothing for a one-off changed in the month it was added: nothing was set aside yet', () => {
+      const fresh: Plan = { ...existing, oneOffs: [{ ...existing.oneOffs[0], createdMonth: '2026-10' }] };
+
+      expect(draftToRecords(feeEdited(fresh, 36000, '2027-03'), TODAY, fresh).plan.oneOffs[0]).not.toHaveProperty(
+        'setAsideBefore',
+      );
+    });
+
+    it('keeps an earlier record when the one-off is saved unchanged, or only renamed', () => {
+      const saved = recorded(30000);
+      expect(draftToRecords(draftFromPlan(saved), '2026-12-02', saved).plan).toEqual(saved);
+
+      const renamed = draftToRecords(feeEdited(saved, 30000, '2027-03', 'Uni fee'), '2026-12-02', saved);
+      expect(renamed.plan.oneOffs[0].setAsideBefore).toEqual({ month: '2026-10', minor: 5000 });
+    });
+
+    it('records again from the earlier record when the amount changes a second time', () => {
+      const saved = recorded(36000);
+      const fee = draftToRecords(feeEdited(saved, 39900, '2027-03'), '2026-12-02', saved).plan.oneOffs[0];
+
+      // September's €50, then October and November at €62 each; December to February share the other €225.
+      expect(fee.setAsideBefore).toEqual({ month: '2026-12', minor: 17400 });
+      expect(setAsideMonthly(fee, '2026-12')).toBe(7500);
+      expect(setAsideBy(fee, '2027-03')).toBe(39900);
     });
 
     it('does not let two rows claim the same kept one-off', () => {

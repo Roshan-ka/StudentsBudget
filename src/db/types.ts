@@ -59,6 +59,12 @@ export type OneOff = {
   amountMinor: Minor;
   createdMonth: IsoMonth;
   dueMonth: IsoMonth;
+  /**
+   * What was already set aside by the start of `month`, kept when Edit plan changed the amount or the due month after
+   * the set-aside began (Roshan, 09-11-2026): from `month` on, the rest is spread over the months left, so the full
+   * amount is put aside by `dueMonth` (`setAsideMonthly`). Without it the amount is spread evenly from `createdMonth`.
+   */
+  setAsideBefore?: { month: IsoMonth; minor: Minor };
 };
 
 /** Plan, envelope and city amounts are always EUR. */
