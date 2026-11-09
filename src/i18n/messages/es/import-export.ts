@@ -22,7 +22,6 @@ export const importExport: Messages['importExport'] = {
     problems: {
       tooBig: 'Este archivo es demasiado grande para un extracto: como mucho 2 MB y 5000 filas.',
       empty: 'Este archivo no tiene filas que la app pueda leer.',
-      unknown: 'La app no reconoce las columnas de este archivo. Funcionan los extractos de Sparkasse, DKB, N26 y Revolut.',
       creditCard: (bank) =>
         `Es una exportación de tarjeta de crédito de ${bank}, que la app aún no sabe leer. Exporta en su lugar el extracto de tu cuenta corriente.`,
       failed: 'No se ha podido leer el archivo.',
@@ -31,6 +30,30 @@ export const importExport: Messages['importExport'] = {
       noAccount: 'Esa cuenta ya no existe. Elige otra.',
       saveFailed: 'No se ha podido guardar la importación.',
     },
+  },
+  match: {
+    heading: '¿Qué columna tiene qué?',
+    intro:
+      'La app no reconoce las columnas de este archivo. Indica qué tiene cada columna: recordará tu elección para el ' +
+      'próximo archivo con las mismas columnas.',
+    remembered: 'Asignado como en tu último archivo con estas columnas.',
+    date: 'Fecha',
+    dateOrder: 'Las fechas se escriben',
+    orders: { dmy: 'Día primero (31.10.2026)', ymd: 'Año primero (2026-10-31)', mdy: 'Mes primero (10/31/2026)' },
+    amountKind: 'El importe está',
+    amountKinds: { one: 'En una columna, con un menos para lo que sale', two: 'En dos columnas: lo que sale y lo que entra' },
+    amount: 'Importe',
+    out: 'Sale (cargos)',
+    in: 'Entra (abonos)',
+    payee: 'A quién se pagó, o quién te pagó',
+    purpose: 'Detalles (opcional)',
+    currency: 'Moneda (opcional)',
+    none: 'Ninguna',
+    preview: 'Las primeras filas, tal como las lee la app',
+    unreadable: 'No se puede leer con estas columnas',
+    use: 'Usar estas columnas',
+    twice: 'Elige una columna distinta para cada uno.',
+    file: (rows, from, to) => `Tu archivo: ${byCount(rows, { one: `${rows} fila`, other: `${rows} filas` })}, del ${from} al ${to}`,
   },
   result: {
     heading: 'Importación terminada',

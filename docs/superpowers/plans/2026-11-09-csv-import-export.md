@@ -447,3 +447,27 @@ All of it is in `src/features/import/`, pure TypeScript, and nothing in the app 
   - the same file twice ("Nothing new", "Already in the app", no Undo);
   - Revolut (another currency, moves inside Revolut, pending, top-ups with no account);
   - an unknown CSV (the alert and `aria-invalid`).
+
+**Chunk 8 (09-11-2026): columns matched by hand**
+- **`src/features/import/mapping.ts`:**
+  - `ColumnChoice`: the date with its order, the amount (one signed column, or out and in), who was paid, and the optional details and currency, by column place.
+  - `mappingOf` turns a choice into the `Mapping` `readRows` reads with.
+  - `isComplete`: the required columns are all different and inside the header.
+  - `guessChoice`, the first guess:
+    - the date is the column whose values are dates;
+    - the amount is two columns whose names say out and in (Soll/Haben, Debit/Credit; never a bare "in" or "out", so "Amount in EUR" stays an amount), else the first amount column;
+    - who was paid and the details are the text columns with the most different values;
+    - the currency is a named column, or one of three-letter codes.
+  - `rememberChoice` and `rememberedChoice` keep a choice per header row (`headerKey`) on this phone, the newest 10, under `studentsbudget-import-columns` through `writePref`.
+- **`import-statement.tsx`:** an unknown CSV opens `ColumnMatching` in place of an alert.
+  - The focus goes to its heading. It opens on the remembered choice ("Matched as for your last file with these columns."), else the guess.
+  - It has selects for every column, with "None" for the optional ones, the date order, and how the amount is written.
+  - The first three rows show as they read, or as unreadable.
+  - "Use these columns" refuses a column used twice, with an alert the fields point to. Otherwise it remembers the choice and goes on to "Import into", where the status line says "Your file: …".
+  - The steps now carry a `Source` (the bank and its hints, or null) instead of the profile.
+  - The old "unknown columns" problem is gone in all four languages.
+- **Texts:** the `importExport.match` area in en, de, fr and es. French "Date" is allowed to be the same as English.
+- **Tests:**
+  - `mapping.test.ts` (7): the guess for the fixture, one signed column and year-first dates, no bare "in"; the mapping read through; `isComplete`; remembering, and its limit of 10.
+  - `e2e/import.spec.ts`: an unknown CSV matched (the guess shown, a column used twice refused, imported with an unreadable row left out, matched the next time).
+  - The failing case of run 431 is replaced. It took `page.getByRole('alert')`, which Next's route announcer also matches, so the new one scopes its alerts to the card and checks a file with one column.

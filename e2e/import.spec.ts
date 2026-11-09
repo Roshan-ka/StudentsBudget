@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry } from '../src/db/types';
-import { REVOLUT, SPARKASSE_CAMT } from '../src/features/import/fixtures';
+import { REVOLUT, SPARKASSE_CAMT, UNKNOWN } from '../src/features/import/fixtures';
 import { openApp } from './helpers/app';
 import { seedSetup } from './helpers/seed-setup';
 import { readStore } from './helpers/setup';
 
-// Settings → Import and export (docs/superpowers/plans/2026-11-09-csv-import-export.md): a bank statement in (chunk 7),
+// Settings → Import and export (docs/superpowers/plans/2026-11-09-csv-import-export.md): a bank statement in (chunk 7;
+// columns matched by hand, chunk 8),
 // the entries out as a CSV file for a spreadsheet, in the region's format (chunk 6). The statements are the unit tests'
 // fixtures (src/features/import/fixtures.ts): Sparkasse 30.10.–04.11.2026, Revolut 01.–05.11.2026.
 
@@ -179,15 +180,52 @@ test('lists Revolut rows in another currency, moves inside Revolut and pending o
   await expect(group('No account in the app to transfer to')).toContainText('Top-Up by');
 });
 
-test('says what is wrong with a file it cannot import', async ({ page }) => {
+test('a CSV it doesn’t know is matched by hand, imported, and opens matched the next time', async ({ page }) => {
   await page.clock.setFixedTime(IMPORT_DAY);
   await seedSetup(page);
   await openApp(page, '/settings/import');
-  const file = page.getByLabel('Statement file (CSV)', { exact: true });
+  const card = page.getByRole('region', { name: 'Import a bank statement', exact: true });
 
-  await file.setInputFiles({ name: 'notes.csv', mimeType: 'text/csv', buffer: Buffer.from('Datum;Text;Soll\n01.11.2026;Edeka;12,30\n') });
-  await expect(page.getByRole('alert')).toHaveText(
-    "The app doesn't recognise this file's columns. Statements from Sparkasse, DKB, N26 and Revolut work.",
-  );
+  // Datum;Text;Soll;Haben;Währung: Edeka out, salary in, and a row without an amount.
+  await card.getByLabel('Statement file (CSV)', { exact: true }).setInputFiles({ name: 'volksbank.csv', mimeType: 'text/csv', buffer: Buffer.from(UNKNOWN) });
+  await expect(card.getByRole('heading', { level: 4, name: 'Which column holds what?', exact: true })).toBeFocused();
+  // The app's guess: money out and money in apart, by their names.
+  await expect(card.getByRole('combobox', { name: 'The amount is', exact: true })).toHaveValue('two');
+  await expect(card.getByRole('combobox', { name: 'Money out', exact: true }).locator('option:checked')).toHaveText('Soll');
+  await expect(card.getByRole('combobox', { name: 'Money in', exact: true }).locator('option:checked')).toHaveText('Haben');
+  await expect(card.getByRole('listitem').first()).toHaveText(/^01\.11\.2026 · .*12[.,]30 · Edeka Center$/);
+
+  // Picking the same column twice is refused, in words tied to the fields.
+  await card.getByRole('combobox', { name: 'Money in', exact: true }).selectOption({ label: 'Soll' });
+  await card.getByRole('button', { name: 'Use these columns', exact: true }).click();
+  await expect(card.getByRole('alert')).toHaveText('Choose a different column for each of these.');
+  await card.getByRole('combobox', { name: 'Money in', exact: true }).selectOption({ label: 'Haben' });
+  await card.getByRole('button', { name: 'Use these columns', exact: true }).click();
+
+  await expect(card.getByRole('status')).toHaveText('Your file: 3 rows, 01.11.2026 to 02.11.2026');
+  await card.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(card.getByText('2 entries added.', { exact: true })).toBeVisible();
+  await expect(card.getByText('Could not be read', { exact: true })).toBeVisible();
+  expect((await importedEntries(page)).map((entry) => [entry.type, entry.amountMinor, entry.note]).sort()).toEqual([
+    ['expense', 1230, 'Edeka Center'],
+    ['income', 45000, 'Lohn Oktober'],
+  ]);
+
+  // The next file with these columns opens as matched last time.
+  await card.getByRole('button', { name: 'Import another file', exact: true }).click();
+  await card.getByLabel('Statement file (CSV)', { exact: true }).setInputFiles({ name: 'volksbank-2.csv', mimeType: 'text/csv', buffer: Buffer.from(UNKNOWN) });
+  await expect(card.getByText('Matched as for your last file with these columns.', { exact: true })).toBeVisible();
+});
+
+test('says what is wrong with a file it can’t import', async ({ page }) => {
+  await page.clock.setFixedTime(IMPORT_DAY);
+  await seedSetup(page);
+  await openApp(page, '/settings/import');
+  const card = page.getByRole('region', { name: 'Import a bank statement', exact: true });
+  const file = card.getByLabel('Statement file (CSV)', { exact: true });
+
+  // One column: nothing the app can read, matched or not. The alert is the card's own (Next's route announcer is one too).
+  await file.setInputFiles({ name: 'notes.csv', mimeType: 'text/csv', buffer: Buffer.from('Notes\nbuy milk\n') });
+  await expect(card.getByRole('alert')).toHaveText('This file has no rows the app can read.');
   await expect(file).toHaveAttribute('aria-invalid', 'true');
 });
