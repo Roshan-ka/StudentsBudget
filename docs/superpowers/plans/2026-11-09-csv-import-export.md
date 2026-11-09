@@ -426,3 +426,24 @@ All of it is in `src/features/import/`, pure TypeScript, and nothing in the app 
 - **Tests:**
   - `entries-csv.test.ts` (4: English and German, quoting, the formula guard, no entries);
   - `e2e/import.spec.ts` (2: the row and the empty page; the download's name, BOM, `;`, decimal comma and day-first date).
+
+**Chunk 7 (09-11-2026): importing a recognised bank's statement**
+- **`src/features/import/import-statement.tsx`, `ImportStatement`:** the "Import a bank statement" card, above the export on `/settings/import`.
+  - **Without a plan,** it points to setup.
+  - **Picking a file:** a labelled file input (`.csv`). The bytes are read in the page's memory only (`file.arrayBuffer()`, then `openStatement`), and a newer pick wins over one still being read.
+  - **A recognised bank:**
+    - a `StatusLine` names it, with its rows and dates ("Sparkasse: 6 rows, 30.10.2026 to 04.11.2026");
+    - "Import into" is preselected by an account named after the bank (`accountHints`), else `defaultAccount`;
+    - then Import (`lg`), or "Choose another file".
+  - **Anything else** gets an alert tied to the input (`aria-invalid`, `aria-describedby`): too big, empty, DKB's credit card (unsupported), or columns it doesn't know (the column matching comes in chunk 8). The same goes for a refused save (`noRate` with the currency, `noAccount`).
+- **`ImportSummary`:** replaces the form, with the focus on its heading (`useFocusOnMount`).
+  - It shows the entries added and how many are transfers, or "Nothing new"; each starting balance that moved; and the rows left out, grouped by reason (duplicates first), each with its date, amount and cleaned text.
+  - "Undo this import" (only when something was added) calls `undoImport`. A `StatusLine` says how many entries went, and the focus returns to the file input (`useFocusAfter`).
+  - "Import another file" starts over.
+- **`plan-import.ts`:** a skipped row keeps its `currency` (the row's or the account's), and its text goes through `importNote`, so no card or account number reaches the screen.
+- **Texts:** the `importExport` area gains `import`, `result` (`reasons` for every `SkipReason`) and a summary that names the import too, in en, de, fr and es. French and Spanish counts go through `byCount`.
+- **Tests:** `e2e/import.spec.ts`, 4 more:
+  - Sparkasse into the default account, with the summary (3 added, 1 a transfer; both starts moved; 3 left out), the database rows and the starts, then Undo (entries gone, starts back, the focus on the input);
+  - the same file twice ("Nothing new", "Already in the app", no Undo);
+  - Revolut (another currency, moves inside Revolut, pending, top-ups with no account);
+  - an unknown CSV (the alert and `aria-invalid`).
