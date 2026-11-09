@@ -150,6 +150,12 @@ export function buildCityPack(): PackItem[] {
   return items;
 }
 
+/**
+ * The module the written file imports its type from, next to it. Built, not written out, so CI's import scanner
+ * (scripts/ci-affected.mjs) doesn't take the written file's import for one of this file's.
+ */
+const PACK_MODULE = ['.', 'pack.ts'].join('/');
+
 /** The text of supabase/functions/_shared/ai/city-pack.ts for these items. */
 export function cityPackFile(items: readonly PackItem[]): string {
   return [
@@ -157,7 +163,7 @@ export function cityPackFile(items: readonly PackItem[]): string {
     '// Run `node scripts/write-city-pack.mjs` after changing src/data; src/features/ai/server/city-pack.test.ts fails',
     '// while this file is stale.',
     '',
-    "import type { PackItem } from './pack.ts';",
+    `import type { PackItem } from '${PACK_MODULE}';`,
     '',
     `export const CITY_PACK: readonly PackItem[] = ${JSON.stringify(items, null, 2)};`,
     '',
