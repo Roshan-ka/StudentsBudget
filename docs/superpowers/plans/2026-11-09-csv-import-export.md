@@ -471,3 +471,16 @@ All of it is in `src/features/import/`, pure TypeScript, and nothing in the app 
   - `mapping.test.ts` (7): the guess for the fixture, one signed column and year-first dates, no bare "in"; the mapping read through; `isComplete`; remembering, and its limit of 10.
   - `e2e/import.spec.ts`: an unknown CSV matched (the guess shown, a column used twice refused, imported with an unreadable row left out, matched the next time).
   - The failing case of run 431 is replaced. It took `page.getByRole('alert')`, which Next's route announcer also matches, so the new one scopes its alerts to the card and checks a file with one column.
+
+**Chunk 9 (09-11-2026): the way in from Entries, and done**
+- **`src/features/entries/import-link.tsx`:** `ImportLink`, a quiet text link under quick add on `/entries`, to `/settings/import`.
+  - It is named by the import card's own heading ("Import a bank statement"), so it needs no new text in any language.
+  - It is at least 44 px high, like the start page's text links.
+  - Nothing goes on Home.
+- **`e2e/entries.spec.ts`:** "the list leads to the bank statement import".
+- **`CLAUDE.md`:** the feature is marked built, with a "Ways in" line.
+- **Left for Roshan:**
+  - a CI run with `languages=all` on his OK, for the new texts' 375 px tour;
+  - the real try with his own Sparkasse, N26, DKB or Revolut export on the phone (Files on the iPhone, Downloads on Android).
+
+  The checks for the real try are listed under Verification. A layout that reads wrong is a fix to `profiles.ts`.
