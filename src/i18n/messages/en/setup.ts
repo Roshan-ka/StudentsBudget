@@ -114,6 +114,8 @@ export const setup = {
     studentsHere: 'Students here',
     suggested: (amount: string) => `Suggested: ${amount}`,
     below: 'Below what students here typically need.',
+    /** Above the envelopes when two or more are below (`count` is at least 2). */
+    belowSome: (count: number) => `${count} of these are below what students here typically need.`,
   },
   /** draft.ts's lines: the envelopes footer, the budget line and a city range. */
   lines: {

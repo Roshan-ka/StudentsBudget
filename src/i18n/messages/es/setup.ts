@@ -26,7 +26,7 @@ export const setup: Messages['setup'] = {
     checkOpening: (name, number) => `Revisa el saldo inicial de ${name ?? `la cuenta ${number}`}.`,
     foreignAmount: (currency, name) => `Escribe el importe en ${currency} de ${name}.`,
     nameOneOffs: 'Ponle nombre a cada gasto puntual.',
-    checkOneOff: (name, number) => `Revisa el importe de ${name ?? `el gasto puntual ${number}`}.`,
+    checkOneOff: (name, number) => (name === null ? `Revisa el importe del gasto puntual ${number}.` : `Revisa el importe de ${name}.`),
     dueMonth: 'Elige un mes posterior a este.',
     checkBudget: 'Revisa el importe de tu presupuesto del día a día.',
     addEnvelope: (name) => `Añade un importe para ${name}`,
@@ -102,6 +102,7 @@ export const setup: Messages['setup'] = {
     studentsHere: 'Estudiantes aquí',
     suggested: (amount) => `Sugerido: ${amount}`,
     below: 'Por debajo de lo que suelen necesitar los estudiantes de aquí.',
+    belowSome: (count) => `${count} de estos sobres están por debajo de lo que suelen necesitar los estudiantes de aquí.`,
   },
   lines: {
     available: (amount) => `Disponible: ${amount}`,
