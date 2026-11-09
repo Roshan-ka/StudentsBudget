@@ -14,7 +14,7 @@ export const accounts: Messages['accounts'] = {
   type: 'Type',
   currency: 'Devise',
   opening: 'Solde initial',
-  currencyLocked: 'La devise ne peut plus être modifiée une fois que le compte a des saisies.',
+  currencyLocked: 'La devise ne peut plus être modifiée une fois que le compte a des saisies, ou des charges fixes ou des revenus.',
   save: 'Enregistrer le compte',
   cancel: 'Annuler',
   edit: 'Modifier',
