@@ -38,7 +38,7 @@ async function addExpenseFromCheckIn(page: Page, expense: { amount: string; cate
   await expect(page).toHaveURL('/entries/new?from=check-in');
   await page.getByLabel('Amount', { exact: true }).fill(expense.amount);
   await page.getByLabel('Category', { exact: true }).selectOption({ label: expense.category });
-  await page.getByLabel('Date', { exact: true }).fill(expense.date);
+  await page.getByLabel('Date', { exact: true }).fill(formatDate(expense.date));
   await page.getByRole('button', { name: 'Save expense' }).click();
   // Back to the check-in, where the person was.
   await expect(page).toHaveURL('/check-in');
@@ -175,10 +175,9 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await expect(page).toHaveURL('/entries/new?from=check-in');
   await page.getByLabel('Amount', { exact: true }).fill('50');
   await page.getByLabel('Category', { exact: true }).selectOption({ label: 'Eating out' });
-  // Saturday is one tap away: Yesterday, shown as DD.MM.YYYY, over the native input's ISO value.
+  // Saturday is one tap away: Yesterday, shown as DD.MM.YYYY in the field.
   await page.getByRole('button', { name: 'Yesterday', exact: true }).click();
-  await expect(page.getByLabel('Date', { exact: true })).toHaveValue('2026-10-17');
-  await expect(page.getByText(formatDate('2026-10-17'), { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Date', { exact: true })).toHaveValue(formatDate('2026-10-17'));
   await page.getByRole('button', { name: 'Save expense' }).click();
   await expect(page).toHaveURL('/check-in');
 

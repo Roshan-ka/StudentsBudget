@@ -75,22 +75,20 @@ test('Profile has its own page in Settings, prefills the semester and keeps what
   await nameField(page).fill('Roshan');
   await universityField(page).selectOption({ label: 'Universität Regensburg' });
   // The current semester, from the university's own semester dates, with their source.
-  await expect(startField(page)).toHaveValue('2026-10-01');
-  await expect(endField(page)).toHaveValue('2027-03-31');
-  await expect(profileSection(page).getByText(formatDate('2026-10-01'), { exact: true })).toBeVisible();
-  await expect(profileSection(page).getByText(formatDate('2027-03-31'), { exact: true })).toBeVisible();
+  await expect(startField(page)).toHaveValue(formatDate('2026-10-01'));
+  await expect(endField(page)).toHaveValue(formatDate('2027-03-31'));
   await expect(profileSection(page).getByText('26 weeks', { exact: false })).toBeVisible();
   await expect(profileSection(page).getByText('Source', { exact: true })).toBeVisible();
 
   // OTH splits the year in mid-March.
   await universityField(page).selectOption({ label: 'OTH Regensburg' });
-  await expect(startField(page)).toHaveValue('2026-10-01');
-  await expect(endField(page)).toHaveValue('2027-03-14');
+  await expect(startField(page)).toHaveValue(formatDate('2026-10-01'));
+  await expect(endField(page)).toHaveValue(formatDate('2027-03-14'));
 
   // The dates stay editable: the lecture period instead of the semester.
   await universityField(page).selectOption({ label: 'Universität Regensburg' });
-  await startField(page).fill('2026-10-12');
-  await endField(page).fill('2027-02-05');
+  await startField(page).fill(formatDate('2026-10-12'));
+  await endField(page).fill(formatDate('2027-02-05'));
   await saveProfile(page);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
@@ -108,21 +106,22 @@ test('Profile has its own page in Settings, prefills the semester and keeps what
   await expect(page.getByRole('heading', { level: 2, name: 'Profile', exact: true })).toBeVisible();
   await expect(nameField(page)).toHaveValue('Roshan');
   await expect(universityField(page)).toHaveValue('ur');
-  await expect(startField(page)).toHaveValue('2026-10-12');
-  await expect(endField(page)).toHaveValue('2027-02-05');
+  await expect(startField(page)).toHaveValue(formatDate('2026-10-12'));
+  await expect(endField(page)).toHaveValue(formatDate('2027-02-05'));
 });
 
 test('an end before the start is not saved, and the end field says why', async ({ page }) => {
   await seedSetup(page);
   await openSettings(page);
-  await startField(page).fill('2027-03-31');
-  await endField(page).fill('2026-10-01');
+  await startField(page).fill(formatDate('2027-03-31'));
+  await endField(page).fill(formatDate('2026-10-01'));
   await profileSection(page).getByRole('button', { name: 'Save profile', exact: true }).click();
 
   const problem = 'Pick an end date after the start date.';
   await expect(profileSection(page).getByRole('alert')).toHaveText(problem);
   await expect(endField(page)).toHaveAttribute('aria-invalid', 'true');
-  await expect(endField(page)).toHaveAccessibleDescription(problem);
+  // The form's problem first, then the field's own hint.
+  await expect(endField(page)).toHaveAccessibleDescription(`${problem} Type it like DD.MM.YYYY, or open the calendar.`);
   await expect(startField(page)).not.toHaveAttribute('aria-invalid');
   await expect(savedNotice(page)).toHaveCount(0);
   expect(await readStore<Profile>(page, 'profile')).toEqual([]);
@@ -133,7 +132,7 @@ test('one date alone is not saved, and both can be cleared again', async ({ page
   await seedSetup(page);
   await openSettings(page);
   await nameField(page).fill('Roshan');
-  await startField(page).fill('2026-10-01');
+  await startField(page).fill(formatDate('2026-10-01'));
   await profileSection(page).getByRole('button', { name: 'Save profile', exact: true }).click();
 
   await expect(profileSection(page).getByRole('alert')).toHaveText('Add both semester dates, or leave both empty.');
@@ -220,8 +219,8 @@ test('the one-off costs step leaves the amount empty where no page states the fe
   await seedSetup(page, { oneOff: { name: 'Laptop', amount: '300', dueMonth: '2027-03' } });
   await openSettings(page);
   await universityField(page).selectOption({ label: 'Other' });
-  await startField(page).fill('2026-10-01');
-  await endField(page).fill('2027-01-31');
+  await startField(page).fill(formatDate('2026-10-01'));
+  await endField(page).fill(formatDate('2027-01-31'));
   await saveProfile(page);
   await openOneOffsStep(page);
 
@@ -328,7 +327,7 @@ test.describe('on a desktop browser', () => {
     await openSettings(page);
     await expect(nameField(page)).toHaveValue('Roshan');
     await expect(universityField(page)).toHaveValue('oth');
-    await expect(startField(page)).toHaveValue('2026-10-01');
-    await expect(endField(page)).toHaveValue('2027-03-14');
+    await expect(startField(page)).toHaveValue(formatDate('2026-10-01'));
+    await expect(endField(page)).toHaveValue(formatDate('2027-03-14'));
   });
 });
