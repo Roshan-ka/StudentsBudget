@@ -56,6 +56,14 @@ export const entries: Messages['entries'] = {
     mic: 'Dictar un registro',
     stopMic: 'Dejar de escuchar',
     listening: 'Escuchando…',
+    /** El estado mientras la IA lee una línea (fase de IA, chunk 7). */
+    reading: 'Leyendo…',
+    /** Bajo el campo, cuando la IA dijo que no y la línea se leyó en el móvil. */
+    aiHint: {
+      'daily-limit': 'Has usado las lecturas con IA de hoy, así que Añadir rápido lee tus líneas en este móvil por ahora.',
+      'second-step':
+        'Esta línea se leyó en el móvil. Para usar la IA, introduce el código de tu app de autenticación en Ajustes → Tu cuenta.',
+    },
     micNote: {
       text:
         'Tu navegador convierte lo que dices en texto. Para ello puede enviar la grabación a su servicio de voz ' +

@@ -2,50 +2,12 @@ import { expect, test, type Page } from '@playwright/test';
 import { PRIVACY_NOTES } from '../src/features/privacy/notes';
 import { chooseLanguage } from './helpers/languages';
 import { seedSetup } from './helpers/seed-setup';
+import { fakeSpeech, willHear, type SpeechWindow } from './helpers/speech';
 
 // The mic button in quick add (P2; docs/superpowers/plans/2026-11-04-mic-button.md). No browser here can really listen,
-// so each test puts a stand-in for the speech recognizer on the page before it loads. It hears whatever
-// `window.speechText` says (or fails with `speechError`), and records the language it was asked to listen in.
+// so each test puts a stand-in for the speech recognizer on the page before it loads (`fakeSpeech`, helpers/speech.ts).
 
 test.use({ viewport: { width: 375, height: 812 } });
-
-type SpeechWindow = { speechText: string; speechError: string | null; speechLangs: string[] };
-
-/** Installs the stand-in recognizer, under the standard name the app looks for first. */
-async function fakeSpeech(page: Page) {
-  await page.addInitScript(() => {
-    const speech = window as unknown as SpeechWindow;
-    speech.speechText = '';
-    speech.speechError = null;
-    speech.speechLangs = [];
-    class FakeRecognition {
-      lang = '';
-      interimResults = true;
-      maxAlternatives = 1;
-      onresult: ((event: { results: { transcript: string }[][] }) => void) | null = null;
-      onerror: ((event: { error: string }) => void) | null = null;
-      onend: (() => void) | null = null;
-      start() {
-        speech.speechLangs.push(this.lang);
-        setTimeout(() => {
-          if (speech.speechError !== null) this.onerror?.({ error: speech.speechError });
-          else this.onresult?.({ results: [[{ transcript: speech.speechText }]] });
-          this.onend?.();
-        }, 50);
-      }
-      stop() {}
-      abort() {}
-    }
-    Object.defineProperty(window, 'SpeechRecognition', { value: FakeRecognition, configurable: true });
-  });
-}
-
-/** What the stand-in will hear next. */
-async function willHear(page: Page, text: string) {
-  await page.evaluate((heard) => {
-    (window as unknown as SpeechWindow).speechText = heard;
-  }, text);
-}
 
 function mic(page: Page, name = 'Speak an entry') {
   return page.getByRole('button', { name, exact: true });

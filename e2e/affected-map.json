@@ -22,7 +22,7 @@
     "/settings/backup": ["axe", "backup", "language-tour", "profile", "reflow", "theme"],
     "/settings/plan": ["accounts", "axe", "language-tour", "profile", "recurring", "reflow", "setup", "theme"],
     "/settings/profile": ["axe", "date-field", "language-tour", "linking", "page-focus", "profile", "reflow", "theme", "two-step"],
-    "/settings/account": ["account", "account-deletion", "axe", "change-password", "discount-confirmations", "email-codes", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "linking", "moderation", "passkeys", "posting-name", "privacy-notes", "reflow", "theme", "two-step"],
+    "/settings/account": ["account", "account-deletion", "ai-quick-add", "axe", "change-password", "discount-confirmations", "email-codes", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "linking", "moderation", "passkeys", "posting-name", "privacy-notes", "reflow", "theme", "two-step"],
     "/settings/moderation": ["axe", "language-tour", "moderation", "reflow", "theme"],
     "/settings/import": ["axe", "import", "language-tour", "reflow", "theme"],
     "/settings/reminder": ["axe", "language-tour", "reflow", "reminder", "theme"],

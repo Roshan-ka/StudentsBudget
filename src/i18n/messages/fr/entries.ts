@@ -57,6 +57,15 @@ export const entries: Messages['entries'] = {
     mic: 'Dicter une saisie',
     stopMic: 'Arrêter l’écoute',
     listening: 'À l’écoute…',
+    /** L’état pendant que l’IA lit une ligne (phase IA, chunk 7). */
+    reading: 'Lecture…',
+    /** Sous le champ, quand l’IA a refusé et que la ligne a été lue sur le téléphone. */
+    aiHint: {
+      'daily-limit':
+        'Les lectures par IA du jour sont épuisées, donc l’Ajout rapide lit tes lignes sur ce téléphone pour l’instant.',
+      'second-step':
+        'Cette ligne a été lue sur le téléphone. Pour utiliser l’IA, saisis le code de ton appli d’authentification dans Réglages → Ton compte.',
+    },
     micNote: {
       text:
         'Ton navigateur transforme ce que tu dis en texte. Pour cela, il peut envoyer l’enregistrement à son service ' +
