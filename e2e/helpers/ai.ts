@@ -37,8 +37,8 @@ async function reply(route: Route, status: number, json: unknown) {
  * contract refuses is `bad-request`. Then `fail` answers that problem, `dailyLimit` the account's limit (429), and
  * `answers` the feature's answer with `left` uses left today (49 by default, null for no limit, as for a moderator); a
  * feature without an answer is `unavailable`, as the function is without its builder. `slowMs` waits that long first,
- * for a phone that gives up. Returns every request, in order, so a spec can check that a guest, or a phone with the
- * switch off, sends nothing.
+ * for a phone that gives up; `hold` waits until the spec settles it, for a read the phone stops on its own. Returns
+ * every request, in order, so a spec can check that a guest, or a phone with the switch off, sends nothing.
  */
 export async function mockAiFunction(
   page: Page,
@@ -50,6 +50,7 @@ export async function mockAiFunction(
     left?: number | null;
     dailyLimit?: boolean;
     slowMs?: number;
+    hold?: Promise<void>;
     fail?: AiProblem;
   } = {},
 ): Promise<AiCall[]> {
@@ -66,6 +67,7 @@ export async function mockAiFunction(
     const feature = typeof body === 'object' && body !== null && 'feature' in body ? String(body.feature) : null;
     calls.push({ feature, body, signedIn: signedInRequest(request) });
     if (options.slowMs !== undefined) await new Promise((resolve) => setTimeout(resolve, options.slowMs));
+    if (options.hold !== undefined) await options.hold;
 
     const problem = (name: AiProblem) => reply(route, PROBLEM_STATUS[name], { ok: false, problem: name });
     if (request.method() !== 'POST') return problem('bad-request');

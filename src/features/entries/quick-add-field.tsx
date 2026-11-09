@@ -9,13 +9,17 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { deleteEntry, saveEntry } from '@/db/repo';
 import type { Account } from '@/db/types';
+import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
+import { aiInBuild, aiOnHere } from '@/features/ai/switch';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
-import { todayIso } from '@/lib/dates';
+import { formatDate, todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
+import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import { aiQuickAddProvider, type AiQuickAddHint } from './ai-quick-add';
 import { buildEntry } from './build-entry';
 import { FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_CATEGORIES } from './categories';
 import {
@@ -48,6 +52,21 @@ async function loadContext(): Promise<QuickAddContext> {
     db.entries.where('type').equals('expense').toArray(),
   ]);
   return { today: todayIso(), accounts, history };
+}
+
+/**
+ * Whether this line goes to the AI (the AI phase, chunk 7): a build with it, this phone's switch on, and someone signed
+ * in. Read from the session in localStorage, in the handler, so the page stays static.
+ */
+async function aiReady(): Promise<boolean> {
+  if (!aiInBuild() || !aiOnHere()) return false;
+  const supabase = getSupabase();
+  if (supabase === null) return false;
+  try {
+    return (await supabase.auth.getSession()).data.session !== null;
+  } catch {
+    return false;
+  }
 }
 
 /** How long the "Saved …" line, with its Undo, stays up. */
@@ -145,14 +164,19 @@ function AmountChoice({
  * category (the original six, and the rest behind More). A line with two readings ("coffee 7 40 euros") first
  * asks which amount. A line that says what was saved comes with an Undo button.
  *
- * `provider` reads the line (the local parser unless another is given), once per submit. Its category, account and
- * date are checked against the data first: an unknown one falls back to the chips, the default account or today.
+ * `provider` reads the line, once per submit. Unless one is given, it is the AI (`aiQuickAddProvider`) in a build with it,
+ * with the phone's switch on and someone signed in, after the `ai` data-protection note the first time, and the local
+ * parser otherwise. "Reading…" shows in the status line while the AI reads; typing, leaving the page or a new line
+ * stops that read, and a line counter makes sure an answer for a line that is gone never saves. A used-up allowance
+ * or an owed sign-in code says so under the field, and the line is read on the phone. Whatever the provider, its
+ * category, account and date are checked against the data first: an unknown one falls back to the chips, the default
+ * account or today. The Saved line names the account and the day when they aren't the default and today.
  *
  * Where the browser has speech recognition, a mic button speaks a line instead (`speech.ts`): the first tap on a phone
  * shows where the speech goes (`PrivacyNote`), and what is heard is added like a typed line, with the same Saved line
  * and Undo.
  */
-export function QuickAddField({ provider = localQuickAddProvider }: { provider?: QuickAddProvider }) {
+export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
   const id = useId();
   const { t, lang, locale } = useT();
   const words = t.entries.quickAdd;
@@ -172,6 +196,23 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
   const stopListening = useRef<(() => void) | null>(null);
   const [listening, setListening] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  // The AI (chunk 7): whether it is reading, the line waiting for the `ai` note, and the hint a refusal leaves.
+  const [reading, setReading] = useState(false);
+  const [aiNoteFor, setAiNoteFor] = useState<string | null>(null);
+  const [aiHint, setAiHint] = useState<AiQuickAddHint | null>(null);
+  // Counts the lines: an answer is used only while its line is still the latest. `readAbort` stops the read in flight.
+  const lineCount = useRef(0);
+  const readAbort = useRef<AbortController | null>(null);
+
+  /** Stops the read in flight: its line changed or the page went, so its answer must never save. */
+  function dropRead() {
+    lineCount.current += 1;
+    readAbort.current?.abort();
+    readAbort.current = null;
+  }
+
+  // A hidden page stays mounted: leaving it stops the read, as it stops the mic.
+  useEffect(() => () => dropRead(), []);
 
   // A page the router leaves stays mounted but hidden, so the mic is stopped here rather than left listening.
   useEffect(
@@ -218,7 +259,8 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
     setError(null);
     try {
       // Read again rather than taken from the context: the chips can wait while the accounts change in Settings.
-      const account = accountFor(await db.accounts.toArray(), line.accountId);
+      const accounts = await db.accounts.toArray();
+      const account = accountFor(accounts, line.accountId);
       if (account === undefined) {
         setError(t.entries.noAccount);
         return;
@@ -245,10 +287,14 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
       }
       await saveEntry(result.entry);
 
+      // The account and the day only when they aren't the ones a line goes to anyway, the default and today.
+      const usual = defaultAccount(sortAccounts(accounts));
       const parts = [
         formatMoney(result.entry.amountMinor, account.currency, { locale }),
         result.entry.note,
         categoryNameIn(t, categoryId),
+        account.id === usual?.id ? '' : account.name,
+        result.entry.date === todayIso(now) ? '' : formatDate(result.entry.date),
       ];
       setSaved({ id: result.entry.id, message: words.saved(parts.filter((part) => part !== '').join(' · ')) });
       setText('');
@@ -280,8 +326,11 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
     setChoice({ ...readings, currency: accountFor(accounts, readings.accountId)?.currency ?? 'EUR' });
   }
 
-  /** Reads one line, typed or spoken, and saves it or asks what it needs. */
-  async function addLine(line: string) {
+  /**
+   * Reads one line, typed or spoken, and saves it or asks what it needs. `noteAccepted`: the `ai` note was just
+   * accepted for this line (with blocked storage it would read as unseen again).
+   */
+  async function addLine(line: string, noteAccepted = false) {
     // Nothing to add: a tap on the empty field right after a save must not take the Saved line away.
     if (line.trim() === '') return;
 
@@ -289,15 +338,37 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
       setSaved(null);
       setChoice(null);
       setPending(null);
+      setAiHint(null);
+      dropRead();
+      const mine = lineCount.current;
+      const controller = new AbortController();
       let ctx: QuickAddContext;
       let reading: QuickAddReading | null;
       try {
         ctx = await loadContext();
-        reading = checkReading(await provider.read(line, ctx), ctx);
+        const ai = provider === undefined && (await aiReady());
+        if (ai && !noteAccepted && !noteSeen('ai')) {
+          setAiNoteFor(line);
+          return;
+        }
+        const reader =
+          provider ??
+          (ai
+            ? aiQuickAddProvider({ lang, onHint: (hint) => mine === lineCount.current && setAiHint(hint) })
+            : localQuickAddProvider);
+        readAbort.current = controller;
+        setReading(ai);
+        const read = await reader.read(line, ctx, { signal: controller.signal });
+        // The line changed, or the page went, while it was read: nothing of it saves.
+        if (mine !== lineCount.current || controller.signal.aborted) return;
+        reading = checkReading(read, ctx);
       } catch (readError) {
         console.error('StudentsBudget: could not read the quick-add line', readError);
         setError(t.entries.saveFailed);
         return;
+      } finally {
+        if (readAbort.current === controller) readAbort.current = null;
+        setReading(false);
       }
       if (reading === null) {
         setError(words.noAmount);
@@ -380,11 +451,14 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
             onChange={(event) => {
               setText(event.target.value);
               // The amount buttons and the chips belong to the line that was typed; a changed line has to be added again.
+              // So does a read in flight and the note waiting for it.
               setChoice(null);
               setPending(null);
               setError(null);
+              setAiNoteFor(null);
+              if (readAbort.current !== null) dropRead();
             }}
-            aria-describedby={`${id}-hint`}
+            aria-describedby={aiHint === null ? `${id}-hint` : `${id}-hint ${id}-ai-hint`}
             autoComplete="off"
             enterKeyHint="done"
           />
@@ -410,7 +484,28 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         <p id={`${id}-hint`} className="text-sm text-muted-foreground">
           {words.hint}
         </p>
+        {aiHint !== null && (
+          <p id={`${id}-ai-hint`} className="text-sm text-muted-foreground">
+            {words.aiHint[aiHint]}
+          </p>
+        )}
       </form>
+
+      {aiNoteFor !== null && (
+        <PrivacyNote
+          id="ai"
+          label={t.common.privacy.label}
+          text={t.common.privacy.ai}
+          continueLabel={t.common.privacy.continue}
+          cancelLabel={t.common.privacy.cancel}
+          onContinue={() => {
+            const line = aiNoteFor;
+            setAiNoteFor(null);
+            void addLine(line, true);
+          }}
+          onCancel={() => setAiNoteFor(null)}
+        />
+      )}
 
       {noteOpen && (
         <PrivacyNote
@@ -456,7 +551,9 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
 
       <div
         className={
-          saved || listening ? 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 ps-4 pe-1' : undefined
+          saved || listening || reading
+            ? 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 ps-4 pe-1'
+            : undefined
         }
         onFocus={() => setHolding(true)}
         onBlur={(event) => {
@@ -470,11 +567,15 @@ export function QuickAddField({ provider = localQuickAddProvider }: { provider?:
         onPointerLeave={() => setHolding(false)}
       >
         {/* Always rendered, so a screen reader is already listening when the text appears. The one status line for
-            the field: it says "Listening…" while the mic is on, and what was saved after. */}
-        <p role="status" className={listening ? 'min-w-0 py-2.5 text-sm break-words' : 'min-w-0 text-sm break-words'}>
-          {listening ? words.listening : saved?.message}
+            the field: it says "Listening…" while the mic is on, "Reading…" while the AI reads, and what was saved
+            after. */}
+        <p
+          role="status"
+          className={listening || reading ? 'min-w-0 py-2.5 text-sm break-words' : 'min-w-0 text-sm break-words'}
+        >
+          {listening ? words.listening : reading ? words.reading : saved?.message}
         </p>
-        {saved && !listening && (
+        {saved && !listening && !reading && (
           <Button type="button" variant="ghost" className="shrink-0" onClick={() => void undo()}>
             {words.undo}
           </Button>

@@ -56,6 +56,15 @@ export const entries: Messages['entries'] = {
     mic: 'Eintrag sprechen',
     stopMic: 'Zuhören beenden',
     listening: 'Hört zu …',
+    /** Der Status, während die KI eine Zeile liest (KI-Phase, Chunk 7). */
+    reading: 'Wird gelesen …',
+    /** Unter dem Feld, wenn die KI abgelehnt hat und die Zeile stattdessen auf dem Handy gelesen wurde. */
+    aiHint: {
+      'daily-limit':
+        'Die KI-Lesungen für heute sind aufgebraucht, deshalb liest Schnell erfassen deine Zeilen vorerst auf diesem Handy.',
+      'second-step':
+        'Diese Zeile wurde auf dem Handy gelesen. Für die KI gib den Code deiner Authenticator-App unter Einstellungen → Dein Konto ein.',
+    },
     micNote: {
       text:
         'Dein Browser macht aus dem Gesprochenen Text. Dafür kann er die Aufnahme an seinen Sprachdienst schicken ' +
