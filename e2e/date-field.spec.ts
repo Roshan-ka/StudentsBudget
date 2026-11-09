@@ -19,7 +19,7 @@ function sheet(page: Page, title = 'Choose a date') {
   return page.getByRole('dialog', { name: title, exact: true });
 }
 
-/** A day of the open sheet, by its name: the weekday and the date in the region's form. */
+/** A day of the open sheet, by its name: the language's long date ("Friday 16 October 2026" in en-IE). */
 function day(page: Page, name: string) {
   return sheet(page).getByRole('gridcell', { name, exact: true });
 }
@@ -39,23 +39,23 @@ test('the calendar opens on the date, moves by key, picks with Enter and hands t
   await expect(sheet(page).getByText('October 2026', { exact: true })).toBeVisible();
   // Weeks start on Monday.
   await expect(sheet(page).getByRole('columnheader')).toHaveText(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
-  const friday = day(page, 'Friday, 16.10.2026');
+  const friday = day(page, 'Friday 16 October 2026');
   await expect(friday).toBeFocused();
   await expect(friday).toHaveAttribute('aria-selected', 'true');
   await expect(friday).toHaveAttribute('aria-current', 'date');
 
   // A day sideways, a week down, the week's Sunday and Monday, then a month on.
   await page.keyboard.press('ArrowLeft');
-  await expect(day(page, 'Thursday, 15.10.2026')).toBeFocused();
+  await expect(day(page, 'Thursday 15 October 2026')).toBeFocused();
   await page.keyboard.press('ArrowDown');
-  await expect(day(page, 'Thursday, 22.10.2026')).toBeFocused();
+  await expect(day(page, 'Thursday 22 October 2026')).toBeFocused();
   await page.keyboard.press('End');
-  await expect(day(page, 'Sunday, 25.10.2026')).toBeFocused();
+  await expect(day(page, 'Sunday 25 October 2026')).toBeFocused();
   await page.keyboard.press('Home');
-  await expect(day(page, 'Monday, 19.10.2026')).toBeFocused();
+  await expect(day(page, 'Monday 19 October 2026')).toBeFocused();
   await page.keyboard.press('PageDown');
   await expect(sheet(page).getByText('November 2026', { exact: true })).toBeVisible();
-  await expect(day(page, 'Thursday, 19.11.2026')).toBeFocused();
+  await expect(day(page, 'Thursday 19 November 2026')).toBeFocused();
 
   await page.keyboard.press('Enter');
   await expect(sheet(page)).toHaveCount(0);
@@ -66,7 +66,7 @@ test('the calendar opens on the date, moves by key, picks with Enter and hands t
 test('Escape closes the calendar and leaves the date as it was', async ({ page }) => {
   await openNewEntry(page);
   await calendarButton(page).click();
-  await expect(day(page, 'Friday, 16.10.2026')).toBeFocused();
+  await expect(day(page, 'Friday 16 October 2026')).toBeFocused();
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Escape');
 
@@ -81,7 +81,7 @@ test('a tap picks any day the sheet shows, and the month buttons and Go to today
 
   // October's last row runs into November.
   await calendarButton(page).click();
-  await day(page, 'Monday, 02.11.2026').click();
+  await day(page, 'Monday 2 November 2026').click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(date).toHaveValue(formatDate('2026-11-02'));
   await expect(page.getByRole('button', { name: 'Today', exact: true })).toHaveAttribute('aria-pressed', 'false');
@@ -89,7 +89,7 @@ test('a tap picks any day the sheet shows, and the month buttons and Go to today
   // It opens on the picked date's month.
   await calendarButton(page).click();
   await expect(sheet(page).getByText('November 2026', { exact: true })).toBeVisible();
-  await expect(day(page, 'Monday, 02.11.2026')).toHaveAttribute('aria-selected', 'true');
+  await expect(day(page, 'Monday 2 November 2026')).toHaveAttribute('aria-selected', 'true');
   const next = sheet(page).getByRole('button', { name: 'Next month', exact: true });
   await next.click();
   await next.click();
@@ -111,12 +111,12 @@ test('the semester end offers no day before the start', async ({ page }) => {
   await profile.getByRole('textbox', { name: 'Semester start', exact: true }).fill(formatDate('2026-10-12'));
 
   await calendarButton(page, 'Semester end').click();
-  const sunday = day(page, 'Sunday, 11.10.2026');
+  const sunday = day(page, 'Sunday 11 October 2026');
   await expect(sunday).toHaveAttribute('aria-disabled', 'true');
   await sunday.click();
   await expect(sheet(page)).toBeVisible();
 
-  await day(page, 'Monday, 12.10.2026').click();
+  await day(page, 'Monday 12 October 2026').click();
   await expect(sheet(page)).toHaveCount(0);
   await expect(profile.getByRole('textbox', { name: 'Semester end', exact: true })).toHaveValue(formatDate('2026-10-12'));
 });
@@ -125,7 +125,8 @@ test.describe('in German', () => {
   test.use({ locale: 'de-DE' });
 
   test('the field and the calendar speak German, and the date keeps the region’s form', async ({ page }) => {
-    await seedSetup(page);
+    // Not through Home: seedSetup's wait for Home looks for the English Quick add.
+    await seedSetup(page, {}, { open: false });
     await openApp(page, '/entries/new');
     const date = page.getByRole('textbox', { name: 'Datum', exact: true });
     await expect(date).toHaveValue(formatDate('2026-10-16'));
@@ -140,7 +141,7 @@ test.describe('in German', () => {
     const monday = german.getByRole('columnheader').first();
     await expect(monday).toHaveText(/^Mo\.?$/);
     await expect(monday).toHaveAttribute('abbr', 'Montag');
-    await expect(german.getByRole('gridcell', { name: 'Freitag, 16.10.2026', exact: true })).toBeFocused();
+    await expect(german.getByRole('gridcell', { name: 'Freitag, 16. Oktober 2026', exact: true })).toBeFocused();
   });
 });
 
@@ -158,7 +159,7 @@ for (const theme of ['light', 'dark'] as const) {
     );
     await openNewEntry(page);
     await calendarButton(page).click();
-    await expect(day(page, 'Friday, 16.10.2026')).toBeFocused();
+    await expect(day(page, 'Friday 16 October 2026')).toBeFocused();
 
     const results = await new AxeBuilder({ page })
       .include('[role="dialog"]')

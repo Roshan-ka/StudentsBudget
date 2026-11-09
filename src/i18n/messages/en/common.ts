@@ -18,8 +18,6 @@ export const common = {
     nextMonth: 'Next month',
     goToToday: 'Go to today',
     close: 'Close',
-    /** A calendar day's name: "Friday, 06.11.2026" (the date in the region's form). */
-    day: (weekday: string, date: string) => `${weekday}, ${date}`,
   },
   amountField: {
     positive: 'Enter an amount above 0, like 250 or 12.50.',

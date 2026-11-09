@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { dateFormat } from '@/i18n/format';
 import { LANGUAGES } from '@/i18n/languages';
 import { useT } from '@/i18n/use-t';
-import { addDays, formatDate, monthOf, todayIso, type IsoDate } from '@/lib/dates';
+import { addDays, monthOf, todayIso, type IsoDate } from '@/lib/dates';
 import { useToday } from '@/lib/use-today';
 import { isCalendarKey, monthWeeks, movedDay, shiftDayByMonths } from './date-input';
 
@@ -43,7 +43,9 @@ export function DateCalendar({
   const today = useToday();
   const monthId = useId();
   const [open, setOpen] = useState(false);
-  const [focused, setFocused] = useState<IsoDate>(value);
+  // The day the grid is built around. Opening sets it (the date, or today); before that, with no date yet (an empty
+  // semester field), a fixed Monday stands in, since a month can't be worked out from '' (formatting it throws).
+  const [focused, setFocused] = useState<IsoDate>(value || A_MONDAY);
   const focusedRef = useRef<HTMLTableCellElement>(null);
   // Only a key moves the focus to the new day; the month buttons keep it, as the practices ask.
   const keyMoved = useRef(false);
@@ -85,7 +87,11 @@ export function DateCalendar({
       short: dateFormat(locale, { weekday: 'short' }).format(parseISO(day)),
       long: dateFormat(locale, { weekday: 'long' }).format(parseISO(day)),
     }));
-  const dayName = (day: IsoDate) => text.day(dateFormat(locale, { weekday: 'long' }).format(parseISO(day)), formatDate(day));
+  // A day's name is the language's long date ("Thursday 1 October 2026", "Donnerstag, 1. Oktober 2026"): it holds the
+  // number the cell shows, which a name must (WCAG 2.5.3, axe's label-content-name-mismatch), and reads better aloud
+  // than 01.10.2026. Nothing shows it, so the region's form doesn't apply.
+  const dayName = (day: IsoDate) =>
+    dateFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(parseISO(day));
   const PreviousIcon = rtl ? ChevronRightIcon : ChevronLeftIcon;
   const NextIcon = rtl ? ChevronLeftIcon : ChevronRightIcon;
 

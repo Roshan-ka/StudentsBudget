@@ -16,7 +16,6 @@ export const common: Messages['common'] = {
     nextMonth: 'Nächster Monat',
     goToToday: 'Zu heute',
     close: 'Schließen',
-    day: (weekday, date) => `${weekday}, ${date}`,
   },
   amountField: {
     positive: 'Gib einen Betrag über 0 ein, etwa 250 oder 12,50.',

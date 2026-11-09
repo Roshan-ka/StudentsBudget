@@ -18,8 +18,6 @@ export const common: Messages['common'] = {
     nextMonth: 'Mois suivant',
     goToToday: 'Aller à aujourd’hui',
     close: 'Fermer',
-    // Le jour de la semaine sans virgule, comme on l'écrit en français : « vendredi 06.11.2026 ».
-    day: (weekday, date) => `${weekday} ${date}`,
   },
   amountField: {
     positive: 'Saisis un montant supérieur à 0, comme 250 ou 12,50.',

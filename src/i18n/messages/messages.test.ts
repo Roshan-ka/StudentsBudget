@@ -31,8 +31,6 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'tips.hacks.cities.regensburg',
     'auth.postingName.labels.alumni',
     'common.accountOption',
-    // "Freitag, 06.11.2026": a calendar day's name is the weekday, a comma and the date, as in English.
-    'common.dateField.day',
     'common.dateField.letters.month',
     'home.leftThisMonth.overThisMonth.before',
     'categories.income-bafoeg',
@@ -58,8 +56,6 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'tips.hacks.moderation.states.visible',
     'tips.hacks.cities.regensburg',
     'common.accountOption',
-    // "viernes, 06.11.2026": a calendar day's name is the weekday, a comma and the date, as in English.
-    'common.dateField.day',
     'home.leftThisMonth.overThisMonth.before',
     'common.dateField.letters.day',
     'common.dateField.letters.month',
