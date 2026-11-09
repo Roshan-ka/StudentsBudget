@@ -27,7 +27,15 @@ export type SkipReason =
   | 'noTransferAccount'
   | 'duplicate';
 
-export type SkippedRow = { index: number; reason: SkipReason; date: IsoDate | null; amountMinor: Minor | null; text: string };
+/** A row left out, with what the summary shows of it: its date, amount (in `currency`, the row's or the account's) and text. */
+export type SkippedRow = {
+  index: number;
+  reason: SkipReason;
+  date: IsoDate | null;
+  amountMinor: Minor | null;
+  currency: string | null;
+  text: string;
+};
 
 /** An entry to add: the input `buildEntry` takes (it converts to EUR and gives the id), its mark, and its row. */
 export type ImportDraft = { input: EntryInput; imported: ImportMark; row: StatementRow };
@@ -55,7 +63,8 @@ export type ImportInput = {
   now: Date;
 };
 
-const rowText = (row: StatementRow) => [row.payee, row.purpose].filter((text) => text !== '').join(' · ');
+/** A left-out row as the summary shows it: cleaned as a note is, so no card or account number reaches the screen. */
+const rowText = (row: StatementRow) => importNote(row);
 
 /** The local day an account was added. */
 const addedOn = (account: Account) => todayIso(new Date(account.createdAt));
@@ -63,9 +72,23 @@ const addedOn = (account: Account) => todayIso(new Date(account.createdAt));
 export function planImport({ read, account, accounts, entries, categories, plan, batchId, now }: ImportInput): ImportPlan {
   const today = todayIso(now);
   const planMonth = plan === null ? null : monthOf(plan.createdOn);
-  const skipped: SkippedRow[] = read.unread.map((row) => ({ index: row.index, reason: 'unreadable', date: null, amountMinor: null, text: row.text }));
+  const skipped: SkippedRow[] = read.unread.map((row) => ({
+    index: row.index,
+    reason: 'unreadable',
+    date: null,
+    amountMinor: null,
+    currency: null,
+    text: row.text,
+  }));
   const skip = (row: StatementRow, reason: SkipReason) =>
-    skipped.push({ index: row.index, reason, date: row.date, amountMinor: row.amountMinor, text: rowText(row) });
+    skipped.push({
+      index: row.index,
+      reason,
+      date: row.date,
+      amountMinor: row.amountMinor,
+      currency: row.currency ?? account.currency,
+      text: rowText(row),
+    });
 
   // The rows that could be entries, before overlap is checked against what the phone holds.
   const candidates: { row: StatementRow; target: ReturnType<typeof transferTarget> }[] = [];

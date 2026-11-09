@@ -62,7 +62,9 @@ describe('planImport', () => {
       { batchId: 'batch-1', merchant: 'sparkasse regensburg' },
       { batchId: 'batch-1', merchant: 'revolut' },
     ]);
-    expect(result.skipped).toEqual([{ index: 5, reason: 'pending', date: '2026-11-03', amountMinor: -310, text: 'Bäckerei Müller · Brötchen' }]);
+    expect(result.skipped).toEqual([
+      { index: 5, reason: 'pending', date: '2026-11-03', amountMinor: -310, currency: 'EUR', text: 'Bäckerei Müller · Brötchen' },
+    ]);
     expect(result.openingChanges.size).toBe(0);
   });
 
