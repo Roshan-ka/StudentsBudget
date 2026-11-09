@@ -1,8 +1,8 @@
-// The Regensburg data the AI may quote, written from src/data by scripts/write-city-pack.mjs: do not edit by hand.
-// Run `node scripts/write-city-pack.mjs` after changing src/data; src/features/ai/server/city-pack.test.ts fails
-// while this file is stale.
+// The Regensburg data the AI may quote, and the app categories, written from src/data by
+// scripts/write-city-pack.mjs: do not edit by hand. Run `node scripts/write-city-pack.mjs` after changing src/data;
+// src/features/ai/server/city-pack.test.ts fails while this file is stale.
 
-import type { PackItem } from './pack.ts';
+import type { PackCategory, PackItem } from './pack.ts';
 
 export const CITY_PACK: readonly PackItem[] = [
   {
@@ -571,5 +571,138 @@ export const CITY_PACK: readonly PackItem[] = [
     "source": "Studierendenwerk Niederbayern/Oberpfalz, basic contribution statute (scanned PDF, in German), § 2: €87.00 for summer semester 2027 and €92.00 per semester from winter semester 2027/28; § 3: for students of Universität Regensburg and OTH Regensburg, due with re-registration. This is the winter 2027/28 figure.; Studierendenwerk Niederbayern/Oberpfalz, semester ticket statute of 12 Oct 2026 (scanned PDF, in German), § 3: €128.00 for summer semester 2027 and €130.00 for winter semester 2027/28; § 1: for students of OTH Regensburg and Universität Regensburg (with the statute's exemptions), due with re-registration. This is the winter 2027/28 figure.",
     "checked": "2026-10-20",
     "estimate": false
+  }
+];
+
+export const APP_CATEGORIES: readonly PackCategory[] = [
+  {
+    "id": "food",
+    "name": "Food & groceries",
+    "kind": "flexible"
+  },
+  {
+    "id": "eating-out",
+    "name": "Eating out",
+    "kind": "flexible"
+  },
+  {
+    "id": "going-out",
+    "name": "Going out",
+    "kind": "flexible"
+  },
+  {
+    "id": "transport",
+    "name": "Transport",
+    "kind": "flexible"
+  },
+  {
+    "id": "shopping",
+    "name": "Shopping",
+    "kind": "flexible"
+  },
+  {
+    "id": "health",
+    "name": "Health & pharmacy",
+    "kind": "flexible"
+  },
+  {
+    "id": "personal-care",
+    "name": "Personal care",
+    "kind": "flexible"
+  },
+  {
+    "id": "study",
+    "name": "Study materials",
+    "kind": "flexible"
+  },
+  {
+    "id": "household",
+    "name": "Household",
+    "kind": "flexible"
+  },
+  {
+    "id": "travel",
+    "name": "Travel",
+    "kind": "flexible"
+  },
+  {
+    "id": "gifts",
+    "name": "Gifts",
+    "kind": "flexible"
+  },
+  {
+    "id": "other",
+    "name": "Other",
+    "kind": "flexible"
+  },
+  {
+    "id": "rent",
+    "name": "Rent",
+    "kind": "fixed"
+  },
+  {
+    "id": "phone",
+    "name": "Phone & internet",
+    "kind": "fixed"
+  },
+  {
+    "id": "insurance",
+    "name": "Insurance",
+    "kind": "fixed"
+  },
+  {
+    "id": "subscriptions",
+    "name": "Subscriptions",
+    "kind": "fixed"
+  },
+  {
+    "id": "transport-pass",
+    "name": "Deutschlandticket / semester ticket",
+    "kind": "fixed"
+  },
+  {
+    "id": "gym",
+    "name": "Gym & sports",
+    "kind": "fixed"
+  },
+  {
+    "id": "utilities",
+    "name": "Utilities & Rundfunkbeitrag",
+    "kind": "fixed"
+  },
+  {
+    "id": "one-off",
+    "name": "One-off costs",
+    "kind": "oneoff"
+  },
+  {
+    "id": "income-job",
+    "name": "Job",
+    "kind": "income"
+  },
+  {
+    "id": "income-parents",
+    "name": "Parents",
+    "kind": "income"
+  },
+  {
+    "id": "income-bafoeg",
+    "name": "BAföG",
+    "kind": "income"
+  },
+  {
+    "id": "income-sperrkonto",
+    "name": "Blocked account",
+    "kind": "income"
+  },
+  {
+    "id": "income-scholarship",
+    "name": "Scholarship",
+    "kind": "income"
+  },
+  {
+    "id": "income-other",
+    "name": "Other income",
+    "kind": "income"
   }
 ];

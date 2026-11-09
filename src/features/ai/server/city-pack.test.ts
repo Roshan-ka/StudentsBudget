@@ -6,13 +6,13 @@ import { SWAPS } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
 import { CITY_PACK } from '../../../../supabase/functions/_shared/ai/city-pack';
 import { renderPack } from '../../../../supabase/functions/_shared/ai/pack';
-import { buildCityPack, cityPackFile, LEFT_OUT_PRICES } from './city-pack-build';
+import { buildCategories, buildCityPack, cityPackFile, LEFT_OUT_PRICES } from './city-pack-build';
 
 // The Regensburg data the AI may quote (the AI phase, chunk 8), written from src/data.
 
 describe('the city pack', () => {
   it('is what src/data says now (run `node scripts/write-city-pack.mjs` when this fails)', () => {
-    expect(readFileSync('supabase/functions/_shared/ai/city-pack.ts', 'utf8')).toBe(cityPackFile(buildCityPack()));
+    expect(readFileSync('supabase/functions/_shared/ai/city-pack.ts', 'utf8')).toBe(cityPackFile(buildCityPack(), buildCategories()));
   });
 
   it('has every tip, discount and swap, each item once', () => {
