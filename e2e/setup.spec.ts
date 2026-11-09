@@ -89,7 +89,10 @@ test('saves a plan that is over what is available, with no income math in the wa
   // A range with a source reads plainly; one nobody published is labelled as an estimate.
   await expect(page.getByText('Students here: €180–335', { exact: true })).toBeVisible();
   await expect(page.getByText('Students here: €30–135 (estimate)', { exact: true })).toBeVisible();
-  await expect(page.getByText('Below what students here typically need.')).toHaveCount(4);
+  // An envelope still at €0 isn't set yet, so it isn't "below" (review, 09-11-2026: the four unset ones each said it).
+  // Food (€310) and Eating out (€230) are within their ranges.
+  await expect(page.getByText('Below what students here typically need.')).toHaveCount(0);
+  await expect(page.getByText(/of these are below what students here typically need/)).toHaveCount(0);
   // Without a budget the suggestions share out the €500 available, and the envelopes set take more than that, so
   // there is nothing left to fill and no budget line.
   await expect(budgetField(page)).toHaveValue('');
