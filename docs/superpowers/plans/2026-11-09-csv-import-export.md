@@ -383,3 +383,24 @@ All of it is in `src/features/import/`, pure TypeScript, and nothing in the app 
   - each Revolut row's fate;
   - before the plan and in the future;
   - the starting balances.
+
+**Chunk 5 (09-11-2026): saving and Undo**
+- **`save-import.ts`, `saveImport({ read, accountId, batchId?, now? })`:**
+  - One `db.transaction('rw', …)` over entries, accounts, plan, categories and rates.
+  - It reads everything again (rates through `loadRates`, inside the transaction) and runs `planImport` again.
+  - It builds every entry with `buildEntry` before writing anything. For a transfer, that is on its sending account, which for money in is the other account.
+  - It then runs `bulkAdd` and moves each `openingMinor` by its change.
+  - It refuses `noAccount`, or `noRate` with the currency, and then nothing is written.
+  - A second tap, or the same file in another tab, waits for the first transaction and finds every row already in the app.
+  - On a linked phone, the outbox middleware records every write (not as automatic).
+- **`undoImport({ batchId, openingChanges })`:**
+  - Removes the batch's entries; the deletes go into the outbox, so the account gets tombstones at the next sync.
+  - Moves each start back.
+  - With none of the batch left, it changes nothing, so a second tap can't move a start twice.
+- **Tests:** 9 in `save-import.test.ts` (fake-indexeddb); 89 for the import in all.
+  - saved with the mark and in euros;
+  - the same file again, and two taps at once, add nothing;
+  - the outbox on a linked phone;
+  - the start of an account added after some rows;
+  - a missing rate or account writes nothing;
+  - Undo keeps other entries and moves the start back, does nothing the second time, and records the deletes.
