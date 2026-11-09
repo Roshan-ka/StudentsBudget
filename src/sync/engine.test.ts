@@ -1,11 +1,11 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
-import { saveEntry } from '@/db/repo';
+import { deleteAccount, saveEntry } from '@/db/repo';
 import { accountSyncStatus, syncNow, syncResultText, syncStatusText } from './engine';
 import { problemText } from './problem';
 import { StoreError } from './store';
-import { expense, fakeStore } from './test-helpers';
+import { expense, fakeStore, liveIds } from './test-helpers';
 
 // The sync engine over fake-indexeddb (with the real tracking middleware) and the fake store.
 
@@ -135,6 +135,39 @@ describe('an account still in use', () => {
     expect(await syncNow(store, USER)).toMatchObject({ kind: 'synced' });
     expect(tables.accounts.get('local')).toMatchObject({ id: 'local' });
     expect(await db.accounts.get('local')).toEqual(LOCAL);
+    expect(await db.outbox.count()).toBe(0);
+  });
+
+  it('keeps an account this phone deleted when another phone booked on it first, on both sides', async () => {
+    const { store, tables, calls } = fakeStore();
+    await syncNow(store, USER);
+    // The other phone books on the account and syncs. This phone hasn't pulled that yet, sees no entry on the account,
+    // and deletes it (review, 09-11-2026).
+    await store.upsert('entries', [{ id: 'e9', data: expense('e9') }]);
+    await deleteAccount('local');
+    calls.length = 0;
+
+    expect(await syncNow(store, USER)).toMatchObject({ kind: 'synced' });
+    // The delete waited for the pull, which brought the entry, so it was never sent: no side holds an entry on a
+    // deleted account, which a backup or a link would refuse as damaged.
+    expect(calls).not.toContain('tombstone accounts local');
+    expect(liveIds(tables.accounts)).toEqual(['local']);
+    expect(await db.accounts.get('local')).toEqual(LOCAL);
+    expect(await db.entries.get('e9')).toEqual(expense('e9'));
+    expect(await db.outbox.count()).toBe(0);
+  });
+
+  it('still sends the delete of an account nothing uses, in the same Sync now', async () => {
+    const { store, tables, calls } = fakeStore();
+    await syncNow(store, USER);
+    await deleteAccount('local');
+    calls.length = 0;
+
+    expect(await syncNow(store, USER)).toMatchObject({ kind: 'synced', sent: 1 });
+    // Sent after the pull.
+    expect(calls.indexOf('tombstone accounts local')).toBeGreaterThan(calls.indexOf('pull 1'));
+    expect(liveIds(tables.accounts)).toEqual([]);
+    expect(await db.accounts.get('local')).toBeUndefined();
     expect(await db.outbox.count()).toBe(0);
   });
 });
