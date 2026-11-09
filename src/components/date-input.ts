@@ -17,6 +17,9 @@ const FULL_WIDTH: Record<DatePart, number> = { day: 2, month: 2, year: 4 };
 /** The earliest year a typed date may have: anything before is a slip, not a student's entry. */
 const FIRST_YEAR = 1900;
 
+/** How far ahead a date typed without its year may be and still be this year's, when the field puts the past first. */
+const PAST_FIRST_DAYS = 61;
+
 /** Two digits, padded: 6 gives "06". */
 function two(n: number): string {
   return String(n).padStart(2, '0');
@@ -53,10 +56,15 @@ function partsOfText(text: string): string[] | null {
 /**
  * What `text` reads as, with the parts in the region's order (day, month, year in Germany). It takes `6.11`, `6.11.26`
  * and `06.11.2026`, any of the usual separators, and the same as bare digits (`0611`, `061126`, `06112026`). A date
- * without its year is in this year (`today`'s); a two-digit year is in the 2000s. A day that the month doesn't have
- * (31.02.2026) is not a date.
+ * without its year is in this year (`today`'s), or with `pastFirst` in last year when this year's would be more than
+ * two months ahead; a two-digit year is in the 2000s. A day that the month doesn't have (31.02.2026) is not a date.
  */
-export function readTypedDate(text: string, today: IsoDate, region: Region = DEFAULT_REGION): TypedDate {
+export function readTypedDate(
+  text: string,
+  today: IsoDate,
+  region: Region = DEFAULT_REGION,
+  { pastFirst = false }: { pastFirst?: boolean } = {},
+): TypedDate {
   const trimmed = text.trim();
   if (trimmed === '') return { kind: 'empty' };
   const order = REGIONS[region].dateOrder;
@@ -73,9 +81,14 @@ export function readTypedDate(text: string, today: IsoDate, region: Region = DEF
 
   const { day = '', month = '', year = today.slice(0, 4) } = value;
   if (day.length > 2 || month.length > 2 || (year.length !== 2 && year.length !== 4)) return { kind: 'not-a-date' };
-  const fullYear = year.length === 2 ? 2000 + Number(year) : Number(year);
+  let fullYear = year.length === 2 ? 2000 + Number(year) : Number(year);
   const monthNumber = Number(month);
   const dayNumber = Number(day);
+  // Past first (an entry's date, Roshan's call, 09-11-2026): a date without its year that would be more than two
+  // months ahead this year is last year's, so "31.12" typed on 2 January is the New Year's Eve just gone.
+  if (pastFirst && value.year === undefined && `${fullYear}-${two(monthNumber)}-${two(dayNumber)}` > addDays(today, PAST_FIRST_DAYS)) {
+    fullYear -= 1;
+  }
   if (fullYear < FIRST_YEAR || monthNumber < 1 || monthNumber > 12) return { kind: 'not-a-date' };
   const isoMonth: IsoMonth = `${fullYear}-${two(monthNumber)}`;
   if (dayNumber < 1 || dayNumber > daysInMonth(isoMonth)) return { kind: 'not-a-date' };

@@ -42,7 +42,7 @@ export const setup: Messages['setup'] = {
     opening: 'Saldo inicial',
     remove: (number) => `Quitar la cuenta ${number}`,
     add: 'Añadir cuenta',
-    prefilled: { localBank: 'Banco de aquí', homeBank: 'Banco de casa', cash: 'Efectivo' },
+    prefilled: { localBank: 'Banco de aquí', cash: 'Efectivo' },
   },
   income: {
     intro: '¿Cuánto entra cada mes, en euros? Deja fuera lo que no recibes. Si varía, pon una estimación baja.',

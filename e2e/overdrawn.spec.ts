@@ -46,11 +46,11 @@ test('setup: the Accounts step with an overdrawn balance, a long name and an err
   await local.getByRole('checkbox', { name: OVERDRAWN }).check();
   await expect(local.getByLabel('Opening balance')).toHaveValue('-250');
   await page.getByRole('button', { name: 'Add account' }).click();
-  await expect(page.getByRole('group', { name: 'Account 4' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Account 3' })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   // The error under the field, with the box below it.
-  const cash = page.getByRole('group', { name: 'Account 3' });
+  const cash = page.getByRole('group', { name: 'Account 2' });
   await cash.getByLabel('Opening balance').fill('abc');
   await cash.getByLabel('Opening balance').blur();
   await expect(cash.getByText('Enter a number, like 250 or 12.50.')).toBeVisible();
@@ -61,25 +61,29 @@ test('setup: the Accounts step with an overdrawn balance, a long name and an err
 test('setup: a waiting Overdrawn tick stays with its row when a row above is removed', async ({ page }) => {
   await openAccountsStep(page);
 
-  // Home bank (row 2): ticked on an empty field, so the box waits for an amount.
-  const homeBox = page.getByRole('group', { name: 'Account 2' }).getByRole('checkbox', { name: OVERDRAWN });
-  await homeBox.check();
-  await expect(homeBox).toBeChecked();
+  // Setup starts with Local bank and Cash; a third row is added below them.
+  await page.getByRole('button', { name: 'Add account' }).click();
+  await page.getByRole('group', { name: 'Account 3' }).getByLabel('Name', { exact: true }).fill('Wallet');
 
-  // Removing Local bank above it: Home bank becomes row 1 and keeps its tick; Cash, now row 2, never had one.
+  // Cash (row 2): ticked on an empty field, so the box waits for an amount.
+  const cashBox = page.getByRole('group', { name: 'Account 2' }).getByRole('checkbox', { name: OVERDRAWN });
+  await cashBox.check();
+  await expect(cashBox).toBeChecked();
+
+  // Removing Local bank above it: Cash becomes row 1 and keeps its tick; Wallet, now row 2, never had one.
   await page.getByRole('button', { name: 'Remove account 1' }).click();
-  const home = page.getByRole('group', { name: 'Account 1' });
-  const cash = page.getByRole('group', { name: 'Account 2' });
-  await expect(home.getByLabel('Name', { exact: true })).toHaveValue('Home bank');
-  await expect(home.getByRole('checkbox', { name: OVERDRAWN })).toBeChecked();
+  const cash = page.getByRole('group', { name: 'Account 1' });
+  const wallet = page.getByRole('group', { name: 'Account 2' });
   await expect(cash.getByLabel('Name', { exact: true })).toHaveValue('Cash');
-  await expect(cash.getByRole('checkbox', { name: OVERDRAWN })).not.toBeChecked();
+  await expect(cash.getByRole('checkbox', { name: OVERDRAWN })).toBeChecked();
+  await expect(wallet.getByLabel('Name', { exact: true })).toHaveValue('Wallet');
+  await expect(wallet.getByRole('checkbox', { name: OVERDRAWN })).not.toBeChecked();
 
-  // What is typed next goes to the row that was ticked, with its minus sign, and not to Cash.
-  await home.getByLabel('Opening balance').fill('30');
-  await expect(home.getByLabel('Opening balance')).toHaveValue('-30');
-  await cash.getByLabel('Opening balance').fill('50');
-  await expect(cash.getByLabel('Opening balance')).toHaveValue('50');
+  // What is typed next goes to the row that was ticked, with its minus sign, and not to Wallet.
+  await cash.getByLabel('Opening balance').fill('30');
+  await expect(cash.getByLabel('Opening balance')).toHaveValue('-30');
+  await wallet.getByLabel('Opening balance').fill('50');
+  await expect(wallet.getByLabel('Opening balance')).toHaveValue('50');
 });
 
 /**
@@ -102,7 +106,7 @@ test('setup: the Overdrawn box makes an opening balance negative, ticked after t
 }) => {
   await setupWithAccounts(page, async () => {
     const local = page.getByRole('group', { name: 'Account 1' });
-    const cash = page.getByRole('group', { name: 'Account 3' });
+    const cash = page.getByRole('group', { name: 'Account 2' });
 
     // The amount first, then the box: the field gets its minus sign.
     await local.getByLabel('Opening balance').fill('250');
@@ -123,7 +127,6 @@ test('setup: the Overdrawn box makes an opening balance negative, ticked after t
   const accounts = await readStore<Account>(page, 'accounts');
   expect(accounts.map((a) => [a.name, a.openingMinor]).sort()).toEqual([
     ['Cash', 5000],
-    ['Home bank', 0],
     ['Local bank', -25000],
   ]);
   // Home reads the total as it is: €250 below zero and €50 in the wallet.

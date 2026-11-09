@@ -10,7 +10,10 @@ export type FlexibleId = 'food' | 'eating-out' | 'going-out' | 'transport' | 'sh
  */
 export type SetupFixture = {
   rent: string;
-  /** Opening balances of the prefilled accounts, in order: Local bank (EUR), Home bank (INR), Cash (EUR). */
+  /**
+   * Opening balances of the accounts, in order: Local bank (EUR), Home bank (INR), Cash (EUR). Setup starts with Local
+   * bank and Cash; the helpers add Home bank between them (`HOME_BANK`).
+   */
   openingBalances: [string, string, string];
   incomes: { parents: string; job: string };
   /**
@@ -31,6 +34,12 @@ export const DEFAULT_SETUP: SetupFixture = {
   budget: '',
   envelopes: { food: '310', 'eating-out': '124', 'going-out': '0', transport: '0', shopping: '0', other: '0' },
 };
+
+/**
+ * The fixture's home-country account. Setup starts with a bank and cash in euros (Roshan, 09-11-2026); the specs keep
+ * an account in rupees between them, as a student from abroad adds it, for every currency, rate and total they check.
+ */
+export const HOME_BANK = { name: 'Home bank', kind: 'bank', currency: 'INR' } as const;
 
 /** No one-off cost: what a setup walked through the wizard has. */
 export const NO_ONE_OFF: SetupFixture['oneOff'] = { name: '', amount: '', dueMonth: '' };
@@ -130,6 +139,21 @@ async function addByHand(page: Page, name: string) {
 }
 
 /**
+ * Puts the fixture's Home bank in rupees between the two accounts setup starts with: the second row (Cash) becomes
+ * Home bank, and Cash comes back as a third, so the rows read Local bank, Home bank, Cash as the specs know them.
+ */
+async function addHomeBank(page: Page) {
+  const second = page.getByRole('group', { name: 'Account 2' });
+  await second.getByLabel('Name', { exact: true }).fill(HOME_BANK.name);
+  await second.getByLabel('Type', { exact: true }).selectOption(HOME_BANK.kind);
+  await second.getByLabel('Currency', { exact: true }).selectOption(HOME_BANK.currency);
+  await page.getByRole('button', { name: 'Add account', exact: true }).click();
+  const third = page.getByRole('group', { name: 'Account 3' });
+  await third.getByLabel('Name', { exact: true }).fill('Cash');
+  await third.getByLabel('Type', { exact: true }).selectOption('cash');
+}
+
+/**
  * Walks through every step of a new setup (Accounts, Income, Fixed costs with rent, Envelopes) and stops on the
  * envelopes step, before saving. `oneOff` is not asked: a new setup has none.
  * Mocks Frankfurter and accepts the exchange-rate note first, and pins the date to `SETUP_DAY` unless the caller set
@@ -139,7 +163,7 @@ async function addByHand(page: Page, name: string) {
 export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {}, options: SetupOptions = {}) {
   const f: SetupFixture = { ...DEFAULT_SETUP, ...overrides };
   await mockFrankfurter(page);
-  // Only the note setup itself meets: the prefilled INR account would stop at the exchange-rate note
+  // Only the note setup itself meets: the fixture's Home bank in INR would stop at the exchange-rate note
   // (privacy-notes.spec.ts tests it). The others stay unseen, so dictation.spec.ts still meets the mic's.
   await acceptPrivacyNotes(page, ['rates']);
   await ensureClock(page);
@@ -154,6 +178,7 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   } else {
     await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
     await expect(page.getByText('Step 1 of 4', { exact: true })).toBeVisible();
+    await addHomeBank(page);
     for (const [i, opening] of f.openingBalances.entries()) {
       await page.getByRole('group', { name: `Account ${i + 1}` }).getByLabel('Opening balance').fill(opening);
     }

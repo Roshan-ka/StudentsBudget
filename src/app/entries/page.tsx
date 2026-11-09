@@ -12,9 +12,11 @@ export default function EntriesPage() {
         <PageHeading id="entries" />
         <AddEntryLink />
       </div>
+      {/* The import link sits above quick add, never under it: when quick add's category chips close after a pick,
+          what is under them moves up, and a double tap's second tap would open the import (seen on the iPhone). */}
       <div className="flex flex-col gap-2">
-        <QuickAddField />
         <ImportLink />
+        <QuickAddField />
       </div>
       {/* The list reads ?category= and ?month= with useSearchParams, which needs a Suspense boundary under cacheComponents. */}
       <Suspense fallback={null}>

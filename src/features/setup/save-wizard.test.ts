@@ -101,7 +101,7 @@ describe('saveWizard', () => {
 
     expect(await saveWizard(draftToRecords(draft, TODAY), false)).toBe('saved');
 
-    expect((await db.accounts.toArray()).map((a) => a.name).sort()).toEqual(['Cash', 'Home bank', 'Local bank']);
+    expect((await db.accounts.toArray()).map((a) => a.name).sort()).toEqual(['Cash', 'Local bank']);
     expect(await db.plan.get('current')).toMatchObject({ createdOn: TODAY, fixed: [{ categoryId: 'rent', monthlyMinor: 40000 }] });
   });
 
