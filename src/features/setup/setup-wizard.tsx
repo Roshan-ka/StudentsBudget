@@ -28,7 +28,7 @@ import {
   type SetupDraft,
   type StepId,
 } from './draft';
-import { saveWizard } from './save-wizard';
+import { saveWizard, type SaveResult } from './save-wizard';
 import { StepProblemsContext } from './step-problems';
 import { AccountsStep } from './steps/accounts';
 import { EnvelopesStep } from './steps/envelopes';
@@ -122,12 +122,18 @@ function Wizard({
 
     setSaving(true);
     setSaveError(null);
+    let saved: SaveResult;
     try {
-      await saveWizard(draftToRecords(draft, today, existing, storedAccounts), edit);
+      saved = await saveWizard(draftToRecords(draft, today, existing, storedAccounts), edit);
     } catch (error) {
       console.error('StudentsBudget: could not save the plan', error);
       setSaveError(text.saveFailed);
       setSaving(false);
+      return;
+    }
+    // A plan arrived while the wizard was open (the account's, another tab's, a restore): it is kept, and Home shows it.
+    if (saved === 'already-set-up') {
+      router.replace('/');
       return;
     }
     if (!edit) {
