@@ -164,6 +164,14 @@ export const askAnswer = z.strictObject({
 });
 export type AskAnswer = z.infer<typeof askAnswer>;
 
+/**
+ * Ask's answer as the app gets it (`aiAnswerBody(askReply)`): the model's answer with only the sources the city pack
+ * has, and `unbacked`, the € amounts in it as written that nothing the model was given backs (the page then says the
+ * answer holds an estimate).
+ */
+export const askReply = askAnswer.extend({ unbacked: z.array(z.string()).max(20) });
+export type AskReply = z.infer<typeof askReply>;
+
 /** What the function answers: the feature's answer and the uses left today (null: no limit), or the problem. */
 export const aiProblemBody = z.strictObject({ ok: z.literal(false), problem: z.enum(AI_PROBLEMS) });
 export const aiAnswerBody = <Answer extends z.ZodType>(answer: Answer) =>

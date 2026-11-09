@@ -76,6 +76,7 @@ const REPO = {
   'fixtures/demo.json': '',
   'mcp/server.ts': '',
   'scripts/supabase-test-env.mjs': '',
+  'scripts/write-city-pack.mjs': '',
   '.github/workflows/ci.yml': '',
 };
 
@@ -192,6 +193,10 @@ describe('selectAffected', () => {
 
   it('runs only the checks for the MCP server, which the web app never loads', () => {
     expect(select(['mcp/server.ts', '.mcp.json'])).toMatchObject({ run: true, e2e: 'none', offline: false, db: false });
+  });
+
+  it('runs only the checks for the script that writes the AI city pack into supabase/', () => {
+    expect(select(['scripts/write-city-pack.mjs'])).toMatchObject({ run: true, e2e: 'none', offline: false, db: false });
   });
 
   it('runs no e2e spec for a module that no page or spec imports', () => {

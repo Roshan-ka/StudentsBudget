@@ -35,10 +35,12 @@ const DB = [/^supabase\//, /^src\/sync\//, /^src\/lib\/supabase\//, /^scripts\/s
 /**
  * Paths with no e2e spec of their own: the database (e2e answers Supabase's calls itself), the service worker (only a
  * production build registers it), the MCP server (nothing in src/ imports it; its tests are unit tests), unit tests
- * (the checks job runs them all) and the offline spec (its own job).
+ * (the checks job runs them all), the offline spec (its own job), and the script that writes the AI's city pack into
+ * supabase/ (city-pack.test.ts, a unit test, holds the pack to it).
  */
 const NO_E2E = [
   /^supabase\//,
+  /^scripts\/write-city-pack\.mjs$/,
   /^public\/sw\.js$/,
   /^mcp\//,
   /^\.mcp\.json$/,

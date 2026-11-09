@@ -12,6 +12,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { createClient } from '@supabase/supabase-js';
 import { allowanceOf } from '../_shared/ai/allowance.ts';
+import { askBuilder } from '../_shared/ai/ask.ts';
 import { allowedOrigins } from '../_shared/ai/cors.ts';
 import { handleAi, type FeatureBuilders } from '../_shared/ai/handle.ts';
 import { ModelUnavailable, type ModelClient } from '../_shared/ai/model.ts';
@@ -26,8 +27,8 @@ declare const Deno: {
 /** The beta that lets a declined Opus request run again on Anthropic's recommended model (`fallbacks: "default"`). */
 const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 
-/** The features the function answers so far: quick add (chunk 4); chunks 8 and 11 add Ask and the setup chat. */
-const BUILDERS: FeatureBuilders = { 'quick-add': quickAddBuilder };
+/** The features the function answers so far: quick add (chunk 4) and Ask (chunk 8); chunk 11 adds the setup chat. */
+const BUILDERS: FeatureBuilders = { 'quick-add': quickAddBuilder, ask: askBuilder };
 
 /** The key that plays the caller's own token: the `default` publishable key, or the older anon key. */
 function publicKeyOf(publishableKeys: string | undefined, anonKey: string | undefined): string | undefined {
