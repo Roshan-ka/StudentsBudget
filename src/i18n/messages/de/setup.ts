@@ -41,7 +41,7 @@ export const setup: Messages['setup'] = {
     opening: 'Anfangsstand',
     remove: (number) => `Konto ${number} entfernen`,
     add: 'Konto hinzufügen',
-    prefilled: { localBank: 'Bank hier', homeBank: 'Bank zu Hause', cash: 'Bargeld' },
+    prefilled: { localBank: 'Bank hier', cash: 'Bargeld' },
   },
   income: {
     intro:

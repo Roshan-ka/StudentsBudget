@@ -46,7 +46,7 @@ export const setup = {
     remove: (number: number) => `Remove account ${number}`,
     add: 'Add account',
     /** The three accounts a new setup starts with: once saved, they are the person's own names. */
-    prefilled: { localBank: 'Local bank', homeBank: 'Home bank', cash: 'Cash' },
+    prefilled: { localBank: 'Local bank', cash: 'Cash' },
   },
   income: {
     intro: 'How much comes in each month, in euros? Leave out what you do not get. If it varies, enter a low estimate.',

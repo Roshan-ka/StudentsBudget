@@ -201,8 +201,9 @@ export function initialDraft(accountsExist = false, lang: Language = 'en'): Setu
     accounts: accountsExist
       ? []
       : [
+          // A bank and cash in euros (Roshan, 09-11-2026): a home-country account, in rupees before, was one most
+          // students had to remove; whoever has one adds it with its currency. Cash keeps its old key.
           { key: 'draft-1', name: names.localBank, kind: 'bank', currency: 'EUR', openingMinor: 0 },
-          { key: 'draft-2', name: names.homeBank, kind: 'bank', currency: 'INR', openingMinor: 0 },
           { key: 'draft-3', name: names.cash, kind: 'cash', currency: 'EUR', openingMinor: 0 },
         ],
     incomes: [],

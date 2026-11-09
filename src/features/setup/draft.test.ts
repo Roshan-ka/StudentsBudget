@@ -480,7 +480,11 @@ describe('askedCategories', () => {
 
 describe('initialDraft', () => {
   it('prefills three accounts', () => {
-    expect(initialDraft().accounts.map((a) => a.name)).toEqual(['Local bank', 'Home bank', 'Cash']);
+    // A bank and cash in euros, and no home-country account in rupees (Roshan, 09-11-2026).
+    expect(initialDraft().accounts.map((a) => [a.name, a.currency])).toEqual([
+      ['Local bank', 'EUR'],
+      ['Cash', 'EUR'],
+    ]);
   });
 
   it('leaves the accounts out when some already exist, so saving adds none', () => {
@@ -685,7 +689,17 @@ describe('shouldShowInstallHint', () => {
 
 describe('adding lines automatically', () => {
   // A new setup: the prefilled accounts have draft keys, and Local bank is the first.
-  const fresh = initialDraft();
+  // A new setup with a home-country account added in rupees between the two it starts with, as a student from abroad
+  // adds it: the lines below can post to an account in another currency.
+  const started = initialDraft();
+  const fresh: SetupDraft = {
+    ...started,
+    accounts: [
+      started.accounts[0],
+      { key: 'draft-2', name: 'Home bank', kind: 'bank', currency: 'INR', openingMinor: 0 },
+      started.accounts[1],
+    ],
+  };
   const withLines = (d: SetupDraft): SetupDraft => ({
     ...setRentAmount(d, 40000),
     incomes: setLineAmount(setLineAmount([], 'income-parents', 50000), 'income-job', 40000),
