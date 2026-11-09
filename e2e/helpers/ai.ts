@@ -3,7 +3,7 @@ import {
   aiRequest,
   PROBLEM_STATUS,
   type AiProblem,
-  type AskAnswer,
+  type AskReply,
   type AskRequest,
   type QuickAddAnswer,
   type QuickAddRequest,
@@ -45,7 +45,8 @@ export async function mockAiFunction(
   options: {
     answers?: {
       'quick-add'?: Answer<QuickAddRequest, QuickAddAnswer>;
-      ask?: Answer<AskRequest, AskAnswer>;
+      /** Ask's answer as the function sends it: the model's, with the amounts nothing backs (`askReply`). */
+      ask?: Answer<AskRequest, AskReply>;
     };
     left?: number | null;
     dailyLimit?: boolean;

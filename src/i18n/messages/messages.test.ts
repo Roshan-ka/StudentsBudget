@@ -71,6 +71,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'auth.signedIn.as.after',
   ]),
   fr: new Set([
+    'ask.sources',
     'tips.hacks.moderation.states.visible',
     'tips.hacks.cities.regensburg',
     'auth.postingName.labels.alumni',

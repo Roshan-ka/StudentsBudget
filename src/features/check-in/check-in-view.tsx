@@ -7,6 +7,7 @@ import { useId, type ReactNode } from 'react';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan } from '@/db/types';
+import { AskLink } from '@/features/ask/ask-link';
 import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
 import { entryTitle } from '@/features/entries/entry-title';
 import { QuickAddField } from '@/features/entries/quick-add-field';
@@ -275,6 +276,8 @@ function CheckIn({
         </section>
       </WeekPart>
       <AwayToggle plan={plan} today={today} />
+      {/* Questions about the week, answered from the plan and the entries (the AI phase, chunk 10). */}
+      <AskLink />
 
       {/* A plain link, not <Link>: this is a file, and the browser or the phone's calendar app takes it from here. */}
       <a href={calendarFileOf(lang)} className={`${LINK_CLASS} self-start`}>

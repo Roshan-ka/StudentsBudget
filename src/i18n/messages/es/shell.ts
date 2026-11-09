@@ -31,6 +31,7 @@ export const shell: Messages['shell'] = {
     reveal: 'Mes a mes',
     account: 'Tu cuenta',
     start: 'Te damos la bienvenida',
+    ask: 'Preguntas',
     settings: 'Ajustes',
     tips: 'Consejos y descuentos en Regensburg',
   },

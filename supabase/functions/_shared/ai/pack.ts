@@ -23,6 +23,24 @@ export type PackItem = {
   estimate: boolean;
 };
 
+/**
+ * Each kind's id, from the app's own data. The pack's writer and the Ask page (which shows a cited item's source from
+ * the app's data again, `src/features/ask/sources.ts`) both build ids here, so the two never drift apart.
+ */
+export const packId = {
+  range: (categoryId: string) => `range:${categoryId}`,
+  price: (label: string) =>
+    `price:${label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')}`,
+  tip: (id: string) => `tip:${id}`,
+  discount: (id: string) => `discount:${id}`,
+  swap: (id: string) => `swap:${id}`,
+  semester: (university: string, term: string) => `semester:${university}:${term}`,
+  fee: (university: string, starts: string) => `fee:${university}:${starts}`,
+};
+
 /** The pack as the model reads it: one item per line, its id first. */
 export function renderPack(items: readonly PackItem[]): string {
   return items

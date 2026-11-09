@@ -8,6 +8,7 @@
   ],
   "routes": {
     "/": "all",
+    "/ask": ["ask", "axe", "language-tour", "reflow", "theme"],
     "/badges": ["axe", "badges", "language-tour", "profile", "reflow", "theme"],
     "/charts": ["axe", "charts", "demo-backup", "demo-scenarios", "language-tour", "page-focus", "reflow", "theme"],
     "/check-in": ["axe", "badges", "check-in", "demo-scenarios", "language-tour", "reflow", "swaps", "theme"],

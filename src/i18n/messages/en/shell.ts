@@ -32,6 +32,7 @@ export const shell = {
     reveal: 'Month by month',
     account: 'Your account',
     start: 'Welcome',
+    ask: 'Ask',
     settings: 'Settings',
     tips: 'Regensburg tips and discounts',
   },
