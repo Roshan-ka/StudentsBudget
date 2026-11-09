@@ -727,19 +727,27 @@ export async function endSession(page: Page) {
 const ACCOUNTS_OFF = Object.values(MESSAGES).map((messages) => messages.auth.view.off);
 
 /**
- * Skips the spec when the server shows no account UI: Playwright reused a server that was started without the
- * Supabase settings. Stop that server, or run on another port (E2E_PORT=3201), to run the spec.
+ * Whether the server shows the account UI: false when Playwright reused a server that was started without the Supabase
+ * settings. It opens Your account to look.
  *
  * Whatever the phone's language: the page prerenders in English and switches to the phone's language right after it
  * hydrates, so a check for the English heading missed a German phone once the production build switched that fast.
  */
-export async function skipUnlessAccountsShow(page: Page) {
+export async function accountsShow(page: Page): Promise<boolean> {
   await openApp(page, '/settings/account');
   await expect(page.locator('h2[data-page-heading]')).toBeVisible();
   // Without settings the view starts 'off', never 'loading', so the text is there once the app has started.
   let isOff = false;
   for (const text of ACCOUNTS_OFF) isOff ||= (await page.getByText(text).count()) > 0;
-  test.skip(isOff, 'The reused server has no Supabase settings: stop it, or run with E2E_PORT=3201.');
+  return !isOff;
+}
+
+/**
+ * Skips the spec when the server shows no account UI (`accountsShow`). Stop that server, or run on another port
+ * (E2E_PORT=3201), to run the spec.
+ */
+export async function skipUnlessAccountsShow(page: Page) {
+  test.skip(!(await accountsShow(page)), 'The reused server has no Supabase settings: stop it, or run with E2E_PORT=3201.');
 }
 
 /**

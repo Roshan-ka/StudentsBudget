@@ -1,8 +1,10 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect as baseExpect, test } from '@playwright/test';
+import { firstRunPath } from '../src/features/start/first-run';
 import { collectPageErrors } from './helpers/page-errors';
 import { FRANKFURTER, readStore } from './helpers/setup';
+import { accountsShow } from './helpers/supabase';
 
 const root = new URL('../fixtures/scenarios/', import.meta.url);
 const expect = baseExpect.configure({ timeout: 20_000 });
@@ -19,6 +21,10 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
       json: [],
       headers: { 'access-control-allow-origin': '*' },
     }));
+    // A restore reloads '/'. Without a plan, Home sends the phone where `firstRunPath` says (the start page, 06-11-2026):
+    // the start page while nobody is signed in, in a build with accounts (this config's server), or setup in a build
+    // without them (a reused server). A restore signs nobody in.
+    const noPlanPath = file.data.plan ? null : firstRunPath((await accountsShow(page)) ? 'signed-out' : 'off');
     const errors = collectPageErrors(page);
     await page.goto('/setup');
     await page.getByLabel('File to restore').setInputFiles(fileURLToPath(new URL(name, root)));
@@ -26,7 +32,7 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
     const reloaded = page.waitForEvent('load');
     await page.getByRole('button', { name: 'Replace all data', exact: true }).click();
     await reloaded;
-    await expect(page).toHaveURL(file.data.plan ? '/' : '/setup', { timeout: 20_000 });
+    await expect(page).toHaveURL(noPlanPath ?? '/', { timeout: 20_000 });
     await expect.poll(async () => (await readStore(page, 'accounts')).length).toBe(file.data.accounts.length);
     if (file.data.plan) {
       // Use the app's links: full reloads can abort an in-flight rate refresh in WebKit.
@@ -54,6 +60,11 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
         await expect(recaps).toHaveCount(0);
       }
     } else {
+      // Nothing on the phone: it starts over, through Continue as guest where the start page asks first.
+      if (noPlanPath === '/start') {
+        await page.getByRole('link', { name: 'Continue as guest', exact: true }).click();
+        await expect(page).toHaveURL('/setup');
+      }
       await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
     }
     expect(errors).toEqual([]);
