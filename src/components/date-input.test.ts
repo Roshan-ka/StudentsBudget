@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { isCalendarKey, monthWeeks, movedDay, readTypedDate, shiftDayByMonths, typedDateText } from './date-input';
+import {
+  isCalendarKey,
+  monthWeeks,
+  movedDay,
+  readTypedDate,
+  sameDayIn,
+  shiftDayByMonths,
+  typedDateText,
+  yearPage,
+} from './date-input';
 
 const TODAY = '2026-11-06';
 
@@ -208,5 +217,34 @@ describe('isCalendarKey', () => {
     expect(isCalendarKey('Enter')).toBe(false);
     expect(isCalendarKey('Escape')).toBe(false);
     expect(isCalendarKey('a')).toBe(false);
+  });
+});
+
+describe('sameDayIn', () => {
+  it('keeps the day number in another month and year', () => {
+    expect(sameDayIn('2026-11-09', '2028-03')).toBe('2028-03-09');
+    expect(sameDayIn('2026-11-30', '2026-01')).toBe('2026-01-30');
+  });
+
+  it("lands on a shorter month's last day", () => {
+    expect(sameDayIn('2026-10-31', '2026-11')).toBe('2026-11-30');
+    expect(sameDayIn('2028-02-29', '2027-02')).toBe('2027-02-28');
+    expect(sameDayIn('2026-01-31', '2028-02')).toBe('2028-02-29');
+  });
+});
+
+describe('yearPage', () => {
+  it('shows twelve years: the shown one, seven before it and four after', () => {
+    const years = yearPage(2026);
+    expect(years).toHaveLength(12);
+    expect(years[0]).toBe(2019);
+    expect(years[7]).toBe(2026);
+    expect(years[11]).toBe(2030);
+  });
+
+  it('moves twelve years a page, either way', () => {
+    expect(yearPage(2026, 1)).toEqual([2031, 2032, 2033, 2034, 2035, 2036, 2037, 2038, 2039, 2040, 2041, 2042]);
+    expect(yearPage(2026, -1)[0]).toBe(2007);
+    expect(yearPage(2026, -1)[11]).toBe(2018);
   });
 });

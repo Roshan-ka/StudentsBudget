@@ -127,10 +127,27 @@ export function monthWeeks(month: IsoMonth): IsoDate[][] {
   return Array.from({ length: 6 }, (_, week) => Array.from({ length: 7 }, (_, day) => addDays(start, week * 7 + day)));
 }
 
+/** The same day number in `month`, on the month's last day when it is shorter: 31.01 in February gives 28.02. */
+export function sameDayIn(day: IsoDate, month: IsoMonth): IsoDate {
+  return `${month}-${two(Math.min(Number(day.slice(8, 10)), daysInMonth(month)))}`;
+}
+
 /** The same day `by` months later (earlier, when negative), on the month's last day when it is shorter: 31.01 → 28.02. */
 export function shiftDayByMonths(day: IsoDate, by: number): IsoDate {
-  const month = shiftMonth(monthOf(day), by);
-  return `${month}-${two(Math.min(Number(day.slice(8, 10)), daysInMonth(month)))}`;
+  return sameDayIn(day, shiftMonth(monthOf(day), by));
+}
+
+/** How many years the calendar's year list shows at once, and how many of them come before the shown year. */
+export const YEARS_SHOWN = 12;
+const YEARS_BEFORE = 7;
+
+/**
+ * The years the calendar's year list shows: the shown `year` with seven before it and four after, or `page` lists of
+ * twelve further on (earlier, when negative), so any year is a few taps away.
+ */
+export function yearPage(year: number, page = 0): number[] {
+  const first = year - YEARS_BEFORE + page * YEARS_SHOWN;
+  return Array.from({ length: YEARS_SHOWN }, (_, index) => first + index);
 }
 
 /** A key that moves the calendar's focus. */
