@@ -26,7 +26,8 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
     const reloaded = page.waitForEvent('load');
     await page.getByRole('button', { name: 'Replace all data', exact: true }).click();
     await reloaded;
-    await expect(page).toHaveURL(file.data.plan ? '/' : '/setup', { timeout: 20_000 });
+    // Without a plan the phone opens the start page, since nobody is signed in (`firstRunPath`).
+    await expect(page).toHaveURL(file.data.plan ? '/' : '/start', { timeout: 20_000 });
     await expect.poll(async () => (await readStore(page, 'accounts')).length).toBe(file.data.accounts.length);
     if (file.data.plan) {
       // Use the app's links: full reloads can abort an in-flight rate refresh in WebKit.
@@ -54,6 +55,9 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
         await expect(recaps).toHaveCount(0);
       }
     } else {
+      // The guest way leads on to setup, which starts with the Accounts step (the file has none).
+      await page.getByRole('link', { name: 'Continue as guest', exact: true }).click();
+      await expect(page).toHaveURL('/setup');
       await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
     }
     expect(errors).toEqual([]);

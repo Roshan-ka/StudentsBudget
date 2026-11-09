@@ -126,7 +126,8 @@ test('the semester end offers no day before the start', async ({ page }) => {
   await calendarButton(page, 'Semester end').click();
   const sunday = day(page, 'Sunday 11 October 2026');
   await expect(sunday).toHaveAttribute('aria-disabled', 'true');
-  // Forced: Playwright waits for an aria-disabled cell to be enabled; the tap itself must do nothing.
+  // Playwright waits for an aria-disabled cell to become enabled before it clicks, so a plain click would wait out the
+  // test. `force` sends the tap a person can still make on it, which picks nothing: the sheet stays open.
   await sunday.click({ force: true });
   await expect(sheet(page)).toBeVisible();
 
