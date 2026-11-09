@@ -98,7 +98,8 @@ describe('parseQuickAdd', () => {
 
   it('ignores digit tokens parseAmount rejects', () => {
     expect(parseQuickAdd('coffee 6,505')).toBeNull();
-    expect(parseQuickAdd('coffee 1.234,56')).toBeNull();
+    // A bare thousands dot stays refused (parseAmount): it may be a mistyped "1.23".
+    expect(parseQuickAdd('coffee 1.234')).toBeNull();
     expect(parseQuickAdd('coffee 12abc')).toBeNull();
   });
 

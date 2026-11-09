@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CURRENCIES, formatMoney, formatRange, parseAmount } from './money';
+import { CURRENCIES, amountInputText, formatMoney, formatRange, parseAmount } from './money';
 
 describe('parseAmount', () => {
   it('parses whole and decimal amounts into minor units', () => {
@@ -27,8 +27,39 @@ describe('parseAmount', () => {
     for (const bad of ['0', '-5', 'abc', '6,505', '']) {
       expect(parseAmount(bad)).toBeNull();
     }
-    for (const bad of ['0,00', '   ', '1,2,3', '1.234,56', '6,', '12abc']) {
+    for (const bad of ['0,00', '   ', '1,2,3', '6,', '12abc']) {
       expect(parseAmount(bad)).toBeNull();
+    }
+  });
+
+  it('reads thousands that can’t be misread: dots before a decimal comma, commas before a decimal point, spaces', () => {
+    expect(parseAmount('1.234,56')).toBe(123456);
+    expect(parseAmount('12.345.678,90')).toBe(1234567890);
+    expect(parseAmount('1,200.50')).toBe(120050);
+    expect(parseAmount('1 200')).toBe(120000);
+    expect(parseAmount('1 200,50')).toBe(120050);
+    expect(parseAmount('1 200.50')).toBe(120050);
+  });
+
+  it('refuses a bare dot or comma group: "1.200" may be a mistyped "1.20" (review, 09-11-2026)', () => {
+    for (const bad of ['1.200', '1,200', '6,505', '1.000.50', '1,000,50', '1.000,000', '1 000.000', '€6']) {
+      expect(parseAmount(bad), bad).toBeNull();
+    }
+    // One or two digits after a dot stay decimals: "1.00" is one euro.
+    expect(parseAmount('1.00')).toBe(100);
+  });
+});
+
+describe('amountInputText', () => {
+  it('writes an amount for editing with the language’s decimal mark, which parseAmount reads back', () => {
+    expect(amountInputText(650)).toBe('6.50');
+    expect(amountInputText(650, 'de-DE')).toBe('6,50');
+    expect(amountInputText(650, 'fr-FR')).toBe('6,50');
+    expect(amountInputText(600, 'de-DE')).toBe('6');
+    expect(amountInputText(123456, 'de-DE')).toBe('1234,56');
+    expect(amountInputText(-2550, 'de-DE')).toBe('-25,50');
+    for (const locale of ['en-IE', 'de-DE', 'fr-FR', 'es-ES']) {
+      expect(parseAmount(amountInputText(123456, locale)), locale).toBe(123456);
     }
   });
 });

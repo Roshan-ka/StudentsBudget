@@ -13,7 +13,7 @@ import {
 import { useT } from '@/i18n/use-t';
 import { afterPress, watchPresses } from '@/lib/after-press';
 import { describedBy as describedByIds } from '@/lib/described-by';
-import { parseAmount, type Minor } from '@/lib/money';
+import { amountInputText, parseAmount, type Minor } from '@/lib/money';
 
 /** What an empty field means: 0 (income, costs, envelopes), or no answer yet (guesses). */
 type Blank = 'zero' | 'unset';
@@ -32,10 +32,10 @@ function parseField(text: string, blank: Blank, range: Range): Minor | undefined
 const sameAmount = (a: Minor | undefined, b: Minor | undefined): boolean =>
   a === b || (a !== undefined && b !== undefined && Number.isNaN(a) && Number.isNaN(b));
 
-function toText(value: Minor | undefined, blank: Blank): string {
+function toText(value: Minor | undefined, blank: Blank, locale: string): string {
   if (value === undefined || Number.isNaN(value)) return '';
   if (value === 0 && blank === 'zero') return '';
-  return value % 100 === 0 ? String(value / 100) : (value / 100).toFixed(2);
+  return amountInputText(value, locale);
 }
 
 /**
@@ -79,15 +79,15 @@ export function AmountField({
   problemId?: string | null;
 }) {
   const id = useId();
-  const { t } = useT();
+  const { t, locale } = useT();
   const range: Range = signed ? 'signed' : positive ? 'positive' : 'optional';
-  const [text, setText] = useState(() => toText(value, blank));
+  const [text, setText] = useState(() => toText(value, blank, locale));
   // Overdrawn ticked while the field was empty: the first thing typed takes the minus sign.
   const [waiting, setWaiting] = useState(false);
   const [touched, setTouched] = useState(false);
   useEffect(watchPresses, []);
   const fromValue = !sameAmount(parseField(text, blank, range), value);
-  const shown = fromValue ? toText(value, blank) : text;
+  const shown = fromValue ? toText(value, blank, locale) : text;
   // The tick belongs to the text typed here. A field that shows another value now (a row above was removed) forgets
   // it, and a tick only waits while the field is empty: with an amount in it, it would put a minus on someone else's.
   if (fromValue && waiting) setWaiting(false);

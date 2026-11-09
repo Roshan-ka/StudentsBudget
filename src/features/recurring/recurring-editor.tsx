@@ -14,7 +14,7 @@ import { INCOME_CATEGORIES } from '@/features/entries/categories';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import { monthOf, todayIso, type IsoDate } from '@/lib/dates';
-import { formatMoney, parseAmount, type Minor } from '@/lib/money';
+import { amountInputText, formatMoney, parseAmount } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import {
   addableCategories,
@@ -33,10 +33,6 @@ import { useLineEntries } from './use-line-entries';
 import { useFocusAfter, useFocusOnMount } from '@/lib/focus';
 
 type Change = (mutate: (plan: Plan) => Plan) => Promise<boolean>;
-
-function minorToInput(minor: Minor): string {
-  return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
-}
 
 
 /** Focus keys of the editor: a line's Edit button, the Add button, and the heading. */
@@ -75,8 +71,10 @@ function LineForm({
   const [accountId, setAccountId] = useState(
     s ? (accounts.some((a) => a.id === s.accountId) ? s.accountId : '') : (defaultAccount(accounts)?.id ?? ''),
   );
-  const [amount, setAmount] = useState(s ? minorToInput(s.amountMinor) : line ? minorToInput(line.monthlyMinor) : '');
-  const [monthly, setMonthly] = useState(line ? minorToInput(line.monthlyMinor) : '');
+  const [amount, setAmount] = useState(
+    s ? amountInputText(s.amountMinor, locale) : line ? amountInputText(line.monthlyMinor, locale) : '',
+  );
+  const [monthly, setMonthly] = useState(line ? amountInputText(line.monthlyMinor, locale) : '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
