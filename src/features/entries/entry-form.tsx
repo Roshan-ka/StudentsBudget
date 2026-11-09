@@ -20,7 +20,7 @@ import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { describedBy } from '@/lib/described-by';
-import { parseAmount, type Minor } from '@/lib/money';
+import { amountInputText, parseAmount } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { buildEntry } from './build-entry';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from './categories';
@@ -39,10 +39,6 @@ const EXPENSE_GROUPS = (['flexible', 'fixed', 'oneoff'] as const).map((kind) => 
   categories: EXPENSE_CATEGORIES.filter((c) => c.kind === kind),
 }));
 
-function minorToInput(minor: Minor): string {
-  return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
-}
-
 /**
  * The form for an expense or an income: amount, account, category, date and note. With `entry` it starts
  * filled in and saving keeps that entry's id and creation time.
@@ -57,13 +53,13 @@ function MoneyEntryForm({
   onSaved?: (saved: Entry) => void;
 }) {
   const id = useId();
-  const { t, lang } = useT();
+  const { t, lang, locale } = useT();
   const text = t.entries.form;
   const editing = entry?.type === 'transfer' ? undefined : entry;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
   // Today's date, kept current: null until the browser runs this (never the date of the prerender).
   const today = useToday();
-  const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
+  const [amount, setAmount] = useState(editing ? amountInputText(editing.amountMinor, locale) : '');
   // null until the person picks: the account and category last saved with on this phone (pain points, chunk 6), else
   // the default account and the first category.
   const [accountChoice, setAccountChoice] = useState<string | null>(editing?.accountId ?? null);

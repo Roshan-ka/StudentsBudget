@@ -44,6 +44,7 @@ export const checkIn: Messages['checkIn'] = {
     earlier: 'Añadir algo de un día anterior',
   },
   reminder: 'Añadir un recordatorio semanal al calendario',
+  calendarEvent: 'Revisión semanal (StudentsBudget)',
   reminderOr: 'O, en su lugar, una notificación en este móvil:',
   reminderOrLink: 'Recordatorio semanal',
   noPlan: 'Configura tu plan para revisar tu semana.',

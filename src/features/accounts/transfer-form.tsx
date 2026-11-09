@@ -16,7 +16,7 @@ import type { Entry } from '@/db/types';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
 import { describedBy } from '@/lib/described-by';
-import { parseAmount, type Minor } from '@/lib/money';
+import { amountInputText, parseAmount } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { defaultAccount, sortAccounts } from './balances';
 import { buildTransfer, type EntryField } from './transfer';
@@ -25,17 +25,13 @@ import { focusFirstControl, useFocusAfter } from '@/lib/focus';
 /** A message under the form, and the field it is about (none when saving failed): that field points at it. */
 type FormError = { text: string; field: EntryField | 'date' | null };
 
-function minorToInput(minor: Minor): string {
-  return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
-}
-
 /**
  * Moves money between two accounts. With `entry` (a transfer being edited) the form starts filled in
  * and saving keeps that entry's id; any other entry type is ignored.
  */
 export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (saved: Entry) => void }) {
   const id = useId();
-  const { t, lang } = useT();
+  const { t, lang, locale } = useT();
   const text = t.accounts.transfer;
   const editing = entry?.type === 'transfer' ? entry : undefined;
   const accounts = useLiveQuery(async () => sortAccounts(await db.accounts.toArray()), []);
@@ -44,7 +40,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
   // null until the person picks: the default account sends, the first other account receives.
   const [fromChoice, setFromChoice] = useState<string | null>(editing?.accountId ?? null);
   const [toChoice, setToChoice] = useState<string | null>(editing?.toAccountId ?? null);
-  const [amount, setAmount] = useState(editing ? minorToInput(editing.amountMinor) : '');
+  const [amount, setAmount] = useState(editing ? amountInputText(editing.amountMinor, locale) : '');
   // null until the person types: see `received` below for what the field shows then.
   const [receivedChoice, setReceivedChoice] = useState<string | null>(null);
   // null means today, so a form left open (or kept hidden by the router) follows the date; a date that was picked stays.
@@ -72,7 +68,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
     (from.currency !== to.currency || editing.toAmountMinor !== editing.amountMinor);
   const received =
     receivedChoice ??
-    (keepsStoredReceived ? minorToInput(editing.toAmountMinor) : from.currency === to.currency ? amount : '');
+    (keepsStoredReceived ? amountInputText(editing.toAmountMinor, locale) : from.currency === to.currency ? amount : '');
   const date = dateChoice ?? today;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {

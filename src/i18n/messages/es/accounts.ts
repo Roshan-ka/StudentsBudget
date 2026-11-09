@@ -22,7 +22,7 @@ export const accounts: Messages['accounts'] = {
   editAccount: (name) => `Editar ${name}`,
   deleteAccount: (name) => `Borrar ${name}`,
   deleteQuestion: (name) => `¿Borrar ${name}?`,
-  makeDefaultOf: (name) => `Usar ${name} por defecto`,
+  makeDefaultOf: (name) => `Usar por defecto: ${name}`,
   defaultMark: 'Por defecto para nuevos registros',
   nowDefault: (name) => `${name} es ahora la cuenta por defecto para nuevos registros.`,
   total: 'Total',

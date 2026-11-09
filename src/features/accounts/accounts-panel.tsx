@@ -16,17 +16,13 @@ import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import { describedBy } from '@/lib/described-by';
-import { CURRENCIES, formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
+import { CURRENCIES, amountInputText, formatMoney, type CurrencyCode } from '@/lib/money';
 import { newId } from '@/lib/new-id';
 import { accountBalance, defaultAccount, sortAccounts, totalInEur } from './balances';
 import { currencyFixed } from './currency-lock';
 import { isOverdrawn, parseSignedAmount, tickOverdrawn, typeOpening } from './opening-balance';
 import { setDefaultAccount } from './set-default-account';
 import { focusFirstControl, focusOnMount, useFocusAfter } from '@/lib/focus';
-
-function minorToInput(minor: Minor): string {
-  return minor % 100 === 0 ? String(minor / 100) : (minor / 100).toFixed(2);
-}
 
 async function refreshExchangeRates() {
   try {
@@ -49,13 +45,13 @@ function AccountForm({
   onDone: () => void;
 }) {
   const id = useId();
-  const { t } = useT();
+  const { t, locale } = useT();
   const text = t.accounts;
   const [name, setName] = useState(account?.name ?? '');
   const [kind, setKind] = useState<Account['kind']>(account?.kind ?? 'bank');
   const [currency, setCurrency] = useState<CurrencyCode>(account?.currency ?? 'EUR');
   // An overdrawn balance is a minus sign in the text, so a typed "-250" and the checkbox say the same thing.
-  const [opening, setOpening] = useState(account ? minorToInput(account.openingMinor) : '');
+  const [opening, setOpening] = useState(account ? amountInputText(account.openingMinor, locale) : '');
   // Overdrawn ticked while the field was empty: the first thing typed takes the minus sign.
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<FormError | null>(null);
