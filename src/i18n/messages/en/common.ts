@@ -16,6 +16,12 @@ export const common = {
     calendarTitle: 'Choose a date',
     previousMonth: 'Previous month',
     nextMonth: 'Next month',
+    /** In the year list, the arrows move twelve years. */
+    earlierYears: 'Earlier years',
+    laterYears: 'Later years',
+    /** What the month and the year buttons above the days do, read with their word. */
+    chooseMonth: 'Choose a month',
+    chooseYear: 'Choose a year',
     goToToday: 'Go to today',
     close: 'Close',
   },
