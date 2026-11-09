@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { DateField } from '@/components/date-field';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -73,6 +73,17 @@ function ProfileForm({
       : BLANK,
   );
   const [problems, setProblems] = useState<ProfileProblem[]>([]);
+  // Which date field holds text that is no date (DateField's `onNotADate`): Save asks about it, rather than taking
+  // the empty date it reports as a cleared one.
+  const [notADate, setNotADate] = useState({ semesterStart: false, semesterEnd: false });
+  const startNotADate = useCallback(
+    (bad: boolean) => setNotADate((now) => (now.semesterStart === bad ? now : { ...now, semesterStart: bad })),
+    [],
+  );
+  const endNotADate = useCallback(
+    (bad: boolean) => setNotADate((now) => (now.semesterEnd === bad ? now : { ...now, semesterEnd: bad })),
+    [],
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Save profile stays mounted, so focus can move to it when "Clear semester dates" unmounts under the person.
@@ -100,7 +111,7 @@ function ProfileForm({
     event.preventDefault();
     // Not `disabled` while saving: that would push focus off the button.
     if (saving) return;
-    const found = profileProblems(draft, lang);
+    const found = profileProblems(draft, lang, notADate);
     if (found.length > 0) return setProblems(found);
     setSaving(true);
     try {
@@ -164,6 +175,7 @@ function ProfileForm({
         value={draft.semesterStart}
         invalid={startInvalid}
         describedBy={startInvalid ? problemsId : undefined}
+        onNotADate={startNotADate}
         onChange={(semesterStart) => change({ semesterStart })}
       />
       <DateField
@@ -173,6 +185,7 @@ function ProfileForm({
         min={draft.semesterStart || undefined}
         invalid={endInvalid}
         describedBy={endInvalid ? problemsId : undefined}
+        onNotADate={endNotADate}
         onChange={(semesterEnd) => change({ semesterEnd })}
       />
       {problems.length > 0 && (

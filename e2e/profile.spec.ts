@@ -110,6 +110,25 @@ test('Profile has its own page in Settings, prefills the semester and keeps what
   await expect(endField(page)).toHaveValue(formatDate('2027-02-05'));
 });
 
+test('mistyping both semester dates never saves over the ones that were there', async ({ page }) => {
+  await seedSetup(page);
+  await openSettings(page);
+  await startField(page).fill(formatDate('2026-10-01'));
+  await endField(page).fill(formatDate('2027-03-31'));
+  await saveProfile(page);
+
+  // Two days the calendar doesn't have: each field says so, and gives the form an empty date (review, 09-11-2026).
+  await startField(page).fill('31.09.2026');
+  await endField(page).fill('31.02.2027');
+  await endField(page).blur();
+  await profileSection(page).getByRole('button', { name: 'Save profile', exact: true }).click();
+
+  await expect(profileSection(page).getByRole('alert')).toHaveText('Enter each semester date as a full date.');
+  await expect(startField(page)).toHaveAttribute('aria-invalid', 'true');
+  const [kept] = await readStore<Profile>(page, 'profile');
+  expect(kept).toMatchObject({ semesterStart: '2026-10-01', semesterEnd: '2027-03-31' });
+});
+
 test('an end before the start is not saved, and the end field says why', async ({ page }) => {
   await seedSetup(page);
   await openSettings(page);

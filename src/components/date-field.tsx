@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useEffect, useId, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,10 @@ type FieldState = { value: IsoDate; typed: string; notADate: boolean };
  * (`useToday`). `invalid` and `describedBy` mark the field and point at the form's error. The label is "Date" in the
  * phone's language unless `label` names it. The button at the end opens the calendar (`DateCalendar`), where `min`
  * is the earliest day that can be picked; a typed date before it is left to the form's own check.
+ *
+ * `onNotADate` tells the form whether the field holds text that is no date. A form whose date may be empty needs it:
+ * its own check can't tell such text from a field left blank on purpose, and would save over a date that was there
+ * (Profile's semester dates, review of 09-11-2026).
  */
 export function DateField({
   value,
@@ -46,6 +50,7 @@ export function DateField({
   min,
   invalid = false,
   describedBy,
+  onNotADate,
 }: {
   value: IsoDate;
   onChange: (value: IsoDate) => void;
@@ -54,6 +59,7 @@ export function DateField({
   min?: IsoDate;
   invalid?: boolean;
   describedBy?: string;
+  onNotADate?: (notADate: boolean) => void;
 }) {
   const id = useId();
   const hintId = `${id}-hint`;
@@ -69,6 +75,10 @@ export function DateField({
   // even text that is no date while the form holds none.
   const [field, setField] = useState<FieldState>(() => ({ value, typed: shown(value), notADate: false }));
   if (field.value !== value) setField({ value, typed: shown(value), notADate: false });
+
+  useEffect(() => {
+    onNotADate?.(field.notADate);
+  }, [field.notADate, onNotADate]);
 
   function report(next: FieldState) {
     setField(next);
