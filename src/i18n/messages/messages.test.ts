@@ -51,6 +51,8 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'auth.passkeys.unnamed',
     'badges.tiers.bronze',
     'badges.tiers.gold',
+    // "Miete: 400,00 €": the name, then the amount, as in English (the setup chat).
+    'setup.chat.line',
   ]),
   es: new Set([
     'tips.hacks.moderation.states.visible',
@@ -69,9 +71,11 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'backup.restore.question.after',
     'auth.secondStep.prompt.after',
     'auth.signedIn.as.after',
+    'setup.chat.line',
   ]),
   fr: new Set([
     'ask.sources',
+    'setup.chat.sources',
     'tips.hacks.moderation.states.visible',
     'tips.hacks.cities.regensburg',
     'auth.postingName.labels.alumni',

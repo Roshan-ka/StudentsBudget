@@ -125,4 +125,39 @@ export const setup: Messages['setup'] = {
       'fijos y los sobres que la configuración se saltó, o repasa todo el plan otra vez.',
     link: 'Editar plan',
   },
+  /** El chat de configuración (fase de IA, chunk 12): en el primer paso de una configuración nueva, con sesión, con IA. */
+  chat: {
+    open: 'Configurar chateando',
+    openHint: 'Cuéntale a la app sobre tu dinero con tus propias palabras, y el chat rellena los pasos para que los revises.',
+    switchedOff: 'El chat de configuración está desactivado en este móvil. Las funciones de IA se activan en Ajustes → Tu cuenta.',
+    heading: 'Configurar chateando',
+    intro:
+      'Di lo que entra cada mes, tu alquiler y otros gastos fijos, y cómo quieres gastar el resto. El chat rellena ' +
+      'los pasos; no se guarda nada hasta que los revises y toques Guardar plan.',
+    message: 'Tu mensaje',
+    messageHint: 'Por ejemplo «Recibo 500 € de mis padres y pago 400 € de alquiler».',
+    send: 'Enviar',
+    thinking: 'Pensando…',
+    you: 'Tú',
+    reply: 'El chat',
+    filled: 'Rellenado',
+    sources: 'Fuentes',
+    budget: 'Presupuesto del día a día',
+    accounts: 'Tus cuentas',
+    /** Una cosa que rellenó una respuesta: «Alquiler: 400,00 €». */
+    line: (name: string, amount: string) => `${name}: ${amount}`,
+    full: 'Un chat no da para más. Revisa los pasos para seguir.',
+    review: 'Revisar los pasos',
+    problems: {
+      dailyLimit: 'Has usado los mensajes del chat de hoy. Rellena los pasos tú mismo o vuelve a intentarlo mañana.',
+      busy: 'El chat está ocupado ahora mismo. Inténtalo de nuevo en un momento o rellena los pasos tú mismo.',
+      refused: 'El chat no puede responder a eso aquí. Prueba a decirlo de otra forma.',
+      unavailable: 'No se puede conectar con el chat ahora mismo. Inténtalo más tarde o rellena los pasos tú mismo.',
+      offline: 'Estás sin conexión. El chat necesita conexión.',
+      timeout: 'El chat tardó demasiado en responder. Inténtalo de nuevo.',
+      signedOut: 'Vuelve a iniciar sesión en Tu cuenta para usar el chat.',
+      needsCode: 'Introduce el código de tu app de autenticación en Ajustes → Tu cuenta para usar el chat.',
+      failed: 'Algo salió mal con esa respuesta. Inténtalo de nuevo.',
+    },
+  },
 };

@@ -128,4 +128,39 @@ export const setup: Messages['setup'] = {
       'Umschläge, die die Einrichtung übersprungen hat, oder geh den ganzen Plan noch einmal durch.',
     link: 'Plan bearbeiten',
   },
+  /** Der Einrichtungs-Chat (KI-Phase, Chunk 12): im ersten Schritt einer neuen Einrichtung, angemeldet, mit KI. */
+  chat: {
+    open: 'Per Chat einrichten',
+    openHint: 'Erzähl in deinen eigenen Worten von deinem Geld, und der Chat füllt die Schritte aus, damit du sie prüfst.',
+    switchedOff: 'Der Einrichtungs-Chat ist auf diesem Handy aus. KI-Funktionen lassen sich unter Einstellungen → Dein Konto einschalten.',
+    heading: 'Per Chat einrichten',
+    intro:
+      'Sag, was jeden Monat reinkommt, deine Miete und andere Fixkosten und wie du den Rest ausgeben möchtest. Der ' +
+      'Chat füllt die Schritte aus; gespeichert wird erst, wenn du sie prüfst und auf Plan speichern tippst.',
+    message: 'Deine Nachricht',
+    messageHint: 'Etwa „Ich bekomme 500 € von meinen Eltern und zahle 400 € Miete“.',
+    send: 'Senden',
+    thinking: 'Denkt nach …',
+    you: 'Du',
+    reply: 'Der Chat',
+    filled: 'Ausgefüllt',
+    sources: 'Quellen',
+    budget: 'Alltagsbudget',
+    accounts: 'Deine Konten',
+    /** Eine Sache, die eine Antwort ausgefüllt hat: „Miete: 400,00 €“. */
+    line: (name: string, amount: string) => `${name}: ${amount}`,
+    full: 'Mehr fasst ein Chat nicht. Prüf die Schritte, um weiterzumachen.',
+    review: 'Schritte prüfen',
+    problems: {
+      dailyLimit: 'Die Chat-Nachrichten für heute sind aufgebraucht. Füll die Schritte selbst aus oder versuch es morgen wieder.',
+      busy: 'Der Chat ist gerade ausgelastet. Versuch es gleich noch einmal oder füll die Schritte selbst aus.',
+      refused: 'Darauf kann der Chat hier nicht antworten. Versuch es anders zu sagen.',
+      unavailable: 'Der Chat ist gerade nicht erreichbar. Versuch es später noch einmal oder füll die Schritte selbst aus.',
+      offline: 'Du bist offline. Der Chat braucht eine Verbindung.',
+      timeout: 'Der Chat hat zu lange gebraucht. Versuch es noch einmal.',
+      signedOut: 'Melde dich unter Dein Konto wieder an, um den Chat zu nutzen.',
+      needsCode: 'Gib den Code deiner Authenticator-App unter Einstellungen → Dein Konto ein, um den Chat zu nutzen.',
+      failed: 'Bei dieser Antwort ist etwas schiefgegangen. Versuch es noch einmal.',
+    },
+  },
 };
