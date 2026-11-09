@@ -76,5 +76,10 @@ export const common: Messages['common'] = {
       'zona horaria y tu idioma, y actualiza la zona y el idioma cuando cambian en el móvil. El recordatorio pasa ' +
       'por el servicio push del fabricante de tu navegador (Apple, Google, Mozilla o Microsoft), que ve que llega ' +
       'un mensaje, pero no lo que dice.',
+    ai:
+      'Las funciones de IA envían lo que escribes, con lo que cada una necesita de tu presupuesto (como los nombres ' +
+      'de tus categorías y cuentas, o las cifras de tu plan), a Anthropic (Claude), en EE. UU., para responderlo. ' +
+      'Los números de cuenta y de tarjeta, las direcciones de correo y los números de teléfono se quitan antes. Tu ' +
+      'cuenta registra cuántas veces usas cada función al día. Puedes desactivarlas en Ajustes → Tu cuenta.',
   },
 };

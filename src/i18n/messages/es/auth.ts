@@ -194,6 +194,14 @@ export const auth: Messages['auth'] = {
     setupCancelled: 'Configuración cancelada.',
     cancelledElsewhere: 'Esta configuración se canceló, quizá desde otro móvil. Toca Activar para empezar de nuevo.',
   },
+  /** Tu cuenta → Funciones de IA (fase de IA, chunk 5): el interruptor de este móvil, activado al principio. */
+  ai: {
+    heading: 'Funciones de IA',
+    use: 'Usar las funciones de IA en este móvil',
+    hint:
+      'Envían lo que escribes a Anthropic (Claude), en EE. UU., dentro de un cupo diario para tu cuenta. ' +
+      'Desactivadas, no se envía nada a Anthropic, y Añadir rápido lee tus líneas en este móvil.',
+  },
   /** El nombre con el que alguien publica en el feed de trucos: se pide al crear la cuenta y se cambia después. */
   postingName: {
     heading: 'Tu nombre en las publicaciones',

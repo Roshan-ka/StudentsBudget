@@ -12,6 +12,8 @@ export const E2E_SUPABASE_ENV = {
   NEXT_PUBLIC_SUPABASE_URL: 'https://e2e.supabase.invalid',
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e',
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: 'BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8',
+  // The AI features (the AI phase): their parts show, and specs answer the function with `mockAiFunction` (ai.ts).
+  NEXT_PUBLIC_AI: '1',
 };
 
 /** Every Supabase Auth call. Matched by path, so it also catches a dev server that has the real project in .env.local. */
@@ -31,6 +33,11 @@ export function e2eUserIdOf(email: string): string {
 
 /** How the mocked session's access token ends; the data mock checks for it. */
 const SESSION_SIGNATURE = '.e2e-signature';
+
+/** Whether a request carries the mocked session's token, as a signed-in page sends it (the AI function's mock, ai.ts). */
+export function signedInRequest(request: Request): boolean {
+  return (request.headers()['authorization'] ?? '').endsWith(SESSION_SIGNATURE);
+}
 
 function base64url(value: object): string {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
