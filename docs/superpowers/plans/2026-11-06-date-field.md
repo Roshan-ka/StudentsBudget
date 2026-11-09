@@ -118,3 +118,14 @@ Roshan, 06-11-2026: "in the entries make the calendar more intuitive and easy to
   - **Every push to the draft PR:** I dispatch CI with `scope=changed browsers=all` (my own draft PR, already allowed). That covers lint, typecheck, build and the whole unit suite, plus the e2e specs of the routes the date field reaches (Entries, Accounts, Profile, Check-in) on Chromium and the iPhone project.
   - **Language tour:** chunk 3 also gets a run with `languages=all`, which covers the 375 px tour with the sheet's month names.
 - **By hand, on the PR's Vercel preview:** type `0611` and see `06.11.` appear; open the sheet on a phone; pick a day; check that Today and Yesterday still mark the right chip.
+
+## Chunk 5: jump to a month or a year (09-11-2026)
+
+Roshan tried the sheet ("good visually"), but reaching another month or year took the ‹ › arrows over and over. Three mockup rounds settled it: "do not show arrow, just an outline around the month and year and show them similar to like the dates", then "show both month and year on top but with different sections".
+
+- **The header:** above the days are two outlined buttons with no arrow, the month ("November") and the year ("2026"), each with `aria-expanded` and a description ("Choose a month", "Choose a year").
+- **Months:** 12 cells in the days' look, round, with this month ringed and the shown one filled. Each shows the short name, and its name is the full one.
+- **Years:** 12 years, the shown one with 7 before and 4 after (`yearPage`). Here ‹ › page 12 years at a time.
+- **After a pick:** picking a month or a year shows its days, with the focus on the same day number, clamped (`sameDayIn`).
+- **`min`:** months and years that end before `min` can't be picked.
+- **Escape:** in a list it goes back to the days (base-ui's `escape-key` reason, `cancel()`); only then does it close the sheet.
