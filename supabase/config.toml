@@ -411,6 +411,11 @@ deno_version = 2
 [functions.weekly-reminder]
 verify_jwt = false
 
+# The AI features (supabase/functions/ai): the platform's JWT check is off, as Supabase advises for the new signing
+# keys; the function calls take_ai_allowance with the caller's token first, and PostgREST verifies that token.
+[functions.ai]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
