@@ -6,7 +6,6 @@ import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatusLine } from '@/components/status-line';
-import { deleteEverything } from '@/db/bulk';
 import { db } from '@/db/db';
 import {
   checkDraft,
@@ -29,6 +28,7 @@ import { describedBy } from '@/lib/described-by';
 import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useAccountDeleted } from './account-deleted';
+import { useWipeOwedAtLoad, wipeAfterSignOut } from './pending-wipe';
 import { AccountLink } from './account-link';
 import { authErrorMessage } from './auth-errors';
 import { CodeField } from './code-field';
@@ -839,7 +839,16 @@ type SignOutStep =
  * page; signing in again brings the data back. Changes the last sync couldn't send are said first, with the choice to
  * stay. `passwordChanged`: a "Forgot password" reset was just finished, which the status line says for a while.
  */
-function SignedInPanel({ email, passwordChanged }: { email: string; passwordChanged: boolean }) {
+function SignedInPanel({
+  email,
+  passwordChanged,
+  onWipeFailed,
+}: {
+  email: string;
+  passwordChanged: boolean;
+  /** The phone couldn't be cleared after signing out; this panel is gone by then. */
+  onWipeFailed: () => void;
+}) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.signedIn;
@@ -886,7 +895,7 @@ function SignedInPanel({ email, passwordChanged }: { email: string; passwordChan
   }
 
   /**
-   * Signs out, then clears the phone and opens the start page. The session goes first: with it, `deleteEverything`'s
+   * Signs out, then clears the phone and opens the start page. The session goes first: with it, `wipeAfterSignOut`'s
    * `db.delete()` takes the outbox and the link along, so nothing is queued to delete in the account.
    */
   async function leave() {
@@ -914,10 +923,12 @@ function SignedInPanel({ email, passwordChanged }: { email: string; passwordChan
       return;
     }
     try {
-      await deleteEverything();
+      await wipeAfterSignOut();
     } catch (wipeError) {
       console.error('StudentsBudget: signed out, but could not clear this phone', wipeError);
-      setError(text.wipeFailed);
+      // This panel is already gone (the account page shows the sign-in form): the page says it instead, and the next
+      // start tries again (`finishPendingWipe`).
+      onWipeFailed();
       return;
     }
     markSignedOut();
@@ -998,6 +1009,9 @@ export function AccountView() {
   const auth = useAuth();
   const recovery = useRecovery();
   const accountDeleted = useAccountDeleted();
+  // A sign-out whose wipe failed, here or on an earlier visit: said on the sign-in form, which is what shows by then.
+  const [wipeFailed, setWipeFailed] = useState(false);
+  const wipeOwed = useWipeOwedAtLoad();
   switch (auth.status) {
     case 'off':
       return <p className="text-muted-foreground">{t.auth.view.off}</p>;
@@ -1008,8 +1022,13 @@ export function AccountView() {
       if (recovery === 'pending') return <NewPasswordForm email={auth.email} />;
       return (
         <>
-          <SignedInPanel email={auth.email} passwordChanged={recovery === 'changed'} />
-          <AccountLink />
+          <SignedInPanel
+            email={auth.email}
+            passwordChanged={recovery === 'changed'}
+            onWipeFailed={() => setWipeFailed(true)}
+          />
+          {/* One per account: a choice made for one account is never carried out for the next one to sign in. */}
+          <AccountLink key={auth.userId} />
           <PostingNameCard userId={auth.userId} />
           {/* Last: syncing is what the page is for; passkeys and two-step sign-in are set once. */}
           <SignInSecurity />
@@ -1024,6 +1043,11 @@ export function AccountView() {
         <>
           {accountDeleted && (
             <StatusLine className="rounded-lg bg-muted px-4 py-3 text-sm">{t.auth.deleteAccount.done}</StatusLine>
+          )}
+          {(wipeFailed || wipeOwed) && (
+            <p role="alert" className="rounded-lg bg-muted px-4 py-3 text-sm">
+              {t.auth.signedIn.wipeFailed}
+            </p>
           )}
           <SignInForm />
         </>

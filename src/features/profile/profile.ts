@@ -41,9 +41,17 @@ export function hasSemesterYear(date: string): boolean {
  * Why the profile cannot be saved yet, in `lang`. Empty when it can: every field is optional, but a semester needs both
  * dates.
  */
-export function profileProblems({ semesterStart, semesterEnd }: SemesterDates, lang: Language = 'en'): ProfileProblem[] {
-  if (semesterStart === '' && semesterEnd === '') return [];
+export function profileProblems(
+  { semesterStart, semesterEnd }: SemesterDates,
+  lang: Language = 'en',
+  notADate: Readonly<Record<keyof SemesterDates, boolean>> = { semesterStart: false, semesterEnd: false },
+): ProfileProblem[] {
   const text = MESSAGES[lang].profile.problems;
+  // A field holding text that is no date gives an empty date, as a cleared one does: it is asked about, so a typo never
+  // saves over the dates that were there.
+  if (notADate.semesterStart) return [{ field: 'semesterStart', message: text.full }];
+  if (notADate.semesterEnd) return [{ field: 'semesterEnd', message: text.full }];
+  if (semesterStart === '' && semesterEnd === '') return [];
   if (semesterStart === '') return [{ field: 'semesterStart', message: text.both }];
   if (semesterEnd === '') return [{ field: 'semesterEnd', message: text.both }];
   // A desktop date field takes a year of up to six digits, and keeps the zeros of a year typed half-way ("0026").
