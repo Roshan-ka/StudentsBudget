@@ -16,8 +16,11 @@ const buttonVariants = cva(
           "border-outline bg-card text-foreground hover:bg-muted aria-expanded:bg-muted dark:hover:bg-input/50",
         secondary:
           "border-outline bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+        // A pressed chip (and the calendar's open month or year) swaps its colours with the text's: the background
+        // changes at once, never fades, or for a moment the text sits on a background of its own colour (axe caught
+        // it in the calendar, run 42629888395).
         chip:
-          "rounded-full border-outline bg-card text-foreground hover:bg-muted aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background",
+          "rounded-full border-outline bg-card text-foreground transition-[box-shadow,translate] hover:bg-muted aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:
