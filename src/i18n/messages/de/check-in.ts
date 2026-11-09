@@ -44,6 +44,7 @@ export const checkIn: Messages['checkIn'] = {
     earlier: 'Etwas von einem früheren Tag nachtragen',
   },
   reminder: 'Wöchentliche Erinnerung in den Kalender eintragen',
+  calendarEvent: 'Wöchentlicher Check-in (StudentsBudget)',
   reminderOr: 'Oder stattdessen eine Mitteilung auf diesem Handy:',
   reminderOrLink: 'Wöchentliche Erinnerung',
   noPlan: 'Richte deinen Plan ein, um auf deine Woche zu schauen.',

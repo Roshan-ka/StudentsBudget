@@ -45,6 +45,8 @@ export const checkIn = {
     earlier: 'Add something from an earlier day',
   },
   reminder: 'Add weekly reminder to calendar',
+  /** The calendar event's title, in its file (`public/weekly-check-in*.ics`, one per language; tested). */
+  calendarEvent: 'StudentsBudget weekly check-in',
   reminderOr: 'Or a notification on this phone instead:',
   reminderOrLink: 'Weekly reminder',
   noPlan: 'Set up your plan to check in on your week.',

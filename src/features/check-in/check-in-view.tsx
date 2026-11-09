@@ -22,6 +22,7 @@ import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { cn } from '@/lib/utils';
 import { weekLabel } from '@/lib/week-label';
+import { calendarFileOf } from './calendar-file';
 import { weekLine, weekTotalLine } from './week-line';
 import { weekRows } from './week-rows';
 import { weekSwaps } from './week-swaps';
@@ -239,7 +240,7 @@ function CheckIn({
   today: IsoDate;
 }) {
   const addId = useId();
-  const { t } = useT();
+  const { t, lang } = useT();
   // On the Sunday a month starts mid-week, the week's days in the previous month would otherwise never be
   // reviewed. They come first, measured against that month's budget, with its last day standing in for today.
   // A month before the setup month has no budget, so its tail is left out (the tail is a month's last days, so ending
@@ -276,7 +277,7 @@ function CheckIn({
       <AwayToggle plan={plan} today={today} />
 
       {/* A plain link, not <Link>: this is a file, and the browser or the phone's calendar app takes it from here. */}
-      <a href="/weekly-check-in.ics" className={`${LINK_CLASS} self-start`}>
+      <a href={calendarFileOf(lang)} className={`${LINK_CLASS} self-start`}>
         {t.checkIn.reminder}
       </a>
       {/* The other way to be reminded (weekly reminder, chunk 4): the two point to each other, so nobody gets both. */}

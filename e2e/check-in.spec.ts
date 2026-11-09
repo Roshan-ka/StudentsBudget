@@ -153,6 +153,24 @@ test('the reminder link points at a calendar file that is served as a calendar',
   expect(body).toContain('SUMMARY:StudentsBudget weekly check-in');
   expect(body).toContain('DTSTART:20261018T180000\r\n');
   expect(body).toContain('RRULE:FREQ=WEEKLY;BYDAY=SU\r\n');
+  // It rings as the event starts, on a calendar with no alert by default too (review, 09-11-2026).
+  expect(body).toContain('BEGIN:VALARM\r\nACTION:DISPLAY\r\n');
+});
+
+test.describe('in German', () => {
+  test.use({ locale: 'de-DE' });
+
+  test('the reminder link gives the calendar event a German title', async ({ page }) => {
+    await seedSetup(page, {}, { open: false });
+    await openApp(page, '/check-in');
+
+    const link = page.getByRole('link', { name: 'Wöchentliche Erinnerung in den Kalender eintragen', exact: true });
+    await expect(link).toHaveAttribute('href', '/weekly-check-in.de.ics');
+    const response = await page.request.get('/weekly-check-in.de.ics');
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('text/calendar');
+    expect(await response.text()).toContain('SUMMARY:Wöchentlicher Check-in (StudentsBudget)\r\n');
+  });
 });
 
 test('on Sunday a forgotten purchase is added from today or from an earlier day, and the lines follow', async ({
