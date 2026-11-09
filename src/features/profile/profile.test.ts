@@ -136,6 +136,20 @@ describe('profileProblems', () => {
     ).toEqual([]);
   });
 
+  it('asks about a date field holding text that is no date, even when both dates read as empty', () => {
+    // Both fields mistyped (31.09.2026, 31.02.2027): each gives an empty date, which alone would save a cleared semester
+    // over the saved one (review, 09-11-2026).
+    const message = 'Enter each semester date as a full date.';
+    expect(profileProblems(BLANK, 'en', { semesterStart: true, semesterEnd: true })).toEqual([
+      { field: 'semesterStart', message },
+    ]);
+    expect(profileProblems(BLANK, 'en', { semesterStart: false, semesterEnd: true })).toEqual([
+      { field: 'semesterEnd', message },
+    ]);
+    // Cleared on purpose: nothing to say.
+    expect(profileProblems(BLANK, 'en', { semesterStart: false, semesterEnd: false })).toEqual([]);
+  });
+
   it('asks for both semester dates or neither, at the empty field', () => {
     const message = 'Add both semester dates, or leave both empty.';
     expect(profileProblems(draft({ semesterStart: '2026-10-01' }))).toEqual([{ field: 'semesterEnd', message }]);
