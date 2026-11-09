@@ -20,6 +20,7 @@ export const shell: Messages['shell'] = {
     appearance: 'Apparence',
     accounts: 'Comptes et virements',
     backup: 'Sauvegarde et données',
+    importExport: 'Import et export',
     moderation: 'Modération',
     reminder: 'Rappel hebdomadaire',
     badges: 'Badges',

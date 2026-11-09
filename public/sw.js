@@ -28,6 +28,7 @@ const PAGES = [
   '/settings/appearance',
   '/settings/account',
   '/settings/backup',
+  '/settings/import',
   '/settings/moderation',
   '/settings/reminder',
   '/setup',

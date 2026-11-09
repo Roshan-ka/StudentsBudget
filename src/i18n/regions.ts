@@ -14,10 +14,15 @@ export type RegionInfo = {
   dateOrder: readonly [DatePart, DatePart, DatePart];
   /** What stands between them. */
   dateSeparator: string;
+  /**
+   * How a spreadsheet there reads a CSV file (CSV export): Excel set to German expects `;` between fields and a decimal
+   * comma, since the comma is the decimal mark.
+   */
+  csv: { separator: string; decimal: string };
 };
 
 export const REGIONS = {
-  de: { name: 'Deutschland', dateOrder: ['day', 'month', 'year'], dateSeparator: '.' },
+  de: { name: 'Deutschland', dateOrder: ['day', 'month', 'year'], dateSeparator: '.', csv: { separator: ';', decimal: ',' } },
 } as const satisfies Record<string, RegionInfo>;
 
 export type Region = keyof typeof REGIONS;
