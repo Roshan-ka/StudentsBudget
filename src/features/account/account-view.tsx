@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatusLine } from '@/components/status-line';
 import { db } from '@/db/db';
+import { AiSwitchCard } from '@/features/ai/ai-switch-card';
 import {
   checkDraft,
   EMPTY_DRAFT,
@@ -1030,6 +1031,8 @@ export function AccountView() {
           {/* One per account: a choice made for one account is never carried out for the next one to sign in. */}
           <AccountLink key={auth.userId} />
           <PostingNameCard userId={auth.userId} />
+          {/* This phone's switch for the AI features, in a build that has them. */}
+          <AiSwitchCard />
           {/* Last: syncing is what the page is for; passkeys and two-step sign-in are set once. */}
           <SignInSecurity />
           {/* At the very end: deleting the account is the rarest step, and the one that can't be undone. */}

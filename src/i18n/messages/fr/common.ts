@@ -77,5 +77,11 @@ export const common: Messages['common'] = {
       'ton fuseau horaire et ta langue, et met à jour le fuseau et la langue quand ils changent sur le téléphone. ' +
       'Le rappel passe par le service push de l’éditeur de ton navigateur (Apple, Google, Mozilla ou Microsoft), ' +
       'qui voit qu’un message arrive, mais pas ce qu’il dit.',
+    ai:
+      'Les fonctions d’IA envoient ce que tu écris, avec ce dont chacune a besoin dans ton budget (comme les noms ' +
+      'de tes catégories et de tes comptes, ou les chiffres de ton plan), à Anthropic (Claude), aux États-Unis, pour ' +
+      'y répondre. Les numéros de compte et de carte, les adresses e-mail et les numéros de téléphone sont retirés ' +
+      'avant. Ton compte enregistre combien de fois tu utilises chaque fonction par jour. Tu peux les désactiver ' +
+      'dans Réglages → Ton compte.',
   },
 };
