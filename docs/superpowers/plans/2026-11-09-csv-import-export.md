@@ -351,3 +351,35 @@ All of it is in `src/features/import/`, pure TypeScript, and nothing in the app 
   - refunds.
 
   There are 58 import tests in all.
+
+**Chunk 4 (09-11-2026): what an import does**
+- **`overlap.ts`:** `findOverlaps(rows, accountId, entries)`, the overlap rule. Matching goes by direction (an entry's movement on the account), one to one, closest dates first, within `OVERLAP_DAYS` (3). It finds:
+  - entries typed by hand and posted fixed costs;
+  - transfers: cash typed as a transfer to Cash, and the other half of a top-up.
+- **`transfers.ts`:** `transferTarget(row, account, accounts)` gives a transfer with the other account, none, or a skip.
+  - An account named as a whole word, the longest name first. Generic names (Bank, Konto, Cash, Wallet…) never count, so "Deutsche Bank" or "Cash at Sparkasse" name nothing.
+  - A cash withdrawal goes to a cash account (one it names, else the only euro one), never to the bank whose machine it was. `isCashWithdrawal` reads Revolut's `ATM`, or BARGELDAUSZAHLUNG, Geldautomat, GAA, "GA NR…" and ATM in the booking text or purpose.
+  - A top-up comes from the account it names, else the only other euro bank account.
+  - Without such an account: `noTransferAccount`. To another currency: `otherCurrencyTransfer`.
+- **`note.ts`:** added; the plan had this inside `plan-import`. `importNote` writes "payee · purpose", at most 200 characters, with these taken out:
+  - IBANs (and the word);
+  - card numbers (DKB's and Sparkasse's `Debitk.…`, masked numbers, Revolut's `*1234`);
+  - a card payment's time stamp;
+  - SEPA fields, and any run of eight digits or more.
+- **`plan-import.ts`:** `planImport({ read, account, accounts, entries, categories, plan, batchId, now })` gives the drafts (`EntryInput`, the mark, the row), the skipped rows, and `openingChanges`.
+  - Skips, in this order:
+    - `unreadable`, `pending`;
+    - `internal` (added for Revolut's exchanges and vault moves);
+    - `zero`, `currency`, `future`;
+    - `beforePlan` (only with a plan);
+    - the transfer skips;
+    - `duplicate`.
+  - Payments get `categorize`'s category, kept as the mark's `guess`. Transfers get the merchant only.
+  - `openingChanges` is a map per account. It covers both sides of a transfer, wider than the plan's single account, so a top-up dated before Cash or Revolut was added moves that account's start too.
+- **Tests:** 22 new, in four files (`overlap`, `transfers`, `note`, `plan-import`); 80 for the import in all. They include:
+  - Sparkasse's fixture to drafts;
+  - the same file again, all duplicates;
+  - Revolut after Sparkasse, its top-up found as the other half;
+  - each Revolut row's fate;
+  - before the plan and in the future;
+  - the starting balances.
