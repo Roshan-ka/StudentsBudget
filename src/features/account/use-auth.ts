@@ -1,14 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { forgetFeedCache } from '@/features/hacks/feed';
-import { forgetReminderOnPhone } from '@/features/reminder/reminder';
 import { getSupabase } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
 import { forgetSignedOut } from '@/features/start/signed-out';
 import { forgetAccountDeleted } from './account-deleted';
 import { authStateOf, type AuthState } from './auth-state';
-import { endRecovery, startRecovery } from './recovery';
+import { startRecovery } from './recovery';
 
 /**
  * The account state of this tab, kept current by supabase-js: sign-in, sign-out, token refreshes and changes made in
@@ -27,14 +25,9 @@ export function useAuth(): AuthState {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       // A "Forgot password" code signed in (P2.4): the new-password step stays until a new password is saved. Set in
       // the same callback as the state, so the account never shows for a moment without the step.
+      // What goes with the account on a sign-out is forgotten for the whole app, by `followSessionForPhone` (AppInit),
+      // which hears it even while this page is hidden.
       if (event === 'PASSWORD_RECOVERY') startRecovery();
-      else if (event === 'SIGNED_OUT') {
-        endRecovery();
-        // The hacks feed this phone kept for the account goes too, so the next person never sees it.
-        forgetFeedCache();
-        // So does the weekly reminder: nothing more arrives on a signed-out phone.
-        void forgetReminderOnPhone();
-      }
       // A new sign-in after deleting an account (P2.5): the "deleted" line has said what it had to.
       if (event === 'SIGNED_IN') {
         forgetAccountDeleted();

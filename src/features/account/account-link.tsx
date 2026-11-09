@@ -56,6 +56,9 @@ export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
   // falling back to the top of the page: "Linking…", then the line on what moved. An alert is read out by itself.
   const followFocus = useRef(false);
   const checkingRef = useRef<HTMLParagraphElement>(null);
+  // The user the view on screen was worked out for: a choice is carried out only for that user, never for whoever
+  // signed in since in another tab (review, 09-11-2026).
+  const viewUser = useRef<string | null>(null);
   const noteRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -85,6 +88,7 @@ export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
         const outcome = await linkPhone(store, userId, () => wantsCodeBeforeLinking(supabase.auth));
         // The account wants this session's authenticator code first: useAuth shows the code step instead of this page.
         if (!current || outcome.kind === 'code') return;
+        viewUser.current = userId;
         setView(outcome);
         // Just linked: one sync, so the status starts from "Synced just now". Nothing syncs on its own after that.
         if (outcome.kind === 'linked' && outcome.fresh) await syncNow(store, userId);
@@ -118,6 +122,11 @@ export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
     try {
       const userId = await sessionUserId();
       if (userId === undefined) return;
+      // Someone else signed in since this choice was worked out: it is worked out again for them.
+      if (userId !== viewUser.current) {
+        linkAgain();
+        return;
+      }
       const store = supabaseStore(supabase);
       await linkWithChoice(store, plan, userId, choice);
       await syncNow(store, userId);
