@@ -41,7 +41,18 @@ export type AiLog = {
   outputTokens?: number;
   cacheReadTokens?: number;
   cacheWriteTokens?: number;
+  /**
+   * The HTTP status of an error the model's API answered with (400 for a request it refuses, say), so a `failed` in
+   * the logs says why. Only the number: an error's message is never logged.
+   */
+  errorStatus?: number;
 };
+
+/** The HTTP status an error carries (the Anthropic SDK's `APIError.status`), or undefined. */
+function statusOf(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
+  return typeof error.status === 'number' ? error.status : undefined;
+}
 
 export type AiDeps = {
   /** From the `AI_ALLOWED_ORIGINS` secret (`allowedOrigins`). */
@@ -179,7 +190,8 @@ export async function handleAi(request: Request, deps: AiDeps): Promise<Response
   } catch (error) {
     if (request.signal.aborted) return refuse('failed', { aborted: true });
     if (timeout.aborted || error instanceof ModelUnavailable) return refuse('unavailable');
-    return refuse('failed');
+    const errorStatus = statusOf(error);
+    return refuse('failed', errorStatus === undefined ? {} : { errorStatus });
   }
 
   const usage = usageOf(message);

@@ -210,6 +210,14 @@ describe('handleAi: the model', () => {
     }
   });
 
+  it('logs the status of an error the API answered with, never its message', async () => {
+    const refused = Object.assign(new Error('fallbacks: the beta is not enabled for this account'), { status: 400 });
+    const { deps, logs } = play({ reply: async () => Promise.reject(refused) });
+    expect((await handleAi(post(REQUEST), deps)).status).toBe(502);
+    expect(logs[0]).toMatchObject({ problem: 'failed', errorStatus: 400 });
+    expect(JSON.stringify(logs)).not.toContain('beta');
+  });
+
   it('gives up on a model that takes too long', async () => {
     const quick = { ...quickAdd, call: (request: QuickAddRequest) => ({ ...quickAdd.call(request), timeoutMs: 20 }) };
     const { deps } = play();
