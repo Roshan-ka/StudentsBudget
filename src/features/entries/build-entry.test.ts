@@ -171,6 +171,48 @@ describe('buildEntry', () => {
     expect(fresh.ok && 'recurring' in fresh.entry).toBe(false);
   });
 
+  it('editing keeps the import mark, also when the entry becomes a transfer, and a new entry has none', () => {
+    const imported = { batchId: 'import-1', merchant: 'rewe', guess: 'groceries' };
+    const existing: Entry = {
+      id: 'entry-2',
+      type: 'expense',
+      date: '2026-10-03',
+      accountId: 'bank',
+      amountMinor: 2350,
+      eurMinor: 2350,
+      categoryId: 'groceries',
+      note: 'REWE Markt',
+      createdAt: '2026-10-09T08:00:00.000Z',
+      imported,
+    };
+
+    // The student moves it to another category: the mark stays, so the import learns from the change.
+    const recategorised = buildEntry(
+      { type: 'expense', date: '2026-10-03', accountId: 'bank', amountMinor: 2350, categoryId: 'eating-out', note: 'REWE' },
+      account('bank', 'EUR'),
+      {},
+      NOW,
+      existing,
+    );
+    const asTransfer = buildEntry(
+      { type: 'transfer', date: '2026-10-03', accountId: 'bank', amountMinor: 2350, toAccountId: 'cash', toAmountMinor: 2350, note: '' },
+      account('bank', 'EUR'),
+      {},
+      NOW,
+      existing,
+    );
+    const fresh = buildEntry(
+      { type: 'expense', date: '2026-10-03', accountId: 'bank', amountMinor: 2350, categoryId: 'groceries', note: '' },
+      account('bank', 'EUR'),
+      {},
+      NOW,
+    );
+
+    expect(recategorised.ok && recategorised.entry).toMatchObject({ id: 'entry-2', categoryId: 'eating-out', imported });
+    expect(asTransfer.ok && asTransfer.entry).toMatchObject({ id: 'entry-2', type: 'transfer', imported });
+    expect(fresh.ok && 'imported' in fresh.entry).toBe(false);
+  });
+
   describe('editing and the stored EUR value', () => {
     // 95000 INR was worth 1000 cents when it was entered (rate 95).
     const existing: Entry = {

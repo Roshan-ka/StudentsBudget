@@ -49,6 +49,9 @@ const entryBase = {
   eurMinor: minor,
   note: text,
   createdAt: text,
+  // Optional, like an account's `isDefault`: entries typed in, posted or from an older file have none. An older app drops
+  // it (unknown keys are stripped), so its copy of the entry reads as typed in.
+  imported: z.object({ batchId: id, merchant: text, guess: id.optional() }).optional(),
 };
 
 export const entryRow = z.discriminatedUnion('type', [

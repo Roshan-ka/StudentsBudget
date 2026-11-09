@@ -26,7 +26,7 @@ export type TransferInput = {
 /**
  * Builds the transfer entry, or says what is wrong with the input. `eurMinor` is the sending side
  * converted to EUR with the rate on file, so a missing rate for the sending currency is an error.
- * With `existing` (an edit) the new entry keeps its `id` and `createdAt`. It also keeps its `eurMinor`
+ * With `existing` (an edit) the new entry keeps its `id`, `createdAt` and `imported` mark. It also keeps its `eurMinor`
  * (and needs no rate) while the sending account and the amount sent are unchanged: the EUR value was fixed
  * when that amount was entered, so a later edit of the date or note must not move it. The error is in `lang`.
  */
@@ -61,6 +61,7 @@ export function buildTransfer(
       createdAt: existing?.createdAt ?? now.toISOString(),
       toAccountId: input.toAccountId,
       toAmountMinor: input.toAmountMinor,
+      ...(existing?.imported && { imported: existing.imported }),
     },
   };
 }

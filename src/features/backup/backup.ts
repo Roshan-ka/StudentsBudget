@@ -27,7 +27,8 @@ type Problem = keyof Messages['backup']['problems'];
  * Version 2 adds the plan's schedules and the entries' `recurring` marker, both optional, so version 1 files read.
  * Version 3 adds `weekResults`, `discountVotes` and `profile`; a file without them reads with those empty.
  * The plan's `spendingBudgetMinor` is optional, so it did not need a version: a file without it reads as a plan with
- * no budget, and an older app that reads one with it ignores it. An account's `isDefault` is optional for the same reason.
+ * no budget, and an older app that reads one with it ignores it. An account's `isDefault` and an entry's `imported` mark
+ * (CSV import) are optional for the same reason.
  */
 export const BACKUP_VERSION = 3;
 
