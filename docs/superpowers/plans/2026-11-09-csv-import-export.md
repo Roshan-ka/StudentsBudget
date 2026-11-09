@@ -241,6 +241,16 @@ Chunks 2–5 are pure TypeScript with unit tests, and run nothing heavy. Every c
 - **Two phones:** importing the same statement on two phones before syncing duplicates it, because the ids are new.
 - **Bank layouts from public docs:** they may be out of date. The real try with Roshan's own exports is the check, and a wrong layout is a data fix in `profiles.ts`.
 
+## Parked (not in these chunks)
+
+- **Group a trip's expenses** (Roshan, 09-11-2026: parked until CSV import exists).
+  - **The idea:** offer to group what looks like a trip as one trip that counts against the Travel envelope: a burst of payments in another currency, or at unfamiliar merchants, within a few days.
+    - The idea was first worded "while an import is reviewed". This import saves straight away with no review, so the offer would sit in the import's summary.
+  - **Each entry keeps its own category,** so a dinner on the trip is still eating out in the charts.
+  - **Never automatic:** the person confirms the group.
+  - **Location:** bank CSVs rarely have a reliable location column. A card payment's city sometimes sits in the free-text reference, differently per bank, so location alone isn't the signal.
+  - **A first step that helps sooner:** select several entries in Entries and move them to another category at once.
+
 ## Before chunk 1 (done, 09-11-2026)
 
 - Main's two failing tests (run 390) were fixed in #145; #146 and #147 were settled with it.
