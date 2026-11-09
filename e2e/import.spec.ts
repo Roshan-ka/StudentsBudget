@@ -186,7 +186,8 @@ test('says what is wrong with a file it cannot import', async ({ page }) => {
   const file = page.getByLabel('Statement file (CSV)', { exact: true });
 
   await file.setInputFiles({ name: 'notes.csv', mimeType: 'text/csv', buffer: Buffer.from('Datum;Text;Soll\n01.11.2026;Edeka;12,30\n') });
-  await expect(page.getByRole('alert')).toHaveText(
+  // Inside the page: Next's route announcer (#__next-route-announcer__, outside <main>) is a role="alert" too.
+  await expect(page.getByRole('main').getByRole('alert')).toHaveText(
     "The app doesn't recognise this file's columns. Statements from Sparkasse, DKB, N26 and Revolut work.",
   );
   await expect(file).toHaveAttribute('aria-invalid', 'true');
