@@ -95,6 +95,38 @@ describe('readTypedDate', () => {
   });
 });
 
+describe('readTypedDate with pastFirst (an entry’s date)', () => {
+  const past = (text: string, today: string) => {
+    const typed = readTypedDate(text, today, 'de', { pastFirst: true });
+    return typed.kind === 'date' ? typed.date : typed.kind;
+  };
+
+  it('reads a date without its year as last year’s when this year’s is more than two months ahead', () => {
+    // New Year's Eve, logged on 2 January (review, 09-11-2026).
+    expect(past('31.12', '2027-01-02')).toBe('2026-12-31');
+    expect(past('3112', '2027-01-02')).toBe('2026-12-31');
+    expect(past('15.6', '2027-02-10')).toBe('2026-06-15');
+  });
+
+  it('keeps this year for a date in the past or up to two months ahead', () => {
+    expect(past('6.11', '2026-11-09')).toBe('2026-11-06');
+    expect(past('5.1', '2026-11-09')).toBe('2026-01-05');
+    // A planned expense next month stays this year.
+    expect(past('15.12', '2026-11-09')).toBe('2026-12-15');
+    expect(past('8.1', '2026-11-08')).toBe('2026-01-08');
+  });
+
+  it('leaves a typed year alone, and checks the 29th of February in the year it lands in', () => {
+    expect(past('31.12.2027', '2027-01-02')).toBe('2027-12-31');
+    expect(past('29.2', '2029-01-10')).toBe('not-a-date');
+    expect(past('29.2', '2028-12-30')).toBe('2028-02-29');
+  });
+
+  it('reads as before without pastFirst (a semester date)', () => {
+    expect(read('31.12')).toBe('2026-12-31');
+  });
+});
+
 describe('typedDateText', () => {
   it('puts the dots in while digits are typed, as on a phone without a dot key', () => {
     expect(typeOut('06112026')).toEqual([

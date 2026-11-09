@@ -199,6 +199,7 @@ export function TransferForm({ entry, onSaved }: { entry?: Entry; onSaved?: (sav
         </div>
       </div>
       <DateField
+        pastFirst
         value={date}
         onChange={setDateChoice}
         invalid={invalid('date')}

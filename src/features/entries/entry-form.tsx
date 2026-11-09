@@ -216,6 +216,7 @@ function MoneyEntryForm({
         </NativeSelect>
       </div>
       <DateField
+        pastFirst
         value={date}
         onChange={setDateChoice}
         invalid={invalid('date')}

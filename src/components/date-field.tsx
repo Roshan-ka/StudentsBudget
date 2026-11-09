@@ -4,7 +4,7 @@ import { useEffect, useId, useState, type ChangeEvent, type KeyboardEvent } from
 import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { datePlaceholder } from '@/i18n/regions';
+import { DEFAULT_REGION, datePlaceholder } from '@/i18n/regions';
 import { useT } from '@/i18n/use-t';
 import { describedBy as describedByIds } from '@/lib/described-by';
 import { formatDate, todayIso, type IsoDate } from '@/lib/dates';
@@ -51,6 +51,7 @@ export function DateField({
   invalid = false,
   describedBy,
   onNotADate,
+  pastFirst = false,
 }: {
   value: IsoDate;
   onChange: (value: IsoDate) => void;
@@ -60,6 +61,8 @@ export function DateField({
   invalid?: boolean;
   describedBy?: string;
   onNotADate?: (notADate: boolean) => void;
+  /** A date typed without its year means the past first (`readTypedDate`): an entry's or a transfer's, not a semester's. */
+  pastFirst?: boolean;
 }) {
   const id = useId();
   const hintId = `${id}-hint`;
@@ -87,14 +90,14 @@ export function DateField({
 
   function type(event: ChangeEvent<HTMLInputElement>) {
     const typed = typedDateText(field.typed, event.target.value);
-    const read = readTypedDate(typed, today ?? todayIso());
+    const read = readTypedDate(typed, today ?? todayIso(), DEFAULT_REGION, { pastFirst });
     if (read.kind === 'date' && WITH_FULL_YEAR.test(typed)) report({ value: read.date, typed, notADate: false });
     else setField({ ...field, typed, notADate: false });
   }
 
   /** Reads what was typed, rewrites it in full, and tells whether the form's date changed. */
   function commit(): boolean {
-    const read = readTypedDate(field.typed, today ?? todayIso());
+    const read = readTypedDate(field.typed, today ?? todayIso(), DEFAULT_REGION, { pastFirst });
     if (read.kind === 'date') {
       report({ value: read.date, typed: formatDate(read.date), notADate: false });
       return read.date !== value;
