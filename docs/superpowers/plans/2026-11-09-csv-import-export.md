@@ -278,3 +278,46 @@ Chunks 2–5 are pure TypeScript with unit tests, and run nothing heavy. Every c
   - `transfer.test.ts`: kept on a transfer's edit, none without.
   - `backup.test.ts`: a round trip with and without the mark; a mark without its batch is incomplete.
 - `CLAUDE.md`: the plan's link and a "CSV import and export" rule.
+
+**Chunk 2 (09-11-2026): reading a statement file**
+
+All of it is in `src/features/import/`, pure TypeScript, and nothing in the app calls it yet.
+- **`decode.ts`:** the bytes are read as strict UTF-8, which also drops a BOM. Anything that isn't valid UTF-8 is read as Windows-1252.
+- **`csv.ts`:**
+  - `parseCsv` reads RFC 4180 (quotes, `""`, line breaks inside quotes, CRLF, LF or CR), and N26's uneven quoting;
+  - `cellKey` compares header names trimmed and in any case.
+- **`amounts.ts`:**
+  - `parseStatementAmount` reads a signed amount in minor units. Thousands separators count only between groups of three digits. It takes a currency sign or code, a Unicode minus, a trailing minus and brackets. A third decimal counts only when it's zero, and there's never a -0.
+  - `guessDecimalMark` goes by the mark before the last one or two digits.
+- **`dates.ts`:**
+  - `parseStatementDate` reads `dmy` with a 2- or 4-digit year (as 20YY), `ymd` with any time dropped, and `mdy` only when asked. A day that doesn't exist is refused.
+  - `guessDateOrder`: year first when every date is; a part over 12 decides the rest; otherwise the expected order.
+- **`profiles.ts`:** the layouts as data, with their sources in a comment.
+  - `sparkasse-camt`, `sparkasse-mt940`, `dkb`, `dkb-old`, `n26`, `n26-old`, `n26-old-de` and `revolut`.
+  - `dkb-visa` is recognised and refused (`UNSUPPORTED_PROFILES`).
+  - `recognise(row)`: the profile whose header names are all in the row.
+  - What changed from the plan's `Mapping`:
+    - `amount` is `{ column }` or `{ out, in }`;
+    - `payee` can be split by direction (DKB writes the payer and the payee apart);
+    - `bookingText` keeps the bank's own word (`BARGELDAUSZAHLUNG`) for telling transfers apart later;
+    - `kind` (top-up, cash, inside the bank) and `internalWhen` (Revolut's `Product` `Deposit`);
+    - `summaryWords` (DKB's `Tagessaldo` and `Abschluss` rows are dropped).
+  - A test holds every profile away from the account-number, IBAN, BIC and mandate columns.
+- **`read-rows.ts`:**
+  - `readRows(table, mapping)` gives `StatementRow`s: the index, the date, the signed amount with any fee taken off, the currency (or null), payee, purpose, booking text, pending and kind.
+  - Rows without a readable date or amount come back as `UnreadRow`s, with their text.
+  - The date order and decimal mark the values show win over the profile's, so a file a spreadsheet saved again still reads.
+  - `sepaText` takes the text after `SVWZ+` (Sparkasse's MT940).
+- **`statement.ts`:** added to the plan's list as the one entry point.
+  - `openStatement(bytes)` finds the header within the first 20 lines with each separator, recognises the bank, and reads its rows.
+  - A file it doesn't know comes back as a `Table` for the column matching: the separator with the most rows of one width wins, `;` on a tie.
+  - The limits are 2 MB and 5,000 rows.
+- **`fixtures.ts`:** files for every profile, written in TypeScript with made-up people and zero IBANs:
+  - Sparkasse CAMT in Windows-1252, and MT940;
+  - DKB with `;` and with `,`;
+  - the old DKB file in ISO-8859-1;
+  - N26, N26 saved again by a spreadsheet, and the old German N26 file;
+  - Revolut, with a top-up, cash with a fee, an exchange, a vault move, pending, INR, reverted and a Title-case type;
+  - the DKB Visa file, and an unknown CSV with money out and money in apart.
+- **Tests:** 42, in six files (`decode`, `csv`, `amounts`, `dates`, `read-rows`, `statement`).
+- **Left for chunk 4:** masking the card numbers and IBANs some purposes hold (`Debitk.1 2029-12`). Revolut Business has no profile: its layout is unknown, so it goes to the column matching.
