@@ -128,6 +128,9 @@ test('a double tap on a category chip saves the entry once', async ({ page }) =>
   await page.getByRole('button', { name: 'Transport' }).dblclick();
 
   await expect(page.getByRole('status')).toHaveText('Saved €3.00 · bus · Transport');
+  // The second tap lands where the chip was: nothing that moved up into its place opens (the import link once did, on
+  // the iPhone).
+  await expect(page).toHaveURL(/\/entries$/);
   await expect(entriesList(page).getByText('€3.00')).toHaveCount(1);
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(1);
 });

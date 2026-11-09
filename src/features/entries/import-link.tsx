@@ -6,7 +6,8 @@ import { useT } from '@/i18n/use-t';
 /**
  * A quiet way from the entries to the bank statement import (CSV import, docs/superpowers/plans/2026-11-09-csv-import-export.md,
  * chunk 9), for a student who imports instead of typing. Named like the import's own card, so the words match where it
- * leads. Not on Home, which every spec goes through.
+ * leads. Not on Home, which every spec goes through. It sits above quick add: under it, the link moved up into a category
+ * chip's place when the chips closed, under a double tap's second tap.
  */
 export function ImportLink() {
   const { t } = useT();
