@@ -21,7 +21,6 @@ export const importExport = {
     problems: {
       tooBig: 'This file is too big for a statement: at most 2 MB and 5,000 rows.',
       empty: 'This file has no rows the app can read.',
-      unknown: "The app doesn't recognise this file's columns. Statements from Sparkasse, DKB, N26 and Revolut work.",
       creditCard: (bank: string) =>
         `This is a ${bank} credit card export, which the app can't read yet. Export your current account's statement instead.`,
       failed: 'Could not read the file.',
@@ -30,6 +29,31 @@ export const importExport = {
       noAccount: 'That account no longer exists. Choose another one.',
       saveFailed: 'Could not save the import.',
     },
+  },
+  /** Matching a file's columns by hand, for a CSV the app doesn't recognise (chunk 8). */
+  match: {
+    heading: 'Which column holds what?',
+    intro:
+      "The app doesn't recognise this file's columns. Say which column holds what: it remembers your choice for the " +
+      'next file with the same columns.',
+    remembered: 'Matched as for your last file with these columns.',
+    date: 'Date',
+    dateOrder: 'Dates are written',
+    orders: { dmy: 'Day first (31.10.2026)', ymd: 'Year first (2026-10-31)', mdy: 'Month first (10/31/2026)' },
+    amountKind: 'The amount is',
+    amountKinds: { one: 'In one column, with a minus for money out', two: 'In two columns: money out and money in' },
+    amount: 'Amount',
+    out: 'Money out',
+    in: 'Money in',
+    payee: 'Who was paid, or paid you',
+    purpose: 'Details (optional)',
+    currency: 'Currency (optional)',
+    none: 'None',
+    preview: 'The first rows, as the app reads them',
+    unreadable: "Can't be read with these columns",
+    use: 'Use these columns',
+    twice: 'Choose a different column for each of these.',
+    file: (rows: number, from: string, to: string) => `Your file: ${rows} ${rows === 1 ? 'row' : 'rows'}, ${from} to ${to}`,
   },
   /** What an import did, shown in place of its form. */
   result: {

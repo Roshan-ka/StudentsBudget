@@ -881,3 +881,11 @@ test('an entry a schedule posted shows a Recurring tag in the list', async ({ pa
   await expect(renamed.getByText('Rent', { exact: true })).toBeVisible();
   expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
 });
+
+test('the list leads to the bank statement import', async ({ page }) => {
+  await seedSetup(page);
+  await openEntries(page);
+  await page.getByRole('link', { name: 'Import a bank statement', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Import and export', exact: true })).toBeVisible();
+  await expect(page).toHaveURL('/settings/import');
+});

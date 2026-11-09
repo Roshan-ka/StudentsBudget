@@ -94,6 +94,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'charts.income.source',
     'badges.tiers.bronze',
     'badges.card.heading',
+    'importExport.match.date',
   ]),
 };
 

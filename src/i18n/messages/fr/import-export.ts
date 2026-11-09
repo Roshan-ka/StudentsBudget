@@ -22,7 +22,6 @@ export const importExport: Messages['importExport'] = {
     problems: {
       tooBig: `Ce fichier est trop gros pour un relevé${NNBSP}: 2 Mo et 5${NNBSP}000 lignes au plus.`,
       empty: 'Ce fichier n’a aucune ligne que l’appli puisse lire.',
-      unknown: 'L’appli ne reconnaît pas les colonnes de ce fichier. Les relevés de Sparkasse, DKB, N26 et Revolut fonctionnent.',
       creditCard: (bank) =>
         `C’est un export de carte de crédit ${bank}, que l’appli ne sait pas encore lire. Exporte plutôt le relevé de ton compte courant.`,
       failed: 'Impossible de lire le fichier.',
@@ -31,6 +30,30 @@ export const importExport: Messages['importExport'] = {
       noAccount: 'Ce compte n’existe plus. Choisis-en un autre.',
       saveFailed: 'Impossible d’enregistrer l’import.',
     },
+  },
+  match: {
+    heading: `Quelle colonne contient quoi${NNBSP}?`,
+    intro:
+      `L’appli ne reconnaît pas les colonnes de ce fichier. Indique ce que contient chaque colonne${NNBSP}: elle retient ` +
+      'ton choix pour le prochain fichier avec les mêmes colonnes.',
+    remembered: 'Associé comme pour ton dernier fichier avec ces colonnes.',
+    date: 'Date',
+    dateOrder: 'Les dates sont écrites',
+    orders: { dmy: 'Jour d’abord (31.10.2026)', ymd: 'Année d’abord (2026-10-31)', mdy: 'Mois d’abord (10/31/2026)' },
+    amountKind: 'Le montant est',
+    amountKinds: { one: 'Dans une colonne, avec un moins pour les sorties', two: `Dans deux colonnes${NNBSP}: débit et crédit` },
+    amount: 'Montant',
+    out: 'Débit (sorties)',
+    in: 'Crédit (entrées)',
+    payee: 'Qui a été payé, ou t’a payé',
+    purpose: 'Détails (facultatif)',
+    currency: 'Devise (facultatif)',
+    none: 'Aucune',
+    preview: 'Les premières lignes, telles que l’appli les lit',
+    unreadable: 'Illisible avec ces colonnes',
+    use: 'Utiliser ces colonnes',
+    twice: 'Choisis une colonne différente pour chacun.',
+    file: (rows, from, to) => `Ton fichier${NNBSP}: ${byCount(rows, { one: `${rows} ligne`, other: `${rows} lignes` })}, du ${from} au ${to}`,
   },
   result: {
     heading: 'Import terminé',

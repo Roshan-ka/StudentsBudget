@@ -20,7 +20,6 @@ export const importExport: Messages['importExport'] = {
     problems: {
       tooBig: 'Die Datei ist zu groß für einen Kontoauszug: höchstens 2 MB und 5.000 Zeilen.',
       empty: 'In dieser Datei sind keine Zeilen, die die App lesen kann.',
-      unknown: 'Die App erkennt die Spalten dieser Datei nicht. Auszüge von Sparkasse, DKB, N26 und Revolut funktionieren.',
       creditCard: (bank) =>
         `Das ist ein Kreditkarten-Export der ${bank}, den die App noch nicht lesen kann. Exportiere stattdessen den Auszug deines Girokontos.`,
       failed: 'Die Datei konnte nicht gelesen werden.',
@@ -29,6 +28,30 @@ export const importExport: Messages['importExport'] = {
       noAccount: 'Dieses Konto gibt es nicht mehr. Wähle ein anderes.',
       saveFailed: 'Der Import konnte nicht gespeichert werden.',
     },
+  },
+  match: {
+    heading: 'Welche Spalte enthält was?',
+    intro:
+      'Die App erkennt die Spalten dieser Datei nicht. Sag, welche Spalte was enthält: Sie merkt sich deine Wahl für ' +
+      'die nächste Datei mit denselben Spalten.',
+    remembered: 'Zugeordnet wie bei deiner letzten Datei mit diesen Spalten.',
+    date: 'Datum',
+    dateOrder: 'Das Datum steht',
+    orders: { dmy: 'Tag zuerst (31.10.2026)', ymd: 'Jahr zuerst (2026-10-31)', mdy: 'Monat zuerst (10/31/2026)' },
+    amountKind: 'Der Betrag steht',
+    amountKinds: { one: 'In einer Spalte, mit Minus für Ausgaben', two: 'In zwei Spalten: Soll und Haben' },
+    amount: 'Betrag',
+    out: 'Soll (Ausgaben)',
+    in: 'Haben (Einnahmen)',
+    payee: 'Wer bezahlt wurde oder dich bezahlt hat',
+    purpose: 'Verwendungszweck (optional)',
+    currency: 'Währung (optional)',
+    none: 'Keine',
+    preview: 'Die ersten Zeilen, wie die App sie liest',
+    unreadable: 'Mit diesen Spalten nicht lesbar',
+    use: 'Diese Spalten verwenden',
+    twice: 'Wähle für jedes davon eine andere Spalte.',
+    file: (rows, from, to) => `Deine Datei: ${rows} ${rows === 1 ? 'Zeile' : 'Zeilen'}, ${from} bis ${to}`,
   },
   result: {
     heading: 'Import abgeschlossen',
