@@ -24,15 +24,35 @@ export function ChecklistView({ onSeeTip }: { onSeeTip: (tipId: string) => void 
   const text = t.tips.checklist;
   const ticks = useLiveQuery(() => db.checklistTicks.toArray(), []);
   const [failed, setFailed] = useState<string | null>(null);
-  const done = new Map<string, ChecklistTick>((ticks ?? []).map((tick) => [tick.itemId, tick]));
-  const count = CHECKLIST.filter((item) => done.has(item.id)).length;
+  // A tap shows at once (on a linked phone the write also goes into the outbox, so the read lags a moment). It holds
+  // while the stored tick is still what it was at the tap; once the read brings anything new, our write or another
+  // phone's, the read wins.
+  const [tapped, setTapped] = useState<ReadonlyMap<string, { row: ChecklistTick | null; before: string }>>(new Map());
+  const stored = new Map<string, ChecklistTick>((ticks ?? []).map((tick) => [tick.itemId, tick]));
+  const storedKey = (id: string) => stored.get(id)?.on ?? '';
+  const tickOf = (id: string): ChecklistTick | undefined => {
+    const tap = tapped.get(id);
+    if (tap !== undefined && tap.before === storedKey(id)) return tap.row ?? undefined;
+    return stored.get(id);
+  };
+  const count = CHECKLIST.filter((item) => tickOf(item.id) !== undefined).length;
 
   function setDone(item: ChecklistItem, on: boolean) {
     setFailed(null);
     // Today at the moment of the tap, not of the last render.
-    const write: Promise<unknown> = on ? db.checklistTicks.put({ itemId: item.id, on: todayIso() }) : db.checklistTicks.delete(item.id);
+    const row: ChecklistTick | null = on ? { itemId: item.id, on: todayIso() } : null;
+    const tap = { row, before: storedKey(item.id) };
+    setTapped((now) => new Map(now).set(item.id, tap));
+    const write: Promise<unknown> = row === null ? db.checklistTicks.delete(item.id) : db.checklistTicks.put(row);
     write.catch((error: unknown) => {
       console.error('StudentsBudget: could not save a checklist tick', error);
+      // Back to what is stored, unless a later tap on the item owns it now.
+      setTapped((now) => {
+        if (now.get(item.id) !== tap) return now;
+        const next = new Map(now);
+        next.delete(item.id);
+        return next;
+      });
       setFailed(item.id);
     });
   }
@@ -52,7 +72,7 @@ export function ChecklistView({ onSeeTip }: { onSeeTip: (tipId: string) => void 
           <ul aria-labelledby={`checklist-${group}`} className="flex flex-col gap-3">
             {CHECKLIST.filter((item) => item.group === group).map((item) => {
               const words = checklistIn(item, lang);
-              const tick = done.get(item.id);
+              const tick = tickOf(item.id);
               return (
                 <li key={item.id} className={cn(cardVariants(), 'gap-2 pb-0')}>
                   <span className="inline-flex w-fit items-center rounded-full border-[1.5px] border-outline bg-muted px-2.5 py-0.5 text-xs font-semibold">

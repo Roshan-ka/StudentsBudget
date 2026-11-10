@@ -91,7 +91,7 @@ test.describe('on a phone set to German', () => {
   test.use({ locale: 'de-DE' });
 
   test('the checklist reads in German, with none of it marked English, and fits', async ({ page }) => {
-    await seedSetup(page);
+    // Tips needs no plan, and seedSetup waits for Home in English.
     await openApp(page, '/tips');
     await checklistTab(page, 'Tipps, Rabatte, Hacks oder Checkliste', 'Checkliste').click();
     const german = panel(page, 'Checkliste');
