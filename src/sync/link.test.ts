@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { exportAll, replaceAll } from '@/db/bulk';
 import { db } from '@/db/db';
 import { deleteEntry, saveEntry } from '@/db/repo';
@@ -220,6 +220,35 @@ describe('once linked', () => {
 
 describe('linkPhone', () => {
   const noCode = async () => false;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('answers a phone already linked to the account without waiting for the sync lock', async () => {
+    const { store } = fakeStore();
+    await replaceAll(snapshot());
+    expect(await linkPhone(store, USER, noCode)).toMatchObject({ kind: 'linked', fresh: true });
+    // Another tab holds the lock until `letGo`.
+    let letGo = () => {};
+    const gone = new Promise<void>((resolve) => {
+      letGo = resolve;
+    });
+    vi.stubGlobal('navigator', {
+      onLine: true,
+      locks: { request: async (_name: string, task: () => Promise<unknown>) => gone.then(task) },
+    });
+    expect(await linkPhone(store, USER, noCode)).toEqual({ kind: 'linked', fresh: false, note: null });
+
+    // A phone that still has to link waits for it.
+    await db.syncState.clear();
+    const outcome = linkPhone(store, USER, noCode);
+    const waited = await Promise.race([outcome.then(() => false), new Promise((resolve) => setTimeout(() => resolve(true), 50))]);
+    expect(waited).toBe(true);
+    letGo();
+    // Both sides now hold data: the person chooses.
+    expect(await outcome).toMatchObject({ kind: 'choose' });
+  });
 
   it('links on its own when one side is empty, and says what moved', async () => {
     const { store, tables } = fakeStore();
