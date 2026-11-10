@@ -13,7 +13,7 @@ select plan(10);
 create temporary table user_tables (name text primary key) on commit drop;
 insert into user_tables
 values ('accounts'), ('entries'), ('plans'), ('guesses'), ('manual_rates'), ('week_results'), ('discount_votes'),
-  ('profiles'), ('checklist_ticks');
+  ('profiles'), ('checklist_ticks'), ('plan_months');
 grant select on user_tables to authenticated, anon;
 
 insert into auth.users (id, email)
@@ -161,7 +161,7 @@ select lives_ok(
     if n <> 0 then raise exception 'sync_pull at aal1 gave A % rows', n; end if;
     perform pg_temp.act_as('a', 'aal2');
     select count(*) into n from public.sync_pull(0, 1000);
-    if n <> 9 then raise exception 'sync_pull at aal2 gave A % rows, expected 9', n; end if;
+    if n <> 10 then raise exception 'sync_pull at aal2 gave A % rows, expected 10', n; end if;
     execute 'reset role';
   end
   $do$
