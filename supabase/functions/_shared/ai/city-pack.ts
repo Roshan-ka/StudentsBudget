@@ -326,7 +326,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "eating-out",
     "text": "Eating out discount: Asia Restaurant Sunrise, Von-Seeckt-Straße 23, 93053 Regensburg: 10% off. Students, every day, on showing a student ID. Not combined with other offers or discounts.",
     "source": "Asia Restaurant Sunrise, home page: 10% off for students, Mon–Sun, on showing a student ID; not combined with other offers or discounts",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -335,7 +335,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "eating-out",
     "text": "Eating out discount: Mensa Uni Regensburg, Albertus-Magnus-Straße 2, 93053 Regensburg: A free children's plate for your child, up to their sixth year. For student parents who also have lunch in the Mensa (the university canteen), with a children's-plate Mensa card. You get it at the Mensa card office (Info-Punkt) with a copy of the child's birth certificate and your certificate of enrolment.",
     "source": "Studierendenwerk Niederbayern/Oberpfalz, Mensa Uni Regensburg: children of students get a free children's plate up to their sixth year when the parent also has lunch in the Mensa, with a Kinderteller Mensa card from the Mensa card office",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -344,7 +344,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Kinos im Andreasstadel, Andreasstraße 28, 93059 Regensburg: €8 instead of €9 per ticket. Students, with valid proof. Special screenings may be priced differently. Booking online in advance adds 10%; reserving a seat is free.",
     "source": "Kinos im Andreasstadel, ticket prices: €9 regular, €8 reduced for students with valid proof; online advance sale adds 10%; reservations are free; prices for special screenings may differ",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -353,7 +353,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Staatstheater Regensburg, Bismarckplatz 7, 93047 Regensburg: Half price on regular tickets, and any seat for €10 at shows marked U30 (under 30). Students until their 30th birthday, for tickets in general sale. U30 shows are on selected dates. Show your proof with your ticket at the entrance. Online or by phone there is a €1.50 fee per ticket; at the theatre's box office or evening box office there is none.",
     "source": "Staatstheater Regensburg, visitor FAQ: 50% off the regular price in general sale (Freiverkauf) for students until their 30th birthday; U30 shows on selected dates, €10 for any seat; €1.50 fee per ticket online or by phone, none at the box office or evening box office",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -362,7 +362,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Regensburger Turmtheater, Watmarkt 5, 93047 Regensburg: €16 instead of €32 for regular shows. Students, pupils and trainees. A show with other prices says so in its description.",
     "source": "Regensburger Turmtheater, tickets: regular shows €32; pupils, students and trainees 50% off (€16); other prices are given in the show descriptions",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -371,7 +371,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Kunstforum Ostdeutsche Galerie, Dr.-Johann-Maier-Str. 5, 93049 Regensburg: €4 instead of €6 entry. Students, pupils and trainees.",
     "source": "Kunstforum Ostdeutsche Galerie, your visit: entry €6, reduced €4; pupils, students and trainees are on the list of those who pay the reduced price",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -380,7 +380,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: document Kepler, Keplerstraße 5, 93047 Regensburg: Free entry instead of €5. Students under 30, on showing an ID. Public guided tours are priced separately.",
     "source": "Museen der Stadt Regensburg, document Kepler: adults €5; free for students under 30 on showing an ID; public guided tours €8, reduced €5",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -389,7 +389,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Schloss Thurn und Taxis, Emmeramsplatz 5, 93047 Regensburg: €14 instead of €17 for the guided tour of the state rooms and cloister; €4 instead of €6 for the Treasury and the Marstall (carriage museum). Students, on showing a student ID. The state rooms are open only on a guided tour.",
     "source": "Fürst Thurn und Taxis, visiting Schloss St. Emmeram: guided tour of the state rooms and cloister (Prunkräume & Kreuzgang) €17, reduced €14; Treasury and Marstall €6, reduced €4; reduced for pupils and students on showing their ID",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -398,7 +398,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Westbad, Messerschmittstraße 4, 93049 Regensburg: €4.60 instead of €7.20 for 3 hours; €6.50 instead of €10 for the day. Students aged 15 until their 25th birthday, with valid proof such as a student ID (and an official photo ID if asked) shown at the entrance. Proof brought later is not accepted.",
     "source": "das Stadtwerk Regensburg, Westbad prices: 3 hours €7.20, day €10.00; reduced €4.60 and €6.50 for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -407,7 +407,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Sportpark Ost pool, Zeißstraße 61, 93053 Regensburg: €2.90 instead of €5 per visit. Students aged 15 until their 25th birthday, with valid proof such as a student ID (and an official photo ID if asked) shown at the entrance. Proof brought later is not accepted.",
     "source": "das Stadtwerk Regensburg, Sportpark Ost pool prices: single entry €5.00, reduced €2.90 for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -416,7 +416,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Donau-Arena, Walhalla-Allee 24, 93059 Regensburg: €5 instead of €6 for public ice skating; €6 instead of €7 for disco skating (Discolauf). Students aged 15 until their 25th birthday, with valid proof such as a student ID (and an official photo ID if asked) shown at the entrance. Proof brought later is not accepted. In the skating season only.",
     "source": "das Stadtwerk Regensburg, Donau-Arena public skating prices: single entry €6, reduced €5; Discolauf €7, reduced €6; reduced for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -425,7 +425,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Boulderwelt Regensburg, Im Gewerbepark A46, 93059 Regensburg: A day entry for €9.90 on Mondays (\"Studi Monday\"). Students and trainees with valid proof. All day on Mondays, not on public holidays. Shoe rental costs extra.",
     "source": "Boulderwelt Regensburg, prices: Studi Monday, a €9.90 day entry on Mondays all day for students and trainees with valid proof; not on public holidays; shoes rented at the counter for a fee",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -434,7 +434,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "going-out",
     "text": "Going out discount: Super Bowl Regensburg, Gewerbepark D 44, 93059 Regensburg: Bowling for €1 per game on Tuesdays. Pupils and students.",
     "source": "Super Bowl Regensburg, offers: on Tuesdays pupils and students pay €1 per game (\"Studenten Bowling\")",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -443,7 +443,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "food",
     "text": "Food & groceries discount: Alnatura Super Natur Markt, Dr.-Martin-Luther-Straße 2, 93047 Regensburg: 8% off your whole purchase on Tuesdays. Students with a valid student or pupil ID shown at the till, in every Alnatura store (in Regensburg also Donaustaufer Straße 128 and Joseph-Dahlem-Straße 3). Not on bottle deposits (Pfand), gift cards, books or infant formula, and not with other discounts.",
     "source": "Alnatura, student discount: every Tuesday 8% off the whole purchase for students, trainees and pupils with a valid student or pupil ID, in all Alnatura stores; not on deposits, gift cards, books or infant formula, and not combined with other discounts. Alnatura's store finder lists the Regensburg stores at Dr.-Martin-Luther-Straße 2, Donaustaufer Straße 128 and Joseph-Dahlem-Straße 3",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -452,7 +452,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "personal-care",
     "text": "Personal care discount: Bella's Kunst, Alte Manggasse 2, 93047 Regensburg: Men's student haircut: €30 instead of €36. Students. The price list states no other conditions. There is also a women's student haircut at €57, while the other women's cuts cost €48 to €70.",
     "source": "Bella's Kunst, price list: men's haircut €36, student haircut €30; women's student haircut €57; other women's cuts €48 (Schnitt Spezial), €52 (short), €65 (to shoulder length), €70 (long)",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {
@@ -470,7 +470,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "categoryId": "other",
     "text": "Other discount: Volkshochschule Regensburg, Haidplatz 8, 93047 Regensburg: 10% off course fees at the adult education centre. Regularly enrolled students, on request: show proof in person, or send a copy with the course number, at least one week before the course starts. Not combined with other reductions, not for courses the VHS only co-organises, and the VHS may exclude reductions.",
     "source": "Volkshochschule Regensburg, terms and conditions: 10% off for regularly enrolled students (ordentlich Studierende) on application, with proof at least one week before the course starts; reductions are not combined; not for events the VHS only co-organises, and the VHS may exclude reductions",
-    "checked": "2026-10-20",
+    "checked": "2026-11-10",
     "estimate": false
   },
   {

@@ -11,15 +11,17 @@ test.use({ viewport: { width: 375, height: 812 } });
 
 const NAMES = new Map(CATEGORIES.map((c) => [c.id, c.name]));
 const ORDER = new Map(CATEGORIES.map((c, i) => [c.id, i]));
-/** Every discount was checked on the same day, so the list starts in category order, then as written. */
-const SORTED = [...DISCOUNTS].sort((a, b) => (ORDER.get(a.categoryId) ?? 0) - (ORDER.get(b.categoryId) ?? 0));
+/** With no votes, the list starts with the most recently checked, then in category order, then as written. */
+const SORTED = [...DISCOUNTS].sort(
+  (a, b) => b.checked.localeCompare(a.checked) || (ORDER.get(a.categoryId) ?? 0) - (ORDER.get(b.categoryId) ?? 0),
+);
 const FIRST = SORTED[0];
 const LAST = SORTED[SORTED.length - 1];
 
-/** Two weeks after the check: nothing may be outdated yet, and a vote today is newer than the check. */
-const NOV_2 = new Date('2026-11-02T12:00:00');
-/** Eight weeks after the check, with no confirmation since. */
-const DEC_15 = new Date('2026-12-15T12:00:00');
+/** Two weeks after the re-check: nothing may be outdated yet, and a vote today is newer than every check. */
+const NOV_24 = new Date('2026-11-24T12:00:00');
+/** Eight weeks after the latest check (the re-check of 10.11.2026), with no confirmation since. */
+const JAN_5 = new Date('2027-01-05T12:00:00');
 
 function switcher(page: Page) {
   return page.getByRole('tablist', { name: 'Tips, discounts or hacks', exact: true });
@@ -79,14 +81,14 @@ async function votes(page: Page): Promise<DiscountVote[]> {
 }
 
 test('the Tips tab switches to a sourced discount list and back', async ({ page }) => {
-  await openDiscounts(page, NOV_2);
+  await openDiscounts(page, NOV_24);
 
   await expect(places(page)).toHaveText(SORTED.map((d) => d.place));
   await expect(chips(page).getByRole('button', { name: 'All', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(discountList(page).getByText('May be outdated', { exact: true })).toHaveCount(0);
 
   const first = item(page, FIRST);
-  for (const text of [FIRST.offer, FIRST.conditions, FIRST.address, `Last confirmed ${formatDate('2026-10-20')}`]) {
+  for (const text of [FIRST.offer, FIRST.conditions, FIRST.address, `Last confirmed ${formatDate(FIRST.checked)}`]) {
     await expect(first.getByText(text, { exact: true })).toBeVisible();
   }
   await expect(voteButton(page, FIRST, 'Still works')).toHaveAttribute('aria-pressed', 'false');
@@ -98,7 +100,7 @@ test('the Tips tab switches to a sourced discount list and back', async ({ page 
   await expect(first.locator('summary')).toHaveAccessibleName(`Source: ${FIRST.place}`);
   await first.getByText('Source', { exact: true }).click();
   await expect(first.getByText(FIRST.source, { exact: true })).toBeVisible();
-  await expect(first.getByText(`checked ${formatDate('2026-10-20')}`, { exact: true })).toBeVisible();
+  await expect(first.getByText(`checked ${formatDate(FIRST.checked)}`, { exact: true })).toBeVisible();
   const link = first.getByRole('link', { name: new URL(FIRST.url).hostname.replace(/^www\./, ''), exact: true });
   await expect(link).toHaveAttribute('href', FIRST.url);
   await expect(link).toHaveAttribute('target', '_blank');
@@ -111,7 +113,7 @@ test('the Tips tab switches to a sourced discount list and back', async ({ page 
 });
 
 test('a category chip shows only its discounts, and All shows every one again', async ({ page }) => {
-  await openDiscounts(page, NOV_2);
+  await openDiscounts(page, NOV_24);
 
   const categoryId = LAST.categoryId;
   const chip = chips(page).getByRole('button', { name: NAMES.get(categoryId) ?? categoryId, exact: true });
@@ -127,13 +129,13 @@ test('a category chip shows only its discounts, and All shows every one again', 
 test('a confirmed discount moves up with today\'s date, one marked as not working sinks, and both survive a reload', async ({
   page,
 }) => {
-  await openDiscounts(page, NOV_2);
+  await openDiscounts(page, NOV_24);
   const middle = SORTED.slice(1, -1).map((d) => d.place);
 
   await voteButton(page, LAST, 'Still works').click();
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'true');
   await expect(places(page)).toHaveText([LAST.place, FIRST.place, ...middle]);
-  await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-11-02')}`, { exact: true })).toBeVisible();
+  await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-11-24')}`, { exact: true })).toBeVisible();
   // Focus moves with the discount, and a screen reader hears where it went.
   await expect(voteButton(page, LAST, 'Still works')).toBeFocused();
   await expect(announced(page)).toHaveText(`${LAST.place}: saved as still working. It moves up the list.`);
@@ -141,15 +143,15 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await voteButton(page, FIRST, "Doesn't work anymore").click();
   await expect(voteButton(page, FIRST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
   await expect(places(page)).toHaveText([LAST.place, ...middle, FIRST.place]);
-  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-02')}`, { exact: true })).toBeVisible();
+  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-24')}`, { exact: true })).toBeVisible();
   await expect(item(page, FIRST).getByText('Saved on this phone.', { exact: true })).toBeVisible();
   await expect(voteButton(page, FIRST, "Doesn't work anymore")).toBeFocused();
   await expect(announced(page)).toHaveText(`${FIRST.place}: saved as not working. It moves down the list.`);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   const expected: DiscountVote[] = [
-    { discountId: FIRST.id, vote: 'outdated', on: '2026-11-02' },
-    { discountId: LAST.id, vote: 'works', on: '2026-11-02' },
+    { discountId: FIRST.id, vote: 'outdated', on: '2026-11-24' },
+    { discountId: LAST.id, vote: 'works', on: '2026-11-24' },
   ];
   await expect.poll(() => votes(page)).toEqual(expected.sort((a, b) => a.discountId.localeCompare(b.discountId)));
 
@@ -157,9 +159,9 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await showDiscounts(page);
   await expect(places(page)).toHaveText([LAST.place, ...middle, FIRST.place]);
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'true');
-  await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-11-02')}`, { exact: true })).toBeVisible();
+  await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-11-24')}`, { exact: true })).toBeVisible();
   await expect(voteButton(page, FIRST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
-  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-02')}`, { exact: true })).toBeVisible();
+  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-24')}`, { exact: true })).toBeVisible();
   await expect(item(page, FIRST).getByText(/^Last confirmed/)).toHaveCount(0);
   // What was said about the votes before the reload is gone.
   await expect(discountList(page).getByText('Saved on this phone.', { exact: true })).toHaveCount(0);
@@ -168,14 +170,14 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
 test('after eight weeks without a confirmation every discount may be outdated, and tapping again changes the vote', async ({
   page,
 }) => {
-  await openDiscounts(page, DEC_15);
+  await openDiscounts(page, JAN_5);
   await expect(discountList(page).getByText('May be outdated', { exact: true })).toHaveCount(DISCOUNTS.length);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   // A confirmation today lifts it back to the top.
   await voteButton(page, LAST, 'Still works').click();
   await expect(places(page).first()).toHaveText(LAST.place);
-  await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-12-15')}`, { exact: true })).toBeVisible();
+  await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2027-01-05')}`, { exact: true })).toBeVisible();
   await expect(item(page, LAST).getByText('May be outdated', { exact: true })).toHaveCount(0);
   await expect(discountList(page).getByText('May be outdated', { exact: true })).toHaveCount(DISCOUNTS.length - 1);
   await expect(announced(page)).toHaveText(`${LAST.place}: saved as still working. It moves up the list.`);
@@ -190,8 +192,8 @@ test('after eight weeks without a confirmation every discount may be outdated, a
   await expect(voteButton(page, LAST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'false');
   await expect(places(page).last()).toHaveText(LAST.place);
-  await expect(item(page, LAST).getByText(`You marked this as not working on ${formatDate('2026-12-15')}`, { exact: true })).toBeVisible();
-  await expect.poll(() => votes(page)).toEqual([{ discountId: LAST.id, vote: 'outdated', on: '2026-12-15' }]);
+  await expect(item(page, LAST).getByText(`You marked this as not working on ${formatDate('2027-01-05')}`, { exact: true })).toBeVisible();
+  await expect.poll(() => votes(page)).toEqual([{ discountId: LAST.id, vote: 'outdated', on: '2027-01-05' }]);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
@@ -199,7 +201,7 @@ test.describe('on a phone set to German', () => {
   test.use({ locale: 'de-DE' });
 
   test('the discounts read in German, place names kept, and none is marked English', async ({ page }) => {
-    await page.clock.setFixedTime(NOV_2);
+    await page.clock.setFixedTime(NOV_24);
     await page.goto('/tips');
     await expect(page.getByRole('heading', { level: 2, name: 'Tipps und Rabatte in Regensburg', exact: true })).toBeVisible();
     await page.getByRole('tablist', { name: 'Tipps, Rabatte oder Hacks', exact: true }).getByRole('tab', { name: 'Rabatte', exact: true }).click();
