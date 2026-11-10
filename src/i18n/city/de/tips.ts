@@ -109,7 +109,7 @@ export const tips: Record<string, TipWords> = {
   },
   'ride-on-your-semester-ticket': {
     title: 'Fahr mit dem Semesterticket im RVV',
-    body: 'Dein Semesterbeitrag enthält schon 126 € für unbegrenzte Fahrten mit Bus und Bahn im RVV. Dein Studierendenausweis und ein Lichtbildausweis sind das Ticket.',
+    body: 'Dein Semesterbeitrag enthält schon 126 € (Wintersemester 2026/27) für unbegrenzte Fahrten mit Bus und Bahn im RVV. Dein Studierendenausweis und ein Lichtbildausweis sind das Ticket.',
     source: 'RVV, Semesterticket: verpflichtend 126 € pro Semester für unbegrenzte Fahrten im gesamten RVV-Gebiet; das Ticket ist der Studierendenausweis plus Personalausweis oder Reisepass',
   },
   'upgrade-to-deutschlandticket': {

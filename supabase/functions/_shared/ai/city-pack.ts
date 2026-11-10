@@ -279,7 +279,7 @@ export const CITY_PACK: readonly PackItem[] = [
     "id": "tip:ride-on-your-semester-ticket",
     "kind": "tip",
     "categoryId": "transport-pass",
-    "text": "Deutschlandticket / semester ticket tip: Ride the RVV on your semester ticket. Your semester fee already includes €126 for unlimited RVV bus and train rides. Your student ID plus photo ID is the ticket.",
+    "text": "Deutschlandticket / semester ticket tip: Ride the RVV on your semester ticket. Your semester fee already includes €126 (winter semester 2026/27) for unlimited RVV bus and train rides. Your student ID plus photo ID is the ticket.",
     "source": "RVV, semester ticket: a compulsory €126 per semester for unlimited rides in the whole RVV area; the ticket is the student ID plus ID card or passport",
     "checked": "2026-10-20",
     "estimate": false
