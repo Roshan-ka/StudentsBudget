@@ -303,7 +303,7 @@ const notBackup = "This isn't a StudentsBudget backup file. Choose one the app e
 const incomplete = 'This backup file is incomplete. Choose another backup, or export a new one.';
 const damaged = (reason) => `This backup file is damaged: ${reason}. Choose another backup, or export a new one.`;
 reject('wrong-app', (f) => f.app = 'another-app', notBackup);
-reject('newer-version', (f) => f.version = 4, 'This backup is from a newer version of the app. Reload the app while online to update it, then try again.');
+reject('newer-version', (f) => f.version = 5, 'This backup is from a newer version of the app. Reload the app while online to update it, then try again.');
 for (const [key, name] of [['version', 'version'], ['exportedAt', 'exported-at'], ['data', 'data']]) reject(`missing-${name}`, (f) => delete f[key], incomplete);
 for (const [key, name] of [['accounts', 'accounts'], ['categories', 'categories'], ['entries', 'entries'], ['plan', 'plan'], ['guesses', 'guesses'], ['fxRates', 'fx-rates']]) reject(`missing-data-${name}`, (f) => delete f.data[key], incomplete);
 reject('unsupported-version-zero', (f) => f.version = 0, incomplete);

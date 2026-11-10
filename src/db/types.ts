@@ -139,6 +139,9 @@ export type WeekResult = {
 /** The user's verdict on one discount. One vote per discount: voting again replaces it. */
 export type DiscountVote = { discountId: string; vote: 'works' | 'outdated'; on: IsoDate };
 
+/** A ticked item of the checklist for new students (`src/data/checklist.ts`), and the day it was ticked. Unticking deletes it. */
+export type ChecklistTick = { itemId: string; on: IsoDate };
+
 /** One row, like the plan. A field the user has not chosen yet is the empty string. */
 export type Profile = {
   id: 'current';

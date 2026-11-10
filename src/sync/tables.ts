@@ -1,6 +1,9 @@
 import type { BackupData } from '@/db/bulk';
 
-/** The account's tables (supabase/migrations/20261023121726_user_data.sql), in the order they are saved. */
+/**
+ * The account's tables (supabase/migrations/20261023121726_user_data.sql, and checklist_ticks from
+ * 20261110122750_checklist_ticks.sql), in the order they are saved.
+ */
 export const SERVER_TABLES = [
   'accounts',
   'entries',
@@ -10,6 +13,7 @@ export const SERVER_TABLES = [
   'week_results',
   'discount_votes',
   'profiles',
+  'checklist_ticks',
 ] as const;
 
 export type ServerTable = (typeof SERVER_TABLES)[number];
@@ -28,6 +32,7 @@ export function byTable<T>(make: (table: ServerTable) => T): Record<ServerTable,
     week_results: make('week_results'),
     discount_votes: make('discount_votes'),
     profiles: make('profiles'),
+    checklist_ticks: make('checklist_ticks'),
   };
 }
 
@@ -46,6 +51,7 @@ export function serverRowsOf(d: BackupData): Record<ServerTable, ServerRow[]> {
     week_results: d.weekResults.map((w) => ({ id: w.weekStart, data: w })),
     discount_votes: d.discountVotes.map((v) => ({ id: v.discountId, data: v })),
     profiles: d.profile ? [{ id: d.profile.id, data: d.profile }] : [],
+    checklist_ticks: d.checklistTicks.map((t) => ({ id: t.itemId, data: t })),
   };
 }
 
@@ -71,6 +77,7 @@ const DEXIE_SYNC: Readonly<Record<string, DexieSync>> = {
   weekResults: { server: 'week_results', idOf: stringKey },
   discountVotes: { server: 'discount_votes', idOf: stringKey },
   profile: { server: 'profiles', idOf: stringKey },
+  checklistTicks: { server: 'checklist_ticks', idOf: stringKey },
 };
 
 /** How the Dexie table `name` syncs, or null when it stays on the phone. */
@@ -94,6 +101,8 @@ const DEXIE_HOME = byTable((table): DexieHome => {
       return { dexie: 'discountVotes', keyOf: (id) => id };
     case 'profiles':
       return { dexie: 'profile', keyOf: (id) => id };
+    case 'checklist_ticks':
+      return { dexie: 'checklistTicks', keyOf: (id) => id };
     default:
       return { dexie: table, keyOf: (id) => id };
   }

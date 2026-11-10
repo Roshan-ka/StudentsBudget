@@ -125,6 +125,8 @@ export const weekResultRow = z.object({
 
 export const discountVoteRow = z.object({ discountId: id, vote: z.enum(['works', 'outdated']), on: isoDate });
 
+export const checklistTickRow = z.object({ itemId: id, on: isoDate });
+
 // A field the user has not chosen yet is the empty string, not a missing key.
 export const profileRow = z.object({
   id: z.literal('current'),

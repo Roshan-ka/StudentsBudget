@@ -1,6 +1,6 @@
 import { db } from './db';
 import { ensureSeeded } from './repo';
-import type { Account, Category, DiscountVote, Entry, Guess, Plan, Profile, Rate, WeekResult } from './types';
+import type { Account, Category, ChecklistTick, DiscountVote, Entry, Guess, Plan, Profile, Rate, WeekResult } from './types';
 
 /** Everything the app stores, as one value. `fxRates` holds every row, the ECB and the manual one of a currency. */
 export type BackupData = {
@@ -14,6 +14,7 @@ export type BackupData = {
   discountVotes: DiscountVote[];
   /** One row, like the plan: null until the user has saved a profile. */
   profile: Profile | null;
+  checklistTicks: ChecklistTick[];
 };
 
 function allTables() {
@@ -27,6 +28,7 @@ function allTables() {
     db.weekResults,
     db.discountVotes,
     db.profile,
+    db.checklistTicks,
   ];
 }
 
@@ -42,6 +44,7 @@ export async function exportAll(): Promise<BackupData> {
     weekResults: await db.weekResults.toArray(),
     discountVotes: await db.discountVotes.toArray(),
     profile: (await db.profile.get('current')) ?? null,
+    checklistTicks: await db.checklistTicks.toArray(),
   }));
 }
 
@@ -61,6 +64,7 @@ export async function replaceAll(d: BackupData): Promise<void> {
     await db.weekResults.bulkAdd(d.weekResults);
     await db.discountVotes.bulkAdd(d.discountVotes);
     if (d.profile) await db.profile.add(d.profile);
+    await db.checklistTicks.bulkAdd(d.checklistTicks);
   });
 }
 

@@ -110,6 +110,7 @@ const NO_PHONE: BackupData = {
   fxRates: [],
   weekResults: [],
   discountVotes: [],
+  checklistTicks: [],
   profile: null,
 };
 

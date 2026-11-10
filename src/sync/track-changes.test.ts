@@ -198,6 +198,14 @@ describe('while the phone is linked', () => {
     expect(await recorded()).toEqual(['discount_votes:cinema-student', 'profiles:current']);
   });
 
+  it('records a checklist tick and its untick, by the item', async () => {
+    await db.checklistTicks.put({ itemId: 'anmeldung', on: '2026-11-10' });
+    expect(await recorded()).toEqual(['checklist_ticks:anmeldung']);
+    await forget();
+    await db.checklistTicks.delete('anmeldung');
+    expect(await recorded()).toEqual(['checklist_ticks:anmeldung']);
+  });
+
   it('keeps one entry per row, with a later seq for a later change', async () => {
     await saveEntry(expense('e1'));
     const [first] = await db.outbox.toArray();
@@ -270,6 +278,7 @@ describe('while the phone is linked', () => {
       weekResults: [],
       discountVotes: [],
       profile: null,
+      checklistTicks: [],
     });
     expect(await recorded()).toEqual(['accounts:local', 'entries:e1', 'entries:e2', 'entries:e3', 'plans:current']);
   });

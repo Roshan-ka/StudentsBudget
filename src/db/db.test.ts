@@ -33,13 +33,14 @@ describe('schema upgrade', () => {
 
     expect(await db.categories.count()).toBe(26);
     expect(await db.fxRates.count()).toBe(0);
-    expect(db.verno).toBe(4);
+    expect(db.verno).toBe(5);
     // The version-1 table is gone from the real database, not only from the schema.
     expect(db.backendDB().objectStoreNames.contains('rates')).toBe(false);
     // A database two versions behind gets the version-3 tables too, empty.
     expect(await db.weekResults.count()).toBe(0);
     expect(await db.discountVotes.count()).toBe(0);
     expect(await db.profile.count()).toBe(0);
+    expect(await db.checklistTicks.count()).toBe(0);
   });
 
   it('keeps the manual and the ECB rate of one currency side by side', async () => {
@@ -89,7 +90,7 @@ describe('schema upgrade', () => {
 
     await db.open();
 
-    expect(db.verno).toBe(4);
+    expect(db.verno).toBe(5);
     expect(await db.accounts.toArray()).toEqual([account]);
     expect(await db.categories.count()).toBe(26);
     expect(await db.entries.toArray()).toEqual([entry]);
@@ -120,5 +121,50 @@ describe('schema upgrade', () => {
     await expect(db.weekResults.add({ ...week, spentMinor: 1 })).rejects.toThrow();
     await expect(db.discountVotes.add({ ...vote, vote: 'outdated' })).rejects.toThrow();
     await expect(db.profile.add({ ...profile, name: 'Other' })).rejects.toThrow();
+  });
+
+  it('upgrades a version-4 database to version 5, keeping every row and adding the checklist ticks', async () => {
+    // A browser that ran version 4, with the schema declared as it shipped: version 5 must not need a line of it changed.
+    await db.delete();
+    const v4 = new Dexie('studentsbudget');
+    v4.version(1).stores({
+      accounts: 'id',
+      categories: 'id, kind',
+      entries: 'id, date, accountId, categoryId, type',
+      plan: 'id',
+      guesses: 'categoryId',
+      rates: 'currency',
+    });
+    v4.version(2).stores({ rates: null, fxRates: '[currency+source], currency' });
+    v4.version(3).stores({ weekResults: 'weekStart', discountVotes: 'discountId', profile: 'id' });
+    v4.version(4).stores({ outbox: '[table+id]', syncState: 'id' });
+    await v4.open();
+    const vote = { discountId: 'cinema-student', vote: 'works', on: '2026-10-20' } as const;
+    const queued = { table: 'discount_votes', id: 'cinema-student', seq: 1 };
+    const link = { id: 'current', userId: 'user-1', cursor: 12 };
+    await v4.table('categories').bulkAdd(CATEGORIES);
+    await v4.table('discountVotes').add(vote);
+    await v4.table('outbox').add(queued);
+    await v4.table('syncState').add(link);
+    expect(v4.verno).toBe(4);
+    v4.close();
+
+    await db.open();
+
+    expect(db.verno).toBe(5);
+    expect(await db.categories.count()).toBe(26);
+    expect(await db.discountVotes.toArray()).toEqual([vote]);
+    expect(await db.table('outbox').toArray()).toEqual([queued]);
+    expect(await db.table('syncState').toArray()).toEqual([link]);
+    expect(db.backendDB().objectStoreNames.contains('checklistTicks')).toBe(true);
+    expect(await db.checklistTicks.count()).toBe(0);
+
+    // One row per item: a second tick of the same item is refused, and unticking deletes it.
+    const tick = { itemId: 'anmeldung', on: '2026-11-10' };
+    await db.checklistTicks.add(tick);
+    expect(await db.checklistTicks.get('anmeldung')).toEqual(tick);
+    await expect(db.checklistTicks.add({ ...tick, on: '2026-11-11' })).rejects.toThrow();
+    await db.checklistTicks.delete('anmeldung');
+    expect(await db.checklistTicks.count()).toBe(0);
   });
 });

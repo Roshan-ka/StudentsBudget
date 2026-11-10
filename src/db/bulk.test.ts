@@ -7,7 +7,7 @@ import { recordCompletedWeeks, setAway, weekAwaitingRecord, weekResultOf } from 
 import { addDays } from '@/lib/dates';
 import { deleteEverything, exportAll, replaceAll, type BackupData } from './bulk';
 import { db } from './db';
-import type { Account, DiscountVote, Entry, Plan, Profile, Rate, WeekResult } from './types';
+import type { Account, ChecklistTick, DiscountVote, Entry, Plan, Profile, Rate, WeekResult } from './types';
 
 function account(id: string, currency: Account['currency'] = 'EUR'): Account {
   return { id, name: id, kind: 'bank', currency, openingMinor: 1000, createdAt: '2026-10-01T08:00:00.000Z' };
@@ -59,6 +59,10 @@ function vote(discountId: string, overrides: Partial<DiscountVote> = {}): Discou
   return { discountId, vote: 'works', on: '2026-10-20', ...overrides };
 }
 
+function tick(itemId: string, on = '2026-10-20'): ChecklistTick {
+  return { itemId, on };
+}
+
 const PROFILE: Profile = {
   id: 'current',
   name: 'Roshan',
@@ -79,6 +83,7 @@ function backup(overrides: Partial<BackupData> = {}): BackupData {
     weekResults: [week('2026-10-12'), week('2026-10-19', { paused: true, handLoggedCount: 0 })],
     discountVotes: [vote('cinema-student'), vote('mensa-card', { vote: 'outdated' })],
     profile: PROFILE,
+    checklistTicks: [tick('anmeldung'), tick('bank-account', '2026-10-21')],
     ...overrides,
   };
 }
@@ -93,6 +98,7 @@ async function fillWithOldData() {
   await db.weekResults.bulkAdd([week('2026-09-07'), week('2026-09-14')]);
   await db.discountVotes.bulkAdd([vote('old-discount')]);
   await db.profile.put({ ...PROFILE, name: 'Old name' });
+  await db.checklistTicks.bulkAdd([tick('old-item')]);
 }
 
 async function everyRow() {
@@ -106,12 +112,13 @@ async function everyRow() {
     weekResults: await db.weekResults.toArray(),
     discountVotes: await db.discountVotes.toArray(),
     profile: await db.profile.toArray(),
+    checklistTicks: await db.checklistTicks.toArray(),
   };
 }
 
 /** IndexedDB sorts rows by primary key, so the tables are compared without regard to row order. */
 function expectSameData(actual: BackupData, expected: BackupData) {
-  for (const table of ['accounts', 'categories', 'entries', 'guesses', 'fxRates', 'weekResults', 'discountVotes'] as const) {
+  for (const table of ['accounts', 'categories', 'entries', 'guesses', 'fxRates', 'weekResults', 'discountVotes', 'checklistTicks'] as const) {
     expect(actual[table]).toHaveLength(expected[table].length);
     expect(actual[table]).toEqual(expect.arrayContaining<unknown>(expected[table]));
   }
@@ -125,7 +132,7 @@ beforeEach(async () => {
 });
 
 describe('exportAll', () => {
-  it('reads every table, both rate rows and the version-3 tables included', async () => {
+  it('reads every table, both rate rows, the version-3 tables and the checklist ticks included', async () => {
     await db.accounts.bulkAdd([account('a1')]);
     await db.categories.bulkAdd(CATEGORIES);
     await db.entries.bulkAdd([expense('e1')]);
@@ -135,6 +142,7 @@ describe('exportAll', () => {
     await db.weekResults.bulkAdd([week('2026-10-12'), week('2026-10-19')]);
     await db.discountVotes.bulkAdd([vote('cinema-student')]);
     await db.profile.put(PROFILE);
+    await db.checklistTicks.bulkAdd([tick('anmeldung')]);
 
     const data = await exportAll();
 
@@ -147,6 +155,7 @@ describe('exportAll', () => {
     expect(data.weekResults.map((w) => w.weekStart).sort()).toEqual(['2026-10-12', '2026-10-19']);
     expect(data.discountVotes).toEqual([vote('cinema-student')]);
     expect(data.profile).toEqual(PROFILE);
+    expect(data.checklistTicks).toEqual([tick('anmeldung')]);
   });
 
   it('gives a null plan and a null profile before setup', async () => {
@@ -156,6 +165,7 @@ describe('exportAll', () => {
     expect(data.profile).toBeNull();
     expect(data.weekResults).toEqual([]);
     expect(data.discountVotes).toEqual([]);
+    expect(data.checklistTicks).toEqual([]);
   });
 });
 
@@ -177,6 +187,7 @@ describe('replaceAll', () => {
     expect(restored.weekResults).toEqual([]);
     expect(restored.discountVotes).toEqual([]);
     expect(restored.profile).toBeNull();
+    expect(restored.checklistTicks).toEqual([]);
     const accountIds = new Set(restored.accounts.map((a) => a.id));
     const categoryIds = new Set(restored.categories.map((c) => c.id));
     for (const entry of restored.entries) {
@@ -218,6 +229,26 @@ describe('replaceAll', () => {
     expect(rows.discountVotes.map((v) => `${v.discountId}:${v.vote}`).sort()).toEqual(['cinema-student:works', 'mensa-card:outdated']);
     expect(await db.discountVotes.get('old-discount')).toBeUndefined();
     expect(rows.profile).toEqual([PROFILE]);
+    expect(rows.checklistTicks.map((t) => t.itemId).sort()).toEqual(['anmeldung', 'bank-account']);
+    expect(await db.checklistTicks.get('old-item')).toBeUndefined();
+  });
+
+  it('restores a version 3 file, and the checklist ticks end up empty', async () => {
+    await fillWithOldData();
+    const file = JSON.parse(serializeBackup(backup(), new Date('2026-10-16T10:00:00.000Z'))) as {
+      version: number;
+      data: Record<string, unknown>;
+    };
+    file.version = 3;
+    delete file.data.checklistTicks;
+    const parsed = parseBackup(JSON.stringify(file));
+    if (!parsed.ok) throw new Error(parsed.error);
+
+    await replaceAll(parsed.data);
+
+    const rows = await everyRow();
+    expect(rows.discountVotes.map((v) => v.discountId).sort()).toEqual(['cinema-student', 'mensa-card']);
+    expect(rows.checklistTicks).toEqual([]);
   });
 
   it('restores a version 2 file, and the version-3 tables end up empty', async () => {
@@ -227,7 +258,7 @@ describe('replaceAll', () => {
       data: Record<string, unknown>;
     };
     file.version = 2;
-    for (const key of ['weekResults', 'discountVotes', 'profile']) delete file.data[key];
+    for (const key of ['weekResults', 'discountVotes', 'profile', 'checklistTicks']) delete file.data[key];
     const parsed = parseBackup(JSON.stringify(file));
     if (!parsed.ok) throw new Error(parsed.error);
 
@@ -280,7 +311,8 @@ describe('replaceAll', () => {
   it.each([
     ['two results for one week', { weekResults: [week('2026-10-12'), week('2026-10-12')] }],
     ['two votes for one discount', { discountVotes: [vote('cinema-student'), vote('cinema-student')] }],
-  ])('leaves the old data untouched when a version-3 table has %s', async (_name, overrides) => {
+    ['two ticks of one item', { checklistTicks: [tick('anmeldung'), tick('anmeldung', '2026-10-21')] }],
+  ])('leaves the old data untouched when a version-3 or version-4 table has %s', async (_name, overrides) => {
     await fillWithOldData();
     const before = await everyRow();
 
@@ -307,6 +339,7 @@ describe('replaceAll', () => {
     expect((await db.weekResults.toArray()).map((w) => w.weekStart).sort()).toEqual(['2026-09-07', '2026-09-14']);
     expect(await db.discountVotes.toArray()).toEqual([vote('old-discount')]);
     expect(await db.profile.toArray()).toEqual([{ ...PROFILE, name: 'Old name' }]);
+    expect(await db.checklistTicks.toArray()).toEqual([tick('old-item')]);
   });
 });
 
@@ -402,7 +435,7 @@ describe('restoring and the saved weeks', () => {
     // A version 2 file, from before weeks were saved.
     const file = JSON.parse(serializeBackup(await exportAll(), NOW)) as { version: number; data: Record<string, unknown> };
     file.version = 2;
-    for (const key of ['weekResults', 'discountVotes', 'profile']) delete file.data[key];
+    for (const key of ['weekResults', 'discountVotes', 'profile', 'checklistTicks']) delete file.data[key];
     const parsed = parseBackup(JSON.stringify(file));
     if (!parsed.ok) throw new Error(parsed.error);
     // Another device's data, saved weeks included, which the restore replaces.
@@ -437,6 +470,7 @@ describe('deleteEverything', () => {
     expect(rows.weekResults).toEqual([]);
     expect(rows.discountVotes).toEqual([]);
     expect(rows.profile).toEqual([]);
+    expect(rows.checklistTicks).toEqual([]);
     expect(rows.categories).toHaveLength(26);
     expect(await db.categories.get('old-category')).toBeUndefined();
     expect(await db.categories.get('food')).toBeDefined();

@@ -290,7 +290,7 @@ test.describe('on a desktop browser', () => {
       version: number;
       data: { entries: Entry[]; fxRates: Rate[]; plan: Plan | null; weekResults: WeekResult[]; discountVotes: DiscountVote[]; profile: Profile | null };
     };
-    expect(file).toMatchObject({ app: 'studentsbudget', version: 3 });
+    expect(file).toMatchObject({ app: 'studentsbudget', version: 4 });
     expect(file.data.entries.map((entry) => entry.note)).toEqual(['döner']);
     expect(file.data.fxRates.map((rate) => rate.source).sort()).toEqual(['ecb', 'manual']);
     expect(file.data.plan?.id).toBe('current');
@@ -366,7 +366,7 @@ test.describe('on a desktop browser', () => {
     expect(await everything(page)).toEqual(before);
 
     // A newer file replaces the message, and still asks nothing.
-    await backupFileInput(page).setInputFiles(jsonFile('later.json', { ...EMPTY_BACKUP, version: 4 }));
+    await backupFileInput(page).setInputFiles(jsonFile('later.json', { ...EMPTY_BACKUP, version: 5 }));
     await expect(inlineAlert(page)).toHaveText(NEWER);
     await expect(page.getByRole('button', { name: 'Replace all data' })).toHaveCount(0);
     expect(await everything(page)).toEqual(before);

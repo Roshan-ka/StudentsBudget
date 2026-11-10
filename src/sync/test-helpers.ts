@@ -57,6 +57,7 @@ export function snapshot(overrides: Partial<BackupData> = {}): BackupData {
       },
     ],
     discountVotes: [{ discountId: 'cinema-student', vote: 'works', on: '2026-10-20' }],
+    checklistTicks: [{ itemId: 'anmeldung', on: '2026-10-20' }],
     profile: {
       id: 'current',
       name: 'Roshan',
