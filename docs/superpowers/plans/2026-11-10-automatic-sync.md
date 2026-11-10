@@ -156,6 +156,25 @@ The engine is ready for it:
     - Node grants a free Web Lock at once, where a browser grants it on a later task. So `engine.test.ts` plays a browser's lock (`browserLocks`) for the Sync-now-during-the-request case.
     - Releasing a real lock takes a tick, so the test's `release` waits for the holder's request to end.
 
+- **Chunk 2** (`src/sync/auto-schedule.ts`, pure, 18 table tests):
+  - **`step(state, event, now)`** returns `{ state, run, wakeAt }`. When `run` is true the state counts the sync as running until its `finished`, so the plan's `started` event isn't needed.
+  - **The events:**
+    - the triggers and the page: `trigger` (opening or a return), `visible`, `hidden`, `online`, `offline`, `tick`;
+    - the data: `outbox{count, newest}`, `auth{status, userId}`, `link{userId}`;
+    - the runs and sign-out: `finished{outcome, outbox, held}`, `pause`, `resume`.
+  - **`SyncOutcome`:** `synced`, `held`, `failed`, `offline`, `busy`, `signed-out`, `update-needed`, `second-step`, `not-linked`. The runner maps a sync's result onto it.
+  - **What a run waits for:**
+    - It may run only signed in, linked to that account, online, not paused and not stopped.
+    - It is due at the earliest of: a trigger (now), a change (3 s after the latest, at most 5 s after the first, or at once while hidden), and the interval while visible (60 s after the last end).
+    - It is never sooner than 5 s after the last start, nor before the backoff ends.
+  - **No loops:**
+    - The outbox is judged at a sync's end. The held rows are the baseline, and only more than them is a change.
+    - An outbox back at the baseline clears a waiting change; one that shrank below it (another tab sent them) becomes the new baseline.
+    - A failure or `busy` keeps an unsent change waiting.
+  - **Reconnecting** skips each failure's wait once.
+  - **Stops:** a stop clears on a change of session or link; `update-needed` only on a reload.
+  - **A new link** clears a trigger left from the sign-in, since linking syncs itself, and counts the interval from the link.
+
 ## Appendix: other work left (for later)
 - **Features:**
   - legal pages (privacy notice, Impressum) with security headers;
