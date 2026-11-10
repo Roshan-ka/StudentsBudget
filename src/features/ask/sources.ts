@@ -1,3 +1,4 @@
+import { CHECKLIST } from '@/data/checklist';
 import { CITIES } from '@/data/cities';
 import { DISCOUNTS } from '@/data/discounts';
 import { SEMESTER_FEES, SEMESTER_PERIODS } from '@/data/semesters';
@@ -6,7 +7,7 @@ import { TIPS } from '@/data/tips';
 import { UNIVERSITIES } from '@/features/profile/profile';
 import { amountText } from '@/features/swaps/suggest';
 import { categoryNameIn } from '@/i18n/category-name';
-import { discountIn, feePartIn, periodIn, rangeIn, reRegistrationIn, swapIn, tipIn } from '@/i18n/city';
+import { checklistIn, discountIn, feePartIn, periodIn, rangeIn, reRegistrationIn, swapIn, tipIn } from '@/i18n/city';
 import { contentLang } from '@/i18n/content';
 import type { Language } from '@/i18n/languages';
 import type { Messages } from '@/i18n/messages';
@@ -82,6 +83,9 @@ function allSources(t: Messages, lang: Language, locale: string): Map<string, As
     }
     if (parts.length === 0) continue;
     add(packId.fee(fee.university, fee.starts), t.ask.fee(universityName(fee.university)), undefined, parts);
+  }
+  for (const item of CHECKLIST.map((x) => checklistIn(x, lang))) {
+    add(packId.checklist(item.id), item.title, item.textLang, [{ label: item.title, ...item }]);
   }
   return sources;
 }

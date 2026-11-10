@@ -5,6 +5,7 @@
 // Left out: the Deutschlandticket price, which the app never shows, and the beer price: no drinking advice.
 
 import { CATEGORIES } from '../../../data/categories.ts';
+import { CHECKLIST, type ChecklistGroup, type ChecklistWho } from '../../../data/checklist.ts';
 import { CITIES } from '../../../data/cities.ts';
 import { DISCOUNTS } from '../../../data/discounts.ts';
 import { SEMESTER_FEES, SEMESTER_PERIODS } from '../../../data/semesters.ts';
@@ -16,6 +17,15 @@ import { packId, type PackCategory, type PackItem } from '../../../../supabase/f
 export const LEFT_OUT_PRICES: readonly string[] = ['Deutschlandticket per month', 'Beer in a bar (0.5 l)'];
 
 const UNIVERSITY = { ur: 'Universität Regensburg (UR)', oth: 'OTH Regensburg' } as const;
+
+/** A checklist item's group and who it is for, as the pack's text says them. */
+const CHECKLIST_GROUP: Record<ChecklistGroup, string> = { 'first-weeks': 'first weeks', money: 'money to claim' };
+const CHECKLIST_WHO: Record<ChecklistWho, string> = {
+  everyone: '',
+  'from-abroad': ', for students from abroad',
+  bafoeg: ', for students on BAföG',
+  'under-25': ', for students under 25',
+};
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -136,6 +146,18 @@ export function buildCityPack(): PackItem[] {
       text: `${UNIVERSITY[fee.university]}, semester starting ${fee.starts}:${feeText}${opens}`,
       source: [...new Set(sourced.map((part) => part.source))].join('; '),
       checked: sourced.map((part) => part.checked).sort().at(-1) ?? '',
+      estimate: false,
+    });
+  }
+
+  for (const item of CHECKLIST) {
+    items.push({
+      id: packId.checklist(item.id),
+      kind: 'checklist',
+      categoryId: null,
+      text: `Checklist for new students (${CHECKLIST_GROUP[item.group]}${CHECKLIST_WHO[item.who]}): ${sentence(item.title)} ${sentence(item.body)}`,
+      source: item.source,
+      checked: item.checked,
       estimate: false,
     });
   }

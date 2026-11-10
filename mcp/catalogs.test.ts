@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { CHECKLIST, CHECKLIST_GROUPS } from '@/data/checklist';
 import { DISCOUNTS } from '@/data/discounts';
 import { SWAPS } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
 import { holds, orderOf } from './catalog.ts';
+import { CHECKLIST_SEARCH_EXAMPLES, findChecklist, type FoundChecklist } from './checklist.ts';
 import { DISCOUNT_SEARCH_EXAMPLES, findDiscounts, type FoundDiscounts } from './discounts.ts';
 import { COST_SEARCH_EXAMPLES, regensburgCosts } from './regensburg-costs.ts';
 import { SEMESTER_NOTE, type UniversityInfo } from './semesters.ts';
@@ -33,6 +35,9 @@ describe('the search', () => {
     }
     for (const word of TIP_SEARCH_EXAMPLES) expect(findTips(undefined, word).note, word).not.toMatch(/^Nothing matched/);
     for (const word of SWAP_SEARCH_EXAMPLES) expect(findSwaps(undefined, word).note, word).not.toMatch(/^Nothing matched/);
+    for (const word of CHECKLIST_SEARCH_EXAMPLES) {
+      expect(findChecklist(undefined, word).note, word).not.toMatch(/^Nothing matched/);
+    }
   });
 });
 
@@ -126,6 +131,49 @@ describe('find_tips', () => {
 
   it('marks a tip without a stated number as an estimate', () => {
     for (const t of findTips().tips) expect(t.estimate).toBe(t.source === 'Estimate');
+  });
+});
+
+describe('find_checklist', () => {
+  const checklist = async (args: Record<string, unknown> = {}) => call<FoundChecklist>(await connect(), 'find_checklist', args);
+
+  it('returns every item with its source, the first weeks before the money to claim', async () => {
+    const { text, data } = await checklist();
+    expect(data.items).toHaveLength(CHECKLIST.length);
+    expect(data.note).toMatch(new RegExp(`^${CHECKLIST.length} checklist items for new students\\. Cite each item’s source`));
+    for (const item of data.items) {
+      expect(text).toContain(`- ${item.title} (`);
+      expect(text).toContain(`): ${item.body} Source: ${item.source}, ${item.url}, checked `);
+      expect(item.url).toMatch(/^https:\/\//);
+      expect(item.estimate).toBe(false);
+    }
+    const groups = data.items.map((item) => item.group);
+    expect(groups).toEqual([...groups].sort((a, b) => CHECKLIST_GROUPS.indexOf(a) - CHECKLIST_GROUPS.indexOf(b)));
+    expect(text).toContain('- Apply for your residence permit (first weeks, for students from abroad): ');
+  });
+
+  it('narrows to a group and to words, and names the tip that says more', async () => {
+    const money = await checklist({ group: 'money' });
+    expect(money.data.items.length).toBeGreaterThan(0);
+    expect(money.data.items.every((item) => item.group === 'money')).toBe(true);
+    expect(money.data.note).toMatch(/^\d+ benefits to claim\./);
+    const wohngeld = await checklist({ search: 'wohngeld' });
+    expect(wohngeld.data.items.map((item) => [item.id, item.tipId])).toContainEqual(['check-wohngeld', 'check-wohngeld']);
+    expect(wohngeld.data.items.length).toBeLessThan(CHECKLIST.length);
+    const bank = await checklist({ search: 'bank account' });
+    expect(bank.data.items.map((item) => item.tipId)).toEqual([null]);
+  });
+
+  it('lists every item, and says so, when none matches', async () => {
+    const { data } = await checklist({ search: 'yacht' });
+    expect(data.items).toHaveLength(CHECKLIST.length);
+    expect(data.note).toMatch(/^Nothing matched "yacht", so all \d+ checklist items for new students are listed instead/);
+  });
+
+  it('refuses a group the checklist doesn’t have', async () => {
+    const client = await connect();
+    const unknown = await client.callTool({ name: 'find_checklist', arguments: { group: 'housing' } });
+    expect(unknown.isError).toBe(true);
   });
 });
 

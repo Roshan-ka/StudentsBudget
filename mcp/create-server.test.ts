@@ -6,7 +6,7 @@ import { call, connect } from './test-client.ts';
 const city = CITIES.regensburg;
 const shownPrices = city.prices.filter((p) => !HIDDEN_PRICE_LABELS.includes(p.label));
 /** The tools over the sourced Regensburg catalogs; budget_overview, recent_entries and week_check_in read the user's own account. */
-const CATALOG_TOOLS = ['find_discounts', 'find_tips', 'regensburg_costs', 'semester_info', 'suggest_swaps'];
+const CATALOG_TOOLS = ['find_checklist', 'find_discounts', 'find_tips', 'regensburg_costs', 'semester_info', 'suggest_swaps'];
 
 describe('the StudentsBudget MCP server', () => {
   it('introduces itself and lists its tools, all read-only, the catalog ones asking for sources to be cited', async () => {

@@ -5,14 +5,14 @@
 // Every item has an id the model cites and the app looks up again in its own data, so a source, a link or a checked
 // date never comes from the model. No item carries a link: the app adds those.
 
-export type PackKind = 'range' | 'price' | 'tip' | 'discount' | 'swap' | 'semester' | 'fee';
+export type PackKind = 'range' | 'price' | 'tip' | 'discount' | 'swap' | 'semester' | 'fee' | 'checklist';
 
 export type PackItem = {
   /** `kind:key`: `tip:<id>`, `discount:<id>`, `swap:<id>`, `range:<category id>`, `price:<label as a slug>`,
-   * `semester:<university>:<term>`, `fee:<university>:<first day>`. */
+   * `semester:<university>:<term>`, `fee:<university>:<first day>`, `checklist:<item id>`. */
   id: string;
   kind: PackKind;
-  /** The app category it is about, or null (semester dates and fees). */
+  /** The app category it is about, or null (semester dates, fees and checklist items). */
   categoryId: string | null;
   /** What the item says, in English, with its amounts written as €12 or €3.80. */
   text: string;
@@ -39,6 +39,7 @@ export const packId = {
   swap: (id: string) => `swap:${id}`,
   semester: (university: string, term: string) => `semester:${university}:${term}`,
   fee: (university: string, starts: string) => `fee:${university}:${starts}`,
+  checklist: (id: string) => `checklist:${id}`,
 };
 
 /** An app category as the AI's rules name it, in English (src/data/categories.ts), written into city-pack.ts too. */

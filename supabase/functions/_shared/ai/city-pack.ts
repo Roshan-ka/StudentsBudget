@@ -571,6 +571,105 @@ export const CITY_PACK: readonly PackItem[] = [
     "source": "Studierendenwerk Niederbayern/Oberpfalz, basic contribution statute (scanned PDF, in German), § 2: €87.00 for summer semester 2027 and €92.00 per semester from winter semester 2027/28; § 3: for students of Universität Regensburg and OTH Regensburg, due with re-registration. This is the winter 2027/28 figure.; Studierendenwerk Niederbayern/Oberpfalz, semester ticket statute of 12 Oct 2026 (scanned PDF, in German), § 3: €128.00 for summer semester 2027 and €130.00 for winter semester 2027/28; § 1: for students of OTH Regensburg and Universität Regensburg (with the statute's exemptions), due with re-registration. This is the winter 2027/28 figure.",
     "checked": "2026-10-20",
     "estimate": false
+  },
+  {
+    "id": "checklist:register-your-address",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (first weeks): Register your address. Register at the city’s registration office within two weeks of moving in.",
+    "source": "Bundesmeldegesetz § 17 (1): whoever moves into a flat must register with the registration office within two weeks of moving in",
+    "checked": "2026-11-10",
+    "estimate": false
+  },
+  {
+    "id": "checklist:health-insurance-for-enrolment",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (first weeks): Have your health insurance sent to the university. Your statutory health insurer sends the proof electronically, with the university’s number H0000341; paper proof isn’t accepted. Insured privately or abroad? A statutory insurer checks your status and sends it.",
+    "source": "Universität Regensburg, proof of health insurance: needed in electronic form, sent by the statutory insurer with the university number H0000341; paper proof not enough since 1 Jan 2022; private and foreign insurers cannot send it, so a statutory insurer checks the status and sends it",
+    "checked": "2026-11-10",
+    "estimate": false
+  },
+  {
+    "id": "checklist:residence-permit",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (first weeks, for students from abroad): Apply for your residence permit. From outside the EU? Apply to the city’s foreigners’ office before your entry visa runs out, or within your first 90 days if you came without one.",
+    "source": "Universität Regensburg, International Office, residence permit for non-EU students: apply to the responsible foreigners’ office before an entry visa runs out; without a visa, within the first 90 days of the stay",
+    "checked": "2026-11-10",
+    "estimate": false
+  },
+  {
+    "id": "checklist:open-a-bank-account",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (first weeks): Open a bank account. Anyone legally resident in the EU has the right to a basic account, even without a fixed address.",
+    "source": "Zahlungskontengesetz § 31 (1): every consumer legally resident in the European Union, including people without a fixed address, has the right to a basic payment account",
+    "checked": "2026-11-10",
+    "estimate": false
+  },
+  {
+    "id": "checklist:register-for-the-rundfunkbeitrag",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (first weeks): Sort out the Rundfunkbeitrag. One adult per flat registers and pays it; in a shared flat, agree who does.",
+    "source": "ARD ZDF Deutschlandradio Beitragsservice, information for students: €18.36 a month per flat; only one adult per flat registers and pays",
+    "checked": "2026-10-20",
+    "estimate": false
+  },
+  {
+    "id": "checklist:apply-for-bafoeg",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (money to claim): Apply for BAföG. Apply through BAföG Digital as early as you can: it is paid from the month your application arrives, never before your studies begin.",
+    "source": "Studierendenwerk Niederbayern/Oberpfalz, BAföG: apply through BAföG Digital, as early as possible; funding is granted from the month the application arrives, at the earliest from the start of studies; the Regensburg office serves Universität Regensburg and OTH Regensburg",
+    "checked": "2026-11-10",
+    "estimate": false
+  },
+  {
+    "id": "checklist:claim-the-study-start-grant",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (money to claim, for students under 25): Claim the study start grant. Starting your first degree under 25 and on social benefits? A one-off €1,000 that you never pay back.",
+    "source": "Studierendenwerk Niederbayern/Oberpfalz, BAföG Studienstarthilfe: a one-off €1,000 grant, not repaid, for first-time full-time students under 25 who receive social benefits; apply via BAföG Digital by the end of the month after the start",
+    "checked": "2026-10-20",
+    "estimate": false
+  },
+  {
+    "id": "checklist:keep-kindergeld",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (money to claim, for students under 25): Keep Kindergeld coming. Your parents can get Kindergeld for you during a first degree, until the day before your 25th birthday.",
+    "source": "Bundesagentur für Arbeit, Familienkasse, Kindergeld from 18: paid between 18 and the completed 25th year for a child in a first training or degree; the 25th year ends with the day before the 25th birthday",
+    "checked": "2026-11-10",
+    "estimate": false
+  },
+  {
+    "id": "checklist:stay-on-family-insurance",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (money to claim, for students under 25): Stay on family health insurance. Free until your 25th birthday while you earn little. Check before you take on a bigger job.",
+    "source": "Studierendenwerk Niederbayern/Oberpfalz, health and care insurance: free family insurance until the 25th birthday; in 2026 up to €565 a month from a regular job or €603 from a minijob",
+    "checked": "2026-10-20",
+    "estimate": false
+  },
+  {
+    "id": "checklist:check-wohngeld",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (money to claim): Check Wohngeld. No BAföG entitlement in principle? Wohngeld may help with rent, with Regensburg as your main residence.",
+    "source": "Studierendenwerk Niederbayern/Oberpfalz, Wohngeld: possible only without a BAföG entitlement in principle, and the study town must be the main residence",
+    "checked": "2026-10-20",
+    "estimate": false
+  },
+  {
+    "id": "checklist:rundfunkbeitrag-exemption",
+    "kind": "checklist",
+    "categoryId": null,
+    "text": "Checklist for new students (money to claim, for students on BAföG): Apply for the Rundfunkbeitrag exemption. On BAföG and not living with your parents? You can be exempted, on application.",
+    "source": "ARD ZDF Deutschlandradio Beitragsservice, information for students: BAföG recipients who do not live with their parents can be exempted on application",
+    "checked": "2026-10-20",
+    "estimate": false
   }
 ];
 
