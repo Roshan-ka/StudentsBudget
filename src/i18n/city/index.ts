@@ -1,3 +1,4 @@
+import type { ChecklistItem } from '@/data/checklist';
 import type { CityRange } from '@/data/cities';
 import type { Discount } from '@/data/discounts';
 import type { FeePart, SemesterFee, SemesterPeriod } from '@/data/semesters';
@@ -5,16 +6,19 @@ import type { Swap } from '@/data/swaps';
 import type { Tip } from '@/data/tips';
 import { contentLang } from '../content';
 import type { Language } from '../languages';
+import { checklist as deChecklist } from './de/checklist';
 import { discounts as deDiscounts } from './de/discounts';
 import { ranges as deRanges } from './de/ranges';
 import { semesters as deSemesters } from './de/semesters';
 import { swaps as deSwaps } from './de/swaps';
 import { tips as deTips } from './de/tips';
+import { checklist as esChecklist } from './es/checklist';
 import { discounts as esDiscounts } from './es/discounts';
 import { ranges as esRanges } from './es/ranges';
 import { semesters as esSemesters } from './es/semesters';
 import { swaps as esSwaps } from './es/swaps';
 import { tips as esTips } from './es/tips';
+import { checklist as frChecklist } from './fr/checklist';
 import { discounts as frDiscounts } from './fr/discounts';
 import { ranges as frRanges } from './fr/ranges';
 import { semesters as frSemesters } from './fr/semesters';
@@ -34,11 +38,14 @@ export type DiscountWords = Pick<Discount, 'offer' | 'conditions' | 'source'> & 
 /** A swap's words; `toSource` exactly when the swap has one. `per` is its unit in the swap line ("per meal"). */
 export type SwapWords = Pick<Swap, 'title' | 'body' | 'per' | 'source' | 'toSource'>;
 
+/** A checklist item's words (the Checklist tab, src/data/checklist.ts). */
+export type ChecklistWords = Pick<ChecklistItem, 'title' | 'body' | 'source'>;
+
 /** A city range's words (setup and Home), by its category. 'Estimate' stays 'Estimate', as for a tip. */
 export type RangeWords = Pick<CityRange, 'source'>;
 
 /**
- * The city content's words in one language: tips, discounts, swaps and the city's ranges by id (a range by its
+ * The city content's words in one language: tips, discounts, swaps, the checklist and the city's ranges by id (a range by its
  * category). The semester texts have no id and are partly built from templates, so they are keyed by their exact
  * English text: period and fee-part sources, fee-part labels and the re-registration's source.
  */
@@ -46,15 +53,16 @@ export type CityWords = {
   tips: Readonly<Partial<Record<string, TipWords>>>;
   discounts: Readonly<Partial<Record<string, DiscountWords>>>;
   swaps: Readonly<Partial<Record<string, SwapWords>>>;
+  checklist: Readonly<Partial<Record<string, ChecklistWords>>>;
   ranges: Readonly<Partial<Record<string, RangeWords>>>;
   semesters: Readonly<Partial<Record<string, string>>>;
 };
 
 /** Every language with city content of its own. A language without it, or an item it doesn't have, shows English. */
 export const CITY_WORDS: Partial<Record<Language, CityWords>> = {
-  de: { tips: deTips, discounts: deDiscounts, swaps: deSwaps, ranges: deRanges, semesters: deSemesters },
-  es: { tips: esTips, discounts: esDiscounts, swaps: esSwaps, ranges: esRanges, semesters: esSemesters },
-  fr: { tips: frTips, discounts: frDiscounts, swaps: frSwaps, ranges: frRanges, semesters: frSemesters },
+  de: { tips: deTips, discounts: deDiscounts, swaps: deSwaps, checklist: deChecklist, ranges: deRanges, semesters: deSemesters },
+  es: { tips: esTips, discounts: esDiscounts, swaps: esSwaps, checklist: esChecklist, ranges: esRanges, semesters: esSemesters },
+  fr: { tips: frTips, discounts: frDiscounts, swaps: frSwaps, checklist: frChecklist, ranges: frRanges, semesters: frSemesters },
 };
 
 /**
@@ -83,6 +91,11 @@ export function discountIn(discount: Discount, lang: Language): InLanguage<Disco
 /** A swap in `lang`, or in English, marked so. */
 export function swapIn(swap: Swap, lang: Language): InLanguage<Swap> {
   return withWords(swap, wordsIn(lang)?.swaps[swap.id], lang);
+}
+
+/** A checklist item in `lang`, or in English, marked so. Its group, who it is for and its tip stay as they are. */
+export function checklistIn(item: ChecklistItem, lang: Language): InLanguage<ChecklistItem> {
+  return withWords(item, wordsIn(lang)?.checklist[item.id], lang);
 }
 
 /** A city range (setup, Home) in `lang`, or in English, marked so. */

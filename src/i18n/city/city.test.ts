@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { CHECKLIST } from '@/data/checklist';
 import { CITIES } from '@/data/cities';
 import { DISCOUNTS } from '@/data/discounts';
 import { SEMESTER_FEES, SEMESTER_PERIODS } from '@/data/semesters';
 import { SWAPS } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
 import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, type Language } from '../languages';
-import { CITY_WORDS, discountIn, feePartIn, periodIn, rangeIn, swapIn, tipIn, type CityWords } from '.';
+import { checklistIn, CITY_WORDS, discountIn, feePartIn, periodIn, rangeIn, swapIn, tipIn, type CityWords } from '.';
 
 /**
  * Every number in a text, without its separators, so "€1,000", "1.000 €" and French "1 000 €" (a narrow no-break
@@ -17,7 +18,7 @@ function numbersIn(text: string): string[] {
 
 /** Every text a language's city content gives: each item's words and the semester texts. */
 function allTexts(words: CityWords): string[] {
-  const items = [words.tips, words.discounts, words.swaps, words.ranges].flatMap((kind) => Object.values(kind));
+  const items = [words.tips, words.discounts, words.swaps, words.checklist, words.ranges].flatMap((kind) => Object.values(kind));
   const fields = items.flatMap((item) => Object.values(item ?? {}).filter((value) => typeof value === 'string'));
   return [...fields, ...Object.values(words.semesters).filter((text) => text !== undefined)];
 }
@@ -40,6 +41,7 @@ const KINDS: {
   { kind: 'tips', items: TIPS, fields: ['title', 'body', 'source'], own: ['title', 'body'] },
   { kind: 'discounts', items: DISCOUNTS, fields: ['offer', 'conditions', 'source'], own: ['offer', 'conditions'] },
   { kind: 'swaps', items: SWAPS, fields: ['title', 'body', 'per', 'source', 'toSource'], own: ['title', 'body', 'per'] },
+  { kind: 'checklist', items: CHECKLIST, fields: ['title', 'body', 'source'], own: ['title', 'body'] },
   // A range is known by its category; an Estimate range's words are the marker itself.
   {
     kind: 'ranges',
@@ -143,6 +145,8 @@ describe('city content in other languages', () => {
     expect(discountIn(pool, 'de').place).toBe('Hallenbad Sportpark Ost');
     expect(discountIn(pool, 'de').address).toBe(pool.address);
     expect(swapIn(SWAPS[0], 'de').fromMinor).toBe(SWAPS[0].fromMinor);
+    const [item] = CHECKLIST;
+    expect(checklistIn(item, 'de')).toMatchObject({ group: item.group, who: item.who, url: item.url, textLang: undefined });
 
     const [part] = SEMESTER_FEES[0].parts ?? [];
     if (part === undefined) throw new Error('the first semester fee has no parts');
