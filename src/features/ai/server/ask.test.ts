@@ -13,7 +13,7 @@ import { CITY_PACK } from '../../../../supabase/functions/_shared/ai/city-pack';
 import { handleAi } from '../../../../supabase/functions/_shared/ai/handle';
 import type { ModelCall, ModelMessage } from '../../../../supabase/functions/_shared/ai/model';
 
-// Ask on the server (the AI phase, chunk 8): the call to Claude Opus 5.5, and the answer held to what it was given.
+// Ask on the server (the AI phase, chunk 8): the call to Claude Haiku 5.5, and the answer held to what it was given.
 
 /** A snapshot in the shape chunk 9 writes: money in euros under keys that end in "Eur". */
 const SNAPSHOT = {
@@ -37,13 +37,13 @@ const REQUEST: AskRequest = {
 };
 
 describe('the call', () => {
-  it('asks Claude Opus 5.5 at medium effort, thinking, with fallbacks, for the Ask answer', () => {
+  it('asks Claude Haiku 5.5 at medium effort, thinking, without fallbacks (it has none), for the Ask answer', () => {
     expect(askBuilder.call(REQUEST)).toMatchObject({
-      model: 'claude-opus-5-5',
+      model: 'claude-haiku-5-5',
       maxTokens: 6000,
       effort: 'medium',
       thinking: true,
-      fallbacks: true,
+      fallbacks: false,
       system: askSystem(),
       answer: askAnswer,
       timeoutMs: 55_000,
@@ -112,7 +112,7 @@ describe('Ask through the function', () => {
   async function ask(answer: unknown) {
     const calls: ModelCall[] = [];
     const message: ModelMessage = {
-      model: 'claude-opus-5-5',
+      model: 'claude-haiku-5-5',
       stop_reason: 'end_turn',
       content: [{ type: 'thinking' }, { type: 'text', text: JSON.stringify(answer) }],
       usage: { input_tokens: 9000, output_tokens: 300, cache_read_input_tokens: 8000 },
@@ -144,7 +144,7 @@ describe('Ask through the function', () => {
     const { status, body, calls } = await ask({ answer: 'You have €47.20 this week.', sourceIds: [] });
     expect(status).toBe(200);
     expect(body).toEqual({ ok: true, answer: { answer: 'You have €47.20 this week.', sourceIds: [], unbacked: [] }, left: 5 });
-    expect(calls[0].fallbacks).toBe(true);
+    expect(calls[0]).toMatchObject({ model: 'claude-haiku-5-5', fallbacks: false });
   });
 
   it('counts an answer that was only a link as failed', async () => {

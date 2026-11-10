@@ -9,11 +9,11 @@ import type { z } from 'zod';
 export type ModelCall = {
   model: 'claude-haiku-5-5' | 'claude-opus-5-5';
   maxTokens: number;
-  /** Always sent: Opus 5.5 defaults to medium, and the call says what it wants. */
+  /** Always sent: each model has its own default, and the call says what it wants. */
   effort: 'low' | 'medium' | 'high';
-  /** False turns thinking off (Haiku 5.5 at low effort); true leaves the model's own (Opus 5.5 always thinks). */
+  /** False turns thinking off (quick add, at low effort); true leaves the model's adaptive thinking on. */
   thinking: boolean;
-  /** Server-side fallbacks on a refusal (`fallbacks: "default"`). Opus only: Haiku 5.5 has none. */
+  /** Server-side fallbacks on a refusal (`fallbacks: "default"`), for Opus only: Haiku 5.5 has none. No call uses them now. */
   fallbacks: boolean;
   /** The feature's frozen rules and data, the same for every student, cached. */
   system: string;
