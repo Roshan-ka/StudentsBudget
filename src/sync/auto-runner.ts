@@ -81,6 +81,7 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
   }
 
   function arm(wakeAt: number | null) {
+    if (wakeAt !== null) console.log('AUTO arm', wakeAt - deps.now()); // TEMP-DEBUG
     if (timer !== null) {
       deps.clearTimer(timer);
       timer = null;
@@ -89,6 +90,7 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
     timer = deps.setTimer(
       () => {
         timer = null;
+        console.log('AUTO timer fired'); // TEMP-DEBUG
         dispatch({ type: 'tick' });
       },
       Math.max(0, wakeAt - deps.now()),
@@ -105,6 +107,7 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
         done = { outcome: 'failed', outbox: state.outbox, held: state.baseline.count };
       }
       running = false;
+      console.log('AUTO done', JSON.stringify(done), 'stopped', stopped); // TEMP-DEBUG
       if (stopped) return;
       settle(done);
       dispatch({ type: 'finished', ...done });
@@ -117,6 +120,8 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
     if (event.type === 'link') linkKnown = true;
     const next = step(state, event, deps.now());
     state = next.state;
+    // TEMP-DEBUG (not to be committed)
+    console.log('AUTO', deps.now() % 100000, JSON.stringify(event), 'run', next.run, 'wake', next.wakeAt === null ? null : next.wakeAt - deps.now(), JSON.stringify({ a: state.auth, u: state.userId, l: state.linkedTo, s: state.stop, p: state.paused, r: state.running, o: state.online, v: state.visible, w: state.wanted, c: state.changeSince, b: state.baseline, x: state.outbox }));
     arm(next.wakeAt);
     if (next.run) start();
     if (authKnown && linkKnown && untilKnown.length > 0) {
@@ -137,6 +142,7 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
   }
 
   async function visit(reason: VisitReason): Promise<VisitResult> {
+    console.log('AUTO visit', reason, authKnown, linkKnown, running); // TEMP-DEBUG
     if (stopped) return 'not-synced';
     if (!(authKnown && linkKnown)) await new Promise<void>((resolve) => untilKnown.push(resolve));
     if (stopped) return 'not-synced';
@@ -161,6 +167,7 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
   }
 
   function stop() {
+    console.log('AUTO stop'); // TEMP-DEBUG
     stopped = true;
     arm(null);
     const waiting = afterRun;
