@@ -17,7 +17,13 @@ export type Discount = {
   checked: IsoDate;
 };
 
+/** The first check of every source. */
 const CHECKED: IsoDate = '2026-10-20';
+/**
+ * The re-check before the first check went stale (dated data refresh, docs/superpowers/plans/2026-11-10-dated-data-refresh.md):
+ * every source that still states its offer. One that couldn't be read keeps `CHECKED`, so it shows "May be outdated".
+ */
+const RECHECKED: IsoDate = '2026-11-10';
 
 const STADTWERK = 'das Stadtwerk Regensburg';
 const STWNO = 'Studierendenwerk Niederbayern/Oberpfalz';
@@ -45,7 +51,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'eating-out',
     source: 'Asia Restaurant Sunrise, home page: 10% off for students, Mon–Sun, on showing a student ID; not combined with other offers or discounts',
     url: 'https://sunrise-regensburg.de/',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'mensa-childrens-plate',
@@ -57,7 +63,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'eating-out',
     source: `${STWNO}, Mensa Uni Regensburg: children of students get a free children's plate up to their sixth year when the parent also has lunch in the Mensa, with a Kinderteller Mensa card from the Mensa card office`,
     url: 'https://stwno.de/de/gastronomie/mensen/mensa-uni-regensburg',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'kinos-im-andreasstadel',
@@ -69,7 +75,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: 'Kinos im Andreasstadel, ticket prices: €9 regular, €8 reduced for students with valid proof; online advance sale adds 10%; reservations are free; prices for special screenings may differ',
     url: 'https://www.kinos-im-andreasstadel.de/Eintrittspreise/unterseite_7311',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'staatstheater-regensburg',
@@ -81,7 +87,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: 'Staatstheater Regensburg, visitor FAQ: 50% off the regular price in general sale (Freiverkauf) for students until their 30th birthday; U30 shows on selected dates, €10 for any seat; €1.50 fee per ticket online or by phone, none at the box office or evening box office',
     url: 'https://www.staatstheater-regensburg.de/index/besuch.html',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'regensburger-turmtheater',
@@ -92,7 +98,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: 'Regensburger Turmtheater, tickets: regular shows €32; pupils, students and trainees 50% off (€16); other prices are given in the show descriptions',
     url: 'https://regensburgerturmtheater.de/karten/',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'kunstforum-ostdeutsche-galerie',
@@ -103,7 +109,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: 'Kunstforum Ostdeutsche Galerie, your visit: entry €6, reduced €4; pupils, students and trainees are on the list of those who pay the reduced price',
     url: 'https://www.kunstforum.net/ihr-besuch',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'document-kepler',
@@ -114,7 +120,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: 'Museen der Stadt Regensburg, document Kepler: adults €5; free for students under 30 on showing an ID; public guided tours €8, reduced €5',
     url: 'https://www.regensburg.de/museen/die-museen/documente/document-kepler',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'schloss-thurn-und-taxis',
@@ -126,7 +132,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: 'Fürst Thurn und Taxis, visiting Schloss St. Emmeram: guided tour of the state rooms and cloister (Prunkräume & Kreuzgang) €17, reduced €14; Treasury and Marstall €6, reduced €4; reduced for pupils and students on showing their ID',
     url: 'https://www.thurnundtaxis.de/entdecken/besuch-schloss-st-emmeram',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'westbad',
@@ -137,7 +143,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: `${STADTWERK}, Westbad prices: 3 hours €7.20, day €10.00; reduced €4.60 and €6.50 for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later`,
     url: 'https://das-stadtwerk-regensburg.de/westbad/preise-oeffnungszeiten',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'sportpark-ost-pool',
@@ -148,7 +154,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: `${STADTWERK}, Sportpark Ost pool prices: single entry €5.00, reduced €2.90 for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later`,
     url: 'https://das-stadtwerk-regensburg.de/sportpark-ost-bad/preise-oeffnungszeiten',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'donau-arena-skating',
@@ -159,7 +165,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: `${STADTWERK}, Donau-Arena public skating prices: single entry €6, reduced €5; Discolauf €7, reduced €6; reduced for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later`,
     url: 'https://www.das-stadtwerk-regensburg.de/donau-arena/eislauf/preise-oeffnungszeiten',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'boulderwelt-studi-monday',
@@ -170,7 +176,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: 'Boulderwelt Regensburg, prices: Studi Monday, a €9.90 day entry on Mondays all day for students and trainees with valid proof; not on public holidays; shoes rented at the counter for a fee',
     url: 'https://www.boulderwelt-regensburg.de/preise/',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'super-bowl-student-tuesday',
@@ -181,7 +187,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'going-out',
     source: 'Super Bowl Regensburg, offers: on Tuesdays pupils and students pay €1 per game ("Studenten Bowling")',
     url: 'https://superbowl.de/aktionen/',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'alnatura-student-tuesday',
@@ -193,7 +199,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'food',
     source: "Alnatura, student discount: every Tuesday 8% off the whole purchase for students, trainees and pupils with a valid student or pupil ID, in all Alnatura stores; not on deposits, gift cards, books or infant formula, and not combined with other discounts. Alnatura's store finder lists the Regensburg stores at Dr.-Martin-Luther-Straße 2, Donaustaufer Straße 128 and Joseph-Dahlem-Straße 3",
     url: 'https://www.alnatura.de/de-de/maerkte/studirabatt/',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'bellas-kunst-student-haircut',
@@ -205,7 +211,7 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'personal-care',
     source: "Bella's Kunst, price list: men's haircut €36, student haircut €30; women's student haircut €57; other women's cuts €48 (Schnitt Spezial), €52 (short), €65 (to shoulder length), €70 (long)",
     url: 'https://bellaskunst.de/',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
   {
     id: 'stadtbuecherei-library-card',
@@ -228,6 +234,6 @@ export const DISCOUNTS: readonly Discount[] = [
     categoryId: 'other',
     source: 'Volkshochschule Regensburg, terms and conditions: 10% off for regularly enrolled students (ordentlich Studierende) on application, with proof at least one week before the course starts; reductions are not combined; not for events the VHS only co-organises, and the VHS may exclude reductions',
     url: 'https://www.vhs-regensburg.de/agb',
-    checked: CHECKED,
+    checked: RECHECKED,
   },
 ];

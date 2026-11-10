@@ -71,12 +71,16 @@ describe('find_discounts', () => {
   });
 
   it('flags a discount from the 56th day after its source check', async () => {
-    // Every discount was checked on 2026-10-20, so the whole list turns on the same day.
-    expect(new Set(DISCOUNTS.map((d) => d.checked))).toEqual(new Set(['2026-10-20']));
-    expect(findDiscounts('2026-12-14').discounts.filter((d) => d.mayBeOutdated)).toEqual([]);
-    expect(findDiscounts('2026-12-15').discounts.every((d) => d.mayBeOutdated)).toBe(true);
+    // Checked on 2026-10-20 (the library card, its rule not read again) or re-checked on 2026-11-10 (the rest): each
+    // turns 56 days after its own check (dated data refresh, chunk 1).
+    expect(new Set(DISCOUNTS.map((d) => d.checked))).toEqual(new Set(['2026-10-20', '2026-11-10']));
+    const flagged = (day: string) => findDiscounts(day).discounts.filter((d) => d.mayBeOutdated).map((d) => d.place);
+    expect(flagged('2026-12-14')).toEqual([]);
+    expect(flagged('2026-12-15')).toEqual(['Stadtbücherei Regensburg']);
+    expect(flagged('2027-01-04')).toEqual(['Stadtbücherei Regensburg']);
+    expect(flagged('2027-01-05')).toHaveLength(DISCOUNTS.length);
 
-    const later = await discounts({ search: 'westbad' }, '2026-12-15');
+    const later = await discounts({ search: 'westbad' }, '2027-01-05');
     expect(later.data.discounts.map((d) => d.place)).toEqual(['Westbad']);
     expect(later.text).toContain('Nobody has confirmed it for 8 weeks, so it may be outdated.');
   });
