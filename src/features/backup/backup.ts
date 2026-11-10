@@ -8,6 +8,7 @@ import {
   discountVoteRow,
   entryRow,
   guessRow,
+  planMonthRow,
   planRow,
   profileRow,
   rateRow,
@@ -29,13 +30,15 @@ type Problem = keyof Messages['backup']['problems'];
  * Version 3 adds `weekResults`, `discountVotes` and `profile`; a file without them reads with those empty.
  * Version 4 adds `checklistTicks`; a file without it reads with no ticks, and an older app refuses a version 4 file as
  * newer instead of dropping the ticks.
+ * Version 5 adds `planMonths` (plan history); a file without it reads with no history, so its past months are measured
+ * against the current plan, as before.
  * The plan's `spendingBudgetMinor` is optional, so it did not need a version: a file without it reads as a plan with
  * no budget, and an older app that reads one with it ignores it. An account's `isDefault` and an entry's `imported` mark
  * (CSV import) are optional for the same reason.
  */
-export const BACKUP_VERSION = 4;
+export const BACKUP_VERSION = 5;
 
-const READABLE_VERSIONS = [1, 2, 3, BACKUP_VERSION] as const;
+const READABLE_VERSIONS = [1, 2, 3, 4, BACKUP_VERSION] as const;
 
 const APP = 'studentsbudget';
 
@@ -53,6 +56,8 @@ const backupData = z.object({
   profile: profileRow.nullable().default(null),
   // Version 4. A file from before it has no ticks.
   checklistTicks: z.array(checklistTickRow).default([]),
+  // Version 5. A file from before it has no plan history.
+  planMonths: z.array(planMonthRow).default([]),
 });
 
 const backupFile = z.object({
@@ -152,6 +157,7 @@ function findProblem(d: BackupData): Problem | null {
     d.weekResults.map((w) => w.weekStart),
     d.discountVotes.map((v) => v.discountId),
     d.checklistTicks.map((t) => t.itemId),
+    d.planMonths.map((m) => m.month),
   ];
   if (keyLists.some(hasDuplicates)) return 'duplicateId';
 

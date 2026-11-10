@@ -1,4 +1,5 @@
 import { db } from '@/db/db';
+import { recordPlanMonth } from '@/db/plan-months';
 import type { Plan, PlanLine } from '@/db/types';
 import { laterOf } from './schedule';
 
@@ -56,14 +57,17 @@ export function keepScheduleState(stored: Plan, next: Plan, accountIds: Readonly
 
 /**
  * Changes the plan: reads it and writes `mutate`'s result in one read-write transaction, so the change applies to the
- * plan as stored, and no schedule's watermark moves back. Rejects when there is no plan.
+ * plan as stored, and no schedule's watermark moves back. The plan as saved becomes this month's row of plan history
+ * (`recordPlanMonth`), in the same transaction. Rejects when there is no plan.
  */
 export async function updatePlan(mutate: (plan: Plan) => Plan): Promise<void> {
-  await db.transaction('rw', db.plan, async () => {
+  await db.transaction('rw', db.plan, db.planMonths, async () => {
     const stored = await db.plan.get('current');
     if (!stored) throw new Error('There is no plan to change.');
     // Copied before `mutate` sees it, so even a change that edits its argument cannot move a watermark back.
     const before = structuredClone(stored);
-    await db.plan.put(keepWatermarks(before, mutate(stored)));
+    const saved = keepWatermarks(before, mutate(stored));
+    await db.plan.put(saved);
+    await recordPlanMonth(saved);
   });
 }

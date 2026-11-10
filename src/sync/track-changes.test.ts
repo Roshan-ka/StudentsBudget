@@ -279,6 +279,7 @@ describe('while the phone is linked', () => {
       discountVotes: [],
       profile: null,
       checklistTicks: [],
+      planMonths: [],
     });
     expect(await recorded()).toEqual(['accounts:local', 'entries:e1', 'entries:e2', 'entries:e3', 'plans:current']);
   });

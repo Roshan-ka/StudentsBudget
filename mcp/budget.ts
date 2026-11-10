@@ -111,6 +111,7 @@ const NO_PHONE: BackupData = {
   weekResults: [],
   discountVotes: [],
   checklistTicks: [],
+  planMonths: [],
   profile: null,
 };
 

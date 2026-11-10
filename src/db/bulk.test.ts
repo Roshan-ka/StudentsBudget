@@ -84,6 +84,7 @@ function backup(overrides: Partial<BackupData> = {}): BackupData {
     discountVotes: [vote('cinema-student'), vote('mensa-card', { vote: 'outdated' })],
     profile: PROFILE,
     checklistTicks: [tick('anmeldung'), tick('bank-account', '2026-10-21')],
+    planMonths: [{ month: '2026-10', incomes: [], fixed: [{ categoryId: 'rent', monthlyMinor: 40_000 }], oneOffs: [], envelopes: [{ categoryId: 'food', monthlyMinor: 20_000 }] }],
     ...overrides,
   };
 }

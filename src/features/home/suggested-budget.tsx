@@ -7,8 +7,8 @@ import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { CITIES } from '@/data/cities';
-import { db } from '@/db/db';
 import type { Amount, Entry, Plan } from '@/db/types';
+import { updatePlan } from '@/features/recurring/update-plan';
 import { budgetLine, rangeLine } from '@/features/setup/draft';
 import { AmountField } from '@/features/setup/steps/amount-field';
 import { RangeSource } from '@/features/setup/steps/range-source';
@@ -130,7 +130,8 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
     setSaving(true);
     setOutcome(null);
     try {
-      await db.plan.update('current', { envelopes });
+      // Through `updatePlan`, so the month's row of plan history follows.
+      await updatePlan((current) => ({ ...current, envelopes }));
       setEdits({});
       focus.mark('show');
       setShown(false);

@@ -9,6 +9,7 @@ import type {
   Guess,
   OutboxEntry,
   Plan,
+  PlanMonth,
   Profile,
   Rate,
   SyncState,
@@ -31,6 +32,8 @@ export type StudentsBudgetDb = Dexie & {
   profile: Table<Profile, Profile['id']>;
   /** One row per ticked checklist item; unticking deletes it. */
   checklistTicks: Table<ChecklistTick, ChecklistTick['itemId']>;
+  /** One row per month the plan was saved in (plan history): its money parts as they stood at the month's end. */
+  planMonths: Table<PlanMonth, PlanMonth['month']>;
   /** The rows that changed since the last push, while the phone is linked to an account. One entry per row. */
   outbox: Table<OutboxEntry, [OutboxEntry['table'], string]>;
   /** At most one row: the account this phone syncs with, and how far it has pulled. */
@@ -79,6 +82,11 @@ db.version(4).stores({
 // The checklist for new students: one row per ticked item. Only the new table is listed; Dexie carries the rest over.
 db.version(5).stores({
   checklistTicks: 'itemId',
+});
+
+// Plan history: one row per month the plan was saved in. Only the new table is listed; Dexie carries the rest over.
+db.version(6).stores({
+  planMonths: 'month',
 });
 
 /** Asks the browser not to evict the data. Resolves false when unsupported, denied or failing; never throws. */

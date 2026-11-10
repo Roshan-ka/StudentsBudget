@@ -106,6 +106,19 @@ export type Plan = {
   createdOn: IsoDate;
 };
 
+/**
+ * A month's plan (plan history, docs/superpowers/plans/2026-11-10-plan-history.md): the plan's money parts as they stood
+ * at the month's end, keyed by the month. Lines carry no schedule: watermarks and accounts are today's business.
+ */
+export type PlanMonth = {
+  month: IsoMonth;
+  incomes: Amount[];
+  fixed: Amount[];
+  oneOffs: OneOff[];
+  envelopes: Amount[];
+  spendingBudgetMinor?: Minor;
+};
+
 /** Saved once in setup, never edited afterwards. */
 export type Guess = { categoryId: string; monthlyMinor: Minor; guessedOn: IsoDate };
 

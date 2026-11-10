@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import type { Account, Category, DiscountVote, Entry, Plan, Profile, Rate, WeekResult } from '../src/db/types';
+import type { Account, Category, DiscountVote, Entry, Plan, PlanMonth, Profile, Rate, WeekResult } from '../src/db/types';
+import { BACKUP_VERSION } from '../src/features/backup/backup';
 import { formatDate } from '../src/lib/dates';
 import { openApp } from './helpers/app';
 import { seedSetup } from './helpers/seed-setup';
@@ -200,6 +201,7 @@ async function everything(page: Page) {
     weekResults: await readStore<WeekResult>(page, 'weekResults'),
     discountVotes: await readStore<DiscountVote>(page, 'discountVotes'),
     profile: await readStore<Profile>(page, 'profile'),
+    planMonths: await readStore<PlanMonth>(page, 'planMonths'),
   };
 }
 
@@ -237,6 +239,15 @@ const WEEK_RESULT: WeekResult = {
   recordedAt: '2026-10-12T08:00:00.000Z',
 };
 const DISCOUNT_VOTE: DiscountVote = { discountId: 'cinema-student', vote: 'works', on: '2026-10-15' };
+/** A month of plan history (version 5), as an earlier Edit plan would have left it. */
+const PLAN_MONTH: PlanMonth = {
+  month: '2026-09',
+  incomes: [],
+  fixed: [{ categoryId: 'rent', monthlyMinor: 39_000 }],
+  oneOffs: [],
+  envelopes: [{ categoryId: 'food', monthlyMinor: 18_000 }],
+};
+
 const PROFILE: Profile = {
   id: 'current',
   name: 'Roshan',
@@ -267,6 +278,7 @@ test.describe('on a desktop browser', () => {
     await putRows(page, 'weekResults', [WEEK_RESULT]);
     await putRows(page, 'discountVotes', [DISCOUNT_VOTE]);
     await putRows(page, 'profile', [PROFILE]);
+    await putRows(page, 'planMonths', [PLAN_MONTH]);
     // Rates are on Settings → Accounts and transfers; the backup has its own page.
     await page.goto('/settings/accounts');
     await page.getByLabel('Your rate for INR per €1').fill('97');
@@ -288,15 +300,24 @@ test.describe('on a desktop browser', () => {
     const file = JSON.parse(await readFile(filePath, 'utf8')) as {
       app: string;
       version: number;
-      data: { entries: Entry[]; fxRates: Rate[]; plan: Plan | null; weekResults: WeekResult[]; discountVotes: DiscountVote[]; profile: Profile | null };
+      data: {
+        entries: Entry[];
+        fxRates: Rate[];
+        plan: Plan | null;
+        weekResults: WeekResult[];
+        discountVotes: DiscountVote[];
+        profile: Profile | null;
+        planMonths: PlanMonth[];
+      };
     };
-    expect(file).toMatchObject({ app: 'studentsbudget', version: 4 });
+    expect(file).toMatchObject({ app: 'studentsbudget', version: BACKUP_VERSION });
     expect(file.data.entries.map((entry) => entry.note)).toEqual(['döner']);
     expect(file.data.fxRates.map((rate) => rate.source).sort()).toEqual(['ecb', 'manual']);
     expect(file.data.plan?.id).toBe('current');
     expect(file.data.weekResults).toEqual([WEEK_RESULT]);
     expect(file.data.discountVotes).toEqual([DISCOUNT_VOTE]);
     expect(file.data.profile).toEqual(PROFILE);
+    expect(file.data.planMonths).toEqual([PLAN_MONTH]);
 
     // Choosing the file asks first, naming the file and what it holds; Cancel changes nothing.
     await backupFileInput(page).setInputFiles(filePath);
@@ -328,6 +349,7 @@ test.describe('on a desktop browser', () => {
     expect(wiped.weekResults).toEqual([]);
     expect(wiped.discountVotes).toEqual([]);
     expect(wiped.profile).toEqual([]);
+    expect(wiped.planMonths).toEqual([]);
     expect(wiped.categories).toHaveLength(26);
 
     // Restore from the file, without setting up first.
@@ -366,7 +388,7 @@ test.describe('on a desktop browser', () => {
     expect(await everything(page)).toEqual(before);
 
     // A newer file replaces the message, and still asks nothing.
-    await backupFileInput(page).setInputFiles(jsonFile('later.json', { ...EMPTY_BACKUP, version: 5 }));
+    await backupFileInput(page).setInputFiles(jsonFile('later.json', { ...EMPTY_BACKUP, version: BACKUP_VERSION + 1 }));
     await expect(inlineAlert(page)).toHaveText(NEWER);
     await expect(page.getByRole('button', { name: 'Replace all data' })).toHaveCount(0);
     expect(await everything(page)).toEqual(before);

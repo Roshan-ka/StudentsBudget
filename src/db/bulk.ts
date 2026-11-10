@@ -1,6 +1,18 @@
 import { db } from './db';
 import { ensureSeeded } from './repo';
-import type { Account, Category, ChecklistTick, DiscountVote, Entry, Guess, Plan, Profile, Rate, WeekResult } from './types';
+import type {
+  Account,
+  Category,
+  ChecklistTick,
+  DiscountVote,
+  Entry,
+  Guess,
+  Plan,
+  PlanMonth,
+  Profile,
+  Rate,
+  WeekResult,
+} from './types';
 
 /** Everything the app stores, as one value. `fxRates` holds every row, the ECB and the manual one of a currency. */
 export type BackupData = {
@@ -15,6 +27,8 @@ export type BackupData = {
   /** One row, like the plan: null until the user has saved a profile. */
   profile: Profile | null;
   checklistTicks: ChecklistTick[];
+  /** Plan history: one row per month the plan was saved in. */
+  planMonths: PlanMonth[];
 };
 
 function allTables() {
@@ -29,6 +43,7 @@ function allTables() {
     db.discountVotes,
     db.profile,
     db.checklistTicks,
+    db.planMonths,
   ];
 }
 
@@ -45,6 +60,7 @@ export async function exportAll(): Promise<BackupData> {
     discountVotes: await db.discountVotes.toArray(),
     profile: (await db.profile.get('current')) ?? null,
     checklistTicks: await db.checklistTicks.toArray(),
+    planMonths: await db.planMonths.toArray(),
   }));
 }
 
@@ -65,6 +81,7 @@ export async function replaceAll(d: BackupData): Promise<void> {
     await db.discountVotes.bulkAdd(d.discountVotes);
     if (d.profile) await db.profile.add(d.profile);
     await db.checklistTicks.bulkAdd(d.checklistTicks);
+    await db.planMonths.bulkAdd(d.planMonths);
   });
 }
 

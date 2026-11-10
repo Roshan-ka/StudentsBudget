@@ -1,4 +1,5 @@
 import { db } from '@/db/db';
+import { recordPlanMonth } from '@/db/plan-months';
 import { keepScheduleState, updatePlan } from '@/features/recurring/update-plan';
 import type { draftToRecords } from './draft';
 
@@ -19,16 +20,18 @@ export async function saveWizard(records: ReturnType<typeof draftToRecords>, edi
     // watermark where the poster left it, even if it moved while the wizard was open, and `keepScheduleState` keeps
     // a pause, a resume or a move to another account made meanwhile in another tab. The accounts are read in the same
     // transaction, so one deleted there is not named again.
-    await db.transaction('rw', db.plan, db.accounts, async () => {
+    await db.transaction('rw', db.plan, db.planMonths, db.accounts, async () => {
       const accountIds = new Set((await db.accounts.toArray()).map((a) => a.id));
       await updatePlan((current) => keepScheduleState(current, records.plan, accountIds));
     });
     return 'saved';
   }
-  return db.transaction('rw', db.accounts, db.plan, async () => {
+  return db.transaction('rw', db.accounts, db.plan, db.planMonths, async () => {
     if ((await db.plan.get('current')) !== undefined) return 'already-set-up';
     await db.accounts.bulkAdd(records.accounts);
     await db.plan.put(records.plan);
+    // The setup month starts the plan history.
+    await recordPlanMonth(records.plan);
     return 'saved';
   });
 }

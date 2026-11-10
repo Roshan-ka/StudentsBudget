@@ -112,28 +112,45 @@ function sample(): BackupData {
       { itemId: 'anmeldung', on: '2026-10-20' },
       { itemId: 'bank-account', on: '2026-10-21' },
     ],
+    planMonths: [
+      {
+        month: '2026-10',
+        incomes: [],
+        fixed: [{ categoryId: 'rent', monthlyMinor: 40_000 }],
+        oneOffs: [],
+        envelopes: [{ categoryId: 'food', monthlyMinor: 20_000 }],
+      },
+    ],
   };
 }
 
-/** The keys version 3 added, and the one version 4 added. */
+/** The keys version 3 added, the one version 4 added and the one version 5 added. */
 const VERSION_3_KEYS = ['weekResults', 'discountVotes', 'profile'] as const;
 const VERSION_4_KEYS = ['checklistTicks'] as const;
+const VERSION_5_KEYS = ['planMonths'] as const;
+type NewerKey = (typeof VERSION_3_KEYS)[number] | (typeof VERSION_4_KEYS)[number] | (typeof VERSION_5_KEYS)[number];
 
-/** What a file from before version 4 gives back where `sample()` has checklist ticks. */
-function noVersion4Data(): Pick<BackupData, (typeof VERSION_4_KEYS)[number]> {
-  return { checklistTicks: [] };
+/** What a file from before version 5 gives back where `sample()` has plan history. */
+function noVersion5Data(): Pick<BackupData, (typeof VERSION_5_KEYS)[number]> {
+  return { planMonths: [] };
 }
 
-/** What a file from before version 3 gives back where `sample()` has week results, votes, a profile and ticks. */
-function noVersion3Data(): Pick<BackupData, (typeof VERSION_3_KEYS)[number] | (typeof VERSION_4_KEYS)[number]> {
+/** What a file from before version 4 gives back where `sample()` has checklist ticks and plan history. */
+function noVersion4Data(): Pick<BackupData, (typeof VERSION_4_KEYS)[number] | (typeof VERSION_5_KEYS)[number]> {
+  return { checklistTicks: [], ...noVersion5Data() };
+}
+
+/** What a file from before version 3 gives back where `sample()` has week results, votes, a profile, ticks and history. */
+function noVersion3Data(): Pick<BackupData, NewerKey> {
   return { weekResults: [], discountVotes: [], profile: null, ...noVersion4Data() };
 }
 
 /** The file of an older version: the data without the keys that version did not know. */
-function olderFileOf(data: BackupData, version: 1 | 2 | 3): string {
+function olderFileOf(data: BackupData, version: 1 | 2 | 3 | 4): string {
   return fileOf((file) => {
     file.version = version;
-    for (const key of VERSION_4_KEYS) delete file.data[key];
+    for (const key of VERSION_5_KEYS) delete file.data[key];
+    if (version < 4) for (const key of VERSION_4_KEYS) delete file.data[key];
     if (version < 3) for (const key of VERSION_3_KEYS) delete file.data[key];
   }, data);
 }
@@ -193,7 +210,7 @@ describe('serializeBackup and parseBackup', () => {
     const file: unknown = JSON.parse(serializeBackup(sample(), NOW));
 
     expect(file).toEqual({ app: 'studentsbudget', version: BACKUP_VERSION, exportedAt: NOW.toISOString(), data: sample() });
-    expect(BACKUP_VERSION).toBe(4);
+    expect(BACKUP_VERSION).toBe(5);
   });
 
   it('round-trips every table, the ECB and the manual rate included', () => {
@@ -353,6 +370,19 @@ describe('serializeBackup and parseBackup', () => {
     expect(parseBackup(text)).toEqual({ ok: true, data: { ...sample(), ...noVersion4Data() }, exportedAt: NOW.toISOString() });
   });
 
+  it('still reads a version 4 file, with everything but the plan history', () => {
+    const text = olderFileOf(sample(), 4);
+
+    expect(parseBackup(text)).toEqual({ ok: true, data: { ...sample(), ...noVersion5Data() }, exportedAt: NOW.toISOString() });
+  });
+
+  it('round-trips the plan history', () => {
+    const data = sample();
+
+    expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(data.planMonths.map((row) => row.month)).toEqual(['2026-10']);
+  });
+
   it('round-trips the checklist ticks', () => {
     const data = sample();
 
@@ -360,7 +390,7 @@ describe('serializeBackup and parseBackup', () => {
     expect(data.checklistTicks.map((tick) => tick.itemId)).toEqual(['anmeldung', 'bank-account']);
   });
 
-  it.each([...VERSION_3_KEYS, ...VERSION_4_KEYS])('gives data.%s its empty value when only that key is missing', (key) => {
+  it.each([...VERSION_3_KEYS, ...VERSION_4_KEYS, ...VERSION_5_KEYS])('gives data.%s its empty value when only that key is missing', (key) => {
     const result = parseBackup(fileOf((file) => delete file.data[key]));
 
     expect(result).toEqual({ ok: true, data: { ...sample(), [key]: noVersion3Data()[key] }, exportedAt: NOW.toISOString() });
@@ -398,8 +428,8 @@ describe('serializeBackup and parseBackup', () => {
   });
 
   it('rejects a newer version, whatever else the file holds', () => {
-    expect(parseBackup(fileOf((file) => (file.version = 5)))).toEqual({ ok: false, error: NEWER });
-    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 5, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
+    expect(parseBackup(fileOf((file) => (file.version = 6)))).toEqual({ ok: false, error: NEWER });
+    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 6, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
     expect(parseBackup(shapeUnknown)).toEqual({ ok: false, error: NEWER });
   });
 
@@ -681,6 +711,7 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['two week results that start on one day', (data: BackupData) => (data.weekResults[1].weekStart = data.weekResults[0].weekStart)],
       ['two votes on one discount', (data: BackupData) => data.discountVotes.push({ ...data.discountVotes[0], vote: 'outdated' })],
       ['two ticks of one item', (data: BackupData) => data.checklistTicks.push({ ...data.checklistTicks[0], on: '2026-10-22' })],
+      ['two rows of plan history for one month', (data: BackupData) => data.planMonths.push({ ...data.planMonths[0], envelopes: [] })],
     ])('refuses %s that share a key', (_name, change) => {
       expect(parseChanged(change)).toEqual(damaged('two rows share the same id'));
     });

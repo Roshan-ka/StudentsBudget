@@ -79,26 +79,36 @@ const schedule = z.object({
 
 const planLine = z.object({ categoryId: id, monthlyMinor: minor, schedule: schedule.optional() });
 
+const oneOff = z.object({
+  id,
+  name: text,
+  amountMinor: minor,
+  createdMonth: isoMonth,
+  dueMonth: isoMonth,
+  // Optional, as on `OneOff`: a one-off never edited after its set-aside began has none.
+  setAsideBefore: z.object({ month: isoMonth, minor: minor.nonnegative() }).optional(),
+});
+
 export const planRow = z.object({
   id: z.literal('current'),
   cityId: z.literal('regensburg'),
   incomes: z.array(planLine),
   fixed: z.array(planLine),
-  oneOffs: z.array(
-    z.object({
-      id,
-      name: text,
-      amountMinor: minor,
-      createdMonth: isoMonth,
-      dueMonth: isoMonth,
-      // Optional, as on `OneOff`: a one-off never edited after its set-aside began has none.
-      setAsideBefore: z.object({ month: isoMonth, minor: minor.nonnegative() }).optional(),
-    }),
-  ),
+  oneOffs: z.array(oneOff),
   envelopes: z.array(amount),
   // Optional, as on `Plan`: older files have none, and the check in backup.ts needs the two types to agree.
   spendingBudgetMinor: minor.optional(),
   createdOn: isoDate,
+});
+
+/** A month's plan (plan history): the money parts, keyed by the month, with lines that carry no schedule. */
+export const planMonthRow = z.object({
+  month: isoMonth,
+  incomes: z.array(amount),
+  fixed: z.array(amount),
+  oneOffs: z.array(oneOff),
+  envelopes: z.array(amount),
+  spendingBudgetMinor: minor.optional(),
 });
 
 export const guessRow = z.object({ categoryId: id, monthlyMinor: minor, guessedOn: isoDate });
