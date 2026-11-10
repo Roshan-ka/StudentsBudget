@@ -6,6 +6,7 @@ import { refreshRates } from '@/db/rates';
 import { ensureSeeded } from '@/db/repo';
 import { startAutoSync, visitAutoSync } from '@/features/account/auto-sync';
 import { finishPendingWipe, wipePending } from '@/features/account/pending-wipe';
+import { inStartOrder } from '@/features/account/start-order';
 import { followSessionForPhone } from '@/features/account/signed-out-effects';
 import { recordCompletedWeeks } from '@/features/badges/week-results';
 import { postDueRecurring } from '@/features/recurring/post-due';
@@ -15,6 +16,7 @@ import { subscribeToLanguage } from '@/i18n/store';
 import { todayIso } from '@/lib/dates';
 import { msUntilNextMidnight } from '@/lib/use-today';
 import { getSupabase } from '@/lib/supabase/client';
+import type { VisitReason } from '@/sync/auto-runner';
 import { registerServiceWorker } from '@/lib/sw-register';
 
 /** Set on `<html>` once the app has started (see `init` below). e2e/helpers/app.ts waits on the same name. */
@@ -45,14 +47,22 @@ async function recordWeeks() {
 }
 
 /**
- * Fixed costs and income that are due are added once the rate refresh has settled, whether it worked or not, so a
- * foreign-currency line converts with today's rate when there is one. A line still without a rate waits for the next run.
- * The weeks that are over are saved after that, for the badges.
+ * One visit, in the start order (`inStartOrder`, automatic sync, chunk 5): a linked phone syncs first (for at most
+ * 8 s), then the rates are refreshed, then the fixed costs and income that are due are added once the refresh has
+ * settled, whether it worked or not, so a foreign-currency line converts with today's rate when there is one (a line
+ * still without a rate waits for the next run). The weeks that are over are saved last, for the badges, and only after
+ * this visit's sync succeeded, or on a phone with no link.
  */
-async function refreshThenPost() {
-  await refreshExchangeRates();
-  await postRecurring();
-  await recordWeeks();
+async function refreshThenPost(reason: VisitReason) {
+  try {
+    await inStartOrder(
+      visitAutoSync(reason),
+      { rates: refreshExchangeRates, recurring: postRecurring, weeks: recordWeeks },
+      { setTimer: (callback, ms) => window.setTimeout(callback, ms), clearTimer: (handle) => window.clearTimeout(handle as number) },
+    );
+  } catch (error) {
+    console.error('StudentsBudget: could not finish the start of this visit', error);
+  }
 }
 
 /**
@@ -99,9 +109,8 @@ export function AppInit() {
     // An installed iPhone app can stay suspended for days without remounting, so check again on return.
     function onVisibilityChange() {
       if (document.visibilityState !== 'visible') return;
-      // A linked phone syncs on each return (automatic sync, docs/superpowers/plans/2026-11-10-automatic-sync.md).
-      void visitAutoSync('return');
-      void refreshThenPost();
+      // A linked phone syncs first on each return (automatic sync, docs/superpowers/plans/2026-11-10-automatic-sync.md).
+      void refreshThenPost('return');
       void keepReminderInStep();
     }
     document.addEventListener('visibilitychange', onVisibilityChange);
@@ -109,13 +118,12 @@ export function AppInit() {
     // midnight post what came due and record the week that ended too (review, 09-11-2026). Cheap when nothing is due:
     // the rates are fetched at most once a day, and posting and recording are idempotent.
     function onFocus() {
-      void visitAutoSync('focus');
-      void refreshThenPost();
+      void refreshThenPost('focus');
     }
     window.addEventListener('focus', onFocus);
     let midnight: ReturnType<typeof setTimeout> | undefined;
     function atMidnight() {
-      void refreshThenPost();
+      void refreshThenPost('midnight');
       midnight = setTimeout(atMidnight, msUntilNextMidnight());
     }
     midnight = setTimeout(atMidnight, msUntilNextMidnight());
@@ -142,13 +150,11 @@ export function AppInit() {
       if (live) document.documentElement.setAttribute(APP_READY_ATTRIBUTE, '');
       // A linked phone syncs by itself from here on: on opening, returning, reconnecting, after a change and every
       // minute while visible. After the ready signal, so nothing it waits for holds the page back.
-      if (live) {
-        stopAutoSync = startAutoSync();
-        void visitAutoSync('open');
-      }
-      // Neither waits for the other: a hung connection holds the rates (and the posting after them) for the 10 s
-      // fetch timeout, and some browsers hold the persistence promise open until the person answers a prompt.
-      void refreshThenPost();
+      if (live) stopAutoSync = startAutoSync();
+      // Neither waits for the other: the opening sync (8 s at most) and a hung connection (the rates' 10 s fetch
+      // timeout) hold the posting back, and some browsers hold the persistence promise open until the person answers a
+      // prompt.
+      void refreshThenPost('open');
       void keepReminderInStep();
       try {
         await requestPersistence();

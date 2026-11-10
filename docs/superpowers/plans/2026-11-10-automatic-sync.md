@@ -212,6 +212,13 @@ The engine is ready for it:
     - `two-step.spec` (the code asked on Sync now): holds from before the change, and taps Sync now while held, so the tap queues in the lock and runs first once released.
   - **CLAUDE.md:** the sync rules, the outgoing requests and "What P2.1 and P2.2 leave out" now describe automatic sync.
 
+- **Chunk 5** (start order and week gate):
+  - **`inStartOrder(visit, steps, clock)`** (`src/features/account/start-order.ts`) races the visit's sync against `SYNC_FIRST_CAP` (8 s), then refreshes the rates and posts what is due, then awaits the sync with no cap and records the weeks only for `synced` or `unlinked` (`weeksMayRecord`). A visit that throws counts as not synced. 6 tests on fake timers.
+  - **AppInit:** `refreshThenPost(reason)` runs it for every visit: `'open'` at start (after `startAutoSync`), `'return'` on becoming visible, `'focus'` on focus and `'midnight'` at midnight. The separate `visitAutoSync` calls of chunk 4 are gone.
+  - **Not changed:** without the Supabase settings, or on an unlinked phone, `visitAutoSync` resolves `unlinked` at once, so the order and timing are as before.
+  - **Chunk 4's CI fix** (on #183): `linkPhone` answers a phone already linked to the account without the sync lock (`linkedAlready`), since it has nothing to write. Before, the account page stayed on "Checking…" while another tab held the lock, and the linking and two-step specs failed on it.
+  - **Known limit:** a linked phone that is signed out (an ended session keeps the link) records no week until it signs in and syncs; the weeks are caught up then, since recording takes every week that is over.
+
 ## Appendix: other work left (for later)
 - **Features:**
   - legal pages (privacy notice, Impressum) with security headers;
