@@ -3,6 +3,7 @@ import { trackChanges } from '@/sync/track-changes';
 import type {
   Account,
   Category,
+  ChecklistTick,
   DiscountVote,
   Entry,
   Guess,
@@ -28,6 +29,8 @@ export type StudentsBudgetDb = Dexie & {
   discountVotes: Table<DiscountVote, DiscountVote['discountId']>;
   /** At most one row, like the plan. */
   profile: Table<Profile, Profile['id']>;
+  /** One row per ticked checklist item; unticking deletes it. */
+  checklistTicks: Table<ChecklistTick, ChecklistTick['itemId']>;
   /** The rows that changed since the last push, while the phone is linked to an account. One entry per row. */
   outbox: Table<OutboxEntry, [OutboxEntry['table'], string]>;
   /** At most one row: the account this phone syncs with, and how far it has pulled. */
@@ -71,6 +74,11 @@ db.version(3).stores({
 db.version(4).stores({
   outbox: '[table+id]',
   syncState: 'id',
+});
+
+// The checklist for new students: one row per ticked item. Only the new table is listed; Dexie carries the rest over.
+db.version(5).stores({
+  checklistTicks: 'itemId',
 });
 
 /** Asks the browser not to evict the data. Resolves false when unsupported, denied or failing; never throws. */

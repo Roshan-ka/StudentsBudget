@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 import {
   accountRow,
+  checklistTickRow,
   discountVoteRow,
   entryRow,
   guessRow,
@@ -40,4 +41,5 @@ export const ROW_CHECKS = {
   week_results: rowCheck('week_results', weekResultRow, (w) => w.weekStart),
   discount_votes: rowCheck('discount_votes', discountVoteRow, (v) => v.discountId),
   profiles: rowCheck('profiles', profileRow, (p) => p.id),
+  checklist_ticks: rowCheck('checklist_ticks', checklistTickRow, (t) => t.itemId),
 } satisfies Record<ServerTable, (row: StoredRow) => object>;

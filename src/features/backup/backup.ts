@@ -4,6 +4,7 @@ import type { BackupData } from '@/db/bulk';
 import {
   accountRow,
   categoryRow,
+  checklistTickRow,
   discountVoteRow,
   entryRow,
   guessRow,
@@ -26,13 +27,15 @@ type Problem = keyof Messages['backup']['problems'];
  * Bumped when the file's shape changes. A file with a higher number than this came from a newer app.
  * Version 2 adds the plan's schedules and the entries' `recurring` marker, both optional, so version 1 files read.
  * Version 3 adds `weekResults`, `discountVotes` and `profile`; a file without them reads with those empty.
+ * Version 4 adds `checklistTicks`; a file without it reads with no ticks, and an older app refuses a version 4 file as
+ * newer instead of dropping the ticks.
  * The plan's `spendingBudgetMinor` is optional, so it did not need a version: a file without it reads as a plan with
  * no budget, and an older app that reads one with it ignores it. An account's `isDefault` and an entry's `imported` mark
  * (CSV import) are optional for the same reason.
  */
-export const BACKUP_VERSION = 3;
+export const BACKUP_VERSION = 4;
 
-const READABLE_VERSIONS = [1, 2, BACKUP_VERSION] as const;
+const READABLE_VERSIONS = [1, 2, 3, BACKUP_VERSION] as const;
 
 const APP = 'studentsbudget';
 
@@ -48,6 +51,8 @@ const backupData = z.object({
   weekResults: z.array(weekResultRow).default([]),
   discountVotes: z.array(discountVoteRow).default([]),
   profile: profileRow.nullable().default(null),
+  // Version 4. A file from before it has no ticks.
+  checklistTicks: z.array(checklistTickRow).default([]),
 });
 
 const backupFile = z.object({
@@ -146,6 +151,7 @@ function findProblem(d: BackupData): Problem | null {
     d.fxRates.map((r) => `${r.currency}+${r.source}`),
     d.weekResults.map((w) => w.weekStart),
     d.discountVotes.map((v) => v.discountId),
+    d.checklistTicks.map((t) => t.itemId),
   ];
   if (keyLists.some(hasDuplicates)) return 'duplicateId';
 

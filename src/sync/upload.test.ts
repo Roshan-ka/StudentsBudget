@@ -17,6 +17,7 @@ describe('serverRowsOf', () => {
     expect(rows.week_results.map((r) => r.id)).toEqual(['2026-10-12']);
     expect(rows.discount_votes.map((r) => r.id)).toEqual(['cinema-student']);
     expect(rows.profiles).toEqual([{ id: 'current', data: d.profile }]);
+    expect(rows.checklist_ticks).toEqual([{ id: 'anmeldung', data: d.checklistTicks[0] }]);
   });
 
   it('sends a manual rate, keyed by its currency, but never the ECB rates or the built-in categories', () => {
@@ -87,7 +88,7 @@ describe('planUpload and applyUpload', () => {
   it('counts what an empty phone would delete from an account saved elsewhere', async () => {
     const { store } = fakeStore({ entries: { x1: {}, x2: {}, x3: {} }, accounts: { a: {} }, plans: { current: {} } });
     const empty = snapshot({ accounts: [], entries: [], plan: null, guesses: [], fxRates: [], weekResults: [] });
-    const plan = await planUpload(store, { ...empty, discountVotes: [], profile: null });
+    const plan = await planUpload(store, { ...empty, discountVotes: [], profile: null, checklistTicks: [] });
     expect(staleSummary(plan)).toBe('3 entries and 2 other items');
   });
 

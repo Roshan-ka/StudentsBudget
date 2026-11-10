@@ -108,22 +108,33 @@ function sample(): BackupData {
       semesterEnd: '2027-02-12',
       updatedAt: '2026-10-20T08:00:00.000Z',
     },
+    checklistTicks: [
+      { itemId: 'anmeldung', on: '2026-10-20' },
+      { itemId: 'bank-account', on: '2026-10-21' },
+    ],
   };
 }
 
-/** The keys version 3 added. */
+/** The keys version 3 added, and the one version 4 added. */
 const VERSION_3_KEYS = ['weekResults', 'discountVotes', 'profile'] as const;
+const VERSION_4_KEYS = ['checklistTicks'] as const;
 
-/** What a file from before version 3 gives back where `sample()` has week results, votes and a profile. */
-function noVersion3Data(): Pick<BackupData, (typeof VERSION_3_KEYS)[number]> {
-  return { weekResults: [], discountVotes: [], profile: null };
+/** What a file from before version 4 gives back where `sample()` has checklist ticks. */
+function noVersion4Data(): Pick<BackupData, (typeof VERSION_4_KEYS)[number]> {
+  return { checklistTicks: [] };
+}
+
+/** What a file from before version 3 gives back where `sample()` has week results, votes, a profile and ticks. */
+function noVersion3Data(): Pick<BackupData, (typeof VERSION_3_KEYS)[number] | (typeof VERSION_4_KEYS)[number]> {
+  return { weekResults: [], discountVotes: [], profile: null, ...noVersion4Data() };
 }
 
 /** The file of an older version: the data without the keys that version did not know. */
-function olderFileOf(data: BackupData, version: 1 | 2): string {
+function olderFileOf(data: BackupData, version: 1 | 2 | 3): string {
   return fileOf((file) => {
     file.version = version;
-    for (const key of VERSION_3_KEYS) delete file.data[key];
+    for (const key of VERSION_4_KEYS) delete file.data[key];
+    if (version < 3) for (const key of VERSION_3_KEYS) delete file.data[key];
   }, data);
 }
 
@@ -182,7 +193,7 @@ describe('serializeBackup and parseBackup', () => {
     const file: unknown = JSON.parse(serializeBackup(sample(), NOW));
 
     expect(file).toEqual({ app: 'studentsbudget', version: BACKUP_VERSION, exportedAt: NOW.toISOString(), data: sample() });
-    expect(BACKUP_VERSION).toBe(3);
+    expect(BACKUP_VERSION).toBe(4);
   });
 
   it('round-trips every table, the ECB and the manual rate included', () => {
@@ -235,8 +246,7 @@ describe('serializeBackup and parseBackup', () => {
   });
 
   it('reads files whose accounts have no default mark: versions 1, 2 and 3, and the demo', () => {
-    const version3 = fileOf(() => {});
-    for (const text of [olderFileOf(sample(), 1), olderFileOf(sampleV2(), 2), version3, DEMO]) {
+    for (const text of [olderFileOf(sample(), 1), olderFileOf(sampleV2(), 2), olderFileOf(sample(), 3), DEMO]) {
       const result = parseBackup(text);
       expect(result.ok).toBe(true);
       expect(result.ok && result.data.accounts.some((a) => 'isDefault' in a)).toBe(false);
@@ -315,7 +325,7 @@ describe('serializeBackup and parseBackup', () => {
     }
   });
 
-  it('round-trips a profile that is still empty, and no week results or votes', () => {
+  it('round-trips a profile that is still empty, and no week results, votes or ticks', () => {
     const data: BackupData = {
       ...sample(),
       ...noVersion3Data(),
@@ -337,7 +347,20 @@ describe('serializeBackup and parseBackup', () => {
     expect(parseBackup(text)).toEqual({ ok: true, data: { ...sampleV2(), ...noVersion3Data() }, exportedAt: NOW.toISOString() });
   });
 
-  it.each(VERSION_3_KEYS)('gives data.%s its empty value when only that key is missing', (key) => {
+  it('still reads a version 3 file, with everything but the checklist ticks', () => {
+    const text = olderFileOf(sample(), 3);
+
+    expect(parseBackup(text)).toEqual({ ok: true, data: { ...sample(), ...noVersion4Data() }, exportedAt: NOW.toISOString() });
+  });
+
+  it('round-trips the checklist ticks', () => {
+    const data = sample();
+
+    expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
+    expect(data.checklistTicks.map((tick) => tick.itemId)).toEqual(['anmeldung', 'bank-account']);
+  });
+
+  it.each([...VERSION_3_KEYS, ...VERSION_4_KEYS])('gives data.%s its empty value when only that key is missing', (key) => {
     const result = parseBackup(fileOf((file) => delete file.data[key]));
 
     expect(result).toEqual({ ok: true, data: { ...sample(), [key]: noVersion3Data()[key] }, exportedAt: NOW.toISOString() });
@@ -375,8 +398,8 @@ describe('serializeBackup and parseBackup', () => {
   });
 
   it('rejects a newer version, whatever else the file holds', () => {
-    expect(parseBackup(fileOf((file) => (file.version = 4)))).toEqual({ ok: false, error: NEWER });
-    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 4, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
+    expect(parseBackup(fileOf((file) => (file.version = 5)))).toEqual({ ok: false, error: NEWER });
+    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 5, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
     expect(parseBackup(shapeUnknown)).toEqual({ ok: false, error: NEWER });
   });
 
@@ -452,7 +475,14 @@ describe('serializeBackup and parseBackup', () => {
     expect(parseBackup(text)).toEqual({ ok: false, error: INCOMPLETE });
   });
 
-  type V3File = { data: { weekResults: Record<string, unknown>[]; discountVotes: Record<string, unknown>[]; profile: Record<string, unknown> } };
+  type V3File = {
+    data: {
+      weekResults: Record<string, unknown>[];
+      discountVotes: Record<string, unknown>[];
+      profile: Record<string, unknown>;
+      checklistTicks: Record<string, unknown>[];
+    };
+  };
 
   it.each([
     ['a week that starts on no date', (file: V3File) => (file.data.weekResults[0].weekStart = '12/10/2026')],
@@ -480,6 +510,10 @@ describe('serializeBackup and parseBackup', () => {
     ['a semester that ends in a year below 1000', (file: V3File) => (file.data.profile.semesterEnd = '0999-12-31')],
     ['a profile that is not an object', (file: V3File) => (file.data.profile = 'Roshan' as never)],
     ['week results that are not a list', (file: V3File) => (file.data.weekResults = {} as never)],
+    ['a tick without its item', (file: V3File) => delete file.data.checklistTicks[0].itemId],
+    ['a tick with an empty item id', (file: V3File) => (file.data.checklistTicks[0].itemId = '')],
+    ['a tick on no date', (file: V3File) => (file.data.checklistTicks[0].on = 'today')],
+    ['ticks that are not a list', (file: V3File) => (file.data.checklistTicks = {} as never)],
   ])('says it is incomplete for %s', (_name, change) => {
     const text = fileOf((file) => change(file as unknown as V3File));
 
@@ -646,6 +680,7 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['two week results of one week', (data: BackupData) => data.weekResults.push({ ...data.weekResults[0], spentMinor: 1 })],
       ['two week results that start on one day', (data: BackupData) => (data.weekResults[1].weekStart = data.weekResults[0].weekStart)],
       ['two votes on one discount', (data: BackupData) => data.discountVotes.push({ ...data.discountVotes[0], vote: 'outdated' })],
+      ['two ticks of one item', (data: BackupData) => data.checklistTicks.push({ ...data.checklistTicks[0], on: '2026-10-22' })],
     ])('refuses %s that share a key', (_name, change) => {
       expect(parseChanged(change)).toEqual(damaged('two rows share the same id'));
     });

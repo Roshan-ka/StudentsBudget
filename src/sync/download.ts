@@ -42,6 +42,7 @@ export async function planDownload(store: UserDataStore, phone: BackupData): Pro
       weekResults: rows.week_results.map(ROW_CHECKS.week_results),
       discountVotes: rows.discount_votes.map(ROW_CHECKS.discount_votes),
       profile: profiles[0] ?? null,
+      checklistTicks: rows.checklist_ticks.map(ROW_CHECKS.checklist_ticks),
     };
   } catch (error) {
     if (error instanceof BadRow) return { kind: 'invalid', problem: error.message };
