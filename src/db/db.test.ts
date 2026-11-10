@@ -33,7 +33,7 @@ describe('schema upgrade', () => {
 
     expect(await db.categories.count()).toBe(26);
     expect(await db.fxRates.count()).toBe(0);
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
     // The version-1 table is gone from the real database, not only from the schema.
     expect(db.backendDB().objectStoreNames.contains('rates')).toBe(false);
     // A database two versions behind gets the version-3 tables too, empty.
@@ -90,7 +90,7 @@ describe('schema upgrade', () => {
 
     await db.open();
 
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
     expect(await db.accounts.toArray()).toEqual([account]);
     expect(await db.categories.count()).toBe(26);
     expect(await db.entries.toArray()).toEqual([entry]);
@@ -151,7 +151,7 @@ describe('schema upgrade', () => {
 
     await db.open();
 
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
     expect(await db.categories.count()).toBe(26);
     expect(await db.discountVotes.toArray()).toEqual([vote]);
     expect(await db.table('outbox').toArray()).toEqual([queued]);
@@ -166,5 +166,12 @@ describe('schema upgrade', () => {
     await expect(db.checklistTicks.add({ ...tick, on: '2026-11-11' })).rejects.toThrow();
     await db.checklistTicks.delete('anmeldung');
     expect(await db.checklistTicks.count()).toBe(0);
+
+    // Version 6: plan history, one row per month, starting empty.
+    expect(db.backendDB().objectStoreNames.contains('planMonths')).toBe(true);
+    expect(await db.planMonths.count()).toBe(0);
+    const october = { month: '2026-10', incomes: [], fixed: [], oneOffs: [], envelopes: [] };
+    await db.planMonths.add(october);
+    await expect(db.planMonths.add({ ...october, envelopes: [{ categoryId: 'food', monthlyMinor: 1 }] })).rejects.toThrow();
   });
 });

@@ -71,6 +71,17 @@ The weekly badges' rows are recorded once, but a week recorded late, or backfill
   - `planMonthFor(history, month)`: the month's own row, else the latest one before it;
   - `planForMonth(plan, history, month, today)`: the current plan for the current month and later, or with no row. A past month gets its row's money parts and its own budget or none, never today's.
   - 9 unit tests. Nothing reads it yet.
+- **Chunk 2** (10-11-2026), the phone's table and its writes:
+  - **The table:** `PlanMonth` sits in `src/db/types.ts`, with `planMonthRow` beside `planRow` (the one-off schema is shared), and Dexie `db.version(6)` adds `planMonths` keyed by `month`.
+  - **`recordPlanMonth(plan, today)`** (`src/db/plan-months.ts`) runs inside the plan write's transaction, which now also holds `planMonths`:
+    - `updatePlan` records the plan as saved, so Edit plan and the fixed costs and income editor record too;
+    - a new setup records its month;
+    - the suggested budget now saves through `updatePlan`, not `db.plan.update`.
+    - The poster, a pull and a restore record nothing.
+  - **Backup v5:** reads v1–v5, `planMonths` defaults to `[]`, and two rows of one month are refused. `fixtures/manual-demo/invalid/newer-version.json` is now version 6.
+  - **Bulk:** export, replace and clear include `planMonths`.
+  - **Placeholders:** `planDownload` and the MCP server give `planMonths: []` until chunk 4. Until then, a link that loads the account's data clears the phone's history along with the rest, as replacing does.
+  - **Tests:** `src/db/plan-months.test.ts` (the writers, and the poster that leaves none), the v6 store in `db.test.ts`, and the backup's version 4 and 5 cases.
 
 ## Verification
 

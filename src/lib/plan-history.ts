@@ -1,23 +1,11 @@
-import type { Amount, OneOff, Plan } from '@/db/types';
+import type { Amount, Plan, PlanMonth } from '@/db/types';
 import { monthOf, type IsoDate, type IsoMonth } from '@/lib/dates';
-import type { Minor } from '@/lib/money';
+
+export type { PlanMonth };
 
 // Plan history (docs/superpowers/plans/2026-11-10-plan-history.md, Roshan's decisions, 10-11-2026): each month keeps
 // the plan as it stood at its end, so an edit changes the current month only, and a past month is measured against
 // its own plan. Months with no history (everything before it shipped) use the current plan, as before.
-
-/**
- * A month's plan: only its money parts. Lines carry no schedule: watermarks and accounts are today's business, and the
- * poster keeps using the current plan. `createdOn` and `cityId` stay on the plan.
- */
-export type PlanMonth = {
-  month: IsoMonth;
-  incomes: Amount[];
-  fixed: Amount[];
-  oneOffs: OneOff[];
-  envelopes: Amount[];
-  spendingBudgetMinor?: Minor;
-};
 
 const amountOf = ({ categoryId, monthlyMinor }: Amount): Amount => ({ categoryId, monthlyMinor });
 
