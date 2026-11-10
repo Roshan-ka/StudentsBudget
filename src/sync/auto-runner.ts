@@ -58,6 +58,11 @@ const succeeded = (outcome: SyncOutcome) => outcome === 'synced' || outcome === 
 
 export function createAutoRunner(deps: RunnerDeps): AutoRunner {
   let state = deps.initial ?? initialSchedule();
+  // The time the schedule sees: never earlier than before, and at least a timer's due time once that timer fires. A
+  // clock that stands still (a page whose Date is fixed, as the e2e specs' is) or goes back (the phone's clock set
+  // back) would otherwise find the due run still ahead each time its timer fires, and wait for ever.
+  let clock = -Infinity;
+  const now = () => (clock = Math.max(clock, deps.now()));
   let timer: unknown = null;
   let running = false;
   let stopped = false;
@@ -89,9 +94,10 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
     timer = deps.setTimer(
       () => {
         timer = null;
+        clock = Math.max(clock, wakeAt);
         dispatch({ type: 'tick' });
       },
-      Math.max(0, wakeAt - deps.now()),
+      Math.max(0, wakeAt - now()),
     );
   }
 
@@ -115,7 +121,7 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
     if (stopped) return;
     if (event.type === 'auth' && event.status !== 'loading') authKnown = true;
     if (event.type === 'link') linkKnown = true;
-    const next = step(state, event, deps.now());
+    const next = step(state, event, now());
     state = next.state;
     arm(next.wakeAt);
     if (next.run) start();
@@ -131,7 +137,7 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
     if (running) return new Promise((resolve) => afterRun.push(resolve));
     // A trigger held back by the minimum gap is worth waiting for (at most MIN_GAP); one held back by a failure's wait,
     // or one that may not run at all (offline, signed out, paused), is not.
-    const backingOff = state.retryAt !== null && state.retryAt > deps.now() + MIN_GAP;
+    const backingOff = state.retryAt !== null && state.retryAt > now() + MIN_GAP;
     if (state.wanted && timer !== null && !backingOff) return new Promise((resolve) => afterRun.push(resolve));
     return Promise.resolve(visitResult());
   }
