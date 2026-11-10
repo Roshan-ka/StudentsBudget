@@ -60,7 +60,7 @@ test('a post in another language opens Google Translate, after its note the firs
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
   await page.goto('/tips');
-  await page.getByRole('tablist', { name: 'Tips, discounts or hacks', exact: true }).getByRole('tab', { name: 'Hacks', exact: true }).click();
+  await page.getByRole('tablist', { name: 'Tips, discounts, hacks or checklist', exact: true }).getByRole('tab', { name: 'Hacks', exact: true }).click();
 
   // A post in the phone's own language has none.
   await expect(post(page, ENGLISH).getByRole('link', { name: /^Translate/ })).toHaveCount(0);
@@ -101,7 +101,7 @@ test.describe('in German', () => {
     await signIn(page, { email: 'E-Mail', password: 'Passwort', signIn: 'Anmelden' });
     await expect(page.getByText(`Angemeldet als ${EMAIL}.`, { exact: true })).toBeVisible();
     await page.goto('/tips');
-    await page.getByRole('tablist', { name: 'Tipps, Rabatte oder Hacks', exact: true }).getByRole('tab', { name: 'Hacks', exact: true }).click();
+    await page.getByRole('tablist', { name: 'Tipps, Rabatte, Hacks oder Checkliste', exact: true }).getByRole('tab', { name: 'Hacks', exact: true }).click();
 
     await expect(post(page, 'Semesterticket', 'Beiträge').getByRole('link', { name: /^Übersetzen/ })).toHaveCount(0);
     const opened = page.waitForEvent('popup');

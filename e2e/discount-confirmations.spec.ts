@@ -20,7 +20,7 @@ const PLACE = DISCOUNTS[0];
 
 async function showDiscounts(page: Page) {
   await page.goto('/tips');
-  const tab = page.getByRole('tablist', { name: 'Tips, discounts or hacks', exact: true }).getByRole('tab', { name: 'Discounts', exact: true });
+  const tab = page.getByRole('tablist', { name: 'Tips, discounts, hacks or checklist', exact: true }).getByRole('tab', { name: 'Discounts', exact: true });
   await tab.click();
   await expect(tab).toHaveAttribute('aria-selected', 'true');
 }

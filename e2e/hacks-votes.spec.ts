@@ -40,7 +40,7 @@ async function signInAndOpenHacks(page: Page) {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
   await page.goto('/tips');
-  await page.getByRole('tablist', { name: 'Tips, discounts or hacks', exact: true }).getByRole('tab', { name: 'Hacks', exact: true }).click();
+  await page.getByRole('tablist', { name: 'Tips, discounts, hacks or checklist', exact: true }).getByRole('tab', { name: 'Hacks', exact: true }).click();
 }
 
 function panel(page: Page) {

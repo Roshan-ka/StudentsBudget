@@ -4,7 +4,7 @@ import { byCount, NNBSP } from './count';
 // L'onglet Conseils en français : conseils, réductions et les mots de la ligne d'économie. Les conseils, réductions et
 // idées d'économie eux-mêmes sont du contenu de la ville ; leurs mots en français vont dans src/i18n/city/fr (chunk 15).
 export const tips: Messages['tips'] = {
-  tabsLabel: 'Conseils, réductions ou astuces',
+  tabsLabel: 'Conseils, réductions, astuces ou liste',
   tips: 'Conseils',
   discounts: 'Réductions',
   all: 'Tous',
@@ -40,6 +40,21 @@ export const tips: Messages['tips'] = {
     failed: (place) => `${place}${NNBSP}: impossible d’enregistrer ta réponse. Réessaie.`,
   },
   /** Le fil d’astuces : des astuces pour économiser, publiées par des étudiants. */
+  checklist: {
+    tab: 'Liste',
+    intro:
+      'Ce qu’il faut faire pendant tes premières semaines, et l’argent que tu peux peut-être demander. Chaque point dit ' +
+      'd’où il vient. Tes coches sont enregistrées sur ce téléphone, et dans ton compte une fois le téléphone associé.',
+    groups: { 'first-weeks': 'Premières semaines', money: 'Argent à demander' },
+    who: { everyone: 'Tout le monde', 'from-abroad': 'Hors de l’UE', bafoeg: 'Avec le BAföG', 'under-25': 'Moins de 25 ans' },
+    progress: (done: number, total: number) => `Fait${NNBSP}: ${done} sur ${total}`,
+    mark: 'Fait',
+    doneOn: (date: string) => `Fait le ${date}`,
+    markNamed: (title: string) => `Fait${NNBSP}: ${title}`,
+    seeTip: 'Voir le conseil',
+    seeTipNamed: (title: string) => `Voir le conseil${NNBSP}: ${title}`,
+    saveFailed: 'La coche n’a pas pu être enregistrée. Réessaie.',
+  },
   hacks: {
     tab: 'Astuces',
     intro:
