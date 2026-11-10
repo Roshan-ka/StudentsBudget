@@ -11,8 +11,10 @@ test.use({ viewport: { width: 375, height: 812 } });
 
 const NAMES = new Map(CATEGORIES.map((c) => [c.id, c.name]));
 const ORDER = new Map(CATEGORIES.map((c, i) => [c.id, i]));
-/** Every discount was checked on the same day, so the list starts in category order, then as written. */
-const SORTED = [...DISCOUNTS].sort((a, b) => (ORDER.get(a.categoryId) ?? 0) - (ORDER.get(b.categoryId) ?? 0));
+/** With no votes, the list starts with the most recently checked, then in category order, then as written. */
+const SORTED = [...DISCOUNTS].sort(
+  (a, b) => b.checked.localeCompare(a.checked) || (ORDER.get(a.categoryId) ?? 0) - (ORDER.get(b.categoryId) ?? 0),
+);
 const FIRST = SORTED[0];
 const LAST = SORTED[SORTED.length - 1];
 
