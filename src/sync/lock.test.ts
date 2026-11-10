@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { withSyncLock } from './lock';
+import { BUSY, withSyncLock, withSyncLockIfFree } from './lock';
 
 type Request = (name: string, ...args: unknown[]) => Promise<unknown>;
 
@@ -48,5 +48,32 @@ describe('withSyncLock', () => {
   it('just runs the task where the browser has no Web Locks', async () => {
     vi.stubGlobal('navigator', {});
     expect(await withSyncLock(async () => 'done', { waitMs: 50 })).toBe('done');
+  });
+});
+
+/** Web Locks asked with `ifAvailable`: the callback gets the lock, or null while another tab holds it. */
+function lockIfAvailable(held: boolean): Request {
+  return (name, options, callback) => {
+    expect(options).toEqual({ ifAvailable: true });
+    return Promise.resolve((callback as (lock: { name: string } | null) => unknown)(held ? null : { name }));
+  };
+}
+
+describe('withSyncLockIfFree', () => {
+  it('runs the task when no tab holds the lock', async () => {
+    vi.stubGlobal('navigator', { locks: { request: lockIfAvailable(false) } });
+    expect(await withSyncLockIfFree(async () => 'synced')).toBe('synced');
+  });
+
+  it('gives BUSY at once, and never runs the task, while another tab holds it', async () => {
+    vi.stubGlobal('navigator', { locks: { request: lockIfAvailable(true) } });
+    const task = vi.fn(async () => 'synced');
+    expect(await withSyncLockIfFree(task)).toBe(BUSY);
+    expect(task).not.toHaveBeenCalled();
+  });
+
+  it('just runs the task where the browser has no Web Locks', async () => {
+    vi.stubGlobal('navigator', {});
+    expect(await withSyncLockIfFree(async () => 'synced')).toBe('synced');
   });
 });
