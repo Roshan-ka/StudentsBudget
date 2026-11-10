@@ -219,6 +219,18 @@ The engine is ready for it:
   - **Chunk 4's CI fix** (on #183): `linkPhone` answers a phone already linked to the account without the sync lock (`linkedAlready`), since it has nothing to write. Before, the account page stayed on "Checking…" while another tab held the lock, and the linking and two-step specs failed on it.
   - **Known limit:** a linked phone that is signed out (an ended session keeps the link) records no week until it signs in and syncs; the weeks are caught up then, since recording takes every week that is over.
 
+- **Chunk 6** (`e2e/auto-sync.spec.ts`, in the map under `/settings/account` and `/settings/profile`), four tests with no tap on Sync now:
+  - a change reaches the account within 15 s (the schedule's own delays: 3 s, at most 5 s, starts 5 s apart);
+  - opening the app on a second phone pulls it;
+  - a change made offline waits ("Offline: 1 change waits on this phone.") and is sent on reconnecting;
+  - on `page.clock` (installed, so time runs as usual until `fastForward`), one sync a minute; after a failure no try at 30 s and one by 70 s, and the next success says "Synced just now."
+  - **Left out of the planned spec** (covered by the unit tests of the schedule, the runner, `runOnce` and `inStartOrder`; worth an e2e if one breaks in the real try):
+    - the full backoff (2, 4, 8, 15 minutes);
+    - a 401 stopping the runs;
+    - a second step turned on elsewhere showing the code step;
+    - the week gate.
+  - **Mock changes:** none were needed (the planned `pulls` log and refusal after `delete_my_account`). The backoff test counts calls with its own route.
+
 ## Appendix: other work left (for later)
 - **Features:**
   - legal pages (privacy notice, Impressum) with security headers;
