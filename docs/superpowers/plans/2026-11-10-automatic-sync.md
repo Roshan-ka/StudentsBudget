@@ -229,6 +229,7 @@ The engine is ready for it:
     - a 401 stopping the runs;
     - a second step turned on elsewhere showing the code step;
     - the week gate.
+  - **First CI run (42795845607) failed all four.** A run with temporary runner logging (42799576001) showed the cause: the specs fix the page's `Date` (`setFixedTime`, the seeded setup's clock rule) while timers run, so each timer fired and the schedule, at the same "now", found its run still ahead and armed again, for ever. The runner now keeps its own clock that never goes back and moves to a timer's due time when it fires (`auto-runner.ts`, with a test on a clock that stands still); a phone whose clock is set back is covered too. The offline test no longer navigates while offline (no page loads with service workers blocked).
   - **Mock changes:** none were needed (the planned `pulls` log and refusal after `delete_my_account`). The backoff test counts calls with its own route.
 
 ## Appendix: other work left (for later)

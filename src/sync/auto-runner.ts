@@ -58,6 +58,11 @@ const succeeded = (outcome: SyncOutcome) => outcome === 'synced' || outcome === 
 
 export function createAutoRunner(deps: RunnerDeps): AutoRunner {
   let state = deps.initial ?? initialSchedule();
+  // The time the schedule sees: never earlier than before, and at least a timer's due time once that timer fires. A
+  // clock that stands still (a page whose Date is fixed, as the e2e specs' is) or goes back (the phone's clock set
+  // back) would otherwise find the due run still ahead each time its timer fires, and wait for ever.
+  let clock = -Infinity;
+  const now = () => (clock = Math.max(clock, deps.now()));
   let timer: unknown = null;
   let running = false;
   let stopped = false;
@@ -81,7 +86,6 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
   }
 
   function arm(wakeAt: number | null) {
-    if (wakeAt !== null) console.log('AUTO arm', wakeAt - deps.now()); // TEMP-DEBUG
     if (timer !== null) {
       deps.clearTimer(timer);
       timer = null;
@@ -90,10 +94,10 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
     timer = deps.setTimer(
       () => {
         timer = null;
-        console.log('AUTO timer fired'); // TEMP-DEBUG
+        clock = Math.max(clock, wakeAt);
         dispatch({ type: 'tick' });
       },
-      Math.max(0, wakeAt - deps.now()),
+      Math.max(0, wakeAt - now()),
     );
   }
 
@@ -107,7 +111,6 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
         done = { outcome: 'failed', outbox: state.outbox, held: state.baseline.count };
       }
       running = false;
-      console.log('AUTO done', JSON.stringify(done), 'stopped', stopped); // TEMP-DEBUG
       if (stopped) return;
       settle(done);
       dispatch({ type: 'finished', ...done });
@@ -118,10 +121,8 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
     if (stopped) return;
     if (event.type === 'auth' && event.status !== 'loading') authKnown = true;
     if (event.type === 'link') linkKnown = true;
-    const next = step(state, event, deps.now());
+    const next = step(state, event, now());
     state = next.state;
-    // TEMP-DEBUG (not to be committed)
-    console.log('AUTO', deps.now() % 100000, JSON.stringify(event), 'run', next.run, 'wake', next.wakeAt === null ? null : next.wakeAt - deps.now(), JSON.stringify({ a: state.auth, u: state.userId, l: state.linkedTo, s: state.stop, p: state.paused, r: state.running, o: state.online, v: state.visible, w: state.wanted, c: state.changeSince, b: state.baseline, x: state.outbox }));
     arm(next.wakeAt);
     if (next.run) start();
     if (authKnown && linkKnown && untilKnown.length > 0) {
@@ -136,13 +137,12 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
     if (running) return new Promise((resolve) => afterRun.push(resolve));
     // A trigger held back by the minimum gap is worth waiting for (at most MIN_GAP); one held back by a failure's wait,
     // or one that may not run at all (offline, signed out, paused), is not.
-    const backingOff = state.retryAt !== null && state.retryAt > deps.now() + MIN_GAP;
+    const backingOff = state.retryAt !== null && state.retryAt > now() + MIN_GAP;
     if (state.wanted && timer !== null && !backingOff) return new Promise((resolve) => afterRun.push(resolve));
     return Promise.resolve(visitResult());
   }
 
   async function visit(reason: VisitReason): Promise<VisitResult> {
-    console.log('AUTO visit', reason, authKnown, linkKnown, running); // TEMP-DEBUG
     if (stopped) return 'not-synced';
     if (!(authKnown && linkKnown)) await new Promise<void>((resolve) => untilKnown.push(resolve));
     if (stopped) return 'not-synced';
@@ -167,7 +167,6 @@ export function createAutoRunner(deps: RunnerDeps): AutoRunner {
   }
 
   function stop() {
-    console.log('AUTO stop'); // TEMP-DEBUG
     stopped = true;
     arm(null);
     const waiting = afterRun;

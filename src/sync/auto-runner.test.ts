@@ -38,6 +38,35 @@ function linked(runner: ReturnType<typeof played>['runner']) {
   runner.dispatch({ type: 'link', userId: USER });
 }
 
+describe('a clock that stands still', () => {
+  it('still runs a due sync once its timer fires: a fixed Date, as in the e2e specs, or a clock set back', async () => {
+    const runs: number[] = [];
+    let ticks = 0;
+    const runner = createAutoRunner({
+      // Date.now never moves; the timers do.
+      now: () => 0,
+      setTimer: (callback, wait) => setTimeout(callback, wait),
+      clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+      run: async () => {
+        runs.push(ticks);
+        return { outcome: 'synced', outbox: EMPTY, held: 0 };
+      },
+    });
+    runner.dispatch({ type: 'outbox', outbox: EMPTY });
+    linked(runner);
+    // A change: sent after the change delay, though the clock still says 0.
+    runner.dispatch({ type: 'outbox', outbox: { count: 1, newest: 1 } });
+    ticks = 1;
+    await vi.advanceTimersByTimeAsync(CHANGE_DELAY);
+    expect(runs).toEqual([1]);
+    // And the interval after it.
+    ticks = 2;
+    await vi.advanceTimersByTimeAsync(INTERVAL);
+    expect(runs).toEqual([1, 2]);
+    runner.stop();
+  });
+});
+
 describe('outcomeOf and heldOf', () => {
   it('maps a sync’s result to the schedule’s outcome', () => {
     expect(outcomeOf({ kind: 'synced', sent: 1, received: 0 })).toBe('synced');

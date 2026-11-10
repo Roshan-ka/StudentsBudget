@@ -105,21 +105,18 @@ test('opening the app on another phone pulls the change', async ({ page, browser
 test('a change made offline is sent once the phone is back online', async ({ page, context }) => {
   await skipUnlessAccountsShow(page);
   const account = await linkedPhone(page);
-  // The page opens online; offline, no page loads (service workers are blocked here), so it goes on by the navigation.
+  // The page opens online and stays: offline, no page loads here (service workers are blocked), and a client-side
+  // navigation falls back to a full load when its fetch fails. "Offline: 1 change waits" is linking.spec's.
   await page.goto('/settings/profile');
   await context.setOffline(true);
   const profile = page.getByRole('region', { name: 'Profile', exact: true });
   await profile.getByRole('textbox', { name: 'Your name', exact: true }).fill('Made offline');
   await profile.getByRole('button', { name: 'Save profile', exact: true }).click();
   await expect(profile.getByText('Profile saved.', { exact: true })).toBeVisible();
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
-  await page.getByRole('link', { name: /^Your account/ }).click();
-  await expect(syncRegion(page).getByText('Offline: 1 change waits on this phone.', { exact: true })).toBeVisible();
   expect(accountName(account)).not.toBe('Made offline');
 
   await context.setOffline(false);
   await expect.poll(() => accountName(account), SENT_BY_ITSELF).toBe('Made offline');
-  await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible(SENT_BY_ITSELF);
 });
 
 test('while visible it syncs every minute, and after a failure it waits a minute before trying again', async ({ page }) => {

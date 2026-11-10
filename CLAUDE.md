@@ -115,6 +115,7 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
   - Push checks each row with `ROW_CHECKS`, as a pull would: a row this app's own checks refuse is held back (logged with its table and id, still queued), the rest goes, and Sync now reports `heldBackText` as its problem. So a bad row never reaches the account, where it would stop every phone's pull.
   - **Automatic sync** (`docs/superpowers/plans/2026-11-10-automatic-sync.md`, Roshan's decisions, 10-11-2026): a linked phone, signed in (the code given where the account wants one), syncs by itself, with no switch.
     - **Triggers:** on opening and each return (`AppInit`'s `visitAutoSync`), on `online`, 3 s after a change (at most 5 s after the first), and every 60 s while visible.
+    - **Clock:** the runner's time never goes back, and a fired timer counts as its due time (`createAutoRunner`), so a fixed `Date` (the e2e specs' `setFixedTime`) or a clock set back never holds a due run.
     - **Limits:** starts are at least 5 s apart. After a failure it backs off 1, 2, 4, 8, then 15 minutes, and reconnecting skips each wait once.
     - **Stops:** `signed-out`, `second-step` (`accountWantsCode` on the first failure in a row) and no link stop it until the session or link changes; `update-needed` until a reload.
     - **Skips:** automatic runs never wait for another tab: `syncIfFree` over `withSyncLockIfFree` gives `busy`.
