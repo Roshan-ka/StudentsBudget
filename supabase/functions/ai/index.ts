@@ -25,7 +25,8 @@ declare const Deno: {
   serve(handler: (request: Request) => Promise<Response>): unknown;
 };
 
-/** The beta that lets a declined Opus request run again on Anthropic's recommended model (`fallbacks: "default"`). */
+/** The beta that lets a declined Opus request run again on Anthropic's recommended model (`fallbacks: "default"`);
+ * every feature is on Haiku 5.5 now, which has none, so no call sends it. */
 const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 
 /** The three features: quick add (chunk 4), Ask (chunk 8) and the setup chat (chunk 11). */
