@@ -3,7 +3,7 @@ import type { Messages } from '../en';
 // Der Tipps-Tab auf Deutsch: Tipps, Rabatte und die Worte der Spar-Zeile. Die Tipps, Rabatte und Spartipps selbst
 // sind Stadtinhalte; ihre deutschen Worte, auch das "per" der Spar-Zeile, stehen in src/i18n/city/de (Plan 2).
 export const tips: Messages['tips'] = {
-  tabsLabel: 'Tipps, Rabatte oder Hacks',
+  tabsLabel: 'Tipps, Rabatte, Hacks oder Checkliste',
   tips: 'Tipps',
   discounts: 'Rabatte',
   all: 'Alle',
@@ -35,6 +35,21 @@ export const tips: Messages['tips'] = {
     failed: (place) => `${place}: Deine Antwort ließ sich nicht speichern. Versuch es noch einmal.`,
   },
   /** Der Hacks-Feed: Spartipps von Studierenden. */
+  checklist: {
+    tab: 'Checkliste',
+    intro:
+      'Was du in den ersten Wochen erledigst, und Geld, das dir zustehen kann. Jeder Punkt sagt, woher er kommt. ' +
+      'Deine Haken werden auf diesem Handy gespeichert und in deinem Konto, sobald das Handy verknüpft ist.',
+    groups: { 'first-weeks': 'Erste Wochen', money: 'Geld, das dir zusteht' },
+    who: { everyone: 'Alle', 'from-abroad': 'Von außerhalb der EU', bafoeg: 'Mit BAföG', 'under-25': 'Unter 25' },
+    progress: (done: number, total: number) => `${done} von ${total} erledigt`,
+    mark: 'Erledigt',
+    doneOn: (date: string) => `Erledigt am ${date}`,
+    markNamed: (title: string) => `Erledigt: ${title}`,
+    seeTip: 'Zum Tipp',
+    seeTipNamed: (title: string) => `Zum Tipp: ${title}`,
+    saveFailed: 'Der Haken konnte nicht gespeichert werden. Versuch es noch einmal.',
+  },
   hacks: {
     tab: 'Hacks',
     intro:

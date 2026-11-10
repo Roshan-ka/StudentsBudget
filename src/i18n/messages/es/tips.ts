@@ -4,7 +4,7 @@ import { byCount } from './count';
 // La pestaña Consejos en español: consejos, descuentos y las palabras de la línea de ahorro. Los consejos, descuentos
 // e ideas de ahorro en sí son contenido de la ciudad; sus palabras en español van en src/i18n/city/es (chunk 8).
 export const tips: Messages['tips'] = {
-  tabsLabel: 'Consejos, descuentos o trucos',
+  tabsLabel: 'Consejos, descuentos, trucos o lista',
   tips: 'Consejos',
   discounts: 'Descuentos',
   all: 'Todos',
@@ -37,6 +37,21 @@ export const tips: Messages['tips'] = {
     failed: (place) => `${place}: no se ha podido guardar tu respuesta. Inténtalo de nuevo.`,
   },
   /** El feed de trucos: trucos para ahorrar publicados por estudiantes. */
+  checklist: {
+    tab: 'Lista',
+    intro:
+      'Lo que conviene hacer en tus primeras semanas, y el dinero que quizá puedas pedir. Cada punto dice de dónde viene. ' +
+      'Tus marcas se guardan en este móvil, y en tu cuenta en cuanto el móvil esté vinculado.',
+    groups: { 'first-weeks': 'Primeras semanas', money: 'Dinero que puedes pedir' },
+    who: { everyone: 'Todos', 'from-abroad': 'De fuera de la UE', bafoeg: 'Con BAföG', 'under-25': 'Menores de 25' },
+    progress: (done: number, total: number) => `Hecho: ${done} de ${total}`,
+    mark: 'Hecho',
+    doneOn: (date: string) => `Hecho el ${date}`,
+    markNamed: (title: string) => `Hecho: ${title}`,
+    seeTip: 'Ver el consejo',
+    seeTipNamed: (title: string) => `Ver el consejo: ${title}`,
+    saveFailed: 'No se pudo guardar la marca. Inténtalo de nuevo.',
+  },
   hacks: {
     tab: 'Trucos',
     intro:

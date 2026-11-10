@@ -115,6 +115,26 @@ So the checklist is a list of short actions, and links to a tip instead of repea
 - **Other specs:** add `checklist` to `/tips` in `e2e/affected-map.json`, and update `discounts.spec.ts` and `tips.spec.ts` where they name the tablist.
 - **Docs:** CLAUDE.md gets a Checklist rule and the new table in the sync and backup rules; the plan doc goes into `docs/superpowers/plans/2026-11-10-checklist.md`.
 
+### As built (chunks 3 to 6)
+
+- **Chunk 3 (#189) and chunk 4 (#191), built in their own session and merged:**
+  - **The account:** the `checklist_ticks` migration with its pgTAP tests. `sync_pull` is redefined to cover it.
+  - **The phone:** Dexie `checklistTicks`, its row check, the sync tables and the download.
+  - **The backup:** v4, which reads v1–v4.
+- **Chunk 5, the tab** (`src/features/checklist/checklist-view.tsx`, `src/features/tips/tips-view.tsx`):
+  - **Layout:** two groups with level-3 headings, and each item as a card holding its `who` tag, words, checkbox, "See the tip" (where it has a `tipId`) and source.
+  - **Status line:** a plain `role="status"` reads "N of 11 done" and waits for the ticks.
+  - **Names:** the checkbox is "Done: <title>" and the button "See the tip: <title>", each starting with its visible word.
+  - **"See the tip":** the tips' category filter moved up into `TipsView`, so the button clears it in its own handler. An effect only scrolls to and focuses the heading.
+  - **Tabs:** four tabs make two rows of two below `sm` (Roshan's pick, 10-11-2026). The tablist is "Tips, discounts, hacks or checklist" in all four languages.
+  - **Texts:** `tips.checklist` in all four languages.
+- **Chunk 6** (`e2e/checklist.spec.ts`, in the map under `/tips` and `/settings/account`):
+  - both groups and every item, and a tick that stays after a reload, in IndexedDB and on screen;
+  - "See the tip" focuses the tip's heading, with the filter on All;
+  - German with nothing marked English, at 375 px with no overflow;
+  - on a linked phone, a tick reaches the mocked account by itself, and unticking leaves a tombstone.
+  - Six specs that named the old tablist now use the new name.
+
 ## Files
 
 - **New:** `src/data/checklist.ts`, `src/i18n/city/*/checklist.ts`, `src/features/checklist/`, a migration and pgTAP file, `e2e/checklist.spec.ts`.
