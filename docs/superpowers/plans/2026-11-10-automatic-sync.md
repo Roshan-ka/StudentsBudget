@@ -175,6 +175,30 @@ The engine is ready for it:
   - **Stops:** a stop clears on a change of session or link; `update-needed` only on a reload.
   - **A new link** clears a trigger left from the sign-in, since linking syncs itself, and counts the interval from the link.
 
+- **Chunk 3** (`src/sync/auto-runner.ts`; `src/features/account/auto-sync.ts`, not mounted yet):
+  - **`createAutoRunner({ now, setTimer, clearTimer, run })`** feeds events to the schedule, keeps one timer, and starts the runs it asks for.
+    - **`visit(reason)`** answers `'synced' | 'unlinked' | 'not-synced'`.
+      - It waits until the session and the link are both known, so a visit at start never reads as unlinked before the link has been read.
+      - It waits for a run in flight, or one held back only by the minimum gap. It doesn't wait for one held back by a failure's wait, or one that may not run.
+      - `'focus'` syncs only if the visit has no success and nothing is in flight. `'midnight'` only reads how the visit stands.
+    - **`heard(done)`** takes a sync the runner didn't start (Sync now, setup's Save): it counts for the visit and resets the backoff.
+    - **`stop()`** lets every waiting visit go as `'not-synced'`.
+    - A run that throws counts as `failed`.
+  - **`outcomeOf` and `heldOf`** map a sync's result to the schedule's outcome.
+  - **`runOnce`** (testable, its session and store passed in):
+    - Signed out or owing the code, it runs nothing.
+    - Otherwise it calls `syncIfFree`.
+    - On the first failure in a row only, it calls `accountWantsCode` (one refresh, not one a minute). A refusal that turns out to be the code owed is `second-step`.
+    - The plan's `askForCodeIfRefused` turned out to be `accountWantsCode` as it is, so nothing was extracted.
+  - **`startAutoSync()`** wires the runner, one per tab, to:
+    - `visibilitychange`, `online` and `offline`;
+    - `liveQuery` on the outbox (`outboxShape`) and on `syncState` (the link);
+    - `onAuthStateChange` (state only);
+    - `onSyncDone` (other syncs).
+
+    Query errors after the sign-out wipe are ignored. `visitAutoSync`, `pauseAutoSync` and `resumeAutoSync` are for AppInit and sign-out.
+  - **Left out:** another tab's `lastSyncedAt` doesn't push this tab's interval back. Two visible tabs each poll once a minute, and `busy` keeps them apart.
+
 ## Appendix: other work left (for later)
 - **Features:**
   - legal pages (privacy notice, Impressum) with security headers;
