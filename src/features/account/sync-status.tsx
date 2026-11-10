@@ -12,8 +12,9 @@ import { accountSyncStatus, syncNow, syncResultText, syncStatusText } from '@/sy
 import { supabaseStore } from '@/sync/store';
 import { accountWantsCode } from './code-check';
 
-// Live sync (P2.2), the cut-down version: the person taps Sync now; nothing syncs on a timer. Shown only while this
-// phone is linked to an account (`syncState.userId`).
+// Live sync (P2.2): Sync now, and the line that says the phone syncs by itself (automatic sync,
+// docs/superpowers/plans/2026-11-10-automatic-sync.md). Shown only while this phone is linked to an account
+// (`syncState.userId`).
 
 function subscribeOnline(onChange: () => void) {
   window.addEventListener('online', onChange);
@@ -159,6 +160,7 @@ export function SyncSection() {
       </h3>
       {/* Not a live region: "Synced 2 min ago" moves on every half minute, and would be read out each time. */}
       <p className="text-muted-foreground">{note ?? status}</p>
+      <p className="text-sm text-muted-foreground">{t.sync.section.automatic}</p>
       <Button type="button" variant="outline" className="self-start px-4" disabled={busy} onClick={() => void sync()}>
         <RefreshCwIcon aria-hidden="true" className={busy ? 'motion-safe:animate-spin' : undefined} />
         {t.sync.section.syncNow}

@@ -47,6 +47,7 @@ export const sync: Messages['sync'] = {
   section: {
     heading: 'Synchronisation',
     syncNow: 'Synchroniser',
+    automatic: 'Ce téléphone se synchronise tout seul tant que l’appli est ouverte. « Synchroniser » le fait tout de suite.',
   },
   link: {
     heading: 'Associer ce téléphone',

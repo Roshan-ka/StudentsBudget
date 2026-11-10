@@ -90,7 +90,7 @@ export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
         if (!current || outcome.kind === 'code') return;
         viewUser.current = userId;
         setView(outcome);
-        // Just linked: one sync, so the status starts from "Synced just now". Nothing syncs on its own after that.
+        // Just linked: one sync, so the status starts from "Synced just now". Automatic sync takes over from there.
         if (outcome.kind === 'linked' && outcome.fresh) await syncNow(store, userId);
       } catch (error) {
         console.error('StudentsBudget: could not link this phone', error);

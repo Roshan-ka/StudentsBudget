@@ -199,6 +199,19 @@ The engine is ready for it:
     Query errors after the sign-out wipe are ignored. `visitAutoSync`, `pauseAutoSync` and `resumeAutoSync` are for AppInit and sign-out.
   - **Left out:** another tab's `lastSyncedAt` doesn't push this tab's interval back. Two visible tabs each poll once a minute, and `busy` keeps them apart.
 
+- **Chunk 4** (mounted):
+  - **AppInit:**
+    - `startAutoSync()` starts after `data-app-ready` and stops on cleanup.
+    - `visitAutoSync('open')` runs at start, `'return'` on `visibilitychange` (visible), and `'focus'` on focus.
+    - The visits don't hold `refreshThenPost` back yet; that is chunk 5.
+  - **Sign-out** (`account-view.tsx`): an effect on its step pauses automatic runs at `unsynced` (the question) and `leaving`, and resumes on any other step: Stay signed in, a failure, or leaving the page.
+  - **The sync section** says "This phone syncs by itself while the app is open. Sync now syncs straight away.", in the four languages.
+  - **`holdSyncLock(context)`** (`e2e/helpers/sync-lock.ts`) holds the real lock from a second page on `/manifest.webmanifest`. The three specs:
+    - `linking.spec` (the offline Sync now): holds from before the rename, and releases before the tap.
+    - `start.spec` (sign-out with an unsent change): installs its aborting route before the rename, so the automatic runs fail too.
+    - `two-step.spec` (the code asked on Sync now): holds from before the change, and taps Sync now while held, so the tap queues in the lock and runs first once released.
+  - **CLAUDE.md:** the sync rules, the outgoing requests and "What P2.1 and P2.2 leave out" now describe automatic sync.
+
 ## Appendix: other work left (for later)
 - **Features:**
   - legal pages (privacy notice, Impressum) with security headers;

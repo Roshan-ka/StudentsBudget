@@ -97,13 +97,23 @@ let linking: Promise<LinkOutcome> | null = null;
  * Links this phone to the account of `userId` as far as it can on its own, one run at a time (a call while one runs
  * gets that one's outcome): an empty side is filled from the other, and only a phone and an account that both hold
  * data wait for the person's choice. An account that looks empty may only hide its rows until this session gives
- * its authenticator code (`wantsCode`, which refreshes the session): then nothing is written.
+ * its authenticator code (`wantsCode`, which refreshes the session): then nothing is written. A phone already linked
+ * to that account has nothing to write, so it is answered without the sync lock: the account page shows at once while
+ * another tab, or this one's automatic sync, holds it (automatic sync, chunk 5).
  */
 export function linkPhone(store: UserDataStore, userId: string, wantsCode: () => Promise<boolean>): Promise<LinkOutcome> {
-  linking ??= withSyncLock(() => linkWhatItCan(store, userId, wantsCode)).finally(() => {
-    linking = null;
-  });
+  linking ??= linkedAlready(userId)
+    .then((already) =>
+      already ? ({ kind: 'linked', fresh: false, note: null } as const) : withSyncLock(() => linkWhatItCan(store, userId, wantsCode)),
+    )
+    .finally(() => {
+      linking = null;
+    });
   return linking;
+}
+
+async function linkedAlready(userId: string): Promise<boolean> {
+  return (await db.syncState.get('current'))?.userId === userId;
 }
 
 async function linkWhatItCan(store: UserDataStore, userId: string, wantsCode: () => Promise<boolean>): Promise<LinkOutcome> {
