@@ -12,7 +12,7 @@ select plan(16);
 create temporary table user_tables (name text primary key) on commit drop;
 insert into user_tables
 values ('accounts'), ('entries'), ('plans'), ('guesses'), ('manual_rates'), ('week_results'), ('discount_votes'),
-  ('profiles'), ('checklist_ticks');
+  ('profiles'), ('checklist_ticks'), ('plan_months');
 grant select on user_tables to authenticated, anon;
 
 insert into auth.users (id, email)
@@ -94,7 +94,7 @@ select throws_ok(
   'the second step is owed',
   'an account with two-step sign-in is not deleted with the password alone'
 );
-select is(pg_temp.rows_of('a'), 10::bigint, 'A and every row of A are still there after the refusal');
+select is(pg_temp.rows_of('a'), 11::bigint, 'A and every row of A are still there after the refusal');
 
 -- 3. B deletes the account: the user, every row and the sync bookkeeping go; C keeps everything.
 select lives_ok(
@@ -106,7 +106,7 @@ select is_empty(
   'B is gone from auth.users'
 );
 select is(pg_temp.rows_of('b'), 0::bigint, 'no row of B is left in any table, tombstones and sync bookkeeping included');
-select is(pg_temp.rows_of('c'), 10::bigint, 'C still has every row');
+select is(pg_temp.rows_of('c'), 11::bigint, 'C still has every row');
 
 -- 4. A, with the code given, deletes the account too.
 select lives_ok(
