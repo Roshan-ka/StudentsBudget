@@ -2,7 +2,7 @@ import { db } from '@/db/db';
 import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import { formatDateTime } from '@/lib/dates';
-import { withSyncLock } from './lock';
+import { BUSY, withSyncLock, withSyncLockIfFree } from './lock';
 import { heldBack, problemText, type SyncProblem } from './problem';
 import { pull } from './pull';
 import { push } from './push';
@@ -20,20 +20,76 @@ export type SyncResult =
   | { kind: 'offline' }
   | { kind: 'problem'; problem: SyncProblem };
 
+/** An automatic sync's result: a sync's, or `busy` when another tab held the lock and it didn't run. */
+export type AutoSyncResult = SyncResult | { kind: 'busy' };
+
+/** This tab's sync, while one runs: a second call gets its result instead of starting another. */
 let running: Promise<SyncResult> | null = null;
+
+/** Who hears every finished sync of this tab, whoever started it (`onSyncDone`). */
+const doneListeners = new Set<(result: SyncResult) => void>();
+
+/**
+ * Calls `listener` with the result of every sync this tab finishes, whether Sync now, setup's Save, sign-out or an
+ * automatic run started it, so automatic sync counts a sync it didn't start (automatic sync, chunk 1). Returns the
+ * way to stop listening.
+ */
+export function onSyncDone(listener: (result: SyncResult) => void): () => void {
+  doneListeners.add(listener);
+  return () => {
+    doneListeners.delete(listener);
+  };
+}
+
+function announce(run: Promise<SyncResult>): void {
+  void run.then(
+    (result) => {
+      for (const listener of [...doneListeners]) listener(result);
+    },
+    () => {},
+  );
+}
+
+/** `run` as this tab's sync until it ends; only its own end clears it, never a later sync's. */
+function track(run: Promise<SyncResult>): Promise<SyncResult> {
+  running = run;
+  announce(run);
+  void run
+    .finally(() => {
+      if (running === run) running = null;
+    })
+    .catch(() => {});
+  return run;
+}
 
 /**
  * Syncs this phone with the account of `userId` (P2.2): its changes first (push), then the account's (pull), then the
  * accounts this phone deleted, which wait for the pull in case another phone booked on one meanwhile. One sync
- * at a time: a call while one runs gets that one's result. It runs only while this phone is linked to that account
- * and online, and records when it last synced, or what stopped it, in `syncState`. Nothing calls it on a timer yet:
- * the person taps Sync now.
+ * at a time: a call while one runs gets that one's result, and another tab's sync is waited for (the lock). It runs
+ * only while this phone is linked to that account and online, and records when it last synced, or what stopped it,
+ * in `syncState`. Sync now, setup's Save, sign-out and the first sync after linking call it; automatic runs use
+ * `syncIfFree`.
  */
 export function syncNow(store: UserDataStore, userId: string): Promise<SyncResult> {
-  running ??= withSyncLock(() => sync(store, userId)).finally(() => {
-    running = null;
+  return running ?? track(withSyncLock(() => sync(store, userId)));
+}
+
+/**
+ * An automatic sync (automatic sync, chunk 1, docs/superpowers/plans/2026-11-10-automatic-sync.md): this tab's sync
+ * when one runs, else one under the lock if no tab holds it, else `busy` at once, without waiting: the tab holding
+ * the lock is syncing or linking anyway.
+ */
+export async function syncIfFree(store: UserDataStore, userId: string): Promise<AutoSyncResult> {
+  if (running !== null) return running;
+  const outcome = await withSyncLockIfFree(() => {
+    // Never `syncNow` or `running` in here: a Sync now tapped while this asked for the lock is queued behind this very
+    // lock, and waiting for it would never end. Such a Sync now simply runs after this one.
+    const run = sync(store, userId);
+    if (running === null) track(run);
+    else announce(run);
+    return run;
   });
-  return running;
+  return outcome === BUSY ? { kind: 'busy' } : outcome;
 }
 
 async function sync(store: UserDataStore, userId: string): Promise<SyncResult> {

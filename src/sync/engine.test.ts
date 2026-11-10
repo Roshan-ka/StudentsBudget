@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
 import { deleteAccount, saveEntry } from '@/db/repo';
-import { accountSyncStatus, syncNow, syncResultText, syncStatusText } from './engine';
+import { accountSyncStatus, onSyncDone, syncIfFree, syncNow, syncResultText, syncStatusText, type SyncResult } from './engine';
 import { problemText } from './problem';
 import { StoreError } from './store';
 import { expense, fakeStore, liveIds } from './test-helpers';
@@ -213,6 +213,121 @@ describe('two tabs', () => {
     // One after the other: the first pushed and pulled, then the second found nothing to push and pulled from where
     // the first left the cursor.
     expect(calls).toEqual(['upsert accounts local', 'upsert entries e1', 'pull 0', 'pull 2', 'pull 2']);
+  });
+});
+
+// The automatic sync's way in (automatic sync, chunk 1): it never waits for another tab, joins this tab's sync, and
+// every finished sync is heard, whoever started it. Node's Web Locks are real, so "another tab" holds the real lock.
+describe('syncIfFree and onSyncDone', () => {
+  /** Holds the sync lock, as another tab syncing would, until the returned `release` (which waits for the lock to go). */
+  async function otherTabHoldsTheLock(): Promise<() => Promise<void>> {
+    let letGo = () => {};
+    const held = new Promise<void>((resolve) => {
+      letGo = resolve;
+    });
+    let granted = () => {};
+    const isGranted = new Promise<void>((resolve) => {
+      granted = resolve;
+    });
+    const done = navigator.locks.request('studentsbudget-sync', () => {
+      granted();
+      return held;
+    });
+    await isGranted;
+    return async () => {
+      letGo();
+      await done;
+    };
+  }
+
+  /**
+   * Web Locks as a browser grants them: in the order asked, the callback always on a later task. (Node grants a free
+   * lock at once, so a Sync now tapped right after an automatic request would only join it there, and the case where
+   * it is queued behind that very lock wouldn't be tried.) One lock, enough for the engine's one name.
+   */
+  function browserLocks() {
+    let held = false;
+    const queue: (() => void)[] = [];
+    const next = () => {
+      const run = queue.shift();
+      if (run) run();
+      else held = false;
+    };
+    return {
+      request(_name: string, ...args: unknown[]) {
+        const options = (args.length === 2 ? args[0] : {}) as { ifAvailable?: boolean };
+        const callback = args.at(-1) as (lock: object | null) => unknown;
+        return new Promise((resolve, reject) => {
+          const grant = () =>
+            setTimeout(() => {
+              Promise.resolve()
+                .then(() => callback({}))
+                .then(resolve, reject)
+                .finally(next);
+            }, 0);
+          if (options.ifAvailable && held) {
+            setTimeout(() => Promise.resolve(callback(null)).then(resolve, reject), 0);
+          } else if (held) {
+            queue.push(grant);
+          } else {
+            held = true;
+            grant();
+          }
+        });
+      },
+    };
+  }
+
+  it('syncs when the lock is free, and tells every listener how it ended', async () => {
+    const { store } = fakeStore();
+    await saveEntry(expense('e1'));
+    const heard: SyncResult[] = [];
+    const stop = onSyncDone((result) => heard.push(result));
+    expect(await syncIfFree(store, USER)).toEqual({ kind: 'synced', sent: 2, received: 2 });
+    expect(heard).toEqual([{ kind: 'synced', sent: 2, received: 2 }]);
+    stop();
+    await syncNow(store, USER);
+    expect(heard).toHaveLength(1);
+  });
+
+  it('is busy at once while another tab holds the lock, and sends and reads nothing', async () => {
+    const { store, calls } = fakeStore();
+    await saveEntry(expense('e1'));
+    const release = await otherTabHoldsTheLock();
+    expect(await syncIfFree(store, USER)).toEqual({ kind: 'busy' });
+    expect(calls).toEqual([]);
+    await release();
+    expect(await syncIfFree(store, USER)).toMatchObject({ kind: 'synced' });
+  });
+
+  it('joins this tab’s sync instead of starting a second one', async () => {
+    const { store, calls } = fakeStore();
+    await saveEntry(expense('e1'));
+    const manual = syncNow(store, USER);
+    const automatic = syncIfFree(store, USER);
+    expect(await automatic).toEqual(await manual);
+    expect(calls.filter((call) => call.startsWith('pull'))).toHaveLength(2);
+  });
+
+  it('never deadlocks with a Sync now tapped while it asks for the lock: that one runs after it', async () => {
+    vi.stubGlobal('navigator', { onLine: true, locks: browserLocks() });
+    const { store, calls } = fakeStore();
+    await saveEntry(expense('e1'));
+    const heard: string[] = [];
+    const stop = onSyncDone((result) => heard.push(result.kind));
+    const automatic = syncIfFree(store, USER);
+    const manual = syncNow(store, USER);
+    expect(await automatic).toMatchObject({ kind: 'synced' });
+    expect(await manual).toMatchObject({ kind: 'synced' });
+    stop();
+    expect(heard).toEqual(['synced', 'synced']);
+    // Two syncs, one after the other: the second found nothing to push and pulled from where the first left off.
+    expect(calls.filter((call) => call.startsWith('upsert entries'))).toHaveLength(1);
+
+    // Each cleared only itself: a new tap starts a new sync.
+    calls.length = 0;
+    await syncNow(store, USER);
+    expect(calls.some((call) => call.startsWith('pull'))).toBe(true);
   });
 });
 

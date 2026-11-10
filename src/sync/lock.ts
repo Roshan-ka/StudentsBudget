@@ -23,3 +23,17 @@ export async function withSyncLock<T>(task: () => Promise<T>, { waitMs }: { wait
     throw error;
   }
 }
+
+/** What `withSyncLockIfFree` gives instead of running its task: another tab holds the lock. */
+export const BUSY: unique symbol = Symbol('sync lock busy');
+
+/**
+ * Runs `task` under the sync lock only if no tab holds it now, else gives `BUSY` at once and never runs it: an
+ * automatic sync skips while another tab syncs or links, which is doing the work anyway (automatic sync, chunk 1,
+ * docs/superpowers/plans/2026-11-10-automatic-sync.md). It never waits, so it can't deadlock, but it is still taken
+ * only at the outermost call: inside the lock it would always find it busy. Without Web Locks it just runs.
+ */
+export async function withSyncLockIfFree<T>(task: () => Promise<T>): Promise<T | typeof BUSY> {
+  if (typeof navigator === 'undefined' || !('locks' in navigator)) return task();
+  return await navigator.locks.request(SYNC_LOCK, { ifAvailable: true }, (lock) => (lock === null ? BUSY : task()));
+}
