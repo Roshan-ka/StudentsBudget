@@ -209,7 +209,7 @@ export const TIPS: Tip[] = [
   {
     id: 'ride-on-your-semester-ticket',
     title: 'Ride the RVV on your semester ticket',
-    body: 'Your semester fee already includes €126 for unlimited RVV bus and train rides. Your student ID plus photo ID is the ticket.',
+    body: 'Your semester fee already includes €126 (winter semester 2026/27) for unlimited RVV bus and train rides. Your student ID plus photo ID is the ticket.',
     categoryId: 'transport-pass',
     source: 'RVV, semester ticket: a compulsory €126 per semester for unlimited rides in the whole RVV area; the ticket is the student ID plus ID card or passport',
     url: RVV_URL,

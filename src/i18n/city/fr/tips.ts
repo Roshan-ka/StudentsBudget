@@ -110,7 +110,7 @@ export const tips: Record<string, TipWords> = {
   },
   'ride-on-your-semester-ticket': {
     title: 'Voyage sur le réseau RVV avec ton abonnement semestriel',
-    body: 'Tes frais de semestre comprennent déjà 126 € pour des trajets illimités en bus et en train sur le réseau RVV. Ta carte étudiante plus une pièce d’identité avec photo font office de billet.',
+    body: 'Tes frais de semestre comprennent déjà 126 € (semestre d’hiver 2026/27) pour des trajets illimités en bus et en train sur le réseau RVV. Ta carte étudiante plus une pièce d’identité avec photo font office de billet.',
     source: `RVV, abonnement semestriel${NNBSP}: 126 € obligatoires par semestre pour des trajets illimités sur tout le réseau RVV${NNBSP}; le billet est la carte étudiante plus une carte d’identité ou un passeport`,
   },
   'upgrade-to-deutschlandticket': {

@@ -81,6 +81,15 @@ The fix commits go on `feat/auto-sync-4` (#183) when the bug is in chunk 3 or 4'
 - **UR summer 2027 re-registration dates:** if UR has published them, add the month to `SEMESTER_FEES`.
 - Then the city pack and the same tests.
 
+### As built (chunk 2, first pass, 10-11-2026)
+
+- **Semester-ticket tip:** now names its semester, "€126 (winter semester 2026/27)", in all four languages. The city pack is rewritten. The tip keeps its RVV source and its 20-10-2026 date: only the €126 was read again today.
+- **Not published yet**, so nothing changes:
+  - **RVV:** still €126 a semester and the €22.00 surcharge "Ab 01.10.2026", with no figure for 2027.
+  - **UR:** the re-registration page covers winter 2026/27 at most (until 17.07.2026, €208 = €82 + €126). There is no summer 2027 date, so `SEMESTER_FEES` keeps UR's summer entry without a month.
+- **Still owed in December:** both re-checks again.
+- **Owed once summer 2027 starts** (OTH 15-03-2027, UR 01-04-2027): the tip changes to €128 (summer semester 2027), the STWNO statute's figure, with that statute as its source.
+
 ## Chunk 3: January (on or after 1-1-2027)
 
 - `cities.ts`: the Deutschlandticket price becomes `6680`, and its source and comment get a new `checked` date.

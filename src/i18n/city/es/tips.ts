@@ -109,7 +109,7 @@ export const tips: Record<string, TipWords> = {
   },
   'ride-on-your-semester-ticket': {
     title: 'Viaja en el RVV con tu abono semestral',
-    body: 'Tu cuota semestral ya incluye 126 € para viajes ilimitados en autobús y tren del RVV. Tu carné de estudiante y un documento con foto son el billete.',
+    body: 'Tu cuota semestral ya incluye 126 € (semestre de invierno 2026/27) para viajes ilimitados en autobús y tren del RVV. Tu carné de estudiante y un documento con foto son el billete.',
     source: 'RVV, abono semestral: 126 € obligatorios por semestre para viajes ilimitados en toda la zona del RVV; el billete es el carné de estudiante más el DNI o el pasaporte',
   },
   'upgrade-to-deutschlandticket': {
