@@ -11,6 +11,7 @@ import {
   type AuthCall,
   type AuthFactors,
 } from './helpers/supabase';
+import { holdSyncLock } from './helpers/sync-lock';
 
 // Two-step sign-in (P2.3a) at 375 px, the narrowest phone the app is made for. Supabase Auth is mocked, with an
 // authenticator that accepts only E2E_TOTP_CODE.
@@ -324,7 +325,9 @@ test('a phone signed in before another turned it on asks for the code on Sync no
   await expect(page.getByRole('region', { name: 'Sync', exact: true }).getByText('Synced just now.', { exact: true })).toBeVisible();
 
   await turnOnFromAnotherPhone(browser, factors);
-  // A change on this phone, waiting to be sent.
+  // A change on this phone, waiting to be sent: another tab holds the sync lock, so the phone's automatic sync skips
+  // (automatic sync, docs/superpowers/plans/2026-11-10-automatic-sync.md).
+  const release = await holdSyncLock(page.context());
   await page.goto('/settings/profile');
   await page.getByRole('region', { name: 'Profile', exact: true }).getByRole('textbox', { name: 'Your name', exact: true }).fill('Changed here');
   await page.getByRole('region', { name: 'Profile', exact: true }).getByRole('button', { name: 'Save profile', exact: true }).click();
@@ -342,7 +345,9 @@ test('a phone signed in before another turned it on asks for the code on Sync no
         })
       : route.fallback(),
   );
+  // Tapped while the lock is held, Sync now waits for it, and is the first to run once it goes.
   await page.getByRole('button', { name: 'Sync now', exact: true }).click();
+  await release();
   await expect(codeField(page)).toBeVisible();
   await expect(alert(page)).toHaveCount(0);
 });

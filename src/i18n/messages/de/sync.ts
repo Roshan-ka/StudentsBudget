@@ -42,6 +42,7 @@ export const sync: Messages['sync'] = {
   section: {
     heading: 'Synchronisierung',
     syncNow: 'Jetzt synchronisieren',
+    automatic: 'Dieses Handy synchronisiert von selbst, solange die App offen ist. „Jetzt synchronisieren“ tut es sofort.',
   },
   link: {
     heading: 'Dieses Handy verknüpfen',

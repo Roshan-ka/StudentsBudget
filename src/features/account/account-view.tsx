@@ -32,6 +32,7 @@ import { useAccountDeleted } from './account-deleted';
 import { useWipeOwedAtLoad, wipeAfterSignOut } from './pending-wipe';
 import { AccountLink } from './account-link';
 import { authErrorMessage } from './auth-errors';
+import { pauseAutoSync, resumeAutoSync } from './auto-sync';
 import { CodeField } from './code-field';
 import {
   checkAuthenticatorCode,
@@ -872,6 +873,13 @@ function SignedInPanel({
   useEffect(() => {
     if (step.at === 'asking') questionRef.current?.focus();
     if (step.at === 'unsynced') warningRef.current?.focus();
+  }, [step.at]);
+
+  // While sign-out asks about changes not yet in the account, or leaves, no automatic run sends them behind its back;
+  // staying signed in (or any way back) lets it go on (automatic sync, chunk 4).
+  useEffect(() => {
+    if (step.at === 'unsynced' || step.at === 'leaving') pauseAutoSync();
+    else resumeAutoSync();
   }, [step.at]);
 
   // A timer, not a cleanup: React's development double run calls cleanups right after the first mount, which would

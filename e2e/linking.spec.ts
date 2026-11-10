@@ -4,6 +4,7 @@ import { openApp } from './helpers/app';
 import type { Entry, Plan, Profile } from '../src/db/types';
 import { seedSetup } from './helpers/seed-setup';
 import { mockFrankfurter, readStore } from './helpers/setup';
+import { holdSyncLock } from './helpers/sync-lock';
 import {
   endSession,
   mockSupabaseAuth,
@@ -15,7 +16,9 @@ import {
 } from './helpers/supabase';
 
 // Linking and Sync now (P2.2 chunks 6–7) at 375 px, against the mocked account. Linking replaced P2.1's Save and Load:
-// signed in on the account page, a phone links to the account, and Sync now keeps both sides alike.
+// signed in on the account page, a phone links to the account, and Sync now keeps both sides alike. Since automatic
+// sync (docs/superpowers/plans/2026-11-10-automatic-sync.md) a linked phone also syncs by itself, so a test that needs
+// a change to wait holds the sync lock (`holdSyncLock`), as another tab syncing would.
 test.use({ viewport: { width: 375, height: 812 } });
 
 // About sync, not the AI: quick add reads its lines on the phone (aiSwitchedOff), with no note and no call.
@@ -307,6 +310,8 @@ test('offline, Sync now says the change waits on this phone, on a page reached t
   await page.goto('/settings/account');
   await signIn(page);
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
+  // Another tab holds the sync lock: the phone's own automatic sync skips, and the change waits.
+  const release = await holdSyncLock(context);
   await renameProfile(page, 'Changed offline');
 
   // Back to the account page the way a person goes, so the page kept mounted but hidden shows again.
@@ -317,6 +322,8 @@ test('offline, Sync now says the change waits on this phone, on a page reached t
 
   await context.setOffline(true);
   await expect(syncRegion(page).getByText('Offline: 1 change waits on this phone.', { exact: true })).toBeVisible();
+  // Let go, or Sync now would wait for the lock: offline, the automatic sync waits too.
+  await release();
   await syncRegion(page).getByRole('button', { name: 'Sync now', exact: true }).click();
   await expect(syncRegion(page).getByRole('status')).toHaveText('Not synced: you’re offline. Changes wait on this phone.');
   await context.setOffline(false);

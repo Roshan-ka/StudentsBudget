@@ -168,6 +168,9 @@ test('when the last sync can’t send everything, signing out asks first', async
   test.setTimeout(60_000);
   await skipUnlessAccountsShow(page);
   const account = await linkedPhone(page);
+  // The account refuses from before the change: the phone's automatic sync (on opening, and after the change) can't
+  // send it either, so it waits (automatic sync, docs/superpowers/plans/2026-11-10-automatic-sync.md).
+  await page.route(SUPABASE_REST, (route) => route.abort());
   await renameProfile(page, 'Not in the account');
   await openApp(page, '/settings/account');
 
@@ -185,8 +188,7 @@ test('when the last sync can’t send everything, signing out asks first', async
   expect((await readStore<Profile>(page, 'profile'))[0]?.name).toBe('Not in the account');
   await context.setOffline(false);
 
-  // Online, but the account refuses it: signing out anyway loses the change.
-  await page.route(SUPABASE_REST, (route) => route.abort());
+  // Online, but the account refuses it (the route above): signing out anyway loses the change.
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(

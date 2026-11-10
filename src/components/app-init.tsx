@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { requestPersistence } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import { ensureSeeded } from '@/db/repo';
+import { startAutoSync, visitAutoSync } from '@/features/account/auto-sync';
 import { finishPendingWipe, wipePending } from '@/features/account/pending-wipe';
 import { followSessionForPhone } from '@/features/account/signed-out-effects';
 import { recordCompletedWeeks } from '@/features/badges/week-results';
@@ -89,14 +90,17 @@ async function startServiceWorker() {
 
 /**
  * Prepares the local database on mount, keeps the exchange rates current, adds the fixed costs and income that are
- * due, saves the weeks that are over, keeps this phone's weekly reminder on its time zone and language, and starts the
- * service worker that opens the app offline (production builds only). Renders nothing.
+ * due, saves the weeks that are over, keeps this phone's weekly reminder on its time zone and language, starts the
+ * automatic sync of a linked phone, and starts the service worker that opens the app offline (production builds
+ * only). Renders nothing.
  */
 export function AppInit() {
   useEffect(() => {
     // An installed iPhone app can stay suspended for days without remounting, so check again on return.
     function onVisibilityChange() {
       if (document.visibilityState !== 'visible') return;
+      // A linked phone syncs on each return (automatic sync, docs/superpowers/plans/2026-11-10-automatic-sync.md).
+      void visitAutoSync('return');
       void refreshThenPost();
       void keepReminderInStep();
     }
@@ -105,6 +109,7 @@ export function AppInit() {
     // midnight post what came due and record the week that ended too (review, 09-11-2026). Cheap when nothing is due:
     // the rates are fetched at most once a day, and posting and recording are idempotent.
     function onFocus() {
+      void visitAutoSync('focus');
       void refreshThenPost();
     }
     window.addEventListener('focus', onFocus);
@@ -121,6 +126,7 @@ export function AppInit() {
 
     // The effect of a dev remount (StrictMode) must not mark the page once it has been cleaned up.
     let live = true;
+    let stopAutoSync = () => {};
 
     async function init() {
       // A sign-out whose wipe failed or never finished clears the phone first.
@@ -134,6 +140,12 @@ export function AppInit() {
       // the database is open, its schema created and its categories seeded. A bare data attribute, so nothing a person
       // or a screen reader meets changes, and no style reads it.
       if (live) document.documentElement.setAttribute(APP_READY_ATTRIBUTE, '');
+      // A linked phone syncs by itself from here on: on opening, returning, reconnecting, after a change and every
+      // minute while visible. After the ready signal, so nothing it waits for holds the page back.
+      if (live) {
+        stopAutoSync = startAutoSync();
+        void visitAutoSync('open');
+      }
       // Neither waits for the other: a hung connection holds the rates (and the posting after them) for the 10 s
       // fetch timeout, and some browsers hold the persistence promise open until the person answers a prompt.
       void refreshThenPost();
@@ -149,6 +161,7 @@ export function AppInit() {
 
     return () => {
       live = false;
+      stopAutoSync();
       document.documentElement.removeAttribute(APP_READY_ATTRIBUTE);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('focus', onFocus);

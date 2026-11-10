@@ -47,6 +47,7 @@ export const sync: Messages['sync'] = {
   section: {
     heading: 'Sincronización',
     syncNow: 'Sincronizar ahora',
+    automatic: 'Este móvil se sincroniza solo mientras la app está abierta. «Sincronizar ahora» lo hace al momento.',
   },
   link: {
     heading: 'Vincular este móvil',

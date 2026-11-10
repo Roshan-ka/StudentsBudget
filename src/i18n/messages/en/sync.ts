@@ -46,6 +46,8 @@ export const sync = {
   section: {
     heading: 'Sync',
     syncNow: 'Sync now',
+    /** Under the heading: the phone syncs by itself (automatic sync). */
+    automatic: 'This phone syncs by itself while the app is open. Sync now syncs straight away.',
   },
   /** Linking this phone on the account page (account-link.tsx). */
   link: {
