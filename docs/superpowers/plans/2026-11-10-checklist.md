@@ -63,6 +63,15 @@ So the checklist is a list of short actions, and links to a tip instead of repea
 - `src/i18n/city/{de,es,fr}/checklist.ts` holds the title, body and source by id.
 - `checklistIn()` goes in `src/i18n/city/index.ts`, with a `checklist` entry in `city.test.ts`'s `KINDS` and `allTexts`. Every number is kept, and French spacing applies.
 
+#### As built (chunk 2, 10-11-2026)
+
+- **Translations:** `src/i18n/city/{de,fr,es}/checklist.ts` holds every item's title, body and source.
+- **Wiring:** `ChecklistWords`, the `checklist` key in `CityWords` and `checklistIn()` live in `src/i18n/city/index.ts`.
+- **Tests:** `city.test.ts` now holds the checklist to the same rules as tips: every number kept, the item's own words, French spacing, and every item in every offered language.
+- **Sources:** an item that leans on a tip uses the tip's translated source word for word.
+- **Not read yet:** a native speaker hasn't read these, as with the rest of the city content.
+- **CI reach:** nothing shows them yet, but `src/i18n/city/index.ts` reaches Home and setup, so a changed run runs every spec.
+
 ### 3. The account's table
 - **Migration `checklist_ticks`:** a copy of `discount_votes`'s shape and rules:
   - `user_id` cascades from `auth.users`;
