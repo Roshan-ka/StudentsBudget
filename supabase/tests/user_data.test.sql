@@ -13,7 +13,7 @@ select plan(12);
 create temporary table user_tables (name text primary key) on commit drop;
 insert into user_tables
 values ('accounts'), ('entries'), ('plans'), ('guesses'), ('manual_rates'), ('week_results'), ('discount_votes'),
-  ('profiles');
+  ('profiles'), ('checklist_ticks');
 grant select on user_tables to authenticated, anon;
 
 insert into auth.users (id, email)
@@ -38,14 +38,16 @@ end;
 $$;
 grant execute on function pg_temp.act_as(text) to authenticated, anon;
 
--- 1. Exactly the eight tables, plus the hacks feed's (public_profiles.test.sql, hacks.test.sql), each with row-level security on.
+-- 1. Exactly the nine tables (checklist_ticks since 20261110122750_checklist_ticks.sql), plus the hacks feed's
+-- (public_profiles.test.sql, hacks.test.sql), each with row-level security on.
 select tables_are(
   'public',
   array[
     'accounts', 'entries', 'plans', 'guesses', 'manual_rates', 'week_results', 'discount_votes', 'profiles',
+    'checklist_ticks',
     'public_profiles', 'hacks', 'hack_votes', 'hack_reports', 'push_subscriptions'
   ],
-  'public holds exactly the eight user-data tables, the hacks feed''s four and the reminders'
+  'public holds exactly the nine user-data tables, the hacks feed''s four and the reminders'
 );
 
 select is_empty(

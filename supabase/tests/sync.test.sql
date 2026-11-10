@@ -10,7 +10,7 @@ select plan(20);
 create temporary table user_tables (name text primary key) on commit drop;
 insert into user_tables
 values ('accounts'), ('entries'), ('plans'), ('guesses'), ('manual_rates'), ('week_results'), ('discount_votes'),
-  ('profiles');
+  ('profiles'), ('checklist_ticks');
 grant select on user_tables to authenticated, anon;
 
 insert into auth.users (id, email)
