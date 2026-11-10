@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { CHECKLIST } from '@/data/checklist';
 import { CITIES } from '@/data/cities';
 import { DISCOUNTS } from '@/data/discounts';
 import { SWAPS } from '@/data/swaps';
@@ -15,12 +16,13 @@ describe('the city pack', () => {
     expect(readFileSync('supabase/functions/_shared/ai/city-pack.ts', 'utf8')).toBe(cityPackFile(buildCityPack(), buildCategories()));
   });
 
-  it('has every tip, discount and swap, each item once', () => {
+  it('has every tip, discount, swap and checklist item, each item once', () => {
     const ids = CITY_PACK.map((item) => item.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const tip of TIPS) expect(ids).toContain(`tip:${tip.id}`);
     for (const discount of DISCOUNTS) expect(ids).toContain(`discount:${discount.id}`);
     for (const swap of SWAPS) expect(ids).toContain(`swap:${swap.id}`);
+    for (const item of CHECKLIST) expect(ids).toContain(`checklist:${item.id}`);
     for (const range of CITIES.regensburg.ranges) expect(ids).toContain(`range:${range.categoryId}`);
   });
 
@@ -45,5 +47,16 @@ describe('the city pack', () => {
     expect(estimate('range:eating-out')).toBe(true);
     expect(estimate('range:rent')).toBe(false);
     expect(renderPack(CITY_PACK)).toContain('[range:eating-out] Eating out in Regensburg: €30–€135 a month. (estimate) Source: Estimate;');
+  });
+
+  it('says each checklist item’s group and who it is for, in the words of its title and text', () => {
+    const text = (id: string) => CITY_PACK.find((item) => item.id === `checklist:${id}`)?.text;
+    expect(text('register-your-address')).toBe(
+      'Checklist for new students (first weeks): Register your address. Register at the city’s registration office within two weeks of moving in.',
+    );
+    expect(text('residence-permit')).toMatch(/^Checklist for new students \(first weeks, for students from abroad\): Apply for your residence permit\. /);
+    expect(text('keep-kindergeld')).toMatch(/^Checklist for new students \(money to claim, for students under 25\): /);
+    expect(text('rundfunkbeitrag-exemption')).toMatch(/^Checklist for new students \(money to claim, for students on BAföG\): /);
+    for (const item of CITY_PACK.filter((i) => i.kind === 'checklist')) expect(item.categoryId, item.id).toBeNull();
   });
 });

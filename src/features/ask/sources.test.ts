@@ -36,4 +36,16 @@ describe('askSourcesOf', () => {
     const [range] = askSourcesOf(['range:rent'], MESSAGES.de, 'de', 'de-DE');
     expect(range.name).toBe(MESSAGES.de.categories.rent);
   });
+
+  it('shows a cited checklist item with its own source and link, named in the phone’s language', () => {
+    const [english] = askSourcesOf(['checklist:register-your-address'], MESSAGES.en, 'en', 'en-IE');
+    expect(english).toMatchObject({ id: 'checklist:register-your-address', name: 'Register your address', nameLang: undefined });
+    expect(english.parts).toEqual([
+      expect.objectContaining({ label: 'Register your address', url: 'https://www.gesetze-im-internet.de/bmg/__17.html' }),
+    ]);
+    const [german] = askSourcesOf(['checklist:register-your-address'], MESSAGES.de, 'de', 'de-DE');
+    expect(german.nameLang).toBeUndefined();
+    expect(german.name).not.toBe('Register your address');
+    expect(german.parts[0].url).toBe(english.parts[0].url);
+  });
 });
