@@ -30,7 +30,7 @@ export type AiCallResult<Answer> =
 
 /**
  * How long each feature waits for its answer by default. Quick add then reads the line on the phone; Ask and the setup
- * chat run on Opus, which takes 5 to 20 seconds, more with its server-side fallbacks.
+ * chat think before they answer, which takes several seconds.
  */
 export const AI_TIMEOUT_MS: Record<AiFeature, number> = { 'quick-add': 8_000, ask: 60_000, setup: 60_000 };
 

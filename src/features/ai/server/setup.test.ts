@@ -15,7 +15,7 @@ import {
   setupSystem,
 } from '../../../../supabase/functions/_shared/ai/setup';
 
-// The setup chat on the server (the AI phase, chunk 11): the call to Claude Opus 5.5 and the patch held to what could
+// The setup chat on the server (the AI phase, chunk 11): the call to Claude Haiku 5.5 and the patch held to what could
 // be true.
 
 const REQUEST: SetupRequest = {
@@ -33,13 +33,13 @@ const REQUEST: SetupRequest = {
 const NONE: SetupPatch = { rent: null, incomes: [], fixed: [], envelopes: [], spendingBudget: null, accounts: null };
 
 describe('the call', () => {
-  it('asks Claude Opus 5.5 at medium effort, thinking, with fallbacks, for the setup answer', () => {
+  it('asks Claude Haiku 5.5 at medium effort, thinking, without fallbacks (it has none), for the setup answer', () => {
     expect(setupBuilder.call(REQUEST)).toMatchObject({
-      model: 'claude-opus-5-5',
+      model: 'claude-haiku-5-5',
       maxTokens: 8000,
       effort: 'medium',
       thinking: true,
-      fallbacks: true,
+      fallbacks: false,
       system: setupSystem(),
       answer: setupAnswer,
       timeoutMs: 55_000,
@@ -137,7 +137,7 @@ describe('the setup chat through the function', () => {
     };
     const calls: ModelCall[] = [];
     const message: ModelMessage = {
-      model: 'claude-opus-5-5',
+      model: 'claude-haiku-5-5',
       stop_reason: 'end_turn',
       content: [{ type: 'thinking' }, { type: 'text', text: JSON.stringify(answer) }],
       usage: { input_tokens: 4000, output_tokens: 500 },
@@ -168,6 +168,6 @@ describe('the setup chat through the function', () => {
       answer: { ...answer, patch: { ...answer.patch, incomes: [{ categoryId: 'income-job', amount: 520 }] } },
       left: 14,
     });
-    expect(calls[0].fallbacks).toBe(true);
+    expect(calls[0]).toMatchObject({ model: 'claude-haiku-5-5', fallbacks: false });
   });
 });

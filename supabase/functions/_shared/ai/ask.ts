@@ -1,5 +1,5 @@
 // Ask on the server (the AI phase, chunk 8, docs/superpowers/plans/2026-11-09-ai-phase-1.md): how a student's question
-// about their own budget goes to Claude Opus 5.5, and what the app gets back.
+// about their own budget goes to Claude Haiku 5.5, and what the app gets back.
 //
 // The system prompt is the rules and the city pack (city-pack.ts): the same for everyone, so the API caches it. The
 // student's snapshot (built on the phone, chunk 9) goes in the first message, inside <budget_data>; each question
@@ -125,11 +125,13 @@ export function finishAsk(answer: AskAnswer, request: AskRequest, pack: readonly
 export const askBuilder: FeatureBuilder<AskRequest> = {
   call(request): ModelCall {
     return {
-      model: 'claude-opus-5-5',
+      // Haiku 5.5, not Opus (Roshan, 10-11-2026): about 40 times cheaper, behind the same checks. Its adaptive thinking
+      // stays on; it has no server-side fallback, so a refusal is the answer.
+      model: 'claude-haiku-5-5',
       maxTokens: 6000,
       effort: 'medium',
       thinking: true,
-      fallbacks: true,
+      fallbacks: false,
       system: askSystem(),
       messages: askMessages(request),
       answer: askAnswer,

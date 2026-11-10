@@ -207,7 +207,7 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
     - It sends nothing when the build or the switch says no, offline, signed out, or for a request outside the contract.
     - It gives up after 8 s for quick add and 60 s for Ask and the setup chat.
     - It never hands on an answer that came after the caller aborted.
-  - **The models:** quick add on `claude-haiku-5-5`; Ask and the setup chat on `claude-opus-5-5`, with server-side fallbacks. The answers use structured outputs, and the server holds each to its request (`finishQuickAdd`, `finishAsk`, `finishSetup`).
+  - **The models:** all three on `claude-haiku-5-5` (Roshan, 10-11-2026: Ask and the setup chat moved from Opus to keep the cost near zero; Opus is a switch back in `ask.ts` and `setup.ts`). Haiku has no server-side fallbacks, so none are sent. The answers use structured outputs, and the server holds each to its request (`finishQuickAdd`, `finishAsk`, `finishSetup`).
   - **What is never sent:** a balance, an account's id, the email or the username. The function scrubs every text (IBANs, cards, SEPA fields, emails, phone numbers; `scrub`), and Ask's snapshot scrubs its notes on the phone too.
   - **Sources:**
     - The model cites city data only by pack id (`city-pack.ts`, written from `src/data` by `scripts/write-city-pack.mjs`; a test fails while it is stale).
