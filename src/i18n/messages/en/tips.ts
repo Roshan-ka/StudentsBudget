@@ -2,7 +2,7 @@
 // themselves are city content (src/data), translated by item in src/i18n/city.
 
 export const tips = {
-  tabsLabel: 'Tips, discounts or hacks',
+  tabsLabel: 'Tips, discounts, hacks or checklist',
   tips: 'Tips',
   discounts: 'Discounts',
   all: 'All',
@@ -35,6 +35,23 @@ export const tips = {
     failed: (place: string) => `${place}: could not save your answer. Try again.`,
   },
   /** The hacks feed: money-saving posts by students (docs/superpowers/plans/2026-11-05-hacks-feed.md). */
+  /** The Checklist tab (checklist plan, chunk 5): src/data/checklist.ts. */
+  checklist: {
+    tab: 'Checklist',
+    intro:
+      'What to get done in your first weeks, and money you may be able to claim. Each item says where it comes from. ' +
+      'Your ticks are saved on this phone, and in your account once the phone is linked.',
+    groups: { 'first-weeks': 'First weeks', money: 'Money to claim' },
+    who: { everyone: 'Everyone', 'from-abroad': 'From outside the EU', bafoeg: 'On BAföG', 'under-25': 'Under 25' },
+    progress: (done: number, total: number) => `${done} of ${total} done`,
+    mark: 'Done',
+    doneOn: (date: string) => `Done on ${date}`,
+    /** The checkbox's name: its visible word, then the item. */
+    markNamed: (title: string) => `Done: ${title}`,
+    seeTip: 'See the tip',
+    seeTipNamed: (title: string) => `See the tip: ${title}`,
+    saveFailed: 'Could not save the tick. Try again.',
+  },
   hacks: {
     tab: 'Hacks',
     intro:

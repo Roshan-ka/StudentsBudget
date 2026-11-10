@@ -63,7 +63,7 @@ async function signIn(page: Page) {
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
 }
 
-function tab(page: Page, name = 'Hacks', tablist = 'Tips, discounts or hacks') {
+function tab(page: Page, name = 'Hacks', tablist = 'Tips, discounts, hacks or checklist') {
   return page.getByRole('tablist', { name: tablist, exact: true }).getByRole('tab', { name, exact: true });
 }
 
@@ -150,7 +150,7 @@ test.describe('in German', () => {
     await expect(page.getByText(`Angemeldet als ${EMAIL}.`, { exact: true })).toBeVisible();
 
     await page.goto('/tips');
-    await tab(page, 'Hacks', 'Tipps, Rabatte oder Hacks').click();
+    await tab(page, 'Hacks', 'Tipps, Rabatte, Hacks oder Checkliste').click();
     const bread = posts(page, 'Beiträge').filter({ hasText: 'Bread is half price' });
     await expect(bread).toContainText('@bea · Mit Abschluss · Jahrgang 2025');
     await expect(bread).toContainText('Daumen hoch: 3 · Hat geklappt: 2 · Veraltet: 1');
