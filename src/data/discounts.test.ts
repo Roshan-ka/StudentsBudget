@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { todayIso } from '@/lib/dates';
 import { CATEGORIES } from './categories';
 import { DISCOUNTS } from './discounts';
+import { REGENSBURG_BOX } from './regensburg-box';
 
 function isRealIsoDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -37,6 +39,37 @@ describe('Regensburg discounts', () => {
       expect(d.source.trim(), `${d.id} source`).not.toBe('');
       expect(d.url, `${d.id} url`).toMatch(/^https:\/\/\S+$/);
       expect(isRealIsoDate(d.checked), `${d.id} checked`).toBe(true);
+    }
+  });
+
+  it('every discount has a position in the Regensburg box, from an OpenStreetMap element, with a real date', () => {
+    const today = todayIso();
+    for (const d of DISCOUNTS) {
+      const at = d.location;
+      expect(at, `${d.id} location`).toBeDefined();
+      if (at === undefined) continue;
+      expect(at.lat, `${d.id} lat`).toBeGreaterThanOrEqual(REGENSBURG_BOX.south);
+      expect(at.lat, `${d.id} lat`).toBeLessThanOrEqual(REGENSBURG_BOX.north);
+      expect(at.lng, `${d.id} lng`).toBeGreaterThanOrEqual(REGENSBURG_BOX.west);
+      expect(at.lng, `${d.id} lng`).toBeLessThanOrEqual(REGENSBURG_BOX.east);
+      // To 5 decimals, about a metre: more would claim a precision the lookup doesn't have.
+      expect(Number(at.lat.toFixed(5)), `${d.id} lat decimals`).toBe(at.lat);
+      expect(Number(at.lng.toFixed(5)), `${d.id} lng decimals`).toBe(at.lng);
+      expect(at.source, `${d.id} source`).toBe('OpenStreetMap');
+      expect(at.url, `${d.id} url`).toMatch(/^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/);
+      expect(isRealIsoDate(at.checked), `${d.id} checked`).toBe(true);
+      expect(at.checked <= today, `${d.id} checked ${at.checked} is not after today`).toBe(true);
+    }
+  });
+
+  it('discounts at one address share one position, and discounts at different addresses never do', () => {
+    // The map groups discounts at one spot into one pin (Haidplatz 8 has two).
+    for (const a of DISCOUNTS) {
+      for (const b of DISCOUNTS) {
+        if (a === b || a.location === undefined || b.location === undefined) continue;
+        const samePlace = a.location.lat === b.location.lat && a.location.lng === b.location.lng;
+        expect(samePlace, `${a.id} and ${b.id}`).toBe(a.address === b.address);
+      }
     }
   });
 
