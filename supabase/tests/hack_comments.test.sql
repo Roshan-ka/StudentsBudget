@@ -86,49 +86,59 @@ as $$
   select c.id from public.hack_comments c where c.body like start || '%';
 $$;
 
--- `who` comments `body` on the post starting with `post`, at aal1: the comment's id.
+-- `who` comments `body` on the post starting with `post`, at aal1: the comment's id. The post is looked up first: as
+-- `who`, row-level security would hide another account's post.
 create function pg_temp.comment_as(who text, post text, body text)
 returns uuid
 language plpgsql
 as $$
 declare
+  hack uuid := pg_temp.post_id(post);
   made uuid;
 begin
   perform pg_temp.act_as(who, 'aal1');
-  made := public.post_comment(pg_temp.post_id(post), body, 'en');
+  made := public.post_comment(hack, body, 'en');
   execute 'reset role';
   return made;
 end;
 $$;
 
--- The comments `who` sees on the post starting with `post`, by their first word, in the order given.
+-- The comments `who` sees on the post starting with `post`, by their first word, in the order given (the post looked
+-- up first, as in comment_as).
 create function pg_temp.comments_of(who text, post text)
 returns table (n bigint, word text, username text, mine boolean)
 language plpgsql
 as $$
 #variable_conflict use_column
+declare
+  hack uuid := pg_temp.post_id(post);
 begin
   perform pg_temp.act_as(who, 'aal1');
   return query
     select row_number() over (), split_part(c.body, ' ', 1), c.username, c.mine
-    from public.comments_for(pg_temp.post_id(post)) c;
+    from public.comments_for(hack) c;
   execute 'reset role';
 end;
 $$;
 
--- The comment counts `who` sees, by the posts' first word.
+-- The comment counts `who` sees, by the posts' first word: read as `who`, then named as the owner (as `who`, row-level
+-- security would hide another account's posts).
 create function pg_temp.counts_of(who text)
 returns table (word text, comments bigint)
 language plpgsql
 as $$
 #variable_conflict use_column
+declare
+  got jsonb;
 begin
   perform pg_temp.act_as(who, 'aal1');
-  return query
-    select split_part(h.body, ' ', 1), k.comments
-    from public.comment_counts() k join public.hacks h on h.id = k.hack_id
-    order by 1;
+  select coalesce(jsonb_agg(jsonb_build_object('hack', k.hack_id, 'n', k.comments)), '[]'::jsonb) into got
+  from public.comment_counts() k;
   execute 'reset role';
+  return query
+    select split_part(h.body, ' ', 1), (e ->> 'n')::bigint
+    from jsonb_array_elements(got) e join public.hacks h on h.id = (e ->> 'hack')::uuid
+    order by 1;
 end;
 $$;
 
