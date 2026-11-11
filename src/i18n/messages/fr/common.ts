@@ -63,8 +63,9 @@ export const common: Messages['common'] = {
       'Avec un compte, tes votes y vont quand tu synchronises, et comptent dans les totaux que les autres ' +
       'étudiants voient pour ce semestre. Personne ne voit qui a voté.',
     post:
-      'Tous les étudiants qui ont un compte peuvent lire ta publication, avec ton nom d’utilisateur, ton statut et ' +
-      'ta promo, voter ou la signaler. Tu peux la supprimer à tout moment.',
+      'Tous les étudiants qui ont un compte peuvent lire ce que tu publies ici, une astuce, un commentaire ou une ' +
+      `réduction, avec ton nom d’utilisateur, ton statut et ta promo, et le signaler${NNBSP}; ils peuvent aussi voter ` +
+      'sur les astuces et les réductions. Tu peux le supprimer à tout moment.',
     hackVotes:
       `Tes votes comptent dans les totaux que tous les étudiants voient sur la publication${NNBSP}; personne ne ` +
       'voit qui a voté. Un signalement cache la publication pour toi tout de suite, et pour tous quand assez ' +

@@ -25,6 +25,8 @@ import {
   translateUrl,
   type HackPost,
 } from './feed';
+import { readCommentCounts } from './comments';
+import { HackComments } from './hack-comments';
 import { HackForm } from './hack-form';
 import { postingNameText } from './posting-name';
 import { deleteHack } from './posts';
@@ -53,6 +55,8 @@ export function HacksView() {
   // The post form (chunk 5), and what a screen reader hears after a post or a delete.
   const [writing, setWriting] = useState(false);
   const [status, setStatus] = useState('');
+  // How many comments each post has (community, chunk 2), read once per visit with the list.
+  const [commentCounts, setCommentCounts] = useState<ReadonlyMap<string, number>>(new Map());
 
   useEffect(() => {
     if (userId === null) return;
@@ -76,6 +80,9 @@ export function HacksView() {
       saveFeedCache(userId, posts, loadedAt);
       setShown({ userId, posts, loadedAt, fresh: true });
       setFailed(false);
+      // Without the counts the posts still show, each with a plain "Comments".
+      const counts = supabase === null ? null : await readCommentCounts(supabase);
+      if (current) setCommentCounts(counts ?? new Map());
     })();
     return () => {
       current = false;
@@ -216,7 +223,17 @@ export function HacksView() {
       {listed.length > 0 && (
         <ul aria-label={text.posts} className="flex flex-col gap-3">
           {listed.map((post) => (
-            <HackCard key={post.id} post={post} t={t} lang={lang} onDelete={remove} onVote={vote} onReport={report} />
+            <HackCard
+              key={post.id}
+              post={post}
+              t={t}
+              lang={lang}
+              onDelete={remove}
+              onVote={vote}
+              onReport={report}
+              commentCount={commentCounts.get(post.id) ?? 0}
+              onCommentCount={(count) => setCommentCounts((now) => new Map(now).set(post.id, count))}
+            />
           ))}
         </ul>
       )}
@@ -241,6 +258,8 @@ function HackCard({
   onDelete,
   onVote,
   onReport,
+  commentCount,
+  onCommentCount,
 }: {
   post: HackPost;
   t: Messages;
@@ -248,6 +267,8 @@ function HackCard({
   onDelete: (id: string) => Promise<boolean>;
   onVote: (post: HackPost, button: VoteButton) => Promise<string | null>;
   onReport: (post: HackPost) => Promise<string | null>;
+  commentCount: number;
+  onCommentCount: (count: number) => void;
 }) {
   const text = t.tips.hacks;
   const Icon = CATEGORY_ICONS[post.categoryId] ?? OTHER_ICON;
@@ -458,6 +479,7 @@ function HackCard({
           {problem}
         </p>
       )}
+      <HackComments postId={post.id} count={commentCount} t={t} lang={lang} onCount={onCommentCount} />
     </li>
   );
 }

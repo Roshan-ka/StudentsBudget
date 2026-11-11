@@ -136,6 +136,40 @@ export const tips = {
       kept: 'Kept: it shows again.',
       failed: "That didn't work. Try again.",
     },
+    /** Comments on a post (community, chunk 2): flat, oldest first. */
+    comments: {
+      /** The button that opens a post's comments, with how many there are. */
+      toggle: (count: number) => (count === 0 ? 'Comments' : `Comments (${count})`),
+      list: 'Comments',
+      loading: 'Loading the comments…',
+      loadFailed: "The comments couldn't be loaded. Try again later.",
+      none: 'No comments yet.',
+      body: 'Your comment',
+      bodyHint: '3 to 300 characters. Every student with an account can read it.',
+      post: 'Post comment',
+      posted: 'Comment posted.',
+      yours: 'Your comment',
+      nameFirst: 'First pick the name your posts go by: Settings → Your account → Your name on posts.',
+      errors: {
+        short: 'Write at least 3 characters.',
+        long: 'Keep it to 300 characters.',
+        dailyLimit: "You've written 20 comments in a day. Comment again tomorrow.",
+        gone: "This post isn't there anymore.",
+        invalid: "The comment couldn't be saved as it is. Check the text.",
+        offline: "You're offline. Commenting needs a connection.",
+        failed: "The comment couldn't be saved. Try again.",
+      },
+      /** A comment's Report, Delete and Translate say which comment, as a post's do. */
+      which: (author: string | null, date: string) =>
+        author === null ? `a comment from ${date}` : `the comment by ${author}, ${date}`,
+      whichMine: (date: string) => `your comment, ${date}`,
+      deleteQuestion: 'Delete this comment? Nobody will see it anymore.',
+      deleted: 'Comment deleted.',
+      deleteFailed: "The comment couldn't be deleted. Try again.",
+      reportQuestion: 'Report this comment? It disappears for you at once, and for everyone once enough students report it.',
+      reported: 'Reported. You won’t see this comment anymore.',
+      reportFailed: "The report couldn't be sent. Try again.",
+    },
     translate: 'Translate',
     counts: (ups: number, worked: number, outdated: number) =>
       `Upvotes: ${ups} · Worked: ${worked} · Outdated: ${outdated}`,

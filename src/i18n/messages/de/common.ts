@@ -61,8 +61,9 @@ export const common: Messages['common'] = {
       'Angemeldet gehen deine Stimmen beim Synchronisieren an dein Konto und zählen in den Summen, die andere ' +
       'Studierende für dieses Semester sehen. Niemand sieht, wer abgestimmt hat.',
     post:
-      'Alle Studierenden mit Konto können deinen Beitrag lesen, mit Benutzername, Status und Jahrgang, und ihn ' +
-      'bewerten oder melden. Du kannst ihn jederzeit löschen.',
+      'Alle Studierenden mit Konto können lesen, was du hier postest, einen Hack, einen Kommentar oder einen Rabatt, ' +
+      'mit Benutzername, Status und Jahrgang, und es melden; Hacks und Rabatte können sie auch bewerten. Du kannst ' +
+      'es jederzeit löschen.',
     hackVotes:
       'Deine Stimmen zählen in den Summen, die alle Studierenden am Beitrag sehen; niemand sieht, wer abgestimmt ' +
       'hat. Eine Meldung versteckt den Beitrag sofort für dich und für alle, wenn genug Studierende ihn gemeldet ' +

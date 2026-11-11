@@ -399,6 +399,19 @@ export type FeedRow = {
   my_verdict: 'worked' | 'outdated' | null;
 };
 
+/** One comment as the mock keeps it (community, chunk 2): `comments_for`'s row, with the post it is on. */
+export type CommentRow = {
+  id: string;
+  hack_id: string;
+  body: string;
+  lang: string;
+  created_at: string;
+  username: string | null;
+  label: string | null;
+  batch: number | null;
+  mine: boolean;
+};
+
 /** The claims of the mocked session that sent a request. */
 function claimsOf(request: Request): { sub?: string; aal?: string } {
   const token = (request.headers()['authorization'] ?? '').replace(/^Bearer /, '');
@@ -447,7 +460,10 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * answers `feed`, the posts as the database returns them (none by default); `rpc/post_hack` adds to it (an account in
  * `profiles` only, and none with `dailyLimit`), `rpc/delete_hack` takes one's own post out, `rpc/vote_hack` moves a
  * post's totals and `rpc/report_hack` takes it out, as for the reporter. `moderator` makes the account the app's
- * moderator: `rpc/moderation_queue` answers `queue` and `rpc/moderate_hack` changes it, at aal2 only.
+ * moderator: `rpc/moderation_queue` answers `queue` and `rpc/moderate_hack` changes it, at aal2 only. Comments
+ * (community, chunk 2) are kept in `comments`: `rpc/comments_for` answers a post's, oldest first, `rpc/comment_counts`
+ * counts them for the posts in `feed`, `rpc/post_comment` adds one (a username first, a post in `feed`, none with
+ * `commentLimit`), `rpc/delete_comment` takes one's own out and `rpc/report_comment` takes another's out.
  * `rpc/save_push_subscription` keeps a phone's weekly reminder in `reminders` by its address (with `twoStep`, at aal2
  * only), and a delete of `push_subscriptions` by `endpoint` takes the owner's row out. Returns the tables, to look at
  * and to seed.
@@ -462,6 +478,8 @@ export async function mockSupabaseData(
     profiles?: ServerProfiles;
     feed?: FeedRow[];
     dailyLimit?: boolean;
+    comments?: CommentRow[];
+    commentLimit?: boolean;
     moderator?: boolean;
     queue?: QueueRow[];
     reminders?: ServerReminders;
@@ -471,6 +489,7 @@ export async function mockSupabaseData(
   const tables: ServerTables = options.tables ?? new Map();
   const profiles: ServerProfiles = options.profiles ?? new Map();
   const feed: FeedRow[] = options.feed ?? [];
+  const comments: CommentRow[] = options.comments ?? [];
   const reminders: ServerReminders = options.reminders ?? new Map();
   const table = (name: string) => {
     if (!tables.has(name)) tables.set(name, new Map());
@@ -537,6 +556,58 @@ export async function mockSupabaseData(
         profiles.set(me, { username: row.username, label: row.label ?? null, batch: row.batch ?? null });
         return route.fulfill({ status: 201, headers: CORS });
       }
+    }
+    // Comments (community, chunk 2), on the posts in `feed`.
+    if (path === 'rpc/comment_counts' && request.method() === 'POST') {
+      const counts = new Map<string, number>();
+      for (const comment of comments) {
+        if (feed.some((post) => post.id === comment.hack_id)) counts.set(comment.hack_id, (counts.get(comment.hack_id) ?? 0) + 1);
+      }
+      return route.fulfill({ status: 200, headers: CORS, json: [...counts].map(([hackId, n]) => ({ hack_id: hackId, comments: n })) });
+    }
+    if (path === 'rpc/comments_for' && request.method() === 'POST') {
+      const { p_hack_id: hackId } = request.postDataJSON() as { p_hack_id: string };
+      const json = comments
+        .filter((comment) => comment.hack_id === hackId && feed.some((post) => post.id === hackId))
+        .map(({ id, body, lang, created_at, username, label, batch, mine }) => ({ id, body, lang, created_at, username, label, batch, mine }));
+      return route.fulfill({ status: 200, headers: CORS, json });
+    }
+    if (['rpc/post_comment', 'rpc/delete_comment', 'rpc/report_comment'].includes(path) && request.method() === 'POST') {
+      const refuse = (hint: string) =>
+        route.fulfill({ status: 400, headers: CORS, json: { code: 'P0001', message: hint, hint, details: null } });
+      if (path === 'rpc/post_comment') {
+        const sent = request.postDataJSON() as { p_hack_id: string; p_body: string; p_lang: string };
+        const profile = profiles.get(claimsOf(request).sub ?? '');
+        if (profile === undefined) return refuse('needs-username');
+        if (!feed.some((post) => post.id === sent.p_hack_id)) return refuse('not-found');
+        if (options.commentLimit) return refuse('daily-limit');
+        if (sent.p_body.length < 3 || sent.p_body.length > 300) {
+          return route.fulfill({ status: 400, headers: CORS, json: { code: '23514', message: 'check violation' } });
+        }
+        const id = randomUUID();
+        comments.push({
+          id,
+          hack_id: sent.p_hack_id,
+          body: sent.p_body,
+          lang: sent.p_lang,
+          created_at: new Date().toISOString(),
+          username: profile.username,
+          label: profile.label,
+          batch: profile.batch,
+          mine: true,
+        });
+        return route.fulfill({ status: 200, headers: CORS, json: id });
+      }
+      const { p_id: id } = request.postDataJSON() as { p_id: string };
+      const at = comments.findIndex((comment) => comment.id === id);
+      if (path === 'rpc/delete_comment') {
+        if (at < 0 || !comments[at].mine) return refuse('not-found');
+      } else {
+        if (at < 0) return refuse('not-found');
+        if (comments[at].mine) return refuse('own-post');
+      }
+      comments.splice(at, 1);
+      return route.fulfill({ status: 204, headers: CORS });
     }
     // hacks_feed: the posts the signed-in account may see (the hacks feed), as given in `feed`.
     if (path === 'rpc/hacks_feed' && request.method() === 'POST') {
