@@ -1,12 +1,12 @@
--- Discounts added from the app (community, chunk 4; migration 20261111101604_community_discounts.sql). Run with
--- `npm run test:db`. Everything happens in one transaction that is rolled back. Users are played as in hacks.test.sql.
+-- Discounts added from the app (community, chunk 4; migration 20261111101604_community_discounts.sql), and their
+-- positions (discount map, chunk 7; 20261111151901_discount_positions.sql). Run with `npm run test:db`. Everything happens in one transaction that is rolled back. Users are played as in hacks.test.sql.
 --   A (roshan) adds discounts. B votes. C, D, E, F and 4 report. 1 moderates. 2 has two-step sign-in. 3 has no
 --   username.
 
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(35);
+select plan(41);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -99,6 +99,19 @@ begin
 end;
 $$;
 
+-- The positions in the list `who` gets, by place.
+create function pg_temp.positions_of(who text)
+returns table (place text, lat double precision, lng double precision)
+language plpgsql
+as $$
+#variable_conflict use_column
+begin
+  perform pg_temp.act_as(who, 'aal1');
+  return query select f.place, f.lat, f.lng from public.community_discounts_feed() f;
+  execute 'reset role';
+end;
+$$;
+
 -- The moderator's queue, as 1 at aal2, by place.
 create function pg_temp.queue()
 returns table (place text, reports bigint, hidden_by_hand boolean, hidden_by_reports boolean)
@@ -132,7 +145,8 @@ select is_empty(
 );
 select is_empty(
   $$ select f from unnest(array[
-       'public.post_discount(text, text, text, text, text, text, text)', 'public.delete_discount(uuid)',
+       'public.post_discount(text, text, text, text, text, text, text, double precision, double precision)',
+       'public.delete_discount(uuid)',
        'public.report_discount(uuid)', 'public.community_discounts_feed()', 'public.discount_queue()',
        'public.moderate_discount(uuid, text)'
      ]) f
@@ -148,8 +162,9 @@ select ok(
 select is(
   pg_get_function_result('public.community_discounts_feed()'::regprocedure),
   'TABLE(id uuid, place text, address text, offer text, conditions text, category text, link text, lang text, '
-    || 'created_at timestamp with time zone, username text, label text, batch smallint, mine boolean)',
-  'community_discounts_feed returns the discounts with usernames, and no user id'
+    || 'created_at timestamp with time zone, username text, label text, batch smallint, mine boolean, '
+    || 'lat double precision, lng double precision)',
+  'community_discounts_feed returns the discounts with usernames and positions, and no user id'
 );
 select ok(
   position('user_id' in pg_get_function_result('public.discount_queue()'::regprocedure)) = 0,
@@ -326,7 +341,39 @@ select results_eq(
   'a deleted and a hidden discount leave the list'
 );
 
--- 9. A discount and its reports go with the account that made them.
+-- 9. Positions (discount map, chunk 7): optional, both or neither, inside the box the map covers.
+select hasnt_function(
+  'public', 'post_discount', array['text', 'text', 'text', 'text', 'text', 'text', 'text'],
+  'the 7-argument post_discount is gone, so a call has one function to match'
+);
+select is(
+  pg_temp.call_as('b', 'aal1', $$ select public.post_discount('Pinned shop', null, 'Ten percent off', null, 'food', 'https://x.de', 'en', 49.01936, 12.08965) $$),
+  'ok',
+  'B adds a discount with a position'
+);
+select results_eq(
+  $$ select place, lat, lng from pg_temp.positions_of('c') where place in ('Pinned shop', 'Twostep Cafe') order by place $$,
+  $$ values ('Pinned shop'::text, 49.01936::double precision, 12.08965::double precision),
+            ('Twostep Cafe'::text, null::double precision, null::double precision) $$,
+  'the list gives a pinned discount its position, and one without a pin none'
+);
+select is(
+  pg_temp.call_as('b', 'aal1', $$ select public.post_discount('Half shop', null, 'Ten percent off', null, 'food', 'https://x.de', 'en', 49.01936, null) $$),
+  '23514',
+  'half a position is refused'
+);
+select is(
+  pg_temp.call_as('b', 'aal1', $$ select public.post_discount('Munich shop', null, 'Ten percent off', null, 'food', 'https://x.de', 'en', 48.13743, 11.57549) $$),
+  '23514',
+  'a position outside Regensburg''s box is refused'
+);
+select is(
+  pg_temp.call_as('b', 'aal1', $$ select public.post_discount('Edge shop', null, 'Ten percent off', null, 'food', 'https://x.de', 'en', 49.02, 12.21) $$),
+  '23514',
+  'a position just east of the box is refused'
+);
+
+-- 10. A discount and its reports go with the account that made them.
 delete from auth.users where id = '00000000-0000-4000-8000-00000000000a';
 select is_empty(
   $$ select 1 from public.community_discounts where user_id = '00000000-0000-4000-8000-00000000000a'
