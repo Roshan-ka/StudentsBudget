@@ -77,7 +77,7 @@ test('a first post is checked, waits for its note, and shows as one’s own', as
   // The first post on this phone says who will see it; Cancel sends nothing.
   await form(page).getByRole('button', { name: 'Post', exact: true }).click();
   const note = form(page).getByRole('group', { name: 'About your data', exact: true });
-  await expect(note).toContainText('Every student with an account can read your post');
+  await expect(note).toContainText('Every student with an account can read what you post here');
   await note.getByRole('button', { name: 'Cancel', exact: true }).click();
   expect(calls).toHaveLength(0);
 

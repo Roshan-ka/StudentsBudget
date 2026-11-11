@@ -112,3 +112,15 @@ Chunks 1 and 4 (the database) touch no shared files and could run in parallel. S
     - `comments_for` (oldest first, at most 200, no user id) and `comment_counts`;
     - `comment_queue` and `moderate_comment`, for a moderator at aal2.
   - **Tests:** `supabase/tests/hack_comments.test.sql` has 36 tests, and `user_data.test.sql`'s table list gains the two tables.
+- **Chunk 1, a CI fix:** the test helpers looked up a post after switching to the test user, whom RLS lets read only their own posts. They now look it up as the owner (run 42995900743).
+- **Chunk 2** (11-11-2026), comments in the app:
+  - **`src/features/hacks/comments.ts`:** `commentOf`, `readComments`, `readCommentCounts`, `checkComment` (3–300, read from the migration in its test), `postComment` (`needs-username`, `daily-limit`, `gone`, `invalid`, `failed`), `deleteComment` and `reportComment`.
+  - **`HackComments`** (`hack-comments.tsx`) sits under each post:
+    - "Comments (n)" opens the list, oldest first, and a short form;
+    - the first comment waits for the `post` note, and the first report for the `hackVotes` note;
+    - one's own comment has Delete, others' have Report (after a question) and Translate;
+    - names follow the per-item rule ("Report: the comment by @bea, 11.11.2026");
+    - a missing name points to Settings → Your account → Your name on posts.
+  - **`HacksView`** reads `comment_counts` once per visit, after the feed.
+  - **Texts:** `tips.hacks.comments` in four languages. The `post` note now covers hacks, comments and discounts in four languages, and `hacks-post.spec` follows it.
+  - **e2e mock:** a `comments` option (`CommentRow`) answers the five functions, and `commentLimit` refuses.
