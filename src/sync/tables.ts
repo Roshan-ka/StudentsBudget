@@ -1,8 +1,8 @@
 import type { BackupData } from '@/db/bulk';
 
 /**
- * The account's tables (supabase/migrations/20261023121726_user_data.sql, and checklist_ticks from
- * 20261110122750_checklist_ticks.sql), in the order they are saved.
+ * The account's tables (supabase/migrations/20261023121726_user_data.sql, checklist_ticks from
+ * 20261110122750_checklist_ticks.sql and plan_months from 20261110134042_plan_months.sql), in the order they are saved.
  */
 export const SERVER_TABLES = [
   'accounts',
@@ -14,6 +14,7 @@ export const SERVER_TABLES = [
   'discount_votes',
   'profiles',
   'checklist_ticks',
+  'plan_months',
 ] as const;
 
 export type ServerTable = (typeof SERVER_TABLES)[number];
@@ -33,6 +34,7 @@ export function byTable<T>(make: (table: ServerTable) => T): Record<ServerTable,
     discount_votes: make('discount_votes'),
     profiles: make('profiles'),
     checklist_ticks: make('checklist_ticks'),
+    plan_months: make('plan_months'),
   };
 }
 
@@ -52,6 +54,7 @@ export function serverRowsOf(d: BackupData): Record<ServerTable, ServerRow[]> {
     discount_votes: d.discountVotes.map((v) => ({ id: v.discountId, data: v })),
     profiles: d.profile ? [{ id: d.profile.id, data: d.profile }] : [],
     checklist_ticks: d.checklistTicks.map((t) => ({ id: t.itemId, data: t })),
+    plan_months: d.planMonths.map((m) => ({ id: m.month, data: m })),
   };
 }
 
@@ -78,6 +81,7 @@ const DEXIE_SYNC: Readonly<Record<string, DexieSync>> = {
   discountVotes: { server: 'discount_votes', idOf: stringKey },
   profile: { server: 'profiles', idOf: stringKey },
   checklistTicks: { server: 'checklist_ticks', idOf: stringKey },
+  planMonths: { server: 'plan_months', idOf: stringKey },
 };
 
 /** How the Dexie table `name` syncs, or null when it stays on the phone. */
@@ -103,6 +107,8 @@ const DEXIE_HOME = byTable((table): DexieHome => {
       return { dexie: 'profile', keyOf: (id) => id };
     case 'checklist_ticks':
       return { dexie: 'checklistTicks', keyOf: (id) => id };
+    case 'plan_months':
+      return { dexie: 'planMonths', keyOf: (id) => id };
     default:
       return { dexie: table, keyOf: (id) => id };
   }

@@ -78,6 +78,18 @@ describe('pull', () => {
     expect(await cursor()).toBe(1);
   });
 
+  it('brings a month of plan history, and its tombstone', async () => {
+    const { store } = fakeStore();
+    const october = { month: '2026-10', incomes: [], fixed: [], oneOffs: [], envelopes: [{ categoryId: 'food', monthlyMinor: 20_000 }] };
+    await store.upsert('plan_months', [{ id: '2026-10', data: october }]);
+    await pull(store);
+    expect(await db.planMonths.get('2026-10')).toEqual(october);
+    expect(await queued()).toEqual([]);
+    await store.tombstone('plan_months', ['2026-10']);
+    await pull(store);
+    expect(await db.planMonths.count()).toBe(0);
+  });
+
   it('refuses a row filed under another id', async () => {
     const { store } = fakeStore();
     await store.upsert('entries', [{ id: 'e1', data: expense('e9') }]);

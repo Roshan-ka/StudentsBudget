@@ -26,6 +26,7 @@ describe('planDownload', () => {
       discountVotes: [],
       profile: null,
       checklistTicks: [],
+      planMonths: [],
     });
     const result = await planDownload(store, empty);
     expect(result.kind).toBe('ready');
@@ -40,6 +41,7 @@ describe('planDownload', () => {
     expect(result.data.discountVotes).toEqual(phoneA.discountVotes);
     expect(result.data.profile).toEqual(phoneA.profile);
     expect(result.data.checklistTicks).toEqual(phoneA.checklistTicks);
+    expect(result.data.planMonths).toEqual(phoneA.planMonths);
     // The built-in categories come from the app, the manual rate from the account, and the ECB rate stays phone B's.
     expect(result.data.categories).toEqual(CATEGORIES);
     expect(result.data.fxRates).toEqual([ecbOnB, MANUAL]);

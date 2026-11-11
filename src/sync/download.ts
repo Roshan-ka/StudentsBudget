@@ -43,8 +43,7 @@ export async function planDownload(store: UserDataStore, phone: BackupData): Pro
       discountVotes: rows.discount_votes.map(ROW_CHECKS.discount_votes),
       profile: profiles[0] ?? null,
       checklistTicks: rows.checklist_ticks.map(ROW_CHECKS.checklist_ticks),
-      // The account keeps no plan history until it has the table (plan history, chunk 4).
-      planMonths: [],
+      planMonths: rows.plan_months.map(ROW_CHECKS.plan_months),
     };
   } catch (error) {
     if (error instanceof BadRow) return { kind: 'invalid', problem: error.message };
