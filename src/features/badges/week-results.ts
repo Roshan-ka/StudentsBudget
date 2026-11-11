@@ -4,6 +4,7 @@ import { isIsoDate } from '@/features/recurring/schedule';
 import { weekAllowance, weekToSpend } from '@/lib/budget';
 import { addDays, firstOfMonth, monthOf, weekOf, type IsoDate } from '@/lib/dates';
 import { NOT_RECORDED, isRecorded, loggedExpenseTest } from './records';
+import { planForMonths, type PlanFor } from '@/lib/plan-history';
 
 type Week = { start: IsoDate; end: IsoDate };
 
@@ -54,7 +55,12 @@ export function weekAwaitingRecord(plan: Plan, today: IsoDate): Week | null {
  * days, whenever they were typed in (a Monday batch for the week before counts for that week): typed in by hand, in a
  * category the envelopes measure. Transfers, income, fixed costs and what a schedule posted are not counted.
  */
-export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<WeekResult, 'paused' | 'recordedAt'> {
+export function weekResultOf(
+  plan: Plan,
+  entries: Entry[],
+  week: Week,
+  planFor: PlanFor = () => plan,
+): Omit<WeekResult, 'paused' | 'recordedAt'> {
   const split = monthOf(week.start) !== monthOf(week.end);
   const partEnds = split ? [addDays(firstOfMonth(monthOf(week.end)), -1), week.end] : [week.end];
 
@@ -64,8 +70,10 @@ export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<Wee
   let eatingOutSpentMinor = 0;
   for (const end of partEnds) {
     if (end < plan.createdOn) continue;
-    plannedMinor += Math.max(0, weekAllowance(plan, entries, end));
-    for (const e of weekToSpend(plan, entries, end).envelopes) {
+    // Each part against the plan its month had (plan history): a week recorded late keeps that month's plan.
+    const monthPlan = planFor(monthOf(end));
+    plannedMinor += Math.max(0, weekAllowance(monthPlan, entries, end));
+    for (const e of weekToSpend(monthPlan, entries, end).envelopes) {
       spentMinor += e.spentThisWeekMinor;
       if (e.categoryId === 'food') foodSpentMinor += e.spentThisWeekMinor;
       if (e.categoryId === 'eating-out') eatingOutSpentMinor += e.spentThisWeekMinor;
@@ -89,7 +97,7 @@ export function weekResultOf(plan: Plan, entries: Entry[], week: Week): Omit<Wee
 }
 
 async function record(today: IsoDate): Promise<{ recorded: number }> {
-  return db.transaction('rw', db.plan, db.entries, db.weekResults, async () => {
+  return db.transaction('rw', db.plan, db.planMonths, db.entries, db.weekResults, async () => {
     const plan = await db.plan.get('current');
     if (!plan) return { recorded: 0 };
     const weeks = completedWeeks(plan, today);
@@ -106,9 +114,10 @@ async function record(today: IsoDate): Promise<{ recorded: number }> {
     if (open.length === 0) return { recorded: 0 };
 
     const entries = await db.entries.toArray();
+    const planFor = planForMonths(plan, await db.planMonths.toArray(), today);
     const recordedAt = new Date().toISOString();
     await db.weekResults.bulkPut(
-      open.map(({ week, paused }): WeekResult => ({ ...weekResultOf(plan, entries, week), paused, recordedAt })),
+      open.map(({ week, paused }): WeekResult => ({ ...weekResultOf(plan, entries, week, planFor), paused, recordedAt })),
     );
     return { recorded: open.length };
   });

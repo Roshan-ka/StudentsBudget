@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useId, type ReactNode } from 'react';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
-import type { Account, Entry, Plan } from '@/db/types';
+import type { Account, Entry, Plan, PlanMonth } from '@/db/types';
 import { AskLink } from '@/features/ask/ask-link';
 import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
 import { entryTitle } from '@/features/entries/entry-title';
@@ -18,7 +18,8 @@ import { categoryNameIn } from '@/i18n/category-name';
 import { dateFormat } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
 import { weekToSpend } from '@/lib/budget';
-import { previousMonthTail, weekOf, type IsoDate } from '@/lib/dates';
+import { monthOf, previousMonthTail, weekOf, type IsoDate } from '@/lib/dates';
+import { planForMonth } from '@/lib/plan-history';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { cn } from '@/lib/utils';
@@ -231,11 +232,13 @@ function AwayToggle({ plan, today }: { plan: Plan; today: IsoDate }) {
 
 function CheckIn({
   plan,
+  planMonths,
   entries,
   accounts,
   today,
 }: {
   plan: Plan;
+  planMonths: PlanMonth[];
   entries: Entry[];
   accounts: Account[];
   today: IsoDate;
@@ -253,7 +256,8 @@ function CheckIn({
     <div className="flex flex-col gap-6">
       {earlierDay !== null && (
         <WeekPart
-          plan={plan}
+          // Last month's days against the plan last month had (plan history).
+          plan={planForMonth(plan, planMonths, monthOf(earlierDay), today)}
           entries={entries}
           accounts={accounts}
           day={earlierDay}
@@ -307,8 +311,11 @@ export function CheckInView() {
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
   const entries = useLiveQuery(() => db.entries.toArray(), []);
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
+  const planMonths = useLiveQuery(() => db.planMonths.toArray(), []);
 
-  if (today === null || plan === 'loading' || entries === undefined || accounts === undefined) return null;
+  if (today === null || plan === 'loading' || entries === undefined || accounts === undefined || planMonths === undefined) {
+    return null;
+  }
   if (plan === null) {
     return (
       <p className="text-muted-foreground">
@@ -319,5 +326,5 @@ export function CheckInView() {
       </p>
     );
   }
-  return <CheckIn plan={plan} entries={entries} accounts={accounts} today={today} />;
+  return <CheckIn plan={plan} planMonths={planMonths} entries={entries} accounts={accounts} today={today} />;
 }

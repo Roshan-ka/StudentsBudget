@@ -3,6 +3,7 @@ import { FLEXIBLE_CATEGORIES, orderOf } from '@/features/entries/categories';
 import { monthStatus } from '@/lib/budget';
 import { monthOf, shiftMonth, type IsoMonth } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
+import type { PlanFor } from '@/lib/plan-history';
 
 /** The months every chart looks at: `months` of them, ending on `endMonth`. */
 export type Period = { endMonth: IsoMonth; months: 1 | 3 | 6 | 12 };
@@ -42,16 +43,19 @@ export type SpendingRow = { categoryId: string; spentMinor: Minor; plannedMinor:
  * - Any other category (a one-off cost, or a fixed one the plan has no line for) has no plan (`plannedMinor`
  *   null) and counts the whole month.
  * - A month before the setup month has no plan at all: `plannedMinor` is null for every category.
+ * - A past month is planned with its own plan (`planFor`, plan history); its fixed lines carry no schedule, so a line
+ *   paused then is planned in full.
  */
-function spendingRowsOf(entries: Entry[], plan: Plan, month: IsoMonth): SpendingRow[] {
+function spendingRowsOf(entries: Entry[], plan: Plan, month: IsoMonth, planFor: PlanFor): SpendingRow[] {
   const spent = spentByCategory(entries, month);
   const planned = new Map<string, Minor>();
 
   // 'YYYY-MM' strings sort chronologically, so plain comparison is enough.
   if (month >= monthOf(plan.createdOn)) {
+    const monthPlan = planFor(month);
     // `budget.ts` plans every fixed line in full; a paused line is not part of the plan for now.
-    for (const f of plan.fixed) planned.set(f.categoryId, f.schedule?.paused ? 0 : f.monthlyMinor);
-    for (const status of monthStatus(plan, entries, month)) {
+    for (const f of monthPlan.fixed) planned.set(f.categoryId, f.schedule?.paused ? 0 : f.monthlyMinor);
+    for (const status of monthStatus(monthPlan, entries, month)) {
       planned.set(status.categoryId, status.plannedMinor);
       spent.set(status.categoryId, status.spentMinor);
     }
@@ -73,11 +77,16 @@ function spendingRowsOf(entries: Entry[], plan: Plan, month: IsoMonth): Spending
  *
  * Ties in spending go to the larger plan, then to the order of the built-in categories.
  */
-export function spendingByCategoryOver(entries: Entry[], plan: Plan, p: Period): SpendingRow[] {
+export function spendingByCategoryOver(
+  entries: Entry[],
+  plan: Plan,
+  p: Period,
+  planFor: PlanFor = () => plan,
+): SpendingRow[] {
   const spent = new Map<string, Minor>();
   const planned = new Map<string, Minor | null>();
   for (const month of monthsOf(p)) {
-    for (const row of spendingRowsOf(entries, plan, month)) {
+    for (const row of spendingRowsOf(entries, plan, month, planFor)) {
       addTo(spent, row.categoryId, row.spentMinor);
       const soFar = planned.get(row.categoryId) ?? null;
       planned.set(row.categoryId, row.plannedMinor === null ? soFar : (soFar ?? 0) + row.plannedMinor);

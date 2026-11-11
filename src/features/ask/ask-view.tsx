@@ -71,6 +71,7 @@ export function AskView() {
   const today = useToday();
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
   const entries = useLiveQuery(() => db.entries.toArray(), []);
+  const planMonths = useLiveQuery(() => db.planMonths.toArray(), []);
   const id = useId();
   const field = useRef<HTMLTextAreaElement>(null);
   const inFlight = useRef<AbortController | null>(null);
@@ -87,7 +88,7 @@ export function AskView() {
   async function send() {
     const asked = question.trim();
     if (asked === '' || thinking || today === null || plan === 'loading' || plan === null || entries === undefined) return;
-    const snap = snapshot ?? askSnapshot({ plan, entries }, today, t);
+    const snap = snapshot ?? askSnapshot({ plan, entries, planMonths: planMonths ?? [] }, today, t);
     setSnapshot(snap);
     const request = askRequestOf(turns, asked, snap, lang, today);
     const controller = new AbortController();
@@ -138,7 +139,7 @@ export function AskView() {
   );
 
   if (!aiInBuild()) return said(text.unavailable);
-  if (auth.status === 'loading' || plan === 'loading' || entries === undefined) {
+  if (auth.status === 'loading' || plan === 'loading' || entries === undefined || planMonths === undefined) {
     return <p className="text-muted-foreground">{text.loading}</p>;
   }
   if (auth.status === 'signed-out' || auth.status === 'off') return said(text.signedOut, toAccount);

@@ -181,6 +181,17 @@ describe('askSnapshot', () => {
     ]);
   });
 
+  it('measures each past month against the plan it had (plan history)', () => {
+    // In October food was €200, not today's €310.
+    const october = { month: '2026-10', incomes: [], fixed: [], oneOffs: [], envelopes: [{ categoryId: 'food', monthlyMinor: 20000 }] };
+    const past = askSnapshot({ plan: PLAN, entries: ENTRIES, planMonths: [october] }, TODAY, en).pastMonths[0];
+    expect(past.month).toBe('2026-10');
+    expect(past.envelopes.find((row) => row.categoryId === 'food')).toEqual({ categoryId: 'food', plannedEur: 200, spentEur: 61 });
+    // This month still uses today's plan.
+    const now = askSnapshot({ plan: PLAN, entries: ENTRIES, planMonths: [october] }, TODAY, en);
+    expect(now.month).toEqual(snap().month);
+  });
+
   it('lists the one-offs not yet due, with what this month and the months before set aside', () => {
     expect(snap().oneOffs).toEqual([
       // €300 over six months from September: €50 a month, two months before November.

@@ -6,10 +6,11 @@ import { useState } from 'react';
 import { useChoicePref } from '@/lib/phone-pref';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
-import type { Entry, Plan } from '@/db/types';
+import type { Entry, Plan, PlanMonth } from '@/db/types';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
+import { planForMonths } from '@/lib/plan-history';
 import { useToday } from '@/lib/use-today';
 import {
   defaultOverTimeCategory,
@@ -71,7 +72,17 @@ function MonthSwitcher({
   );
 }
 
-function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today: IsoDate }) {
+function Charts({
+  plan,
+  planMonths,
+  entries,
+  today,
+}: {
+  plan: Plan;
+  planMonths: PlanMonth[];
+  entries: Entry[];
+  today: IsoDate;
+}) {
   const { t, locale } = useT();
   // Null follows the clock to the current month; Previous and Next pin the month that was picked.
   const [pickedMonth, setPickedMonth] = useState<IsoMonth | null>(null);
@@ -94,14 +105,16 @@ function Charts({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
         : text;
   const logged = hasEntriesIn(entries, inPeriod);
 
-  const spending = spendingByCategoryOver(entries, plan, period);
+  // Each past month against the plan it had (plan history).
+  const planFor = planForMonths(plan, planMonths, today);
+  const spending = spendingByCategoryOver(entries, plan, period, planFor);
   const income = incomeBySourceOver(entries, period);
   // One month is a single column over time, so on "This month" the two over-time charts look back 6 months to it.
   const lookBack = months === 1;
   const overTime: Period = lookBack ? { endMonth, months: 6 } : period;
   const overTimeText = lookBack ? periodText(monthsOf(overTime), t, locale) : text;
   const overTimeSubtitle = lookBack ? t.charts.lastSixMonths : null;
-  const overTimeSpending = lookBack ? spendingByCategoryOver(entries, plan, overTime) : spending;
+  const overTimeSpending = lookBack ? spendingByCategoryOver(entries, plan, overTime, planFor) : spending;
 
   return (
     <div className="flex flex-col gap-6">
@@ -150,8 +163,9 @@ export function ChartsView() {
   const today = useToday();
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
   const entries = useLiveQuery(() => db.entries.toArray(), []);
+  const planMonths = useLiveQuery(() => db.planMonths.toArray(), []);
 
-  if (today === null || plan === 'loading' || entries === undefined) return null;
+  if (today === null || plan === 'loading' || entries === undefined || planMonths === undefined) return null;
   if (plan === null) {
     return (
       <p className="text-muted-foreground">
@@ -162,5 +176,5 @@ export function ChartsView() {
       </p>
     );
   }
-  return <Charts plan={plan} entries={entries} today={today} />;
+  return <Charts plan={plan} planMonths={planMonths} entries={entries} today={today} />;
 }

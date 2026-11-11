@@ -6,7 +6,8 @@ import { weekLine, weekTotalLine } from '@/features/check-in/week-line';
 import { weekRows } from '@/features/check-in/week-rows';
 import { weekSwaps } from '@/features/check-in/week-swaps';
 import { weekToSpend } from '@/lib/budget';
-import { formatDate, previousMonthTail, type IsoDate } from '@/lib/dates';
+import { formatDate, monthOf, previousMonthTail, type IsoDate } from '@/lib/dates';
+import { planForMonth } from '@/lib/plan-history';
 import { formatMoney } from '@/lib/money';
 import type { ReadAccount } from './account.ts';
 import { readSaved, stateSchema } from './budget.ts';
@@ -120,7 +121,10 @@ export async function weekCheckIn(read: ReadAccount, today: IsoDate): Promise<We
   const tail = previousMonthTail(today);
   const earlierDay = tail !== null && tail.end >= plan.createdOn ? tail.end : null;
   const parts = [
-    ...(earlierDay === null ? [] : [partOf(plan, saved.data, earlierDay, 'Earlier this week', false)]),
+    // Last month's days against the plan last month had (plan history), as the app.
+    ...(earlierDay === null
+      ? []
+      : [partOf(planForMonth(plan, saved.data.planMonths, monthOf(earlierDay), today), saved.data, earlierDay, 'Earlier this week', false)]),
     partOf(plan, saved.data, today, 'This week', true),
   ];
   return { note: `${CHECK_IN_NOTE}${saved.savedNote}`, state: 'ready', savedAt: saved.savedAt, parts };
