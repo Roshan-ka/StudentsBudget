@@ -499,7 +499,8 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * `commentLimit`), `rpc/delete_comment` takes one's own out and `rpc/report_comment` takes another's out. For the
  * moderator, `rpc/comment_queue` answers `commentQueue` and `rpc/moderate_comment` changes it, at aal2 only. The
  * discounts students added (community, chunk 5) are kept in `studentDiscounts`: `rpc/community_discounts_feed` answers
- * them, `rpc/delete_discount` takes one's own out and `rpc/report_discount` takes another's out.
+ * them, newest first, `rpc/post_discount` adds one (chunk 6: a username first, none with `discountLimit`),
+ * `rpc/delete_discount` takes one's own out and `rpc/report_discount` takes another's out.
  * `rpc/save_push_subscription` keeps a phone's weekly reminder in `reminders` by its address (with `twoStep`, at aal2
  * only), and a delete of `push_subscriptions` by `endpoint` takes the owner's row out. Returns the tables, to look at
  * and to seed.
@@ -517,6 +518,7 @@ export async function mockSupabaseData(
     comments?: CommentRow[];
     commentLimit?: boolean;
     studentDiscounts?: StudentDiscountRow[];
+    discountLimit?: boolean;
     moderator?: boolean;
     queue?: QueueRow[];
     commentQueue?: CommentQueueRow[];
@@ -649,7 +651,52 @@ export async function mockSupabaseData(
       return route.fulfill({ status: 204, headers: CORS });
     }
     if (path === 'rpc/community_discounts_feed' && request.method() === 'POST') {
-      return route.fulfill({ status: 200, headers: CORS, json: studentDiscounts });
+      const json = [...studentDiscounts].sort((a, b) => b.created_at.localeCompare(a.created_at));
+      return route.fulfill({ status: 200, headers: CORS, json });
+    }
+    if (path === 'rpc/post_discount' && request.method() === 'POST') {
+      const refuse = (hint: string) =>
+        route.fulfill({ status: 400, headers: CORS, json: { code: 'P0001', message: hint, hint, details: null } });
+      const sent = request.postDataJSON() as {
+        p_place: string;
+        p_address: string | null;
+        p_offer: string;
+        p_conditions: string | null;
+        p_category: string;
+        p_link: string;
+        p_lang: string;
+      };
+      const profile = profiles.get(claimsOf(request).sub ?? '');
+      if (profile === undefined) return refuse('needs-username');
+      if (options.discountLimit) return refuse('daily-limit');
+      // The table's checks (migration 20261111101604_community_discounts.sql).
+      const fits = (text: string | null, min: number, max: number) => text === null || (text.length >= min && text.length <= max);
+      if (
+        !fits(sent.p_place, 2, 80) ||
+        !fits(sent.p_offer, 3, 120) ||
+        !fits(sent.p_address, 1, 120) ||
+        !fits(sent.p_conditions, 1, 300) ||
+        !/^https:\/\/\S+$/.test(sent.p_link)
+      ) {
+        return route.fulfill({ status: 400, headers: CORS, json: { code: '23514', message: 'check violation' } });
+      }
+      const id = randomUUID();
+      studentDiscounts.push({
+        id,
+        place: sent.p_place,
+        address: sent.p_address,
+        offer: sent.p_offer,
+        conditions: sent.p_conditions,
+        category: sent.p_category,
+        link: sent.p_link,
+        lang: sent.p_lang,
+        created_at: new Date().toISOString(),
+        username: profile.username,
+        label: profile.label,
+        batch: profile.batch,
+        mine: true,
+      });
+      return route.fulfill({ status: 200, headers: CORS, json: id });
     }
     if ((path === 'rpc/delete_discount' || path === 'rpc/report_discount') && request.method() === 'POST') {
       const refuse = (hint: string) =>
