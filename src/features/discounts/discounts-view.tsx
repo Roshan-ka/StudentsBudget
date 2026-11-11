@@ -24,6 +24,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import { useToday } from '@/lib/use-today';
 import { cn } from '@/lib/utils';
 import { readCommunity, type CommunityConfirmations } from './community';
+import { DiscountForm } from './discount-form';
 import { bundledDiscounts, discountCategoryIds, sortByFreshness, voteMove, type DiscountSource } from './discounts';
 import { StudentDiscountActions, StudentDiscountSource } from './student-discount-actions';
 import { readStudentDiscounts, type StudentDiscount } from './student-discounts';
@@ -43,7 +44,8 @@ function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'dow
  * later; keep the same one for the view's lifetime), the votes from the database, and the chosen category is kept
  * only while the page stays mounted. Signed in, other students' totals for this semester join in (P2.6,
  * `discount_confirmations`): they confirm a discount too, and show as counts; and so do the discounts students added
- * from the app (community, chunk 5), read once per visit, marked as added by a student, with Delete or Report.
+ * from the app (community, chunk 5), read once per visit, marked as added by a student, with Delete or Report. Signed
+ * in, "Add a discount" opens the form for one (chunk 6).
  */
 export function DiscountsView({ source = bundledDiscounts }: { source?: DiscountSource }) {
   const { t, lang } = useT();
@@ -58,8 +60,10 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
   const [community, setCommunity] = useState<CommunityConfirmations | null>(null);
   /** The students' discounts, with whose they are: another account's never show. */
   const [students, setStudents] = useState<{ userId: string; items: StudentDiscount[] } | null>(null);
-  /** Counts up to load the students' discounts again (after a delete or a report). */
+  /** Counts up to load the students' discounts again (after adding, deleting or reporting one). */
   const [attempt, setAttempt] = useState(0);
+  /** Whether the form for a new discount is open. */
+  const [adding, setAdding] = useState(false);
   const focus = useFocusAfter();
   const [discounts, setDiscounts] = useState<Discount[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -200,6 +204,19 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
     setAttempt((n) => n + 1);
   }
 
+  /** The form closed: focus goes back to the button that opened it. */
+  function closeForm() {
+    focus.mark('add');
+    setAdding(false);
+  }
+
+  /** A discount was added: the list loads again, with it. */
+  function onAdded() {
+    closeForm();
+    setHeard(text.studentDiscounts.form.added);
+    setAttempt((n) => n + 1);
+  }
+
   const chip = (id: string | null, label: string) => (
     <Button
       key={id ?? 'all'}
@@ -216,6 +233,22 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">{text.discountsIntro}</p>
       {auth.status === 'signed-out' && <p className="text-sm text-muted-foreground">{text.othersSignIn}</p>}
+      {userId !== null &&
+        (adding ? (
+          <DiscountForm userId={userId} onAdded={onAdded} onCancel={closeForm} />
+        ) : (
+          <Button
+            ref={focus.refFor('add')}
+            type="button"
+            className="self-start px-4"
+            onClick={() => {
+              setHeard('');
+              setAdding(true);
+            }}
+          >
+            {text.studentDiscounts.form.open}
+          </Button>
+        ))}
       <div role="group" aria-label={text.discountsFor} className="flex flex-wrap gap-2">
         {chip(null, text.all)}
         {discountCategoryIds(all).map((id) => chip(id, categoryNameIn(t, id)))}
