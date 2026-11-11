@@ -5,6 +5,7 @@ import {
   discountVoteRow,
   entryRow,
   guessRow,
+  planMonthRow,
   planRow,
   profileRow,
   rateRow,
@@ -42,4 +43,5 @@ export const ROW_CHECKS = {
   discount_votes: rowCheck('discount_votes', discountVoteRow, (v) => v.discountId),
   profiles: rowCheck('profiles', profileRow, (p) => p.id),
   checklist_ticks: rowCheck('checklist_ticks', checklistTickRow, (t) => t.itemId),
+  plan_months: rowCheck('plan_months', planMonthRow, (m) => m.month),
 } satisfies Record<ServerTable, (row: StoredRow) => object>;

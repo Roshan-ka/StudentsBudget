@@ -183,14 +183,16 @@ test('Forgot password: the emailed code signs in, and a new password replaces th
   await enterCode(page, '000000', { code: '6-digit code', confirm: 'Continue' });
   await expect(alert(page)).toHaveText('That code is wrong or has expired. Check the newest email, or send a new code.');
   await enterCode(page, E2E_EMAIL_CODE, { code: '6-digit code', confirm: 'Continue' });
-  expect(verifies(calls)).toEqual([
-    expect.objectContaining({ email: ACCOUNT, token: '000000', type: 'recovery' }),
-    expect.objectContaining({ email: ACCOUNT, token: E2E_EMAIL_CODE, type: 'recovery' }),
-  ]);
 
   // Signed in, but the account waits for the new password; a reload of the tab keeps the step.
   const newPassword = page.getByRole('region', { name: 'Choose a new password', exact: true });
   await expect(newPassword).toContainText(`Signed in as ${ACCOUNT} with the code from your email.`);
+  // Checked once the step shows, which only the second code's answer brings: right after the tap, its request may
+  // not have gone yet (CI run 42985456950).
+  expect(verifies(calls)).toEqual([
+    expect.objectContaining({ email: ACCOUNT, token: '000000', type: 'recovery' }),
+    expect.objectContaining({ email: ACCOUNT, token: E2E_EMAIL_CODE, type: 'recovery' }),
+  ]);
   await expect(page.getByText(`Signed in as ${ACCOUNT}.`, { exact: true })).toHaveCount(0);
   await page.reload();
   await expect(newPassword).toBeVisible();
