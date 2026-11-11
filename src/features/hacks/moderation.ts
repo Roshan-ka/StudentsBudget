@@ -103,3 +103,74 @@ export async function moderate(
     return 'failed';
   }
 }
+
+/** A comment someone reported (or the moderator hid), as the moderator sees it (community, chunk 3). */
+export type CommentQueueItem = {
+  id: string;
+  hackId: string;
+  body: string;
+  lang: string;
+  createdAt: string;
+  username: string | null;
+  /** Reports since the moderator last kept it: what counts towards hiding it for everyone. */
+  reports: number;
+  hiddenByHand: boolean;
+  hiddenByReports: boolean;
+};
+
+export type CommentQueueAnswer = CommentQueueItem[] | 'needs-code' | 'not-moderator' | 'failed';
+
+/** One `comment_queue` row as an item, or null for a row this build can't read. */
+export function commentQueueItemOf(row: unknown): CommentQueueItem | null {
+  if (!isRecord(row)) return null;
+  const { id, hack_id: hackId, body, lang, created_at: createdAt } = row;
+  if (typeof id !== 'string' || typeof hackId !== 'string' || typeof body !== 'string') return null;
+  if (typeof lang !== 'string' || typeof createdAt !== 'string') return null;
+  return {
+    id,
+    hackId,
+    body,
+    lang,
+    createdAt,
+    username: typeof row.username === 'string' ? row.username : null,
+    reports: typeof row.reports_since_kept === 'number' ? row.reports_since_kept : 0,
+    hiddenByHand: row.hidden_by_hand === true,
+    hiddenByReports: row.hidden_by_reports === true,
+  };
+}
+
+/** The reported comments (migration 20261111092551_hack_comments.sql), or why there are none to show. */
+export async function readCommentQueue(supabase: SupabaseClient): Promise<CommentQueueAnswer> {
+  try {
+    const { data, error } = await supabase.rpc('comment_queue');
+    if (error) {
+      const refusal = refusalOf(error);
+      if (refusal !== null) return refusal;
+      console.error('StudentsBudget: could not load the reported comments', error);
+      return 'failed';
+    }
+    if (!Array.isArray(data)) return 'failed';
+    return data.map(commentQueueItemOf).filter((item): item is CommentQueueItem => item !== null);
+  } catch (thrown) {
+    console.error('StudentsBudget: could not load the reported comments', thrown);
+    return 'failed';
+  }
+}
+
+/** Hides a comment from every list, or keeps it (it shows again, and its report count starts afresh). */
+export async function moderateComment(
+  supabase: SupabaseClient,
+  id: string,
+  action: 'hide' | 'keep',
+): Promise<'done' | 'needs-code' | 'failed'> {
+  try {
+    const { error } = await supabase.rpc('moderate_comment', { p_id: id, p_action: action });
+    if (!error) return 'done';
+    if (refusalOf(error) === 'needs-code') return 'needs-code';
+    console.error('StudentsBudget: could not moderate the comment', error);
+    return 'failed';
+  } catch (thrown) {
+    console.error('StudentsBudget: could not moderate the comment', thrown);
+    return 'failed';
+  }
+}

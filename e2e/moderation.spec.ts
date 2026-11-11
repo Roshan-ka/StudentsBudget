@@ -5,12 +5,14 @@ import {
   mockSupabaseData,
   skipUnlessAccountsShow,
   type AuthFactors,
+  type CommentQueueRow,
   type QueueRow,
 } from './helpers/supabase';
 
 // Moderating the hacks feed (chunk 7; docs/superpowers/plans/2026-11-05-hacks-feed.md), by role: a reader sees no
 // moderation, the moderator without the authenticator code is sent to two-step sign-in, and the moderator with it
-// hides and keeps reported posts. Supabase is mocked: `moderator` makes the account the moderator, `queue` is the list.
+// hides and keeps reported posts and comments (community, chunk 3). Supabase is mocked: `moderator` makes the account
+// the moderator, `queue` is the posts' list and `commentQueue` the comments'.
 
 test.use({ viewport: { width: 375, height: 812 } });
 
@@ -115,5 +117,57 @@ test('the moderator with the code hides and keeps reported posts', async ({ page
   expect(queue.map((row) => [row.id, row.hidden_by_hand, row.reports_since_kept])).toEqual([
     ['p1', true, 5],
     ['p2', false, 0],
+  ]);
+});
+
+function reportedComment(id: string, body: string, reports: number, hiddenByReports: boolean): CommentQueueRow {
+  return {
+    id,
+    hack_id: 'p9',
+    body,
+    lang: 'en',
+    created_at: '2026-11-11T12:00:00Z',
+    username: 'spam_bot',
+    reports,
+    reports_since_kept: reports,
+    hidden_by_hand: false,
+    hidden_by_reports: hiddenByReports,
+    kept_at: null,
+    last_report: '2026-11-11T13:00:00Z',
+  };
+}
+
+test('the moderator with the code hides and keeps reported comments, in their own section', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  const commentQueue = [
+    reportedComment('c1', 'Buy followers cheap at our site!', 5, true),
+    reportedComment('c2', 'It worked for me on a Sunday too.', 1, false),
+  ];
+  await mockSupabaseData(page, { moderator: true, twoStep: true, queue: [], commentQueue });
+  const factors: AuthFactors = new Map([
+    [EMAIL, [{ id: 'factor-moderator', friendly_name: 'Moderator phone', factor_type: 'totp', status: 'verified' } as const]],
+  ]);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
+  await signIn(page, true);
+  await page.goto('/settings/moderation');
+
+  const postsSection = page.getByRole('region', { name: 'Posts', exact: true });
+  await expect(postsSection.getByText('No reported posts.', { exact: true })).toBeVisible();
+  const comments = page.getByRole('region', { name: 'Comments', exact: true }).getByRole('list', { name: 'Reported comments', exact: true }).getByRole('listitem');
+  const spam = comments.filter({ hasText: 'Buy followers' });
+  await expect(spam).toContainText('@spam_bot');
+  await expect(spam).toContainText('5 reports since last kept · Hidden by reports');
+
+  await spam.getByRole('button', { name: 'Hide', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Hidden from every feed.');
+  await expect(spam).toContainText('Hidden by you');
+
+  const sunday = comments.filter({ hasText: 'Sunday' });
+  await sunday.getByRole('button', { name: 'Keep', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Kept: it shows again.');
+  await expect(sunday).toContainText('0 reports since last kept · Visible');
+  expect(commentQueue.map((row) => [row.id, row.hidden_by_hand, row.reports_since_kept])).toEqual([
+    ['c1', true, 5],
+    ['c2', false, 0],
   ]);
 });

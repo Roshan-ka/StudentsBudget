@@ -124,3 +124,15 @@ Chunks 1 and 4 (the database) touch no shared files and could run in parallel. S
   - **`HacksView`** reads `comment_counts` once per visit, after the feed.
   - **Texts:** `tips.hacks.comments` in four languages. The `post` note now covers hacks, comments and discounts in four languages, and `hacks-post.spec` follows it.
   - **e2e mock:** a `comments` option (`CommentRow`) answers the five functions, and `commentLimit` refuses.
+- **Chunk 3** (11-11-2026), comments: moderation and e2e:
+  - **`moderation.ts`:** `CommentQueueItem`, `commentQueueItemOf`, `readCommentQueue` and `moderateComment`, with the posts' refusals (`needs-code`, `not-moderator`).
+  - **Settings → Moderation:** two sections, Posts and Comments, each with its heading; both queues load together. The intro covers posts and comments in four languages.
+  - **e2e mock:** `commentQueue` answers `comment_queue` and `moderate_comment`, for the moderator at aal2 only, like the posts' queue.
+  - **`e2e/hacks-comments.spec.ts`:**
+    - the count, oldest first, and a new comment after the `post` note;
+    - Delete (Keep it gives the focus back), and Report after its question and the `hackVotes` note;
+    - too short, a name first, the daily limit;
+    - German at 375 px with Translate naming the comment.
+    - The Hacks tab keeps a status line of its own, so the spec finds a comment's in its card.
+  - **`moderation.spec`:** gains the comments section.
+  - **Map:** `hacks-comments` under `/tips` and `/settings/account`.

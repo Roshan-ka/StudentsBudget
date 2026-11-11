@@ -116,8 +116,8 @@ export const tips = {
     moderation: {
       summary: 'Reported hacks',
       intro:
-        'Posts students reported, newest report first. Hide takes a post out of every feed; Keep shows it again ' +
-        'and starts its report count afresh.',
+        'Posts and comments students reported, newest report first. Hide takes one out of every list; Keep shows it ' +
+        'again and starts its report count afresh.',
       signedOut: 'Sign in with the moderator account to moderate.',
       notModerator: "This page is for the app's moderator.",
       needsCode:
@@ -135,6 +135,12 @@ export const tips = {
       hidden: 'Hidden from every feed.',
       kept: 'Kept: it shows again.',
       failed: "That didn't work. Try again.",
+      /** The two sections (community, chunk 3). */
+      postsHeading: 'Posts',
+      commentsHeading: 'Comments',
+      commentsQueue: 'Reported comments',
+      commentsEmpty: 'No reported comments.',
+      commentsLoadFailed: "The reported comments couldn't be loaded.",
     },
     /** Comments on a post (community, chunk 2): flat, oldest first. */
     comments: {

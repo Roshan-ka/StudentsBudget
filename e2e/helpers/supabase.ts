@@ -412,6 +412,22 @@ export type CommentRow = {
   mine: boolean;
 };
 
+/** One row of `comment_queue` (community, chunk 3), as the database returns it. */
+export type CommentQueueRow = {
+  id: string;
+  hack_id: string;
+  body: string;
+  lang: string;
+  created_at: string;
+  username: string | null;
+  reports: number;
+  reports_since_kept: number;
+  hidden_by_hand: boolean;
+  hidden_by_reports: boolean;
+  kept_at: string | null;
+  last_report: string | null;
+};
+
 /** The claims of the mocked session that sent a request. */
 function claimsOf(request: Request): { sub?: string; aal?: string } {
   const token = (request.headers()['authorization'] ?? '').replace(/^Bearer /, '');
@@ -463,7 +479,8 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * moderator: `rpc/moderation_queue` answers `queue` and `rpc/moderate_hack` changes it, at aal2 only. Comments
  * (community, chunk 2) are kept in `comments`: `rpc/comments_for` answers a post's, oldest first, `rpc/comment_counts`
  * counts them for the posts in `feed`, `rpc/post_comment` adds one (a username first, a post in `feed`, none with
- * `commentLimit`), `rpc/delete_comment` takes one's own out and `rpc/report_comment` takes another's out.
+ * `commentLimit`), `rpc/delete_comment` takes one's own out and `rpc/report_comment` takes another's out. For the
+ * moderator, `rpc/comment_queue` answers `commentQueue` and `rpc/moderate_comment` changes it, at aal2 only.
  * `rpc/save_push_subscription` keeps a phone's weekly reminder in `reminders` by its address (with `twoStep`, at aal2
  * only), and a delete of `push_subscriptions` by `endpoint` takes the owner's row out. Returns the tables, to look at
  * and to seed.
@@ -482,6 +499,7 @@ export async function mockSupabaseData(
     commentLimit?: boolean;
     moderator?: boolean;
     queue?: QueueRow[];
+    commentQueue?: CommentQueueRow[];
     reminders?: ServerReminders;
     confirmations?: { discount_id: string; last_works: string | null; works_since: number; outdated_since: number }[];
   } = {},
@@ -681,13 +699,18 @@ export async function mockSupabaseData(
     if (path === 'rpc/am_i_moderator' && request.method() === 'POST') {
       return route.fulfill({ status: 200, headers: CORS, json: options.moderator === true });
     }
-    if ((path === 'rpc/moderation_queue' || path === 'rpc/moderate_hack') && request.method() === 'POST') {
+    // The posts' queue (`queue`) and the comments' (`commentQueue`, community, chunk 3): the moderator at aal2 only.
+    const queueOf = { 'rpc/moderation_queue': 'posts', 'rpc/moderate_hack': 'posts', 'rpc/comment_queue': 'comments', 'rpc/moderate_comment': 'comments' } as const;
+    if (path in queueOf && request.method() === 'POST') {
       const refuse = (message: string) =>
         route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message, hint: null, details: null } });
       if (options.moderator !== true) return refuse('not a moderator');
       if (claimsOf(request).aal !== 'aal2') return refuse('the second step is owed');
-      const queue = options.queue ?? [];
-      if (path === 'rpc/moderation_queue') return route.fulfill({ status: 200, headers: CORS, json: queue });
+      const queue: (QueueRow | CommentQueueRow)[] =
+        queueOf[path as keyof typeof queueOf] === 'posts' ? (options.queue ?? []) : (options.commentQueue ?? []);
+      if (path === 'rpc/moderation_queue' || path === 'rpc/comment_queue') {
+        return route.fulfill({ status: 200, headers: CORS, json: queue });
+      }
       const { p_id: id, p_action: action } = request.postDataJSON() as { p_id: string; p_action: 'hide' | 'keep' };
       const item = queue.find((row) => row.id === id);
       if (item === undefined) {
