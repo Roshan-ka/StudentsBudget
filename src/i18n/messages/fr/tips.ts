@@ -55,6 +55,18 @@ export const tips: Messages['tips'] = {
     seeTipNamed: (title: string) => `Voir le conseil${NNBSP}: ${title}`,
     saveFailed: 'La coche n’a pas pu être enregistrée. Réessaie.',
   },
+  studentDiscounts: {
+    tag: 'Ajoutée par un étudiant',
+    source: (name, date) => `Ajoutée par ${name} le ${date}, non vérifiée par l’appli`,
+    which: (place) => `la réduction chez ${place}`,
+    deleteQuestion: `Supprimer cette réduction${NNBSP}? Plus personne ne la verra.`,
+    deleted: 'Réduction supprimée.',
+    deleteFailed: 'La réduction n’a pas pu être supprimée. Réessaie.',
+    reportQuestion: `Signaler cette réduction${NNBSP}? Elle disparaît aussitôt pour toi, et pour tout le monde dès que assez d’étudiants la signalent.`,
+    reported: 'Signalée. Tu ne verras plus cette réduction.',
+    reportFailed: 'Le signalement n’a pas pu être envoyé. Réessaie.',
+    gone: 'Cette réduction n’existe plus.',
+  },
   hacks: {
     tab: 'Astuces',
     intro:

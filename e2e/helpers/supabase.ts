@@ -428,6 +428,23 @@ export type CommentQueueRow = {
   last_report: string | null;
 };
 
+/** One discount a student added (community, chunk 5): `community_discounts_feed`'s row, as the database returns it. */
+export type StudentDiscountRow = {
+  id: string;
+  place: string;
+  address: string | null;
+  offer: string;
+  conditions: string | null;
+  category: string;
+  link: string;
+  lang: string;
+  created_at: string;
+  username: string | null;
+  label: string | null;
+  batch: number | null;
+  mine: boolean;
+};
+
 /** The claims of the mocked session that sent a request. */
 function claimsOf(request: Request): { sub?: string; aal?: string } {
   const token = (request.headers()['authorization'] ?? '').replace(/^Bearer /, '');
@@ -480,7 +497,9 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * (community, chunk 2) are kept in `comments`: `rpc/comments_for` answers a post's, oldest first, `rpc/comment_counts`
  * counts them for the posts in `feed`, `rpc/post_comment` adds one (a username first, a post in `feed`, none with
  * `commentLimit`), `rpc/delete_comment` takes one's own out and `rpc/report_comment` takes another's out. For the
- * moderator, `rpc/comment_queue` answers `commentQueue` and `rpc/moderate_comment` changes it, at aal2 only.
+ * moderator, `rpc/comment_queue` answers `commentQueue` and `rpc/moderate_comment` changes it, at aal2 only. The
+ * discounts students added (community, chunk 5) are kept in `studentDiscounts`: `rpc/community_discounts_feed` answers
+ * them, `rpc/delete_discount` takes one's own out and `rpc/report_discount` takes another's out.
  * `rpc/save_push_subscription` keeps a phone's weekly reminder in `reminders` by its address (with `twoStep`, at aal2
  * only), and a delete of `push_subscriptions` by `endpoint` takes the owner's row out. Returns the tables, to look at
  * and to seed.
@@ -497,6 +516,7 @@ export async function mockSupabaseData(
     dailyLimit?: boolean;
     comments?: CommentRow[];
     commentLimit?: boolean;
+    studentDiscounts?: StudentDiscountRow[];
     moderator?: boolean;
     queue?: QueueRow[];
     commentQueue?: CommentQueueRow[];
@@ -508,6 +528,7 @@ export async function mockSupabaseData(
   const profiles: ServerProfiles = options.profiles ?? new Map();
   const feed: FeedRow[] = options.feed ?? [];
   const comments: CommentRow[] = options.comments ?? [];
+  const studentDiscounts: StudentDiscountRow[] = options.studentDiscounts ?? [];
   const reminders: ServerReminders = options.reminders ?? new Map();
   const table = (name: string) => {
     if (!tables.has(name)) tables.set(name, new Map());
@@ -625,6 +646,23 @@ export async function mockSupabaseData(
         if (comments[at].mine) return refuse('own-post');
       }
       comments.splice(at, 1);
+      return route.fulfill({ status: 204, headers: CORS });
+    }
+    if (path === 'rpc/community_discounts_feed' && request.method() === 'POST') {
+      return route.fulfill({ status: 200, headers: CORS, json: studentDiscounts });
+    }
+    if ((path === 'rpc/delete_discount' || path === 'rpc/report_discount') && request.method() === 'POST') {
+      const refuse = (hint: string) =>
+        route.fulfill({ status: 400, headers: CORS, json: { code: 'P0001', message: hint, hint, details: null } });
+      const { p_id: id } = request.postDataJSON() as { p_id: string };
+      const at = studentDiscounts.findIndex((discount) => discount.id === id);
+      if (path === 'rpc/delete_discount') {
+        if (at < 0 || !studentDiscounts[at].mine) return refuse('not-found');
+      } else {
+        if (at < 0) return refuse('not-found');
+        if (studentDiscounts[at].mine) return refuse('own-post');
+      }
+      studentDiscounts.splice(at, 1);
       return route.fulfill({ status: 204, headers: CORS });
     }
     // hacks_feed: the posts the signed-in account may see (the hacks feed), as given in `feed`.

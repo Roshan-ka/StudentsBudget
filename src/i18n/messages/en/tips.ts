@@ -52,6 +52,21 @@ export const tips = {
     seeTipNamed: (title: string) => `See the tip: ${title}`,
     saveFailed: 'Could not save the tick. Try again.',
   },
+  /** Discounts students added from the app (community, chunk 5): always marked, with who added them. */
+  studentDiscounts: {
+    tag: 'Added by a student',
+    /** Its source line: who added it and when; the app never checked it, so no "checked" date shows. */
+    source: (name: string, date: string) => `Added by ${name} on ${date}, not checked by the app`,
+    /** Delete, Report and Translate say which discount, as on a post. */
+    which: (place: string) => `the discount at ${place}`,
+    deleteQuestion: 'Delete this discount? Nobody will see it anymore.',
+    deleted: 'Discount deleted.',
+    deleteFailed: "The discount couldn't be deleted. Try again.",
+    reportQuestion: 'Report this discount? It disappears for you at once, and for everyone once enough students report it.',
+    reported: 'Reported. You won’t see this discount anymore.',
+    reportFailed: "The report couldn't be sent. Try again.",
+    gone: "This discount isn't there anymore.",
+  },
   hacks: {
     tab: 'Hacks',
     intro:

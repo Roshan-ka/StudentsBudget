@@ -52,6 +52,19 @@ export const tips: Messages['tips'] = {
     seeTipNamed: (title: string) => `Ver el consejo: ${title}`,
     saveFailed: 'No se pudo guardar la marca. Inténtalo de nuevo.',
   },
+  studentDiscounts: {
+    tag: 'Añadido por un estudiante',
+    source: (name, date) => `Añadido por ${name} el ${date}, sin comprobar por la app`,
+    which: (place) => `el descuento en ${place}`,
+    deleteQuestion: '¿Borrar este descuento? Nadie lo verá más.',
+    deleted: 'Descuento borrado.',
+    deleteFailed: 'No se pudo borrar el descuento. Inténtalo de nuevo.',
+    reportQuestion:
+      '¿Denunciar este descuento? Desaparece para ti al instante, y para todos en cuanto suficientes estudiantes lo denuncien.',
+    reported: 'Denunciado. Ya no verás este descuento.',
+    reportFailed: 'No se pudo enviar la denuncia. Inténtalo de nuevo.',
+    gone: 'Este descuento ya no está.',
+  },
   hacks: {
     tab: 'Trucos',
     intro:

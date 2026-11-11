@@ -1,3 +1,4 @@
+import { forgetStudentDiscounts } from '@/features/discounts/student-discounts';
 import { forgetFeedCache } from '@/features/hacks/feed';
 import { forgetReminderOnPhone } from '@/features/reminder/reminder';
 import { getSupabase } from '@/lib/supabase/client';
@@ -5,13 +6,14 @@ import { forgetPendingWipe } from './pending-wipe';
 import { endRecovery } from './recovery';
 
 /**
- * What goes with the account once nobody is signed in on this phone: a password reset in progress, the hacks feed kept
- * for the account (so the next person never sees it), and the weekly reminder (nothing more arrives on a signed-out
+ * What goes with the account once nobody is signed in on this phone: a password reset in progress, the hacks feed and
+ * the students' discounts kept for the account (so the next person never sees them), and the weekly reminder (nothing more arrives on a signed-out
  * phone). Each does nothing when there is nothing to forget.
  */
 export function forgetAccountOnPhone(): void {
   endRecovery();
   forgetFeedCache();
+  forgetStudentDiscounts();
   void forgetReminderOnPhone();
 }
 

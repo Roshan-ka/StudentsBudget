@@ -6,7 +6,7 @@ import { useT } from '@/i18n/use-t';
 import { formatDate } from '@/lib/dates';
 
 /** "studierendenwerke.de": enough to see where the link goes, short enough to fit a phone. */
-function hostOf(url: string): string {
+export function hostOf(url: string): string {
   return new URL(url).hostname.replace(/^www\./, '');
 }
 
