@@ -101,6 +101,11 @@ The weekly badges' rows are recorded once, but a week recorded late, or backfill
   - **MCP check-in:** last month's days use the account's `planMonths` from `planDownload`.
   - **Known limit:** history rows carry no schedules, so a fixed line that was paused in a past month is planned in full there (charts).
   - **Tests:** charts (€200 + €250 + €310 over three months against €930 without history), a late-recorded October week, and Ask's past month.
+- **Chunk 6** (11-11-2026), `e2e/plan-history.spec.ts`, through the real writer (Edit plan's envelopes step, as the recaps page links to it):
+  - **Recaps:** eating out goes to €100 on 20.10 and €200 on 05.11. On 02.12 the recaps read November €510 and October €410, where without history both would read €510. The `planMonths` store holds the two rows.
+  - **A linked phone:** linking sends October's row, and November's edit reaches the mocked account by itself.
+  - **Map:** in `e2e/affected-map.json` under `/reveal` and `/settings/account`. `/setup` is `all`.
+- **Still owed:** the real try on the phone (Verification, below).
 
 ## Verification
 
