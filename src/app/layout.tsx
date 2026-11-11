@@ -1,3 +1,4 @@
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { WalletIcon } from 'lucide-react';
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google';
@@ -93,6 +94,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           {children}
         </main>
         <BottomNav />
+        <SpeedInsights />
       </body>
     </html>
   );
