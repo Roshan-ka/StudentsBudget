@@ -50,6 +50,19 @@ export const tips: Messages['tips'] = {
     seeTipNamed: (title: string) => `Zum Tipp: ${title}`,
     saveFailed: 'Der Haken konnte nicht gespeichert werden. Versuch es noch einmal.',
   },
+  studentDiscounts: {
+    tag: 'Von Studierenden eingetragen',
+    source: (name, date) => `Eingetragen von ${name} am ${date}, nicht von der App geprüft`,
+    which: (place) => `der Rabatt bei ${place}`,
+    deleteQuestion: 'Diesen Rabatt löschen? Dann sieht ihn niemand mehr.',
+    deleted: 'Rabatt gelöscht.',
+    deleteFailed: 'Der Rabatt konnte nicht gelöscht werden. Versuch es noch einmal.',
+    reportQuestion:
+      'Diesen Rabatt melden? Er verschwindet sofort für dich und für alle, sobald genug Studierende ihn melden.',
+    reported: 'Gemeldet. Du siehst diesen Rabatt nicht mehr.',
+    reportFailed: 'Die Meldung konnte nicht gesendet werden. Versuch es noch einmal.',
+    gone: 'Diesen Rabatt gibt es nicht mehr.',
+  },
   hacks: {
     tab: 'Hacks',
     intro:
