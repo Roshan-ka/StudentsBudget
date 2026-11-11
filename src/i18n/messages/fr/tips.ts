@@ -119,8 +119,9 @@ export const tips: Messages['tips'] = {
     moderation: {
       summary: 'Astuces signalées',
       intro:
-        'Les publications que des étudiants ont signalées, le signalement le plus récent d’abord. Masquer retire ' +
-        `une publication de tous les fils${NNBSP}; Garder la montre à nouveau et remet ses signalements à zéro.`,
+        'Les publications et les commentaires que des étudiants ont signalés, le signalement le plus récent ' +
+        `d’abord. Masquer les retire de toutes les listes${NNBSP}; Garder les montre à nouveau et remet leurs ` +
+        'signalements à zéro.',
       signedOut: 'Connecte-toi avec le compte de modération pour modérer.',
       notModerator: 'Cette page est pour la modération de l’app.',
       needsCode:
@@ -142,6 +143,11 @@ export const tips: Messages['tips'] = {
       hidden: 'Retirée de tous les fils.',
       kept: `Gardée${NNBSP}: elle s’affiche à nouveau.`,
       failed: 'Ça n’a pas marché. Réessaie.',
+      postsHeading: 'Publications',
+      commentsHeading: 'Commentaires',
+      commentsQueue: 'Commentaires signalés',
+      commentsEmpty: 'Aucun commentaire signalé.',
+      commentsLoadFailed: 'Les commentaires signalés n’ont pas pu être chargés.',
     },
     comments: {
       toggle: (count) => (count === 0 ? 'Commentaires' : `Commentaires (${count})`),

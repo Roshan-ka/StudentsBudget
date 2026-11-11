@@ -1,6 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
-import { amIModerator, moderate, queueItemOf, readQueue } from './moderation';
+import {
+  amIModerator,
+  commentQueueItemOf,
+  moderate,
+  moderateComment,
+  queueItemOf,
+  readCommentQueue,
+  readQueue,
+} from './moderation';
 
 function answering(data: unknown, error: { code?: string; message?: string } | null) {
   const calls: { fn: string; args: unknown }[] = [];
@@ -68,5 +76,55 @@ describe('moderating', () => {
     expect(await moderate(answering(null, { code: '42501', message: 'the second step is owed' }).client, 'p1', 'hide')).toBe(
       'needs-code',
     );
+  });
+});
+
+describe('the reported comments (community, chunk 3)', () => {
+  const comment = {
+    id: 'c1',
+    hack_id: 'p2',
+    body: 'Buy followers cheap!',
+    lang: 'en',
+    created_at: '2026-11-11T12:00:00Z',
+    username: 'spam_bot',
+    reports: 5,
+    reports_since_kept: 5,
+    hidden_by_hand: false,
+    hidden_by_reports: true,
+    kept_at: null,
+    last_report: '2026-11-11T13:00:00Z',
+  };
+
+  it('reads each row, with the post it is on', () => {
+    expect(commentQueueItemOf(comment)).toEqual({
+      id: 'c1',
+      hackId: 'p2',
+      body: 'Buy followers cheap!',
+      lang: 'en',
+      createdAt: '2026-11-11T12:00:00Z',
+      username: 'spam_bot',
+      reports: 5,
+      hiddenByHand: false,
+      hiddenByReports: true,
+    });
+    expect(commentQueueItemOf({ ...comment, hack_id: null })).toBeNull();
+  });
+
+  it('says why it shows nothing, as the post queue does', async () => {
+    expect(await readCommentQueue(answering([comment], null).client)).toHaveLength(1);
+    expect(await readCommentQueue(answering(null, { code: '42501', message: 'the second step is owed' }).client)).toBe(
+      'needs-code',
+    );
+    expect(await readCommentQueue(answering(null, { code: '42501', message: 'not a moderator' }).client)).toBe(
+      'not-moderator',
+    );
+    expect(await readCommentQueue(answering(null, { code: 'XX000', message: 'down' }).client)).toBe('failed');
+  });
+
+  it('hides or keeps a comment', async () => {
+    const { client, calls } = answering(null, null);
+    expect(await moderateComment(client, 'c1', 'hide')).toBe('done');
+    expect(calls).toEqual([{ fn: 'moderate_comment', args: { p_id: 'c1', p_action: 'hide' } }]);
+    expect(await moderateComment(answering(null, { code: 'XX000' }).client, 'c1', 'keep')).toBe('failed');
   });
 });

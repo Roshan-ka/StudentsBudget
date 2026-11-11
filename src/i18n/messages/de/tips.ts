@@ -111,8 +111,8 @@ export const tips: Messages['tips'] = {
     moderation: {
       summary: 'Gemeldete Hacks',
       intro:
-        'Beiträge, die Studierende gemeldet haben, die neueste Meldung zuerst. Verstecken nimmt einen Beitrag aus ' +
-        'allen Feeds; Behalten zeigt ihn wieder und zählt seine Meldungen neu.',
+        'Beiträge und Kommentare, die Studierende gemeldet haben, die neueste Meldung zuerst. Verstecken nimmt sie ' +
+        'aus allen Listen; Behalten zeigt sie wieder und zählt ihre Meldungen neu.',
       signedOut: 'Melde dich mit dem Moderationskonto an, um zu moderieren.',
       notModerator: 'Diese Seite ist für die Moderation der App.',
       needsCode:
@@ -131,6 +131,11 @@ export const tips: Messages['tips'] = {
       hidden: 'Aus allen Feeds genommen.',
       kept: 'Behalten: Er ist wieder zu sehen.',
       failed: 'Das hat nicht geklappt. Versuch es noch einmal.',
+      postsHeading: 'Beiträge',
+      commentsHeading: 'Kommentare',
+      commentsQueue: 'Gemeldete Kommentare',
+      commentsEmpty: 'Keine gemeldeten Kommentare.',
+      commentsLoadFailed: 'Die gemeldeten Kommentare konnten nicht geladen werden.',
     },
     comments: {
       toggle: (count) => (count === 0 ? 'Kommentare' : `Kommentare (${count})`),

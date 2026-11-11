@@ -120,8 +120,8 @@ export const tips: Messages['tips'] = {
     moderation: {
       summary: 'Trucos denunciados',
       intro:
-        'Publicaciones que los estudiantes han denunciado, la denuncia más reciente primero. Ocultar quita una ' +
-        'publicación de todos los feeds; Mantener la muestra otra vez y pone sus denuncias a cero.',
+        'Publicaciones y comentarios que los estudiantes han denunciado, la denuncia más reciente primero. Ocultar ' +
+        'los quita de todas las listas; Mantener los muestra otra vez y pone sus denuncias a cero.',
       signedOut: 'Inicia sesión con la cuenta de moderación para moderar.',
       notModerator: 'Esta página es para la moderación de la app.',
       needsCode:
@@ -143,6 +143,11 @@ export const tips: Messages['tips'] = {
       hidden: 'Quitada de todos los feeds.',
       kept: 'Mantenida: se ve otra vez.',
       failed: 'No funcionó. Inténtalo de nuevo.',
+      postsHeading: 'Publicaciones',
+      commentsHeading: 'Comentarios',
+      commentsQueue: 'Comentarios denunciados',
+      commentsEmpty: 'No hay comentarios denunciados.',
+      commentsLoadFailed: 'No se pudieron cargar los comentarios denunciados.',
     },
     comments: {
       toggle: (count) => (count === 0 ? 'Comentarios' : `Comentarios (${count})`),
