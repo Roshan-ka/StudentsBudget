@@ -55,6 +55,16 @@ export const tips: Messages['tips'] = {
     seeTipNamed: (title: string) => `Voir le conseil${NNBSP}: ${title}`,
     saveFailed: 'La coche n’a pas pu être enregistrée. Réessaie.',
   },
+  discountMap: {
+    view: 'Afficher les réductions en',
+    list: 'Liste',
+    map: 'Carte',
+    region: 'Carte des réductions à Regensburg',
+    loading: 'Chargement de la carte…',
+    noWebgl: 'La carte ne peut pas s’afficher sur ce téléphone. La liste a toutes les réductions.',
+    failed: 'La carte n’a pas pu se charger. La liste a toutes les réductions.',
+    osm: '© les contributeurs d’OpenStreetMap',
+  },
   studentDiscounts: {
     tag: 'Ajoutée par un étudiant',
     source: (name, date) => `Ajoutée par ${name} le ${date}, non vérifiée par l’appli`,

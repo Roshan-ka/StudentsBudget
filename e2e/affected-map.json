@@ -30,7 +30,7 @@
     "/start": ["account", "axe", "change-password", "hacks-feed", "linking", "passkeys", "privacy-notes", "reminder", "setup", "start", "two-step"],
     "/start/new-account": ["axe", "start"],
     "/start/sign-in": ["axe", "start"],
-    "/tips": ["axe", "checklist", "community-discounts", "discount-confirmations", "discounts", "hacks-comments", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "privacy-notes", "reflow", "theme", "tips"]
+    "/tips": ["axe", "checklist", "community-discounts", "discount-confirmations", "discount-map", "discounts", "hacks-comments", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "privacy-notes", "reflow", "theme", "tips"]
   },
   "allOnly": ["dictation", "language"]
 }

@@ -14,6 +14,8 @@ export const E2E_SUPABASE_ENV = {
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: 'BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8',
   // The AI features (the AI phase): their parts show, and specs answer the function with `mockAiFunction` (ai.ts).
   NEXT_PUBLIC_AI: '1',
+  // The discount map (docs/superpowers/plans/2026-11-11-discount-map.md): off in Production until its real try.
+  NEXT_PUBLIC_DISCOUNT_MAP: '1',
 };
 
 /** Every Supabase Auth call. Matched by path, so it also catches a dev server that has the real project in .env.local. */

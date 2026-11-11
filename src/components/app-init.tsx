@@ -9,6 +9,7 @@ import { finishPendingWipe, wipePending } from '@/features/account/pending-wipe'
 import { inStartOrder } from '@/features/account/start-order';
 import { followSessionForPhone } from '@/features/account/signed-out-effects';
 import { recordCompletedWeeks } from '@/features/badges/week-results';
+import { MAP_SET } from '@/features/discounts/map/map-set';
 import { postDueRecurring } from '@/features/recurring/post-due';
 import { keepReminderInStep } from '@/features/reminder/in-step';
 import { markSignedOut } from '@/features/start/signed-out';
@@ -92,6 +93,7 @@ async function startServiceWorker() {
       supported: 'serviceWorker' in navigator,
       // Set in next.config.ts and inlined at build time.
       version: process.env.NEXT_PUBLIC_BUILD_VERSION ?? 'local',
+      mapSet: MAP_SET.id,
     });
   } catch (error) {
     console.error('StudentsBudget: could not start the service worker', error);

@@ -20,6 +20,8 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "playwright-report/**",
     "blob-report/**",
+    // The discount map's shipped files: MapLibre's built modules, copied from node_modules, and the tile set.
+    "public/maps/**",
   ]),
   {
     rules: {

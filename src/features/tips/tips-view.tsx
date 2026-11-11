@@ -70,7 +70,7 @@ export function TipsView() {
         <TipList categoryId={tipCategoryId} setCategoryId={setTipCategoryId} onSeen={() => setSeeTip(null)} />
       </TabsContent>
       <TabsContent value="discounts" keepMounted className="pt-2 text-base">
-        <DiscountsView />
+        <DiscountsView active={view === 'discounts'} />
       </TabsContent>
       <TabsContent value="hacks" keepMounted className="pt-2 text-base">
         <HacksView />

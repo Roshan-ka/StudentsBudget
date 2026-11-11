@@ -1,2 +1,4 @@
 * text=auto eol=lf
 *.ics text eol=crlf
+# Map tiles and glyphs (the discount map): binary, never touched for line endings.
+*.pbf binary

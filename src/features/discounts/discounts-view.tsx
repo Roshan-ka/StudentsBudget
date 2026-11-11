@@ -8,6 +8,7 @@ import type { Discount } from '@/data/discounts';
 import { db } from '@/db/db';
 import type { DiscountVote } from '@/db/types';
 import { useAuth } from '@/features/account/use-auth';
+import { SegmentedControl } from '@/features/charts/chart-parts';
 import { categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { noteSeen } from '@/features/privacy/notes';
@@ -20,16 +21,23 @@ import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { formatDate, todayIso } from '@/lib/dates';
 import { useFocusAfter } from '@/lib/focus';
+import { useChoicePref } from '@/lib/phone-pref';
 import { getSupabase } from '@/lib/supabase/client';
 import { useToday } from '@/lib/use-today';
 import { cn } from '@/lib/utils';
 import { readCommunity, type CommunityConfirmations } from './community';
 import { DiscountForm } from './discount-form';
 import { bundledDiscounts, discountCategoryIds, sortByFreshness, voteMove, type DiscountSource } from './discounts';
+import { DiscountMap } from './map/discount-map';
+import { mapInBuild } from './map/map-flag';
 import { StudentDiscountActions, StudentDiscountSource } from './student-discount-actions';
 import { readStudentDiscounts, type StudentDiscount } from './student-discounts';
 
 const VOTES: readonly DiscountVote['vote'][] = ['works', 'outdated'];
+
+/** How the discounts show (the discount map): a list, or pins on the map. Remembered per phone. */
+const MODES = ['list', 'map'] as const;
+type Mode = (typeof MODES)[number];
 
 /** What a screen reader hears after a vote, and which way the discount went when the list re-sorted. */
 function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'down' | null, t: Messages): string {
@@ -47,7 +55,14 @@ function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'dow
  * from the app (community, chunk 5), read once per visit, marked as added by a student, with Delete or Report. Signed
  * in, "Add a discount" opens the form for one (chunk 6).
  */
-export function DiscountsView({ source = bundledDiscounts }: { source?: DiscountSource }) {
+export function DiscountsView({
+  source = bundledDiscounts,
+  active = true,
+}: {
+  source?: DiscountSource;
+  /** Whether its tab shows: the map is mounted only then, so a hidden tab never keeps a WebGL context. */
+  active?: boolean;
+}) {
   const { t, lang } = useT();
   const text = t.tips;
   // The date is null until the browser runs this (never the date of the prerender).
@@ -57,6 +72,8 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
   const university = useLiveQuery(async () => ((await db.profile.get('current'))?.university === 'oth' ? 'oth' : 'ur'), []);
   const auth = useAuth();
   const userId = auth.status === 'signed-in' ? auth.userId : null;
+  const [chosenMode, setMode] = useChoicePref<Mode>('studentsbudget-discounts-view', MODES, 'list');
+  const mode: Mode = mapInBuild() ? chosenMode : 'list';
   const [community, setCommunity] = useState<CommunityConfirmations | null>(null);
   /** The students' discounts, with whose they are: another account's never show. */
   const [students, setStudents] = useState<{ userId: string; items: StudentDiscount[] } | null>(null);
@@ -253,111 +270,126 @@ export function DiscountsView({ source = bundledDiscounts }: { source?: Discount
         {chip(null, text.all)}
         {discountCategoryIds(all).map((id) => chip(id, categoryNameIn(t, id)))}
       </div>
+      {mapInBuild() && (
+        <SegmentedControl
+          label={text.discountMap.view}
+          options={[
+            { value: 'list', text: text.discountMap.list },
+            { value: 'map', text: text.discountMap.map },
+          ]}
+          value={mode}
+          onChange={setMode}
+        />
+      )}
       {/* Always there and filled later, so screen readers announce each change. */}
       <p role="status" className="sr-only">
         {heard}
       </p>
-      <ul ref={focus.refFor('list')} tabIndex={-1} aria-label={text.discounts} className="flex flex-col gap-3">
-        {shown.map(({ discount, vote, community: others, freshness: f }) => {
-          const student = byStudent.get(discount.id);
-          // The app's own words are translated; a student's stay as written, in the language they were written in.
-          const own = student === undefined ? discountIn(discount, lang) : null;
-          const d = own ?? discount;
-          const placeId = `discount-${d.id}-place`;
-          const Icon = CATEGORY_ICONS[d.categoryId] ?? OTHER_ICON;
-          return (
-            <li
-              key={d.id}
-              ref={(el) => {
-                if (el) items.current.set(d.id, el);
-                return () => {
-                  items.current.delete(d.id);
-                };
-              }}
-              className={cn(cardVariants(), 'gap-2')}
-            >
-              <div className="flex flex-wrap gap-2">
-                {/* The category's tint and icon, as on a tip; its name is the text (4.5:1 on every tint). */}
-                <span
-                  className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold"
-                  style={{ backgroundColor: categoryTint(d.categoryId) }}
-                >
-                  <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-                  {categoryNameIn(t, d.categoryId)}
-                </span>
-                {/* Nobody checked it before it showed, so it never reads like the app's own sourced list. */}
-                {student !== undefined && (
-                  <span className="inline-flex w-fit items-center rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold">
-                    {text.studentDiscounts.tag}
-                  </span>
-                )}
-              </div>
-              {/* The discount's own words are city content: in the phone's language where translated (`discountIn`). */}
-              <div lang={own === null ? student?.info.lang : own.textLang} className="flex flex-col gap-1">
-                <h3 id={placeId} className="text-xl leading-snug font-extrabold break-words">
-                  {d.place}
-                </h3>
-                <p className="text-sm font-semibold break-words">{d.offer}</p>
-                {d.conditions !== '' && <p className="text-sm break-words text-muted-foreground">{d.conditions}</p>}
-                {d.address !== '' && <p className="text-sm break-words text-muted-foreground">{d.address}</p>}
-              </div>
-              <div className="flex flex-col gap-0.5 text-sm">
-                {f.outdated && vote ? (
-                  <p className="font-medium">{text.markedOutdated(formatDate(vote.on))}</p>
-                ) : (
-                  <>
-                    {f.mayBeOutdated && <p className="font-medium">{text.mayBeOutdated}</p>}
-                    <p className="text-muted-foreground">{text.lastConfirmed(formatDate(f.lastConfirmed))}</p>
-                  </>
-                )}
-                {others !== undefined && others.works > 0 && (
-                  <p className="text-muted-foreground">{text.confirmations(others.works)}</p>
-                )}
-                {others !== undefined && others.outdated > 0 && (
-                  <p className="text-muted-foreground">{text.notWorking(others.outdated)}</p>
-                )}
-              </div>
-              {own !== null && <RangeSource range={own} about={d.place} />}
-              {student !== undefined && <StudentDiscountSource item={student} t={t} />}
-              <div role="group" aria-label={text.voteGroup(d.place)} className="mt-1 flex flex-wrap gap-2">
-                {VOTES.map((option) => (
-                  <Button
-                    key={option}
-                    type="button"
-                    variant="chip"
-                    aria-pressed={vote?.vote === option}
-                    aria-describedby={placeId}
-                    data-vote={option}
-                    onClick={() => tap(d, option)}
+      {mode === 'map' ? (
+        active && <DiscountMap />
+      ) : (
+        <ul ref={focus.refFor('list')} tabIndex={-1} aria-label={text.discounts} className="flex flex-col gap-3">
+          {shown.map(({ discount, vote, community: others, freshness: f }) => {
+            const student = byStudent.get(discount.id);
+            // The app's own words are translated; a student's stay as written, in the language they were written in.
+            const own = student === undefined ? discountIn(discount, lang) : null;
+            const d = own ?? discount;
+            const placeId = `discount-${d.id}-place`;
+            const Icon = CATEGORY_ICONS[d.categoryId] ?? OTHER_ICON;
+            return (
+              <li
+                key={d.id}
+                ref={(el) => {
+                  if (el) items.current.set(d.id, el);
+                  return () => {
+                    items.current.delete(d.id);
+                  };
+                }}
+                className={cn(cardVariants(), 'gap-2')}
+              >
+                <div className="flex flex-wrap gap-2">
+                  {/* The category's tint and icon, as on a tip; its name is the text (4.5:1 on every tint). */}
+                  <span
+                    className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold"
+                    style={{ backgroundColor: categoryTint(d.categoryId) }}
                   >
-                    {text.votes[option]}
-                  </Button>
-                ))}
-              </div>
-              {pendingVote?.discountId === d.id && (
-                <PrivacyNote
-                  id="votes"
-                  label={t.common.privacy.label}
-                  text={t.common.privacy.votes}
-                  continueLabel={t.common.privacy.continue}
-                  cancelLabel={t.common.privacy.cancel}
-                  onContinue={() => choose(d, pendingVote.vote)}
-                  onCancel={() => cancelVote(d, pendingVote.vote)}
-                />
-              )}
-              {notice?.discountId === d.id && <p className="text-xs text-muted-foreground">{notice.text}</p>}
-              {student !== undefined && (
-                <StudentDiscountActions
-                  item={student}
-                  t={t}
-                  lang={lang}
-                  onChanged={(said) => changed(student.discount.id, said)}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                    <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+                    {categoryNameIn(t, d.categoryId)}
+                  </span>
+                  {/* Nobody checked it before it showed, so it never reads like the app's own sourced list. */}
+                  {student !== undefined && (
+                    <span className="inline-flex w-fit items-center rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold">
+                      {text.studentDiscounts.tag}
+                    </span>
+                  )}
+                </div>
+                {/* The discount's own words are city content: in the phone's language where translated (`discountIn`). */}
+                <div lang={own === null ? student?.info.lang : own.textLang} className="flex flex-col gap-1">
+                  <h3 id={placeId} className="text-xl leading-snug font-extrabold break-words">
+                    {d.place}
+                  </h3>
+                  <p className="text-sm font-semibold break-words">{d.offer}</p>
+                  {d.conditions !== '' && <p className="text-sm break-words text-muted-foreground">{d.conditions}</p>}
+                  {d.address !== '' && <p className="text-sm break-words text-muted-foreground">{d.address}</p>}
+                </div>
+                <div className="flex flex-col gap-0.5 text-sm">
+                  {f.outdated && vote ? (
+                    <p className="font-medium">{text.markedOutdated(formatDate(vote.on))}</p>
+                  ) : (
+                    <>
+                      {f.mayBeOutdated && <p className="font-medium">{text.mayBeOutdated}</p>}
+                      <p className="text-muted-foreground">{text.lastConfirmed(formatDate(f.lastConfirmed))}</p>
+                    </>
+                  )}
+                  {others !== undefined && others.works > 0 && (
+                    <p className="text-muted-foreground">{text.confirmations(others.works)}</p>
+                  )}
+                  {others !== undefined && others.outdated > 0 && (
+                    <p className="text-muted-foreground">{text.notWorking(others.outdated)}</p>
+                  )}
+                </div>
+                {own !== null && <RangeSource range={own} about={d.place} />}
+                {student !== undefined && <StudentDiscountSource item={student} t={t} />}
+                <div role="group" aria-label={text.voteGroup(d.place)} className="mt-1 flex flex-wrap gap-2">
+                  {VOTES.map((option) => (
+                    <Button
+                      key={option}
+                      type="button"
+                      variant="chip"
+                      aria-pressed={vote?.vote === option}
+                      aria-describedby={placeId}
+                      data-vote={option}
+                      onClick={() => tap(d, option)}
+                    >
+                      {text.votes[option]}
+                    </Button>
+                  ))}
+                </div>
+                {pendingVote?.discountId === d.id && (
+                  <PrivacyNote
+                    id="votes"
+                    label={t.common.privacy.label}
+                    text={t.common.privacy.votes}
+                    continueLabel={t.common.privacy.continue}
+                    cancelLabel={t.common.privacy.cancel}
+                    onContinue={() => choose(d, pendingVote.vote)}
+                    onCancel={() => cancelVote(d, pendingVote.vote)}
+                  />
+                )}
+                {notice?.discountId === d.id && <p className="text-xs text-muted-foreground">{notice.text}</p>}
+                {student !== undefined && (
+                  <StudentDiscountActions
+                    item={student}
+                    t={t}
+                    lang={lang}
+                    onChanged={(said) => changed(student.discount.id, said)}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
