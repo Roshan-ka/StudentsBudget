@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   amIModerator,
   commentQueueItemOf,
+  discountQueueItemOf,
   moderate,
   moderateComment,
+  moderateDiscount,
   queueItemOf,
   readCommentQueue,
+  readDiscountQueue,
   readQueue,
 } from './moderation';
 
@@ -126,5 +129,65 @@ describe('the reported comments (community, chunk 3)', () => {
     expect(await moderateComment(client, 'c1', 'hide')).toBe('done');
     expect(calls).toEqual([{ fn: 'moderate_comment', args: { p_id: 'c1', p_action: 'hide' } }]);
     expect(await moderateComment(answering(null, { code: 'XX000' }).client, 'c1', 'keep')).toBe('failed');
+  });
+});
+
+describe('the reported discounts (community, chunk 7)', () => {
+  const discount = {
+    id: 'd1',
+    place: 'Phone Shop Deluxe',
+    offer: '50 % off everything, today only!',
+    conditions: null,
+    link: 'https://www.example.de/deals',
+    lang: 'en',
+    created_at: '2026-11-11T12:00:00Z',
+    username: 'spam_shop',
+    reports: 5,
+    reports_since_kept: 5,
+    hidden_by_hand: false,
+    hidden_by_reports: true,
+    kept_at: null,
+    last_report: '2026-11-11T13:00:00Z',
+  };
+
+  it('reads each row, without conditions as none', () => {
+    expect(discountQueueItemOf(discount)).toEqual({
+      id: 'd1',
+      place: 'Phone Shop Deluxe',
+      offer: '50 % off everything, today only!',
+      conditions: '',
+      link: 'https://www.example.de/deals',
+      lang: 'en',
+      createdAt: '2026-11-11T12:00:00Z',
+      username: 'spam_shop',
+      reports: 5,
+      hiddenByHand: false,
+      hiddenByReports: true,
+    });
+    expect(discountQueueItemOf({ ...discount, conditions: 'Weekdays' })?.conditions).toBe('Weekdays');
+    expect(discountQueueItemOf({ ...discount, link: null })).toBeNull();
+  });
+
+  it('says why it shows nothing, as the post queue does', async () => {
+    const { client, calls } = answering([discount], null);
+    expect(await readDiscountQueue(client)).toHaveLength(1);
+    expect(calls).toEqual([{ fn: 'discount_queue', args: undefined }]);
+    expect(await readDiscountQueue(answering(null, { code: '42501', message: 'the second step is owed' }).client)).toBe(
+      'needs-code',
+    );
+    expect(await readDiscountQueue(answering(null, { code: '42501', message: 'not a moderator' }).client)).toBe(
+      'not-moderator',
+    );
+    expect(await readDiscountQueue(answering(null, { code: 'XX000', message: 'down' }).client)).toBe('failed');
+  });
+
+  it('hides or keeps a discount', async () => {
+    const { client, calls } = answering(null, null);
+    expect(await moderateDiscount(client, 'd1', 'keep')).toBe('done');
+    expect(calls).toEqual([{ fn: 'moderate_discount', args: { p_id: 'd1', p_action: 'keep' } }]);
+    expect(
+      await moderateDiscount(answering(null, { code: '42501', message: 'the second step is owed' }).client, 'd1', 'hide'),
+    ).toBe('needs-code');
+    expect(await moderateDiscount(answering(null, { code: 'XX000' }).client, 'd1', 'hide')).toBe('failed');
   });
 });

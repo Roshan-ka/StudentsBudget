@@ -5,9 +5,16 @@ import { contentLang } from '@/i18n/content';
 import { useT } from '@/i18n/use-t';
 import { formatDate } from '@/lib/dates';
 
-/** "studierendenwerke.de": enough to see where the link goes, short enough to fit a phone. */
+/**
+ * "studierendenwerke.de": enough to see where the link goes, short enough to fit a phone. An address the browser can't
+ * read (a student's, in the moderation queue) shows as it is.
+ */
 export function hostOf(url: string): string {
-  return new URL(url).hostname.replace(/^www\./, '');
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
 }
 
 /**

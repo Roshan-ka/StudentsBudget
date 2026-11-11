@@ -6,13 +6,15 @@ import {
   skipUnlessAccountsShow,
   type AuthFactors,
   type CommentQueueRow,
+  type DiscountQueueRow,
   type QueueRow,
 } from './helpers/supabase';
 
 // Moderating the hacks feed (chunk 7; docs/superpowers/plans/2026-11-05-hacks-feed.md), by role: a reader sees no
 // moderation, the moderator without the authenticator code is sent to two-step sign-in, and the moderator with it
-// hides and keeps reported posts and comments (community, chunk 3). Supabase is mocked: `moderator` makes the account
-// the moderator, `queue` is the posts' list and `commentQueue` the comments'.
+// hides and keeps reported posts, comments (community, chunk 3) and discounts students added (chunk 7). Supabase is
+// mocked: `moderator` makes the account the moderator, `queue` is the posts' list, `commentQueue` the comments' and
+// `discountQueue` the discounts'.
 
 test.use({ viewport: { width: 375, height: 812 } });
 
@@ -97,7 +99,7 @@ test('the moderator with the code hides and keeps reported posts', async ({ page
   await signIn(page, true);
 
   await page.goto('/settings');
-  await expect(moderationRow(page)).toContainText('Reported hacks');
+  await expect(moderationRow(page)).toContainText('Reported hacks and discounts');
   await moderationRow(page).click();
 
   const phones = items(page).filter({ hasText: 'Cheap phones' });
@@ -169,5 +171,62 @@ test('the moderator with the code hides and keeps reported comments, in their ow
   expect(commentQueue.map((row) => [row.id, row.hidden_by_hand, row.reports_since_kept])).toEqual([
     ['c1', true, 5],
     ['c2', false, 0],
+  ]);
+});
+
+function reportedDiscount(id: string, place: string, reports: number, hiddenByReports: boolean): DiscountQueueRow {
+  return {
+    id,
+    place,
+    offer: '50 % off everything, today only',
+    conditions: null,
+    link: 'https://www.example.de/deals',
+    lang: 'en',
+    created_at: '2026-11-11T12:00:00Z',
+    username: 'spam_shop',
+    reports,
+    reports_since_kept: reports,
+    hidden_by_hand: false,
+    hidden_by_reports: hiddenByReports,
+    kept_at: null,
+    last_report: '2026-11-11T13:00:00Z',
+  };
+}
+
+test('the moderator with the code hides and keeps reported discounts, with their source', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  const discountQueue = [
+    reportedDiscount('d1', 'Phone Shop Deluxe', 5, true),
+    reportedDiscount('d2', 'Copyshop Uni', 1, false),
+  ];
+  await mockSupabaseData(page, { moderator: true, twoStep: true, queue: [], commentQueue: [], discountQueue });
+  const factors: AuthFactors = new Map([
+    [EMAIL, [{ id: 'factor-moderator', friendly_name: 'Moderator phone', factor_type: 'totp', status: 'verified' } as const]],
+  ]);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
+  await signIn(page, true);
+  await page.goto('/settings/moderation');
+
+  await expect(page.getByRole('region', { name: 'Comments', exact: true }).getByText('No reported comments.', { exact: true })).toBeVisible();
+  const discounts = page
+    .getByRole('region', { name: 'Discounts', exact: true })
+    .getByRole('list', { name: 'Reported discounts', exact: true })
+    .getByRole('listitem');
+  const shop = discounts.filter({ hasText: 'Phone Shop Deluxe' });
+  await expect(shop).toContainText('@spam_shop');
+  await expect(shop).toContainText('5 reports since last kept · Hidden by reports');
+  await expect(shop.getByRole('link', { name: 'example.de', exact: true })).toHaveAttribute('href', 'https://www.example.de/deals');
+
+  await shop.getByRole('button', { name: 'Hide', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Hidden from every feed.');
+  await expect(shop).toContainText('Hidden by you');
+
+  const copyshop = discounts.filter({ hasText: 'Copyshop Uni' });
+  await copyshop.getByRole('button', { name: 'Keep', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Kept: it shows again.');
+  await expect(copyshop).toContainText('0 reports since last kept · Visible');
+  expect(discountQueue.map((row) => [row.id, row.hidden_by_hand, row.reports_since_kept])).toEqual([
+    ['d1', true, 5],
+    ['d2', false, 0],
   ]);
 });

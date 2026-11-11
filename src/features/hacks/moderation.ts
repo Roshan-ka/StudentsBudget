@@ -174,3 +174,78 @@ export async function moderateComment(
     return 'failed';
   }
 }
+
+/** A discount a student added that others reported (or the moderator hid), as the moderator sees it (community, chunk 7). */
+export type DiscountQueueItem = {
+  id: string;
+  place: string;
+  offer: string;
+  conditions: string;
+  link: string;
+  lang: string;
+  createdAt: string;
+  username: string | null;
+  /** Reports since the moderator last kept it: what counts towards hiding it for everyone. */
+  reports: number;
+  hiddenByHand: boolean;
+  hiddenByReports: boolean;
+};
+
+export type DiscountQueueAnswer = DiscountQueueItem[] | 'needs-code' | 'not-moderator' | 'failed';
+
+/** One `discount_queue` row as an item, or null for a row this build can't read. */
+export function discountQueueItemOf(row: unknown): DiscountQueueItem | null {
+  if (!isRecord(row)) return null;
+  const { id, place, offer, link, lang, created_at: createdAt } = row;
+  if (typeof id !== 'string' || typeof place !== 'string' || typeof offer !== 'string') return null;
+  if (typeof link !== 'string' || typeof lang !== 'string' || typeof createdAt !== 'string') return null;
+  return {
+    id,
+    place,
+    offer,
+    conditions: typeof row.conditions === 'string' ? row.conditions : '',
+    link,
+    lang,
+    createdAt,
+    username: typeof row.username === 'string' ? row.username : null,
+    reports: typeof row.reports_since_kept === 'number' ? row.reports_since_kept : 0,
+    hiddenByHand: row.hidden_by_hand === true,
+    hiddenByReports: row.hidden_by_reports === true,
+  };
+}
+
+/** The reported discounts (migration 20261111101604_community_discounts.sql), or why there are none to show. */
+export async function readDiscountQueue(supabase: SupabaseClient): Promise<DiscountQueueAnswer> {
+  try {
+    const { data, error } = await supabase.rpc('discount_queue');
+    if (error) {
+      const refusal = refusalOf(error);
+      if (refusal !== null) return refusal;
+      console.error('StudentsBudget: could not load the reported discounts', error);
+      return 'failed';
+    }
+    if (!Array.isArray(data)) return 'failed';
+    return data.map(discountQueueItemOf).filter((item): item is DiscountQueueItem => item !== null);
+  } catch (thrown) {
+    console.error('StudentsBudget: could not load the reported discounts', thrown);
+    return 'failed';
+  }
+}
+
+/** Hides a discount from every list, or keeps it (it shows again, and its report count starts afresh). */
+export async function moderateDiscount(
+  supabase: SupabaseClient,
+  id: string,
+  action: 'hide' | 'keep',
+): Promise<'done' | 'needs-code' | 'failed'> {
+  try {
+    const { error } = await supabase.rpc('moderate_discount', { p_id: id, p_action: action });
+    if (!error) return 'done';
+    if (refusalOf(error) === 'needs-code') return 'needs-code';
+    console.error('StudentsBudget: could not moderate the discount', error);
+    return 'failed';
+  } catch (thrown) {
+    console.error('StudentsBudget: could not moderate the discount', thrown);
+    return 'failed';
+  }
+}

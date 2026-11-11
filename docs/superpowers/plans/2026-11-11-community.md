@@ -136,3 +136,49 @@ Chunks 1 and 4 (the database) touch no shared files and could run in parallel. S
     - The Hacks tab keeps a status line of its own, so the spec finds a comment's in its card.
   - **`moderation.spec`:** gains the comments section.
   - **Map:** `hacks-comments` under `/tips` and `/settings/account`.
+- **Chunk 4** (11-11-2026), migration `20261111101604_community_discounts.sql`:
+  - **Tables:** `community_discounts` and `community_discount_reports`, owner-only with the second-step policy and no direct writes.
+    - **Fields:** place 2–80, offer 3–120, optional address ≤120 and conditions ≤300, a category id, a required https link ≤300, the language, and the city (Regensburg only).
+  - **Private helper:** `private.discount_visible(discount, me)`, by the same rules as a post.
+  - **Functions:**
+    - `post_discount` refuses with `needs-username` or `daily-limit` (3 in 24 hours, deleted ones included), and leaves out an empty address or conditions;
+    - `delete_discount` on one's own, and `report_discount` (`own-post` on one's own);
+    - `community_discounts_feed`: the newest 200 visible, with the posting name and `mine`, never a user id;
+    - `discount_queue` and `moderate_discount`, for a moderator at aal2.
+  - **Votes:** they reuse `discount_votes` and `discount_confirmations` by the uuid, with no change; a test proves the counting.
+  - **Tests:** `supabase/tests/community_discounts.test.sql` has 35 tests, and `user_data.test.sql`'s table list gains the two tables.
+- **Chunk 5** (11-11-2026), discounts in the list:
+  - **`src/features/discounts/student-discounts.ts`:**
+    - `studentDiscountOf` turns a feed row into a `Discount` (its link the source URL, its day added the checked day) plus `StudentInfo` (author, `mine`, language). A row without its words, a readable https link or a date is left out.
+    - `readStudentDiscounts` keeps the rows per account in localStorage (`studentsbudget-student-discounts`) and falls back on them for that account only.
+    - `forgetStudentDiscounts` runs on sign-out (`forgetAccountOnPhone`). `deleteStudentDiscount` and `reportStudentDiscount` do the rest.
+  - **`DiscountsView`:** signed in, it reads the list once per visit. Each one sorts, filters and takes votes with the app's own, tagged "Added by a student", its words marked with their language.
+  - **`StudentDiscountSource`:** "Added by @bea · Graduate · Batch '25 on 09.11.2026, not checked by the app", with the link, and no "checked" date.
+  - **`StudentDiscountActions`:**
+    - Delete on one's own, and Report on others' after the `hackVotes` note, each after a question;
+    - Translate in another language, after the `translate` note;
+    - a deleted or reported one leaves the list at once, the list reloads, and the focus goes to the list.
+  - **Texts:** `tips.studentDiscounts` in four languages. `hostOf` is exported from `range-source.tsx`.
+  - **e2e:** the mock's `studentDiscounts` answers the feed, `delete_discount` and `report_discount`. `e2e/community-discounts.spec.ts` is new, under `/tips` and `/settings/account`.
+- **Chunk 6** (11-11-2026), adding a discount:
+  - **`add-discount.ts`:**
+    - `checkDiscount` holds the migration's limits; its test reads them, and the daily limit, from the migration, with the numbers in every language's messages.
+    - `PROBLEM_FIELD` ties each problem to its field.
+    - `DISCOUNT_CATEGORIES` is every expense category but one-off costs.
+    - `addDiscount` reads `needs-username`, `daily-limit` and 23514.
+  - **`DiscountForm`:**
+    - "Add a discount" opens it on its first field. Its intro says who sees it, under which name, and "No alcohol deals."
+    - Each message is tied to its field.
+    - The first post waits for the `post` note, and a missing name is picked in the form.
+    - Added, the form closes, the focus goes back to its button and the list reloads.
+  - **Texts:** `tips.studentDiscounts.form` in four languages.
+  - **e2e:** the mock's `post_discount` follows the table's checks, and `discountLimit` refuses. The spec gains adding, a name first, and the daily limit with Cancel.
+- **Chunk 7** (11-11-2026), discounts: moderation, e2e and docs:
+  - **`moderation.ts`:** `DiscountQueueItem`, `discountQueueItemOf`, `readDiscountQueue` and `moderateDiscount`.
+  - **Settings → Moderation:**
+    - a third section, Discounts, with the place, offer, conditions, the student's link and the author;
+    - the three sections share one decision (reports, state, Hide and Keep);
+    - the row's summary is "Reported hacks and discounts", and the intro covers all three in four languages.
+  - **`hostOf`** shows an address the browser can't read as it is.
+  - **e2e:** the mock's `discountQueue` answers `discount_queue` and `moderate_discount`, for the moderator at aal2 only. `moderation.spec` gains the discounts section, and `community-discounts.spec` gains German at 375 px.
+  - **CLAUDE.md:** a Community rule, and the outgoing-requests list.

@@ -163,11 +163,11 @@ export const tips: Messages['tips'] = {
     voteFailed: 'Ton vote n’a pas pu être enregistré. Réessaie.',
     reportFailed: 'Le signalement n’a pas pu être envoyé. Réessaie.',
     moderation: {
-      summary: 'Astuces signalées',
+      summary: 'Astuces et réductions signalées',
       intro:
-        'Les publications et les commentaires que des étudiants ont signalés, le signalement le plus récent ' +
-        `d’abord. Masquer les retire de toutes les listes${NNBSP}; Garder les montre à nouveau et remet leurs ` +
-        'signalements à zéro.',
+        'Les publications, les commentaires et les réductions que des étudiants ont signalés, le signalement le ' +
+        `plus récent d’abord. Masquer les retire de toutes les listes${NNBSP}; Garder les montre à nouveau et remet ` +
+        'leurs signalements à zéro.',
       signedOut: 'Connecte-toi avec le compte de modération pour modérer.',
       notModerator: 'Cette page est pour la modération de l’app.',
       needsCode:
@@ -194,6 +194,10 @@ export const tips: Messages['tips'] = {
       commentsQueue: 'Commentaires signalés',
       commentsEmpty: 'Aucun commentaire signalé.',
       commentsLoadFailed: 'Les commentaires signalés n’ont pas pu être chargés.',
+      discountsHeading: 'Réductions',
+      discountsQueue: 'Réductions signalées',
+      discountsEmpty: 'Aucune réduction signalée.',
+      discountsLoadFailed: 'Les réductions signalées n’ont pas pu être chargées.',
     },
     comments: {
       toggle: (count) => (count === 0 ? 'Commentaires' : `Commentaires (${count})`),
