@@ -58,8 +58,7 @@ export function snapshot(overrides: Partial<BackupData> = {}): BackupData {
     ],
     discountVotes: [{ discountId: 'cinema-student', vote: 'works', on: '2026-10-20' }],
     checklistTicks: [{ itemId: 'anmeldung', on: '2026-10-20' }],
-    // Plan history is not synced yet (plan history, chunk 4).
-    planMonths: [],
+    planMonths: [{ month: '2026-10', incomes: [], fixed: [{ categoryId: 'rent', monthlyMinor: 40_000 }], oneOffs: [], envelopes: [{ categoryId: 'food', monthlyMinor: 20_000 }] }],
     profile: {
       id: 'current',
       name: 'Roshan',

@@ -11,6 +11,7 @@ import { setDefaultAccount } from '@/features/accounts/set-default-account';
 import { recordCompletedWeeks, setAway } from '@/features/badges/week-results';
 import { postDueRecurring } from '@/features/recurring/post-due';
 import { updatePlan } from '@/features/recurring/update-plan';
+import { monthOf, todayIso } from '@/lib/dates';
 import { untracked } from './untracked';
 
 // Every way the app writes, run through the real middleware (registered in db.ts) on fake-indexeddb. While the phone
@@ -134,13 +135,14 @@ describe('while the phone is linked', () => {
     expect(await recorded()).toEqual(['accounts:cash']);
   });
 
-  it('records the plan put in setup, changed through updatePlan, and updated in place (suggested budget)', async () => {
+  it('records the plan put in setup, changed through updatePlan with its month of history, and updated in place', async () => {
     await db.plan.put(PLAN);
     expect(await recorded()).toEqual(['plans:current']);
 
+    // updatePlan keeps the month's plan history beside it (plan history): both go to the account.
     await forget();
     await updatePlan((plan) => ({ ...plan, envelopes: [{ categoryId: 'food', monthlyMinor: 25000 }] }));
-    expect(await recorded()).toEqual(['plans:current']);
+    expect(await recorded()).toEqual([`plan_months:${monthOf(todayIso())}`, 'plans:current']);
 
     await forget();
     await db.plan.update('current', { envelopes: [{ categoryId: 'food', monthlyMinor: 30000 }] });
@@ -196,6 +198,11 @@ describe('while the phone is linked', () => {
       updatedAt: CREATED_AT,
     });
     expect(await recorded()).toEqual(['discount_votes:cinema-student', 'profiles:current']);
+  });
+
+  it('records a month of plan history by its month, beside the plan, when the plan is changed', async () => {
+    await db.planMonths.put({ month: '2026-10', incomes: [], fixed: [], oneOffs: [], envelopes: [] });
+    expect(await recorded()).toEqual(['plan_months:2026-10']);
   });
 
   it('records a checklist tick and its untick, by the item', async () => {

@@ -82,6 +82,15 @@ The weekly badges' rows are recorded once, but a week recorded late, or backfill
   - **Bulk:** export, replace and clear include `planMonths`.
   - **Placeholders:** `planDownload` and the MCP server give `planMonths: []` until chunk 4. Until then, a link that loads the account's data clears the phone's history along with the rest, as replacing does.
   - **Tests:** `src/db/plan-months.test.ts` (the writers, and the poster that leaves none), the v6 store in `db.test.ts`, and the backup's version 4 and 5 cases.
+- **Chunk 3** (#194, built in the checklist session): the account's `plan_months` table (migration `20261110134042_plan_months.sql`) with its pgTAP.
+- **Chunk 4** (11-11-2026), sync:
+  - **Where the table is named:**
+    - `plan_months` joins `SERVER_TABLES`, `byTable`, `serverRowsOf` (id: the month), `DEXIE_SYNC` (`planMonths`) and `DEXIE_HOME`;
+    - `ROW_CHECKS` (`planMonthRow`);
+    - `planDownload`, which now brings the account's months in place of chunk 2's `[]`.
+  - **What follows from that list:** the write and delete orders, the pull's transaction and the fake store, so a linked phone records each month's row in the outbox beside the plan (`updatePlan` queues `plan_months:<month>` and `plans:current`), pushes it, and pulls another phone's.
+  - **Fixtures:** `scripts/generate-demo-fixtures.mjs` now writes `newer-version.json` as version 6, matching chunk 2's hand edit.
+  - **Tests:** upload, download, pull (a month and its tombstone), change tracking (a month by its id, and `updatePlan`'s two rows), and the snapshot with a month row.
 
 ## Verification
 

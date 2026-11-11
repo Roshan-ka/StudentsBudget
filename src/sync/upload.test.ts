@@ -18,6 +18,7 @@ describe('serverRowsOf', () => {
     expect(rows.discount_votes.map((r) => r.id)).toEqual(['cinema-student']);
     expect(rows.profiles).toEqual([{ id: 'current', data: d.profile }]);
     expect(rows.checklist_ticks).toEqual([{ id: 'anmeldung', data: d.checklistTicks[0] }]);
+    expect(rows.plan_months).toEqual([{ id: '2026-10', data: d.planMonths[0] }]);
   });
 
   it('sends a manual rate, keyed by its currency, but never the ECB rates or the built-in categories', () => {
