@@ -296,3 +296,39 @@ test('a fourth discount in a day is refused, and Cancel closes the form', async 
   await expect(form(page)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Add a discount', exact: true })).toBeFocused();
 });
+
+test.describe('on a phone set to German', () => {
+  test.use({ locale: 'de-DE' });
+
+  test('a student’s discount and the form read in German, and fit the phone', async ({ page }) => {
+    await skipUnlessAccountsShow(page);
+    await mockSupabaseData(page, { profiles: named(), studentDiscounts: [TAILOR, MINE] });
+    await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+    await page.goto('/settings/account');
+    await page.getByRole('textbox', { name: 'E-Mail', exact: true }).fill(EMAIL);
+    await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Anmelden', exact: true }).click();
+    await expect(page.getByText(`Angemeldet als ${EMAIL}.`, { exact: true })).toBeVisible();
+    await page.goto('/tips');
+    const tab = page.getByRole('tablist', { name: 'Tipps, Rabatte, Hacks oder Checkliste', exact: true }).getByRole('tab', { name: 'Rabatte', exact: true });
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+
+    const list = page.getByRole('list', { name: 'Rabatte', exact: true });
+    const tailor = list.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 3, name: TAILOR.place, exact: true }) });
+    await expect(tailor.getByText('Von Studierenden eingetragen', { exact: true })).toBeVisible();
+    // An English discount on a German phone can be translated, and says which discount; it can be reported.
+    await expect(tailor.getByRole('link', { name: `Übersetzen: der Rabatt bei ${TAILOR.place}`, exact: true })).toBeVisible();
+    await expect(tailor.getByRole('button', { name: `Melden: der Rabatt bei ${TAILOR.place}`, exact: true })).toBeVisible();
+    const mine = list.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 3, name: MINE.place, exact: true }) });
+    await expect(mine.getByRole('button', { name: `Löschen: der Rabatt bei ${MINE.place}`, exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Rabatt eintragen', exact: true }).click();
+    const form = page.getByRole('region', { name: 'Rabatt eintragen', exact: true });
+    await expect(form.getByRole('textbox', { name: 'Ort', exact: true })).toBeFocused();
+    await expect(form.getByRole('textbox', { name: 'Angebot', exact: true })).toBeVisible();
+    await expect(form.getByRole('textbox', { name: 'Link zur Quelle', exact: true })).toBeVisible();
+    await expect(form).toContainText('Keine Alkohol-Angebote.');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  });
+});

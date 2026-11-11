@@ -445,6 +445,24 @@ export type StudentDiscountRow = {
   mine: boolean;
 };
 
+/** One row of `discount_queue` (community, chunk 7), as the database returns it. */
+export type DiscountQueueRow = {
+  id: string;
+  place: string;
+  offer: string;
+  conditions: string | null;
+  link: string;
+  lang: string;
+  created_at: string;
+  username: string | null;
+  reports: number;
+  reports_since_kept: number;
+  hidden_by_hand: boolean;
+  hidden_by_reports: boolean;
+  kept_at: string | null;
+  last_report: string | null;
+};
+
 /** The claims of the mocked session that sent a request. */
 function claimsOf(request: Request): { sub?: string; aal?: string } {
   const token = (request.headers()['authorization'] ?? '').replace(/^Bearer /, '');
@@ -500,7 +518,8 @@ function revisionOf(tables: ServerTables, table: string, id: string): number {
  * moderator, `rpc/comment_queue` answers `commentQueue` and `rpc/moderate_comment` changes it, at aal2 only. The
  * discounts students added (community, chunk 5) are kept in `studentDiscounts`: `rpc/community_discounts_feed` answers
  * them, newest first, `rpc/post_discount` adds one (chunk 6: a username first, none with `discountLimit`),
- * `rpc/delete_discount` takes one's own out and `rpc/report_discount` takes another's out.
+ * `rpc/delete_discount` takes one's own out and `rpc/report_discount` takes another's out. For the moderator,
+ * `rpc/discount_queue` answers `discountQueue` and `rpc/moderate_discount` changes it (chunk 7), at aal2 only.
  * `rpc/save_push_subscription` keeps a phone's weekly reminder in `reminders` by its address (with `twoStep`, at aal2
  * only), and a delete of `push_subscriptions` by `endpoint` takes the owner's row out. Returns the tables, to look at
  * and to seed.
@@ -522,6 +541,7 @@ export async function mockSupabaseData(
     moderator?: boolean;
     queue?: QueueRow[];
     commentQueue?: CommentQueueRow[];
+    discountQueue?: DiscountQueueRow[];
     reminders?: ServerReminders;
     confirmations?: { discount_id: string; last_works: string | null; works_since: number; outdated_since: number }[];
   } = {},
@@ -784,16 +804,24 @@ export async function mockSupabaseData(
     if (path === 'rpc/am_i_moderator' && request.method() === 'POST') {
       return route.fulfill({ status: 200, headers: CORS, json: options.moderator === true });
     }
-    // The posts' queue (`queue`) and the comments' (`commentQueue`, community, chunk 3): the moderator at aal2 only.
-    const queueOf = { 'rpc/moderation_queue': 'posts', 'rpc/moderate_hack': 'posts', 'rpc/comment_queue': 'comments', 'rpc/moderate_comment': 'comments' } as const;
+    // The posts' queue (`queue`), the comments' (`commentQueue`, community, chunk 3) and the discounts' (`discountQueue`,
+    // chunk 7): the moderator at aal2 only.
+    const queueOf = {
+      'rpc/moderation_queue': 'posts',
+      'rpc/moderate_hack': 'posts',
+      'rpc/comment_queue': 'comments',
+      'rpc/moderate_comment': 'comments',
+      'rpc/discount_queue': 'discounts',
+      'rpc/moderate_discount': 'discounts',
+    } as const;
     if (path in queueOf && request.method() === 'POST') {
       const refuse = (message: string) =>
         route.fulfill({ status: 403, headers: CORS, json: { code: '42501', message, hint: null, details: null } });
       if (options.moderator !== true) return refuse('not a moderator');
       if (claimsOf(request).aal !== 'aal2') return refuse('the second step is owed');
-      const queue: (QueueRow | CommentQueueRow)[] =
-        queueOf[path as keyof typeof queueOf] === 'posts' ? (options.queue ?? []) : (options.commentQueue ?? []);
-      if (path === 'rpc/moderation_queue' || path === 'rpc/comment_queue') {
+      const queues = { posts: options.queue, comments: options.commentQueue, discounts: options.discountQueue };
+      const queue: (QueueRow | CommentQueueRow | DiscountQueueRow)[] = queues[queueOf[path as keyof typeof queueOf]] ?? [];
+      if (path === 'rpc/moderation_queue' || path === 'rpc/comment_queue' || path === 'rpc/discount_queue') {
         return route.fulfill({ status: 200, headers: CORS, json: queue });
       }
       const { p_id: id, p_action: action } = request.postDataJSON() as { p_id: string; p_action: 'hide' | 'keep' };

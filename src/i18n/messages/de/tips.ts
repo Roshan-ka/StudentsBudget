@@ -156,10 +156,10 @@ export const tips: Messages['tips'] = {
     voteFailed: 'Deine Stimme konnte nicht gespeichert werden. Versuch es noch einmal.',
     reportFailed: 'Die Meldung konnte nicht gesendet werden. Versuch es noch einmal.',
     moderation: {
-      summary: 'Gemeldete Hacks',
+      summary: 'Gemeldete Hacks und Rabatte',
       intro:
-        'Beiträge und Kommentare, die Studierende gemeldet haben, die neueste Meldung zuerst. Verstecken nimmt sie ' +
-        'aus allen Listen; Behalten zeigt sie wieder und zählt ihre Meldungen neu.',
+        'Beiträge, Kommentare und Rabatte, die Studierende gemeldet haben, die neueste Meldung zuerst. Verstecken ' +
+        'nimmt sie aus allen Listen; Behalten zeigt sie wieder und zählt ihre Meldungen neu.',
       signedOut: 'Melde dich mit dem Moderationskonto an, um zu moderieren.',
       notModerator: 'Diese Seite ist für die Moderation der App.',
       needsCode:
@@ -183,6 +183,10 @@ export const tips: Messages['tips'] = {
       commentsQueue: 'Gemeldete Kommentare',
       commentsEmpty: 'Keine gemeldeten Kommentare.',
       commentsLoadFailed: 'Die gemeldeten Kommentare konnten nicht geladen werden.',
+      discountsHeading: 'Rabatte',
+      discountsQueue: 'Gemeldete Rabatte',
+      discountsEmpty: 'Keine gemeldeten Rabatte.',
+      discountsLoadFailed: 'Die gemeldeten Rabatte konnten nicht geladen werden.',
     },
     comments: {
       toggle: (count) => (count === 0 ? 'Kommentare' : `Kommentare (${count})`),

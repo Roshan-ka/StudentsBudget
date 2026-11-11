@@ -164,10 +164,10 @@ export const tips = {
     voteFailed: "Your vote couldn't be saved. Try again.",
     reportFailed: "The report couldn't be sent. Try again.",
     moderation: {
-      summary: 'Reported hacks',
+      summary: 'Reported hacks and discounts',
       intro:
-        'Posts and comments students reported, newest report first. Hide takes one out of every list; Keep shows it ' +
-        'again and starts its report count afresh.',
+        'Posts, comments and discounts students reported, newest report first. Hide takes one out of every list; ' +
+        'Keep shows it again and starts its report count afresh.',
       signedOut: 'Sign in with the moderator account to moderate.',
       notModerator: "This page is for the app's moderator.",
       needsCode:
@@ -185,12 +185,16 @@ export const tips = {
       hidden: 'Hidden from every feed.',
       kept: 'Kept: it shows again.',
       failed: "That didn't work. Try again.",
-      /** The two sections (community, chunk 3). */
+      /** The sections (community, chunks 3 and 7). */
       postsHeading: 'Posts',
       commentsHeading: 'Comments',
       commentsQueue: 'Reported comments',
       commentsEmpty: 'No reported comments.',
       commentsLoadFailed: "The reported comments couldn't be loaded.",
+      discountsHeading: 'Discounts',
+      discountsQueue: 'Reported discounts',
+      discountsEmpty: 'No reported discounts.',
+      discountsLoadFailed: "The reported discounts couldn't be loaded.",
     },
     /** Comments on a post (community, chunk 2): flat, oldest first. */
     comments: {

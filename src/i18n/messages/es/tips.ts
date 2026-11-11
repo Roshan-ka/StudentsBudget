@@ -165,10 +165,10 @@ export const tips: Messages['tips'] = {
     voteFailed: 'No se pudo guardar tu voto. Inténtalo de nuevo.',
     reportFailed: 'No se pudo enviar la denuncia. Inténtalo de nuevo.',
     moderation: {
-      summary: 'Trucos denunciados',
+      summary: 'Trucos y descuentos denunciados',
       intro:
-        'Publicaciones y comentarios que los estudiantes han denunciado, la denuncia más reciente primero. Ocultar ' +
-        'los quita de todas las listas; Mantener los muestra otra vez y pone sus denuncias a cero.',
+        'Publicaciones, comentarios y descuentos que los estudiantes han denunciado, la denuncia más reciente ' +
+        'primero. Ocultar los quita de todas las listas; Mantener los muestra otra vez y pone sus denuncias a cero.',
       signedOut: 'Inicia sesión con la cuenta de moderación para moderar.',
       notModerator: 'Esta página es para la moderación de la app.',
       needsCode:
@@ -195,6 +195,10 @@ export const tips: Messages['tips'] = {
       commentsQueue: 'Comentarios denunciados',
       commentsEmpty: 'No hay comentarios denunciados.',
       commentsLoadFailed: 'No se pudieron cargar los comentarios denunciados.',
+      discountsHeading: 'Descuentos',
+      discountsQueue: 'Descuentos denunciados',
+      discountsEmpty: 'No hay descuentos denunciados.',
+      discountsLoadFailed: 'No se pudieron cargar los descuentos denunciados.',
     },
     comments: {
       toggle: (count) => (count === 0 ? 'Comentarios' : `Comentarios (${count})`),
