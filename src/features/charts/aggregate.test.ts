@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Entry, Plan } from '@/db/types';
+import type { Entry, Plan, PlanMonth } from '@/db/types';
+import { planForMonths } from '@/lib/plan-history';
 import { monthStatus } from '@/lib/budget';
 import {
   BUCKET_ID,
@@ -423,6 +424,26 @@ describe('spendingByCategoryOver', () => {
     expect(food(6)).toEqual({ categoryId: 'food', spentMinor: 7000, plannedMinor: 186000 });
     // November 2025 to October 2026: spending counts in all of it, the plan only from January on (10 months).
     expect(food(12)).toEqual({ categoryId: 'food', spentMinor: 31000, plannedMinor: 310000 });
+  });
+
+  it('plans each past month with the plan it had (plan history), and the current month with today’s', () => {
+    const entries = [expense('food', '2026-10-05', 1000), expense('food', '2026-09-05', 2000), expense('food', '2026-08-05', 4000)];
+    // Food was €200 from setup until August, €250 in September; today's plan (€310) holds from October.
+    const history: PlanMonth[] = [
+      { month: '2026-01', incomes: [], fixed: [], oneOffs: [], envelopes: [{ categoryId: 'food', monthlyMinor: 20000 }] },
+      { month: '2026-09', incomes: [], fixed: [], oneOffs: [], envelopes: [{ categoryId: 'food', monthlyMinor: 25000 }] },
+    ];
+    const planFor = planForMonths(fromJanuary, history, '2026-10-20');
+    const food = (months: Period['months']) =>
+      spendingByCategoryOver(entries, fromJanuary, period('2026-10', months), planFor).find((r) => r.categoryId === 'food');
+
+    expect(food(1)).toEqual({ categoryId: 'food', spentMinor: 1000, plannedMinor: 31000 });
+    // August €200, September €250, October €310.
+    expect(food(3)).toEqual({ categoryId: 'food', spentMinor: 7000, plannedMinor: 76000 });
+    // Without the history, every month takes today's plan, as before.
+    expect(spendingByCategoryOver(entries, fromJanuary, period('2026-10', 3)).find((r) => r.categoryId === 'food')?.plannedMinor).toBe(
+      93000,
+    );
   });
 
   it('matches the per-month rows, summed, for every period length', () => {

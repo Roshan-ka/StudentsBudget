@@ -4,6 +4,7 @@ import { db } from '@/db/db';
 import type { Entry, Plan, WeekResult } from '@/db/types';
 import { weekToSpend } from '@/lib/budget';
 import type { IsoDate } from '@/lib/dates';
+import { planForMonths } from '@/lib/plan-history';
 import { completedWeeks, recordCompletedWeeks, setAway, weekAwaitingRecord, weekResultOf } from './week-results';
 
 // Food €310 and eating out €124 a month (€434), set up on Friday 16 October 2026. A week plans what was left of the
@@ -347,6 +348,26 @@ describe('recordCompletedWeeks', () => {
   it('records nothing without a plan', async () => {
     expect(await recordCompletedWeeks('2026-11-04')).toEqual({ recorded: 0 });
     expect(await stored()).toEqual([]);
+  });
+
+  it('records a week of an earlier month with the plan that month had (plan history), even when recorded late', async () => {
+    await db.plan.put(PLAN);
+    await db.entries.bulkAdd(ENTRIES);
+    // In October food was €200; today's plan has €310, from November.
+    const october = { month: '2026-10', incomes: [], fixed: [], oneOffs: [], envelopes: [{ categoryId: 'food', monthlyMinor: 20000 }, { categoryId: 'eating-out', monthlyMinor: 12400 }] };
+    await db.planMonths.put(october);
+
+    expect(await recordCompletedWeeks('2026-11-04')).toEqual({ recorded: 3 });
+    const planFor = planForMonths(PLAN, [october], '2026-11-04');
+    const rows = await stored();
+    for (const row of rows) {
+      expect(row).toMatchObject(weekResultOf(PLAN, ENTRIES, { start: row.weekStart, end: row.weekEnd }, planFor));
+    }
+    // The week of 19 October, all in October, was planned with October's €200, not today's €310.
+    const october19 = rows.find((row) => row.weekStart === '2026-10-19');
+    expect(october19?.plannedMinor).toBeLessThan(
+      weekResultOf(PLAN, ENTRIES, { start: '2026-10-19', end: '2026-10-25' }).plannedMinor,
+    );
   });
 
   it('records each finished week once, with the current plan, and never twice', async () => {

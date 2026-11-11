@@ -7,10 +7,11 @@ import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
-import type { Entry, Plan } from '@/db/types';
+import type { Entry, Plan, PlanMonth } from '@/db/types';
 import { dateFormat } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
 import { monthOf, type IsoDate, type IsoMonth } from '@/lib/dates';
+import { planForMonth } from '@/lib/plan-history';
 import { useToday } from '@/lib/use-today';
 import { completedMonths, monthRecap } from './reveal';
 import { recapLine } from './reveal-text';
@@ -40,7 +41,17 @@ export function RecapLink({ startedOn, today }: { startedOn: IsoDate; today: Iso
 }
 
 /** Each month that is over against the envelopes, newest first, and the way to change them. */
-function Recaps({ plan, entries, today }: { plan: Plan; entries: Entry[]; today: IsoDate }) {
+function Recaps({
+  plan,
+  planMonths,
+  entries,
+  today,
+}: {
+  plan: Plan;
+  planMonths: PlanMonth[];
+  entries: Entry[];
+  today: IsoDate;
+}) {
   const { t, lang, locale } = useT();
   const months = completedMonths(plan.createdOn, today);
   if (months.length === 0) {
@@ -54,7 +65,10 @@ function Recaps({ plan, entries, today }: { plan: Plan; entries: Entry[]; today:
         <p className="text-muted-foreground">{t.reveal.intro}</p>
         <ul aria-labelledby="reveal-heading" className="flex list-disc flex-col gap-2 ps-5">
           {months.map((month) => (
-            <li key={month}>{recapLine(month, monthRecap(plan, entries, month).leftoverMinor, lang)}</li>
+            // Each month against the plan it had (plan history).
+            <li key={month}>
+              {recapLine(month, monthRecap(planForMonth(plan, planMonths, month, today), entries, month).leftoverMinor, lang)}
+            </li>
           ))}
         </ul>
       </section>
@@ -72,8 +86,9 @@ export function RevealView() {
   const today = useToday();
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
   const entries = useLiveQuery(() => db.entries.toArray(), []);
+  const planMonths = useLiveQuery(() => db.planMonths.toArray(), []);
 
-  if (today === null || plan === 'loading' || entries === undefined) return null;
+  if (today === null || plan === 'loading' || entries === undefined || planMonths === undefined) return null;
   if (plan === null) {
     return (
       <p className="text-muted-foreground">
@@ -84,5 +99,5 @@ export function RevealView() {
       </p>
     );
   }
-  return <Recaps plan={plan} entries={entries} today={today} />;
+  return <Recaps plan={plan} planMonths={planMonths} entries={entries} today={today} />;
 }

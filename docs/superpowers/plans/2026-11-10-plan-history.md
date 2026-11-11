@@ -91,6 +91,16 @@ The weekly badges' rows are recorded once, but a week recorded late, or backfill
   - **What follows from that list:** the write and delete orders, the pull's transaction and the fake store, so a linked phone records each month's row in the outbox beside the plan (`updatePlan` queues `plan_months:<month>` and `plans:current`), pushes it, and pulls another phone's.
   - **Fixtures:** `scripts/generate-demo-fixtures.mjs` now writes `newer-version.json` as version 6, matching chunk 2's hand edit.
   - **Tests:** upload, download, pull (a month and its tombstone), change tracking (a month by its id, and `updatePlan`'s two rows), and the snapshot with a month row.
+- **Chunk 5** (11-11-2026), the reads:
+  - `planForMonths(plan, history, today)` gives a month → plan function (`PlanFor`) for code that works out more than one month.
+  - **Charts:** `spendingByCategoryOver` takes an optional `planFor` (default: the current plan, so its other callers and tests stay); the charts view passes the history.
+  - **Recaps** (`/reveal`): each month's `monthRecap` gets `planForMonth`.
+  - **Check-in:** the days of last month are measured against last month's plan.
+  - **Week results:** `weekResultOf` takes `planFor` and measures each part of a week by its month. `record()` reads `planMonths` in its transaction, so a week recorded late, or backfilled, keeps its month's plan.
+  - **Ask:** `askSnapshot` takes `planMonths` for its past months.
+  - **MCP check-in:** last month's days use the account's `planMonths` from `planDownload`.
+  - **Known limit:** history rows carry no schedules, so a fixed line that was paused in a past month is planned in full there (charts).
+  - **Tests:** charts (€200 + €250 + €310 over three months against €930 without history), a late-recorded October week, and Ask's past month.
 
 ## Verification
 

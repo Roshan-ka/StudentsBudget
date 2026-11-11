@@ -30,6 +30,14 @@ export function planMonthFor(history: readonly PlanMonth[], month: IsoMonth): Pl
   return found;
 }
 
+/** The plan each month is measured against (`planForMonth`), for code that works out more than one month. */
+export type PlanFor = (month: IsoMonth) => Plan;
+
+/** `planForMonth` for every month, over one plan, history and day. */
+export function planForMonths(plan: Plan, history: readonly PlanMonth[], today: IsoDate): PlanFor {
+  return (month) => planForMonth(plan, history, month, today);
+}
+
 /**
  * The plan `month` is measured against. The current month and later use `plan` itself. An earlier month uses the
  * money parts of its row (`planMonthFor`) over `plan`'s other fields; with no row at or before it, `plan` as it is.

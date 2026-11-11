@@ -1,4 +1,4 @@
-import type { Entry, Plan } from '@/db/types';
+import type { Entry, Plan, PlanMonth } from '@/db/types';
 import { MAX_DATA } from '@/features/ai/contract';
 import { categoryNameIn } from '@/i18n/category-name';
 import type { Messages } from '@/i18n/messages';
@@ -7,6 +7,7 @@ import { monthOf, shiftMonth, weeksLeftInMonth, type IsoDate, type IsoMonth } fr
 import type { Minor } from '@/lib/money';
 // Read only: the function's own mask list (the AI phase, chunk 2). The function scrubs everything again.
 import { scrub } from '../../../supabase/functions/_shared/ai/scrub';
+import { planForMonth } from '@/lib/plan-history';
 
 // What Ask tells the model about the student's budget (the AI phase, chunk 9, docs/superpowers/plans/2026-11-09-ai-phase-1.md):
 // built on the phone when a conversation starts, from the app's own maths, so every figure equals what Home, the
@@ -112,7 +113,11 @@ export function snapshotBytes(snapshot: AskSnapshot): number {
  * The snapshot of the budget on `today`, with category names from `t` (the phone's dictionary). It fits MAX_DATA: when
  * it wouldn't, the oldest recent entries are left out first.
  */
-export function askSnapshot({ plan, entries }: { plan: Plan; entries: Entry[] }, today: IsoDate, t: Messages): AskSnapshot {
+export function askSnapshot(
+  { plan, entries, planMonths = [] }: { plan: Plan; entries: Entry[]; planMonths?: readonly PlanMonth[] },
+  today: IsoDate,
+  t: Messages,
+): AskSnapshot {
   const month = monthOf(today);
   const summary = planSummary(plan, month);
   const unpaused = <Line extends { schedule?: { paused?: boolean } }>(lines: Line[]) =>
@@ -132,7 +137,8 @@ export function askSnapshot({ plan, entries }: { plan: Plan; entries: Entry[] },
   const pastMonths = Array.from({ length: PAST_MONTHS }, (_, i) => shiftMonth(month, -(i + 1)))
     .filter((past) => past >= firstMonth)
     .map((past) => {
-      const rows = monthStatus(plan, entries, past);
+      // Each past month against the plan it had (plan history).
+      const rows = monthStatus(planForMonth(plan, planMonths, past, today), entries, past);
       return {
         month: past,
         plannedEur: eur(sum(rows.map((row) => row.plannedMinor))),
