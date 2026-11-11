@@ -66,7 +66,7 @@ The plan is copied into `docs/superpowers/plans/2026-11-11-discount-map.md` in c
 - **Pins:**
   - Each pin is our own `<button>`, either inside a marker wrapper with MapLibre's "Map marker" label removed, or positioned with `map.project`.
   - It shows the category icon on its tint (`categoryTint`, `CATEGORY_ICONS`), outlined, at least 44 px, named "Place: offer".
-  - A tap focuses it. Discounts at one spot share a pin with a count (Haidplatz 8 has two).
+  - A tap focuses it. Discounts at one spot share a pin with a count (Haidplatz 8 has two), and pins close together on screen join into a count pin (The look, below).
   - A student's pin is marked as a student's, and the chosen pin shows by shape too, not colour alone.
 - **Controls:** our own "+", "−" and "Show all" buttons (WCAG 2.5.1 and 2.5.7). `cooperativeGestures`, or a map box short enough to scroll past. The canvas's label is translated through MapLibre's `locale` option.
 - **Card at the bottom:** a summary card, not the list's card, since ids and vote focus would clash.
@@ -75,6 +75,28 @@ The plan is copied into `docs/superpowers/plans/2026-11-11-discount-map.md` in c
   - **Focus:** it opens on its heading, and Escape or Close hands the focus back to the pin (`useFocusAfter`, `src/lib/focus.ts`).
 - **No WebGL:** a line says the map can't show on this phone and the list has every discount.
 - **`tokens.test.ts`:** the pin outline and the location dot at 3:1 against the Protomaps light and dark colours.
+
+### The look (Roshan approved it from mockups, round 1, 11-11-2026)
+The mockups were drawn on the real map from the app's set, at 375 px, in German light and dark and in English. Every colour comes from the tokens in `globals.css`, and every icon is a lucide one.
+- **Layout:** the map box fills the height from the List/Map switch to the bottom navigation (rounded, 1.5 px `--outline`, `shadow-offset`). The attribution line sits under it.
+  - **Chips:** the category chips sit on the map's top edge, in a row.
+  - **Zoom and Show all:** "+", "−" and "Show all" (the maximize icon) are 44 px outlined square buttons, stacked at the top-right below the chips.
+  - **Show me:** a pill with the locate icon at the bottom-left. Once on, it is filled in `--primary` and reads "You're here" ("Du bist hier").
+- **Pins:** 44 px and round, on the category's tint, with a 1.5 px outline, the offset shadow and the category icon.
+  - **A student's pin:** a dashed 2 px outline and a small person badge.
+  - **Discounts at one spot:** a count badge on the pin.
+  - **The chosen pin:** a 52 px teardrop with a 2.5 px outline, pointing at the place. Its shape marks it, not its colour.
+- **Count pins** (new, Roshan approved them with the look): pins closer than about 46 px on screen join into one 48 px pin in `--card`, with their count in Bricolage 800. A tap zooms in on them. The chosen pin never joins. This replaces "only discounts at one spot share a pin": in the old town, the pins overlap at city zoom.
+- **The "you are here" dot:** 18 px in `--primary`, with a 3 px ring in `--card` and a 7 px halo of `--primary` at 28 %.
+- **The card at the bottom:** inside the map, 10 px from its edges, rounded, outlined, with the offset shadow.
+  - **Top row:** the category pill (tinted) and a 44 px round Close (×).
+  - **Text:** the place (Bricolage 800), the offer (semibold), and the address (muted).
+  - **Meta row:** the distance, bold with the navigation icon in `--primary`, beside "Last confirmed …".
+  - **Button:** "Show in the list", full width and outlined.
+- **The form's pin:** "On the map (optional)" holds a 210 px map with a needle fixed in its middle (a `--primary` pin with a `--card` dot), and the hint "Move the map until the needle is on the place."
+  - **Before:** "Set the pin here" (primary).
+  - **After:** "Pin set" (the map-pin icon in `--primary`) and "Remove the pin" (outlined).
+- **Words** (German as approved): Liste/Karte, Mich zeigen, Du bist hier, In der Liste zeigen, „… m entfernt“, Pin hier setzen, Pin gesetzt, Pin entfernen; and in English, Show me, You're here, Show in the list, "… m away", Set the pin here, Pin set, Remove the pin.
 
 ### Show me
 - **On tap only:** `navigator.geolocation.getCurrentPosition`, then a "you are here" dot and the map centred on it.
@@ -161,3 +183,22 @@ The plan is copied into `docs/superpowers/plans/2026-11-11-discount-map.md` in c
     - The map draws in both projects: CI's WebKit has WebGL 2 too.
     - The offline case passed, so the worker sees MapLibre's tile requests and the map draws again offline. `addProtocol` isn't needed.
     - The spec's first check of outside requests counted the page's own first request, which leaves `about:blank`. It now compares against the configured origin.
+- **Chunk 2** (11-11-2026), the mockups:
+  - **Round 1:** Roshan approved it as it stood. The look is written down above ("The look").
+  - **How they were made:** a throwaway page in the scratchpad that loads MapLibre, the basemap package and the set from the repo, with the 17 positions from #208 and one made-up student's discount. It was served on 127.0.0.1 only and opened in the browser pane; none of it is in the repo.
+  - **Lessons for chunk 4,** from building them:
+    - **Marker elements:** a marker's element must not set `position`. MapLibre places `.maplibregl-marker` absolutely, and `position: relative` on the element stacks the pins in the page flow, far off their places.
+    - **The container's height:** MapLibre gives its container `position: relative`, so the container needs a height of its own. The view's `h-[60svh]` has one; an `absolute inset-0` box loses it.
+    - **Zoom maths:** MapLibre's zooms count 512 px tiles, which is one level more detail than 256 px maths gives. Views are best set with `fitBounds`, not by sums.
+    - **Count pins:** they need the map laid out (`load`) and are worked out again after each zoom (`moveend`), from `map.project`.
+- **Chunk 3** (11-11-2026, in its own session, #208), the positions:
+  - **The data:** `Discount` gains an optional `location` (`DiscountLocation`: lat, lng, `source: 'OpenStreetMap'`, url, checked), built by a small `osm()` helper.
+    - All 17 were looked up through Nominatim and confirmed from each element's tags, at 5 decimals, checked 11.11.2026.
+    - A node gives its own position; a way or relation gives the centre Nominatim reports.
+  - **`REGENSBURG_BOX`** (`src/data/regensburg-box.ts`, 48.97–49.07 N, 12.00–12.20 E) holds every position. Chunk 7's migration checks the same numbers.
+  - **`discounts.test.ts`:**
+    - each position lies inside the box, at most 5 decimals;
+    - it has an OSM node, way or relation URL and a real date;
+    - discounts at one address share one position, and no others do.
+  - **Asia Restaurant Sunrise** keeps a stand-in: OSM has neither the restaurant nor Von-Seeckt-Straße 23. It takes the street's only mapped Asian restaurant, with a comment saying so (kept as it is, Roshan, 11-11-2026).
+  - **Haidplatz 8:** the Stadtbücherei and the VHS both take the Thon-Dittmer-Palais' position, so they share one pin.
