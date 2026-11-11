@@ -168,3 +168,38 @@ test('the worker is named for the build, replaces older caches, and its script i
     expect(response.headers()['cache-control'], url).toBe('no-cache');
   }
 });
+
+test('the discount map opens offline after one online visit, from a cache of its own', async ({ page, context }) => {
+  // The map loads MapLibre and a few hundred KB of tiles on first open, on a production build.
+  test.setTimeout(60_000);
+  test.skip(
+    !(await page.evaluate(() => document.createElement('canvas').getContext('webgl2') !== null)),
+    'MapLibre needs WebGL 2',
+  );
+  // Tips opens on Discounts, shown as the map (the e2e build has NEXT_PUBLIC_DISCOUNT_MAP).
+  await context.addInitScript(() => {
+    localStorage.setItem('studentsbudget-tips-tab', 'discounts');
+    localStorage.setItem('studentsbudget-discounts-view', 'map');
+  });
+  await page.goto('/tips');
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  // Loaded again under the worker, so the map's files go through it.
+  await page.reload();
+  const map = page.getByRole('region', { name: 'Map of the discounts in Regensburg', exact: true });
+  await expect(map).toHaveAttribute('data-map-ready', '', { timeout: 20_000 });
+
+  // The worker saw the tiles, which MapLibre fetches from its own worker, and keeps them apart from the build's cache.
+  const kept = await page.evaluate(async () => {
+    const name = (await caches.keys()).find((key) => key.startsWith('studentsbudget-map-'));
+    if (name === undefined) return null;
+    const paths = (await (await caches.open(name)).keys()).map((request) => new URL(request.url).pathname);
+    return { name, tiles: paths.filter((path) => path.includes('/tiles/')).length, vendor: paths.some((path) => path.startsWith('/maps/vendor/')) };
+  });
+  expect(kept?.name).toMatch(/^studentsbudget-map-\d+$/);
+  expect(kept?.vendor).toBe(true);
+  expect(kept?.tiles).toBeGreaterThan(0);
+
+  await context.setOffline(true);
+  await page.reload();
+  await expect(map).toHaveAttribute('data-map-ready', '', { timeout: 20_000 });
+});

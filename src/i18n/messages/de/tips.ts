@@ -50,6 +50,16 @@ export const tips: Messages['tips'] = {
     seeTipNamed: (title: string) => `Zum Tipp: ${title}`,
     saveFailed: 'Der Haken konnte nicht gespeichert werden. Versuch es noch einmal.',
   },
+  discountMap: {
+    view: 'Rabatte zeigen als',
+    list: 'Liste',
+    map: 'Karte',
+    region: 'Karte der Rabatte in Regensburg',
+    loading: 'Die Karte wird geladen …',
+    noWebgl: 'Die Karte kann auf diesem Handy nicht angezeigt werden. Die Liste hat jeden Rabatt.',
+    failed: 'Die Karte ließ sich nicht laden. Die Liste hat jeden Rabatt.',
+    osm: '© OpenStreetMap-Mitwirkende',
+  },
   studentDiscounts: {
     tag: 'Von Studierenden eingetragen',
     source: (name, date) => `Eingetragen von ${name} am ${date}, nicht von der App geprüft`,

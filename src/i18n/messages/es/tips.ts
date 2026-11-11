@@ -52,6 +52,16 @@ export const tips: Messages['tips'] = {
     seeTipNamed: (title: string) => `Ver el consejo: ${title}`,
     saveFailed: 'No se pudo guardar la marca. Inténtalo de nuevo.',
   },
+  discountMap: {
+    view: 'Mostrar los descuentos como',
+    list: 'Lista',
+    map: 'Mapa',
+    region: 'Mapa de los descuentos en Regensburg',
+    loading: 'Cargando el mapa…',
+    noWebgl: 'El mapa no puede mostrarse en este móvil. La lista tiene todos los descuentos.',
+    failed: 'No se pudo cargar el mapa. La lista tiene todos los descuentos.',
+    osm: '© colaboradores de OpenStreetMap',
+  },
   studentDiscounts: {
     tag: 'Añadido por un estudiante',
     source: (name, date) => `Añadido por ${name} el ${date}, sin comprobar por la app`,

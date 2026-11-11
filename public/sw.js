@@ -7,6 +7,11 @@
 // leave the next offline open blank.
 const PREFIX = 'studentsbudget-';
 const CACHE = PREFIX + (new URL(self.location.href).searchParams.get('v') || 'unversioned');
+// The discount map's files (docs/superpowers/plans/2026-11-11-discount-map.md): its tiles, fonts, icons and MapLibre,
+// all under /maps/. They live in a cache of their own, named by the map set (/sw.js?map=<set>), so a deploy that keeps
+// the set keeps the map offline; a new set replaces it. Saved as they are viewed, never on install (a few MB).
+const MAP_SET = new URL(self.location.href).searchParams.get('map');
+const MAP_CACHE = MAP_SET ? PREFIX + 'map-' + MAP_SET : CACHE;
 
 // How long a page waits for the network before the cached copy is shown instead.
 const NAVIGATION_TIMEOUT_MS = 4000;
@@ -58,7 +63,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const names = await caches.keys();
-      const older = names.filter((name) => name.startsWith(PREFIX) && name !== CACHE);
+      const older = names.filter((name) => name.startsWith(PREFIX) && name !== CACHE && name !== MAP_CACHE);
       await Promise.all(older.map((name) => caches.delete(name)));
       await self.clients.claim();
     })(),
@@ -76,6 +81,9 @@ self.addEventListener('fetch', (event) => {
     if (PAGES.includes(url.pathname)) event.respondWith(openPage(event, url));
   } else if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(cacheFirst(event, false));
+  } else if (url.pathname.startsWith('/maps/')) {
+    // Each path names its set or its version, so a cached copy is never stale.
+    event.respondWith(cacheFirst(event, false, MAP_CACHE));
   } else if (FILES.includes(url.pathname)) {
     event.respondWith(cacheFirst(event, true));
   }
@@ -187,10 +195,10 @@ async function addFile(cache, file) {
   }
 }
 
-/** What the cache holds for this request, or undefined. A cache that cannot be opened is a cache without it. */
-async function lookup(request, options) {
+/** What a cache holds for this request, or undefined. A cache that cannot be opened is a cache without it. */
+async function lookup(request, options, cacheName = CACHE) {
   try {
-    const cache = await caches.open(CACHE);
+    const cache = await caches.open(cacheName);
     return await cache.match(request, options);
   } catch {
     return undefined;
@@ -201,13 +209,13 @@ async function lookup(request, options) {
  * Keeps a copy of a static file without making anyone wait for it, or fail because of it (a full disk, say).
  * Only for files: documents are never saved here (see the top of this file).
  */
-function save(event, key, response) {
+function save(event, key, response, cacheName = CACHE) {
   // Cloned now, before the page starts reading the original.
   const copy = response.clone();
   event.waitUntil(
     (async () => {
       try {
-        const cache = await caches.open(CACHE);
+        const cache = await caches.open(cacheName);
         await cache.put(key, copy);
       } catch {
         // Not saved: the next online visit tries again.
@@ -246,11 +254,11 @@ async function openPage(event, url) {
   return (await lookup(url.pathname, { ignoreVary: true })) ?? network;
 }
 
-/** Cache first: these files are named by a hash or never change. */
-async function cacheFirst(event, ignoreSearch) {
-  const cached = await lookup(event.request, { ignoreSearch });
+/** Cache first: these files are named by a hash, a version or a map set, or never change. */
+async function cacheFirst(event, ignoreSearch, cacheName = CACHE) {
+  const cached = await lookup(event.request, { ignoreSearch }, cacheName);
   if (cached) return cached;
   const response = await fetch(event.request);
-  if (cacheable(response)) save(event, event.request, response);
+  if (cacheable(response)) save(event, event.request, response, cacheName);
   return response;
 }

@@ -52,6 +52,19 @@ export const tips = {
     seeTipNamed: (title: string) => `See the tip: ${title}`,
     saveFailed: 'Could not save the tick. Try again.',
   },
+  /** The discount map (docs/superpowers/plans/2026-11-11-discount-map.md). */
+  discountMap: {
+    view: 'Show discounts as',
+    list: 'List',
+    map: 'Map',
+    /** The map's name for screen readers. */
+    region: 'Map of the discounts in Regensburg',
+    loading: 'Loading the map…',
+    noWebgl: "The map can't show on this phone. The list has every discount.",
+    failed: "The map couldn't load. The list has every discount.",
+    /** OpenStreetMap's attribution, as its licence asks; "Protomaps" follows it, as a name. */
+    osm: '© OpenStreetMap contributors',
+  },
   /** Discounts students added from the app (community, chunk 5): always marked, with who added them. */
   studentDiscounts: {
     tag: 'Added by a student',
