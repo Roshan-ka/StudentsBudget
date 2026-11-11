@@ -1,6 +1,21 @@
 import type { IsoDate } from '@/lib/dates';
 
 /**
+ * Where a discount's place is, for the map, with its source like every city number: the place's own node or way on
+ * OpenStreetMap, or its building's where the place has none (a stand-in says why beside the discount), at `url`, read
+ * on `checked`. `lat` and `lng` are in degrees (WGS 84) to 5 decimals, about a metre: a node's own position, or the
+ * centre OpenStreetMap's Nominatim gives a way or relation. It always lies inside `REGENSBURG_BOX`
+ * (`regensburg-box.ts`).
+ */
+export type DiscountLocation = {
+  lat: number;
+  lng: number;
+  source: 'OpenStreetMap';
+  url: string;
+  checked: IsoDate;
+};
+
+/**
  * A student discount at a Regensburg place, with where it is stated. `offer` is what you get and `conditions` who
  * gets it and when (student ID, age, days, times). Facts only: no ratings.
  */
@@ -15,6 +30,11 @@ export type Discount = {
   source: string;
   url: string;
   checked: IsoDate;
+  /**
+   * The place on the map. Every discount the app ships has one; a discount a student adds may have none, and then it
+   * shows in the list only.
+   */
+  location?: DiscountLocation;
 };
 
 /** The first check of every source. */
@@ -24,6 +44,19 @@ const CHECKED: IsoDate = '2026-10-20';
  * every source that still states its offer. One that couldn't be read keeps `CHECKED`, so it shows "May be outdated".
  */
 const RECHECKED: IsoDate = '2026-11-10';
+/** When every place was looked up on OpenStreetMap (discount map, chunk 3). */
+const LOCATED: IsoDate = '2026-11-11';
+
+/** A position from the OpenStreetMap element `element` (`node/<id>`, `way/<id>` or `relation/<id>`). */
+function osm(element: `${'node' | 'way' | 'relation'}/${number}`, lat: number, lng: number): DiscountLocation {
+  return { lat, lng, source: 'OpenStreetMap', url: `https://www.openstreetmap.org/${element}`, checked: LOCATED };
+}
+
+/**
+ * Haidplatz 8, the Thon-Dittmer-Palais, holds both the Stadtbücherei and the Volkshochschule, so both take the
+ * building's position and share one pin on the map.
+ */
+const HAIDPLATZ_8 = osm('relation/1437139', 49.02024, 12.09346);
 
 const STADTWERK = 'das Stadtwerk Regensburg';
 const STWNO = 'Studierendenwerk Niederbayern/Oberpfalz';
@@ -52,6 +85,9 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Asia Restaurant Sunrise, home page: 10% off for students, Mon–Sun, on showing a student ID; not combined with other offers or discounts',
     url: 'https://sunrise-regensburg.de/',
     checked: RECHECKED,
+    // OpenStreetMap has neither the restaurant nor Von-Seeckt-Straße 23. This is the street's one mapped Asian
+    // restaurant, in the same row of shops and unchanged since 2014: likely these premises under an earlier name.
+    location: osm('node/1752428085', 48.99985, 12.12293),
   },
   {
     id: 'mensa-childrens-plate',
@@ -64,6 +100,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: `${STWNO}, Mensa Uni Regensburg: children of students get a free children's plate up to their sixth year when the parent also has lunch in the Mensa, with a Kinderteller Mensa card from the Mensa card office`,
     url: 'https://stwno.de/de/gastronomie/mensen/mensa-uni-regensburg',
     checked: RECHECKED,
+    location: osm('way/28922811', 48.99801, 12.09263),
   },
   {
     id: 'kinos-im-andreasstadel',
@@ -76,6 +113,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Kinos im Andreasstadel, ticket prices: €9 regular, €8 reduced for students with valid proof; online advance sale adds 10%; reservations are free; prices for special screenings may differ',
     url: 'https://www.kinos-im-andreasstadel.de/Eintrittspreise/unterseite_7311',
     checked: RECHECKED,
+    location: osm('node/1653823266', 49.02431, 12.10057),
   },
   {
     id: 'staatstheater-regensburg',
@@ -88,6 +126,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Staatstheater Regensburg, visitor FAQ: 50% off the regular price in general sale (Freiverkauf) for students until their 30th birthday; U30 shows on selected dates, €10 for any seat; €1.50 fee per ticket online or by phone, none at the box office or evening box office',
     url: 'https://www.staatstheater-regensburg.de/index/besuch.html',
     checked: RECHECKED,
+    location: osm('way/97255871', 49.01936, 12.08965),
   },
   {
     id: 'regensburger-turmtheater',
@@ -99,6 +138,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Regensburger Turmtheater, tickets: regular shows €32; pupils, students and trainees 50% off (€16); other prices are given in the show descriptions',
     url: 'https://regensburgerturmtheater.de/karten/',
     checked: RECHECKED,
+    location: osm('node/542574975', 49.02009, 12.09651),
   },
   {
     id: 'kunstforum-ostdeutsche-galerie',
@@ -110,6 +150,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Kunstforum Ostdeutsche Galerie, your visit: entry €6, reduced €4; pupils, students and trainees are on the list of those who pay the reduced price',
     url: 'https://www.kunstforum.net/ihr-besuch',
     checked: RECHECKED,
+    location: osm('way/100118132', 49.01994, 12.08219),
   },
   {
     id: 'document-kepler',
@@ -121,6 +162,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Museen der Stadt Regensburg, document Kepler: adults €5; free for students under 30 on showing an ID; public guided tours €8, reduced €5',
     url: 'https://www.regensburg.de/museen/die-museen/documente/document-kepler',
     checked: RECHECKED,
+    location: osm('way/109139622', 49.02111, 12.09345),
   },
   {
     id: 'schloss-thurn-und-taxis',
@@ -133,6 +175,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Fürst Thurn und Taxis, visiting Schloss St. Emmeram: guided tour of the state rooms and cloister (Prunkräume & Kreuzgang) €17, reduced €14; Treasury and Marstall €6, reduced €4; reduced for pupils and students on showing their ID',
     url: 'https://www.thurnundtaxis.de/entdecken/besuch-schloss-st-emmeram',
     checked: RECHECKED,
+    location: osm('way/93944030', 49.01463, 12.09382),
   },
   {
     id: 'westbad',
@@ -144,6 +187,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: `${STADTWERK}, Westbad prices: 3 hours €7.20, day €10.00; reduced €4.60 and €6.50 for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later`,
     url: 'https://das-stadtwerk-regensburg.de/westbad/preise-oeffnungszeiten',
     checked: RECHECKED,
+    location: osm('way/20637512', 49.02467, 12.05403),
   },
   {
     id: 'sportpark-ost-pool',
@@ -155,6 +199,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: `${STADTWERK}, Sportpark Ost pool prices: single entry €5.00, reduced €2.90 for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later`,
     url: 'https://das-stadtwerk-regensburg.de/sportpark-ost-bad/preise-oeffnungszeiten',
     checked: RECHECKED,
+    location: osm('node/13045079753', 49.0077, 12.12756),
   },
   {
     id: 'donau-arena-skating',
@@ -166,6 +211,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: `${STADTWERK}, Donau-Arena public skating prices: single entry €6, reduced €5; Discolauf €7, reduced €6; reduced for pupils, students and trainees from 15 until their 25th birthday; proof at the entrance, not later`,
     url: 'https://www.das-stadtwerk-regensburg.de/donau-arena/eislauf/preise-oeffnungszeiten',
     checked: RECHECKED,
+    location: osm('way/31788919', 49.02523, 12.13284),
   },
   {
     id: 'boulderwelt-studi-monday',
@@ -177,6 +223,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Boulderwelt Regensburg, prices: Studi Monday, a €9.90 day entry on Mondays all day for students and trainees with valid proof; not on public holidays; shoes rented at the counter for a fee',
     url: 'https://www.boulderwelt-regensburg.de/preise/',
     checked: RECHECKED,
+    location: osm('node/1157973450', 49.03219, 12.12865),
   },
   {
     id: 'super-bowl-student-tuesday',
@@ -188,6 +235,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Super Bowl Regensburg, offers: on Tuesdays pupils and students pay €1 per game ("Studenten Bowling")',
     url: 'https://superbowl.de/aktionen/',
     checked: RECHECKED,
+    location: osm('node/828024297', 49.03114, 12.12984),
   },
   {
     id: 'alnatura-student-tuesday',
@@ -200,6 +248,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: "Alnatura, student discount: every Tuesday 8% off the whole purchase for students, trainees and pupils with a valid student or pupil ID, in all Alnatura stores; not on deposits, gift cards, books or infant formula, and not combined with other discounts. Alnatura's store finder lists the Regensburg stores at Dr.-Martin-Luther-Straße 2, Donaustaufer Straße 128 and Joseph-Dahlem-Straße 3",
     url: 'https://www.alnatura.de/de-de/maerkte/studirabatt/',
     checked: RECHECKED,
+    location: osm('node/1291329968', 49.01711, 12.10152),
   },
   {
     id: 'bellas-kunst-student-haircut',
@@ -212,6 +261,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: "Bella's Kunst, price list: men's haircut €36, student haircut €30; women's student haircut €57; other women's cuts €48 (Schnitt Spezial), €52 (short), €65 (to shoulder length), €70 (long)",
     url: 'https://bellaskunst.de/',
     checked: RECHECKED,
+    location: osm('node/9040876935', 49.01689, 12.09448),
   },
   {
     id: 'stadtbuecherei-library-card',
@@ -223,6 +273,7 @@ export const DISCOUNTS: readonly Discount[] = [
     source: "Stadt Regensburg, Stadtbücherei fees: a year's card €17 for adults, €10 reduced; the rules of use it points to give the reduced card to students, trainees and pupils, on proof such as a student ID when the card is made or renewed",
     url: 'https://www.regensburg.de/stadtbuecherei/mitgliedschaft/benutzungsordnung/gebuehren',
     checked: CHECKED,
+    location: HAIDPLATZ_8,
   },
   {
     id: 'vhs-course-fees',
@@ -235,5 +286,6 @@ export const DISCOUNTS: readonly Discount[] = [
     source: 'Volkshochschule Regensburg, terms and conditions: 10% off for regularly enrolled students (ordentlich Studierende) on application, with proof at least one week before the course starts; reductions are not combined; not for events the VHS only co-organises, and the VHS may exclude reductions',
     url: 'https://www.vhs-regensburg.de/agb',
     checked: RECHECKED,
+    location: HAIDPLATZ_8,
   },
 ];
