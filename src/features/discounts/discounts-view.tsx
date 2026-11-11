@@ -28,8 +28,9 @@ import { cn } from '@/lib/utils';
 import { readCommunity, type CommunityConfirmations } from './community';
 import { DiscountForm } from './discount-form';
 import { bundledDiscounts, discountCategoryIds, sortByFreshness, voteMove, type DiscountSource } from './discounts';
-import { DiscountMap } from './map/discount-map';
+import { DiscountMap, type MapCamera } from './map/discount-map';
 import { mapInBuild } from './map/map-flag';
+import type { MapItem } from './map/pins';
 import { StudentDiscountActions, StudentDiscountSource } from './student-discount-actions';
 import { readStudentDiscounts, type StudentDiscount } from './student-discounts';
 
@@ -53,7 +54,9 @@ function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'dow
  * only while the page stays mounted. Signed in, other students' totals for this semester join in (P2.6,
  * `discount_confirmations`): they confirm a discount too, and show as counts; and so do the discounts students added
  * from the app (community, chunk 5), read once per visit, marked as added by a student, with Delete or Report. Signed
- * in, "Add a discount" opens the form for one (chunk 6).
+ * in, "Add a discount" opens the form for one (chunk 6). In a build with the discount map, List/Map shows them as pins
+ * too (discount map, chunk 4): the chips filter both, sitting on the map's top edge there, and the map's chosen spot
+ * and where it looked are kept here, so the map opens as it was left.
  */
 export function DiscountsView({
   source = bundledDiscounts,
@@ -85,6 +88,9 @@ export function DiscountsView({
   const [discounts, setDiscounts] = useState<Discount[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  /** The map's chosen spot and where it looked, kept while the map is away (another tab, the list). */
+  const [chosenSpot, setChosenSpot] = useState<string | null>(null);
+  const [camera, setCamera] = useState<MapCamera | null>(null);
   /** The answer just given, shown under its discount. */
   const [notice, setNotice] = useState<{ discountId: string; text: string } | null>(null);
   const [heard, setHeard] = useState('');
@@ -169,6 +175,14 @@ export function DiscountsView({
   const all = [...discounts, ...added.map((item) => item.discount)];
   const rows = sortByFreshness(all, votes, today, totals);
   const shown = categoryId === null ? rows : rows.filter((row) => row.discount.categoryId === categoryId);
+  // The map's pins: the discounts shown that have a position, in the phone's language where translated.
+  const mapItems: MapItem[] = shown.flatMap(({ discount }) => {
+    if (discount.location === undefined) return [];
+    const student = byStudent.has(discount.id);
+    const d = student ? discount : discountIn(discount, lang);
+    const { lat, lng } = discount.location;
+    return [{ id: d.id, place: d.place, offer: d.offer, categoryId: d.categoryId, lat, lng, student }];
+  });
 
   /** A vote, or first the note when signed in on a phone that hasn't accepted it. */
   function tap(d: Discount, vote: DiscountVote['vote']) {
@@ -246,6 +260,14 @@ export function DiscountsView({
     </Button>
   );
 
+  /** The category chips: above the list, or along the map's top edge. They filter both. */
+  const chips = (className: string) => (
+    <div role="group" aria-label={text.discountsFor} className={className}>
+      {chip(null, text.all)}
+      {discountCategoryIds(all).map((id) => chip(id, categoryNameIn(t, id)))}
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">{text.discountsIntro}</p>
@@ -266,10 +288,7 @@ export function DiscountsView({
             {text.studentDiscounts.form.open}
           </Button>
         ))}
-      <div role="group" aria-label={text.discountsFor} className="flex flex-wrap gap-2">
-        {chip(null, text.all)}
-        {discountCategoryIds(all).map((id) => chip(id, categoryNameIn(t, id)))}
-      </div>
+      {mode === 'list' && chips('flex flex-wrap gap-2')}
       {mapInBuild() && (
         <SegmentedControl
           label={text.discountMap.view}
@@ -286,7 +305,18 @@ export function DiscountsView({
         {heard}
       </p>
       {mode === 'map' ? (
-        active && <DiscountMap />
+        active && (
+          <DiscountMap
+            items={mapItems}
+            chosen={chosenSpot}
+            onChoose={setChosenSpot}
+            camera={camera}
+            onCamera={setCamera}
+            fitKey={categoryId ?? ''}
+            // Along the map's top edge, in one row that scrolls sideways.
+            chips={chips('flex gap-2 overflow-x-auto [scrollbar-width:thin]')}
+          />
+        )
       ) : (
         <ul ref={focus.refFor('list')} tabIndex={-1} aria-label={text.discounts} className="flex flex-col gap-3">
           {shown.map(({ discount, vote, community: others, freshness: f }) => {

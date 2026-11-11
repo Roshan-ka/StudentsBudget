@@ -64,6 +64,23 @@ export const tips = {
     failed: "The map couldn't load. The list has every discount.",
     /** OpenStreetMap's attribution, as its licence asks; "Protomaps" follows it, as a name. */
     osm: '© OpenStreetMap contributors',
+    /** A pin's name (chunk 4): the place and what you get there. The pin shows only the category's icon. */
+    pin: (place: string, offer: string) => `${place}: ${offer}`,
+    /** A student's place in a pin's name, as its dashed outline and badge show it. */
+    studentPlace: (place: string) => `${place} (added by a student)`,
+    /** A pin for the discounts at one spot (Haidplatz 8 has two), named after its count badge; `places` come listed. */
+    spotPin: (count: number, places: string) => `${count} discounts here: ${places}`,
+    /** A count pin, for discounts close together on the screen: a tap zooms in on them. */
+    countPin: (count: number) => `${count} discounts close together: zoom in`,
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    showAll: 'Show all discounts',
+    /** MapLibre's hints when one finger or the wheel alone tries to move the map (its cooperative gestures). */
+    gestures: {
+      touch: 'Use two fingers to move the map',
+      windows: 'Use Ctrl + scroll to zoom the map',
+      mac: 'Use ⌘ + scroll to zoom the map',
+    },
   },
   /** Discounts students added from the app (community, chunk 5): always marked, with who added them. */
   studentDiscounts: {
