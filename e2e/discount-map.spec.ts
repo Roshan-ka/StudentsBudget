@@ -19,17 +19,18 @@ function switchTo(page: Page, name: 'List' | 'Map') {
   return page.getByRole('group', { name: 'Show discounts as', exact: true }).getByRole('button', { name, exact: true }).click();
 }
 
-test('the map draws Regensburg from the app’s own files, and the switch is remembered', async ({ page }, testInfo) => {
+test('the map draws Regensburg from the app’s own files, and the switch is remembered', async ({ page, baseURL }, testInfo) => {
   const webgl2 = await page.evaluate(() => document.createElement('canvas').getContext('webgl2') !== null);
   testInfo.annotations.push({ type: 'webgl2', description: String(webgl2) });
   test.skip(!webgl2, 'MapLibre needs WebGL 2');
 
-  // Everything the page asks for while the map loads: none of it may leave the app's origin.
+  // Everything the page asks for while the map loads: none of it may leave the app's origin. Measured against the
+  // configured origin, not the page's: the first request leaves about:blank.
+  const origin = new URL(String(baseURL)).origin;
   const outside: string[] = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
-    if (!['http:', 'https:'].includes(url.protocol)) return;
-    if (url.origin !== new URL(page.url() || testInfo.project.use.baseURL || 'http://localhost').origin) outside.push(request.url());
+    if (['http:', 'https:'].includes(url.protocol) && url.origin !== origin) outside.push(request.url());
   });
 
   await openDiscounts(page);

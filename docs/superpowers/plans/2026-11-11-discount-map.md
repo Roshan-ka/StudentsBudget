@@ -157,4 +157,7 @@ The plan is copied into `docs/superpowers/plans/2026-11-11-discount-map.md` in c
   - **e2e:**
     - `discount-map.spec.ts`: the map draws with no request outside the origin, the switch is remembered, and with no WebGL 2 the line shows. It records `webgl2` as an annotation.
     - `offline.spec.ts`: the map's cache holds tiles and MapLibre after one online visit, and the map draws again offline.
-  - **Still to measure in CI:** WebGL 2 in the `iphone` (WebKit) project, and whether the worker saw the tile requests (the offline case).
+  - **Measured in CI** (run 43030713043, both browsers):
+    - The map draws in both projects: CI's WebKit has WebGL 2 too.
+    - The offline case passed, so the worker sees MapLibre's tile requests and the map draws again offline. `addProtocol` isn't needed.
+    - The spec's first check of outside requests counted the page's own first request, which leaves `about:blank`. It now compares against the configured origin.
