@@ -10,6 +10,7 @@ import { ThemeAttributes } from '@/components/theme-attributes';
 import { languageHeadScript } from '@/i18n/head-script';
 import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, SELECTABLE } from '@/i18n/languages';
 import { DEFAULT_REGION } from '@/i18n/regions';
+import { ZOD_JITLESS_HEAD_SCRIPT } from '@/lib/zod-jitless';
 import { themeHeadScript } from '@/theme/themes';
 import './globals.css';
 
@@ -61,6 +62,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       suppressHydrationWarning
     >
       <head>
+        {/* First: Zod's settings before any bundle builds a schema, so no `new Function` probe meets the CSP. */}
+        <script dangerouslySetInnerHTML={{ __html: ZOD_JITLESS_HEAD_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: languageHeadScript(OFFERED, SELECTABLE) }} />
         {/* Prerendered light; a phone set to dark gets the dark class before the first paint (also suppressed above). */}
         <script dangerouslySetInnerHTML={{ __html: themeHeadScript() }} />
