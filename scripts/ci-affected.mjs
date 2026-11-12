@@ -2,7 +2,8 @@
 // every route whose page imports it (directly or through other modules), as e2e/affected-map.json lists them; a change
 // that reaches the root layout, or a route every spec passes through, runs them all. A path no rule matches runs
 // everything. Run by ci.yml: `node scripts/ci-affected.mjs`, with the run's options in CI_SCOPE, CI_BROWSERS and
-// CI_LANGUAGES (see runOptions), writes `run`, `e2e`, `offline`, `db`, `projects` and `languages` to $GITHUB_OUTPUT, and
+// CI_LANGUAGES (see runOptions), writes `run`, `e2e`, `offline`, `db`, `real`, `stack`, `projects`, `languages` and
+// `jobs` (the jobs the gate requires) to $GITHUB_OUTPUT, and
 // the options and why each spec was picked to the job summary. `node scripts/ci-affected.mjs verdict` gives the gate job
 // the commit status to post (see gate). The pure helpers take made-up input, so the unit tests can run them.
 import { execFileSync } from 'node:child_process';
@@ -30,13 +31,22 @@ const OFFLINE = [
   /^next\.config\./,
   /^e2e\/offline\.spec\.ts$/,
 ];
-/** What the db job (migrations, pgTAP, the account store's contract tests) depends on, besides what those tests import. */
+/** What the db checks (migrations, pgTAP, the account store's contract tests) depend on, besides what those tests import. */
 const DB = [/^supabase\//, /^src\/sync\//, /^src\/lib\/supabase\//, /^scripts\/supabase-test-env\.mjs$/, /^package-lock\.json$/];
+/**
+ * What the real-server journeys (e2e-real/, against the local stack in the stack job) depend on, besides what their
+ * specs import and the routes they open (REAL_ROUTES): their own folder and everything the db checks depend on.
+ */
+const REAL = [/^e2e-real\//, ...DB];
+/** The routes the real-server journeys open: a change that reaches one of their pages runs them. */
+const REAL_ROUTES = ['/settings/account'];
+const REAL_SPEC = /^e2e-real\/[^/]+\.spec\.ts$/;
 /**
  * Paths with no e2e spec of their own: the database (e2e answers Supabase's calls itself), the service worker (only a
  * production build registers it), the MCP server (nothing in src/ imports it; its tests are unit tests), unit tests
- * (the checks job runs them all), the offline spec (its own job), and the script that writes the AI's city pack into
- * supabase/ (city-pack.test.ts, a unit test, holds the pack to it).
+ * (the checks job runs them all), the offline spec (its own job), the script that writes the AI's city pack into
+ * supabase/ (city-pack.test.ts, a unit test, holds the pack to it), the real-server journeys (the stack job, REAL), and
+ * the testkit with its data files: saved mutations and the skip allow-list (unit tests check them; testkit/README.md).
  */
 const NO_E2E = [
   /^supabase\//,
@@ -46,15 +56,24 @@ const NO_E2E = [
   /^\.mcp\.json$/,
   /^src\/.*\.test\.ts$/,
   /^e2e\/offline\.spec\.ts$/,
+  /^e2e-real\//,
+  /^testkit\//,
+  /^e2e\/mutations\//,
+  /^e2e\/skip-allow-list\.json$/,
 ];
 
 const CODE = /\.tsx?$/;
 const SPEC = /^e2e\/([^/]+)\.spec\.ts$/;
 const CONTRACT_TEST = /\.contract\.test\.ts$/;
 
-/** The modules the walk follows: the app (without its unit tests), the contract tests and everything in e2e/. */
+/**
+ * The modules the walk follows: the app (without its unit tests), the contract tests, everything in e2e/, and the
+ * real-server journeys in e2e-real/ (which import e2e/'s helpers and src/).
+ */
 const inGraph = (file) =>
-  (file.startsWith('src/') && (!file.endsWith('.test.ts') || CONTRACT_TEST.test(file))) || file.startsWith('e2e/');
+  (file.startsWith('src/') && (!file.endsWith('.test.ts') || CONTRACT_TEST.test(file))) ||
+  file.startsWith('e2e/') ||
+  file.startsWith('e2e-real/');
 
 const SPECIFIER = /\b(?:import|export)\b[^'";]*?\bfrom\s*['"]([^'"]+)['"]|\bimport\s*\(\s*['"]([^'"]+)['"]|\bimport\s*['"]([^'"]+)['"]/g;
 
@@ -146,6 +165,7 @@ export function selectAffected({ changed, repo, map, full = false }) {
   const everything = (reason) => {
     pick('all', reason);
     pick('db', reason);
+    pick('real', reason);
   };
 
   if (full) everything('a full run was asked for');
@@ -169,6 +189,7 @@ export function selectAffected({ changed, repo, map, full = false }) {
     const name = `\`${file}\``;
     if (OFFLINE.some((rule) => rule.test(file))) pick('offline', name);
     if (DB.some((rule) => rule.test(file))) pick('db', name);
+    if (REAL.some((rule) => rule.test(file))) pick('real', name);
     if (NO_E2E.some((rule) => rule.test(file))) continue;
     const spec = SPEC.exec(file);
     if (!file.startsWith('src/') && !spec) {
@@ -200,6 +221,9 @@ export function selectAffected({ changed, repo, map, full = false }) {
     }
     for (const importer of specs) pickSpec(importer, `${name} is imported by the spec`);
     if (contract && !why.db?.includes(name)) pick('db', `${name} is imported by the contract tests`);
+    const realRoute = REAL_ROUTES.find((route) => routes.has(route));
+    if (realRoute) pick('real', `${name} → ${realRoute}`);
+    else if ([...reached].some((module) => REAL_SPEC.test(module))) pick('real', `${name} is imported by the real-server journeys`);
     // A module no page or spec imports needs no e2e spec; any other file there could be loaded some other way.
     if (routes.size === 0 && specs.length === 0 && !contract && !CODE.test(file)) everything(`${name}: no rule matches it`);
   }
@@ -215,7 +239,7 @@ export function selectAffected({ changed, repo, map, full = false }) {
       .sort();
   }
   if (!run) pick('skip', changed.length === 0 ? 'nothing changed against main' : 'notes only');
-  return { run, e2e, offline: Boolean(why.offline), db: Boolean(why.db), why };
+  return { run, e2e, offline: Boolean(why.offline), db: Boolean(why.db), real: Boolean(why.real), why };
 }
 
 /**
@@ -264,25 +288,43 @@ export function statusDescription(sha, options) {
 }
 
 /** The jobs after `changes`, as ci.yml names them. */
-const JOBS = ['checks', 'e2e', 'e2e-report', 'offline', 'db'];
+const JOBS = ['checks', 'e2e', 'e2e-report', 'offline', 'stack'];
 
 /**
- * The run's verdict, from what `toJSON(needs)` gives the gate job. `changes` must always pass. A full run needs every
- * job to pass: one that was skipped, cancelled or left no result is coverage the run doesn't have. A changed run
- * passes when every job passed or was skipped, and its report merge doesn't count. Returns `state` ('success' or
- * 'failure') and the `problems` behind a failure.
+ * The jobs a selection needs, which `changes` hands the gate (`jobs`): checks for anything but notes, e2e and its report
+ * merge for any spec, the offline check, and the stack job for the db checks or the real-server journeys.
+ */
+export function requiredJobs({ run, e2e, offline, db, real }) {
+  return [
+    ...(run ? ['checks'] : []),
+    ...(e2e !== 'none' ? ['e2e', 'e2e-report'] : []),
+    ...(offline ? ['offline'] : []),
+    ...(db || real ? ['stack'] : []),
+  ];
+}
+
+/**
+ * The run's verdict, from what `toJSON(needs)` gives the gate job. `changes` must pass, and its `jobs` output names the
+ * jobs this run needs. Each of those must pass: skipped, cancelled or no result is coverage the run doesn't have. A
+ * job the run doesn't need passes when it was skipped (or passed), so a job with nothing to do never fails a run. A
+ * changed or quick run's report merge doesn't count. Returns `state` ('success' or 'failure') and the `problems`.
  */
 export function verdict(scope, needs) {
-  const problems = [];
   const changes = needs.changes?.result ?? 'no result';
-  if (changes !== 'success') problems.push(`changes: ${changes}`);
+  if (changes !== 'success') return { state: 'failure', problems: [`changes: ${changes}`] };
+  let required;
+  try {
+    required = JSON.parse(needs.changes?.outputs?.jobs ?? '');
+  } catch {
+    required = undefined;
+  }
+  if (!Array.isArray(required)) return { state: 'failure', problems: ['changes: it gave no list of the jobs this run needs'] };
+  const problems = [];
   for (const job of JOBS) {
     const result = needs[job]?.result;
-    if (scope === 'full') {
-      if (changes === 'success' && result !== 'success') {
-        problems.push(`${job}: ${result ?? 'no result'}, but this full run needs it`);
-      }
-    } else if (job !== 'e2e-report' && result !== undefined && result !== 'success' && result !== 'skipped') {
+    if (required.includes(job)) {
+      if ((scope === 'full' || job !== 'e2e-report') && result !== 'success') problems.push(`${job}: ${result ?? 'no result'}, but this run needs it`);
+    } else if (result !== undefined && result !== 'skipped' && result !== 'success') {
       problems.push(`${job}: ${result}`);
     }
   }
@@ -292,12 +334,13 @@ export function verdict(scope, needs) {
 const QUICK_REASON = 'a pull request’s automatic run has no e2e: start a changed or full run by hand';
 
 /**
- * The selection a run's scope allows. A pull request's automatic run (`quick`, Roshan 2026-11-02) leaves out e2e and
- * the offline check, which only runs started by hand test; the checks and the db job stay as picked.
+ * The selection a run's scope allows. A pull request's automatic run (`quick`, Roshan 2026-11-02) leaves out e2e, the
+ * offline check and the real-server journeys, which only runs started by hand test; the checks and the db checks stay
+ * as picked.
  */
 export function forScope(selection, options) {
   if (options.e2e) return selection;
-  return { ...selection, e2e: 'none', offline: false, why: { ...selection.why, quick: [QUICK_REASON] } };
+  return { ...selection, e2e: 'none', offline: false, real: false, why: { ...selection.why, quick: [QUICK_REASON] } };
 }
 
 /** The specs as Playwright file arguments: each a regex over the path, anchored so `account` never runs `accounts`. */
@@ -305,10 +348,17 @@ export function e2eArgs(specs) {
   return specs.map((spec) => `e2e/${spec.replaceAll('.', '\\.')}$`).join(' ');
 }
 
-/** The lines for $GITHUB_OUTPUT. `projects` is Playwright's project argument, empty for every project. */
-export function githubOutput({ run, e2e, offline, db }, options = runOptions({})) {
+/**
+ * The lines for $GITHUB_OUTPUT. `projects` is Playwright's project argument, empty for every project; `stack` whether
+ * the stack job runs (the db checks or the journeys); `jobs` the jobs the gate requires, as JSON.
+ */
+export function githubOutput(selection, options = runOptions({})) {
+  const { run, e2e, offline, db, real } = selection;
   const list = Array.isArray(e2e) ? e2eArgs(e2e) : e2e;
-  return `run=${run}\ne2e=${list}\noffline=${offline}\ndb=${db}\nprojects=${options.projectArgs}\nlanguages=${options.languages}\n`;
+  return (
+    `run=${run}\ne2e=${list}\noffline=${offline}\ndb=${db}\nreal=${real}\nstack=${db || real}\n` +
+    `projects=${options.projectArgs}\nlanguages=${options.languages}\njobs=${JSON.stringify(requiredJobs(selection))}\n`
+  );
 }
 
 /** Up to three reasons, then how many more. */
@@ -321,7 +371,7 @@ function reasonsText(reasons) {
  * The job summary: the options the run used, then a row for the e2e run (or each picked spec), the offline check and
  * the db job, with why.
  */
-export function summary({ run, e2e, offline, db, why }, options = runOptions({})) {
+export function summary({ run, e2e, offline, db, real, why }, options = runOptions({})) {
   const chosen = (name) => `${name} **${options[name]}**${options.auto.includes(name) ? ' (auto)' : ''}`;
   const head = `### Affected tests\n\nScope **${options.scope}** · ${chosen('browsers')} · ${chosen('languages')}\n\n`;
   if (!run) return `${head}No checks run: ${why.skip[0]}.\n`;
@@ -330,7 +380,8 @@ export function summary({ run, e2e, offline, db, why }, options = runOptions({})
   else if (e2e === 'none') rows.push(['no e2e spec', why.quick ?? ['no changed file reaches a page or a spec']]);
   else for (const spec of e2e) rows.push([`\`${spec}\``, why[spec]]);
   if (offline) rows.push(['offline check', why.offline]);
-  if (db) rows.push(['db job', why.db]);
+  if (db) rows.push(['db checks (stack job)', why.db]);
+  if (real) rows.push(['real-server journeys (stack job)', why.real]);
   const table = rows.map(([what, reasons]) => `| ${what} | ${reasonsText(reasons)} |`);
   return [`${head}| Runs | Why |`, '|---|---|', ...table, ''].join('\n');
 }

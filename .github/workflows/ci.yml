@@ -1,9 +1,9 @@
 name: CI
 
 # A pull request that is ready for review (never a draft) runs the quick checks by itself, on opening, on Ready for
-# review and on each push after (Roshan, 2026-11-02): lint, types, build, unit tests, and the db job when the change
-# reaches it; no e2e and no offline check. Those run only by hand (Actions → CI → Run workflow, or
-# `gh workflow run ci.yml --ref <branch>`), and Claude asks Roshan before starting one. A `changed` run tests what the
+# review and on each push after (Roshan, 2026-11-02): lint, types, build, unit tests, and the stack job's db checks when
+# the change reaches them; no e2e, no offline check and no real-server journeys. Those run only by hand (Actions → CI →
+# Run workflow, or `gh workflow run ci.yml --ref <branch>`), and Claude asks Roshan before starting one. A `changed` run tests what the
 # branch changes against main (scripts/ci-affected.mjs, which says why in the job summary); a `full` run tests
 # everything, after Roshan's approval.
 # The last job posts the verdict on the tested commit: `full-gate` (a full run on every browser and language),
@@ -40,8 +40,9 @@ concurrency:
 
 jobs:
   # What this run needs: `run` (anything but notes), `e2e` (none, all, or the specs as Playwright file arguments),
-  # `offline`, `db`, the Playwright `projects` argument and the `languages`, plus the commit every later job checks out
-  # and the lockfile's Playwright version, whose image the browser jobs run in.
+  # `offline`, `db` and `real` (the stack job's db checks and real-server journeys; `stack` is either), the Playwright
+  # `projects` argument and the `languages`, and `jobs`, the jobs the gate requires; plus the commit every later job
+  # checks out and the lockfile's Playwright version, whose image the browser jobs run in.
   changes:
     # A draft runs nothing: the person is still working on it.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
@@ -53,8 +54,11 @@ jobs:
       e2e: ${{ steps.affected.outputs.e2e }}
       offline: ${{ steps.affected.outputs.offline }}
       db: ${{ steps.affected.outputs.db }}
+      real: ${{ steps.affected.outputs.real }}
+      stack: ${{ steps.affected.outputs.stack }}
       projects: ${{ steps.affected.outputs.projects }}
       languages: ${{ steps.affected.outputs.languages }}
+      jobs: ${{ steps.affected.outputs.jobs }}
       playwright: ${{ steps.playwright.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -98,6 +102,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      # The workflows themselves: expressions, contexts, job outputs and needs, and their shell scripts (shellcheck),
+      # beyond what parsing the YAML catches.
+      - run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
       - run: npm run typecheck
       - run: npm run build
       # The whole unit suite, never `vitest --changed`: that misses changed fixtures, the lockfile and the map's tests.
@@ -139,6 +146,7 @@ jobs:
           E2E_LANGUAGES: ${{ needs.changes.outputs.languages }}
         # $SPECS and $PROJECTS stay unquoted: each spec is an argument of its own, and no projects means every project.
         run: |
+          # shellcheck disable=SC2086
           if [ "$SPECS" = all ]; then
             npx playwright test $PROJECTS --shard="$SHARD" --reporter=dot,blob
           else
@@ -208,13 +216,16 @@ jobs:
             test-results/
           retention-days: 14
 
-  # The database: the migrations in supabase/migrations on a local Supabase stack (Docker is on the runner), then the
-  # pgTAP tests in supabase/tests. No secrets: the local stack makes its own keys.
-  db:
+  # The local Supabase stack (Docker is on the runner), started once for everything that needs it: the db checks (the
+  # migrations in supabase/migrations, then the pgTAP tests in supabase/tests and the account store's contract tests)
+  # when the change reaches them, and the real-server journeys (e2e-real/) in runs started by hand. No secrets: the
+  # local stack makes its own keys, and the journeys' users are throwaway accounts on it.
+  stack:
     needs: changes
-    if: needs.changes.outputs.db == 'true'
+    if: needs.changes.outputs.stack == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The stack's start, the db checks, then the journeys' production build and run.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -224,23 +235,51 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run supabase:start -- --exclude studio
-      - run: npm run test:db
+      # Only what the tests use: the database, Auth, the REST API and Mailpit.
+      - run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - if: needs.changes.outputs.db == 'true'
+        run: npm run test:db
+      # The stack's URL, browser key and Mailpit, for the contract tests and the journeys.
+      - run: node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
       # The account store (src/sync/store.ts) and the emailed codes against the same stack, as signed-in users; the codes
       # come from its Mailpit.
-      - run: node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
-      - run: npm run test:contract
+      - if: needs.changes.outputs.db == 'true'
+        run: npm run test:contract
+      # The journeys run in Playwright's image, like e2e (no browser install from the Ubuntu mirror), started from here
+      # because the stack needs the runner's Docker. `--network host` lets the image reach the stack and serve the app
+      # on the runner's own localhost:3210, the port supabase/config.toml lists for passkeys; uid 1001 owns the workspace.
+      - id: real
+        if: needs.changes.outputs.real == 'true'
+        env:
+          PLAYWRIGHT: ${{ needs.changes.outputs.playwright }}
+          PROJECTS: ${{ needs.changes.outputs.projects }}
+        # $PROJECTS stays unquoted: no projects means every project.
+        run: |
+          # shellcheck disable=SC2086
+          docker run --rm --network host --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL \
+            "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
+            npx playwright test -c e2e-real/playwright.config.ts $PROJECTS
+      # Traces of the failed journeys: synthetic users on a stack that is gone when the job ends.
+      - if: failure() && steps.real.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-real
+          path: |
+            playwright-report-real/
+            test-results/
+          retention-days: 14
 
   # The run's one verdict, posted as a commit status on the commit it tested, where a pull request shows it (check runs
   # of a manual run don't appear there). `node scripts/ci-affected.mjs verdict` decides it (statusContext, verdict):
   # - `full-gate` only for a full run on every browser and language; a full run narrowed by an option posts
   #   `partial-check`, and a changed or quick run `quick-check`. No branch protection requires any of them yet.
-  # - A full run needs every job, the report merge included, to pass: skipped, cancelled or no result is a failure.
-  # - A changed or quick run passes when every job passed or was skipped.
+  # - `changes` names the jobs the run needs (`jobs`); each of them must pass: skipped, cancelled or no result is a
+  #   failure. A job the run doesn't need passes when it was skipped. A changed or quick run's report merge doesn't count.
   # A job its `if:` skips counts as passed, and a crash in `changes` skips every job after it, so this job reads every
   # result itself.
   gate:
-    needs: [changes, checks, e2e, e2e-report, offline, db]
+    needs: [changes, checks, e2e, e2e-report, offline, stack]
     # Not for a draft, whose run was skipped on purpose.
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-latest
