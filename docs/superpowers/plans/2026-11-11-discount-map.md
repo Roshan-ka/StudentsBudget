@@ -153,9 +153,56 @@ The mockups were drawn on the real map from the app's set, at 375 px, in German 
   - Show me asks once, centres the map and shows distances.
   - After one visit, and after a new deploy, airplane mode still shows the map.
   - A discount added with a pin shows on another account's map.
-- **Go-live:**
-  - `npx supabase db push` for chunk 7's migration;
-  - `NEXT_PUBLIC_DISCOUNT_MAP=1` on Vercel Production.
+- **Go-live:** see "Go live", below.
+
+## Go live (Roshan, once chunks 5 and 6 are merged)
+
+Until then nothing needs doing. Without `NEXT_PUBLIC_DISCOUNT_MAP=1`, Discounts is the list alone and the add form has no pin, whatever is merged.
+
+**Before you start:** the full CI run on `main`, every browser and every language (Claude starts it once chunks 5 and 6 are in):
+
+```bash
+gh workflow run ci.yml --ref main -f scope=full -f browsers=all -f languages=all
+```
+
+1. **See what `db push` would apply.** It applies every pending migration, in order.
+
+   ```bash
+   npx supabase migration list
+   ```
+
+   Expect these three to show as local only, unless they went up earlier:
+   - `20261111092551_hack_comments` (comments);
+   - `20261111101604_community_discounts` (students' discounts);
+   - `20261111151901_discount_positions` (their pins).
+
+   If anything else shows as pending, stop and ask first.
+2. **Push them.**
+
+   ```bash
+   npx supabase db push
+   ```
+
+   Run `migration list` again: all three now show on both sides.
+3. **Previews first.** In Vercel → the project → Settings → Environment Variables, add `NEXT_PUBLIC_DISCOUNT_MAP` with the value `1`, for **Preview** only. Then redeploy the latest preview: a `NEXT_PUBLIC_` value is built into the app, so a deploy without it doesn't change.
+4. **The real try on the preview, on your phone.** Sign in with the password: passkeys work only on the live host.
+   - **The map:** Tips → Discounts → Map.
+     - The street names show, which proves the map's fonts load from the app.
+     - A count pin zooms in, the chips filter the pins, and "+", "−" and "Show all" work.
+     - Dark mode redraws the map dark.
+   - **A pin:** tapping it opens the card at the bottom, and "Show in the list" lands on the discount.
+   - **Show me:**
+     - it asks for the location once, centres the map and shows distances;
+     - deny it once (in the browser's site settings) to see the message.
+   - **Offline:** after one visit with the map, switch on airplane mode and reload: the map still draws.
+   - **A student's pin:**
+     - add a discount with a pin;
+     - on a second account (another phone or a private window), it shows as a student's pin, dashed and with the badge;
+     - report it from there, and it leaves that account's map.
+5. **Production.** Add the same variable for **Production** and redeploy it. Then check the live site:
+   - the map and a pin's card;
+   - the map still draws in airplane mode after the redeploy, so its offline cache outlives a deploy.
+6. **Undo, if needed:** remove the variable and redeploy. The list alone comes back; the map's files stay unused in `public/maps/` and do no harm.
 
 ## As built
 
