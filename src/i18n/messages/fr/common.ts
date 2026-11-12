@@ -41,8 +41,18 @@ export const common: Messages['common'] = {
   },
   estimate: 'Estimation',
   /** Notes uniques sur les données (`PrivacyNote`), une fois par téléphone, avant le premier envoi d’une fonction. */
+  legal: {
+    back: 'Retour',
+    onlyDeEn: 'Cette page n’existe qu’en allemand et en anglais, elle s’affiche donc en anglais.',
+    label: 'Informations légales',
+    privacy: 'Confidentialité',
+    impressum: 'Mentions légales',
+    privacySummary: 'Ce que l’appli garde et envoie, et tes droits',
+    impressumSummary: 'Qui gère StudentsBudget',
+  },
   privacy: {
     label: 'À propos de tes données',
+    more: 'En savoir plus dans la politique de confidentialité',
     continue: 'Continuer',
     cancel: 'Annuler',
     account:
