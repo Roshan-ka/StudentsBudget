@@ -93,7 +93,7 @@ export const importExport: Messages['importExport'] = {
     shared: 'Saisies partagées.',
     downloaded: (fileName) => `Téléchargement lancé${NNBSP}: ${fileName}`,
     shareFailed: 'Le menu de partage ne s’est pas ouvert. Tu peux télécharger le fichier à la place.',
-    downloadInstead: 'Télécharger à la place',
+    download: 'Télécharger',
     failed: 'Impossible d’exporter tes saisies.',
   },
   columns: { currency: 'Devise', eur: 'Montant en EUR' },

@@ -241,6 +241,9 @@ test('a new discount is checked, waits for its note, and shows as one’s own', 
       p_category: 'shopping',
       p_link: 'https://www.example.de/nadel',
       p_lang: 'en',
+      // No pin set: the discount is in the list only.
+      p_lat: null,
+      p_lng: null,
     },
   ]);
   expect(await page.evaluate((key) => localStorage.getItem(key), PRIVACY_NOTES.post)).toBe('seen');
@@ -250,6 +253,54 @@ test('a new discount is checked, waits for its note, and shows as one’s own', 
   const added = item(page, 'Schneiderei Nadel');
   await expect(added.getByText('Added by a student', { exact: true })).toBeVisible();
   await expect(added.getByRole('button', { name: 'Delete: the discount at Schneiderei Nadel', exact: true })).toBeVisible();
+});
+
+test('a pin set on the form’s map goes with the discount, which then shows on the map (discount map, chunk 8)', async ({
+  page,
+}) => {
+  await skipUnlessAccountsShow(page);
+  test.skip(
+    !(await page.evaluate(() => document.createElement('canvas').getContext('webgl2') !== null)),
+    'MapLibre needs WebGL 2',
+  );
+  await acceptPrivacyNotes(page, ['post']);
+  await mockSupabaseData(page, { profiles: named(), studentDiscounts: [] });
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  const calls = addCalls(page);
+  await signIn(page);
+  await showDiscounts(page);
+
+  await page.getByRole('button', { name: 'Add a discount', exact: true }).click();
+  await form(page).getByRole('textbox', { name: 'Place', exact: true }).fill('Schneiderei Nadel');
+  await form(page).getByRole('textbox', { name: 'Offer', exact: true }).fill('15 % off hems with a student card');
+  await form(page).getByRole('textbox', { name: 'Source link', exact: true }).fill('https://www.example.de/nadel');
+  await form(page).getByRole('combobox', { name: 'Category', exact: true }).selectOption({ label: 'Shopping' });
+
+  const picker = form(page).getByRole('group', { name: 'On the map (optional)', exact: true });
+  await expect(picker.locator('[data-pin-picker]')).toHaveAttribute('data-map-ready', '', { timeout: 15_000 });
+  await picker.getByRole('button', { name: 'Set the pin here', exact: true }).click();
+  await expect(picker.getByText('Pin set', { exact: true })).toBeVisible();
+  await expect(picker.getByRole('button', { name: 'Set the pin here', exact: true })).toHaveCount(0);
+  // The pin is optional: removed, and set again.
+  await picker.getByRole('button', { name: 'Remove the pin', exact: true }).click();
+  await picker.getByRole('button', { name: 'Set the pin here', exact: true }).click();
+
+  await form(page).getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByText('Discount added.', { exact: true })).toBeAttached();
+  // The picker's middle: the old town, where it opens, to 5 decimals.
+  const sent = calls[0] as { p_lat: number; p_lng: number };
+  expect(sent.p_lat).toBeCloseTo(49.0185, 3);
+  expect(sent.p_lng).toBeCloseTo(12.0965, 3);
+  expect(Number(sent.p_lat.toFixed(5))).toBe(sent.p_lat);
+
+  // The list loads again with it, and the map shows its pin, marked as a student's.
+  await page.getByRole('group', { name: 'Show discounts as', exact: true }).getByRole('button', { name: 'Map', exact: true }).click();
+  const map = page.getByRole('region', { name: 'Map of the discounts in Regensburg', exact: true });
+  await expect(map).toHaveAttribute('data-map-ready', '', { timeout: 15_000 });
+  await map.getByRole('group', { name: 'Show discounts for', exact: true }).getByRole('button', { name: 'Shopping', exact: true }).click();
+  await expect(
+    map.getByRole('button', { name: 'Schneiderei Nadel (added by a student): 15 % off hems with a student card', exact: true }),
+  ).toBeVisible();
 });
 
 test('an account without a name picks one before its first discount', async ({ page }) => {

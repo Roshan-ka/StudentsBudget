@@ -92,7 +92,7 @@ export const importExport = {
     shared: 'Entries shared.',
     downloaded: (fileName: string) => `Download started: ${fileName}`,
     shareFailed: "The share sheet didn't open. You can download the file instead.",
-    downloadInstead: 'Download instead',
+    download: 'Download',
     failed: 'Could not export your entries.',
   },
   /** The file's columns besides those named like the entry form's fields (date, type, category, account, amount, note). */

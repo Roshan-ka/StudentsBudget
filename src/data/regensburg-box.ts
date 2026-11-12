@@ -6,3 +6,9 @@
  * outside it is a question for Roshan, never a reason to widen the box.
  */
 export const REGENSBURG_BOX = { south: 48.97, north: 49.07, west: 12.0, east: 12.2 } as const;
+
+/** Whether a position lies inside the box (its edges included), as the database's check has it. */
+export function inRegensburgBox(lat: number, lng: number): boolean {
+  const { south, north, west, east } = REGENSBURG_BOX;
+  return lat >= south && lat <= north && lng >= west && lng <= east;
+}

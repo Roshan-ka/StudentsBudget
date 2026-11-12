@@ -230,3 +230,29 @@ The mockups were drawn on the real map from the app's set, at 375 px, in German 
   - **Contrast:** `tokens.test.ts` holds the pin outline and the focus ring at 3:1 against every area and road fill of Protomaps' light and dark flavours, land cover included. Label colours and boundaries are left out. Measured: outline at least 4.46:1 (light) and 3.55:1 (dark); ring 3.38:1 and 4.83:1.
   - **No distance yet:** the card's meta row has only the freshness until Show me (chunk 6).
   - **Checks without an install:** lint, typecheck and the touched unit tests ran in the worktree against the main checkout's `node_modules` (Node finds them in the parent folder), with the worktree's own removed. No heavy lane for an install (Roshan, 11-11-2026).
+- **Chunk 7** (11-11-2026, #211), students' pins in the database: migration `20261111151901_discount_positions.sql`.
+  - **Columns:** nullable `lat` and `lng` on `community_discounts`, both or neither (`community_discounts_position_whole`), inside the box (`community_discounts_position_in_regensburg`). NaN and infinity are refused too.
+  - **`post_discount`:** made again with `p_lat` and `p_lng`, both defaulting to null, so the app's seven named arguments kept working until chunk 8.
+  - **`community_discounts_feed`:** made again, returning `lat` and `lng` after `mine`. `discount_queue` is unchanged.
+  - **pgTAP:** 35 → 41 tests, covering the old signature gone, a pinned and an unpinned discount in the list, half a position, Munich, and just east of the box.
+  - **`regensburg-box.test.ts`:** reads the box's numbers, and both-or-neither, from the migration.
+- **Chunk 8** (12-11-2026), students' pins in the app:
+  - **The data:** `DiscountLocation.source` is `'OpenStreetMap'` or `'student'`.
+    - `inRegensburgBox` (in `regensburg-box.ts`) is the one check.
+    - `studentDiscountOf` gives a discount its `location` only when the feed has both numbers inside the box, with the student's link as `url` and the day added as `checked`. Chunk 4's map then shows it as a student's pin, with no change to the view.
+  - **The form:**
+    - `DiscountDraft.pin` and `NewDiscount.lat`/`lng`.
+    - `checkDiscount` rounds the pin to 5 decimals and refuses one outside the box (`pin`, tied to the picker's button), after the other fields.
+    - `addDiscount` sends `p_lat` and `p_lng`, null without a pin.
+  - **`PinPicker`** (`map/pin-picker.tsx`, behind `mapInBuild()`), after the address:
+    - a 210 px map of the set with the needle fixed in its middle, opening on the old town;
+    - "Set the pin here" takes the map's middle; the pin then keeps its place as the map moves, with "Pin set" and "Remove the pin";
+    - a tap centres the map there, and "+" and "−" zoom, so no drag is needed (WCAG 2.5.7); the canvas takes the arrow keys and is named "Map to set the pin on";
+    - without WebGL 2, a line says the discount goes without a pin.
+  - **Shared helpers:** `map-theme.ts` holds the theme and WebGL hooks for the picker. `DiscountMap` keeps its own copies from chunk 4, to fold in later.
+  - **Texts:** in four languages, as approved. The hint adds "or tap the place" to the approved words, for the tap.
+  - **e2e:**
+    - the mock stores and returns positions and refuses a half or outside one;
+    - `community-discounts.spec` expects `p_lat`/`p_lng` null without a pin;
+    - a new case sets, removes and sets the pin, sends it from the old town to 5 decimals, and finds the student's pin on the map behind the Shopping chip.
+  - **CLAUDE.md:** a Discount map rule, the plan in the opening list, and the `studentsbudget-discounts-view` key.
