@@ -127,7 +127,7 @@ test.describe('pins', () => {
     const westbad = map.getByRole('button', { name: /^Westbad: / });
     await westbad.press('Enter');
     await expect(westbad).toHaveAttribute('aria-pressed', 'true');
-    await expect(westbad).toBeFocused();
+    // The card takes the focus (its own tests below follow it); Enter on the pin again lets it go.
     await westbad.press('Enter');
     await expect(westbad).toHaveAttribute('aria-pressed', 'false');
 
@@ -216,11 +216,9 @@ test.describe('the card', () => {
     await skipWithoutWebgl(page, testInfo);
     const map = await openMap(page);
     // Haidplatz 8 holds the Stadtbücherei and the VHS. In the old town it hides in a count pin at first: the biggest
-    // count pin is pressed until its pin shows on its own.
-    const haidplatz = map.getByRole('button', {
-      name: '2 discounts here: Stadtbücherei Regensburg, Volkshochschule Regensburg',
-      exact: true,
-    });
+    // count pin is pressed until its pin shows on its own. Its name lists the two in the list's order, freshest first,
+    // which a re-check or a vote can change, so only its start is fixed here.
+    const haidplatz = map.getByRole('button', { name: /^2 discounts here: / });
     const counts = map.getByRole('button', { name: /^\d+ discounts close together: zoom in$/ });
     for (let step = 0; step < 4 && (await haidplatz.count()) === 0; step++) {
       const names = await pinNames(counts);
@@ -231,11 +229,10 @@ test.describe('the card', () => {
     }
     await haidplatz.press('Enter');
 
-    const card = map.getByRole('region', {
-      name: '2 discounts here: Stadtbücherei Regensburg, Volkshochschule Regensburg',
-      exact: true,
-    });
-    await expect(card.getByRole('heading', { name: 'Stadtbücherei Regensburg', level: 3, exact: true })).toBeFocused();
+    const card = map.getByRole('region', { name: /^2 discounts here: / });
+    // The card opens on its first heading, and holds both.
+    await expect(card.getByRole('heading', { level: 3 }).first()).toBeFocused();
+    await expect(card.getByRole('heading', { name: 'Stadtbücherei Regensburg', level: 3, exact: true })).toBeVisible();
     await expect(card.getByRole('heading', { name: 'Volkshochschule Regensburg', level: 3, exact: true })).toBeVisible();
     await expect(card.getByRole('button', { name: 'Show in the list', exact: true })).toHaveCount(2);
     await expect(card.getByRole('button', { name: 'Close', exact: true })).toHaveCount(1);
