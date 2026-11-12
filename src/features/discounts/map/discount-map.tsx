@@ -17,7 +17,9 @@ import { categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
+import { useFocusAfter } from '@/lib/focus';
 import { cn } from '@/lib/utils';
+import { DiscountCard, type CardEntry } from './discount-card';
 import { canDrawMap, loadMapLibre } from './load-maplibre';
 import { MAP_SET } from './map-set';
 import { boxOf, pinsOf, spotsOf, worldPixel, type Box, type MapItem, type Pin, type Spot } from './pins';
@@ -40,6 +42,11 @@ const PADDING = { top: 72, bottom: 32, left: 60, right: 60 };
 const FIT_MAX_ZOOM = 16;
 /** The closest a count pin zooms in: close enough to part pins a few metres apart. */
 const COUNT_MAX_ZOOM = 17;
+/** How far the chosen teardrop reaches above its place, and the room the chips take along the top. */
+const TEARDROP_HEIGHT = 63;
+const CHIPS_HEIGHT = 72;
+/** The card's gap to the map's edges (the approved look: 10 px). */
+const CARD_GAP = 10;
 
 /** Whether WebGL 2 is there never changes while the page is open. */
 const neverChanges = () => () => {};
@@ -75,6 +82,10 @@ function spotName(spot: Spot, text: Messages['tips']['discountMap']): string {
  * chips (`chips`) sit along the top; "+", "−" and "Show all" at the end. `fitKey` changing (another category) fits the
  * map to the discounts shown. The box fills the screen down to the navigation. `data-map-ready` marks it drawn, for
  * the specs.
+ *
+ * The chosen spot's discounts (`card`, chunk 5) show in a card at the bottom. A tap that opens it puts the focus on its
+ * heading; Close, Escape or a second tap on the pin closes it, and the focus goes back to the pin (or to the count pin
+ * it joined). The map moves the chosen pin into the room above the card when the card would hide it.
  */
 export function DiscountMap({
   items,
@@ -84,6 +95,8 @@ export function DiscountMap({
   onCamera,
   fitKey,
   chips,
+  card,
+  onShowInList,
 }: {
   items: readonly MapItem[];
   /** The chosen spot's key. */
@@ -93,6 +106,10 @@ export function DiscountMap({
   onCamera: (camera: MapCamera) => void;
   fitKey: string;
   chips: ReactNode;
+  /** The chosen spot's discounts, as its card shows them. */
+  card: readonly CardEntry[];
+  /** "Show in the list" on the card: the view switches to the list and lands on the discount. */
+  onShowInList: (id: string) => void;
 }) {
   const { t } = useT();
   const text = t.tips.discountMap;
@@ -100,6 +117,9 @@ export function DiscountMap({
   const drawable = useSyncExternalStore(neverChanges, canDrawMap, drawableOnServer);
   const box = useRef<HTMLDivElement>(null);
   const container = useRef<HTMLDivElement>(null);
+  const cardBox = useRef<HTMLDivElement>(null);
+  /** The card's heading after a tap opened it, and a pin after the card closed (keys `card` and `pin:<spot>`). */
+  const focus = useFocusAfter();
   /** The flavour the map was last drawn in, so a theme change redraws it once. */
   const drawnFlavor = useRef<MapFlavor | null>(null);
   const lastFit = useRef(fitKey);
@@ -122,6 +142,21 @@ export function DiscountMap({
     if (map !== null && shownBox !== null) map.fitBounds(shownBox, { padding: PADDING, maxZoom: FIT_MAX_ZOOM });
   };
   const fitShown = useEffectEvent(fitAll);
+  /**
+   * The chosen pin, moved into the room between the chips and the card when it lies outside it: the card would hide
+   * the teardrop, or the chips its top.
+   */
+  const showChosen = useEffectEvent(() => {
+    const spot = spots.find((at) => at.key === chosen);
+    const cardHeight = cardBox.current?.offsetHeight;
+    if (map === null || spot === undefined || cardHeight === undefined) return;
+    const top = CHIPS_HEIGHT + TEARDROP_HEIGHT;
+    const bottom = map.getContainer().clientHeight - cardHeight - CARD_GAP;
+    const { y } = map.project([spot.lng, spot.lat]);
+    if (y >= top && y <= bottom) return;
+    // `offset` moves the place from the middle: to the middle of the room left above the card.
+    map.easeTo({ center: [spot.lng, spot.lat], offset: [0, (top - cardHeight - CARD_GAP) / 2] });
+  });
 
   useEffect(() => {
     if (!drawable) return;
@@ -204,6 +239,11 @@ export function DiscountMap({
     fitShown();
   }, [fitKey]);
 
+  // A pin just chosen: the card is drawn by now (effects run after it), so the map can make room for the teardrop.
+  useEffect(() => {
+    if (chosen !== null && state === 'ready') showChosen();
+  }, [chosen, state]);
+
   // The box reaches down to the navigation from where it starts on the page, whatever stands above it.
   useEffect(() => {
     const element = box.current;
@@ -237,6 +277,12 @@ export function DiscountMap({
     return <p className="text-sm">{drawable ? text.failed : text.noWebgl}</p>;
   }
 
+  /** Close or Escape: the card goes, and the focus goes back to the chosen pin, or to the count pin it now joins. */
+  function close() {
+    if (chosen !== null) focus.mark(`pin:${chosen}`);
+    onChoose(null);
+  }
+
   /**
    * A count pin's tap: the map zooms in on its discounts. The pin goes as they part, so the focus waits on the map,
    * from where Tab reaches them.
@@ -249,6 +295,7 @@ export function DiscountMap({
   }
 
   const ready = map !== null && state === 'ready';
+  const chosenSpot = spots.find((spot) => spot.key === chosen);
   const width = ready ? map.getContainer().clientWidth : 0;
   const height = ready ? map.getContainer().clientHeight : 0;
   /** A pin's place on the screen: its spot's, or the middle of a count pin's spots. */
@@ -283,6 +330,10 @@ export function DiscountMap({
                 return (
                   <button
                     key={pin.key}
+                    // A card closed on a pin that has joined this one hands the focus here.
+                    ref={(element) => {
+                      for (const spot of pin.spots) focus.refFor(`pin:${spot.key}`)(element);
+                    }}
                     type="button"
                     aria-label={text.countPin(pin.count)}
                     onClick={() => zoomTo(pin.spots)}
@@ -301,12 +352,24 @@ export function DiscountMap({
               return (
                 <button
                   key={pin.key}
+                  ref={focus.refFor(`pin:${spot.key}`)}
                   type="button"
                   aria-label={spotName(spot, text)}
                   aria-pressed={isChosen}
                   onClick={(event) => {
+                    // A second tap closes the card and keeps the focus here; a first opens it on its heading.
                     event.currentTarget.focus();
-                    onChoose(isChosen ? null : spot.key);
+                    if (isChosen) {
+                      onChoose(null);
+                    } else {
+                      focus.mark('card');
+                      onChoose(spot.key);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (!isChosen || event.key !== 'Escape') return;
+                    event.stopPropagation();
+                    close();
                   }}
                   className={cn(
                     'pointer-events-auto absolute start-0 top-0 grid place-items-center border-outline text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring',
@@ -382,6 +445,22 @@ export function DiscountMap({
             >
               <MaximizeIcon aria-hidden="true" className="size-5" />
             </Button>
+          </div>
+        )}
+        {ready && chosenSpot !== undefined && card.length > 0 && (
+          // The room below the chips, with the card at its bottom: 10 px from the map's edges, scrolling when it is
+          // taller than the room (a spot of several discounts on a short screen).
+          <div className="pointer-events-none absolute inset-x-2.5 top-[4.5rem] bottom-2.5 flex flex-col justify-end">
+            <div ref={cardBox} className="pointer-events-auto flex max-h-full min-h-0 flex-col">
+              <DiscountCard
+                key={chosenSpot.key}
+                entries={card}
+                label={spotName(chosenSpot, text)}
+                headingRef={focus.refFor('card')}
+                onClose={close}
+                onShowInList={onShowInList}
+              />
+            </div>
           </div>
         )}
       </div>

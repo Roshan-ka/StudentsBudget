@@ -73,6 +73,8 @@ export const tips: Messages['tips'] = {
     zoomIn: 'Acercar',
     zoomOut: 'Alejar',
     showAll: 'Mostrar todos los descuentos',
+    close: 'Cerrar',
+    showInList: 'Ver en la lista',
     gestures: {
       touch: 'Usa dos dedos para mover el mapa',
       windows: 'Usa Ctrl + rueda del ratón para hacer zoom en el mapa',

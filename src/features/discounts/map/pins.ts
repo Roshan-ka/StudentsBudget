@@ -31,7 +31,9 @@ export const JOIN_DISTANCE = 46;
 /** West, south, east, north, in degrees. */
 export type Box = [number, number, number, number];
 
-const keyOf = (lat: number, lng: number) => `${lat},${lng}`;
+/** The key of the spot at a position: what `chosen` names, so the view finds the chosen spot's discounts. */
+export const spotKey = (lat: number, lng: number) => `${lat},${lng}`;
+const keyOf = spotKey;
 
 /**
  * The spots the items make: items at the same position share one, in the order given. Spots run north to south, then

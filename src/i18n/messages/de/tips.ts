@@ -66,6 +66,8 @@ export const tips: Messages['tips'] = {
     zoomIn: 'Hineinzoomen',
     zoomOut: 'Herauszoomen',
     showAll: 'Alle Rabatte zeigen',
+    close: 'Schließen',
+    showInList: 'In der Liste zeigen',
     gestures: {
       touch: 'Mit zwei Fingern bewegst du die Karte',
       windows: 'Mit Strg + Mausrad zoomst du die Karte',

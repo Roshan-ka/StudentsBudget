@@ -75,6 +75,9 @@ export const tips = {
     zoomIn: 'Zoom in',
     zoomOut: 'Zoom out',
     showAll: 'Show all discounts',
+    /** The card at the bottom of the map (chunk 5): it closes, and it leads to the discount in the list. */
+    close: 'Close',
+    showInList: 'Show in the list',
     /** MapLibre's hints when one finger or the wheel alone tries to move the map (its cooperative gestures). */
     gestures: {
       touch: 'Use two fingers to move the map',

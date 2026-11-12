@@ -9,8 +9,6 @@ import { db } from '@/db/db';
 import type { DiscountVote } from '@/db/types';
 import { useAuth } from '@/features/account/use-auth';
 import { SegmentedControl } from '@/features/charts/chart-parts';
-import { categoryTint } from '@/features/charts/colors';
-import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { semesterOn } from '@/features/profile/profile';
@@ -27,10 +25,12 @@ import { useToday } from '@/lib/use-today';
 import { cn } from '@/lib/utils';
 import { readCommunity, type CommunityConfirmations } from './community';
 import { DiscountForm } from './discount-form';
+import { DiscountTags } from './discount-tags';
 import { bundledDiscounts, discountCategoryIds, sortByFreshness, voteMove, type DiscountSource } from './discounts';
 import { DiscountMap, type MapCamera } from './map/discount-map';
 import { mapInBuild } from './map/map-flag';
-import type { MapItem } from './map/pins';
+import type { CardEntry } from './map/discount-card';
+import { spotKey, type MapItem } from './map/pins';
 import { StudentDiscountActions, StudentDiscountSource } from './student-discount-actions';
 import { readStudentDiscounts, type StudentDiscount } from './student-discounts';
 
@@ -183,6 +183,37 @@ export function DiscountsView({
     const { lat, lng } = discount.location;
     return [{ id: d.id, place: d.place, offer: d.offer, categoryId: d.categoryId, lat, lng, student }];
   });
+  // The chosen spot's card: its discounts as the list words them, with their freshness.
+  const cardEntries: CardEntry[] = shown.flatMap(({ discount, vote, freshness: f }) => {
+    const at = discount.location;
+    if (chosenSpot === null || at === undefined || spotKey(at.lat, at.lng) !== chosenSpot) return [];
+    const student = byStudent.get(discount.id);
+    const own = student === undefined ? discountIn(discount, lang) : null;
+    const d = own ?? discount;
+    const freshness =
+      f.outdated && vote
+        ? [text.markedOutdated(formatDate(vote.on))]
+        : [...(f.mayBeOutdated ? [text.mayBeOutdated] : []), text.lastConfirmed(formatDate(f.lastConfirmed))];
+    return [
+      {
+        id: d.id,
+        place: d.place,
+        offer: d.offer,
+        address: d.address,
+        categoryId: d.categoryId,
+        student: student !== undefined,
+        lang: own === null ? student?.info.lang : own.textLang,
+        freshness,
+      },
+    ];
+  });
+
+  /** The card's "Show in the list": the list shows, and the focus lands on the discount's heading there. */
+  function showInList(id: string) {
+    focus.mark(`discount:${id}`);
+    setChosenSpot(null);
+    setMode('list');
+  }
 
   /** A vote, or first the note when signed in on a phone that hasn't accepted it. */
   function tap(d: Discount, vote: DiscountVote['vote']) {
@@ -315,6 +346,8 @@ export function DiscountsView({
             fitKey={categoryId ?? ''}
             // Along the map's top edge, in one row that scrolls sideways.
             chips={chips('flex gap-2 overflow-x-auto [scrollbar-width:thin]')}
+            card={cardEntries}
+            onShowInList={showInList}
           />
         )
       ) : (
@@ -325,7 +358,6 @@ export function DiscountsView({
             const own = student === undefined ? discountIn(discount, lang) : null;
             const d = own ?? discount;
             const placeId = `discount-${d.id}-place`;
-            const Icon = CATEGORY_ICONS[d.categoryId] ?? OTHER_ICON;
             return (
               <li
                 key={d.id}
@@ -337,25 +369,16 @@ export function DiscountsView({
                 }}
                 className={cn(cardVariants(), 'gap-2')}
               >
-                <div className="flex flex-wrap gap-2">
-                  {/* The category's tint and icon, as on a tip; its name is the text (4.5:1 on every tint). */}
-                  <span
-                    className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold"
-                    style={{ backgroundColor: categoryTint(d.categoryId) }}
-                  >
-                    <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-                    {categoryNameIn(t, d.categoryId)}
-                  </span>
-                  {/* Nobody checked it before it showed, so it never reads like the app's own sourced list. */}
-                  {student !== undefined && (
-                    <span className="inline-flex w-fit items-center rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold">
-                      {text.studentDiscounts.tag}
-                    </span>
-                  )}
-                </div>
+                <DiscountTags categoryId={d.categoryId} student={student !== undefined} t={t} />
                 {/* The discount's own words are city content: in the phone's language where translated (`discountIn`). */}
                 <div lang={own === null ? student?.info.lang : own.textLang} className="flex flex-col gap-1">
-                  <h3 id={placeId} className="text-xl leading-snug font-extrabold break-words">
+                  {/* The map's "Show in the list" lands here. */}
+                  <h3
+                    ref={focus.refFor(`discount:${d.id}`)}
+                    id={placeId}
+                    tabIndex={-1}
+                    className="text-xl leading-snug font-extrabold break-words"
+                  >
                     {d.place}
                   </h3>
                   <p className="text-sm font-semibold break-words">{d.offer}</p>
