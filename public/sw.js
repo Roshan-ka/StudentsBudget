@@ -41,6 +41,8 @@ const PAGES = [
   '/start',
   '/start/new-account',
   '/start/sign-in',
+  '/privacy',
+  '/impressum',
 ];
 
 // Files that keep their name. They are looked up ignoring the query string, because Next links the favicon and
