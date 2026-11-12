@@ -445,6 +445,9 @@ export type StudentDiscountRow = {
   label: string | null;
   batch: number | null;
   mine: boolean;
+  /** Its pin (discount map, chunk 8): both, or neither (left out or null). */
+  lat?: number | null;
+  lng?: number | null;
 };
 
 /** One row of `discount_queue` (community, chunk 7), as the database returns it. */
@@ -687,18 +690,24 @@ export async function mockSupabaseData(
         p_category: string;
         p_link: string;
         p_lang: string;
+        p_lat?: number | null;
+        p_lng?: number | null;
       };
       const profile = profiles.get(claimsOf(request).sub ?? '');
       if (profile === undefined) return refuse('needs-username');
       if (options.discountLimit) return refuse('daily-limit');
-      // The table's checks (migration 20261111101604_community_discounts.sql).
+      const lat = sent.p_lat ?? null;
+      const lng = sent.p_lng ?? null;
+      // The table's checks (migrations 20261111101604_community_discounts.sql and 20261111151901_discount_positions.sql).
       const fits = (text: string | null, min: number, max: number) => text === null || (text.length >= min && text.length <= max);
       if (
         !fits(sent.p_place, 2, 80) ||
         !fits(sent.p_offer, 3, 120) ||
         !fits(sent.p_address, 1, 120) ||
         !fits(sent.p_conditions, 1, 300) ||
-        !/^https:\/\/\S+$/.test(sent.p_link)
+        !/^https:\/\/\S+$/.test(sent.p_link) ||
+        (lat === null) !== (lng === null) ||
+        (lat !== null && lng !== null && !(lat >= 48.97 && lat <= 49.07 && lng >= 12.0 && lng <= 12.2))
       ) {
         return route.fulfill({ status: 400, headers: CORS, json: { code: '23514', message: 'check violation' } });
       }
@@ -717,6 +726,8 @@ export async function mockSupabaseData(
         label: profile.label,
         batch: profile.batch,
         mine: true,
+        lat,
+        lng,
       });
       return route.fulfill({ status: 200, headers: CORS, json: id });
     }

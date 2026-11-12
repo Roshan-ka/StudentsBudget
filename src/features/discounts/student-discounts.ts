@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Discount } from '@/data/discounts';
+import { inRegensburgBox } from '@/data/regensburg-box';
 import { LABELS, type PostingLabel, type PostingName } from '@/features/hacks/posting-name';
 import { todayIso } from '@/lib/dates';
 
@@ -48,6 +49,12 @@ export function studentDiscountOf(row: unknown): StudentDiscount | null {
   }
   if (link === null || !isHttpsUrl(link) || Number.isNaN(Date.parse(createdAt))) return null;
   const label = LABELS.find((known): known is PostingLabel => known === row.label) ?? null;
+  const checked = todayIso(new Date(createdAt));
+  // Its pin (discount map, chunk 8), when the student set one inside the box: both numbers, or none.
+  const pinned =
+    typeof row.lat === 'number' && typeof row.lng === 'number' && inRegensburgBox(row.lat, row.lng)
+      ? { lat: row.lat, lng: row.lng, source: 'student' as const, url: link, checked }
+      : null;
   return {
     discount: {
       id,
@@ -58,7 +65,8 @@ export function studentDiscountOf(row: unknown): StudentDiscount | null {
       categoryId,
       source: '',
       url: link,
-      checked: todayIso(new Date(createdAt)),
+      checked,
+      ...(pinned === null ? {} : { location: pinned }),
     },
     info: {
       author:

@@ -69,6 +69,22 @@ describe('a feed row', () => {
     });
   });
 
+  it('takes its pin, when the student set one inside Regensburg, with its link and day (discount map, chunk 8)', () => {
+    expect(studentDiscountOf(row({ lat: 49.01936, lng: 12.08965 }))?.discount.location).toEqual({
+      lat: 49.01936,
+      lng: 12.08965,
+      source: 'student',
+      url: 'https://www.example.de/cafe',
+      checked: '2026-11-11',
+    });
+    // No pin, half a pin, or one outside the box: the discount is in the list only.
+    expect(studentDiscountOf(row())?.discount.location).toBeUndefined();
+    expect(studentDiscountOf(row({ lat: null, lng: null }))?.discount.location).toBeUndefined();
+    expect(studentDiscountOf(row({ lat: 49.01936, lng: null }))?.discount.location).toBeUndefined();
+    expect(studentDiscountOf(row({ lat: 48.13743, lng: 11.57549 }))?.discount.location).toBeUndefined();
+    expect(studentDiscountOf(row({ lat: '49.01936', lng: '12.08965' }))?.discount.location).toBeUndefined();
+  });
+
   it('is left out without its words, a readable https link or a date', () => {
     expect(studentDiscountOf(null)).toBeNull();
     for (const field of ['id', 'place', 'offer', 'category', 'link', 'lang', 'created_at']) {
