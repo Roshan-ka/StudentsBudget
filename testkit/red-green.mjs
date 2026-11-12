@@ -120,14 +120,28 @@ async function main() {
 
   const cli = path.join(root, 'node_modules', '@playwright', 'test', 'cli.js');
   if (!fs.existsSync(cli)) fail(2, 'Playwright is not installed here (npm ci)');
-  const port = await freePort();
-  const runPlaywright = (name, files) => {
-    const out = path.join(work, `${name}.json`);
+  // Each run gets a port no server holds yet, so a run never reuses the server of the one before it (an unmutated app).
+  const playwrightOnce = async (out, files) => {
     fs.rmSync(out, { force: true });
+    const port = await freePort();
     const args = [cli, 'test', '-c', options.config, '--reporter=line,json', '--retries=0', ...options.projects.flatMap((p) => ['--project', p]), ...files];
     const env = { ...process.env, E2E_PORT: String(port), PLAYWRIGHT_JSON_OUTPUT_FILE: out, PLAYWRIGHT_JSON_OUTPUT_NAME: out };
-    spawnSync(process.execPath, args, { cwd: root, stdio: ['ignore', 'inherit', 'inherit'], env });
-    if (!fs.existsSync(out)) return null;
+    const started = Date.now();
+    const done = spawnSync(process.execPath, args, { cwd: root, stdio: ['ignore', 'inherit', 'inherit'], env });
+    return `exit ${done.status ?? 'none'}${done.signal ? `, signal ${done.signal}` : ''}${done.error ? `, ${done.error.message}` : ''}, after ${Math.round((Date.now() - started) / 1000)} s`;
+  };
+  const runPlaywright = async (name, files) => {
+    const out = path.join(work, `${name}.json`);
+    let ended = await playwrightOnce(out, files);
+    if (!fs.existsSync(out)) {
+      // Seen once (2026-11-12, the live proof's run 3): Playwright printed nothing and wrote no report. Once more.
+      console.error(`red-green: ${name} run wrote no report (${ended}); trying once more`);
+      ended = await playwrightOnce(out, files);
+      if (!fs.existsSync(out)) {
+        console.error(`red-green: ${name} run wrote no report again (${ended})`);
+        return null;
+      }
+    }
     const report = JSON.parse(fs.readFileSync(out, 'utf8'));
     // A web server that never started, say: the tests then have no result, and the verdict says "not green".
     for (const error of report.errors ?? []) console.error(`red-green: ${name} run: ${String(error.message ?? '').split(/\r?\n/)[0]}`);
@@ -137,7 +151,7 @@ async function main() {
   const before = git(root, ['status', '--porcelain=v1', '--untracked-files=all']).stdout;
 
   console.log(`red-green: green run of ${specs.join(', ')}`);
-  const green = runPlaywright('green', specs);
+  const green = await runPlaywright('green', specs);
   if (!green) fail(2, 'the green run wrote no report');
 
   const rows = [];
@@ -165,7 +179,7 @@ async function main() {
     try {
       fs.writeFileSync(targetPath, applied.text);
       stepProblem = runSteps(root, stepsFor(m.file), 'after the mutation');
-      if (!stepProblem) red = runPlaywright(`red-${i + 1}`, m.specs);
+      if (!stepProblem) red = await runPlaywright(`red-${i + 1}`, m.specs);
     } finally {
       fs.writeFileSync(targetPath, original);
       fs.rmSync(pendingFile, { force: true });

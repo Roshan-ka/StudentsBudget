@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { applyMutation, flattenReport, judgeProof, owners, parseMutations, proofLines, summarize } from './judge.mjs';
+import { applyMutation, flattenReport, isExpectFailure, judgeProof, owners, parseMutations, proofLines, summarize } from './judge.mjs';
 
 const ROOT = path.resolve('/repo');
 const SPEC = 'e2e/a.spec.ts';
@@ -94,11 +94,22 @@ describe('flattenReport', () => {
       status: 'failed',
       at: { spec: SPEC, line: 12 },
       message: EXPECT_ERROR,
+      expectFailure: true,
     });
   });
 
   it('says when a test has no result', () => {
     expect(flat([{ title: 't', line: 3 }])[0].status).toBe('did not run');
+  });
+});
+
+describe('isExpectFailure', () => {
+  it('knows an assertion by its first line, or by the line after its own message', () => {
+    expect(isExpectFailure('Error: expect(locator).toBeVisible() failed')).toBe(true);
+    expect(isExpectFailure('expect.soft(received).toBe(expected)')).toBe(true);
+    expect(isExpectFailure('Error: the total\n\nexpect(received).toBe(expected)')).toBe(true);
+    expect(isExpectFailure('Error: locator.click: Timeout 5000ms exceeded.\nCall log:\n  - waiting for expect(x)')).toBe(false);
+    expect(isExpectFailure('')).toBe(false);
   });
 });
 
@@ -134,6 +145,13 @@ describe('judgeProof', () => {
     const red = [{ title: 'b', line: 10, project: 'chrome', status: 'failed', at: 11 }, { title: 'b', line: 10, project: 'phone', status: 'failed', at: 12 }];
     expect(judge(red).verdict).toBe('not-proven');
     expect(judge(red).reason).toContain(`red elsewhere: b [chrome] at ${SPEC}:11`);
+  });
+
+  it("proves an assertion that carries its own message (Playwright puts the message first)", () => {
+    // As the live run on security-headers.spec.ts reported it: `expect(headers[…], path).toBe('DENY')`.
+    const message = 'Error: /\n\nexpect(received).toBe(expected) // Object.is equality\n\nExpected: "DENY"';
+    const red = ['chrome', 'phone'].map((project) => ({ title: 'b', line: 10, project, status: 'failed', at: 12, message }));
+    expect(judge(red).verdict).toBe('proven');
   });
 
   it('is not proven when the failure on the proof line is an action, not an assertion', () => {

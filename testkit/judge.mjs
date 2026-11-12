@@ -13,8 +13,18 @@ const ID = /^[a-z0-9][a-z0-9-]*$/;
 const PROOF = /\/\/\s*proof:\s*([a-z0-9][a-z0-9-]*)/g;
 /** The colour codes Playwright puts into error messages (ESC, then `[…m`). */
 const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
-/** An assertion failed: `expect(…)`, `expect.soft(…)` or `expect.poll(…)` starts the error's first line. */
 const EXPECT_FAILURE = /^(?:Error:\s*)?expect(?:\.\w+)?\(/;
+const EXPECT_LINE = /^expect(?:\.\w+)?\(/;
+
+/**
+ * Whether an error is a failed assertion: `expect(…)`, `expect.soft(…)` or `expect.poll(…)` starts it, or follows the
+ * assertion's own message (`expect(value, 'message')` puts the message first: `Error: message`, then `expect(…)`).
+ */
+export function isExpectFailure(message) {
+  const lines = (message ?? '').replace(ANSI, '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (EXPECT_FAILURE.test(lines[0] ?? '')) return true;
+  return /^Error:/.test(lines[0] ?? '') && EXPECT_LINE.test(lines[1] ?? '');
+}
 
 /** A repo-relative path with forward slashes that stays inside the repo, or null. */
 function relativeInside(p) {
@@ -90,7 +100,7 @@ const firstLine = (message) => (message ?? '').replace(ANSI, '').trim().split(/\
 /**
  * One entry per test and project from Playwright's JSON report, its last result only (runs here use no retries).
  * Paths are repo-relative with forward slashes.
- * @returns {{ spec: string, line: number, title: string, project: string, expectedStatus: string, status: string, at?: { spec: string, line: number }, message: string }[]}
+ * @returns {{ spec: string, line: number, title: string, project: string, expectedStatus: string, status: string, at?: { spec: string, line: number }, message: string, expectFailure: boolean }[]}
  */
 export function flattenReport(report, repoRoot) {
   const rootDir = report?.config?.rootDir ?? repoRoot;
@@ -111,6 +121,7 @@ export function flattenReport(report, repoRoot) {
           status: result?.status ?? 'did not run',
           ...(location?.file ? { at: { spec: rel(location.file), line: location.line } } : {}),
           message: firstLine(error?.message),
+          expectFailure: isExpectFailure(error?.message),
         });
       }
     }
@@ -141,7 +152,7 @@ export function judgeEntry(red, spec, line) {
   if (!red.at) return { verdict: 'inconclusive', reason: `failed without a location: ${red.message}` };
   const at = `${red.at.spec}:${red.at.line}`;
   if (red.at.spec !== spec || red.at.line !== line) return { verdict: 'red-elsewhere', at, message: red.message };
-  if (!EXPECT_FAILURE.test(red.message)) return { verdict: 'red-elsewhere', at, message: red.message, reason: 'not an expect failure' };
+  if (!red.expectFailure) return { verdict: 'red-elsewhere', at, message: red.message, reason: 'not an expect failure' };
   return { verdict: 'red-at-proof', at };
 }
 

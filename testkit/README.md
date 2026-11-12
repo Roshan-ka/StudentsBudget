@@ -67,7 +67,9 @@ The proof id is found by text each time, so editing above a test never breaks it
 node testkit/red-green.mjs --mutations <dir> [--config <file>] [--project <name>] [--adapter <module>] <spec>…
 ```
 
-- It picks a free port for the app (`E2E_PORT`), so a server that's already running is never reused, and the config's web server builds the mutated app.
+- Every Playwright run gets a free port of its own for the app (`E2E_PORT`), so no run reuses a server that's already running (an unmutated app), and the config's web server builds the mutated app.
+- An assertion with its own message (`expect(value, 'message')`) counts: Playwright puts the message first and `expect(…)` on the next line.
+- A run that writes no report is tried once more, and the log says how the process ended.
 - **The mutated file is put back** right after its run. `.red-green/pending.json` (git-ignored) holds the original until then, and the next run puts it back first if a run was killed.
 - **The tree must be unchanged at the end** (`git status`), or the run fails (exit 3).
 - **An adapter may export `applyStep(file)`:** the commands that bring a running backend in line with a changed file (a database reset after a schema file, say). They run after the mutation and again after the restore.
