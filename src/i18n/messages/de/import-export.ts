@@ -88,7 +88,7 @@ export const importExport: Messages['importExport'] = {
     shared: 'Einträge geteilt.',
     downloaded: (fileName) => `Download gestartet: ${fileName}`,
     shareFailed: 'Das Teilen-Menü hat sich nicht geöffnet. Du kannst die Datei stattdessen herunterladen.',
-    downloadInstead: 'Stattdessen herunterladen',
+    download: 'Herunterladen',
     failed: 'Deine Einträge konnten nicht exportiert werden.',
   },
   columns: { currency: 'Währung', eur: 'Betrag in EUR' },

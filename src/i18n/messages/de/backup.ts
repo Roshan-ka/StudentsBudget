@@ -16,7 +16,7 @@ export const backup: Messages['backup'] = {
     shared: 'Backup geteilt.',
     downloaded: (fileName) => `Download gestartet: ${fileName}`,
     shareFailed: 'Das Teilen-Menü hat sich nicht geöffnet. Du kannst die Datei stattdessen herunterladen.',
-    downloadInstead: 'Stattdessen herunterladen',
+    download: 'Herunterladen',
     failed: 'Deine Daten konnten nicht exportiert werden.',
   },
   restore: {

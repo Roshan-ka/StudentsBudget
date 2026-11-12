@@ -289,7 +289,8 @@ test.describe('on a desktop browser', () => {
     expect(before.fxRates.map((rate) => rate.source).sort()).toEqual(['ecb', 'manual']);
     expect(before.weekResults).toEqual([WEEK_RESULT]);
 
-    // Export: with no share sheet it is a download.
+    // Export: with no share sheet it is a download, and no Download button stands beside it.
+    await expect(page.getByRole('button', { name: 'Download', exact: true })).toHaveCount(0);
     const downloaded = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Export backup' }).click();
     const download = await downloaded;
@@ -435,6 +436,29 @@ test.describe('on a desktop browser', () => {
     expect(downloads.value).toBe(0);
   });
 
+  test("offers Download beside Export where the browser shares files: a computer's share sheet has no Save", async ({
+    page,
+  }, testInfo) => {
+    await withShareSheet(page);
+    const downloads = countDownloads(page);
+    await seedSetup(page);
+    await openSettings(page);
+
+    // Both before any tap: Export still opens the share sheet, Download saves the file.
+    const download = page.getByRole('button', { name: 'Download', exact: true });
+    await expect(download).toBeEnabled();
+    const downloaded = page.waitForEvent('download');
+    await download.click();
+    const file = await downloaded;
+    expect(file.suggestedFilename()).toBe(FILE_NAME);
+    const filePath = testInfo.outputPath(FILE_NAME);
+    await file.saveAs(filePath);
+    expect(await readFile(filePath, 'utf8')).toContain('"app": "studentsbudget"');
+    await expect(page.getByRole('status')).toHaveText(`Download started: ${FILE_NAME}`);
+    expect(await shareCalls(page)).toHaveLength(0);
+    expect(downloads.value).toBe(1);
+  });
+
   test('offers a download by tap when the share sheet does not open, and claims nothing before it', async ({
     page,
   }, testInfo) => {
@@ -452,7 +476,8 @@ test.describe('on a desktop browser', () => {
     expect(await shareCalls(page)).toHaveLength(1);
 
     const downloaded = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Download instead' }).click();
+    // The Download that stood beside Export from the start; the message points to it.
+    await page.getByRole('button', { name: 'Download', exact: true }).click();
     const download = await downloaded;
     expect(download.suggestedFilename()).toBe(FILE_NAME);
     const filePath = testInfo.outputPath(FILE_NAME);

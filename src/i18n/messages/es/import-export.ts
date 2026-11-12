@@ -93,7 +93,7 @@ export const importExport: Messages['importExport'] = {
     shared: 'Registros compartidos.',
     downloaded: (fileName) => `Descarga iniciada: ${fileName}`,
     shareFailed: 'El menú de compartir no se ha abierto. Puedes descargar el archivo en su lugar.',
-    downloadInstead: 'Descargar en su lugar',
+    download: 'Descargar',
     failed: 'No se han podido exportar tus registros.',
   },
   columns: { currency: 'Moneda', eur: 'Importe en EUR' },

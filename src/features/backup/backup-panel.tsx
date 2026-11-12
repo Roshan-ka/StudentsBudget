@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { ExportFileButton } from '@/components/export-file-button';
+import { ExportFileButton, type ExportFileType } from '@/components/export-file-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,11 @@ import { backupFileName, serializeBackup } from './backup';
 import { RestoreFromBackup } from './restore-from-backup';
 import { focusFirstControl, useFocusAfter } from '@/lib/focus';
 
+const BACKUP_FILE: ExportFileType = { extension: '.json', type: 'application/json' };
+
 function buildFile(data: BackupData): File {
   const now = new Date();
-  return new File([serializeBackup(data, now)], backupFileName(now), { type: 'application/json' });
+  return new File([serializeBackup(data, now)], backupFileName(now), { type: BACKUP_FILE.type });
 }
 
 function ExportBackup() {
@@ -36,6 +38,7 @@ function ExportBackup() {
           if (snapshot === undefined) throw new Error('The backup is not read yet');
           return buildFile(snapshot);
         }}
+        fileType={BACKUP_FILE}
         ready={snapshot !== undefined}
         text={text}
       />
