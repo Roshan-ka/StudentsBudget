@@ -34,5 +34,7 @@ export const shell: Messages['shell'] = {
     ask: 'Preguntas',
     settings: 'Ajustes',
     tips: 'Consejos y descuentos en Regensburg',
+    privacy: 'Política de privacidad',
+    impressum: 'Aviso legal (Impressum)',
   },
 };

@@ -8,7 +8,7 @@
   ],
   "routes": {
     "/": "all",
-    "/ask": ["ask", "axe", "language-tour", "reflow", "theme"],
+    "/ask": ["ask", "axe", "language-tour", "reflow", "security-headers", "theme"],
     "/badges": ["axe", "badges", "language-tour", "profile", "reflow", "theme"],
     "/charts": ["axe", "charts", "demo-backup", "demo-scenarios", "language-tour", "page-focus", "reflow", "theme"],
     "/check-in": ["axe", "badges", "check-in", "demo-scenarios", "language-tour", "reflow", "swaps", "theme"],
@@ -20,17 +20,19 @@
     "/settings/accounts": ["accounts", "axe", "backup", "demo-scenarios", "entries", "home", "insecure-origin", "language-tour", "overdrawn", "privacy-notes", "recurring", "reflow", "theme"],
     "/settings/appearance": ["axe", "language-tour", "reflow", "theme"],
     "/settings/backup": ["axe", "backup", "language-tour", "profile", "reflow", "theme"],
+    "/privacy": ["axe", "language-tour", "legal", "reflow", "security-headers", "theme"],
+    "/impressum": ["axe", "language-tour", "legal", "reflow", "theme"],
     "/settings/plan": ["accounts", "axe", "language-tour", "profile", "recurring", "reflow", "setup", "theme"],
     "/settings/profile": ["auto-sync", "axe", "date-field", "language-tour", "linking", "page-focus", "profile", "reflow", "theme", "two-step"],
-    "/settings/account": ["account", "account-deletion", "ai-quick-add", "auto-sync", "axe", "change-password", "checklist", "community-discounts", "discount-confirmations", "email-codes", "hacks-comments", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "linking", "moderation", "passkeys", "plan-history", "posting-name", "privacy-notes", "reflow", "setup-chat", "theme", "two-step"],
+    "/settings/account": ["account", "account-deletion", "ai-quick-add", "auto-sync", "axe", "change-password", "checklist", "community-discounts", "discount-confirmations", "email-codes", "hacks-comments", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "linking", "moderation", "passkeys", "plan-history", "posting-name", "privacy-notes", "reflow", "security-headers", "setup-chat", "theme", "two-step"],
     "/settings/moderation": ["axe", "language-tour", "moderation", "reflow", "theme"],
     "/settings/import": ["axe", "import", "language-tour", "reflow", "theme"],
     "/settings/reminder": ["axe", "language-tour", "reflow", "reminder", "theme"],
     "/setup": "all",
-    "/start": ["account", "axe", "change-password", "hacks-feed", "linking", "passkeys", "privacy-notes", "reminder", "setup", "start", "two-step"],
+    "/start": ["account", "axe", "change-password", "hacks-feed", "legal", "linking", "passkeys", "privacy-notes", "reminder", "setup", "start", "two-step"],
     "/start/new-account": ["axe", "start"],
     "/start/sign-in": ["axe", "start"],
-    "/tips": ["axe", "checklist", "community-discounts", "discount-confirmations", "discount-map", "discounts", "hacks-comments", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "privacy-notes", "reflow", "theme", "tips"]
+    "/tips": ["axe", "checklist", "community-discounts", "discount-confirmations", "discount-map", "discounts", "hacks-comments", "hacks-feed", "hacks-post", "hacks-translate", "hacks-votes", "language-tour", "privacy-notes", "reflow", "security-headers", "theme", "tips"]
   },
   "allOnly": ["dictation", "language"]
 }
