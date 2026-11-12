@@ -36,10 +36,13 @@ export type MapCamera = { center: [number, number]; zoom: number };
 const PROTOMAPS = 'Protomaps';
 
 /**
- * Room kept free when the map fits pins in: the chips along the top, and the zoom buttons at the end. The same on both
- * sides, so it holds in either reading direction.
+ * Room kept free when the map fits pins in, so that a whole pin (up to 48 px) clears what lies over the map: the chips
+ * along the top (60 px), the zoom buttons at the end (52 px from the edge) and Show me at the bottom (54 px). The same
+ * on both sides, so it holds in either reading direction.
  */
-const PADDING = { top: 72, bottom: 32, left: 60, right: 60 };
+const PADDING = { top: 88, bottom: 80, left: 80, right: 80 };
+/** Half a pin's box, for what may lie over it: a count pin's 48 px, the largest of the round ones. */
+const PIN_HALF = 24;
 /** The closest "Show all" goes, so one discount alone isn't shown street by street. */
 const FIT_MAX_ZOOM = 16;
 /** The closest a count pin zooms in: close enough to part pins a few metres apart. */
@@ -64,6 +67,22 @@ function subscribeToTheme(listener: () => void): () => void {
 }
 const flavorNow = (): MapFlavor => (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
 const flavorOnServer = (): MapFlavor => 'light';
+
+/** A box within the map, in CSS pixels from its top-left corner. */
+type Rect = { left: number; top: number; right: number; bottom: number };
+
+/**
+ * Whether a pin at (x, y) can be drawn: on the map, and with its whole box clear of everything that lies over the map
+ * (the chips, the zoom buttons, Show me, the card). A pin under one would be hidden from the eye but not from the
+ * keyboard, and too little of it would be left to tap.
+ */
+function clear(x: number, y: number, width: number, height: number, covered: readonly Rect[]): boolean {
+  if (x < 0 || y < 0 || x > width || y > height) return false;
+  return covered.every(
+    (rect) =>
+      x + PIN_HALF <= rect.left || x - PIN_HALF >= rect.right || y + PIN_HALF <= rect.top || y - PIN_HALF >= rect.bottom,
+  );
+}
 
 /** A spot's place in its pin's name, marked when a student added it. */
 const placeName = (item: MapItem, text: Messages['tips']['discountMap']) =>
@@ -137,6 +156,13 @@ export function DiscountMap({
   const box = useRef<HTMLDivElement>(null);
   const container = useRef<HTMLDivElement>(null);
   const cardBox = useRef<HTMLDivElement>(null);
+  // What lies over the map: the chips' row, the zoom buttons, Show me and the card.
+  const chipsRow = useRef<HTMLDivElement>(null);
+  const controls = useRef<HTMLDivElement>(null);
+  const showMeButton = useRef<HTMLButtonElement>(null);
+  const cardWrap = useRef<HTMLDivElement>(null);
+  /** Their boxes within the map, as last measured: a pin under one isn't drawn (`clear`). */
+  const [covered, setCovered] = useState<readonly Rect[]>([]);
   /** The card's heading after a tap opened it, and a pin after the card closed (keys `card` and `pin:<spot>`). */
   const focus = useFocusAfter();
   /** The flavour the map was last drawn in, so a theme change redraws it once. */
@@ -274,6 +300,37 @@ export function DiscountMap({
     if (chosen !== null && state === 'ready') showChosen();
   }, [chosen, state]);
 
+  // What lies over the map is measured whenever it changes size, and again when the card or Show me comes or goes, so
+  // no pin is drawn under it: hidden but still reachable by the keyboard, or a target too small to tap (axe's
+  // target-size, CI run 43191801922).
+  const hasCard = card.length > 0 && chosen !== null;
+  const hasShowMe = onShowMe !== null;
+  useEffect(() => {
+    const frame = box.current;
+    if (frame === null || state !== 'ready') return;
+    const overlays = [chipsRow.current, controls.current, showMeButton.current, cardWrap.current].filter(
+      (element): element is HTMLDivElement | HTMLButtonElement => element !== null,
+    );
+    const measure = () => {
+      const origin = frame.getBoundingClientRect();
+      setCovered(
+        overlays.map((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            left: rect.left - origin.left,
+            top: rect.top - origin.top,
+            right: rect.right - origin.left,
+            bottom: rect.bottom - origin.top,
+          };
+        }),
+      );
+    };
+    // A ResizeObserver reports each element once as it starts watching, then on every change of size.
+    const observer = new ResizeObserver(measure);
+    for (const element of [frame, ...overlays]) observer.observe(element);
+    return () => observer.disconnect();
+  }, [state, hasCard, hasShowMe]);
+
   // The box reaches down to the navigation from where it starts on the page, whatever stands above it.
   useEffect(() => {
     const element = box.current;
@@ -370,7 +427,9 @@ export function DiscountMap({
             )}
             {pins.map((pin) => {
               const { x, y } = placeOf(pin);
-              if (x < 0 || y < 0 || x > width || y > height) return null;
+              // The chosen teardrop rises above its tip, and the map keeps it in the room above the card itself.
+              const keptInView = pin.kind === 'spot' && pin.spot.key === chosen;
+              if (!clear(x, y, width, height, keptInView ? [] : covered)) return null;
               if (pin.kind === 'count') {
                 return (
                   <button
@@ -460,9 +519,11 @@ export function DiscountMap({
             })}
           </div>
         )}
-        <div className="pointer-events-none absolute inset-x-0 top-0 p-2 *:pointer-events-auto">{chips}</div>
+        <div ref={chipsRow} className="pointer-events-none absolute inset-x-0 top-0 p-2 *:pointer-events-auto">
+          {chips}
+        </div>
         {ready && (
-          <div className="absolute end-2 top-16 flex flex-col gap-2">
+          <div ref={controls} className="absolute end-2 top-16 flex flex-col gap-2">
             <Button
               type="button"
               variant="outline"
@@ -500,6 +561,7 @@ export function DiscountMap({
             <div ref={cardBox} className="flex max-h-full min-h-0 flex-col items-start gap-2">
               {onShowMe !== null && (
                 <Button
+                  ref={showMeButton}
                   type="button"
                   variant={here === null ? 'outline' : 'default'}
                   aria-pressed={here !== null}
@@ -511,7 +573,7 @@ export function DiscountMap({
                 </Button>
               )}
               {chosenSpot !== undefined && card.length > 0 && (
-                <div className="pointer-events-auto flex min-h-0 w-full flex-col">
+                <div ref={cardWrap} className="pointer-events-auto flex min-h-0 w-full flex-col">
                   <DiscountCard
                     key={chosenSpot.key}
                     entries={card}

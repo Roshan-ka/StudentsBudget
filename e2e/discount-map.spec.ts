@@ -221,7 +221,8 @@ test.describe('the card', () => {
     // which a re-check or a vote can change, so only its start is fixed here.
     const haidplatz = map.getByRole('button', { name: /^2 discounts here: / });
     const counts = map.getByRole('button', { name: /^\d+ discounts close together: zoom in$/ });
-    for (let step = 0; step < 4 && (await haidplatz.count()) === 0; step++) {
+    // Three presses at 375 px (12-11-2026: a count of 10, then 5, then 3); six leave room.
+    for (let step = 0; step < 6 && (await haidplatz.count()) === 0; step++) {
       const names = await pinNames(counts);
       if (names.length === 0) break;
       const biggest = names.reduce((best, name) => (parseInt(name, 10) > parseInt(best, 10) ? name : best));
@@ -277,9 +278,12 @@ test.describe('Show me', () => {
 
       // The list says it too, for every discount.
       await card.getByRole('button', { name: 'Show in the list', exact: true }).click();
+      // Each in its own item: two discounts may lie the same distance away (Westbad and another at 3.0 km).
       const list = page.getByRole('list', { name: 'Discounts', exact: true });
-      await expect(list.getByText(away('westbad'))).toBeVisible();
-      await expect(list.getByText(away('regensburger-turmtheater'))).toBeVisible();
+      const item = (place: string) =>
+        list.getByRole('listitem').filter({ has: page.getByRole('heading', { name: place, level: 3, exact: true }) });
+      await expect(item('Westbad').getByText(away('westbad'))).toBeVisible();
+      await expect(item('Regensburger Turmtheater').getByText(away('regensburger-turmtheater'))).toBeVisible();
     });
   });
 
