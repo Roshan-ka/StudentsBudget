@@ -1,6 +1,6 @@
 'use client';
 
-import { MaximizeIcon, MinusIcon, PlusIcon, UserRoundIcon } from 'lucide-react';
+import { LocateFixedIcon, MaximizeIcon, MinusIcon, PlusIcon, UserRoundIcon } from 'lucide-react';
 import type * as MapLibre from 'maplibre-gl';
 import {
   useEffect,
@@ -12,6 +12,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
+import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
@@ -20,6 +21,7 @@ import { useT } from '@/i18n/use-t';
 import { useFocusAfter } from '@/lib/focus';
 import { cn } from '@/lib/utils';
 import { DiscountCard, type CardEntry } from './discount-card';
+import type { LatLng } from './distance';
 import { canDrawMap, loadMapLibre } from './load-maplibre';
 import { MAP_SET } from './map-set';
 import { boxOf, pinsOf, spotsOf, worldPixel, type Box, type MapItem, type Pin, type Spot } from './pins';
@@ -34,10 +36,13 @@ export type MapCamera = { center: [number, number]; zoom: number };
 const PROTOMAPS = 'Protomaps';
 
 /**
- * Room kept free when the map fits pins in: the chips along the top, and the zoom buttons at the end. The same on both
- * sides, so it holds in either reading direction.
+ * Room kept free when the map fits pins in, so that a whole pin (up to 48 px) clears what lies over the map: the chips
+ * along the top (60 px), the zoom buttons at the end (52 px from the edge) and Show me at the bottom (54 px). The same
+ * on both sides, so it holds in either reading direction.
  */
-const PADDING = { top: 72, bottom: 32, left: 60, right: 60 };
+const PADDING = { top: 88, bottom: 80, left: 80, right: 80 };
+/** Half a pin's box, for what may lie over it: a count pin's 48 px, the largest of the round ones. */
+const PIN_HALF = 24;
 /** The closest "Show all" goes, so one discount alone isn't shown street by street. */
 const FIT_MAX_ZOOM = 16;
 /** The closest a count pin zooms in: close enough to part pins a few metres apart. */
@@ -47,6 +52,8 @@ const TEARDROP_HEIGHT = 63;
 const CHIPS_HEIGHT = 72;
 /** The card's gap to the map's edges (the approved look: 10 px). */
 const CARD_GAP = 10;
+/** How close Show me zooms in on the phone, at least: a few streets around it. */
+const HERE_ZOOM = 15;
 
 /** Whether WebGL 2 is there never changes while the page is open. */
 const neverChanges = () => () => {};
@@ -60,6 +67,31 @@ function subscribeToTheme(listener: () => void): () => void {
 }
 const flavorNow = (): MapFlavor => (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
 const flavorOnServer = (): MapFlavor => 'light';
+
+/** A box within the map, in CSS pixels from its top-left corner. */
+type Rect = { left: number; top: number; right: number; bottom: number };
+
+/**
+ * What lies over the map, as last measured: the chips and the zoom buttons stay put; Show me and the card move when
+ * the card comes or goes. `layout` names which of those was there, so a measure from before a change is not used for
+ * the moving ones: for the render between the change and the next measure, a pin just let go would otherwise count as
+ * still under the card, and go, with the focus (CI run 43195881266).
+ */
+type Covered = { layout: string; fixed: readonly Rect[]; moving: readonly Rect[] };
+const layoutOf = (hasCard: boolean, hasShowMe: boolean) => `${hasCard}:${hasShowMe}`;
+
+/**
+ * Whether a pin at (x, y) can be drawn: on the map, and with its whole box clear of everything that lies over the map
+ * (the chips, the zoom buttons, Show me, the card). A pin under one would be hidden from the eye but not from the
+ * keyboard, and too little of it would be left to tap.
+ */
+function clear(x: number, y: number, width: number, height: number, covered: readonly Rect[]): boolean {
+  if (x < 0 || y < 0 || x > width || y > height) return false;
+  return covered.every(
+    (rect) =>
+      x + PIN_HALF <= rect.left || x - PIN_HALF >= rect.right || y + PIN_HALF <= rect.top || y - PIN_HALF >= rect.bottom,
+  );
+}
 
 /** A spot's place in its pin's name, marked when a student added it. */
 const placeName = (item: MapItem, text: Messages['tips']['discountMap']) =>
@@ -86,6 +118,9 @@ function spotName(spot: Spot, text: Messages['tips']['discountMap']): string {
  * The chosen spot's discounts (`card`, chunk 5) show in a card at the bottom. A tap that opens it puts the focus on its
  * heading; Close, Escape or a second tap on the pin closes it, and the focus goes back to the pin (or to the count pin
  * it joined). The map moves the chosen pin into the room above the card when the card would hide it.
+ *
+ * Show me (chunk 6) is a pill just above the card: the view asks for the position on its tap (`onShowMe`), and the map
+ * draws a dot there and centres on each new find (`centreOn`). What it has to say shows under the map.
  */
 export function DiscountMap({
   items,
@@ -97,6 +132,10 @@ export function DiscountMap({
   chips,
   card,
   onShowInList,
+  here,
+  centreOn,
+  onShowMe,
+  locationNote,
 }: {
   items: readonly MapItem[];
   /** The chosen spot's key. */
@@ -110,6 +149,14 @@ export function DiscountMap({
   card: readonly CardEntry[];
   /** "Show in the list" on the card: the view switches to the list and lands on the discount. */
   onShowInList: (id: string) => void;
+  /** Where the phone is, once Show me found it in Regensburg: in memory only. */
+  here: LatLng | null;
+  /** Counts up with each position Show me finds: the map centres on it then, not each time it opens. */
+  centreOn: number;
+  /** Show me's tap; null where the browser has no geolocation, and the pill isn't shown. */
+  onShowMe: (() => void) | null;
+  /** What Show me has to say: finding, refused, not found, outside the city. */
+  locationNote: string | null;
 }) {
   const { t } = useT();
   const text = t.tips.discountMap;
@@ -118,11 +165,19 @@ export function DiscountMap({
   const box = useRef<HTMLDivElement>(null);
   const container = useRef<HTMLDivElement>(null);
   const cardBox = useRef<HTMLDivElement>(null);
+  // What lies over the map: the chips' row, the zoom buttons, Show me and the card.
+  const chipsRow = useRef<HTMLDivElement>(null);
+  const controls = useRef<HTMLDivElement>(null);
+  const showMeButton = useRef<HTMLButtonElement>(null);
+  const cardWrap = useRef<HTMLDivElement>(null);
+  /** Their boxes within the map, as last measured: a pin under one isn't drawn (`clear`). */
+  const [covered, setCovered] = useState<Covered | null>(null);
   /** The card's heading after a tap opened it, and a pin after the card closed (keys `card` and `pin:<spot>`). */
   const focus = useFocusAfter();
   /** The flavour the map was last drawn in, so a theme change redraws it once. */
   const drawnFlavor = useRef<MapFlavor | null>(null);
   const lastFit = useRef(fitKey);
+  const lastCentre = useRef(centreOn);
   const [map, setMap] = useState<MapLibre.Map | null>(null);
   const [state, setState] = useState<MapState>('loading');
   /** The zoom the map came to rest at: the pins group by it, so they don't part and join while it moves. */
@@ -239,10 +294,51 @@ export function DiscountMap({
     fitShown();
   }, [fitKey]);
 
+  // Show me found the phone: the map centres on it, at street level or closer.
+  const centreHere = useEffectEvent(() => {
+    if (map !== null && here !== null) map.easeTo({ center: [here.lng, here.lat], zoom: Math.max(map.getZoom(), HERE_ZOOM) });
+  });
+  useEffect(() => {
+    if (lastCentre.current === centreOn) return;
+    lastCentre.current = centreOn;
+    centreHere();
+  }, [centreOn]);
+
   // A pin just chosen: the card is drawn by now (effects run after it), so the map can make room for the teardrop.
   useEffect(() => {
     if (chosen !== null && state === 'ready') showChosen();
   }, [chosen, state]);
+
+  // What lies over the map is measured whenever it changes size, and again when the card or Show me comes or goes, so
+  // no pin is drawn under it: hidden but still reachable by the keyboard, or a target too small to tap (axe's
+  // target-size, CI run 43191801922).
+  const hasCard = card.length > 0 && chosen !== null;
+  const hasShowMe = onShowMe !== null;
+  useEffect(() => {
+    const frame = box.current;
+    if (frame === null || state !== 'ready') return;
+    const present = <T extends HTMLElement>(elements: (T | null)[]) =>
+      elements.filter((element): element is T => element !== null);
+    const fixed = present<HTMLElement>([chipsRow.current, controls.current]);
+    const moving = present<HTMLElement>([showMeButton.current, cardWrap.current]);
+    const measure = () => {
+      const origin = frame.getBoundingClientRect();
+      const within = (element: HTMLElement): Rect => {
+        const rect = element.getBoundingClientRect();
+        return {
+          left: rect.left - origin.left,
+          top: rect.top - origin.top,
+          right: rect.right - origin.left,
+          bottom: rect.bottom - origin.top,
+        };
+      };
+      setCovered({ layout: layoutOf(hasCard, hasShowMe), fixed: fixed.map(within), moving: moving.map(within) });
+    };
+    // A ResizeObserver reports each element once as it starts watching, then on every change of size.
+    const observer = new ResizeObserver(measure);
+    for (const element of [frame, ...fixed, ...moving]) observer.observe(element);
+    return () => observer.disconnect();
+  }, [state, hasCard, hasShowMe]);
 
   // The box reaches down to the navigation from where it starts on the page, whatever stands above it.
   useEffect(() => {
@@ -298,6 +394,15 @@ export function DiscountMap({
   const chosenSpot = spots.find((spot) => spot.key === chosen);
   const width = ready ? map.getContainer().clientWidth : 0;
   const height = ready ? map.getContainer().clientHeight : 0;
+  /** The phone's place on the screen, once Show me found it. */
+  const dotAt = ready && here !== null ? map.project([here.lng, here.lat]) : null;
+  /** What no pin may lie under: Show me and the card only as measured with the card as it is now. */
+  const over: readonly Rect[] =
+    covered === null
+      ? []
+      : covered.layout === layoutOf(hasCard, hasShowMe)
+        ? [...covered.fixed, ...covered.moving]
+        : covered.fixed;
   /** A pin's place on the screen: its spot's, or the middle of a count pin's spots. */
   const placeOf = (pin: Pin) => {
     if (map === null) return { x: -1, y: -1 };
@@ -323,9 +428,24 @@ export function DiscountMap({
         {ready && (
           // A map's x runs from the left whatever the language, so the pins are placed left to right.
           <div dir="ltr" className="pointer-events-none absolute inset-0">
+            {/* Where the phone is (Show me): a dot in the primary colour, ringed in the card's, with a soft halo. Under
+                the pins, and only for the eye: the pressed "You're here" says it. */}
+            {dotAt !== null && dotAt.x >= 0 && dotAt.y >= 0 && dotAt.x <= width && dotAt.y <= height && (
+              <span
+                aria-hidden="true"
+                data-location-dot=""
+                className="absolute start-0 top-0 size-6 rounded-full border-[3px] border-card bg-primary"
+                style={{
+                  transform: `translate(${dotAt.x - 12}px, ${dotAt.y - 12}px)`,
+                  boxShadow: '0 0 0 7px color-mix(in oklch, var(--primary) 28%, transparent)',
+                }}
+              />
+            )}
             {pins.map((pin) => {
               const { x, y } = placeOf(pin);
-              if (x < 0 || y < 0 || x > width || y > height) return null;
+              // The chosen teardrop rises above its tip, and the map keeps it in the room above the card itself.
+              const keptInView = pin.kind === 'spot' && pin.spot.key === chosen;
+              if (!clear(x, y, width, height, keptInView ? [] : over)) return null;
               if (pin.kind === 'count') {
                 return (
                   <button
@@ -360,6 +480,9 @@ export function DiscountMap({
                     // A second tap closes the card and keeps the focus here; a first opens it on its heading.
                     event.currentTarget.focus();
                     if (isChosen) {
+                      // The pin stays, but if it is drawn anew (it moved out from under the card), it takes the
+                      // focus back as it comes, as after Close.
+                      focus.mark(`pin:${spot.key}`);
                       onChoose(null);
                     } else {
                       focus.mark('card');
@@ -415,9 +538,11 @@ export function DiscountMap({
             })}
           </div>
         )}
-        <div className="pointer-events-none absolute inset-x-0 top-0 p-2 *:pointer-events-auto">{chips}</div>
+        <div ref={chipsRow} className="pointer-events-none absolute inset-x-0 top-0 p-2 *:pointer-events-auto">
+          {chips}
+        </div>
         {ready && (
-          <div className="absolute end-2 top-16 flex flex-col gap-2">
+          <div ref={controls} className="absolute end-2 top-16 flex flex-col gap-2">
             <Button
               type="button"
               variant="outline"
@@ -447,24 +572,43 @@ export function DiscountMap({
             </Button>
           </div>
         )}
-        {ready && chosenSpot !== undefined && card.length > 0 && (
-          // The room below the chips, with the card at its bottom: 10 px from the map's edges, scrolling when it is
-          // taller than the room (a spot of several discounts on a short screen).
+        {ready && (
+          // The room below the chips, with Show me and the card at its bottom: 10 px from the map's edges, the pill
+          // just above the card, and the card scrolling when it is taller than the room (several discounts at a spot
+          // on a short screen).
           <div className="pointer-events-none absolute inset-x-2.5 top-[4.5rem] bottom-2.5 flex flex-col justify-end">
-            <div ref={cardBox} className="pointer-events-auto flex max-h-full min-h-0 flex-col">
-              <DiscountCard
-                key={chosenSpot.key}
-                entries={card}
-                label={spotName(chosenSpot, text)}
-                headingRef={focus.refFor('card')}
-                onClose={close}
-                onShowInList={onShowInList}
-              />
+            <div ref={cardBox} className="flex max-h-full min-h-0 flex-col items-start gap-2">
+              {onShowMe !== null && (
+                <Button
+                  ref={showMeButton}
+                  type="button"
+                  variant={here === null ? 'outline' : 'default'}
+                  aria-pressed={here !== null}
+                  className={cn('pointer-events-auto rounded-full px-4', here === null && 'shadow-offset')}
+                  onClick={onShowMe}
+                >
+                  <LocateFixedIcon aria-hidden="true" className="size-5" />
+                  {here === null ? text.showMe : text.youreHere}
+                </Button>
+              )}
+              {chosenSpot !== undefined && card.length > 0 && (
+                <div ref={cardWrap} className="pointer-events-auto flex min-h-0 w-full flex-col">
+                  <DiscountCard
+                    key={chosenSpot.key}
+                    entries={card}
+                    label={spotName(chosenSpot, text)}
+                    headingRef={focus.refFor('card')}
+                    onClose={close}
+                    onShowInList={onShowInList}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
       {state === 'loading' && <p className="text-sm text-muted-foreground">{text.loading}</p>}
+      {locationNote !== null && <StatusLine className="text-sm">{locationNote}</StatusLine>}
       <p className="text-xs text-muted-foreground">
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">
           {text.osm}
