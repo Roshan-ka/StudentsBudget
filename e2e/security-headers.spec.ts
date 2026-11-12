@@ -48,7 +48,7 @@ test('every page carries the security headers', async ({ request }) => {
     // The e2e build's Supabase stand-in is the account's host there.
     expect(policy, path).toContain('https://e2e.supabase.invalid');
     expect(headers['x-content-type-options'], path).toBe('nosniff');
-    expect(headers['x-frame-options'], path).toBe('DENY');
+    expect(headers['x-frame-options'], path).toBe('DENY'); // proof: frame-deny
     expect(headers['referrer-policy'], path).toBe('strict-origin-when-cross-origin');
     expect(headers['cross-origin-opener-policy'], path).toBe('same-origin');
     expect(headers['permissions-policy'], path).toContain('geolocation=(self)');

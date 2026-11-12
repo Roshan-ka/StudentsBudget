@@ -21,6 +21,7 @@
     "supabase:stop": "supabase stop",
     "test:db": "supabase test db",
     "test:contract": "vitest run .contract.test --no-file-parallelism",
+    "test:red-green": "node testkit/red-green.mjs --mutations e2e/mutations",
     "mcp": "node mcp/server.ts"
   },
   "dependencies": {

@@ -19,6 +19,8 @@
 /test-results/
 /playwright-report/
 /blob-report/
+# red before green (testkit/red-green.mjs): its reports and the original of a file it mutates
+/.red-green/
 /playwright/.cache/
 
 # next.js

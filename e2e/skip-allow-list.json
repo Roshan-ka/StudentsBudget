@@ -1,0 +1,14 @@
+[
+  { "file": "e2e/backup.spec.ts", "reason": "The iphone project only checks the layout", "kind": "by-design" },
+  { "file": "e2e/backup.spec.ts", "reason": "Only the iphone project is a phone", "kind": "by-design" },
+  { "file": "e2e/community-discounts.spec.ts", "reason": "MapLibre needs WebGL 2", "kind": "by-design" },
+  { "file": "e2e/discount-map.spec.ts", "reason": "MapLibre needs WebGL 2", "kind": "by-design", "count": 2 },
+  { "file": "e2e/helpers/supabase.ts", "reason": "The reused server has no Supabase settings", "kind": "environment" },
+  { "file": "e2e/language-tour.spec.ts", "reason": "Runs when E2E_LANGUAGES=all", "kind": "by-design" },
+  { "file": "e2e/offline.spec.ts", "reason": "MapLibre needs WebGL 2", "kind": "by-design" },
+  { "file": "e2e/passkeys.spec.ts", "reason": "This browser has no passkeys", "kind": "by-design" },
+  { "file": "e2e/passkeys.spec.ts", "reason": "VIRTUAL_ONLY", "kind": "by-design", "count": 2 },
+  { "file": "e2e/privacy-notes.spec.ts", "reason": "needs a virtual authenticator, which only Chromium has", "kind": "by-design" },
+  { "file": "e2e/profile.spec.ts", "reason": "The backup download runs on desktop-chrome", "kind": "by-design" },
+  { "file": "e2e/reminder.spec.ts", "reason": "The reused dev server has no NEXT_PUBLIC_VAPID_PUBLIC_KEY", "kind": "environment" }
+]
