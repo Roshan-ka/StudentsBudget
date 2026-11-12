@@ -1,5 +1,11 @@
 import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
+import { supabaseBuildProblem } from "./scripts/supabase-build-check.mjs";
+
+// One Supabase setting without the other (or a secret key) would ship an app that quietly has no accounts: stop here,
+// before anything is built. Neither setting is fine: the app is local-only by choice.
+const supabaseProblem = supabaseBuildProblem(process.env);
+if (supabaseProblem !== null) throw new Error(supabaseProblem);
 
 /**
  * The commit this build is made from. It names the offline cache, so a new commit starts a new cache. It has to be
