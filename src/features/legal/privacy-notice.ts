@@ -8,9 +8,11 @@ export const PRIVACY_UPDATED: IsoDate = '2026-11-12';
 /**
  * The privacy notice (legal pages): who is responsible, from `OPERATOR` (chunk 1), then what the app keeps and sends,
  * on what basis, for how long, and the rights (chunks 2 and 3). Each section says what in the code it describes, so a
- * change there finds its text here. Drafted from what the app does, to be checked before go-live. What Vercel and
- * Frankfurter do with the data is from their own pages, as read on 12-11-2026: Vercel's privacy notice (updated
- * 01-06-2026) and Speed Insights' privacy page, and the FAQ on frankfurter.dev.
+ * change there finds its text here. Drafted from what the app does, to be checked before go-live. What others do with
+ * the data is from their own pages, as read on 12-11-2026: Vercel's privacy notice (updated 01-06-2026) and Speed
+ * Insights' privacy page; the FAQ on frankfurter.dev; Supabase's terms, DPA (01-08-2026), region and logging docs and
+ * pricing (Free plan: logs kept a day); Anthropic's commercial terms (17-06-2025), DPA (24-02-2025) and privacy
+ * center; the Data Privacy Framework list; and lda.bayern.de. A section that names one of them changes with it.
  */
 export function privacySections(o: Operator): LegalSection[] {
   const contact = [o.name, o.street, `${o.postcode} ${o.city}`, o.country];
@@ -127,7 +129,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'Das ist nötig, um dir die App auszuliefern und sie vor Angriffen zu schützen; Rechtsgrundlage ist mein berechtigtes Interesse daran (Art. 6 Abs. 1 lit. f DSGVO). Vercel bewahrt diese Daten nach eigenen Angaben nur so lange auf wie nötig und löscht oder anonymisiert sie dann. Vercel verarbeitet Daten auch in den USA und nennt dafür das EU-U.S. Data Privacy Framework und Standardvertragsklauseln.',
+            text: 'Das ist nötig, um dir die App auszuliefern und sie vor Angriffen zu schützen; Rechtsgrundlage ist mein berechtigtes Interesse daran (Art. 6 Abs. 1 lit. f DSGVO). Vercel bewahrt diese Daten nach eigenen Angaben nur so lange auf wie nötig und löscht oder anonymisiert sie dann. Vercel verarbeitet Daten auch in den USA und ist nach dem EU-U.S. Data Privacy Framework zertifiziert (siehe „Übermittlung in Länder außerhalb der EU“).',
           },
         ],
       },
@@ -140,7 +142,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'This is needed to deliver the app to you and protect it from attacks; the legal basis is my legitimate interest in that (Art. 6 (1) (f) GDPR). Vercel says it keeps this data only as long as needed and then deletes or anonymises it. Vercel also processes data in the USA, and names the EU-U.S. Data Privacy Framework and standard contractual clauses for this.',
+            text: 'This is needed to deliver the app to you and protect it from attacks; the legal basis is my legitimate interest in that (Art. 6 (1) (f) GDPR). Vercel says it keeps this data only as long as needed and then deletes or anonymises it. Vercel also processes data in the USA, and is certified under the EU-U.S. Data Privacy Framework (see “Transfers outside the EU”).',
           },
         ],
       },
@@ -263,8 +265,8 @@ export function privacySections(o: Operator): LegalSection[] {
         ],
       },
     },
-    // A post's Translate (src/features/hacks/, `translateUrl`): a link, not a request of the app's; the `translate`
-    // note says the same before the first use. Posts exist only in a build with an account.
+    // Translate on hacks, comments and students' discounts (`translateUrl`): a link, not a request of the app's; the
+    // `translate` note says the same before the first use. They exist only in a build with an account.
     {
       id: 'translate',
       when: 'supabase',
@@ -273,7 +275,7 @@ export function privacySections(o: Operator): LegalSection[] {
         blocks: [
           {
             kind: 'p',
-            text: 'Ein Beitrag in einer anderen Sprache hat den Link „Übersetzen“. Er öffnet Google Übersetzer in einem neuen Tab, mit dem Text des Beitrags in der Adresse. Google bekommt so den Text und deine IP-Adresse und verarbeitet sie nach seinen eigenen Datenschutzbestimmungen. Die App selbst sendet dabei nichts; vor der ersten Nutzung sagt sie dir das.',
+            text: 'Hacks, Kommentare und Rabatte in einer anderen Sprache haben den Link „Übersetzen“. Er öffnet Google Übersetzer in einem neuen Tab, mit dem Text in der Adresse. Google bekommt so den Text und deine IP-Adresse und verarbeitet sie nach seinen eigenen Datenschutzbestimmungen. Die App selbst sendet dabei nichts; vor der ersten Nutzung sagt sie dir das.',
           },
         ],
       },
@@ -282,30 +284,326 @@ export function privacySections(o: Operator): LegalSection[] {
         blocks: [
           {
             kind: 'p',
-            text: 'A post in another language has a “Translate” link. It opens Google Translate in a new tab, with the post’s text in its address. Google thus gets the text and your IP address, and processes them under its own privacy policy. The app itself sends nothing for this; it tells you so before the first use.',
+            text: 'Hacks, comments and discounts in another language have a “Translate” link. It opens Google Translate in a new tab, with the text in its address. Google thus gets the text and your IP address, and processes them under its own privacy policy. The app itself sends nothing for this; it tells you so before the first use.',
           },
         ],
       },
     },
-    // Until chunk 3: what follows, so the page never pretends to be complete.
+    // The account (P2.1, P2.2, P2.5): Supabase Auth and the ten synced tables (src/sync/tables.ts), tombstones,
+    // automatic sync (src/sync/auto-schedule.ts), sign-out's wipe and `delete_my_account()`'s cascade. Supabase's
+    // entity and DPA (SCCs, no DPF), its Frankfurt region and its Free-plan log retention are from its own pages
+    // (12-11-2026).
     {
-      id: 'in-progress',
-      when: 'always',
+      id: 'account',
+      when: 'supabase',
       de: {
-        heading: 'Diese Erklärung wird gerade vervollständigt',
+        heading: 'Dein Konto und der Abgleich',
         blocks: [
           {
             kind: 'p',
-            text: 'Hier folgen in Kürze: dein Konto und der Abgleich, die Anmeldung, geteilte Beiträge, Kommentare und Rabatte, die wöchentliche Erinnerung, die KI-Funktionen, Empfänger außerhalb der EU, wie lange was gespeichert wird, und deine Rechte. Bis dahin sagt dir jeder Hinweis in der App vor der ersten Nutzung, was er sendet. Fragen beantworte ich gern unter der E-Mail-Adresse oben.',
+            text: 'Ein Konto ist freiwillig: Ohne läuft die App nur auf deinem Handy. Legst du eines an, betreibt es Supabase Pte. Ltd., 65 Chulia Street #38-02/03, OCBC Centre, Singapur 049513, in meinem Auftrag (Auftragsverarbeitung, Art. 28 DSGVO); die Datenbank liegt in Frankfurt am Main. Das Konto hält:',
+          },
+          {
+            kind: 'list',
+            items: [
+              'deine E-Mail-Adresse und dein Passwort, dieses nur als Hash, aus dem es sich nicht zurückgewinnen lässt;',
+              'die Sprache deines Handys, damit die E-Mails des Kontos in ihr kommen, und deinen Namen für Beiträge (Nutzername, Bezeichnung und Jahrgang);',
+              'sobald du ein Handy verknüpfst, eine Kopie der Daten, die es abgleicht: Konten, Einträge, Plan und frühere Pläne, Profil, eigene Wechselkurse, Wochenergebnisse, die Checkliste und deine Bewertungen von Rabatten.',
+            ],
+          },
+          {
+            kind: 'p',
+            text: 'Auf dem Handy merkt sich die App dafür deine Anmeldung, welches Konto verknüpft ist und was noch abzugleichen ist. Ein verknüpftes Handy gleicht von selbst ab, solange die App offen ist: beim Öffnen, kurz nach einer Änderung und jede Minute. Löschst du etwas, bleibt im Konto ein Vermerk ohne Inhalt, damit deine anderen Handys davon erfahren. Supabase protokolliert die Anfragen an das Konto mit IP-Adresse und löscht diese Protokolle nach einem Tag.',
+          },
+          {
+            kind: 'p',
+            text: 'Rechtsgrundlage ist, dass du das Konto nutzen willst (Art. 6 Abs. 1 lit. b DSGVO), für die Protokolle mein berechtigtes Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Das Konto und alles darin bleibt, bis du es löschst: unter Einstellungen → Dein Konto → Mein Konto löschen. Dann löscht Supabase es mit allem, was es hält, auch mit deinen Beiträgen, Kommentaren, Rabatten, Stimmen und Meldungen; die Daten auf deinem Handy bleiben. Abmelden löscht umgekehrt die Daten auf diesem Handy, nicht das Konto.',
           },
         ],
       },
       en: {
-        heading: 'This notice is being completed',
+        heading: 'Your account and syncing',
         blocks: [
           {
             kind: 'p',
-            text: 'Coming here shortly: your account and syncing, signing in, shared posts, comments and discounts, the weekly reminder, the AI features, recipients outside the EU, how long what is kept, and your rights. Until then, every note in the app tells you before its first use what it sends. I’m glad to answer questions at the email address above.',
+            text: 'An account is optional: without one, the app runs on your phone alone. If you create one, Supabase Pte. Ltd., 65 Chulia Street #38-02/03, OCBC Centre, Singapore 049513, runs it on my behalf (as a processor, Art. 28 GDPR); the database is in Frankfurt am Main. The account holds:',
+          },
+          {
+            kind: 'list',
+            items: [
+              'your email address and your password, the latter only as a hash it can’t be recovered from;',
+              'your phone’s language, so that the account’s emails come in it, and your name on posts (username, label and batch);',
+              'once you link a phone, a copy of the data it syncs: accounts, entries, the plan and earlier plans, profile, your own exchange rates, weekly results, the checklist and your votes on discounts.',
+            ],
+          },
+          {
+            kind: 'p',
+            text: 'For this, the app keeps your sign-in on the phone, which account it is linked to and what is still to sync. A linked phone syncs by itself while the app is open: on opening, shortly after a change and every minute. When you delete something, the account keeps a note without its content, so that your other phones learn of it. Supabase logs the requests to the account with the IP address, and deletes these logs after one day.',
+          },
+          {
+            kind: 'p',
+            text: 'The legal basis is that you want to use the account (Art. 6 (1) (b) GDPR), and for the logs my legitimate interest in running it securely (Art. 6 (1) (f) GDPR). The account and everything in it stays until you delete it: in Settings → Your account → Delete my account. Supabase then deletes it with everything it holds, including your posts, comments, discounts, votes and reports; the data on your phone stays. Signing out, the other way round, deletes the data on this phone, not the account.',
+          },
+        ],
+      },
+    },
+    // Sign-in (P2.3a, P2.3b, P2.4): passkeys and TOTP factors live in Supabase Auth; the emailed codes are
+    // supabase/templates/confirmation.html and recovery.html (6 digits, 60 minutes, in the account's `lang`).
+    {
+      id: 'sign-in',
+      when: 'supabase',
+      de: {
+        heading: 'Anmeldung und Sicherheit',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Du meldest dich mit E-Mail-Adresse und Passwort an oder mit einem Passkey. Den Passkey hält der Passwortmanager deines Handys, der ihn auf deine anderen Geräte übertragen kann (etwa iCloud-Schlüsselbund oder Google Passwortmanager); dein Konto hält nur seinen öffentlichen Schlüssel, mit dem sich niemand anmelden kann. Schaltest du die Anmeldung in zwei Schritten ein, hält das Konto den geheimen Schlüssel deiner Authenticator-App, um ihre Codes zu prüfen.',
+          },
+          {
+            kind: 'p',
+            text: 'Um ein neues Konto zu bestätigen oder ein neues Passwort zu setzen, schickt dir Supabase eine E-Mail mit einem sechsstelligen Code, der 60 Minuten gilt, in der Sprache deines Handys. Anmeldungen und Änderungen daran (etwa ein neues Passwort oder ein neuer Passkey) hält Supabase in seinen Protokollen fest, die es nach 24 Stunden löscht.',
+          },
+          {
+            kind: 'p',
+            text: 'Rechtsgrundlage ist die Anmeldung zu deinem Konto (Art. 6 Abs. 1 lit. b DSGVO) und mein berechtigtes Interesse, es vor fremden Zugriffen zu schützen (Art. 6 Abs. 1 lit. f DSGVO). Passkeys und den zweiten Schritt kannst du unter Einstellungen → Dein Konto jederzeit entfernen; mit dem Konto gehen sie ganz.',
+          },
+        ],
+      },
+      en: {
+        heading: 'Signing in and security',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'You sign in with your email address and password, or with a passkey. Your phone’s password manager keeps the passkey and may carry it to your other devices (iCloud Keychain or Google Password Manager, for example); your account keeps only its public key, which can’t sign anyone in. If you turn on two-step sign-in, the account keeps your authenticator app’s secret key, to check its codes.',
+          },
+          {
+            kind: 'p',
+            text: 'To confirm a new account or set a new password, Supabase sends you an email with a six-digit code that works for 60 minutes, in your phone’s language. Sign-ins and changes to them (such as a new password or passkey) are recorded in Supabase’s logs, which it deletes after 24 hours.',
+          },
+          {
+            kind: 'p',
+            text: 'The legal basis is signing in to your account (Art. 6 (1) (b) GDPR) and my legitimate interest in protecting it from others (Art. 6 (1) (f) GDPR). You can remove passkeys and the second step at any time in Settings → Your account; they go entirely with the account.',
+          },
+        ],
+      },
+    },
+    // Shared content (the hacks feed, the community plan): hacks, comments and students' discounts, their feeds
+    // (never a user id), votes, reports (`hide_after_reports()` = 5), the moderation queues (username, counts, no
+    // reporter), the daily limits, soft deletes kept until the account goes, and the feeds cached on the phone.
+    {
+      id: 'shared',
+      when: 'supabase',
+      de: {
+        heading: 'Hacks, Kommentare und Rabatte',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Mit einem Konto kannst du Hacks, Kommentare und Rabatte teilen. Was du teilst, sehen alle Studierenden mit Konto, zusammen mit deinem Nutzernamen, deiner Bezeichnung und deinem Jahrgang: den Text mit Kategorie, Link und Sprache, bei einem Rabatt auch Ort, Angebot, Bedingungen, Adresse und, wenn du sie gesetzt hast, die Stelle auf der Karte. Deine E-Mail-Adresse oder eine Kennung deines Kontos sieht niemand.',
+          },
+          {
+            kind: 'p',
+            text: 'Deine Stimmen zu Hacks und deine Bestätigungen von Rabatten zählen in Summen, die alle sehen; wer wie gestimmt hat, sieht niemand. Meldest du etwas, ist es für dich sofort ausgeblendet, und für alle, sobald fünf Studierende es gemeldet haben. Gemeldetes prüfe ich als Moderator: Ich sehe den Inhalt, den Nutzernamen und die Zahl der Meldungen, nicht wer gemeldet hat, und blende es aus oder lasse es stehen.',
+          },
+          {
+            kind: 'p',
+            text: 'Am Tag kannst du bis zu fünf Hacks, 20 Kommentare und drei Rabatte teilen. Löschst du einen, sieht ihn niemand mehr; im Konto bleibt er als gelöscht markiert, damit die Tagesgrenzen gelten, bis du das Konto löschst. Die zuletzt geladenen Listen merkt sich die App auf deinem Handy und vergisst sie beim Abmelden.',
+          },
+          {
+            kind: 'p',
+            text: 'Rechtsgrundlage für das Teilen ist, dass du es willst (Art. 6 Abs. 1 lit. b DSGVO); für Meldungen, Moderation und Tagesgrenzen mein berechtigtes Interesse an einem Austausch ohne Missbrauch (Art. 6 Abs. 1 lit. f DSGVO).',
+          },
+        ],
+      },
+      en: {
+        heading: 'Hacks, comments and discounts',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'With an account you can share hacks, comments and discounts. What you share is seen by every student with an account, with your username, label and batch: the text with its category, link and language, and for a discount also the place, offer, conditions, address and, if you set one, its spot on the map. Nobody sees your email address or any identifier of your account.',
+          },
+          {
+            kind: 'p',
+            text: 'Your votes on hacks and your confirmations of discounts count in totals everyone sees; nobody sees who voted how. When you report something, it is hidden for you at once, and for everyone once five students have reported it. I check what is reported, as the moderator: I see the content, the username and the number of reports, not who reported it, and hide it or keep it.',
+          },
+          {
+            kind: 'p',
+            text: 'You can share up to five hacks, 20 comments and three discounts a day. When you delete one, nobody sees it any more; the account keeps it marked as deleted, so that the daily limits hold, until you delete the account. The app keeps the lists it last loaded on your phone, and forgets them when you sign out.',
+          },
+          {
+            kind: 'p',
+            text: 'The legal basis for sharing is that you want to (Art. 6 (1) (b) GDPR); for reports, moderation and the daily limits, my legitimate interest in an exchange without abuse (Art. 6 (1) (f) GDPR).',
+          },
+        ],
+      },
+    },
+    // The weekly reminder: `push_subscriptions` (its columns), the `weekly-reminder` Edge Function (RFC 8291
+    // encryption, logs with the push host only), and when the row goes.
+    {
+      id: 'reminder',
+      when: 'reminder',
+      de: {
+        heading: 'Wöchentliche Erinnerung',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Schaltest du die Erinnerung ein, fragt dein Browser nach der Erlaubnis für Mitteilungen, und dein Konto hält für dieses Handy: die Push-Adresse, die dein Browser dafür vergibt, mit ihren Schlüsseln, Wochentag und Uhrzeit, deine Zeitzone und Sprache, und in welcher Woche die letzte Erinnerung ging. Ändern sich Zeitzone oder Sprache auf dem Handy, trägt die App sie nach.',
+          },
+          {
+            kind: 'p',
+            text: 'Zur gewählten Zeit schickt ein Dienst bei Supabase die Erinnerung über den Push-Dienst deines Browser-Herstellers (Apple, Google, Mozilla oder Microsoft). Sie ist Ende-zu-Ende verschlüsselt: Der Push-Dienst sieht, dass eine Mitteilung ankommt, aber nicht, was sie sagt. Die Protokolle des Dienstes nennen nur den Push-Dienst, nie deine Adresse.',
+          },
+          {
+            kind: 'p',
+            text: 'Rechtsgrundlage ist, dass du die Erinnerung einschaltest (Art. 6 Abs. 1 lit. b DSGVO). Die Angaben werden gelöscht, wenn du sie ausschaltest, dich abmeldest oder dein Konto löschst, und wenn der Push-Dienst meldet, dass es die Adresse nicht mehr gibt.',
+          },
+        ],
+      },
+      en: {
+        heading: 'Weekly reminder',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'When you turn the reminder on, your browser asks for permission to show notifications, and your account keeps for this phone: the push address your browser gives it, with its keys, the weekday and time, your time zone and language, and the week the last reminder went. When the time zone or language changes on the phone, the app updates them.',
+          },
+          {
+            kind: 'p',
+            text: 'At the time you picked, a function at Supabase sends the reminder through your browser maker’s push service (Apple, Google, Mozilla or Microsoft). It is end-to-end encrypted: the push service sees that a message arrives, but not what it says. The function’s logs name only the push service, never your address.',
+          },
+          {
+            kind: 'p',
+            text: 'The legal basis is that you turn the reminder on (Art. 6 (1) (b) GDPR). The details are deleted when you turn it off, sign out or delete your account, and when the push service reports that the address no longer exists.',
+          },
+        ],
+      },
+    },
+    // The AI features (the AI phase): what each sends (contract.ts, askSnapshot, draftForChat), `scrub`, the
+    // allowance in `private.ai_uses` (rows over 2 days go at the next use), logs without text (handle.ts), and
+    // Anthropic's terms (Anthropic Ireland, Limited for the EEA; no training; deleted within 30 days at the latest;
+    // flagged content up to 2 years), read on 12-11-2026.
+    {
+      id: 'ai',
+      when: 'ai',
+      de: {
+        heading: 'KI-Funktionen (Anthropic)',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Angemeldet kannst du drei Funktionen mit KI nutzen. Vor der ersten Nutzung sagt dir die App, was sie sendet; abschalten kannst du sie für dieses Handy unter Einstellungen → Dein Konto. Gesendet wird:',
+          },
+          {
+            kind: 'list',
+            items: [
+              'bei Schnell erfassen: die Zeile, das heutige Datum, die Sprache und die Namen deiner Ausgabenkategorien und deiner Konten mit Art und Währung, ohne deren Kennungen;',
+              'bei Fragen: deine Fragen mit den Antworten davor und eine Übersicht deines Budgets: der Plan, die Zahlen dieses und der zwei Monate davor je Umschlag, die Woche, einmalige Kosten und bis zu 60 letzte Ausgaben und Einnahmen mit gekürzten Notizen; keine Kontostände, Konten, E-Mail-Adresse oder Nutzernamen;',
+              'bei Per Chat einrichten: deine Nachrichten mit den Antworten davor und der Entwurf deines Plans, also Beträge sowie Namen, Arten, Währungen und Anfangsstände der Konten darin.',
+            ],
+          },
+          {
+            kind: 'p',
+            text: 'Eine Funktion bei Supabase prüft deine Anmeldung, zählt, wie oft du jede Funktion nutzt (Einträge, die älter als zwei Tage sind, löscht sie bei der nächsten Nutzung, alle mit dem Konto), und entfernt aus allen Texten Konto- und Kartennummern, SEPA-Angaben, E-Mail-Adressen, Telefonnummern und lange Zahlenfolgen. Die Antwort erstellt dann Anthropic Ireland, Limited in meinem Auftrag (Art. 28 DSGVO), auch in den USA durch Anthropic, PBC. Anthropic nutzt die Anfragen nicht zum Training seiner Modelle und löscht Anfragen und Antworten spätestens nach 30 Tagen; was gegen seine Nutzungsrichtlinien verstößt, kann es bis zu zwei Jahre aufbewahren. Die Protokolle der Funktion enthalten keine Texte.',
+          },
+          {
+            kind: 'p',
+            text: 'Rechtsgrundlage ist, dass du die Funktion nutzt (Art. 6 Abs. 1 lit. b DSGVO), für die Tagesgrenzen mein berechtigtes Interesse an begrenzten Kosten (Art. 6 Abs. 1 lit. f DSGVO).',
+          },
+        ],
+      },
+      en: {
+        heading: 'AI features (Anthropic)',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Signed in, you can use three features with AI. Before the first use, the app tells you what they send; you can turn them off for this phone in Settings → Your account. What is sent:',
+          },
+          {
+            kind: 'list',
+            items: [
+              'with Quick add: the line, today’s date, the language, and the names of your expense categories and of your accounts with their kind and currency, without their identifiers;',
+              'with Ask: your questions with the answers before them, and an overview of your budget: the plan, this month’s and the two months before’s figures per envelope, the week, one-off costs and up to 60 recent expenses and incomes with shortened notes; no balances, accounts, email address or username;',
+              'with Set up by chatting: your messages with the replies before them, and the draft of your plan, that is amounts and the names, kinds, currencies and starting balances of the accounts in it.',
+            ],
+          },
+          {
+            kind: 'p',
+            text: 'A function at Supabase checks your sign-in, counts how often you use each feature (entries older than two days are deleted at the next use, all of them with the account), and takes account and card numbers, SEPA details, email addresses, phone numbers and long runs of digits out of every text. Anthropic Ireland, Limited then writes the answer on my behalf (Art. 28 GDPR), also in the USA through Anthropic, PBC. Anthropic doesn’t use the requests to train its models, and deletes requests and answers within 30 days at the latest; what breaks its usage policies it may keep for up to two years. The function’s logs hold no text.',
+          },
+          {
+            kind: 'p',
+            text: 'The legal basis is that you use the feature (Art. 6 (1) (b) GDPR), and for the daily limits my legitimate interest in limited costs (Art. 6 (1) (f) GDPR).',
+          },
+        ],
+      },
+    },
+    // Transfers: the DPF list read on 12-11-2026 (Vercel Inc. and Cloudflare, Inc. active; Supabase and Anthropic
+    // not listed, so their DPAs' SCCs).
+    {
+      id: 'transfers',
+      when: 'always',
+      de: {
+        heading: 'Übermittlung in Länder außerhalb der EU',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Einige der genannten Dienste sitzen außerhalb der EU oder verarbeiten Daten auch dort. Vercel Inc. und Cloudflare, Inc. (USA) sind nach dem EU-U.S. Data Privacy Framework zertifiziert (Liste geprüft am 12.11.2026); die Übermittlung an sie stützt sich auf den Angemessenheitsbeschluss der EU-Kommission dazu (Art. 45 DSGVO).',
+          },
+          {
+            kind: 'p',
+            text: 'Wo die App ein Konto oder KI-Funktionen hat, gilt für Supabase (Singapur, mit der Datenbank in Frankfurt) und Anthropic (Irland, mit Verarbeitung in den USA), die nicht so zertifiziert sind: Die Übermittlung stützt sich auf die Standardvertragsklauseln der EU-Kommission (Art. 46 Abs. 2 lit. c DSGVO) in ihren Verträgen zur Auftragsverarbeitung. Eine Kopie bekommst du auf Anfrage von mir.',
+          },
+        ],
+      },
+      en: {
+        heading: 'Transfers outside the EU',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Some of the services named above are based outside the EU or also process data there. Vercel Inc. and Cloudflare, Inc. (USA) are certified under the EU-U.S. Data Privacy Framework (list checked on 12.11.2026); transfers to them rest on the European Commission’s adequacy decision for it (Art. 45 GDPR).',
+          },
+          {
+            kind: 'p',
+            text: 'Where the app has an account or AI features, Supabase (Singapore, with the database in Frankfurt) and Anthropic (Ireland, with processing in the USA) are not certified in this way: transfers to them rest on the European Commission’s standard contractual clauses (Art. 46 (2) (c) GDPR) in their data processing agreements. You can ask me for a copy.',
+          },
+        ],
+      },
+    },
+    // The rights (Art. 15–22, 77 GDPR) and the authority: BayLDA, for a non-public body in Bavaria (Art. 18 (1)
+    // BayDSG, § 2 (4) BDSG), from lda.bayern.de (12-11-2026).
+    {
+      id: 'rights',
+      when: 'always',
+      de: {
+        heading: 'Deine Rechte',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Du hast das Recht auf Auskunft über deine Daten (Art. 15 DSGVO), auf Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18) und Datenübertragbarkeit (Art. 20). Einer Verarbeitung, die auf meinem berechtigten Interesse beruht, kannst du aus Gründen, die sich aus deiner besonderen Situation ergeben, widersprechen (Art. 21). Automatisierte Entscheidungen im Sinne von Art. 22 DSGVO trifft die App nicht.',
+          },
+          {
+            kind: 'p',
+            text: 'Vieles davon kannst du in der App selbst: Unter Einstellungen → Backup und Daten exportierst du mit „Backup exportieren“ alles, was auf deinem Handy liegt, als Datei, und mit „Alles löschen“ löschst du es. Für alles andere schreib mir an die E-Mail-Adresse oben.',
+          },
+          { kind: 'p', text: 'Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), etwa bei der für mich zuständigen:' },
+          {
+            kind: 'lines',
+            lines: ['Bayerisches Landesamt für Datenschutzaufsicht (BayLDA)', 'Promenade 18', '91522 Ansbach', 'www.lda.bayern.de'],
+          },
+        ],
+      },
+      en: {
+        heading: 'Your rights',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'You have the right of access to your data (Art. 15 GDPR), to rectification (Art. 16), erasure (Art. 17), restriction of processing (Art. 18) and data portability (Art. 20). You can object to processing based on my legitimate interest on grounds relating to your particular situation (Art. 21). The app makes no automated decisions within the meaning of Art. 22 GDPR.',
+          },
+          {
+            kind: 'p',
+            text: 'Much of this you can do in the app itself: in Settings → Backup and data, “Export backup” saves everything on your phone as a file, and “Delete everything” deletes it. For anything else, write to me at the email address above.',
+          },
+          { kind: 'p', text: 'You can also complain to a data protection supervisory authority (Art. 77 GDPR), for example the one responsible for me:' },
+          {
+            kind: 'lines',
+            lines: ['Bayerisches Landesamt für Datenschutzaufsicht (BayLDA)', 'Promenade 18', '91522 Ansbach, Germany', 'www.lda.bayern.de'],
           },
         ],
       },

@@ -62,6 +62,8 @@ export const common = {
   /** One-time data-protection notes (`PrivacyNote`), each shown once per phone before a feature first sends data. */
   privacy: {
     label: 'About your data',
+    /** The link under every note to its section of the privacy notice, in a new tab (legal pages, chunk 3). */
+    more: 'More in the privacy notice',
     continue: 'Continue',
     cancel: 'Cancel',
     account:

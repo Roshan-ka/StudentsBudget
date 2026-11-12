@@ -52,6 +52,7 @@ export const common: Messages['common'] = {
   },
   privacy: {
     label: 'À propos de tes données',
+    more: 'En savoir plus dans la politique de confidentialité',
     continue: 'Continuer',
     cancel: 'Annuler',
     account:

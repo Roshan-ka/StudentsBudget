@@ -17,8 +17,18 @@ test('Settings leads to both pages, and Back returns there', async ({ page }) =>
   await page.getByRole('link', { name: /^Privacy notice/ }).click();
   await expect(heading(page, 'Privacy notice')).toBeVisible();
   await expect(page.getByRole('heading', { level: 3, name: 'Controller', exact: true })).toBeVisible();
-  // Part 1 (chunk 2): the phone's own storage always, and the map's and Translate's sections, which the e2e build has.
-  for (const name of ['What stays on your phone', 'Hosting and server logs', 'The map and your location', 'Translate']) {
+  // The notice (chunks 2 and 3): the phone's own storage and the rights always, and the sections of the map, the
+  // account, the reminder and the AI, which the e2e build has.
+  for (const name of [
+    'What stays on your phone',
+    'Hosting and server logs',
+    'The map and your location',
+    'Translate',
+    'Your account and syncing',
+    'Weekly reminder',
+    'AI features (Anthropic)',
+    'Your rights',
+  ]) {
     await expect(page.getByRole('heading', { level: 3, name, exact: true })).toBeVisible();
   }
   await noSidewaysScroll(page);
