@@ -202,6 +202,34 @@ The mockups were drawn on the real map from the app's set, at 375 px, in German 
     - discounts at one address share one position, and no others do.
   - **Asia Restaurant Sunrise** keeps a stand-in: OSM has neither the restaurant nor Von-Seeckt-Straße 23. It takes the street's only mapped Asian restaurant, with a comment saying so (kept as it is, Roshan, 11-11-2026).
   - **Haidplatz 8:** the Stadtbücherei and the VHS both take the Thon-Dittmer-Palais' position, so they share one pin.
+- **Chunk 4** (11-11-2026, in its own session, #212, CI run 43051183877 green), the map view:
+  - **Pins** (`map/pins.ts`, pure):
+    - `spotsOf` groups discounts at one position into a spot, ordered north to south, then west to east, so the keyboard meets the pins as the eye does.
+    - `pinsOf` joins spots closer than 46 px into a count pin; the chosen spot never joins.
+    - The grouping runs on `worldPixel` (Web Mercator at MapLibre's 512 px tiles) at the zoom the map came to rest at, so pins don't part and join while it moves.
+  - **Not MapLibre markers:** the pins are our own buttons in a `dir="ltr"` layer over the canvas, placed with `map.project` on every frame of a move. Pins off the screen aren't drawn, so the keyboard never reaches a hidden one.
+  - **Names:** a pin is "Place: offer", a spot of several "2 discounts here: …", and a count pin "8 discounts close together: zoom in". A count pin zooms in on its spots, and the focus waits on the canvas.
+  - **The view:**
+    - in map mode the chips sit along the map's top edge, in one row that scrolls sideways;
+    - "+", "−" and "Show all" (`fitBounds` on what is shown) sit at the top end;
+    - a new category fits the map to what it shows;
+    - north stays up (rotation and pitch off).
+  - **Where it opens:** on every discount, or where it was left: the camera and the chosen spot live in `DiscountsView`. The box fills the screen down to the navigation (at least 18rem).
+  - **MapLibre's own words** (the canvas's name, the two-finger and Ctrl-scroll hints) come in the phone's language through its `locale` option.
+  - **e2e:** under reduced motion, which MapLibre honours, so each zoom has settled by the next step. Every discount is counted on the opened map through the pins' names; also count pins, the chips, zoom, the camera kept, and axe in light and dark.
+- **Chunk 5** (12-11-2026, in its own session), the card at the bottom:
+  - **`DiscountCard`** (`map/discount-card.tsx`) shows the chosen spot's discounts:
+    - each with the list's tags (`DiscountTags`, now shared with the list), place, offer, address, freshness and "Show in the list";
+    - one Close for the card;
+    - Haidplatz 8's two in one card, named after its pin.
+  - **Placing:** 10 px from the map's edges, in the room below the chips, scrolling when taller. A chosen pin the card or the chips would hide is moved into the room between them (`easeTo` with an offset).
+  - **Focus:**
+    - a tap that opens the card puts the focus on its heading (a mark, so a card shown again after the tab or page comes back doesn't take it);
+    - Close, Escape or a second tap on the pin closes it, with the focus back on the pin, or on the count pin it joined;
+    - "Show in the list" switches to the list and lands on the discount's heading there.
+  - **Contrast:** `tokens.test.ts` holds the pin outline and the focus ring at 3:1 against every area and road fill of Protomaps' light and dark flavours, land cover included. Label colours and boundaries are left out. Measured: outline at least 4.46:1 (light) and 3.55:1 (dark); ring 3.38:1 and 4.83:1.
+  - **No distance yet:** the card's meta row has only the freshness until Show me (chunk 6).
+  - **Checks without an install:** lint, typecheck and the touched unit tests ran in the worktree against the main checkout's `node_modules` (Node finds them in the parent folder), with the worktree's own removed. No heavy lane for an install (Roshan, 11-11-2026).
 - **Chunk 7** (11-11-2026, #211), students' pins in the database: migration `20261111151901_discount_positions.sql`.
   - **Columns:** nullable `lat` and `lng` on `community_discounts`, both or neither (`community_discounts_position_whole`), inside the box (`community_discounts_position_in_regensburg`). NaN and infinity are refused too.
   - **`post_discount`:** made again with `p_lat` and `p_lng`, both defaulting to null, so the app's seven named arguments kept working until chunk 8.

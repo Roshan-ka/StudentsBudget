@@ -127,7 +127,7 @@ test.describe('pins', () => {
     const westbad = map.getByRole('button', { name: /^Westbad: / });
     await westbad.press('Enter');
     await expect(westbad).toHaveAttribute('aria-pressed', 'true');
-    await expect(westbad).toBeFocused();
+    // The card takes the focus (its own tests below follow it); Enter on the pin again lets it go.
     await westbad.press('Enter');
     await expect(westbad).toHaveAttribute('aria-pressed', 'false');
 
@@ -158,6 +158,87 @@ test.describe('pins', () => {
   });
 });
 
+// The card at the bottom (chunk 5): a tap on a pin opens it on its heading; Close, Escape or a second tap close it,
+// with the focus back on the pin; "Show in the list" lands on the discount in the list.
+test.describe('the card', () => {
+  test.use({ reducedMotion: 'reduce' });
+
+  const WESTBAD_OFFER = '€4.60 instead of €7.20 for 3 hours; €6.50 instead of €10 for the day';
+
+  test('a pin opens its card on its heading, and Escape, Close or the pin again close it', async ({ page }, testInfo) => {
+    await skipWithoutWebgl(page, testInfo);
+    const map = await openMap(page);
+    const westbad = map.getByRole('button', { name: /^Westbad: / });
+    const card = map.getByRole('region', { name: 'Westbad', exact: true });
+
+    await westbad.click();
+    await expect(card.getByRole('heading', { name: 'Westbad', level: 3, exact: true })).toBeFocused();
+    await expect(card.getByText(WESTBAD_OFFER, { exact: true })).toBeVisible();
+    await expect(card.getByText('Messerschmittstraße 4, 93049 Regensburg', { exact: true })).toBeVisible();
+    await expect(card.getByText(/^Last confirmed \d{2}\.\d{2}\.\d{4}$/)).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Show in the list', exact: true })).toBeVisible();
+    await expect(westbad).toHaveAttribute('aria-pressed', 'true');
+
+    await page.keyboard.press('Escape');
+    await expect(card).toHaveCount(0);
+    await expect(westbad).toBeFocused();
+    await expect(westbad).toHaveAttribute('aria-pressed', 'false');
+
+    await westbad.press('Enter');
+    await expect(card.getByRole('heading', { name: 'Westbad', level: 3, exact: true })).toBeFocused();
+    await card.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(card).toHaveCount(0);
+    await expect(westbad).toBeFocused();
+
+    // A second tap on the chosen pin closes the card too, and the focus stays on the pin.
+    await westbad.click();
+    await expect(card).toBeVisible();
+    await westbad.click();
+    await expect(card).toHaveCount(0);
+    await expect(westbad).toBeFocused();
+  });
+
+  test('"Show in the list" lands on the discount in the list', async ({ page }, testInfo) => {
+    await skipWithoutWebgl(page, testInfo);
+    const map = await openMap(page);
+    await map.getByRole('button', { name: /^Westbad: / }).click();
+    await map
+      .getByRole('region', { name: 'Westbad', exact: true })
+      .getByRole('button', { name: 'Show in the list', exact: true })
+      .click();
+    const list = page.getByRole('list', { name: 'Discounts', exact: true });
+    await expect(list).toBeVisible();
+    await expect(list.getByRole('heading', { name: 'Westbad', level: 3, exact: true })).toBeFocused();
+    await expect(map).toHaveCount(0);
+  });
+
+  test('the discounts at one spot share a card, each with its own way to the list', async ({ page }, testInfo) => {
+    await skipWithoutWebgl(page, testInfo);
+    const map = await openMap(page);
+    // Haidplatz 8 holds the Stadtbücherei and the VHS. In the old town it hides in a count pin at first: the biggest
+    // count pin is pressed until its pin shows on its own. Its name lists the two in the list's order, freshest first,
+    // which a re-check or a vote can change, so only its start is fixed here.
+    const haidplatz = map.getByRole('button', { name: /^2 discounts here: / });
+    const counts = map.getByRole('button', { name: /^\d+ discounts close together: zoom in$/ });
+    for (let step = 0; step < 4 && (await haidplatz.count()) === 0; step++) {
+      const names = await pinNames(counts);
+      if (names.length === 0) break;
+      const biggest = names.reduce((best, name) => (parseInt(name, 10) > parseInt(best, 10) ? name : best));
+      await map.getByRole('button', { name: biggest, exact: true }).first().press('Enter');
+      await expect.poll(async () => (await pinNames(counts)).join('|')).not.toBe(names.join('|'));
+    }
+    await haidplatz.press('Enter');
+
+    const card = map.getByRole('region', { name: /^2 discounts here: / });
+    // The card opens on its first heading, and holds both.
+    await expect(card.getByRole('heading', { level: 3 }).first()).toBeFocused();
+    await expect(card.getByRole('heading', { name: 'Stadtbücherei Regensburg', level: 3, exact: true })).toBeVisible();
+    await expect(card.getByRole('heading', { name: 'Volkshochschule Regensburg', level: 3, exact: true })).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Show in the list', exact: true })).toHaveCount(2);
+    await expect(card.getByRole('button', { name: 'Close', exact: true })).toHaveCount(1);
+  });
+});
+
 /** The theme as Settings → Appearance stores it, before the first paint. */
 async function useTheme(page: Page, theme: Theme) {
   await page.addInitScript(
@@ -172,14 +253,17 @@ async function useTheme(page: Page, theme: Theme) {
   );
 }
 
-// axe.spec sees each page as it opens, with the list: the map, its pins and its controls get their own run here, in
-// light and in dark, against the same WCAG A and AA rules, failing on a serious or critical finding.
+// axe.spec sees each page as it opens, with the list: the map, its pins, its controls and its card get their own run
+// here, in light and in dark, against the same WCAG A and AA rules, failing on a serious or critical finding.
 for (const theme of ['light', 'dark'] as const) {
   test(`axe finds nothing serious on the map, ${theme}`, async ({ page }, testInfo) => {
     await skipWithoutWebgl(page, testInfo);
     await useTheme(page, theme);
     const map = await openMap(page);
     await expect.poll(() => held(map)).toBe(DISCOUNTS.length);
+    // With a card open, so axe sees the chosen pin and the card too.
+    await map.getByRole('button', { name: /^Westbad: / }).click();
+    await expect(map.getByRole('region', { name: 'Westbad', exact: true })).toBeVisible();
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
       .analyze();

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { namedFlavor } from '@protomaps/basemaps';
 import { describe, expect, it } from 'vitest';
 import { BAR_SHARE, TINT_SHARE } from '@/features/charts/colors';
 
@@ -212,6 +213,51 @@ describe.each(Object.entries(THEMES))('the %s theme', (theme, tokens) => {
       const track = over(linear(foreground), share, mixed(color, TINT_SHARE, card));
       const value = ratio(luminanceOf(mixed(color, BAR_SHARE, foreground)), track);
       expect(value, `the ${category} bar on its track: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3.05);
+    }
+  });
+});
+
+/**
+ * The discount map's own colours (Protomaps' light or dark flavour): every area and road it fills, land cover
+ * included, as #rrggbb. Its label colours are text a pin may cover but never sits beside, and its boundaries are thin
+ * dashes, so neither is what a pin's edge stands against.
+ */
+function mapFills(flavor: 'light' | 'dark'): [string, string][] {
+  const colours = namedFlavor(flavor);
+  const fills = Object.entries(colours).filter(
+    (entry): entry is [string, string] =>
+      typeof entry[1] === 'string' &&
+      /^#[0-9a-f]{6}$/i.test(entry[1]) &&
+      // Any label's colour: city_label, roads_label_minor …
+      !entry[0].includes('_label') &&
+      entry[0] !== 'boundaries',
+  );
+  for (const [name, rgba] of Object.entries(colours.landcover ?? {})) {
+    const channels = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(String(rgba));
+    if (channels === null) continue;
+    const hex = channels.slice(1, 4).map((channel) => Number(channel).toString(16).padStart(2, '0'));
+    fills.push([`landcover.${name}`, `#${hex.join('')}`]);
+  }
+  return fills.map(([name, hex]) => [name, hex.toLowerCase()]);
+}
+
+// The discount map (discount map, chunk 5): a pin's edge is `--outline` and its focus ring `--ring`, both standing
+// against the map itself, in the map's flavour for the theme. Measured on 12-11-2026: at least 4.46:1 (light) and
+// 3.55:1 (dark) for the outline, 3.38:1 and 4.83:1 for the ring.
+describe.each(Object.entries(THEMES))('the %s theme on the discount map', (theme, tokens) => {
+  const fills = mapFills(theme as 'light' | 'dark');
+
+  it('reads every area and road of the map', () => {
+    expect(fills.length).toBeGreaterThanOrEqual(50);
+    expect(fills.map(([name]) => name)).toEqual(expect.arrayContaining(['earth', 'water', 'buildings', 'highway']));
+  });
+
+  it("gives a pin's outline and focus ring 3:1 against every area and road of the map", () => {
+    for (const mark of ['outline', 'ring']) {
+      for (const [name, fill] of fills) {
+        const value = contrast(tokens.get(mark) ?? '', fill);
+        expect(value, `--${mark} on the map's ${name} (${fill}): ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+      }
     }
   });
 });
