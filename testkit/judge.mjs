@@ -87,12 +87,17 @@ export function proofLines(source) {
   return found;
 }
 
-/** The mutation applied to a file's text: `find` must occur exactly once, or the mutation is stale. */
+/**
+ * The mutation applied to a file's text: `find` must occur exactly once, or the mutation is stale. A `find` over several
+ * lines matches the file's own line endings, so one saved mutation fits a Windows checkout (CRLF) and CI (LF) alike.
+ */
 export function applyMutation(text, { find, replace }) {
-  const count = text.split(find).length - 1;
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  const target = find.replace(/\r?\n/g, eol);
+  const count = text.split(target).length - 1;
   if (count === 0) return { ok: false, reason: 'find no longer matches the file' };
   if (count > 1) return { ok: false, reason: `find matches ${count} places, so it isn't clear which to change` };
-  return { ok: true, text: text.replace(find, () => replace) };
+  return { ok: true, text: text.replace(target, () => replace.replace(/\r?\n/g, eol)) };
 }
 
 const firstLine = (message) => (message ?? '').replace(ANSI, '').trim().split(/\r?\n/)[0] ?? '';

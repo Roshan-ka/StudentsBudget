@@ -51,8 +51,8 @@ describe('e2e/mutations/', () => {
 });
 
 describe('e2e/skip-allow-list.json', () => {
-  it('lists every skip in the e2e specs and helpers, and nothing else', () => {
-    const files = filesUnder('e2e')
+  it('lists every skip in the e2e specs and helpers, mocked and real, and nothing else', () => {
+    const files = [...filesUnder('e2e'), ...filesUnder('e2e-real')]
       .filter((f) => f.endsWith('.ts'))
       .map((f) => ({ path: f, source: read(f) }));
     expect(checkSkips(files, JSON.parse(read('e2e/skip-allow-list.json')))).toEqual([]);

@@ -1,0 +1,12 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the two-step card overlooks the verified authenticator",
+      "file": "src/features/account/two-step.tsx",
+      "find": "const verified = data.totp[0];",
+      "replace": "const verified = data.totp[1];",
+      "expect": { "e2e-real/saved-sign-in.spec.ts": ["two-step-on"] }
+    }
+  ]
+}

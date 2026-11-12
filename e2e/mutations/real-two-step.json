@@ -1,0 +1,26 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the code step sends the code reversed",
+      "file": "src/features/account/account-view.tsx",
+      "find": "await supabase.auth.mfa.challengeAndVerify({ factorId, code: checked.code });",
+      "replace": "await supabase.auth.mfa.challengeAndVerify({ factorId, code: checked.code.split('').reverse().join('') });",
+      "expect": { "e2e-real/two-step.spec.ts": ["right-code"] }
+    },
+    {
+      "name": "the code step swallows the server's refusal",
+      "file": "src/features/account/account-view.tsx",
+      "find": "      if (verifyError) {\n        setError(authErrorMessage(verifyError, lang));\n        return;\n      }\n      // Verified:",
+      "replace": "      if (verifyError) {\n        return;\n      }\n      // Verified:",
+      "expect": { "e2e-real/two-step.spec.ts": ["wrong-code"] }
+    },
+    {
+      "name": "signing out ends the other sessions but keeps this one",
+      "file": "src/features/account/account-view.tsx",
+      "find": "const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });",
+      "replace": "const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });",
+      "expect": { "e2e-real/two-step.spec.ts": ["signed-out"] }
+    }
+  ]
+}

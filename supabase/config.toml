@@ -166,7 +166,7 @@ site_url = "http://localhost:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3000"]
+additional_redirect_urls = ["http://localhost:3000", "http://localhost:3210"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -200,7 +200,8 @@ enabled = true
 [auth.webauthn]
 rp_display_name = "StudentsBudget"
 rp_id = "localhost"
-rp_origins = ["http://localhost:3000"]
+# 3210: the real-server e2e build (e2e-real/playwright.config.ts), whose passkeys are checked against its origin.
+rp_origins = ["http://localhost:3000", "http://localhost:3210"]
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled. Raised for the local stack:
@@ -213,9 +214,12 @@ anonymous_users = 30
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
 token_refresh = 150
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
-sign_in_sign_ups = 30
+# Raised for the local stack, with token_verifications below: the real-server e2e (e2e-real/) makes a throwaway user
+# per test and checks codes many times in a few minutes, from one IP (the repeat check runs each test 10 times; the
+# 2FA proof of 2026-11-12 needed about 42 per 5 minutes). A test of the throttling itself would need the defaults (30).
+sign_in_sign_ups = 300
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
-token_verifications = 30
+token_verifications = 300
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 

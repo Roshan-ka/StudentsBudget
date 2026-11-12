@@ -80,6 +80,13 @@ describe('proofLines and applyMutation', () => {
     expect(applyMutation('a b', { find: 'DENY', replace: 'X' })).toEqual({ ok: false, reason: 'find no longer matches the file' });
     expect(applyMutation('DENY DENY', { find: 'DENY', replace: 'X' }).ok).toBe(false);
   });
+
+  it("matches a find over several lines in the file's own line endings", () => {
+    const find = 'if (error) {\n  show(error);';
+    const replace = 'if (error) {\n  return;';
+    expect(applyMutation('a\r\nif (error) {\r\n  show(error);\r\n}', { find, replace })).toEqual({ ok: true, text: 'a\r\nif (error) {\r\n  return;\r\n}' });
+    expect(applyMutation('a\nif (error) {\n  show(error);\n}', { find, replace })).toEqual({ ok: true, text: 'a\nif (error) {\n  return;\n}' });
+  });
 });
 
 describe('flattenReport', () => {

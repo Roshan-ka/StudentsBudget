@@ -21,6 +21,10 @@
 /blob-report/
 # red before green (testkit/red-green.mjs): its reports and the original of a file it mutates
 /.red-green/
+# saved sign-ins of the real-server e2e (e2e-real/, storageState): as good as a password while they last
+/playwright/.auth/
+# the real-server e2e's HTML report on CI
+/playwright-report-real/
 /playwright/.cache/
 
 # next.js
