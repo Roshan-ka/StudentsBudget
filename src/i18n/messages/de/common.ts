@@ -39,8 +39,18 @@ export const common: Messages['common'] = {
   },
   estimate: 'Schätzung',
   /** Einmalige Datenschutzhinweise (`PrivacyNote`), einmal pro Handy, bevor eine Funktion erstmals Daten schickt. */
+  legal: {
+    back: 'Zurück',
+    onlyDeEn: 'Diese Seite gibt es nur auf Deutsch und Englisch.',
+    label: 'Rechtliches',
+    privacy: 'Datenschutz',
+    impressum: 'Impressum',
+    privacySummary: 'Was die App speichert und sendet, und deine Rechte',
+    impressumSummary: 'Wer StudentsBudget betreibt',
+  },
   privacy: {
     label: 'Zu deinen Daten',
+    more: 'Mehr in der Datenschutzerklärung',
     continue: 'Weiter',
     cancel: 'Abbrechen',
     account:

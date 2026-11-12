@@ -22,6 +22,23 @@ export const PRIVACY_NOTES = {
 
 export type PrivacyNoteId = keyof typeof PRIVACY_NOTES;
 
+/**
+ * The section of the privacy notice (`/privacy#<id>`, `privacy-notice.ts`) each note links to, for what it doesn't say
+ * (legal pages, chunk 3). Every one is a section the notice has (tested).
+ */
+export const NOTE_SECTIONS: Record<PrivacyNoteId, string> = {
+  mic: 'speech',
+  account: 'account',
+  passkey: 'sign-in',
+  rates: 'exchange-rates',
+  votes: 'shared',
+  post: 'shared',
+  hackVotes: 'shared',
+  translate: 'translate',
+  reminder: 'reminder',
+  ai: 'ai',
+};
+
 /** True once the note was accepted on this phone. Blocked storage reads as not accepted. */
 export function noteSeen(id: PrivacyNoteId): boolean {
   try {
