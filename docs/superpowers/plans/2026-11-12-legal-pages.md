@@ -165,3 +165,4 @@ The plan is copied into `docs/superpowers/plans/2026-11-12-legal-pages.md` in ch
   - **Why:** #218 was merged with the placeholders, so every Production build stopped at `assertLegalReady`, as designed; the live site stayed on #217's merge. Roshan chose to revert it until the texts are checked, rather than publish his details first.
   - **What went:** the code, the texts, the spec and the wiring. This plan and CLAUDE.md's `npm audit fix --force` line stayed.
   - **To bring it back:** a branch from `main` that reverts the revert commit, with Roshan's five details committed in `src/data/legal.ts` before it merges. Chunks 2–4 build on that branch.
+- **Chunk 1 back** (12-11-2026): on the branch `feat/legal-pages`, which reverts the revert. Chunks 2–4 go on the same branch, in one draft PR, so nothing is stacked on an unmerged branch. It merges once Roshan's details are in and the texts are checked.
