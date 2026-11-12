@@ -1,16 +1,17 @@
 import type { IsoDate } from '@/lib/dates';
 
 /**
- * Where a discount's place is, for the map, with its source like every city number: the place's own node or way on
- * OpenStreetMap, or its building's where the place has none (a stand-in says why beside the discount), at `url`, read
- * on `checked`. `lat` and `lng` are in degrees (WGS 84) to 5 decimals, about a metre: a node's own position, or the
- * centre OpenStreetMap's Nominatim gives a way or relation. It always lies inside `REGENSBURG_BOX`
- * (`regensburg-box.ts`).
+ * Where a discount's place is, for the map, with its source like every city number. For the app's own: the place's
+ * own node or way on OpenStreetMap, or its building's where the place has none (a stand-in says why beside the
+ * discount), at `url`, read on `checked`. For a discount a student added (discount map, chunk 8): the pin they set on
+ * the app's map, with their link as `url` and the day they added it. `lat` and `lng` are in degrees (WGS 84) to 5
+ * decimals, about a metre: a node's own position, the centre OpenStreetMap's Nominatim gives a way or relation, or the
+ * pin. It always lies inside `REGENSBURG_BOX` (`regensburg-box.ts`).
  */
 export type DiscountLocation = {
   lat: number;
   lng: number;
-  source: 'OpenStreetMap';
+  source: 'OpenStreetMap' | 'student';
   url: string;
   checked: IsoDate;
 };

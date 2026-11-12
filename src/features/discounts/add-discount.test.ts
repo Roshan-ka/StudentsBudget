@@ -52,6 +52,8 @@ describe('a new discount', () => {
         address: null,
         categoryId: 'eating-out',
         link: 'https://www.example.de/cafe',
+        lat: null,
+        lng: null,
       },
     });
     expect(checkDiscount({ ...filled, conditions: ' Weekdays ', address: ' Gesandtenstraße 1 ' })).toMatchObject({
@@ -89,7 +91,19 @@ describe('a new discount', () => {
       conditionsLong: 'conditions',
       addressLong: 'address',
       link: 'link',
+      pin: 'pin',
     });
+  });
+
+  it('sends a pin to 5 decimals, and refuses one outside Regensburg (discount map, chunk 8)', () => {
+    expect(checkDiscount({ ...filled, pin: { lat: 49.019364781, lng: 12.089651234 } })).toMatchObject({
+      ok: true,
+      discount: { lat: 49.01936, lng: 12.08965 },
+    });
+    expect(checkDiscount({ ...filled, pin: { lat: 48.13743, lng: 11.57549 } })).toEqual({ ok: false, problem: 'pin' });
+    expect(checkDiscount({ ...filled, pin: { lat: 49.02, lng: 12.21 } })).toEqual({ ok: false, problem: 'pin' });
+    // The other fields come first, in the form's order.
+    expect(checkDiscount({ ...filled, link: '', pin: { lat: 48.1, lng: 11.5 } })).toEqual({ ok: false, problem: 'link' });
   });
 
   it('follows the table’s checks and the daily limit, and its messages state the same numbers', () => {
@@ -137,9 +151,11 @@ describe('adding', () => {
     address: 'Gesandtenstraße 1',
     categoryId: 'eating-out',
     link: 'https://www.example.de/cafe',
+    lat: 49.01936,
+    lng: 12.08965,
   };
 
-  it('sends the discount in the phone’s language', async () => {
+  it('sends the discount in the phone’s language, with its pin', async () => {
     const { client, calls } = fakeSupabase({ error: null });
     expect(await addDiscount(client, discount, 'de')).toBe('added');
     expect(calls).toEqual([
@@ -153,9 +169,17 @@ describe('adding', () => {
           p_category: 'eating-out',
           p_link: 'https://www.example.de/cafe',
           p_lang: 'de',
+          p_lat: 49.01936,
+          p_lng: 12.08965,
         },
       },
     ]);
+  });
+
+  it('sends no position without a pin', async () => {
+    const { client, calls } = fakeSupabase({ error: null });
+    await addDiscount(client, { ...discount, lat: null, lng: null }, 'en');
+    expect(calls[0].args).toMatchObject({ p_lat: null, p_lng: null });
   });
 
   it('reads the database’s refusals by their hint or code', async () => {

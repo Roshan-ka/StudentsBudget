@@ -117,6 +117,15 @@ export const tips = {
       cancel: 'Cancel',
       added: 'Discount added.',
       nameFirst: 'First pick the name your posts go by.',
+      /** The form's pin on the map (discount map, chunk 8), in the words Roshan approved from the mockups. */
+      pinHeading: 'On the map (optional)',
+      pinHint: 'Move the map until the needle is on the place, or tap the place.',
+      /** The picker's map, for screen readers. */
+      pinMap: 'Map to set the pin on',
+      setPin: 'Set the pin here',
+      pinSet: 'Pin set',
+      removePin: 'Remove the pin',
+      pinNoMap: "The map can't show on this phone. You can add the discount without a pin.",
       errors: {
         placeShort: 'Name the place, with at least 2 characters.',
         placeLong: 'Keep the place to 80 characters.',
@@ -125,6 +134,7 @@ export const tips = {
         conditionsLong: 'Keep the conditions to 300 characters.',
         addressLong: 'Keep the address to 120 characters.',
         link: 'Give the link to the page that states the offer, starting with https://',
+        pin: 'Set the pin inside Regensburg, or remove it.',
         dailyLimit: "You've added 3 discounts in a day. Add more tomorrow.",
         invalid: "The discount couldn't be saved as it is. Check the fields and the link.",
         offline: "You're offline. Adding a discount needs a connection.",

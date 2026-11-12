@@ -25,13 +25,15 @@ import {
   PROBLEM_FIELD,
   type DiscountDraft,
 } from './add-discount';
+import { mapInBuild } from './map/map-flag';
+import { PinPicker } from './map/pin-picker';
 
 /** Which field a message is about: one of the discount's, the posting name's, or none (the whole form). */
 type Field = keyof DiscountDraft | 'username' | 'batch' | null;
 
 /**
- * Tips → Discounts → Add a discount (community, chunk 6): the place, the offer, optional conditions and address, its
- * category and the page that states it. It opens on its first field. The first post on a phone waits for the `post`
+ * Tips → Discounts → Add a discount (community, chunk 6): the place, the offer, optional conditions and address, an
+ * optional pin on the map (discount map, chunk 8), its category and the page that states it. It opens on its first field. The first post on a phone waits for the `post`
  * note, as a hack does; an account without a name picks one here first (the database asks for it), and both are saved
  * by the same Add.
  */
@@ -175,6 +177,15 @@ export function DiscountForm({ userId, onAdded, onCancel }: { userId: string; on
             {text.addressHint}
           </p>
         </div>
+        {/* Optional: a pin on the map, so the discount shows there too (discount map, chunk 8), in a build with the map. */}
+        {mapInBuild() && (
+          <PinPicker
+            value={draft.pin}
+            onChange={(pin) => setDraft({ ...draft, pin })}
+            invalid={error?.field === 'pin'}
+            errorId={errorId}
+          />
+        )}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`${id}-categoryId`}>{text.category}</Label>
           <NativeSelect
