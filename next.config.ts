@@ -1,10 +1,5 @@
 import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
-import { assertLegalReady } from "./src/data/legal";
-import { securityHeaders } from "./src/lib/security-headers";
-
-// A Production build needs the Impressum's and the privacy notice's details filled in (legal pages, chunk 1).
-assertLegalReady(process.env.VERCEL_ENV);
 
 /**
  * The commit this build is made from. It names the offline cache, so a new commit starts a new cache. It has to be
@@ -32,15 +27,6 @@ const nextConfig: NextConfig = {
   devIndicators: { position: 'top-right' },
   async headers() {
     return [
-      {
-        // The security headers on every path (legal pages, chunk 4): the Content-Security-Policy and the rest.
-        source: '/:path*',
-        headers: securityHeaders({
-          supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-          dev: process.env.NODE_ENV === 'development',
-          vercelEnv: process.env.VERCEL_ENV,
-        }),
-      },
       {
         // The browser must ask for the worker script again on every check, or an installed app never hears of an update.
         source: '/sw.js',
