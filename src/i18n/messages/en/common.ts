@@ -47,23 +47,9 @@ export const common = {
   },
   /** What a number no page states says instead of a source (the data's `source: 'Estimate'`). */
   estimate: 'Estimate',
-  /** The legal pages (legal pages, chunk 1): their frame, links and Settings rows. Their texts are in src/features/legal. */
-  legal: {
-    back: 'Back',
-    /** On a French or Spanish phone, above the English text. */
-    onlyDeEn: 'This page is in German and English only, so it shows in English.',
-    /** The start page's links to the two pages. */
-    label: 'Legal',
-    privacy: 'Privacy notice',
-    impressum: 'Legal notice',
-    privacySummary: 'What the app keeps and sends, and your rights',
-    impressumSummary: 'Who runs StudentsBudget',
-  },
   /** One-time data-protection notes (`PrivacyNote`), each shown once per phone before a feature first sends data. */
   privacy: {
     label: 'About your data',
-    /** The link under every note to its section of the privacy notice, in a new tab (legal pages, chunk 3). */
-    more: 'More in the privacy notice',
     continue: 'Continue',
     cancel: 'Cancel',
     account:

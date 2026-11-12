@@ -12,7 +12,6 @@ import { useAuth } from '@/features/account/use-auth';
 import { useT } from '@/i18n/use-t';
 import { cn } from '@/lib/utils';
 import { forgetSignedOut, useJustSignedOut } from './signed-out';
-import { LegalLinks } from '@/features/legal/legal-page';
 
 const WIDE = 'w-full';
 const OUTLINE = buttonVariants({ size: 'lg', variant: 'outline', className: WIDE });
@@ -69,7 +68,6 @@ export function StartView() {
         </Link>
         <p className="text-sm text-muted-foreground">{text.guestNote}</p>
       </section>
-      <LegalLinks />
     </div>
   );
 }
