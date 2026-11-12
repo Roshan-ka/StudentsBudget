@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { DISCOUNTS } from '../src/data/discounts';
+import { distanceMeters, formatDistance } from '../src/features/discounts/map/distance';
 import { THEME_STORAGE_KEY, type Theme } from '../src/theme/themes';
 import { openApp } from './helpers/app';
 
@@ -236,6 +237,96 @@ test.describe('the card', () => {
     await expect(card.getByRole('heading', { name: 'Volkshochschule Regensburg', level: 3, exact: true })).toBeVisible();
     await expect(card.getByRole('button', { name: 'Show in the list', exact: true })).toHaveCount(2);
     await expect(card.getByRole('button', { name: 'Close', exact: true })).toHaveCount(1);
+  });
+});
+
+// Show me (chunk 6): the phone's position only on a tap, a dot and the map centred on it, and how far each discount is,
+// on the card and in the list. Playwright plays the browser's position (`geolocation`); a refusal and a failure stand
+// in for the browser's own answers.
+test.describe('Show me', () => {
+  test.use({ reducedMotion: 'reduce' });
+
+  /** Near Haidplatz, in the old town. */
+  const HERE = { latitude: 49.0195, longitude: 12.095 };
+
+  /** "130 m away" for a discount, as the app works it out, whatever space the browser puts before the unit. */
+  function away(id: string): RegExp {
+    const location = DISCOUNTS.find((d) => d.id === id)?.location;
+    if (location === undefined) throw new Error(`${id} has no position`);
+    const text = `${formatDistance(distanceMeters({ lat: HERE.latitude, lng: HERE.longitude }, location), 'en-IE')} away`;
+    const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[\s\u00a0\u202f]/g, '[\\s\\u00a0\\u202f]');
+    return new RegExp(`^${escaped}$`);
+  }
+
+  test.describe('with the position allowed', () => {
+    test.use({ permissions: ['geolocation'], geolocation: HERE });
+
+    test('Show me centres the map on the phone, and the card and the list say how far', async ({ page }, testInfo) => {
+      await skipWithoutWebgl(page, testInfo);
+      const map = await openMap(page);
+      await map.getByRole('button', { name: 'Show me', exact: true }).click();
+      await expect(map.getByRole('button', { name: "You're here", exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await expect(map.locator('[data-location-dot]')).toBeVisible();
+      // Centred on the old town, a few streets around: Westbad, 3 km west, is off the screen.
+      await expect(map.getByRole('button', { name: /^Westbad: / })).toHaveCount(0);
+
+      // The Turmtheater, about 130 m away.
+      await map.getByRole('button', { name: /^Regensburger Turmtheater: / }).click();
+      const card = map.getByRole('region', { name: 'Regensburger Turmtheater', exact: true });
+      await expect(card.getByText(away('regensburger-turmtheater'))).toBeVisible();
+
+      // The list says it too, for every discount.
+      await card.getByRole('button', { name: 'Show in the list', exact: true }).click();
+      const list = page.getByRole('list', { name: 'Discounts', exact: true });
+      await expect(list.getByText(away('westbad'))).toBeVisible();
+      await expect(list.getByText(away('regensburger-turmtheater'))).toBeVisible();
+    });
+  });
+
+  test.describe('outside Regensburg', () => {
+    test.use({ permissions: ['geolocation'], geolocation: { latitude: 48.137, longitude: 11.575 } });
+
+    test('the map stays on the city and says why', async ({ page }, testInfo) => {
+      await skipWithoutWebgl(page, testInfo);
+      const map = await openMap(page);
+      await map.getByRole('button', { name: 'Show me', exact: true }).click();
+      await expect(page.getByText("You're outside Regensburg, so the map stays on the city.", { exact: true })).toBeVisible();
+      await expect(map.getByRole('button', { name: 'Show me', exact: true })).toHaveAttribute('aria-pressed', 'false');
+      await expect(map.locator('[data-location-dot]')).toHaveCount(0);
+      await expect.poll(() => held(map)).toBe(DISCOUNTS.length);
+    });
+  });
+
+  test('a refusal and a position that can’t be found say so, and nothing is shown', async ({ page }, testInfo) => {
+    await skipWithoutWebgl(page, testInfo);
+    // The browser's answers to two taps: refused, then not found.
+    await page.addInitScript(() => {
+      const codes = [1, 2];
+      navigator.geolocation.getCurrentPosition = (_found, failed) => {
+        const code = codes.shift() ?? 2;
+        failed?.({ code, message: '', PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 });
+      };
+    });
+    const map = await openMap(page);
+    const showMe = map.getByRole('button', { name: 'Show me', exact: true });
+    await showMe.click();
+    await expect(
+      page.getByText("Location is turned off for this app. You can allow it in your browser's settings.", { exact: true }),
+    ).toBeVisible();
+    await showMe.click();
+    await expect(page.getByText("Your location couldn't be found just now. Try again in a moment.", { exact: true })).toBeVisible();
+    await expect(showMe).toHaveAttribute('aria-pressed', 'false');
+    await expect(map.locator('[data-location-dot]')).toHaveCount(0);
+  });
+
+  test('without geolocation in the browser, Show me isn’t there', async ({ page }, testInfo) => {
+    await skipWithoutWebgl(page, testInfo);
+    await page.addInitScript(() => {
+      Object.defineProperty(Navigator.prototype, 'geolocation', { configurable: true, get: () => undefined });
+    });
+    const map = await openMap(page);
+    await expect(map.getByRole('button', { name: 'Show all discounts', exact: true })).toBeVisible();
+    await expect(map.getByRole('button', { name: 'Show me', exact: true })).toHaveCount(0);
   });
 });
 

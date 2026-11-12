@@ -1,6 +1,6 @@
 'use client';
 
-import { XIcon } from 'lucide-react';
+import { NavigationIcon, XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { useT } from '@/i18n/use-t';
@@ -22,9 +22,24 @@ export type CardEntry = {
   lang: string | undefined;
   /** "Last confirmed …", with "May be outdated" before it, or "Marked as not working on …". */
   freshness: readonly string[];
+  /** "850 m away", once Show me knows where the phone is. */
+  distance: string | null;
 };
 
 const headingId = (id: string) => `map-card-${id}-place`;
+
+/**
+ * How far a discount is ("850 m away"), bold, with the navigation icon in the primary colour: on the card and in the
+ * list.
+ */
+export function Distance({ text }: { text: string }) {
+  return (
+    <p className="inline-flex items-center gap-1 font-bold">
+      <NavigationIcon aria-hidden="true" className="size-4 shrink-0 text-primary" />
+      {text}
+    </p>
+  );
+}
 
 /**
  * The card at the bottom of the map (discount map, chunk 5; the look Roshan approved from chunk 2's mockups): the
@@ -90,9 +105,13 @@ export function DiscountCard({
             <p className="text-sm font-semibold break-words">{entry.offer}</p>
             {entry.address !== '' && <p className="text-sm break-words text-muted-foreground">{entry.address}</p>}
           </div>
-          <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+          {/* The meta row: the distance, bold with its icon, beside the freshness. */}
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm">
+            {entry.distance !== null && <Distance text={entry.distance} />}
             {entry.freshness.map((line) => (
-              <p key={line}>{line}</p>
+              <p key={line} className="text-muted-foreground">
+                {line}
+              </p>
             ))}
           </div>
           <Button

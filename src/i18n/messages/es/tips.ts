@@ -75,6 +75,13 @@ export const tips: Messages['tips'] = {
     showAll: 'Mostrar todos los descuentos',
     close: 'Cerrar',
     showInList: 'Ver en la lista',
+    showMe: 'Mostrarme',
+    youreHere: 'Estás aquí',
+    away: (distance) => `a ${distance}`,
+    locating: 'Buscando dónde estás…',
+    locationDenied: 'La ubicación está desactivada para esta app. Puedes permitirla en los ajustes de tu navegador.',
+    locationUnavailable: 'No se pudo encontrar tu ubicación ahora. Inténtalo de nuevo en un momento.',
+    outsideCity: 'Estás fuera de Regensburg, así que el mapa se queda en la ciudad.',
     gestures: {
       touch: 'Usa dos dedos para mover el mapa',
       windows: 'Usa Ctrl + rueda del ratón para hacer zoom en el mapa',

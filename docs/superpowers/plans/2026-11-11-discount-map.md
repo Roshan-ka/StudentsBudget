@@ -256,3 +256,16 @@ The mockups were drawn on the real map from the app's set, at 375 px, in German 
     - `community-discounts.spec` expects `p_lat`/`p_lng` null without a pin;
     - a new case sets, removes and sets the pin, sends it from the old town to 5 decimals, and finds the student's pin on the map behind the Shopping chip.
   - **CLAUDE.md:** a Discount map rule, the plan in the opening list, and the `studentsbudget-discounts-view` key.
+- **Chunk 6** (12-11-2026, in its own session, on top of chunk 5), Show me:
+  - **Asking:** `whereIs` (`map/distance.ts`) asks `navigator.geolocation` once per tap, with a fix of up to a minute ago allowed and 20 s to wait.
+    - Inside the box (`inRegensburgBox`, chunk 8's) it gives the position. Outside it gives `outside`, so no distance reads in tens of kilometres.
+    - A refused permission is `denied`; anything else is `unavailable`.
+  - **Memory only:** the position lives in `DiscountsView`'s state, never stored or sent. A refusal or leaving the city drops it; a failed fix keeps the last one.
+  - **On the map:** the pill sits just above the card (outlined, then filled in `--primary` and pressed: "You're here").
+    - The dot is 18 px of `--primary` in a 3 px `--card` ring, with a 7 px halo.
+    - Each find centres the map on it, at zoom 15 or closer (`centreOn`, so opening the map again doesn't jump).
+    - A `StatusLine` under the map says what Show me has to say.
+  - **Distances:** `distanceMeters` (haversine) and `formatDistance` (metres to the 10 below a kilometre, then kilometres to one decimal below 10, in the locale's units), as "850 m away" / "2,9 km entfernt", bold with the navigation icon, on the card's meta row and on every list item.
+  - **Contrast:** `tokens.test.ts` holds the dot at 3:1 against its ring and every map fill (3.38:1 light, 4.83:1 dark at the lowest).
+  - **No geolocation:** the pill isn't there.
+  - **e2e:** a find in the old town (the dot, Westbad off the screen, the Turmtheater's distance on its card, distances in the list), Munich, a refusal then a failure, and no geolocation.

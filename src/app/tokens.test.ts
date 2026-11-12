@@ -241,9 +241,10 @@ function mapFills(flavor: 'light' | 'dark'): [string, string][] {
   return fills.map(([name, hex]) => [name, hex.toLowerCase()]);
 }
 
-// The discount map (discount map, chunk 5): a pin's edge is `--outline` and its focus ring `--ring`, both standing
-// against the map itself, in the map's flavour for the theme. Measured on 12-11-2026: at least 4.46:1 (light) and
-// 3.55:1 (dark) for the outline, 3.38:1 and 4.83:1 for the ring.
+// The discount map (discount map, chunks 5 and 6): a pin's edge is `--outline` and its focus ring `--ring`, both
+// standing against the map itself, in the map's flavour for the theme. Show me's dot is `--primary` in a `--card` ring,
+// which may melt into the map: the dot holds 3:1 against its ring and against the map around it. Measured on
+// 12-11-2026: at least 4.46:1 (light) and 3.55:1 (dark) for the outline, 3.38:1 and 4.83:1 for the ring and the dot.
 describe.each(Object.entries(THEMES))('the %s theme on the discount map', (theme, tokens) => {
   const fills = mapFills(theme as 'light' | 'dark');
 
@@ -252,8 +253,13 @@ describe.each(Object.entries(THEMES))('the %s theme on the discount map', (theme
     expect(fills.map(([name]) => name)).toEqual(expect.arrayContaining(['earth', 'water', 'buildings', 'highway']));
   });
 
-  it("gives a pin's outline and focus ring 3:1 against every area and road of the map", () => {
-    for (const mark of ['outline', 'ring']) {
+  it("gives Show me's dot 3:1 against its ring", () => {
+    const value = contrast(tokens.get('primary') ?? '', tokens.get('card') ?? '');
+    expect(value, `--primary on --card: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+  });
+
+  it("gives a pin's outline and focus ring, and Show me's dot, 3:1 against every area and road of the map", () => {
+    for (const mark of ['outline', 'ring', 'primary']) {
       for (const [name, fill] of fills) {
         const value = contrast(tokens.get(mark) ?? '', fill);
         expect(value, `--${mark} on the map's ${name} (${fill}): ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);

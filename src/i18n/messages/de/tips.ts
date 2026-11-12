@@ -68,6 +68,13 @@ export const tips: Messages['tips'] = {
     showAll: 'Alle Rabatte zeigen',
     close: 'Schließen',
     showInList: 'In der Liste zeigen',
+    showMe: 'Mich zeigen',
+    youreHere: 'Du bist hier',
+    away: (distance) => `${distance} entfernt`,
+    locating: 'Dein Standort wird gesucht …',
+    locationDenied: 'Der Standort ist für diese App ausgeschaltet. Du kannst ihn in den Einstellungen deines Browsers erlauben.',
+    locationUnavailable: 'Dein Standort ließ sich gerade nicht finden. Versuch es gleich noch einmal.',
+    outsideCity: 'Du bist außerhalb von Regensburg, deshalb bleibt die Karte auf der Stadt.',
     gestures: {
       touch: 'Mit zwei Fingern bewegst du die Karte',
       windows: 'Mit Strg + Mausrad zoomst du die Karte',

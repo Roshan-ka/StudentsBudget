@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import type { Discount } from '@/data/discounts';
@@ -29,7 +29,8 @@ import { DiscountTags } from './discount-tags';
 import { bundledDiscounts, discountCategoryIds, sortByFreshness, voteMove, type DiscountSource } from './discounts';
 import { DiscountMap, type MapCamera } from './map/discount-map';
 import { mapInBuild } from './map/map-flag';
-import type { CardEntry } from './map/discount-card';
+import { Distance, type CardEntry } from './map/discount-card';
+import { distanceMeters, formatDistance, whereIs, type LatLng } from './map/distance';
 import { spotKey, type MapItem } from './map/pins';
 import { StudentDiscountActions, StudentDiscountSource } from './student-discount-actions';
 import { readStudentDiscounts, type StudentDiscount } from './student-discounts';
@@ -39,6 +40,11 @@ const VOTES: readonly DiscountVote['vote'][] = ['works', 'outdated'];
 /** How the discounts show (the discount map): a list, or pins on the map. Remembered per phone. */
 const MODES = ['list', 'map'] as const;
 type Mode = (typeof MODES)[number];
+
+/** Whether the browser can tell where the phone is never changes while the page is open; Show me hides without it. */
+const neverChanges = () => () => {};
+const hasGeolocation = () => 'geolocation' in navigator && navigator.geolocation !== undefined;
+const noGeolocationOnServer = () => false;
 
 /** What a screen reader hears after a vote, and which way the discount went when the list re-sorted. */
 function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'down' | null, t: Messages): string {
@@ -66,7 +72,7 @@ export function DiscountsView({
   /** Whether its tab shows: the map is mounted only then, so a hidden tab never keeps a WebGL context. */
   active?: boolean;
 }) {
-  const { t, lang } = useT();
+  const { t, lang, locale } = useT();
   const text = t.tips;
   // The date is null until the browser runs this (never the date of the prerender).
   const today = useToday();
@@ -91,6 +97,13 @@ export function DiscountsView({
   /** The map's chosen spot and where it looked, kept while the map is away (another tab, the list). */
   const [chosenSpot, setChosenSpot] = useState<string | null>(null);
   const [camera, setCamera] = useState<MapCamera | null>(null);
+  // Show me (discount map, chunk 6): the phone's position, in memory only, never stored or sent; how often it was found
+  // (the map centres on each find); and what Show me has to say.
+  const [here, setHere] = useState<LatLng | null>(null);
+  const [centreOn, setCentreOn] = useState(0);
+  const [locationNote, setLocationNote] = useState<string | null>(null);
+  const locating = useRef(false);
+  const canLocate = useSyncExternalStore(neverChanges, hasGeolocation, noGeolocationOnServer);
   /** The answer just given, shown under its discount. */
   const [notice, setNotice] = useState<{ discountId: string; text: string } | null>(null);
   const [heard, setHeard] = useState('');
@@ -183,6 +196,12 @@ export function DiscountsView({
     const { lat, lng } = discount.location;
     return [{ id: d.id, place: d.place, offer: d.offer, categoryId: d.categoryId, lat, lng, student }];
   });
+  /** How far a discount is ("850 m away"), once Show me knows where the phone is; null before, or without a position. */
+  const distanceTo = (discount: Discount): string | null =>
+    here === null || discount.location === undefined
+      ? null
+      : text.discountMap.away(formatDistance(distanceMeters(here, discount.location), locale));
+
   // The chosen spot's card: its discounts as the list words them, with their freshness.
   const cardEntries: CardEntry[] = shown.flatMap(({ discount, vote, freshness: f }) => {
     const at = discount.location;
@@ -204,9 +223,39 @@ export function DiscountsView({
         student: student !== undefined,
         lang: own === null ? student?.info.lang : own.textLang,
         freshness,
+        distance: distanceTo(discount),
       },
     ];
   });
+
+  /**
+   * Show me's tap: the browser asks for the phone's position (its own prompt, the first time), and the answer stays in
+   * this view's memory. Inside Regensburg the map centres on it and every discount says how far it is; otherwise a line
+   * under the map says why not. A tap while it is still looking does nothing.
+   */
+  async function showMe() {
+    if (locating.current) return;
+    locating.current = true;
+    const words = text.discountMap;
+    setLocationNote(words.locating);
+    const found = await whereIs(navigator.geolocation);
+    locating.current = false;
+    if (found.kind === 'here') {
+      setHere(found.at);
+      setLocationNote(null);
+      setCentreOn((n) => n + 1);
+      return;
+    }
+    // Refused or outside the city: an earlier position no longer stands. Not found: the last one still does.
+    if (found.kind !== 'unavailable') setHere(null);
+    setLocationNote(
+      found.kind === 'denied'
+        ? words.locationDenied
+        : found.kind === 'outside'
+          ? words.outsideCity
+          : words.locationUnavailable,
+    );
+  }
 
   /** The card's "Show in the list": the list shows, and the focus lands on the discount's heading there. */
   function showInList(id: string) {
@@ -348,12 +397,17 @@ export function DiscountsView({
             chips={chips('flex gap-2 overflow-x-auto [scrollbar-width:thin]')}
             card={cardEntries}
             onShowInList={showInList}
+            here={here}
+            centreOn={centreOn}
+            onShowMe={canLocate ? () => void showMe() : null}
+            locationNote={locationNote}
           />
         )
       ) : (
         <ul ref={focus.refFor('list')} tabIndex={-1} aria-label={text.discounts} className="flex flex-col gap-3">
           {shown.map(({ discount, vote, community: others, freshness: f }) => {
             const student = byStudent.get(discount.id);
+            const distance = distanceTo(discount);
             // The app's own words are translated; a student's stay as written, in the language they were written in.
             const own = student === undefined ? discountIn(discount, lang) : null;
             const d = own ?? discount;
@@ -386,6 +440,7 @@ export function DiscountsView({
                   {d.address !== '' && <p className="text-sm break-words text-muted-foreground">{d.address}</p>}
                 </div>
                 <div className="flex flex-col gap-0.5 text-sm">
+                  {distance !== null && <Distance text={distance} />}
                   {f.outdated && vote ? (
                     <p className="font-medium">{text.markedOutdated(formatDate(vote.on))}</p>
                   ) : (

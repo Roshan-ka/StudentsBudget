@@ -78,6 +78,16 @@ export const tips = {
     /** The card at the bottom of the map (chunk 5): it closes, and it leads to the discount in the list. */
     close: 'Close',
     showInList: 'Show in the list',
+    /** Show me (chunk 6): it asks for the phone's position only on a tap, which stays on the phone. */
+    showMe: 'Show me',
+    /** The pressed Show me, once the map knows where the phone is. */
+    youreHere: "You're here",
+    /** How far a discount is from the phone: "850 m away", "2.9 km away". */
+    away: (distance: string) => `${distance} away`,
+    locating: 'Finding where you are…',
+    locationDenied: "Location is turned off for this app. You can allow it in your browser's settings.",
+    locationUnavailable: "Your location couldn't be found just now. Try again in a moment.",
+    outsideCity: "You're outside Regensburg, so the map stays on the city.",
     /** MapLibre's hints when one finger or the wheel alone tries to move the map (its cooperative gestures). */
     gestures: {
       touch: 'Use two fingers to move the map',
