@@ -35,7 +35,7 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | @types/node | 24.19.2 |
 | @types/react | 19.3.0 |
 | @types/react-dom | 19.3.0 |
-| supabase (the CLI, a dev dependency) | 2.121.0 |
+| supabase (the CLI, a dev dependency) | 2.122.0 |
 | @modelcontextprotocol/sdk (the MCP server in `mcp/`, a dev dependency) | 1.32.2 |
 | @anthropic-ai/sdk (the `ai` Edge Function, a dev dependency for its types; `supabase/functions/ai/deno.json` maps the same version, tested) | 1.3.0 |
 
