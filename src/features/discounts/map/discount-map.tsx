@@ -5,8 +5,8 @@ import type * as MapLibre from 'maplibre-gl';
 import {
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useMemo,
-  useReducer,
   useRef,
   useState,
   useSyncExternalStore,
@@ -93,6 +93,24 @@ function clear(x: number, y: number, width: number, height: number, covered: rea
   );
 }
 
+/** A pin's place on the screen: its spot's, or the middle of a count pin's spots. */
+function placeOf(on: MapLibre.Map, pin: Pin): { x: number; y: number } {
+  const spotsIn = pin.kind === 'spot' ? [pin.spot] : pin.spots;
+  const points = spotsIn.map((spot) => on.project([spot.lng, spot.lat]));
+  return {
+    x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
+    y: points.reduce((sum, p) => sum + p.y, 0) / points.length,
+  };
+}
+
+/** Where a pin's box goes for its place (x, y): a round pin centred on it, the chosen teardrop with its tip on it. */
+function pinTransform(pin: Pin, isChosen: boolean, x: number, y: number): string {
+  if (pin.kind === 'count') return `translate(${x - 24}px, ${y - 24}px)`;
+  // The chosen teardrop turns a corner down: its tip lies 26√2 px below its middle.
+  if (isChosen) return `translate(${x - 26}px, ${y - 26 - 26 * Math.SQRT2}px) rotate(-45deg)`;
+  return `translate(${x - 22}px, ${y - 22}px)`;
+}
+
 /** A spot's place in its pin's name, marked when a student added it. */
 const placeName = (item: MapItem, text: Messages['tips']['discountMap']) =>
   item.student ? text.studentPlace(item.place) : item.place;
@@ -109,7 +127,9 @@ function spotName(spot: Spot, text: Messages['tips']['discountMap']): string {
  * leaving the tab or the page never keeps a WebGL context. It opens where `camera` says, else on every discount, and
  * can't be moved outside the set's box. North stays up, so the pins' order on screen is their order for the keyboard.
  *
- * Pins are our own buttons over the canvas, placed with `map.project` as the map moves. They group by the zoom the map
+ * Pins are our own buttons over the canvas. React draws which there are; `placeOnMap` puts them at their places with
+ * `map.project`, from the map's own `move` (inside the frame MapLibre draws) and after each commit, so a pin never
+ * trails the map. They group by the zoom the map
  * came to rest at (`pinsOf`): a tap on a count pin zooms in on its discounts, a tap on a spot's pin chooses it. The
  * chips (`chips`) sit along the top; "+", "−" and "Show all" at the end. `fitKey` changing (another category) fits the
  * map to the discounts shown. The box fills the screen down to the navigation. `data-map-ready` marks it drawn, for
@@ -182,8 +202,9 @@ export function DiscountMap({
   const [state, setState] = useState<MapState>('loading');
   /** The zoom the map came to rest at: the pins group by it, so they don't part and join while it moves. */
   const [restZoom, setRestZoom] = useState<number | null>(null);
-  // Each frame of a move draws the pins at their new places.
-  const [, redraw] = useReducer((n: number) => n + 1, 0);
+  /** The pins on the page by key, and the dot, for `placeOnMap` to move without a render. */
+  const pinElements = useRef(new Map<string, HTMLElement>());
+  const dot = useRef<HTMLSpanElement>(null);
   const spots = useMemo(() => spotsOf(items), [items]);
   const shownBox = boxOf(spots);
 
@@ -211,6 +232,61 @@ export function DiscountMap({
     if (y >= top && y <= bottom) return;
     // `offset` moves the place from the middle: to the middle of the room left above the card.
     map.easeTo({ center: [spot.lng, spot.lat], offset: [0, (top - cardHeight - CARD_GAP) / 2] });
+  });
+
+  const hasCard = card.length > 0 && chosen !== null;
+  const hasShowMe = onShowMe !== null;
+  const pins = useMemo(
+    () =>
+      restZoom === null
+        ? []
+        : pinsOf(
+            spots.map((spot) => ({ spot, ...worldPixel(spot.lat, spot.lng, restZoom) })),
+            chosen,
+          ),
+    [spots, chosen, restZoom],
+  );
+
+  /**
+   * Puts each pin, and the dot, at its place on the screen, and hides one whose whole box isn't clear of what lies
+   * over the map (`clear`): hidden, it is out of the keyboard's reach too. Called from the map's own `move` and
+   * `resize`, inside the frame MapLibre draws, and after each commit. A React render per frame came a frame or more
+   * after the map's, so the pins floated behind it (12-11-2026). A pin marked for the focus takes it once it is placed
+   * and shown.
+   */
+  const placeOnMap = useEffectEvent((on: MapLibre.Map) => {
+    const width = on.getContainer().clientWidth;
+    const height = on.getContainer().clientHeight;
+    // What no pin may lie under: Show me and the card only as measured with the card as it is now.
+    const over: readonly Rect[] =
+      covered === null
+        ? []
+        : covered.layout === layoutOf(hasCard, hasShowMe)
+          ? [...covered.fixed, ...covered.moving]
+          : covered.fixed;
+    for (const pin of pins) {
+      const element = pinElements.current.get(pin.key);
+      if (element === undefined) continue;
+      const { x, y } = placeOf(on, pin);
+      // The chosen teardrop rises above its tip, and the map keeps it in the room above the card itself.
+      const isChosen = pin.kind === 'spot' && pin.spot.key === chosen;
+      const shown = clear(x, y, width, height, isChosen ? [] : over);
+      element.style.transform = pinTransform(pin, isChosen, x, y);
+      element.style.visibility = shown ? '' : 'hidden';
+      if (!shown) continue;
+      // A card closed on a pin that has joined a count pin hands the focus to the count pin.
+      for (const spot of pin.kind === 'spot' ? [pin.spot] : pin.spots) focus.refFor(`pin:${spot.key}`)(element);
+    }
+    const dotElement = dot.current;
+    if (dotElement !== null && here !== null) {
+      const at = on.project([here.lng, here.lat]);
+      dotElement.style.transform = `translate(${at.x - 12}px, ${at.y - 12}px)`;
+      dotElement.style.visibility = at.x >= 0 && at.y >= 0 && at.x <= width && at.y <= height ? '' : 'hidden';
+    }
+  });
+  // After each commit: pins just drawn, chosen or let go, and what lies over the map measured anew.
+  useLayoutEffect(() => {
+    if (map !== null) placeOnMap(map);
   });
 
   useEffect(() => {
@@ -252,8 +328,9 @@ export function DiscountMap({
         });
         drawn.touchZoomRotate.disableRotation();
         drawn.keyboard.disableRotation();
-        drawn.on('move', redraw);
-        drawn.on('resize', redraw);
+        // Each frame of a move puts the pins at their new places, in the frame the map draws.
+        drawn.on('move', () => placeOnMap(drawn));
+        drawn.on('resize', () => placeOnMap(drawn));
         drawn.on('moveend', () => {
           setRestZoom(drawn.getZoom());
           cameraMoved(drawn);
@@ -312,8 +389,6 @@ export function DiscountMap({
   // What lies over the map is measured whenever it changes size, and again when the card or Show me comes or goes, so
   // no pin is drawn under it: hidden but still reachable by the keyboard, or a target too small to tap (axe's
   // target-size, CI run 43191801922).
-  const hasCard = card.length > 0 && chosen !== null;
-  const hasShowMe = onShowMe !== null;
   useEffect(() => {
     const frame = box.current;
     if (frame === null || state !== 'ready') return;
@@ -358,17 +433,6 @@ export function DiscountMap({
     };
   }, [drawable, state]);
 
-  const pins = useMemo(
-    () =>
-      restZoom === null
-        ? []
-        : pinsOf(
-            spots.map((spot) => ({ spot, ...worldPixel(spot.lat, spot.lng, restZoom) })),
-            chosen,
-          ),
-    [spots, chosen, restZoom],
-  );
-
   if (!drawable || state === 'failed') {
     return <p className="text-sm">{drawable ? text.failed : text.noWebgl}</p>;
   }
@@ -392,25 +456,12 @@ export function DiscountMap({
 
   const ready = map !== null && state === 'ready';
   const chosenSpot = spots.find((spot) => spot.key === chosen);
-  const width = ready ? map.getContainer().clientWidth : 0;
-  const height = ready ? map.getContainer().clientHeight : 0;
-  /** The phone's place on the screen, once Show me found it. */
-  const dotAt = ready && here !== null ? map.project([here.lng, here.lat]) : null;
-  /** What no pin may lie under: Show me and the card only as measured with the card as it is now. */
-  const over: readonly Rect[] =
-    covered === null
-      ? []
-      : covered.layout === layoutOf(hasCard, hasShowMe)
-        ? [...covered.fixed, ...covered.moving]
-        : covered.fixed;
-  /** A pin's place on the screen: its spot's, or the middle of a count pin's spots. */
-  const placeOf = (pin: Pin) => {
-    if (map === null) return { x: -1, y: -1 };
-    const spotsIn = pin.kind === 'spot' ? [pin.spot] : pin.spots;
-    const points = spotsIn.map((spot) => map.project([spot.lng, spot.lat]));
-    return {
-      x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
-      y: points.reduce((sum, p) => sum + p.y, 0) / points.length,
+  /** A pin's element, kept by its key for `placeOnMap` while it is on the page. */
+  const keep = (key: string) => (element: HTMLElement | null) => {
+    if (element === null) return;
+    pinElements.current.set(key, element);
+    return () => {
+      pinElements.current.delete(key);
     };
   };
 
@@ -429,36 +480,27 @@ export function DiscountMap({
           // A map's x runs from the left whatever the language, so the pins are placed left to right.
           <div dir="ltr" className="pointer-events-none absolute inset-0">
             {/* Where the phone is (Show me): a dot in the primary colour, ringed in the card's, with a soft halo. Under
-                the pins, and only for the eye: the pressed "You're here" says it. */}
-            {dotAt !== null && dotAt.x >= 0 && dotAt.y >= 0 && dotAt.x <= width && dotAt.y <= height && (
+                the pins, and only for the eye: the pressed "You're here" says it. `placeOnMap` places it. */}
+            {here !== null && (
               <span
+                ref={dot}
                 aria-hidden="true"
                 data-location-dot=""
                 className="absolute start-0 top-0 size-6 rounded-full border-[3px] border-card bg-primary"
-                style={{
-                  transform: `translate(${dotAt.x - 12}px, ${dotAt.y - 12}px)`,
-                  boxShadow: '0 0 0 7px color-mix(in oklch, var(--primary) 28%, transparent)',
-                }}
+                style={{ boxShadow: '0 0 0 7px color-mix(in oklch, var(--primary) 28%, transparent)' }}
               />
             )}
+            {/* Every pin of the zoom the map rests at; `placeOnMap` places each and hides one with something over it. */}
             {pins.map((pin) => {
-              const { x, y } = placeOf(pin);
-              // The chosen teardrop rises above its tip, and the map keeps it in the room above the card itself.
-              const keptInView = pin.kind === 'spot' && pin.spot.key === chosen;
-              if (!clear(x, y, width, height, keptInView ? [] : over)) return null;
               if (pin.kind === 'count') {
                 return (
                   <button
                     key={pin.key}
-                    // A card closed on a pin that has joined this one hands the focus here.
-                    ref={(element) => {
-                      for (const spot of pin.spots) focus.refFor(`pin:${spot.key}`)(element);
-                    }}
+                    ref={keep(pin.key)}
                     type="button"
                     aria-label={text.countPin(pin.count)}
                     onClick={() => zoomTo(pin.spots)}
                     className="pointer-events-auto absolute start-0 top-0 grid size-12 place-items-center rounded-full border-[1.5px] border-outline bg-card font-heading text-lg font-extrabold text-foreground shadow-offset outline-none focus-visible:ring-3 focus-visible:ring-ring"
-                    style={{ transform: `translate(${x - 24}px, ${y - 24}px)` }}
                   >
                     <span aria-hidden="true">{pin.count}</span>
                   </button>
@@ -472,7 +514,7 @@ export function DiscountMap({
               return (
                 <button
                   key={pin.key}
-                  ref={focus.refFor(`pin:${spot.key}`)}
+                  ref={keep(pin.key)}
                   type="button"
                   aria-label={spotName(spot, text)}
                   aria-pressed={isChosen}
@@ -503,10 +545,6 @@ export function DiscountMap({
                   )}
                   style={{
                     backgroundColor: categoryTint(first.categoryId),
-                    // The chosen teardrop turns a corner down: its tip lies 26√2 px below its middle.
-                    transform: isChosen
-                      ? `translate(${x - 26}px, ${y - 26 - 26 * Math.SQRT2}px) rotate(-45deg)`
-                      : `translate(${x - 22}px, ${y - 22}px)`,
                     filter: isChosen ? 'drop-shadow(var(--shadow-offset))' : undefined,
                   }}
                 >
