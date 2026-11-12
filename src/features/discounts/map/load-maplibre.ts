@@ -34,11 +34,24 @@ export function loadMapLibre(): Promise<typeof MapLibre> {
   return loading;
 }
 
-/** Whether this browser can draw the map: MapLibre needs WebGL 2. */
+/** The browser's answer, once asked: it never changes while the page is open. */
+let drawable: boolean | null = null;
+
+/**
+ * Whether this browser can draw the map: MapLibre needs WebGL 2. Asked once per page and remembered, and the probe's
+ * context is let go at once. React calls this on every render (it is a `useSyncExternalStore` snapshot, and the map
+ * renders on every frame it moves), and a probe each time made a WebGL context per frame: a few seconds of panning
+ * passed the browser's limit, which then dropped the map's own context, so the map stalled while it rebuilt
+ * (12-11-2026).
+ */
 export function canDrawMap(): boolean {
+  if (drawable !== null) return drawable;
   try {
-    return document.createElement('canvas').getContext('webgl2') !== null;
+    const probe = document.createElement('canvas').getContext('webgl2');
+    drawable = probe !== null;
+    probe?.getExtension('WEBGL_lose_context')?.loseContext();
   } catch {
-    return false;
+    drawable = false;
   }
+  return drawable;
 }
