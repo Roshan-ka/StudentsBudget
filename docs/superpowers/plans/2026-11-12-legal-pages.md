@@ -166,3 +166,18 @@ The plan is copied into `docs/superpowers/plans/2026-11-12-legal-pages.md` in ch
   - **What went:** the code, the texts, the spec and the wiring. This plan and CLAUDE.md's `npm audit fix --force` line stayed.
   - **To bring it back:** a branch from `main` that reverts the revert commit, with Roshan's five details committed in `src/data/legal.ts` before it merges. Chunks 2–4 build on that branch.
 - **Chunk 1 back** (12-11-2026): on the branch `feat/legal-pages`, which reverts the revert. Chunks 2–4 go on the same branch, in one draft PR, so nothing is stacked on an unmerged branch. It merges once Roshan's details are in and the texts are checked.
+- **Chunk 2** (12-11-2026), the privacy notice's first part (`privacy-notice.ts`), after the controller and before "being completed":
+  - **In short:** the finances stay on the phone; no cookies, ads or tracking across sites; each feature sends only what it needs, after its note.
+  - **What stays on your phone:** Dexie's tables in plain words, the small settings in localStorage and sessionStorage, the service worker's copy, no cookies; § 25 (2) no. 2 TDDDG; how to delete it (Settings → Backup and data → Delete everything, or clearing the site's data). What the account adds on the phone (the session, the cached feeds) goes into chunk 3's account section.
+  - **Hosting and server logs:** Vercel Inc. as processor (Art. 28), what any visit shows it, Art. 6 (1) (f), its own retention words, and the USA with the DPF and standard contractual clauses it names.
+  - **Load times (Speed Insights):** each data point as Speed Insights' privacy page lists it, sent through the app's own address; anonymous, no cookies, nothing on the phone; Art. 6 (1) (f).
+  - **Exchange rates (Frankfurter):** only with an account not in euros, at most once a day, the currency codes and the IP; behind Cloudflare, and by its FAQ no personal data, IP addresses or requests kept; Art. 6 (1) (f).
+  - **The map and your location** (map builds only): the map asks no outside service; Show me only on a tap, the position worked out by the phone (its maker's location service), used on the phone only.
+  - **Speaking an entry:** the browser's speech service, as the mic note says; the app gets only the text.
+  - **Translate** (builds with an account only): a link to Google Translate, as the `translate` note says.
+  - **Sources, read on 12-11-2026:** Vercel's privacy notice (updated 01-06-2026), Speed Insights' privacy page and the FAQ on frankfurter.dev.
+  - **Tests:** `privacy-notice.test.ts` (the order and each section's build, every button and page named as the app shows it in both languages, no cookies, the legal bases), and `legal.spec.ts` looks for the new headings.
+  - **For the check before go-live** (not decided by me):
+    - Speed Insights reads measurements from the browser with no cookie and no consent: whether § 25 (1) TDDDG asks for consent there, or Art. 6 (1) (f) is enough.
+    - Frankfurter's legal basis (Art. 6 (1) (f), for a feature the student turns on by adding an account in another currency).
+    - Vercel's DPA covering a Hobby account, and Vercel's and Cloudflare's entries on the DPF list (chunk 3 checks the list for every recipient).
