@@ -10,14 +10,14 @@ export const PLACEHOLDER = 'TODO-FILL-IN';
 
 export type Operator = {
   /** The person responsible: full name. */
-  name: string;
+  name: Roshan Anant Kadhiwala;
   /** A postal address where letters reach the person (§ 5 DDG). */
-  street: string;
-  postcode: string;
-  city: string;
-  country: string;
+  street: Dr.Gessler Str.;
+  postcode: 93051;
+  city: Regensburg;
+  country: Germany;
   /** An address the person reads: the quick way to make contact. */
-  email: string;
+  email: roshankadhiwala666.de@gmail.com;
 };
 
 /*
