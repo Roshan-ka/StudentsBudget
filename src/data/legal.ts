@@ -10,14 +10,14 @@ export const PLACEHOLDER = 'TODO-FILL-IN';
 
 export type Operator = {
   /** The person responsible: full name. */
-  name: Roshan Anant Kadhiwala;
+  name: string;
   /** A postal address where letters reach the person (§ 5 DDG). */
-  street: Dr.Gessler Str.;
-  postcode: 93051;
-  city: Regensburg;
-  country: Germany;
+  street: string;
+  postcode: string;
+  city: string;
+  country: string;
   /** An address the person reads: the quick way to make contact. */
-  email: roshankadhiwala666.de@gmail.com;
+  email: string;
 };
 
 /*
@@ -34,12 +34,12 @@ export type Operator = {
  * Everything here is public: on /impressum and /privacy, and in this repo and its SupportRW mirror.
  */
 export const OPERATOR: Operator = {
-  name: 'TODO-FILL-IN: your full name',
-  street: 'TODO-FILL-IN: street and house number',
-  postcode: 'TODO-FILL-IN: postcode',
-  city: 'TODO-FILL-IN: city',
+  name: 'Roshan Anant Kadhiwala',
+  street: 'Dr.Gessler Str.',
+  postcode: '93051',
+  city: 'Regensburg',
   country: 'Deutschland',
-  email: 'TODO-FILL-IN: an email address you read',
+  email: 'roshankadhiwala666.de@gmail.com',
 };
 
 /** Whether every part of the operator's details is filled in. */
