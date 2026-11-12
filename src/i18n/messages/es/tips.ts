@@ -61,6 +61,23 @@ export const tips: Messages['tips'] = {
     noWebgl: 'El mapa no puede mostrarse en este móvil. La lista tiene todos los descuentos.',
     failed: 'No se pudo cargar el mapa. La lista tiene todos los descuentos.',
     osm: '© colaboradores de OpenStreetMap',
+    pin: (place, offer) => `${place}: ${offer}`,
+    studentPlace: (place) => `${place} (añadido por un estudiante)`,
+    spotPin: (count, places) =>
+      byCount(count, {
+        one: `${count} descuento aquí: ${places}`,
+        other: `${count} descuentos aquí: ${places}`,
+      }),
+    countPin: (count) =>
+      byCount(count, { one: `${count} descuento cerca: acercar`, other: `${count} descuentos cerca: acercar` }),
+    zoomIn: 'Acercar',
+    zoomOut: 'Alejar',
+    showAll: 'Mostrar todos los descuentos',
+    gestures: {
+      touch: 'Usa dos dedos para mover el mapa',
+      windows: 'Usa Ctrl + rueda del ratón para hacer zoom en el mapa',
+      mac: 'Usa ⌘ + desplazamiento para hacer zoom en el mapa',
+    },
   },
   studentDiscounts: {
     tag: 'Añadido por un estudiante',

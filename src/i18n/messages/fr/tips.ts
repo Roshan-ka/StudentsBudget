@@ -64,6 +64,26 @@ export const tips: Messages['tips'] = {
     noWebgl: 'La carte ne peut pas s’afficher sur ce téléphone. La liste a toutes les réductions.',
     failed: 'La carte n’a pas pu se charger. La liste a toutes les réductions.',
     osm: '© les contributeurs d’OpenStreetMap',
+    pin: (place, offer) => `${place}${NNBSP}: ${offer}`,
+    studentPlace: (place) => `${place} (ajoutée par un étudiant)`,
+    spotPin: (count, places) =>
+      byCount(count, {
+        one: `${count} réduction ici${NNBSP}: ${places}`,
+        other: `${count} réductions ici${NNBSP}: ${places}`,
+      }),
+    countPin: (count) =>
+      byCount(count, {
+        one: `${count} réduction proche${NNBSP}: zoomer`,
+        other: `${count} réductions proches${NNBSP}: zoomer`,
+      }),
+    zoomIn: 'Zoomer',
+    zoomOut: 'Dézoomer',
+    showAll: 'Afficher toutes les réductions',
+    gestures: {
+      touch: 'Utilise deux doigts pour déplacer la carte',
+      windows: 'Utilise Ctrl + molette pour zoomer sur la carte',
+      mac: 'Utilise ⌘ + défilement pour zoomer sur la carte',
+    },
   },
   studentDiscounts: {
     tag: 'Ajoutée par un étudiant',

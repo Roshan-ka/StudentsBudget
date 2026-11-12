@@ -53,6 +53,8 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'badges.tiers.gold',
     // "Miete: 400,00 €": the name, then the amount, as in English (the setup chat).
     'setup.chat.line',
+    // "Westbad: …": a map pin's place, then its offer, as in English.
+    'tips.discountMap.pin',
   ]),
   es: new Set([
     'tips.hacks.moderation.states.visible',
@@ -72,6 +74,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'auth.secondStep.prompt.after',
     'auth.signedIn.as.after',
     'setup.chat.line',
+    'tips.discountMap.pin',
   ]),
   fr: new Set([
     'ask.sources',

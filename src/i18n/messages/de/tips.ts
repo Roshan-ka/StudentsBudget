@@ -59,6 +59,18 @@ export const tips: Messages['tips'] = {
     noWebgl: 'Die Karte kann auf diesem Handy nicht angezeigt werden. Die Liste hat jeden Rabatt.',
     failed: 'Die Karte ließ sich nicht laden. Die Liste hat jeden Rabatt.',
     osm: '© OpenStreetMap-Mitwirkende',
+    pin: (place, offer) => `${place}: ${offer}`,
+    studentPlace: (place) => `${place} (von Studierenden eingetragen)`,
+    spotPin: (count, places) => `${count} Rabatte hier: ${places}`,
+    countPin: (count) => `${count} Rabatte nah beieinander: hineinzoomen`,
+    zoomIn: 'Hineinzoomen',
+    zoomOut: 'Herauszoomen',
+    showAll: 'Alle Rabatte zeigen',
+    gestures: {
+      touch: 'Mit zwei Fingern bewegst du die Karte',
+      windows: 'Mit Strg + Mausrad zoomst du die Karte',
+      mac: 'Mit ⌘ + Scrollen zoomst du die Karte',
+    },
   },
   studentDiscounts: {
     tag: 'Von Studierenden eingetragen',
