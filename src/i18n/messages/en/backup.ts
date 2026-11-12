@@ -17,7 +17,7 @@ export const backup = {
     shared: 'Backup shared.',
     downloaded: (fileName: string) => `Download started: ${fileName}`,
     shareFailed: "The share sheet didn't open. You can download the file instead.",
-    downloadInstead: 'Download instead',
+    download: 'Download',
     failed: 'Could not export your data.',
   },
   restore: {
