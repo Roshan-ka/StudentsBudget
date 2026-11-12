@@ -185,7 +185,7 @@ gh workflow run ci.yml --ref main -f scope=full -f browsers=all -f languages=all
 
    Run `migration list` again: all three now show on both sides.
 3. **Previews first.** In Vercel → the project → Settings → Environment Variables, add `NEXT_PUBLIC_DISCOUNT_MAP` with the value `1`, for **Preview** only. Then redeploy the latest preview: a `NEXT_PUBLIC_` value is built into the app, so a deploy without it doesn't change.
-4. **The real try on the preview, on your phone.** Sign in with the password: passkeys work only on the live host.
+4. **The real try on the preview, on your phone, signed out.** Previews are built without the Supabase settings (Vercel has them for Production only), so a preview has no account. Everything below works without one: the app's 17 discounts and their positions ship with it.
    - **The map:** Tips → Discounts → Map.
      - The street names show, which proves the map's fonts load from the app.
      - A count pin zooms in, the chips filter the pins, and "+", "−" and "Show all" work.
@@ -195,13 +195,13 @@ gh workflow run ci.yml --ref main -f scope=full -f browsers=all -f languages=all
      - it asks for the location once, centres the map and shows distances;
      - deny it once (in the browser's site settings) to see the message.
    - **Offline:** after one visit with the map, switch on airplane mode and reload: the map still draws.
-   - **A student's pin:**
+5. **Production.** Add the same variable for **Production** and redeploy it. Then check the live site:
+   - the map and a pin's card;
+   - the map still draws in airplane mode after the redeploy, so its offline cache outlives a deploy;
+   - **a student's pin,** signed in with the password (passkeys work too, on the live host):
      - add a discount with a pin;
      - on a second account (another phone or a private window), it shows as a student's pin, dashed and with the badge;
      - report it from there, and it leaves that account's map.
-5. **Production.** Add the same variable for **Production** and redeploy it. Then check the live site:
-   - the map and a pin's card;
-   - the map still draws in airplane mode after the redeploy, so its offline cache outlives a deploy.
 6. **Undo, if needed:** remove the variable and redeploy. The list alone comes back; the map's files stay unused in `public/maps/` and do no harm.
 
 ## As built
