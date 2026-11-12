@@ -72,6 +72,15 @@ const flavorOnServer = (): MapFlavor => 'light';
 type Rect = { left: number; top: number; right: number; bottom: number };
 
 /**
+ * What lies over the map, as last measured: the chips and the zoom buttons stay put; Show me and the card move when
+ * the card comes or goes. `layout` names which of those was there, so a measure from before a change is not used for
+ * the moving ones: for the render between the change and the next measure, a pin just let go would otherwise count as
+ * still under the card, and go, with the focus (CI run 43195881266).
+ */
+type Covered = { layout: string; fixed: readonly Rect[]; moving: readonly Rect[] };
+const layoutOf = (hasCard: boolean, hasShowMe: boolean) => `${hasCard}:${hasShowMe}`;
+
+/**
  * Whether a pin at (x, y) can be drawn: on the map, and with its whole box clear of everything that lies over the map
  * (the chips, the zoom buttons, Show me, the card). A pin under one would be hidden from the eye but not from the
  * keyboard, and too little of it would be left to tap.
@@ -162,7 +171,7 @@ export function DiscountMap({
   const showMeButton = useRef<HTMLButtonElement>(null);
   const cardWrap = useRef<HTMLDivElement>(null);
   /** Their boxes within the map, as last measured: a pin under one isn't drawn (`clear`). */
-  const [covered, setCovered] = useState<readonly Rect[]>([]);
+  const [covered, setCovered] = useState<Covered | null>(null);
   /** The card's heading after a tap opened it, and a pin after the card closed (keys `card` and `pin:<spot>`). */
   const focus = useFocusAfter();
   /** The flavour the map was last drawn in, so a theme change redraws it once. */
@@ -308,26 +317,26 @@ export function DiscountMap({
   useEffect(() => {
     const frame = box.current;
     if (frame === null || state !== 'ready') return;
-    const overlays = [chipsRow.current, controls.current, showMeButton.current, cardWrap.current].filter(
-      (element): element is HTMLDivElement | HTMLButtonElement => element !== null,
-    );
+    const present = <T extends HTMLElement>(elements: (T | null)[]) =>
+      elements.filter((element): element is T => element !== null);
+    const fixed = present<HTMLElement>([chipsRow.current, controls.current]);
+    const moving = present<HTMLElement>([showMeButton.current, cardWrap.current]);
     const measure = () => {
       const origin = frame.getBoundingClientRect();
-      setCovered(
-        overlays.map((element) => {
-          const rect = element.getBoundingClientRect();
-          return {
-            left: rect.left - origin.left,
-            top: rect.top - origin.top,
-            right: rect.right - origin.left,
-            bottom: rect.bottom - origin.top,
-          };
-        }),
-      );
+      const within = (element: HTMLElement): Rect => {
+        const rect = element.getBoundingClientRect();
+        return {
+          left: rect.left - origin.left,
+          top: rect.top - origin.top,
+          right: rect.right - origin.left,
+          bottom: rect.bottom - origin.top,
+        };
+      };
+      setCovered({ layout: layoutOf(hasCard, hasShowMe), fixed: fixed.map(within), moving: moving.map(within) });
     };
     // A ResizeObserver reports each element once as it starts watching, then on every change of size.
     const observer = new ResizeObserver(measure);
-    for (const element of [frame, ...overlays]) observer.observe(element);
+    for (const element of [frame, ...fixed, ...moving]) observer.observe(element);
     return () => observer.disconnect();
   }, [state, hasCard, hasShowMe]);
 
@@ -387,6 +396,13 @@ export function DiscountMap({
   const height = ready ? map.getContainer().clientHeight : 0;
   /** The phone's place on the screen, once Show me found it. */
   const dotAt = ready && here !== null ? map.project([here.lng, here.lat]) : null;
+  /** What no pin may lie under: Show me and the card only as measured with the card as it is now. */
+  const over: readonly Rect[] =
+    covered === null
+      ? []
+      : covered.layout === layoutOf(hasCard, hasShowMe)
+        ? [...covered.fixed, ...covered.moving]
+        : covered.fixed;
   /** A pin's place on the screen: its spot's, or the middle of a count pin's spots. */
   const placeOf = (pin: Pin) => {
     if (map === null) return { x: -1, y: -1 };
@@ -429,7 +445,7 @@ export function DiscountMap({
               const { x, y } = placeOf(pin);
               // The chosen teardrop rises above its tip, and the map keeps it in the room above the card itself.
               const keptInView = pin.kind === 'spot' && pin.spot.key === chosen;
-              if (!clear(x, y, width, height, keptInView ? [] : covered)) return null;
+              if (!clear(x, y, width, height, keptInView ? [] : over)) return null;
               if (pin.kind === 'count') {
                 return (
                   <button
@@ -464,6 +480,9 @@ export function DiscountMap({
                     // A second tap closes the card and keeps the focus here; a first opens it on its heading.
                     event.currentTarget.focus();
                     if (isChosen) {
+                      // The pin stays, but if it is drawn anew (it moved out from under the card), it takes the
+                      // focus back as it comes, as after Close.
+                      focus.mark(`pin:${spot.key}`);
                       onChoose(null);
                     } else {
                       focus.mark('card');
