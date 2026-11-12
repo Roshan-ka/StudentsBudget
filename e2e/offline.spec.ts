@@ -23,6 +23,8 @@ const PRECACHED_PAGES = [
   '/settings/backup',
   '/settings/moderation',
   '/setup',
+  '/privacy',
+  '/impressum',
 ];
 
 /** A same-origin URL that no cache holds and no page serves: offline, a fetch of it must fail at the network. */
