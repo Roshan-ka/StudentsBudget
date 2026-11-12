@@ -8,7 +8,6 @@ import {
   ClipboardListIcon,
   CloudIcon,
   FileSpreadsheetIcon,
-  InfoIcon,
   LandmarkIcon,
   ListChecksIcon,
   MonitorSmartphoneIcon,
@@ -216,19 +215,6 @@ export function SettingsLinks() {
         summary={t.importExport.summary}
       />
       <SettingsLink href="/settings/backup" icon={ArchiveIcon} title={t.shell.headings.backup} summary={t.backup.summary} />
-      {/* The legal pages (legal pages, chunk 1): last, as on most apps. */}
-      <SettingsLink
-        href="/privacy"
-        icon={ShieldCheckIcon}
-        title={t.shell.headings.privacy}
-        summary={t.common.legal.privacySummary}
-      />
-      <SettingsLink
-        href="/impressum"
-        icon={InfoIcon}
-        title={t.shell.headings.impressum}
-        summary={t.common.legal.impressumSummary}
-      />
     </ul>
   );
 }

@@ -161,3 +161,7 @@ The plan is copied into `docs/superpowers/plans/2026-11-12-legal-pages.md` in ch
     - German;
     - the French fallback;
     - 375 px with no sideways scroll.
+- **Chunk 1 reverted** (12-11-2026):
+  - **Why:** #218 was merged with the placeholders, so every Production build stopped at `assertLegalReady`, as designed; the live site stayed on #217's merge. Roshan chose to revert it until the texts are checked, rather than publish his details first.
+  - **What went:** the code, the texts, the spec and the wiring. This plan and CLAUDE.md's `npm audit fix --force` line stayed.
+  - **To bring it back:** a branch from `main` that reverts the revert commit, with Roshan's five details committed in `src/data/legal.ts` before it merges. Chunks 2–4 build on that branch.
