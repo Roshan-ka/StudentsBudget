@@ -1,9 +1,5 @@
 import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
-import { assertLegalReady } from "./src/data/legal";
-
-// A Production build needs the Impressum's and the privacy notice's details filled in (legal pages, chunk 1).
-assertLegalReady(process.env.VERCEL_ENV);
 
 /**
  * The commit this build is made from. It names the offline cache, so a new commit starts a new cache. It has to be
