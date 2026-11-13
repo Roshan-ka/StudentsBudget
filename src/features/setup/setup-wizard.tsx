@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import { SetupAccountLink } from '@/features/account/setup-account-link';
@@ -213,16 +212,10 @@ function Wizard({
         <SetupChatView draft={draft} update={update} accountsExist={accountsExist} today={today} onClose={closeChat} />
       )}
 
-      {/* The step's fields in one card; Income and Fixed costs show each category as its own card instead, with
-          nothing around them (13-11-2026). While the problems show, the fields they name point at them. */}
+      {/* No card around the step (13-11-2026): each category, account and one-off cost is a card of its own. While the
+          problems show, the fields they name point at them. */}
       <StepProblemsContext value={attempted && problems.length > 0 ? problemsId : null}>
-        <div
-          className={cn(
-            step === 'income' || step === 'fixed' ? 'flex flex-col' : cardVariants(),
-            'gap-4',
-            chatting && 'hidden',
-          )}
-        >
+        <div className={cn('flex flex-col gap-4', chatting && 'hidden')}>
           {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
           {step === 'income' && !edit && accountsExist && (
             <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>

@@ -142,6 +142,8 @@ const TEXT: [text: string, surface: string][] = [
   ['muted-foreground', 'background'],
   ['muted-foreground', 'card'],
   ['muted-foreground', 'muted'],
+  // Setup's budget question sits in an accent card, with its hint (13-11-2026).
+  ['muted-foreground', 'accent'],
   ['muted-foreground', 'nav'],
   ['card-foreground', 'card'],
   ['popover-foreground', 'popover'],

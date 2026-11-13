@@ -2,6 +2,7 @@
 
 import { useId } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { SETUP_ENVELOPE_IDS } from '@/data/categories';
 import { CITIES } from '@/data/cities';
 import type { Plan } from '@/db/types';
@@ -32,6 +33,7 @@ import {
   type SetupDraft,
 } from '../draft';
 import { AmountField } from './amount-field';
+import { CategoryCard } from './category-card';
 import { RangeSource } from './range-source';
 
 const RANGES = CITIES.regensburg.ranges.filter((r) => SETUP_ENVELOPE_IDS.includes(r.categoryId));
@@ -106,12 +108,15 @@ export function EnvelopesStep({
         {(edit ? text.budgetIntroEdit : text.budgetIntroNew)(availableText)}
       </p>
       <div className="grid gap-1.5">
-        <AmountField
-          label={text.budgetQuestion}
-          value={draft.spendingBudgetMinor}
-          onChange={(minor) => update((d) => ({ ...d, spendingBudgetMinor: minor ?? 0 }))}
-          hint={<p>{budgetHint(t, lang, locale)}</p>}
-        />
+        {/* The budget question in its own card, in the highlight colour (13-11-2026); tokens.test.ts holds its texts. */}
+        <div className={cardVariants({ variant: 'accent' })}>
+          <AmountField
+            label={text.budgetQuestion}
+            value={draft.spendingBudgetMinor}
+            onChange={(minor) => update((d) => ({ ...d, spendingBudgetMinor: minor ?? 0 }))}
+            hint={<p>{budgetHint(t, lang, locale)}</p>}
+          />
+        </div>
         <details className="text-xs text-muted-foreground">
           {/* The same 44 px tap target as a source line. */}
           <summary className="w-fit cursor-pointer py-3.5">{text.whereFrom}</summary>
@@ -149,32 +154,43 @@ export function EnvelopesStep({
         </div>
       )}
       {below.size > 1 && <p className="text-sm text-muted-foreground">{text.belowSome(below.size)}</p>}
-      {asked.map((c) => {
-        const range = city.ranges.find((r) => r.categoryId === c.id);
-        const suggestion = suggested.get(c.id);
-        return (
-          <div key={c.id} className="grid gap-1.5">
-            <AmountField
-              label={categoryNameIn(t, c.id)}
-              value={amountOf(draft.envelopes, c.id) ?? 0}
-              onChange={(minor) => update((d) => ({ ...d, envelopes: withAmount(d.envelopes, c.id, minor ?? 0) }))}
-              hint={
-                range && (
-                  <>
-                    <p>{rangeLine(text.studentsHere, range, lang)}</p>
-                    {suggestion !== undefined && (
-                      <p>{text.suggested(formatMoney(suggestion, 'EUR', { whole: true, locale }))}</p>
-                    )}
-                    {belowEach && below.has(c.id) && <p>{text.below}</p>}
-                  </>
-                )
+      {/* Each envelope its own card, as on Home (13-11-2026). */}
+      <ul className="flex flex-col gap-2.5">
+        {asked.map((c) => {
+          const range = city.ranges.find((r) => r.categoryId === c.id);
+          const suggestion = suggested.get(c.id);
+          return (
+            <CategoryCard
+              key={c.id}
+              categoryId={c.id}
+              field={
+                <AmountField
+                  layout="row"
+                  label={categoryNameIn(t, c.id)}
+                  value={amountOf(draft.envelopes, c.id) ?? 0}
+                  onChange={(minor) =>
+                    update((d) => ({ ...d, envelopes: withAmount(d.envelopes, c.id, minor ?? 0) }))
+                  }
+                  hint={
+                    range && (
+                      <>
+                        <p>{rangeLine(text.studentsHere, range, lang)}</p>
+                        {suggestion !== undefined && (
+                          <p>{text.suggested(formatMoney(suggestion, 'EUR', { whole: true, locale }))}</p>
+                        )}
+                        {belowEach && below.has(c.id) && <p>{text.below}</p>}
+                      </>
+                    )
+                  }
+                />
               }
-            />
-            {/* In Edit plan, every envelope is asked, so the sources stay in the one "Where this comes from" above. */}
-            {range && !edit && <RangeSource range={rangeIn(range, lang)} about={categoryNameIn(t, c.id)} />}
-          </div>
-        );
-      })}
+            >
+              {/* In Edit plan, every envelope is asked, so the sources stay in the one "Where this comes from" above. */}
+              {range && !edit && <RangeSource range={rangeIn(range, lang)} about={categoryNameIn(t, c.id)} />}
+            </CategoryCard>
+          );
+        })}
+      </ul>
       {/* The live region stays mounted, so the first total after a budget is typed is announced too. */}
       <div aria-live="polite">
         {(line !== null || edit) && (
