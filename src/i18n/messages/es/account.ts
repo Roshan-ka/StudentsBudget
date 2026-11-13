@@ -34,6 +34,10 @@ export const account: Messages['account'] = {
     guest: 'Seguir sin cuenta',
     signedOut: 'Has cerrado sesión. Tus datos se han borrado de este móvil.',
     back: 'Atrás',
-    afterSignIn: 'Cuando inicies sesión, la app trae tus datos desde tu cuenta. Si todavía está vacía, configuras tu plan a continuación.',
+    /** Los formularios de las páginas de inicio (13-11-2026): su titular y la línea debajo. */
+    signInHeading: 'Iniciar sesión',
+    signInLine: 'Tu plan y tus registros vuelven desde tu cuenta.',
+    createHeading: 'Crea tu cuenta',
+    createLine: 'Guarda tu plan y úsalo en cada móvil.',
   },
 };

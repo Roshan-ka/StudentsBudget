@@ -66,6 +66,12 @@ export const auth = {
     toSignIn: 'Have an account? Sign in',
     toCreate: 'New here? Create an account',
     forgot: 'Forgot your password?',
+    /** Creating: the first group's name; the second is postingName.heading. */
+    details: 'Sign-in details',
+    /** The line between the form and the passkey. */
+    or: 'or',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
   },
   /** The code from the sign-up email (P2.4). The email sits in bold between the parts of a sentence. */
   confirm: {
@@ -246,7 +252,6 @@ export const auth = {
       "on your phone or in your password manager; your account keeps its public key, which can't sign anyone in.",
     offline: "You're offline. Passkeys need a connection.",
     signIn: 'Sign in with a passkey',
-    orPassword: 'Or with your email and password:',
     checking: 'Checking your passkeys…',
     unknown: "Couldn't load your passkeys.",
     tryAgain: 'Try again',

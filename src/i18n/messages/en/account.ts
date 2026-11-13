@@ -36,7 +36,10 @@ export const account = {
     /** On the start page, once, after signing out. */
     signedOut: "You're signed out. Your data was removed from this phone.",
     back: 'Back',
-    /** Under the sign-in form on the start page. */
-    afterSignIn: 'Once you are signed in, the app gets your data from your account. If it is still empty, you set up your plan next.',
+    /** The start pages' forms (13-11-2026): their big heading and the line under it. */
+    signInHeading: 'Sign in',
+    signInLine: 'Your plan and entries come back from your account.',
+    createHeading: 'Create your account',
+    createLine: 'Back up your plan and use it on every phone.',
   },
 };

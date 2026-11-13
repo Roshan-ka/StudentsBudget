@@ -35,8 +35,9 @@ function noteClosedPrompt(error: unknown) {
 }
 
 /**
- * "Sign in with a passkey", above the email and password; shown only where the browser can use passkeys. Its message
- * goes to the form (`onError`), and starting it clears the form's (`onStart`), so the sign-in shows one message.
+ * "Sign in with a passkey", under the email and password after an "or" line (13-11-2026); shown, line and all, only
+ * where the browser can use passkeys. Its message goes to the form (`onError`), and starting it clears the form's
+ * (`onStart`), so the sign-in shows one message.
  */
 export function PasskeySignIn({ onStart, onError }: { onStart: () => void; onError: (message: string) => void }) {
   const { t, lang } = useT();
@@ -77,11 +78,15 @@ export function PasskeySignIn({ onStart, onError }: { onStart: () => void; onErr
   if (!supported) return null;
   return (
     <div className="flex flex-col gap-3">
-      <Button type="button" variant="outline" className="self-start px-4" disabled={busy} onClick={() => void signIn()}>
+      <p className="flex items-center gap-3 text-sm text-muted-foreground">
+        <span aria-hidden="true" className="h-px flex-1 bg-border" />
+        {t.auth.signIn.or}
+        <span aria-hidden="true" className="h-px flex-1 bg-border" />
+      </p>
+      <Button type="button" variant="outline" size="lg" className="w-full" disabled={busy} onClick={() => void signIn()}>
         <KeyRoundIcon aria-hidden="true" />
         {t.auth.passkeys.signIn}
       </Button>
-      <p className="text-sm text-muted-foreground">{t.auth.passkeys.orPassword}</p>
     </div>
   );
 }

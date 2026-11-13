@@ -68,6 +68,12 @@ export const auth: Messages['auth'] = {
     toSignIn: `Tu as un compte${NNBSP}? Connecte-toi`,
     toCreate: `Pas encore de compte${NNBSP}? Crée-en un`,
     forgot: `Mot de passe oublié${NNBSP}?`,
+    /** À la création : le nom du premier groupe ; le second est postingName.heading. */
+    details: 'Identifiants de connexion',
+    /** La ligne entre le formulaire et la clé d’accès. */
+    or: 'ou',
+    showPassword: 'Afficher le mot de passe',
+    hidePassword: 'Masquer le mot de passe',
   },
   /** Le code de l’e-mail après la création d’un compte (P2.4). L’adresse est en gras au milieu de la phrase. */
   confirm: {
@@ -261,7 +267,6 @@ export const auth: Messages['auth'] = {
       'sa clé publique, qui ne permet à personne de se connecter.',
     offline: 'Tu es hors ligne. Les clés d’accès ont besoin d’une connexion.',
     signIn: 'Se connecter avec une clé d’accès',
-    orPassword: `Ou avec ton e-mail et ton mot de passe${NNBSP}:`,
     checking: 'Vérification de tes clés d’accès…',
     unknown: 'Impossible de charger tes clés d’accès.',
     tryAgain: 'Réessayer',

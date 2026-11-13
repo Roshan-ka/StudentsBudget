@@ -46,8 +46,8 @@ for (const theme of ['light', 'dark'] as const satisfies readonly Theme[]) {
     const form = (name: string) => page.getByRole('heading', { level: 3, name, exact: true });
     const start = [
       { path: '/start', shown: heading(page, t.shell.headings.start) },
-      { path: '/start/sign-in', shown: form(t.auth.signIn.headingSignIn) },
-      { path: '/start/new-account', shown: form(t.auth.signIn.headingCreate) },
+      { path: '/start/sign-in', shown: form(t.account.start.signInHeading) },
+      { path: '/start/new-account', shown: form(t.account.start.createHeading) },
     ];
     for (const { path, shown } of start) {
       await page.goto(path);

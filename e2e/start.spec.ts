@@ -106,6 +106,30 @@ test('a first visit offers an account or the guest way, and each leads on', asyn
   await expect(page.getByRole('button', { name: 'Language', exact: true })).toHaveCount(0);
 });
 
+test('the sign-in and new-account pages lead to each other, and the password can be shown', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await openApp(page, '/start/sign-in');
+  await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
+
+  // What is typed can be shown and hidden again; the button says what a tap does now.
+  const password = page.getByLabel('Password', { exact: true });
+  await password.fill(PASSWORD);
+  await expect(password).toHaveAttribute('type', 'password');
+  await page.getByRole('button', { name: 'Show password', exact: true }).click();
+  await expect(password).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Hide password', exact: true }).click();
+  await expect(password).toHaveAttribute('type', 'password');
+
+  // The other form is the other page, its fields in two named groups.
+  await page.getByRole('link', { name: 'New here? Create an account', exact: true }).click();
+  await expect(page).toHaveURL('/start/new-account');
+  await expect(page.getByRole('heading', { level: 3, name: 'Create your account', exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Sign-in details', exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Your name on posts', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Have an account? Sign in', exact: true }).click();
+  await expect(page).toHaveURL('/start/sign-in');
+});
+
 test('the globe in the header picks the language, and the choice stays after a reload', async ({ page }) => {
   await skipUnlessAccountsShow(page);
   await openApp(page, '/start');
