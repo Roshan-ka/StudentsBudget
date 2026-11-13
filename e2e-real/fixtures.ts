@@ -71,12 +71,19 @@ type TestFixtures = {
   makeUser: (options: { secondFactor: SecondFactor; username?: boolean }) => Promise<TestUser>;
 };
 
-export const test = base.extend<TestFixtures, { moderator: TestUser }>({
-  // The moderator seeded for this worker (e2e-real/db.mjs seed): one per worker, kept for the worker's tests.
+export const test = base.extend<TestFixtures, { moderator: TestUser; plainModerator: TestUser }>({
+  // The moderators seeded for this worker (e2e-real/db.mjs seed): one per worker, kept for the worker's tests.
+  // `moderator` has its authenticator on; `plainModerator` has no second factor (aal1 is all it can reach).
   moderator: [
     // An empty pattern: Playwright reads a fixture's dependencies from it, and this one has none.
     async ({}, provide, workerInfo) => {
-      await provide(moderatorFor(workerInfo.parallelIndex));
+      await provide(moderatorFor(workerInfo.parallelIndex, 'totp'));
+    },
+    { scope: 'worker' },
+  ],
+  plainModerator: [
+    async ({}, provide, workerInfo) => {
+      await provide(moderatorFor(workerInfo.parallelIndex, 'none'));
     },
     { scope: 'worker' },
   ],

@@ -35,7 +35,10 @@ function relativeInside(p) {
 
 /**
  * Checks one mutations file's JSON. Returns every mutation it can use and every problem, so a file is fixed in one go.
- * @returns {{ mutations: { name: string, file: string, find: string, replace: string, expect: Record<string, string[]> }[], problems: string[] }}
+ * A mutation is one edit (`file`, `find`, `replace`), or several at once (`edits`: a list of them) for a behaviour two
+ * guards hold, where breaking either alone changes nothing (defence in depth). Each comes back with `edits`, and `file`,
+ * the first edit's file.
+ * @returns {{ mutations: { name: string, file: string, edits: { file: string, find: string, replace: string }[], expect: Record<string, string[]> }[], problems: string[] }}
  */
 export function parseMutations(json) {
   const problems = [];
@@ -53,11 +56,18 @@ export function parseMutations(json) {
     if (typeof m?.name !== 'string' || m.name.trim() === '') problems.push(`${label}: needs a name`);
     else if (names.has(m.name)) problems.push(`${label}: the name is used twice`);
     else names.add(m.name);
-    const file = relativeInside(m?.file);
-    if (!file) problems.push(`${label}: file must be a path inside the repo`);
-    if (typeof m?.find !== 'string' || m.find === '') problems.push(`${label}: find must be the exact text to change`);
-    if (typeof m?.replace !== 'string') problems.push(`${label}: replace must be the text to put there`);
-    else if (m.replace === m.find) problems.push(`${label}: replace equals find, so it changes nothing`);
+    const several = m?.edits !== undefined;
+    if (several && (!Array.isArray(m.edits) || m.edits.length < 2)) problems.push(`${label}: edits must list two or more; one edit goes in file, find and replace`);
+    const raw = several ? (Array.isArray(m.edits) ? m.edits : []) : [m];
+    const edits = raw.map((edit, j) => {
+      const at = several ? `${label} edit ${j + 1}` : label;
+      const file = relativeInside(edit?.file);
+      if (!file) problems.push(`${at}: file must be a path inside the repo`);
+      if (typeof edit?.find !== 'string' || edit.find === '') problems.push(`${at}: find must be the exact text to change`);
+      if (typeof edit?.replace !== 'string') problems.push(`${at}: replace must be the text to put there`);
+      else if (edit.replace === edit.find) problems.push(`${at}: replace equals find, so it changes nothing`);
+      return { file, find: edit?.find, replace: edit?.replace };
+    });
     const expect = {};
     const entries = Object.entries(m?.expect ?? {});
     if (entries.length === 0) problems.push(`${label}: expect names no spec, so it would prove nothing`);
@@ -69,7 +79,7 @@ export function parseMutations(json) {
       else if (new Set(ids).size !== ids.length) problems.push(`${label}: "${spec}" names a proof id twice`);
       else expect[where] = [...ids];
     }
-    if (problems.length === before) mutations.push({ name: m.name, file, find: m.find, replace: m.replace, expect });
+    if (problems.length === before) mutations.push({ name: m.name, file: edits[0].file, edits, expect });
   });
   return { mutations, problems };
 }
@@ -98,6 +108,22 @@ export function applyMutation(text, { find, replace }) {
   if (count === 0) return { ok: false, reason: 'find no longer matches the file' };
   if (count > 1) return { ok: false, reason: `find matches ${count} places, so it isn't clear which to change` };
   return { ok: true, text: text.replace(target, () => replace.replace(/\r?\n/g, eol)) };
+}
+
+/**
+ * Every edit of a mutation applied, file by file (two edits of one file in turn): the new texts by file, or why the
+ * mutation is stale. `read(file)` gives a file's text, or null when it doesn't exist.
+ */
+export function applyEdits(edits, read) {
+  const texts = new Map();
+  for (const edit of edits) {
+    const current = texts.has(edit.file) ? texts.get(edit.file) : read(edit.file);
+    if (current === null) return { ok: false, reason: `${edit.file} doesn't exist` };
+    const applied = applyMutation(current, edit);
+    if (!applied.ok) return { ok: false, reason: `${edit.file}: ${applied.reason}` };
+    texts.set(edit.file, applied.text);
+  }
+  return { ok: true, texts };
 }
 
 const firstLine = (message) => (message ?? '').replace(ANSI, '').trim().split(/\r?\n/)[0] ?? '';

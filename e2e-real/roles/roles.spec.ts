@@ -60,10 +60,13 @@ test('a student: no Moderation link, and the page refuses, with a reported post 
   await expect(reportedPost(page, body)).toHaveCount(0);
 });
 
-test('the moderator without the authenticator code: the page asks for the code', async ({ page, moderator }) => {
+// A moderator without a second factor: the app signs it in at aal1, so only the guard's own rule (aal2 to moderate,
+// two-step sign-in or not) stands between it and the queue. A moderator with an authenticator stops at the code step
+// before the page asks for anything.
+test('the moderator without the authenticator code: the page asks for the code', async ({ page, plainModerator }) => {
   await openApp(page, '/settings/account');
-  await signIn(page, moderator);
-  await expect(codeStep(page, moderator.email)).toBeVisible();
+  await signIn(page, plainModerator);
+  await expect(signedInAs(page, plainModerator.email)).toBeVisible();
 
   await openApp(page, '/settings/moderation');
   await expect(page.getByText(NEEDS_CODE)).toBeVisible(); // proof: moderator-aal1-page
@@ -85,7 +88,8 @@ test('the moderator with the code: the link, the reported post, and hiding it', 
   await openApp(page, '/settings/moderation');
   await expect(reportedPost(page, body)).toBeVisible(); // proof: moderator-page
   await reportedPost(page, body).getByRole('button', { name: 'Hide', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Hidden from every feed.');
+  // The start of the status: what follows names the deleting rule (purge_old_content), its own concern.
+  await expect(page.getByRole('status')).toHaveText(/^Hidden from every feed/);
   // What the server holds, not what the page said: the queue read again shows the post hidden by hand.
   await openApp(page, '/settings/moderation');
   await expect(reportedPost(page, body)).toContainText('Hidden by you'); // proof: moderator-hide

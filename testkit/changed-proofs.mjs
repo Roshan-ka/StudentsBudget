@@ -24,7 +24,7 @@ export function specsToProve({ changed, mutationFiles }) {
   for (const { path: file, mutations } of mutationFiles) {
     for (const m of mutations) {
       const named = Object.keys(m.expect);
-      if (touched.has(file) || touched.has(m.file)) named.forEach((spec) => specs.add(spec));
+      if (touched.has(file) || m.edits.some((edit) => touched.has(edit.file))) named.forEach((spec) => specs.add(spec));
       else named.filter((spec) => touched.has(spec)).forEach((spec) => specs.add(spec));
     }
   }

@@ -21,7 +21,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { applyMutation, flattenReport, judgeProof, parseMutations, proofLines, summarize } from './judge.mjs';
+import { applyEdits, flattenReport, judgeProof, parseMutations, proofLines, summarize } from './judge.mjs';
 
 const MARK = { proven: '✓', 'not-proven': '✗', stale: 'stale', inconclusive: '?', 'known-bug': 'known bug' };
 
@@ -83,13 +83,14 @@ async function main() {
   const pendingFile = path.join(work, 'pending.json');
   fs.mkdirSync(work, { recursive: true });
 
-  // A run that was killed while a mutation was applied left its original here: put it back first.
+  // A run that was killed while a mutation was applied left the originals here: put them back first.
   const putBack = () => {
     if (!fs.existsSync(pendingFile)) return null;
-    const { file, original } = JSON.parse(fs.readFileSync(pendingFile, 'utf8'));
-    fs.writeFileSync(path.join(root, file), Buffer.from(original, 'base64'));
+    const pending = JSON.parse(fs.readFileSync(pendingFile, 'utf8'));
+    const originals = Array.isArray(pending) ? pending : [pending];
+    for (const { file, original } of originals) fs.writeFileSync(path.join(root, file), Buffer.from(original, 'base64'));
     fs.rmSync(pendingFile);
-    return file;
+    return originals.map((o) => o.file).join(', ');
   };
   const repaired = putBack();
   if (repaired) console.log(`red-green: put ${repaired} back from a run that was stopped`);
@@ -162,31 +163,31 @@ async function main() {
     const ids = m.specs.flatMap((spec) => m.expect[spec].map((id) => ({ spec, id, lines: proofLines(sources[spec]).get(id) ?? [] })));
     const each = (verdict, reason) => ids.forEach(({ spec, id }) => rows.push({ mutation: m.name, spec, id, verdict, reason }));
 
-    const targetPath = path.join(root, m.file);
-    if (!fs.existsSync(targetPath)) {
-      each('stale', `${m.file} doesn't exist`);
-      continue;
-    }
-    const original = fs.readFileSync(targetPath);
-    const applied = applyMutation(original.toString('utf8'), m);
+    // Every edit at once (a mutation may break two guards together); each file's original kept to put back.
+    const readText = (file) => (fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file), 'utf8') : null);
+    const applied = applyEdits(m.edits, readText);
     if (!applied.ok) {
-      each('stale', `${m.file}: ${applied.reason}`);
+      each('stale', applied.reason);
       continue;
     }
+    const files = [...applied.texts.keys()];
+    const originals = files.map((file) => ({ file, original: fs.readFileSync(path.join(root, file)) }));
+    // The steps every changed file needs (a database reset for a migration), each once.
+    const steps = [...new Map(files.flatMap(stepsFor).map((step) => [JSON.stringify(step), step])).values()];
 
-    console.log(`red-green: mutation ${i + 1}/${chosen.length} "${m.name}" in ${m.file}`);
+    console.log(`red-green: mutation ${i + 1}/${chosen.length} "${m.name}" in ${files.join(', ')}`);
     let red = null;
     let stepProblem = null;
-    fs.writeFileSync(pendingFile, JSON.stringify({ file: m.file, original: original.toString('base64') }));
+    fs.writeFileSync(pendingFile, JSON.stringify(originals.map(({ file, original }) => ({ file, original: original.toString('base64') }))));
     try {
-      fs.writeFileSync(targetPath, applied.text);
-      stepProblem = runSteps(root, stepsFor(m.file), 'after the mutation');
+      for (const file of files) fs.writeFileSync(path.join(root, file), applied.texts.get(file));
+      stepProblem = runSteps(root, steps, 'after the mutation');
       if (!stepProblem) red = await runPlaywright(`red-${i + 1}`, m.specs);
     } finally {
-      fs.writeFileSync(targetPath, original);
+      for (const { file, original } of originals) fs.writeFileSync(path.join(root, file), original);
       fs.rmSync(pendingFile, { force: true });
     }
-    const undo = runSteps(root, stepsFor(m.file), 'after the restore');
+    const undo = runSteps(root, steps, 'after the restore');
     if (undo) fail(2, `${undo}: the backend may still hold the mutation`);
     if (stepProblem || !red) {
       each('inconclusive', stepProblem ?? 'the run under the mutation wrote no report');

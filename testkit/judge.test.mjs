@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { applyMutation, flattenReport, isExpectFailure, judgeProof, owners, parseMutations, proofLines, summarize } from './judge.mjs';
+import { applyEdits, applyMutation, flattenReport, isExpectFailure, judgeProof, owners, parseMutations, proofLines, summarize } from './judge.mjs';
 
 const ROOT = path.resolve('/repo');
 const SPEC = 'e2e/a.spec.ts';
@@ -38,10 +38,24 @@ const passed = (title, line, project) => ({ title, line, project, status: 'passe
 describe('parseMutations', () => {
   const good = { name: 'm', file: 'src/a.ts', find: 'a', replace: 'b', expect: { [SPEC]: ['shows-a'] } };
 
-  it('takes a valid file', () => {
+  it('takes a valid file, each mutation as its list of edits', () => {
     const { mutations, problems } = parseMutations({ format: 0, mutations: [good] });
     expect(problems).toEqual([]);
-    expect(mutations).toEqual([good]);
+    expect(mutations).toEqual([{ name: 'm', file: 'src/a.ts', edits: [{ file: 'src/a.ts', find: 'a', replace: 'b' }], expect: good.expect }]);
+  });
+
+  it('takes several edits at once, for two guards broken together, and refuses a list of one', () => {
+    const both = { name: 'both', expect: good.expect, edits: [{ file: 'db/a.sql', find: 'on', replace: 'off' }, { file: 'db/b.sql', find: 'check', replace: 'none' }] };
+    const { mutations, problems } = parseMutations({ format: 0, mutations: [both] });
+    expect(problems).toEqual([]);
+    expect(mutations[0]).toMatchObject({ file: 'db/a.sql', edits: both.edits });
+    expect(parseMutations({ format: 0, mutations: [{ ...both, edits: [both.edits[0]] }] }).problems).toEqual([
+      'mutation 1 "both": edits must list two or more; one edit goes in file, find and replace',
+    ]);
+    expect(parseMutations({ format: 0, mutations: [{ ...both, edits: [both.edits[0], { file: '../x', find: 'a', replace: 'a' }] }] }).problems).toEqual([
+      'mutation 1 "both" edit 2: file must be a path inside the repo',
+      'mutation 1 "both" edit 2: replace equals find, so it changes nothing',
+    ]);
   });
 
   it('names every problem at once', () => {
@@ -197,5 +211,21 @@ describe('summarize', () => {
     expect(summarize([{ verdict: 'proven' }, { verdict: 'known-bug' }]).ok).toBe(true);
     expect(summarize([{ verdict: 'proven' }, { verdict: 'stale' }]).ok).toBe(false);
     expect(summarize([]).ok).toBe(false);
+  });
+});
+
+describe('applyEdits', () => {
+  const files = { 'db/a.sql': 'rls on; check owner;', 'db/b.sql': 'trigger check' };
+  const read = (file) => files[file] ?? null;
+
+  it('applies every edit, two in one file in turn', () => {
+    const result = applyEdits([{ file: 'db/a.sql', find: 'on;', replace: 'off;' }, { file: 'db/a.sql', find: 'check owner', replace: 'skip' }, { file: 'db/b.sql', find: 'check', replace: 'none' }], read);
+    expect(result.ok).toBe(true);
+    expect(Object.fromEntries(result.texts)).toEqual({ 'db/a.sql': 'rls off; skip;', 'db/b.sql': 'trigger none' });
+  });
+
+  it('calls the whole mutation stale when one edit no longer fits', () => {
+    expect(applyEdits([{ file: 'db/a.sql', find: 'on;', replace: 'off;' }, { file: 'db/c.sql', find: 'x', replace: 'y' }], read)).toEqual({ ok: false, reason: "db/c.sql doesn't exist" });
+    expect(applyEdits([{ file: 'db/b.sql', find: 'gone', replace: 'y' }], read)).toEqual({ ok: false, reason: 'db/b.sql: find no longer matches the file' });
   });
 });

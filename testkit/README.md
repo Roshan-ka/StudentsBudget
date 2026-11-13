@@ -48,6 +48,7 @@ A saved mutation breaks the app on purpose, so a test proves it can fail. One JS
 ```
 
 - **`find`** must occur exactly once in `file`. `replace` is put there.
+- **Several edits at once:** `edits: [{ file, find, replace }, …]` (two or more) in place of `file`, `find` and `replace`, for a behaviour two guards hold, where breaking either alone changes nothing (defence in depth). Every edit is applied and put back together, and a stale one makes the whole mutation stale.
 - **`expect`** maps a spec to its **proof ids**. A proof id marks one assertion in the spec, as a comment on the line with the matcher:
 
   ```ts

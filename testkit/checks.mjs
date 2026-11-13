@@ -48,11 +48,13 @@ export function checkMutationFile(json, read) {
   const { mutations, problems } = parseMutations(json);
   for (const m of mutations) {
     const say = (text) => problems.push(`"${m.name}": ${text}`);
-    const target = read(m.file);
-    if (target === null) say(`${m.file} doesn't exist`);
-    else {
-      const applied = applyMutation(target, m);
-      if (!applied.ok) say(`${m.file}: ${applied.reason}`);
+    for (const edit of m.edits) {
+      const target = read(edit.file);
+      if (target === null) say(`${edit.file} doesn't exist`);
+      else {
+        const applied = applyMutation(target, edit);
+        if (!applied.ok) say(`${edit.file}: ${applied.reason}`);
+      }
     }
     for (const [spec, ids] of Object.entries(m.expect)) {
       const source = read(spec);

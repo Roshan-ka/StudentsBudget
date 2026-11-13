@@ -173,14 +173,15 @@ export async function reportHack(request: APIRequestContext, user: TestUser, id:
 }
 
 /**
- * The moderator seeded for this worker (`node e2e-real/db.mjs seed`, before the run): an account with its
- * authenticator on, in private.moderators. Each worker has its own, so two never give the same account's code at once.
+ * The moderator seeded for this worker (`node e2e-real/db.mjs seed`, before the run), in private.moderators: with
+ * `totp`, its authenticator is on; with `none`, it has no second factor, so it signs in at aal1 and only the guard's
+ * own aal2 rule stops it. Each worker has its own, so two never give the same account's code at once.
  */
-export function moderatorFor(parallelIndex: number): TestUser {
+export function moderatorFor(parallelIndex: number, secondFactor: SecondFactor = 'totp'): TestUser {
   const file = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'playwright', '.auth', 'moderators.json');
   if (!existsSync(file)) throw new Error('no seeded moderators: run `node e2e-real/db.mjs seed` with the stack up first');
-  const seeded = JSON.parse(readFileSync(file, 'utf8')) as TestUser[];
-  const moderator = seeded[parallelIndex];
+  const seeded = JSON.parse(readFileSync(file, 'utf8')) as Record<SecondFactor, TestUser[]>;
+  const moderator = seeded[secondFactor]?.[parallelIndex];
   if (!moderator) throw new Error(`no seeded moderator for worker ${parallelIndex}: seed more (node e2e-real/db.mjs seed <count>)`);
   return moderator;
 }

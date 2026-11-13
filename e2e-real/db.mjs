@@ -76,30 +76,40 @@ async function emailedCode(address) {
   throw new Error(`no emailed code to ${address} in Mailpit`);
 }
 
-/** A moderator: an account with its authenticator on, granted the role in private.moderators. */
-async function makeModerator(run, index) {
-  const email = `moderator-${run}-${index}@example.com`;
+/**
+ * A moderator, granted the role in private.moderators: with `totp`, its authenticator is on (the usual moderator);
+ * without, it has no second factor, so the app signs it in at aal1 and only the guard's own aal2 rule stops it.
+ */
+async function makeModerator(run, index, secondFactor) {
+  const email = `moderator-${secondFactor}-${run}-${index}@example.com`;
   await auth('signup', { email, password: PASSWORD });
   let session = await auth('verify', { type: 'email', email, token: await emailedCode(email) });
-  const factor = await auth('factors', { factor_type: 'totp', friendly_name: 'Moderator phone' }, session.access_token);
-  const challenge = await auth(`factors/${factor.id}/challenge`, {}, session.access_token);
-  const usedCode = totpCode(factor.totp.secret);
-  session = await auth(`factors/${factor.id}/verify`, { challenge_id: challenge.id, code: usedCode }, session.access_token);
+  let totp = {};
+  if (secondFactor === 'totp') {
+    const factor = await auth('factors', { factor_type: 'totp', friendly_name: 'Moderator phone' }, session.access_token);
+    const challenge = await auth(`factors/${factor.id}/challenge`, {}, session.access_token);
+    const usedCode = totpCode(factor.totp.secret);
+    session = await auth(`factors/${factor.id}/verify`, { challenge_id: challenge.id, code: usedCode }, session.access_token);
+    totp = { secret: factor.totp.secret, usedCode };
+  }
   const id = session.user.id;
   if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error('the verify answer named no user id');
   psql(`insert into private.moderators (user_id) values ('${id}') on conflict do nothing`);
-  return { email, password: PASSWORD, secret: factor.totp.secret, usedCode, id, session: { access_token: session.access_token } };
+  return { email, password: PASSWORD, ...totp, id, session: { access_token: session.access_token } };
 }
 
-/** Seeds `count` moderators, one per worker, into the git-ignored moderators file. Prints only how many. */
+/**
+ * Seeds `count` moderators of each kind, one per worker, into the git-ignored moderators file:
+ * `{ totp: [...], none: [...] }`. Prints only how many.
+ */
 export async function seed(count = 4) {
   const run = Date.now().toString(36);
-  const moderators = [];
-  for (let i = 0; i < count; i += 1) moderators.push(await makeModerator(run, i));
+  const moderators = { totp: [], none: [] };
+  for (const kind of ['totp', 'none']) for (let i = 0; i < count; i += 1) moderators[kind].push(await makeModerator(run, i, kind));
   mkdirSync(path.dirname(MODERATORS_FILE), { recursive: true });
   execFileSync('git', ['-C', ROOT, 'check-ignore', '-q', MODERATORS_FILE]);
   writeFileSync(MODERATORS_FILE, `${JSON.stringify(moderators, null, 2)}\n`);
-  console.log(`seeded ${moderators.length} moderators into playwright/.auth/moderators.json`);
+  console.log(`seeded ${count} moderators with an authenticator and ${count} without into playwright/.auth/moderators.json`);
 }
 
 /** check-matrix: the matrix parses, and covers every guarded server action the running database has. */

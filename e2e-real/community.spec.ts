@@ -59,7 +59,8 @@ test("commenting: a student comments on another student's post, and the comment 
   await postHack(request, author, body);
   await signedInAs_(page, student);
   await openTab(page, 'Hacks');
-  await postItem(page, body).getByRole('button', { name: 'Comments (0)', exact: true }).click();
+  // A post without comments shows the button as plain "Comments" (CI run 43403933613): the count joins at one.
+  await postItem(page, body).getByRole('button', { name: /^Comments( \(0\))?$/ }).click();
   await postItem(page, body).getByRole('textbox', { name: 'Your comment', exact: true }).fill('Thanks, it worked for me.');
   await postItem(page, body).getByRole('button', { name: 'Post comment', exact: true }).click();
   await expect(postItem(page, body).getByRole('status')).toHaveText('Comment posted.');
