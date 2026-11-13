@@ -3,9 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { checkMutationFile, checkSkips } from '../testkit/checks.mjs';
+import { missingActions, parseMatrix, proofProblems } from '../testkit/role-matrix.mjs';
 
 // StudentsBudget's side of testkit/ (testkit/README.md): the kit stays free of this app's names, every saved mutation
-// still fits the code it names, and every skip in the e2e specs is on the allow-list with its kind.
+// still fits the code it names, every skip in the e2e specs is on the allow-list with its kind, and the role matrix
+// is whole: it parses, its proofs exist, and it names every function the migrations guard with acting_moderator().
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const read = (rel) => {
@@ -56,5 +58,46 @@ describe('e2e/skip-allow-list.json', () => {
       .filter((f) => f.endsWith('.ts'))
       .map((f) => ({ path: f, source: read(f) }));
     expect(checkSkips(files, JSON.parse(read('e2e/skip-allow-list.json')))).toEqual([]);
+  });
+});
+
+/**
+ * The public functions whose body asks private.acting_moderator(), from the migrations' text: `rpc:<name>`. The stack
+ * job checks the same against the running database (`node e2e-real/db.mjs check-matrix`, pg_proc), which also sees a
+ * function a later migration replaced.
+ */
+function guardedInMigrations() {
+  const guarded = new Set();
+  for (const file of filesUnder('supabase/migrations').filter((f) => f.endsWith('.sql'))) {
+    const text = read(file);
+    for (const match of text.matchAll(/create (?:or replace )?function public\.(\w+)\(/g)) {
+      const open = text.indexOf('$$', match.index);
+      const body = text.slice(open, text.indexOf('$$', open + 2));
+      if (body.includes('private.acting_moderator()')) guarded.add(`rpc:${match[1]}`);
+    }
+  }
+  return [...guarded];
+}
+
+describe('e2e-real/roles/matrix.json', () => {
+  const { rows, problems } = parseMatrix(JSON.parse(read('e2e-real/roles/matrix.json')));
+
+  it('parses', () => {
+    expect(problems).toEqual([]);
+  });
+
+  it('cites only proofs that exist: proof ids in the specs, and pgTAP checks by name', () => {
+    const pgtap = filesUnder('supabase/tests')
+      .filter((f) => f.endsWith('.sql'))
+      .map(read)
+      .join('\n');
+    const hasExternal = (suite, name) => suite === 'pgtap' && pgtap.includes(`'${name}'`);
+    expect(proofProblems(rows, { readSpec: read, hasExternal })).toEqual([]);
+  });
+
+  it('names every function the migrations guard with acting_moderator()', () => {
+    const guarded = guardedInMigrations();
+    expect(guarded.length).toBeGreaterThan(0);
+    expect(missingActions(rows, guarded)).toEqual([]);
   });
 });

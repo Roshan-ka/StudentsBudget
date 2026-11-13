@@ -1,0 +1,50 @@
+{
+  "format": 0,
+  "rows": [
+    { "role": "outsider", "level": "none", "subject": "own", "action": "page:/settings/moderation", "channel": "ui", "expect": "refused", "proof": "e2e-real/roles/roles.spec.ts#outsider-page" },
+    { "role": "outsider", "level": "none", "subject": "own", "action": "link:settings/moderation", "channel": "ui", "expect": "refused", "proof": "e2e-real/roles/roles.spec.ts#outsider-link" },
+    { "role": "student", "level": "aal1", "subject": "own", "action": "page:/settings/moderation", "channel": "ui", "expect": "refused", "proof": "e2e-real/roles/roles.spec.ts#student-page" },
+    { "role": "student", "level": "aal1", "subject": "own", "action": "link:settings/moderation", "channel": "ui", "expect": "refused", "proof": "e2e-real/roles/roles.spec.ts#student-link" },
+    { "role": "moderator", "level": "aal1", "subject": "own", "action": "page:/settings/moderation", "channel": "ui", "expect": "refused", "proof": "e2e-real/roles/roles.spec.ts#moderator-aal1-page" },
+    { "role": "moderator", "level": "aal2", "subject": "own", "action": "link:settings/moderation", "channel": "ui", "expect": "allowed", "proof": "e2e-real/roles/roles.spec.ts#moderator-link" },
+    { "role": "moderator", "level": "aal2", "subject": "own", "action": "page:/settings/moderation", "channel": "ui", "expect": "allowed", "proof": "e2e-real/roles/roles.spec.ts#moderator-page" },
+    { "role": "moderator", "level": "aal2", "subject": "other-user", "action": "rpc:moderate_hack", "channel": "ui", "expect": "allowed", "proof": "e2e-real/roles/roles.spec.ts#moderator-hide" },
+
+    { "role": "outsider", "level": "none", "subject": "own", "action": "rpc:moderation_queue", "channel": "server", "expect": "refused", "proof": "external:pgtap:every hacks function is for signed-in users only" },
+    { "role": "student", "level": "aal2", "subject": "own", "action": "rpc:moderation_queue", "channel": "server", "expect": "refused", "proof": "external:pgtap:someone who does not moderate gets no queue" },
+    { "role": "moderator", "level": "aal1", "subject": "own", "action": "rpc:moderation_queue", "channel": "server", "expect": "refused", "proof": "external:pgtap:the moderator needs the code even without two-step sign-in set up" },
+    { "role": "moderator", "level": "aal2", "subject": "own", "action": "rpc:moderation_queue", "channel": "server", "expect": "allowed", "proof": "external:pgtap:the queue lists the reported posts, with what hides them" },
+    { "role": "outsider", "level": "none", "subject": "other-user", "action": "rpc:moderate_hack", "channel": "server", "expect": "refused", "proof": "external:pgtap:every hacks function is for signed-in users only" },
+    { "role": "student", "level": "aal2", "subject": "other-user", "action": "rpc:moderate_hack", "channel": "server", "expect": "refused", "proof": "external:pgtap:someone who does not moderate cannot hide a post" },
+    { "role": "moderator", "level": "aal1", "subject": "other-user", "action": "rpc:moderate_hack", "channel": "server", "expect": "refused", "proof": "external:pgtap:the moderator cannot hide a post without the code" },
+    { "role": "moderator", "level": "aal2", "subject": "other-user", "action": "rpc:moderate_hack", "channel": "server", "expect": "allowed", "proof": "external:pgtap:the moderator hides the bread post" },
+
+    { "role": "outsider", "level": "none", "subject": "own", "action": "rpc:comment_queue", "channel": "server", "expect": "refused", "proof": "external:pgtap:every comment function is for signed-in users only" },
+    { "role": "student", "level": "aal2", "subject": "own", "action": "rpc:comment_queue", "channel": "server", "expect": "refused", "proof": "external:pgtap:someone who does not moderate gets no queue" },
+    { "role": "moderator", "level": "aal1", "subject": "own", "action": "rpc:comment_queue", "channel": "server", "expect": "refused", "proof": "external:pgtap:the moderator needs the code first" },
+    { "role": "moderator", "level": "aal2", "subject": "own", "action": "rpc:comment_queue", "channel": "server", "expect": "allowed", "proof": "external:pgtap:the queue holds the reported comment, hidden by reports" },
+    { "role": "outsider", "level": "none", "subject": "other-user", "action": "rpc:moderate_comment", "channel": "server", "expect": "refused", "proof": "external:pgtap:every comment function is for signed-in users only" },
+    { "role": "student", "level": "aal2", "subject": "other-user", "action": "rpc:moderate_comment", "channel": "server", "expect": "refused", "proof": "external:pgtap:someone who does not moderate cannot hide a comment" },
+    { "role": "moderator", "level": "aal1", "subject": "other-user", "action": "rpc:moderate_comment", "channel": "server", "expect": "refused", "proof": "external:pgtap:the moderator cannot hide a comment without the code" },
+    { "role": "moderator", "level": "aal2", "subject": "other-user", "action": "rpc:moderate_comment", "channel": "server", "expect": "allowed", "proof": "external:pgtap:the moderator hides it" },
+
+    { "role": "outsider", "level": "none", "subject": "own", "action": "rpc:discount_queue", "channel": "server", "expect": "refused", "proof": "external:pgtap:every discount function is for signed-in users only" },
+    { "role": "student", "level": "aal2", "subject": "own", "action": "rpc:discount_queue", "channel": "server", "expect": "refused", "proof": "external:pgtap:someone who does not moderate gets no queue" },
+    { "role": "moderator", "level": "aal1", "subject": "own", "action": "rpc:discount_queue", "channel": "server", "expect": "refused", "proof": "external:pgtap:the moderator needs the code first" },
+    { "role": "moderator", "level": "aal2", "subject": "own", "action": "rpc:discount_queue", "channel": "server", "expect": "allowed", "proof": "external:pgtap:the queue holds the reported discount, hidden by reports" },
+    { "role": "outsider", "level": "none", "subject": "other-user", "action": "rpc:moderate_discount", "channel": "server", "expect": "refused", "proof": "external:pgtap:every discount function is for signed-in users only" },
+    { "role": "student", "level": "aal2", "subject": "other-user", "action": "rpc:moderate_discount", "channel": "server", "expect": "refused", "proof": "external:pgtap:someone who does not moderate cannot hide a discount" },
+    { "role": "moderator", "level": "aal1", "subject": "other-user", "action": "rpc:moderate_discount", "channel": "server", "expect": "refused", "proof": "external:pgtap:the moderator cannot hide a discount without the code" },
+    { "role": "moderator", "level": "aal2", "subject": "other-user", "action": "rpc:moderate_discount", "channel": "server", "expect": "allowed", "proof": "external:pgtap:the moderator hides it" },
+
+    { "role": "outsider", "level": "none", "subject": "own", "action": "rpc:am_i_moderator", "channel": "server", "expect": "refused", "proof": "e2e-real/roles/security.spec.ts#anon-rpc" },
+    { "role": "outsider", "level": "none", "subject": "other-user", "action": "rest:read user tables", "channel": "server", "expect": "refused", "proof": "e2e-real/roles/security.spec.ts#anon-read" },
+    { "role": "student", "level": "aal1", "subject": "other-user", "action": "rest:read user tables", "channel": "server", "expect": "refused", "proof": "e2e-real/roles/security.spec.ts#other-read" },
+    { "role": "student", "level": "aal1", "subject": "other-user", "action": "rest:change user tables", "channel": "server", "expect": "refused", "proof": "e2e-real/roles/security.spec.ts#other-change" },
+    { "role": "student", "level": "aal1", "subject": "other-user", "action": "rest:delete user tables", "channel": "server", "expect": "refused", "proof": "e2e-real/roles/security.spec.ts#other-delete" },
+    { "role": "student", "level": "aal1", "subject": "other-user", "action": "rest:add to user tables", "channel": "server", "expect": "refused", "proof": "e2e-real/roles/security.spec.ts#other-insert" },
+    { "role": "student", "level": "aal1", "subject": "other-user", "action": "rpc:delete_hack", "channel": "server", "expect": "refused", "proof": "e2e-real/roles/security.spec.ts#other-post" },
+
+    { "role": "moderator", "level": "aal1", "subject": "own", "action": "rpc:take_ai_allowance", "channel": "server", "expect": "allowed", "proof": null, "flag": "a moderator without a second factor gets no AI limit at aal1 (supabase/migrations/20261109125656_ai_allowance.sql:84), while every moderator action needs aal2: intended?" }
+  ]
+}

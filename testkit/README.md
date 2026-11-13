@@ -108,9 +108,9 @@ Every skip in the specs is listed with its kind, so a skip can't hide a test tha
 
 `checkSkips` fails on a skip that isn't listed, and on an entry that no longer matches.
 
-## Role matrix (format 0, used from the roles phase)
+## Role matrix (format 0, `role-matrix.mjs`)
 
-One row per cell: `role × level × subject × action × channel → allowed | refused`, and where it's checked.
+One row per cell: `role × level × subject × action × channel → allowed | refused`, and where it's checked. A file is `{ "format": 0, "rows": [ … ] }`.
 
 | Field | Values |
 |---|---|
@@ -120,9 +120,17 @@ One row per cell: `role × level × subject × action × channel → allowed | r
 | `action` | a page, a control or a server call, from the adapter's `discoverActions()` and the app's page list |
 | `channel` | `ui` (what the person sees) or `server` (a direct call with that session) |
 | `expect` | `allowed` or `refused` |
-| `proof` | an e2e proof id, or `external:<name>` for a cell another suite proves (shown as "proven elsewhere, not mutated", never ✓) |
+| `proof` | `<spec>#<proof id>` (an e2e assertion, proven by red before green), or `external:<suite>:<name>` for a cell another suite proves, a database test say (shown as "proven elsewhere, not mutated", never ✓) |
+| `flag` | instead of a proof: a question for a person about a cell, until it is answered |
 
-The spec holds every `expect`. The kit only supplies rows and helpers that return values, because an assertion inside the kit would always count as "red elsewhere".
+- **The spec holds every `expect`.** The kit only supplies rows and helpers that return values, because an assertion inside the kit would always count as "red elsewhere".
+- **One proof per test for a mutation.** A test stops at its first failure, so a mutation that should turn several assertions red needs a test for each.
+- **Checks in `role-matrix.mjs`:**
+  - `parseMatrix`: the fields, and no cell twice
+  - `missingActions(rows, discovered)`: every action the adapter's `discoverActions()` finds has a row
+  - `proofProblems`: every proof the matrix cites exists
+  - `matrixMarkdown`: the table for a job summary
+- **What needs the backend itself runs before the tests start,** on the machine that runs the backend. Discovering actions and granting a role are examples. A test's browser image may have no access to it.
 
 ## Adapter (v0)
 

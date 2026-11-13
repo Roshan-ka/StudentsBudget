@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, type APIRequestContext } from '@playwright/test';
 import { freshCode, totpCode } from '../src/sync/totp';
 import { SERVER_TABLES, type ServerTable } from '../src/sync/tables';
@@ -107,12 +110,17 @@ export const freshTotp = (user: TestUser) => freshCode(user.secret as string, us
 
 /**
  * A confirmed account, signed up and confirmed through the API. With `secondFactor: 'totp'`, its authenticator is on
- * and verified, and its session is aal2. Every StudentsBudget user is a student; roles beyond that come with the role
- * matrix (grantRole).
+ * and verified, and its session is aal2. With `username`, sign-up gives it a name to post under (public_profiles).
+ * Every user made here is a student; a moderator comes from the host side's seed (`moderatorFor`, e2e-real/db.mjs).
  */
-export async function createUser(request: APIRequestContext, { secondFactor }: { secondFactor: SecondFactor }): Promise<TestUser> {
+export async function createUser(
+  request: APIRequestContext,
+  { secondFactor, username = false }: { secondFactor: SecondFactor; username?: boolean },
+): Promise<TestUser> {
   const email = newEmail();
-  await auth(request, 'signup', { email, password: TEST_PASSWORD });
+  // 3 to 20 of a-z, 0-9 and _ (public_profiles' rule), from the address's run, process and number.
+  const name = `u${email.slice('test-'.length, email.indexOf('@')).replace(/-/g, '_')}`.slice(0, 20);
+  await auth(request, 'signup', { email, password: TEST_PASSWORD, ...(username ? { data: { username: name, label: 'student' } } : {}) });
   let session = await auth<Session>(request, 'verify', { type: 'email', email, token: await readEmailCode(request, email) });
   if (secondFactor === 'none') return { email, password: TEST_PASSWORD, session };
   const factor = await auth<{ id: string; totp: { secret: string } }>(request, 'factors', { factor_type: 'totp', friendly_name: 'Test phone' }, session.access_token);
@@ -136,6 +144,45 @@ export async function readBack(request: APIRequestContext, user: TestUser, table
   const response = await call(request, 'get', `${backend().url}/rest/v1/${table}?select=*&order=id`, headersFor(user.session.access_token));
   expect(response.ok(), `reading ${table} back answered ${response.status()}`).toBe(true);
   return (await response.json()) as unknown[];
+}
+
+/**
+ * A REST or RPC call as `token`'s user, or signed out (null): the raw response, refused or not, for a test to judge.
+ * `path` is under /rest/v1/ (`plans?id=eq.x`, `rpc/report_hack`).
+ */
+export async function rest(request: APIRequestContext, token: string | null, method: 'get' | 'post' | 'patch' | 'delete', path: string, data?: object) {
+  const headers = { ...headersFor(token ?? undefined), 'content-type': 'application/json', Prefer: 'return=representation' };
+  try {
+    return await request.fetch(`${backend().url}/rest/v1/${path}`, { method: method.toUpperCase(), headers, ...(data ? { data } : {}) });
+  } catch (error) {
+    throw new Error(`${method.toUpperCase()} /rest/v1/${path.split('?')[0]} failed: ${String((error as Error).message).split('\n')[0]}`);
+  }
+}
+
+/** A new post by `user` (who needs a username), in Regensburg, about food, in English: its id. */
+export async function postHack(request: APIRequestContext, user: TestUser, body: string): Promise<string> {
+  const response = await rest(request, user.session.access_token, 'post', 'rpc/post_hack', { p_body: body, p_city: 'regensburg', p_category: 'food', p_link: null, p_lang: 'en' });
+  expect(response.ok(), `post_hack answered ${response.status()}`).toBe(true);
+  return (await response.json()) as string;
+}
+
+/** `user` reports the post: it goes into the moderator's queue. */
+export async function reportHack(request: APIRequestContext, user: TestUser, id: string) {
+  const response = await rest(request, user.session.access_token, 'post', 'rpc/report_hack', { p_id: id });
+  expect(response.ok(), `report_hack answered ${response.status()}`).toBe(true);
+}
+
+/**
+ * The moderator seeded for this worker (`node e2e-real/db.mjs seed`, before the run): an account with its
+ * authenticator on, in private.moderators. Each worker has its own, so two never give the same account's code at once.
+ */
+export function moderatorFor(parallelIndex: number): TestUser {
+  const file = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'playwright', '.auth', 'moderators.json');
+  if (!existsSync(file)) throw new Error('no seeded moderators: run `node e2e-real/db.mjs seed` with the stack up first');
+  const seeded = JSON.parse(readFileSync(file, 'utf8')) as TestUser[];
+  const moderator = seeded[parallelIndex];
+  if (!moderator) throw new Error(`no seeded moderator for worker ${parallelIndex}: seed more (node e2e-real/db.mjs seed <count>)`);
+  return moderator;
 }
 
 /** Every table of the account (src/sync/tables.ts), read back. */

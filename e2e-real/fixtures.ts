@@ -2,7 +2,7 @@ import path from 'node:path';
 import { test as base, expect, request as playwrightRequest, type BrowserContext, type Page } from '@playwright/test';
 import { openApp } from '../e2e/helpers/app';
 import { guardContext } from '../testkit/network-guard.mjs';
-import { allowedHosts, createUser, deleteUser, freshTotp, totp, type SecondFactor, type TestUser } from './adapter';
+import { allowedHosts, createUser, deleteUser, freshTotp, moderatorFor, totp, type SecondFactor, type TestUser } from './adapter';
 import { REAL_BASE_URL } from './env';
 import { AUTH_DIR, assertNeverCommitted } from './saved-state';
 
@@ -11,6 +11,7 @@ import { AUTH_DIR, assertNeverCommitted } from './saved-state';
 //   request to any other host is stopped and fails the test (testkit/network-guard.mjs). A host a test mocks with
 //   page.route never reaches the guard.
 // - `makeUser`: a throwaway account per test, deleted after it, pass or fail.
+// - `moderator` (per worker): the moderator `node e2e-real/db.mjs seed` made for this worker before the run.
 // - `signedIn` (a test object): starts each test from a saved sign-in, second step done, made once per worker with an
 //   account of the worker's own, and made again when it is older than SAVED_FOR (the session lasts an hour:
 //   supabase/config.toml jwt_expiry, and refresh tokens rotate).
@@ -42,9 +43,14 @@ export function syncRegion(page: Page) {
   return page.getByRole('region', { name: 'Sync', exact: true });
 }
 
-/** Types the authenticator's code at the code step: a fresh one, never the code that turned it on. */
+/**
+ * Types the authenticator's code at the code step: a fresh one, never the last code this account gave (the one that
+ * turned it on, or the one an earlier test of this worker typed), so one account never gives a code twice.
+ */
 export async function giveCode(page: Page, user: TestUser) {
-  await codeField(page).fill(await freshTotp(user));
+  const code = await freshTotp(user);
+  user.usedCode = code;
+  await codeField(page).fill(code);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
 }
 
@@ -60,7 +66,20 @@ export function wrongCode(secret: string): string {
 /** Puts a second browser context (another phone) behind the network guard; call `assertClean()` before closing it. */
 export const guard = (context: BrowserContext) => guardContext(context, allowedHosts());
 
-export const test = base.extend<{ networkGuard: string[]; makeUser: (options: { secondFactor: SecondFactor }) => Promise<TestUser> }>({
+type TestFixtures = {
+  networkGuard: string[];
+  makeUser: (options: { secondFactor: SecondFactor; username?: boolean }) => Promise<TestUser>;
+};
+
+export const test = base.extend<TestFixtures, { moderator: TestUser }>({
+  // The moderator seeded for this worker (e2e-real/db.mjs seed): one per worker, kept for the worker's tests.
+  moderator: [
+    // An empty pattern: Playwright reads a fixture's dependencies from it, and this one has none.
+    async ({}, provide, workerInfo) => {
+      await provide(moderatorFor(workerInfo.parallelIndex));
+    },
+    { scope: 'worker' },
+  ],
   // `provide`, not Playwright's usual `use`: the React hooks lint rule takes any call named use() for a hook.
   networkGuard: [
     async ({ context }, provide) => {

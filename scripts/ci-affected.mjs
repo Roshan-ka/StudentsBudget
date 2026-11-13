@@ -2,7 +2,7 @@
 // every route whose page imports it (directly or through other modules), as e2e/affected-map.json lists them; a change
 // that reaches the root layout, or a route every spec passes through, runs them all. A path no rule matches runs
 // everything. Run by ci.yml: `node scripts/ci-affected.mjs`, with the run's options in CI_SCOPE, CI_BROWSERS and
-// CI_LANGUAGES (see runOptions), writes `run`, `e2e`, `offline`, `db`, `real`, `stack`, `projects`, `languages` and
+// CI_LANGUAGES (see runOptions), writes `run`, `e2e`, `offline`, `db`, `real`, `roles`, `stack`, `projects`, `languages` and
 // `jobs` (the jobs the gate requires) to $GITHUB_OUTPUT, and
 // the options and why each spec was picked to the job summary. `node scripts/ci-affected.mjs verdict` gives the gate job
 // the commit status to post (see gate). The pure helpers take made-up input, so the unit tests can run them.
@@ -40,7 +40,23 @@ const DB = [/^supabase\//, /^src\/sync\//, /^src\/lib\/supabase\//, /^scripts\/s
 const REAL = [/^e2e-real\//, ...DB];
 /** The routes the real-server journeys open: a change that reaches one of their pages runs them. */
 const REAL_ROUTES = ['/settings/account'];
-const REAL_SPEC = /^e2e-real\/[^/]+\.spec\.ts$/;
+const REAL_SPEC = /^e2e-real\/.+\.spec\.ts$/;
+/**
+ * What the role and security tests (e2e-real/roles/, in the stack job) depend on: the database, the moderation code,
+ * the sign-in code and the tests' own files. A ready pull request runs them too (Roshan, 2026-11-12), unlike the
+ * journeys. Changes that reach ROLES_ROUTES run them as well.
+ */
+const ROLES = [
+  /^supabase\//,
+  /^src\/features\/hacks\/moderation/,
+  /^src\/app\/settings\/moderation\//,
+  /^src\/features\/settings\/settings-links\.tsx$/,
+  /^src\/features\/account\//,
+  /^src\/lib\/supabase\//,
+  /^e2e-real\/roles\//,
+  /^e2e-real\/(adapter|fixtures|db|env)\./,
+];
+const ROLES_ROUTES = ['/settings/moderation'];
 /**
  * Paths with no e2e spec of their own: the database (e2e answers Supabase's calls itself), the service worker (only a
  * production build registers it), the MCP server (nothing in src/ imports it; its tests are unit tests), unit tests
@@ -166,6 +182,7 @@ export function selectAffected({ changed, repo, map, full = false }) {
     pick('all', reason);
     pick('db', reason);
     pick('real', reason);
+    pick('roles', reason);
   };
 
   if (full) everything('a full run was asked for');
@@ -190,6 +207,7 @@ export function selectAffected({ changed, repo, map, full = false }) {
     if (OFFLINE.some((rule) => rule.test(file))) pick('offline', name);
     if (DB.some((rule) => rule.test(file))) pick('db', name);
     if (REAL.some((rule) => rule.test(file))) pick('real', name);
+    if (ROLES.some((rule) => rule.test(file))) pick('roles', name);
     if (NO_E2E.some((rule) => rule.test(file))) continue;
     const spec = SPEC.exec(file);
     if (!file.startsWith('src/') && !spec) {
@@ -224,6 +242,8 @@ export function selectAffected({ changed, repo, map, full = false }) {
     const realRoute = REAL_ROUTES.find((route) => routes.has(route));
     if (realRoute) pick('real', `${name} → ${realRoute}`);
     else if ([...reached].some((module) => REAL_SPEC.test(module))) pick('real', `${name} is imported by the real-server journeys`);
+    const rolesRoute = ROLES_ROUTES.find((route) => routes.has(route));
+    if (rolesRoute && !why.roles?.includes(name)) pick('roles', `${name} → ${rolesRoute}`);
     // A module no page or spec imports needs no e2e spec; any other file there could be loaded some other way.
     if (routes.size === 0 && specs.length === 0 && !contract && !CODE.test(file)) everything(`${name}: no rule matches it`);
   }
@@ -239,7 +259,7 @@ export function selectAffected({ changed, repo, map, full = false }) {
       .sort();
   }
   if (!run) pick('skip', changed.length === 0 ? 'nothing changed against main' : 'notes only');
-  return { run, e2e, offline: Boolean(why.offline), db: Boolean(why.db), real: Boolean(why.real), why };
+  return { run, e2e, offline: Boolean(why.offline), db: Boolean(why.db), real: Boolean(why.real), roles: Boolean(why.roles), why };
 }
 
 /**
@@ -294,12 +314,12 @@ const JOBS = ['checks', 'e2e', 'e2e-report', 'offline', 'stack'];
  * The jobs a selection needs, which `changes` hands the gate (`jobs`): checks for anything but notes, e2e and its report
  * merge for any spec, the offline check, and the stack job for the db checks or the real-server journeys.
  */
-export function requiredJobs({ run, e2e, offline, db, real }) {
+export function requiredJobs({ run, e2e, offline, db, real, roles }) {
   return [
     ...(run ? ['checks'] : []),
     ...(e2e !== 'none' ? ['e2e', 'e2e-report'] : []),
     ...(offline ? ['offline'] : []),
-    ...(db || real ? ['stack'] : []),
+    ...(db || real || roles ? ['stack'] : []),
   ];
 }
 
@@ -353,10 +373,10 @@ export function e2eArgs(specs) {
  * the stack job runs (the db checks or the journeys); `jobs` the jobs the gate requires, as JSON.
  */
 export function githubOutput(selection, options = runOptions({})) {
-  const { run, e2e, offline, db, real } = selection;
+  const { run, e2e, offline, db, real, roles } = selection;
   const list = Array.isArray(e2e) ? e2eArgs(e2e) : e2e;
   return (
-    `run=${run}\ne2e=${list}\noffline=${offline}\ndb=${db}\nreal=${real}\nstack=${db || real}\n` +
+    `run=${run}\ne2e=${list}\noffline=${offline}\ndb=${db}\nreal=${real}\nroles=${roles}\nstack=${db || real || roles}\n` +
     `projects=${options.projectArgs}\nlanguages=${options.languages}\njobs=${JSON.stringify(requiredJobs(selection))}\n`
   );
 }
@@ -371,7 +391,7 @@ function reasonsText(reasons) {
  * The job summary: the options the run used, then a row for the e2e run (or each picked spec), the offline check and
  * the db job, with why.
  */
-export function summary({ run, e2e, offline, db, real, why }, options = runOptions({})) {
+export function summary({ run, e2e, offline, db, real, roles, why }, options = runOptions({})) {
   const chosen = (name) => `${name} **${options[name]}**${options.auto.includes(name) ? ' (auto)' : ''}`;
   const head = `### Affected tests\n\nScope **${options.scope}** · ${chosen('browsers')} · ${chosen('languages')}\n\n`;
   if (!run) return `${head}No checks run: ${why.skip[0]}.\n`;
@@ -382,6 +402,7 @@ export function summary({ run, e2e, offline, db, real, why }, options = runOptio
   if (offline) rows.push(['offline check', why.offline]);
   if (db) rows.push(['db checks (stack job)', why.db]);
   if (real) rows.push(['real-server journeys (stack job)', why.real]);
+  if (roles) rows.push(['roles and security (stack job)', why.roles]);
   const table = rows.map(([what, reasons]) => `| ${what} | ${reasonsText(reasons)} |`);
   return [`${head}| Runs | Why |`, '|---|---|', ...table, ''].join('\n');
 }

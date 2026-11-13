@@ -306,10 +306,38 @@ describe('the real-server journeys and the testkit', () => {
     }
   });
 
-  it('leaves the journeys out of a quick run, and keeps the db checks', () => {
+  it('leaves the journeys out of a quick run, and keeps the db checks and the role tests', () => {
     const quick = forScope(select(['supabase/migrations/1_init.sql']), runOptions({ scope: 'quick' }));
-    expect(quick).toMatchObject({ db: true, real: false });
-    expect(githubOutput(quick, runOptions({ scope: 'quick' }))).toContain('db=true\nreal=false\nstack=true\n');
+    expect(quick).toMatchObject({ db: true, real: false, roles: true });
+    expect(githubOutput(quick, runOptions({ scope: 'quick' }))).toContain('db=true\nreal=false\nroles=true\nstack=true\n');
+  });
+});
+
+// The role and security tests (e2e-real/roles/) run whenever the database, the moderation code or the sign-in code
+// changes, a ready pull request's quick run included (Roshan, 2026-11-12).
+describe('the role and security tests', () => {
+  const withModeration = {
+    ...REPO,
+    'src/app/settings/moderation/page.tsx': "import { ModerationView } from '@/features/hacks/moderation-view';\n",
+    'src/features/hacks/moderation-view.tsx': "import { formatMoney } from '@/lib/money';\n",
+  };
+  const selectRoles = (changed) => selectAffected({ changed, repo: withModeration, map: MAP });
+
+  it('run for the database, the moderation code, the sign-in code and their own files', () => {
+    for (const file of ['supabase/migrations/1_init.sql', 'src/features/hacks/moderation.ts', 'src/features/account/two-step.tsx', 'e2e-real/roles/roles.spec.ts']) {
+      expect(select([file]).roles, file).toBe(true);
+    }
+    expect(select(['src/features/check-in/week-rows.ts']).roles).toBe(false);
+  });
+
+  it('run for a change that reaches the moderation page', () => {
+    expect(selectRoles(['src/lib/money.ts']).why.roles).toContain('`src/lib/money.ts` → /settings/moderation');
+  });
+
+  it('stay in a quick run, which then needs the stack job', () => {
+    const quick = forScope(select(['src/features/hacks/moderation.ts']), runOptions({ scope: 'quick' }));
+    expect(quick).toMatchObject({ e2e: 'none', real: false, roles: true });
+    expect(requiredJobs(quick)).toEqual(['checks', 'stack']);
   });
 });
 
@@ -471,11 +499,11 @@ describe('requiredJobs', () => {
 describe('githubOutput', () => {
   it('writes the selection, the list as Playwright arguments, the browsers and languages, and the jobs the gate needs', () => {
     expect(githubOutput(select(['src/features/check-in/week-rows.ts']), runOptions({}))).toBe(
-      'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\nreal=false\nstack=false\n' +
+      'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\nreal=false\nroles=false\nstack=false\n' +
         'projects=--project=desktop-chrome\nlanguages=default\njobs=["checks","e2e","e2e-report"]\n',
     );
     expect(githubOutput(select(['README.md'], { full: true }), runOptions({ scope: 'full' }))).toBe(
-      'run=true\ne2e=all\noffline=true\ndb=true\nreal=true\nstack=true\nprojects=\nlanguages=all\n' +
+      'run=true\ne2e=all\noffline=true\ndb=true\nreal=true\nroles=true\nstack=true\nprojects=\nlanguages=all\n' +
         'jobs=["checks","e2e","e2e-report","offline","stack"]\n',
     );
   });

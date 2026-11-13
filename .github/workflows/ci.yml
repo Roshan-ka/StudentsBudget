@@ -55,6 +55,7 @@ jobs:
       offline: ${{ steps.affected.outputs.offline }}
       db: ${{ steps.affected.outputs.db }}
       real: ${{ steps.affected.outputs.real }}
+      roles: ${{ steps.affected.outputs.roles }}
       stack: ${{ steps.affected.outputs.stack }}
       projects: ${{ steps.affected.outputs.projects }}
       languages: ${{ steps.affected.outputs.languages }}
@@ -218,8 +219,10 @@ jobs:
 
   # The local Supabase stack (Docker is on the runner), started once for everything that needs it: the db checks (the
   # migrations in supabase/migrations, then the pgTAP tests in supabase/tests and the account store's contract tests)
-  # when the change reaches them, and the real-server journeys (e2e-real/) in runs started by hand. No secrets: the
-  # local stack makes its own keys, and the journeys' users are throwaway accounts on it.
+  # when the change reaches them; the role and security tests (e2e-real/roles/) when the database, the moderation code
+  # or the sign-in code changes, a ready pull request's quick run included; and all the real-server journeys
+  # (e2e-real/) in runs started by hand. No secrets: the local stack makes its own keys, and every user is a throwaway
+  # account on it.
   stack:
     needs: changes
     if: needs.changes.outputs.stack == 'true'
@@ -245,21 +248,29 @@ jobs:
       # come from its Mailpit.
       - if: needs.changes.outputs.db == 'true'
         run: npm run test:contract
+      # The moderators the role tests sign in as, one per worker, made in the database here on the runner (the browser
+      # image has no Docker), and the role matrix held to every function the running database guards for moderators.
+      - if: needs.changes.outputs.real == 'true' || needs.changes.outputs.roles == 'true'
+        run: node e2e-real/db.mjs seed
+      - if: needs.changes.outputs.roles == 'true'
+        run: node e2e-real/db.mjs check-matrix
       # The journeys run in Playwright's image, like e2e (no browser install from the Ubuntu mirror), started from here
       # because the stack needs the runner's Docker. `--network host` lets the image reach the stack and serve the app
       # on the runner's own localhost:3210, the port supabase/config.toml lists for passkeys; uid 1001 owns the workspace.
+      # A run started by hand runs every journey; a quick run with the role tests picked runs those only.
       - id: real
-        if: needs.changes.outputs.real == 'true'
+        if: needs.changes.outputs.real == 'true' || needs.changes.outputs.roles == 'true'
         env:
           PLAYWRIGHT: ${{ needs.changes.outputs.playwright }}
           PROJECTS: ${{ needs.changes.outputs.projects }}
-        # $PROJECTS stays unquoted: no projects means every project.
+          SPECS: ${{ needs.changes.outputs.real != 'true' && 'e2e-real/roles/' || '' }}
+        # $PROJECTS and $SPECS stay unquoted: none means every project, and every spec.
         run: |
           # shellcheck disable=SC2086
           docker run --rm --network host --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work \
             -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL \
             "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
-            npx playwright test -c e2e-real/playwright.config.ts $PROJECTS
+            npx playwright test -c e2e-real/playwright.config.ts $PROJECTS $SPECS
       # The journeys' result kinds (testkit/result-kinds-reporter.mjs) in the job summary, whatever the outcome.
       - if: always() && steps.real.outcome != 'skipped'
         run: |

@@ -5,7 +5,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(38);
+select plan(40);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -276,6 +276,17 @@ select results_eq(
   $$ select word, reports, hidden_by_hand, hidden_by_reports from pg_temp.queue() order by word $$,
   $$ values ('Library'::text, 5::bigint, false, true), ('Mensa', 1::bigint, false, false) $$,
   'the queue lists the reported posts, with what hides them'
+);
+-- The decisions are the moderator's alone too (the role matrix, e2e-real/roles/matrix.json, names these checks).
+select is(
+  left(pg_temp.call_as('b', 'aal2', format('select public.moderate_hack(%L, %L)', pg_temp.post_id('Mensa'), 'hide')), 5),
+  '42501',
+  'someone who does not moderate cannot hide a post'
+);
+select is(
+  left(pg_temp.call_as('1', 'aal1', format('select public.moderate_hack(%L, %L)', pg_temp.post_id('Mensa'), 'hide')), 5),
+  '42501',
+  'the moderator cannot hide a post without the code'
 );
 select is(
   pg_temp.call_as('1', 'aal2', format('select public.moderate_hack(%L, %L)', pg_temp.post_id('Library'), 'keep')),

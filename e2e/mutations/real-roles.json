@@ -1,0 +1,54 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "Settings shows the Moderation link to everyone",
+      "file": "src/features/settings/settings-links.tsx",
+      "find": "if (userId === null || moderator?.userId !== userId || !moderator.yes) return null;",
+      "replace": "if (false) return null;",
+      "expect": { "e2e-real/roles/roles.spec.ts": ["outsider-link", "student-link"] }
+    },
+    {
+      "name": "the moderation page forgets someone signed out",
+      "file": "src/features/hacks/moderation-view.tsx",
+      "find": "if (userId === null) {",
+      "replace": "if (userId === null && false) {",
+      "expect": { "e2e-real/roles/roles.spec.ts": ["outsider-page"] }
+    },
+    {
+      "name": "the guard lets anyone signed in moderate (planted)",
+      "file": "supabase/migrations/20261105110007_hacks.sql",
+      "find": "if me is null or not exists (select 1 from private.moderators m where m.user_id = me) then",
+      "replace": "if me is null then",
+      "expect": { "e2e-real/roles/roles.spec.ts": ["student-page"] }
+    },
+    {
+      "name": "the guard lets the moderator act without the code (planted)",
+      "file": "supabase/migrations/20261105110007_hacks.sql",
+      "find": "if coalesce((select auth.jwt() ->> 'aal'), '') <> 'aal2' then",
+      "replace": "if false then",
+      "expect": { "e2e-real/roles/roles.spec.ts": ["moderator-aal1-page"] }
+    },
+    {
+      "name": "Settings never takes the account for the moderator",
+      "file": "src/features/settings/settings-links.tsx",
+      "find": "if (current) setModerator({ userId, yes: yes === true });",
+      "replace": "if (current) setModerator({ userId, yes: false });",
+      "expect": { "e2e-real/roles/roles.spec.ts": ["moderator-link"] }
+    },
+    {
+      "name": "the moderation page reads the comments' queue for the posts",
+      "file": "src/features/hacks/moderation.ts",
+      "find": "const { data, error } = await supabase.rpc('moderation_queue');",
+      "replace": "const { data, error } = await supabase.rpc('comment_queue');",
+      "expect": { "e2e-real/roles/roles.spec.ts": ["moderator-page"] }
+    },
+    {
+      "name": "hiding a post leaves it as it was",
+      "file": "supabase/migrations/20261105110007_hacks.sql",
+      "find": "update public.hacks h set hidden_at = now() where h.id = p_id;",
+      "replace": "update public.hacks h set kept_at = kept_at where h.id = p_id;",
+      "expect": { "e2e-real/roles/roles.spec.ts": ["moderator-hide"] }
+    }
+  ]
+}
