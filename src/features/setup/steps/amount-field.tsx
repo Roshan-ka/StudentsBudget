@@ -116,7 +116,8 @@ export function AmountField({
     </div>
   );
   const field = (
-    <div className={cn('relative', row && 'w-32 shrink-0')}>
+    // A unit in letters (INR) takes more of the field than "€".
+    <div className={cn('relative', row && (unit.length > 1 ? 'w-40 shrink-0' : 'w-32 shrink-0'))}>
       {/* Hidden from the reading order beside the field, and read with it as its description instead. */}
       <span
         id={`${id}-unit`}

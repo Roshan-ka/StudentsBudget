@@ -1,19 +1,23 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { PlusIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type Ref } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { db } from '@/db/db';
 import { monthOf, type IsoDate, type IsoMonth } from '@/lib/dates';
 import type { Plan } from '@/db/types';
+import { categoryTint } from '@/features/charts/colors';
 import { monthLabel, semesterFeeOffer, type SemesterFeeOffer } from '@/features/profile/profile';
 import { SemesterFeeSource } from '@/features/profile/semester-fee-source';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { describedBy } from '@/lib/described-by';
 import { formatMoney } from '@/lib/money';
+import { cn } from '@/lib/utils';
 import { isDueMonthProblem, type DraftUpdate, type SetupDraft } from '../draft';
 import { useStepProblems } from '../step-problems';
 import { AmountField } from './amount-field';
@@ -75,11 +79,13 @@ function OneOffRow({
   const unnamed = problems !== null && oneOff.amountMinor !== 0 && oneOff.name.trim() === '';
 
   return (
+    // Each one-off cost its own card, in the one-off colour (13-11-2026; tokens.test.ts holds its texts on it).
     <div
       ref={containerRef}
       role="group"
       aria-label={text.oneOff(index + 1)}
-      className="flex flex-col gap-4 rounded-lg border p-4"
+      className={cn(cardVariants(), 'gap-4')}
+      style={{ backgroundColor: categoryTint('one-off') }}
     >
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-name`}>{text.name}</Label>
@@ -199,15 +205,17 @@ export function OneOffsStep({
           <SemesterFeeSource offer={feeOffer} />
         </div>
       )}
+      {/* Dashed across the width, as Add account is. */}
       <Button
         ref={focus.refFor('add')}
         type="button"
         variant="outline"
-        className="self-start px-4"
+        className="w-full border-dashed"
         onClick={() =>
           update((d) => ({ ...d, oneOffs: [...d.oneOffs, { name: '', amountMinor: 0, dueMonth: '' }] }))
         }
       >
+        <PlusIcon aria-hidden="true" />
         {text.add}
       </Button>
     </div>

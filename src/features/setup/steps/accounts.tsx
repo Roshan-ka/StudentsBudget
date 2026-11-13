@@ -1,20 +1,30 @@
 'use client';
 
+import { BanknoteIcon, LandmarkIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useId, type Ref } from 'react';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import type { Account } from '@/db/types';
+import { categoryTint } from '@/features/charts/colors';
 import { useT } from '@/i18n/use-t';
 import { describedBy } from '@/lib/described-by';
 import { CURRENCIES, type CurrencyCode } from '@/lib/money';
+import { cn } from '@/lib/utils';
 import type { DraftUpdate, SetupDraft } from '../draft';
 import { useStepProblems } from '../step-problems';
 import { AmountField } from './amount-field';
 import { firstField, useFocusAfter } from '@/lib/focus';
 
 type AccountDraft = SetupDraft['accounts'][number];
+
+/** The kind's tile: a bank in blue, cash in green, as in the mockups (13-11-2026). Two category tints, for their colour. */
+const KIND_TILE: Record<Account['kind'], { icon: typeof LandmarkIcon; tint: string }> = {
+  bank: { icon: LandmarkIcon, tint: categoryTint('rent') },
+  cash: { icon: BanknoteIcon, tint: categoryTint('eating-out') },
+};
 
 function AccountRow({
   account,
@@ -36,24 +46,41 @@ function AccountRow({
   // Every account needs a name: said in the step's problems, which the field points at once they show.
   const problems = useStepProblems();
   const unnamed = problems !== null && account.name.trim() === '';
+  const Icon = KIND_TILE[account.kind].icon;
 
   return (
-    <div
-      ref={containerRef}
-      role="group"
-      aria-label={text.account(index + 1)}
-      className="flex flex-col gap-4 rounded-lg border p-4"
-    >
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-name`}>{text.name}</Label>
-        <Input
-          id={`${id}-name`}
-          value={account.name}
-          autoComplete="off"
-          aria-invalid={unnamed || undefined}
-          aria-describedby={describedBy(unnamed && problems)}
-          onChange={(event) => onChange({ name: event.target.value })}
-        />
+    // Each account its own card (13-11-2026): the kind's tile, the name and Remove on one line, then the rest.
+    <div ref={containerRef} role="group" aria-label={text.account(index + 1)} className={cn(cardVariants(), 'gap-4')}>
+      <div className="flex items-end gap-3">
+        <span
+          aria-hidden="true"
+          // Centred on the 50 px name field beside it.
+          className="mb-[7px] flex size-9 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline"
+          style={{ backgroundColor: KIND_TILE[account.kind].tint }}
+        >
+          <Icon className="size-[18px]" />
+        </span>
+        <div className="grid min-w-0 flex-1 gap-1.5">
+          <Label htmlFor={`${id}-name`}>{text.name}</Label>
+          <Input
+            id={`${id}-name`}
+            value={account.name}
+            autoComplete="off"
+            aria-invalid={unnamed || undefined}
+            aria-describedby={describedBy(unnamed && problems)}
+            onChange={(event) => onChange({ name: event.target.value })}
+          />
+        </div>
+        {/* An icon, named after its account ("Remove account 2"), as the words were. */}
+        <Button
+          type="button"
+          variant="ghost"
+          className="mb-[3px] size-11 shrink-0 px-0"
+          aria-label={text.remove(index + 1)}
+          onClick={onRemove}
+        >
+          <XIcon aria-hidden="true" className="size-5" />
+        </Button>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1.5">
@@ -85,15 +112,13 @@ function AccountRow({
         </div>
       </div>
       <AmountField
+        layout="row"
         label={text.opening}
         unit={account.currency === 'EUR' ? '€' : account.currency}
         signed
         value={account.openingMinor}
         onChange={(minor) => onChange({ openingMinor: minor ?? 0 })}
       />
-      <Button type="button" variant="ghost" className="self-start px-4" onClick={onRemove}>
-        {text.remove(index + 1)}
-      </Button>
     </div>
   );
 }
@@ -128,7 +153,7 @@ export function AccountsStep({ draft, update }: { draft: SetupDraft; update: Dra
         ref={focus.refFor('add')}
         type="button"
         variant="outline"
-        className="self-start px-4"
+        className="w-full border-dashed"
         onClick={() =>
           update((d) => ({
             ...d,
@@ -136,6 +161,7 @@ export function AccountsStep({ draft, update }: { draft: SetupDraft; update: Dra
           }))
         }
       >
+        <PlusIcon aria-hidden="true" />
         {t.setup.accounts.add}
       </Button>
     </div>
