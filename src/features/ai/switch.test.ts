@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AI_PREF, aiInBuild, aiOnHere } from './switch';
+import { AI_PREF, aiInBuild, aiOnHere, aiSetupChatInBuild } from './switch';
 
 let stored: Record<string, string>;
 
@@ -43,6 +43,32 @@ describe('aiInBuild', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', '');
     vi.stubEnv('NEXT_PUBLIC_AI', '1');
     expect(aiInBuild()).toBe(false);
+  });
+});
+
+describe('aiSetupChatInBuild', () => {
+  it('needs the AI features and NEXT_PUBLIC_AI_SETUP_CHAT=1', () => {
+    supabaseBuild();
+    vi.stubEnv('NEXT_PUBLIC_AI', '1');
+    vi.stubEnv('NEXT_PUBLIC_AI_SETUP_CHAT', '1');
+    expect(aiSetupChatInBuild()).toBe(true);
+  });
+
+  it('is off in a build with the AI but without the flag, as on the free plan, and for any other value', () => {
+    supabaseBuild();
+    vi.stubEnv('NEXT_PUBLIC_AI', '1');
+    vi.stubEnv('NEXT_PUBLIC_AI_SETUP_CHAT', '');
+    expect(aiInBuild()).toBe(true);
+    expect(aiSetupChatInBuild()).toBe(false);
+    vi.stubEnv('NEXT_PUBLIC_AI_SETUP_CHAT', 'true');
+    expect(aiSetupChatInBuild()).toBe(false);
+  });
+
+  it('is off without the AI features, flag or not', () => {
+    supabaseBuild();
+    vi.stubEnv('NEXT_PUBLIC_AI', '');
+    vi.stubEnv('NEXT_PUBLIC_AI_SETUP_CHAT', '1');
+    expect(aiSetupChatInBuild()).toBe(false);
   });
 });
 

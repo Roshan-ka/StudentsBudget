@@ -55,7 +55,8 @@ describe('e2e/mutations/', () => {
 });
 
 describe('e2e/skip-allow-list.json', () => {
-  it('lists every skip in the e2e specs and helpers, mocked, real and live, and nothing else', () => {
+  // It reads every e2e file: over 5 s on a busy laptop (2026-11-13, while the heavy lane ran a harness suite).
+  it('lists every skip in the e2e specs and helpers, mocked, real and live, and nothing else', { timeout: 30_000 }, () => {
     const files = [...filesUnder('e2e'), ...filesUnder('e2e-real'), ...filesUnder('e2e-live')]
       .filter((f) => f.endsWith('.ts'))
       .map((f) => ({ path: f, source: read(f) }));

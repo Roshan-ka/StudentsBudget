@@ -17,9 +17,9 @@ export type LegalText = { heading: string; blocks: readonly LegalBlock[] };
 
 /**
  * When a section applies: always, or only in a build that has the part it describes (Supabase's settings, the AI, the
- * weekly reminder, the discount map).
+ * setup chat, the weekly reminder, the discount map).
  */
-export type LegalWhen = 'always' | 'supabase' | 'ai' | 'reminder' | 'map';
+export type LegalWhen = 'always' | 'supabase' | 'ai' | 'aiSetup' | 'reminder' | 'map';
 
 export type LegalSection = {
   /** Its anchor on the page: `/privacy#<id>`. */

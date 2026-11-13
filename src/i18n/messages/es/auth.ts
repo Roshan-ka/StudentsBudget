@@ -205,8 +205,8 @@ export const auth: Messages['auth'] = {
     heading: 'Funciones de IA',
     use: 'Usar las funciones de IA en este móvil',
     hint:
-      'Envían lo que escribes a Anthropic (Claude), en EE. UU., dentro de un cupo diario para tu cuenta. ' +
-      'Desactivadas, no se envía nada a Anthropic, y Añadir rápido lee tus líneas en este móvil.',
+      'Envían lo que escribes a Groq, un servicio de IA en EE. UU., dentro de un cupo diario para tu cuenta. ' +
+      'Desactivadas, no se envía nada a Groq, y Añadir rápido lee tus líneas en este móvil.',
   },
   /** El nombre con el que alguien publica en el feed de trucos: se pide al crear la cuenta y se cambia después. */
   postingName: {

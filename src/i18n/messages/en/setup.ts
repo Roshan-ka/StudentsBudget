@@ -57,6 +57,10 @@ export const setup = {
       after: ", so money already in your account isn't counted twice.",
     },
     later: 'Get BAföG or a scholarship? Add it later in Settings → Plan → Edit plan.',
+    /** The disclosure under the income cards that holds `savings` and, on a new setup, `later` (13-11-2026). */
+    more: 'Savings, BAföG or a scholarship?',
+    /** The same in Edit plan, which asks BAföG and scholarships itself: it holds `savings` only. */
+    moreEdit: 'Living off savings?',
   },
   fixed: {
     intro: 'What do you pay every month, in euros? Leave out what you do not pay.',
@@ -65,6 +69,8 @@ export const setup = {
     later:
       'Subscriptions, the gym, utilities, the Rundfunkbeitrag and one-off costs like the semester fee can be added ' +
       'later in Settings → Plan → Edit plan.',
+    /** The disclosure under the fixed costs that holds `later`, on a new setup (13-11-2026). */
+    more: 'Gym, subscriptions, the semester fee?',
   },
   oneOffs: {
     intro:

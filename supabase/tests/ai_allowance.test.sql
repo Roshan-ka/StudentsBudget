@@ -1,13 +1,16 @@
--- The AI features' daily allowances (the AI phase, chunk 1; migration 20261109125656_ai_allowance.sql). Run with
--- `npm run test:db`. Everything happens in one transaction that is rolled back, so `now()` stays one moment: earlier
--- uses are written straight into the table with older times. Users are played as in hacks.test.sql.
---   A has two-step sign-in. B uses quick add up to its limit. C meets everyone's limit. D fills everyone's setup
---   allowance. 1 moderates.
+-- The AI features' daily allowances (the AI phase, chunk 1; migration 20261109125656_ai_allowance.sql, the limits
+-- fitted to Groq's free plan in 20261113113428_ai_limits_groq_free.sql). Run with `npm run test:db`. Everything happens
+-- in one transaction that is rolled back, so `now()` stays one moment: earlier uses are written straight into the table
+-- with older times. Users are played as in hacks.test.sql.
+--   A has two-step sign-in. B uses quick add up to its limit. D fills everyone's Ask allowance, which C meets.
+--   1 moderates.
+-- Sections 1 to 5 read the limits from private.ai_own_limit and private.ai_everyone_limit, so a new limits migration
+-- changes only section 6, which holds the numbers in force.
 
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(20);
+select plan(24);
 
 insert into auth.users (id, email)
 values
@@ -80,6 +83,29 @@ as $$
   where user_id = ('00000000-0000-4000-8000-00000000000' || p_who)::uuid and feature = p_feature;
 $$;
 
+-- The limits in force, read as the test's own role (signed in, only take_ai_allowance may call them).
+create function pg_temp.own(p_feature text)
+returns int
+language sql
+as $$
+  select private.ai_own_limit(p_feature);
+$$;
+
+create function pg_temp.everyone(p_feature text)
+returns int
+language sql
+as $$
+  select private.ai_everyone_limit(p_feature);
+$$;
+
+-- Everyone's uses of `p_feature` in the last 24 hours.
+create function pg_temp.used_today(p_feature text)
+returns int
+language sql
+as $$
+  select count(*)::int from private.ai_uses where feature = p_feature and used_at > now() - interval '1 day';
+$$;
+
 -- 1. Who may ask at all.
 select ok(
   has_function_privilege('authenticated', 'public.take_ai_allowance(text)', 'EXECUTE')
@@ -92,42 +118,44 @@ select is(
   '42501 second-step',
   'an account with two-step sign-in is refused before its code'
 );
-select is(pg_temp.take('a', 'aal2', 'ask'), 'left 5', 'and takes a use once it gave the code: 6 a day, 5 left');
+select is(
+  pg_temp.take('a', 'aal2', 'ask'),
+  'left ' || (pg_temp.own('ask') - 1),
+  'and takes a use once it gave the code'
+);
 select is(pg_temp.take('b', 'aal1', 'translate'), '22023', 'a feature the app does not have is refused');
 select is(pg_temp.uses_of('b', 'translate'), 0, 'and records nothing');
 
 -- 2. One account's own limit, by feature, over the last 24 hours.
-do $$ begin perform pg_temp.used('b', 'quick-add', 49, '1 hour'); end $$;
+do $$ begin perform pg_temp.used('b', 'quick-add', pg_temp.own('quick-add') - 1, '1 hour'); end $$;
 do $$ begin perform pg_temp.used('b', 'quick-add', 30, '25 hours'); end $$;
-select is(pg_temp.take('b', 'aal1', 'quick-add'), 'left 0', 'the 50th quick-add line in 24 hours passes, none left');
-select is(pg_temp.take('b', 'aal1', 'quick-add'), 'P0001 daily-limit', 'the 51st is refused');
+select is(pg_temp.take('b', 'aal1', 'quick-add'), 'left 0', 'the last quick-add line of its 24 hours passes, none left');
+select is(pg_temp.take('b', 'aal1', 'quick-add'), 'P0001 daily-limit', 'the next is refused');
 select is(
   (select count(*)::int from private.ai_uses
    where user_id = '00000000-0000-4000-8000-00000000000b' and feature = 'quick-add' and used_at > now() - interval '1 day'),
-  50,
+  pg_temp.own('quick-add'),
   'a refused try records nothing; uses older than a day do not count'
 );
-select is(pg_temp.take('b', 'aal1', 'ask'), 'left 5', 'another feature has its own allowance');
-select is(pg_temp.take('b', 'aal1', 'setup'), 'left 14', 'setup chat: 15 turns a day');
+select is(pg_temp.take('b', 'aal1', 'ask'), 'left ' || (pg_temp.own('ask') - 1), 'another feature has its own allowance');
 
--- 3. Everyone's limit: 300 setup turns a day across all accounts.
-do $$ begin perform pg_temp.used('d', 'setup', 298, '1 hour'); end $$;
-do $$ begin perform pg_temp.used('c', 'setup', 1, '3 hours'); end $$;
--- With B's one setup turn above, that makes 300; C has 14 of its own left.
-select is(pg_temp.take('c', 'aal1', 'setup'), 'P0001 busy', 'everyone''s allowance used up refuses an account that has its own left');
-select is(pg_temp.take('c', 'aal1', 'ask'), 'left 5', 'other features go on');
+-- 3. Everyone's limit, on Ask: D's uses bring everyone's to one short of it (A and B asked above).
+do $$ begin perform pg_temp.used('d', 'ask', pg_temp.everyone('ask') - pg_temp.used_today('ask') - 1, '1 hour'); end $$;
+select is(pg_temp.take('c', 'aal1', 'ask'), 'left ' || (pg_temp.own('ask') - 1), 'the last of everyone''s questions passes');
+select is(pg_temp.take('c', 'aal1', 'ask'), 'P0001 busy', 'then everyone''s allowance used up refuses an account that has its own left');
+select is(pg_temp.take('c', 'aal1', 'quick-add'), 'left ' || (pg_temp.own('quick-add') - 1), 'other features go on');
 
 -- 4. A moderator has no limit, and every use is still recorded.
-do $$ begin perform pg_temp.used('1', 'ask', 6, '1 hour'); end $$;
-select is(pg_temp.take('1', 'aal1', 'ask'), 'left null', 'a moderator past its own limit takes a use, with no count');
-select is(pg_temp.take('1', 'aal1', 'setup'), 'left null', 'and past everyone''s');
-select is(pg_temp.uses_of('1', 'ask'), 7, 'the moderator''s use is recorded');
+do $$ begin perform pg_temp.used('1', 'ask', pg_temp.own('ask'), '1 hour'); end $$;
+select is(pg_temp.take('1', 'aal1', 'ask'), 'left null', 'a moderator past its own and everyone''s limit takes a use, with no count');
+select is(pg_temp.take('1', 'aal1', 'setup'), 'left null', 'even of a feature that is off for everyone');
+select is(pg_temp.uses_of('1', 'ask'), pg_temp.own('ask') + 1, 'the moderator''s use is recorded');
 
 -- 5. Old uses are pruned; nothing signed in reads the table; the uses go with the account.
-do $$ begin perform pg_temp.used('c', 'ask', 3, '3 days'); end $$;
-select is(pg_temp.take('c', 'aal1', 'ask'), 'left 4', 'uses three days old never count');
+do $$ begin perform pg_temp.used('c', 'quick-add', 3, '3 days'); end $$;
+select is(pg_temp.take('c', 'aal1', 'quick-add'), 'left ' || (pg_temp.own('quick-add') - 2), 'uses three days old never count');
 select is(
-  (select count(*)::int from private.ai_uses where feature = 'ask' and used_at < now() - interval '2 days'),
+  (select count(*)::int from private.ai_uses where feature = 'quick-add' and used_at < now() - interval '2 days'),
   0,
   'a take prunes the feature''s uses older than two days'
 );
@@ -137,6 +165,20 @@ select ok(
 );
 delete from auth.users where id = '00000000-0000-4000-8000-00000000000b';
 select is(pg_temp.uses_of('b', 'quick-add') + pg_temp.uses_of('b', 'ask') + pg_temp.uses_of('b', 'setup'), 0, 'deleting the account deletes its uses');
+
+-- 6. The limits in force: Groq's free plan (src/features/ai/server/limits.test.ts reads the same migration).
+select is(
+  array[pg_temp.own('quick-add'), pg_temp.own('ask'), pg_temp.own('setup')],
+  array[30, 6, 0],
+  'per account: 30 quick-add lines, 6 questions and no setup chat a day'
+);
+select is(
+  array[pg_temp.everyone('quick-add'), pg_temp.everyone('ask'), pg_temp.everyone('setup')],
+  array[120, 36, 0],
+  'for everyone: 120 lines, 36 questions and no setup chat a day'
+);
+select is(pg_temp.take('d', 'aal1', 'setup'), 'P0001 daily-limit', 'a setup chat call is refused before the model, as a daily limit');
+select is(pg_temp.uses_of('d', 'setup'), 0, 'and records nothing');
 
 select * from finish();
 rollback;

@@ -17,7 +17,13 @@ const MANIFEST = 'src/app/manifest.ts';
 /** playwright.config.ts's Chromium project. Every project is Chromium plus the iPhone's WebKit. */
 const CHROMIUM_PROJECT = 'desktop-chrome';
 /** What ci.yml's Run workflow inputs offer. */
-const CHOICES = { scope: ['changed', 'full', 'quick'], browsers: ['auto', 'chromium', 'all'], languages: ['auto', 'default', 'all'] };
+const CHOICES = {
+  scope: ['changed', 'full', 'quick'],
+  browsers: ['auto', 'chromium', 'all'],
+  languages: ['auto', 'default', 'all'],
+  mutations: ['changed', 'all'],
+  monkey: ['no', 'yes'],
+};
 
 /** Notes only: nothing to check. */
 const DOCS = /^(docs|\.claude)\/|\.md$/;
@@ -41,6 +47,11 @@ const REAL = [/^e2e-real\//, ...DB];
 /** The routes the real-server journeys open: a change that reaches one of their pages runs them. */
 const REAL_ROUTES = ['/settings/account'];
 const REAL_SPEC = /^e2e-real\/.+\.spec\.ts$/;
+/**
+ * The random clicker's own files (e2e-real/monkey.*, testkit/walker.*): a change to one runs the clicker in a run
+ * started by hand, not the repeat check, where a walk of minutes ×10 would find nothing a spec's repeat finds.
+ */
+const MONKEY_FILES = /^(e2e-real\/monkey\.|testkit\/walker\.)/;
 /**
  * What the role and security tests (e2e-real/roles/, in the stack job) depend on: the database, the moderation code,
  * the sign-in code and the tests' own files. A ready pull request runs them too (Roshan, 2026-11-12), unlike the
@@ -285,10 +296,12 @@ export function selectAffected({ changed, repo, map, full = false }) {
  * `browsers` and `languages`: `auto` is Chromium and the default language for a changed run, everything for a full one.
  * `languages` is passed on to e2e (E2E_LANGUAGES): `all` adds the 375 px tour of every page in each offered language
  * besides English (e2e/language-tour.spec.ts); the language switch runs either way.
+ * `mutations`: red before green for the saved mutations a change reaches (`changed`), or every one (`all`, the nightly).
+ * `monkey`: the random clicker per role (`yes`, the nightly). Neither runs in a quick run.
  * Throws on a value the inputs don't offer. `auto` lists the options that were left on auto.
  */
-export function runOptions({ scope = 'changed', browsers = 'auto', languages = 'auto' }) {
-  for (const [name, value] of Object.entries({ scope, browsers, languages })) {
+export function runOptions({ scope = 'changed', browsers = 'auto', languages = 'auto', mutations = 'changed', monkey = 'no' }) {
+  for (const [name, value] of Object.entries({ scope, browsers, languages, mutations, monkey })) {
     if (!CHOICES[name].includes(value)) {
       throw new RangeError(`${name} must be one of ${CHOICES[name].join(', ')}, not "${value}".`);
     }
@@ -302,6 +315,8 @@ export function runOptions({ scope = 'changed', browsers = 'auto', languages = '
     browsers: chosenBrowsers,
     languages: languages === 'auto' ? (full ? 'all' : 'default') : languages,
     projectArgs: chosenBrowsers === 'chromium' ? `--project=${CHROMIUM_PROJECT}` : '',
+    allMutations: mutations === 'all',
+    monkey: monkey === 'yes',
     auto: Object.entries({ browsers, languages })
       .filter(([, value]) => value === 'auto')
       .map(([name]) => name),
@@ -325,20 +340,20 @@ export function statusDescription(sha, options) {
 }
 
 /** The jobs after `changes`, as ci.yml names them. The quarantine job never counts: it doesn't block. */
-const JOBS = ['checks', 'e2e', 'e2e-report', 'offline', 'stack', 'repeat', 'red-green'];
+const JOBS = ['checks', 'e2e', 'e2e-report', 'offline', 'stack', 'repeat', 'red-green', 'monkey'];
 /** Where the saved mutations live (testkit/README.md, "Mutations"). */
 const MUTATIONS_DIR = 'e2e/mutations';
 const NO_SPECS = { mocked: [], real: [] };
 
 /**
- * The test files the branch changes, for the repeat check, mocked (e2e/) and real-server (e2e-real/); a deleted one
- * and the offline spec (its own job) left out.
+ * The test files the branch changes, for the repeat check, mocked (e2e/) and real-server (e2e-real/); a deleted one,
+ * the offline spec and the random clicker (each its own job) left out.
  */
 export function changedSpecs(changed, repo) {
   const live = changed.filter((file) => Object.hasOwn(repo, file));
   return {
     mocked: live.filter((file) => SPEC.test(file) && file !== 'e2e/offline.spec.ts'),
-    real: live.filter((file) => REAL_SPEC.test(file)),
+    real: live.filter((file) => REAL_SPEC.test(file) && !MONKEY_FILES.test(file)),
   };
 }
 
@@ -347,13 +362,37 @@ export function changedSpecs(changed, repo) {
  * specs whose saved mutations to prove again (testkit/changed-proofs.mjs), each split by config. Both run only when
  * started by hand (forScope).
  */
-export function withProofs(selection, { changed, repo, prove }) {
+export function withProofs(selection, { changed, repo, prove, mutations = 0, monkey = false }) {
   const live = prove.filter((spec) => Object.hasOwn(repo, spec));
   return {
     ...selection,
     repeat: changedSpecs(changed, repo),
     prove: { mocked: live.filter((spec) => spec.startsWith('e2e/')), real: live.filter((spec) => spec.startsWith('e2e-real/')) },
+    proveShards: proveShards(live.length ? mutations : 0),
+    monkey: monkey || changed.some((file) => MONKEY_FILES.test(file) && Object.hasOwn(repo, file)),
   };
+}
+
+/** Mutations per red-green machine, about: a build and a run each, so 7 take some 5 minutes. */
+const MUTATIONS_PER_SHARD = 7;
+const MAX_SHARDS = 4;
+
+/** The red-green job's shards for `count` mutations, as `--shard` values: one machine per 7 or so, at most 4. */
+export function proveShards(count) {
+  if (count <= 0) return [];
+  const total = Math.min(MAX_SHARDS, Math.ceil(count / MUTATIONS_PER_SHARD));
+  return Array.from({ length: total }, (_, k) => `${k + 1}/${total}`);
+}
+
+/** Every spec a saved mutation names, for a run that proves them all. */
+export function allProvedSpecs(mutationFiles) {
+  return [...new Set(mutationFiles.flatMap(({ mutations }) => mutations.flatMap((m) => Object.keys(m.expect))))].sort();
+}
+
+/** How many saved mutations name any of the specs: the red-green job's work. */
+export function mutationsFor(mutationFiles, specs) {
+  const wanted = new Set(specs);
+  return mutationFiles.flatMap(({ mutations }) => mutations).filter((m) => Object.keys(m.expect).some((spec) => wanted.has(spec))).length;
 }
 
 const any = (specs = NO_SPECS) => specs.mocked.length + specs.real.length > 0;
@@ -363,7 +402,7 @@ const any = (specs = NO_SPECS) => specs.mocked.length + specs.real.length > 0;
  * merge for any spec, the offline check, the stack job for the db checks, the role tests, the journeys or the live
  * smoke's leak check, and the repeat and red-green jobs when there are tests for them.
  */
-export function requiredJobs({ run, e2e, offline, db, real, roles, live = false, repeat, prove }) {
+export function requiredJobs({ run, e2e, offline, db, real, roles, live = false, repeat, prove, monkey }) {
   return [
     ...(run ? ['checks'] : []),
     ...(e2e !== 'none' ? ['e2e', 'e2e-report'] : []),
@@ -371,6 +410,7 @@ export function requiredJobs({ run, e2e, offline, db, real, roles, live = false,
     ...(db || real || roles || live ? ['stack'] : []),
     ...(any(repeat) ? ['repeat'] : []),
     ...(any(prove) ? ['red-green'] : []),
+    ...(monkey ? ['monkey'] : []),
   ];
 }
 
@@ -419,6 +459,8 @@ export function forScope(selection, options) {
     live: false,
     repeat: NO_SPECS,
     prove: NO_SPECS,
+    proveShards: [],
+    monkey: false,
     why: { ...selection.why, quick: [QUICK_REASON] },
   };
 }
@@ -434,14 +476,14 @@ export function e2eArgs(specs) {
  * as JSON.
  */
 export function githubOutput(selection, options = runOptions({})) {
-  const { run, e2e, offline, db, real, roles, live = false, repeat = NO_SPECS, prove = NO_SPECS } = selection;
+  const { run, e2e, offline, db, real, roles, live = false, repeat = NO_SPECS, prove = NO_SPECS, proveShards: shards = [], monkey = false } = selection;
   const list = Array.isArray(e2e) ? e2eArgs(e2e) : e2e;
   return (
     `run=${run}\ne2e=${list}\noffline=${offline}\ndb=${db}\nreal=${real}\nroles=${roles}\nlive=${live}\nstack=${db || real || roles || live}\n` +
     `projects=${options.projectArgs}\nlanguages=${options.languages}\n` +
     `repeat_mocked=${repeat.mocked.join(' ')}\nrepeat_real=${repeat.real.join(' ')}\n` +
-    `prove_mocked=${prove.mocked.join(' ')}\nprove_real=${prove.real.join(' ')}\n` +
-    `jobs=${JSON.stringify(requiredJobs(selection))}\n`
+    `prove_mocked=${prove.mocked.join(' ')}\nprove_real=${prove.real.join(' ')}\nprove_shards=${JSON.stringify(shards)}\n` +
+    `monkey=${monkey}\njobs=${JSON.stringify(requiredJobs(selection))}\n`
   );
 }
 
@@ -496,6 +538,8 @@ function inputsFromEnv() {
     scope: process.env.CI_SCOPE || undefined,
     browsers: process.env.CI_BROWSERS || undefined,
     languages: process.env.CI_LANGUAGES || undefined,
+    mutations: process.env.CI_MUTATIONS || undefined,
+    monkey: process.env.CI_MONKEY || undefined,
   };
 }
 
@@ -524,7 +568,15 @@ async function main() {
   const mutationFiles = Object.keys(repo)
     .filter((file) => file.startsWith(`${MUTATIONS_DIR}/`) && file.endsWith('.json'))
     .map((file) => ({ path: file, mutations: parseMutations(JSON.parse(readFileSync(path.join(root, file), 'utf8'))).mutations }));
-  const picked = withProofs(selectAffected({ changed, repo, map, full: options.full }), { changed, repo, prove: specsToProve({ changed, mutationFiles }) });
+  // The nightly proves every saved mutation; a run started by hand, those a change reaches.
+  const prove = options.allMutations ? allProvedSpecs(mutationFiles) : specsToProve({ changed, mutationFiles });
+  const picked = withProofs(selectAffected({ changed, repo, map, full: options.full }), {
+    changed,
+    repo,
+    prove,
+    mutations: mutationsFor(mutationFiles, prove),
+    monkey: options.monkey,
+  });
   const selection = forScope(picked, options);
   const output = githubOutput(selection, options);
   const table = summary(selection, options);

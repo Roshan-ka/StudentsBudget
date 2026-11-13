@@ -11,7 +11,7 @@ import { syncAfterSetup } from '@/features/account/sync-status';
 import { useAuth } from '@/features/account/use-auth';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
-import { aiInBuild, useAiSwitch } from '@/features/ai/switch';
+import { aiSetupChatInBuild, useAiSwitch } from '@/features/ai/switch';
 import { SetupRestoreSection } from '@/features/backup/setup-restore-section';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
@@ -79,12 +79,13 @@ function Wizard({
   const [saveError, setSaveError] = useState<string | null>(null);
   // Next from the accounts step with a currency other than the euro waits for the note on the exchange rates.
   const [ratesNote, setRatesNote] = useState(false);
-  // The setup chat (the AI phase, chunk 12): offered on a new setup's first step in a build with the AI, while someone
-  // is signed in; it takes the step card's place until "Review the steps".
+  // The setup chat (the AI phase, chunk 12): offered on a new setup's first step in a build with the setup chat (its own
+  // flag since the Groq switch, chunk 5: off on the free plan), while someone is signed in; it takes the step card's
+  // place until "Review the steps".
   const auth = useAuth();
   const [aiOn] = useAiSwitch();
   const [chatting, setChatting] = useState(false);
-  const chatOffered = !edit && index === 0 && aiInBuild() && auth.status === 'signed-in';
+  const chatOffered = !edit && index === 0 && aiSetupChatInBuild() && auth.status === 'signed-in';
   const headingRef = useRef<HTMLHeadingElement>(null);
   const shownIndex = useRef(index);
   const problemsId = useId();
@@ -212,9 +213,16 @@ function Wizard({
         <SetupChatView draft={draft} update={update} accountsExist={accountsExist} today={today} onClose={closeChat} />
       )}
 
-      {/* The step's fields in one card. While the problems show, the fields they name point at them. */}
+      {/* The step's fields in one card; Income and Fixed costs show each category as its own card instead, with
+          nothing around them (13-11-2026). While the problems show, the fields they name point at them. */}
       <StepProblemsContext value={attempted && problems.length > 0 ? problemsId : null}>
-        <div className={cn(cardVariants(), 'gap-4', chatting && 'hidden')}>
+        <div
+          className={cn(
+            step === 'income' || step === 'fixed' ? 'flex flex-col' : cardVariants(),
+            'gap-4',
+            chatting && 'hidden',
+          )}
+        >
           {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
           {step === 'income' && !edit && accountsExist && (
             <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>

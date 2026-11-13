@@ -88,7 +88,7 @@ export const common: Messages['common'] = {
       'Microsoft), der sieht, dass eine Nachricht ankommt, aber nicht, was darin steht.',
     ai:
       'Die KI-Funktionen schicken, was du schreibst, mit dem, was jede aus deinem Budget braucht (etwa die Namen ' +
-      'deiner Kategorien und Konten oder die Zahlen deines Plans), an Anthropic (Claude) in den USA, damit es ' +
+      'deiner Kategorien und Konten oder die Zahlen deines Plans), an Groq, einen KI-Dienst in den USA, damit es ' +
       'beantwortet wird. Konto- und Kartennummern, E-Mail-Adressen und Telefonnummern werden vorher entfernt. Dein ' +
       'Konto zählt, wie oft du jede Funktion am Tag nutzt. Du kannst sie unter Einstellungen → Dein Konto ausschalten.',
   },

@@ -29,13 +29,42 @@ on:
         type: choice
         options: [auto, default, all]
         default: auto
+      mutations:
+        description: 'red before green for the saved mutations a change reaches (changed), or every one (all, as at night)'
+        type: choice
+        options: [changed, all]
+        default: changed
+      monkey:
+        description: 'yes: the random clicker walks the real app as each role (as at night)'
+        type: choice
+        options: ['no', 'yes']
+        default: 'no'
+  # The nightly (nightly.yml) calls this workflow with its own inputs, the same as Run workflow's.
+  workflow_call:
+    inputs:
+      scope:
+        type: string
+        default: changed
+      browsers:
+        type: string
+        default: auto
+      languages:
+        type: string
+        default: auto
+      mutations:
+        type: string
+        default: changed
+      monkey:
+        type: string
+        default: 'no'
 
 permissions:
   contents: read
 
-# A new run on the same branch and scope stops the one before it; a changed run never stops a full one.
+# A new run on the same branch and scope stops the one before it; a changed run never stops a full one. The workflow's
+# name is part of it: in a call it is the caller's, so the nightly and a full run started by hand never stop each other.
 concurrency:
-  group: ci-${{ github.ref }}-${{ inputs.scope }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.scope }}
   cancel-in-progress: true
 
 jobs:
@@ -64,6 +93,8 @@ jobs:
       repeat_real: ${{ steps.affected.outputs.repeat_real }}
       prove_mocked: ${{ steps.affected.outputs.prove_mocked }}
       prove_real: ${{ steps.affected.outputs.prove_real }}
+      prove_shards: ${{ steps.affected.outputs.prove_shards }}
+      monkey: ${{ steps.affected.outputs.monkey }}
       jobs: ${{ steps.affected.outputs.jobs }}
       playwright: ${{ steps.playwright.outputs.version }}
     steps:
@@ -91,6 +122,8 @@ jobs:
           CI_SCOPE: ${{ github.event_name == 'pull_request' && 'quick' || inputs.scope }}
           CI_BROWSERS: ${{ inputs.browsers }}
           CI_LANGUAGES: ${{ inputs.languages }}
+          CI_MUTATIONS: ${{ inputs.mutations }}
+          CI_MONKEY: ${{ inputs.monkey }}
         run: node scripts/ci-affected.mjs
 
   checks:
@@ -276,7 +309,7 @@ jobs:
           docker run --rm --network host --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work \
             -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL \
             "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
-            npx playwright test -c e2e-real/playwright.config.ts $PROJECTS $SPECS --grep-invert @quarantine
+            npx playwright test -c e2e-real/playwright.config.ts $PROJECTS $SPECS --grep-invert "@quarantine|@monkey"
       # The journeys' result kinds (testkit/result-kinds-reporter.mjs) in the job summary, whatever the outcome.
       - if: always() && steps.real.outcome != 'skipped'
         run: |
@@ -374,19 +407,24 @@ jobs:
           docker run --rm --network host --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work \
             -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL \
             "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
-            npx playwright test -c e2e-real/playwright.config.ts $PROJECTS $SPECS --repeat-each=10 --workers=2 --max-failures=1 --grep-invert @quarantine
+            npx playwright test -c e2e-real/playwright.config.ts $PROJECTS $SPECS --repeat-each=10 --workers=2 --max-failures=1 --grep-invert "@quarantine|@monkey"
 
   # Red before green, in runs started by hand: the saved mutations of the specs a change reaches (a changed spec, a
-  # changed mutations file, or changed code a mutation breaks; testkit/changed-proofs.mjs), each applied, tested and put
-  # back. It runs on the runner itself, because a migration's mutation resets the stack's database: Chromium only,
-  # downloaded from Playwright's own servers (not the Ubuntu mirror; the runner has its libraries).
+  # changed mutations file, or changed code a mutation breaks; testkit/changed-proofs.mjs), or every one at night, each
+  # applied, tested and put back. They go one at a time in a checkout, so they are shared out over up to 4 machines,
+  # about 7 each (`prove_shards`; red-green.mjs --shard). It runs on the runner itself, because a migration's mutation
+  # resets the stack's database: Chromium only, downloaded from Playwright's own servers (not the Ubuntu mirror).
   red-green:
     needs: changes
     if: needs.changes.outputs.prove_mocked != '' || needs.changes.outputs.prove_real != ''
     runs-on: ubuntu-latest
-    # A build and a run per mutation, about 3 minutes each, and two database resets for a migration's: a branch that
-    # brings many mutations at once (the first one did, about 26) needs the room.
-    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.changes.outputs.prove_shards) }}
+    # A build and a run per mutation, about 30 s each in CI (run 43407318882), and two database resets for a
+    # migration's: about 7 a shard take some 5 minutes.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -400,9 +438,10 @@ jobs:
       - if: needs.changes.outputs.prove_mocked != ''
         env:
           SPECS: ${{ needs.changes.outputs.prove_mocked }}
+          SHARD: ${{ matrix.shard }}
         run: |
           # shellcheck disable=SC2086
-          node testkit/red-green.mjs --mutations e2e/mutations --project desktop-chrome $SPECS
+          node testkit/red-green.mjs --mutations e2e/mutations --project desktop-chrome --shard "$SHARD" $SPECS
       - if: needs.changes.outputs.prove_real != ''
         run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
       - if: needs.changes.outputs.prove_real != ''
@@ -413,18 +452,60 @@ jobs:
       - if: needs.changes.outputs.prove_real != ''
         env:
           SPECS: ${{ needs.changes.outputs.prove_real }}
+          SHARD: ${{ matrix.shard }}
         run: |
           # shellcheck disable=SC2086
           node testkit/red-green.mjs --mutations e2e/mutations --config e2e-real/playwright.config.ts \
-            --adapter e2e-real/apply-step.mjs --project desktop-chrome $SPECS
+            --adapter e2e-real/apply-step.mjs --project desktop-chrome --shard "$SHARD" $SPECS
       # The verdicts, and the traces of any test that wasn't green before a mutation: synthetic users only.
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: red-green
+          name: red-green-${{ strategy.job-index }}
           path: |
             .red-green/summary.json
             .red-green/green-test-results/
+          retention-days: 14
+          include-hidden-files: true
+
+  # The random clicker, at night (or `monkey: yes` by hand): a seeded walk through the real app as each role
+  # (e2e-real/monkey.spec.ts, tag @monkey), failing on a crash, a console error, a 5xx answer, or admin content for
+  # someone who isn't one. Every walk logs its steps; `npm run test:monkey -- --replay <log>` walks one again.
+  monkey:
+    needs: changes
+    if: needs.changes.outputs.monkey == 'true'
+    runs-on: ubuntu-latest
+    # Three walks (outsider 5 min, student 10, moderator 10), one after another, plus the build.
+    timeout-minutes: 45
+    env:
+      PLAYWRIGHT: ${{ needs.changes.outputs.playwright }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - run: |
+          node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
+      - run: node e2e-real/db.mjs seed
+      - id: walk
+        run: |
+          docker run --rm --network host --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL -e E2E_MONKEY=1 -e MONKEY_MINUTES=10 \
+            "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
+            npx playwright test -c e2e-real/playwright.config.ts --project=desktop-chrome --grep @monkey --workers=1
+      # Every walk's steps, to replay one: synthetic users on a stack that is gone when the job ends.
+      - if: always() && steps.walk.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: monkey-walks
+          path: |
+            .monkey/
+            test-results/
           retention-days: 14
           include-hidden-files: true
 
@@ -437,7 +518,7 @@ jobs:
   # A job its `if:` skips counts as passed, and a crash in `changes` skips every job after it, so this job reads every
   # result itself.
   gate:
-    needs: [changes, checks, e2e, e2e-report, offline, stack, repeat, red-green]
+    needs: [changes, checks, e2e, e2e-report, offline, stack, repeat, red-green, monkey]
     # Not for a draft, whose run was skipped on purpose.
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-latest

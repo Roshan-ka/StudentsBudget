@@ -190,12 +190,13 @@ describe.each(Object.entries(THEMES))('the %s theme', (theme, tokens) => {
     }
   });
 
-  it('keeps text and secondary text at 4.5:1 on every category tint, with a margin for rounding', () => {
+  // Primary too: a setup step's category card holds its "Source" link (13-11-2026).
+  it('keeps text, secondary text and links at 4.5:1 on every category tint, with a margin for rounding', () => {
     const categories = [...tokens.keys()].filter((name) => name.startsWith('cat-'));
     expect(categories.length).toBeGreaterThanOrEqual(20);
     for (const category of categories) {
       const tint = mixedLuminance(tokens.get(category) ?? '', TINT_SHARE, tokens.get('card') ?? '');
-      for (const text of ['foreground', 'muted-foreground']) {
+      for (const text of ['foreground', 'muted-foreground', 'primary']) {
         const value = ratio(luminance(tokens.get(text) ?? ''), tint);
         expect(value, `--${text} on the ${category} tint: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.6);
       }

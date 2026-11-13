@@ -39,7 +39,8 @@ export function RangeSource({
   return (
     <details className="text-xs text-muted-foreground">
       {/* A line and 28 px of padding: at least a 44 px tap target, as everywhere else in the app. Bold cobalt and
-          underlined, so it reads as something to open; it sits on the card colour, where cobalt is 6.9:1. */}
+          underlined, so it reads as something to open; it sits on the card colour, where cobalt is 6.9:1, or on a
+          category's tint in setup's cards (tokens.test.ts holds it at 4.5:1 there). */}
       <summary
         aria-label={label === undefined && about !== undefined ? t.common.source.of(about) : undefined}
         className="w-fit cursor-pointer py-3.5 text-[13px] font-semibold text-primary underline underline-offset-4"

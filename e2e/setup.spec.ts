@@ -256,15 +256,19 @@ test('the first setup asks only the basic questions, with the budget at the top 
   await go('Income');
   for (const name of ['Job', 'Parents', 'Blocked account', 'Other income']) await expect(box(page, name)).toBeVisible();
   for (const name of ['BAföG', 'Scholarship']) await expect(box(page, name)).toHaveCount(0);
+  // The tips fold under the cards (13-11-2026): closed at first, open on a tap.
+  const savingsTip = page.getByText('Get BAföG or a scholarship? Add it later in Settings → Plan → Edit plan.', {
+    exact: true,
+  });
+  await expect(savingsTip).toBeHidden();
+  await page.locator('summary').filter({ hasText: 'Savings, BAföG or a scholarship?' }).click();
   await expect(
     page.getByText(
       "Living off savings? Add what you use each month under Other income and switch off Add it automatically, so money already in your account isn't counted twice.",
       { exact: true },
     ),
   ).toBeVisible();
-  await expect(
-    page.getByText('Get BAföG or a scholarship? Add it later in Settings → Plan → Edit plan.', { exact: true }),
-  ).toBeVisible();
+  await expect(savingsTip).toBeVisible();
 
   await go('Fixed costs');
   // Rent opens the step, above the basic fixed costs.
@@ -277,6 +281,7 @@ test('the first setup asks only the basic questions, with the budget at the top 
   for (const name of ['Subscriptions', 'Gym & sports', 'Utilities & Rundfunkbeitrag']) {
     await expect(box(page, name)).toHaveCount(0);
   }
+  await page.locator('summary').filter({ hasText: 'Gym, subscriptions, the semester fee?' }).click();
   await expect(
     page.getByText(
       'Subscriptions, the gym, utilities, the Rundfunkbeitrag and one-off costs like the semester fee can be added later in Settings → Plan → Edit plan.',
@@ -590,8 +595,10 @@ test('editing the plan skips accounts and keeps what setup stored', async ({ pag
   for (const name of ['Job', 'Parents', 'BAföG', 'Blocked account', 'Scholarship', 'Other income']) {
     await expect(box(page, name)).toBeVisible();
   }
-  // The pointers to Edit plan are for a new setup: here every source is asked.
+  // The pointers to Edit plan are for a new setup: here every source is asked, and only the savings tip is folded.
   await expect(page.getByText(/Add it later under Edit plan/)).toHaveCount(0);
+  await expect(page.locator('summary').filter({ hasText: 'Savings, BAföG or a scholarship?' })).toHaveCount(0);
+  await expect(page.locator('summary').filter({ hasText: 'Living off savings?' })).toBeVisible();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
 
   await expect(page.getByRole('heading', { level: 3, name: 'Fixed costs' })).toBeVisible();
@@ -608,6 +615,7 @@ test('editing the plan skips accounts and keeps what setup stored', async ({ pag
     await expect(box(page, name)).toBeVisible();
   }
   await expect(page.getByText(/can be added later under Edit plan/)).toHaveCount(0);
+  await expect(page.locator('summary').filter({ hasText: 'Gym, subscriptions, the semester fee?' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Next', exact: true }).click();
 
   await expect(page.getByRole('heading', { level: 3, name: 'One-off costs' })).toBeVisible();
