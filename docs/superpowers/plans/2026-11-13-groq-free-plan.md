@@ -268,6 +268,27 @@ Both most likely aim at consumers and at dodging limits with extra accounts, not
     - Ask's largest: 5,925 as picked, 6,809 with the most city data a pick can hold (3,000 characters at the pack's most bytes a character).
     - At 1,000 characters for the earlier answer it was 6,942, too close, hence 800.
   - **The privacy notice:** Ask's line says this month's and last month's figures and up to 30 entries; the rest of its AI section waits for chunk 6.
+- **Chunk 5** (13-11-2026), fitting the free plan (on top of chunk 4's branch):
+  - **Migration `20261113113428_ai_limits_groq_free.sql`:** `create or replace` of both limit functions (owner and privileges kept, revoked again).
+
+    | Feature | Per account (was) | For everyone (was) |
+    |---|---|---|
+    | Quick add | 30 (50) | 120 (3,000) |
+    | Ask | 6 (6) | 36 (300) |
+    | Setup chat | **0** (15) | **0** (300) |
+
+    The setup chat is 0 for one account as well as for everyone, so a call is refused as `daily-limit`, not `busy` (everyone's limit is checked second). The plan had 15 per account; that only changed which hint came back. A moderator still has no limit, so Roshan can try the chat on a preview with the flag.
+  - **`ai_allowance.test.sql`:** sections 1 to 5 read the limits through `pg_temp.own` and `pg_temp.everyone`; everyone's limit is now tested on Ask (the setup chat is 0); section 6 holds the numbers in force and the setup chat's `daily-limit`. 24 checks.
+  - **`limits.test.ts`:** reads the latest migration that defines each function; checks every feature is named, one account never above everyone, the setup chat at 0, and each model's day.
+    - Quick add has gpt-oss-20b to itself: 120 a day at a typical 1,299 tokens is 155,880.
+    - Ask and the setup chat share gpt-oss-120b: 36 at a typical 4,111 is 147,996, and the setup chat adds nothing at 0.
+    - Both are under 160,000 (80 % of 200,000) and 1,000 requests.
+    - A typical call is its input as `callTokens` counts it, plus a typical answer (quick add 250 tokens, Ask 800) in place of the output limit.
+  - **The flag:** `aiSetupChatInBuild()` (`src/features/ai/switch.ts`) is `aiInBuild()` and `NEXT_PUBLIC_AI_SETUP_CHAT=1`.
+    - The wizard's `chatOffered` reads it, so without it there is no offer and no switch hint.
+    - `E2E_SUPABASE_ENV` sets it, so `setup-chat.spec.ts` still runs.
+    - `switch.test.ts` covers on, off without the flag (the free plan's build) and off without the AI. A second e2e build without the flag would cost a full build per run, so the unit test stands in.
+  - **After merging:** `db push` for the migration (Roshan), before the function goes live.
   - **Tests:**
     - `budget.test.ts`: both largest calls, the margin, what `callTokens` counts;
     - `ask.test.ts`: the picks in the system prompt and not the rest, no sources, the same picks for the same question, ties by the snapshot's spending, the last exchange only, `cutAnswer`, ids and amounts held to what was sent;
