@@ -4,6 +4,11 @@
 //
 // Every item has an id the model cites and the app looks up again in its own data, so a source, a link or a checked
 // date never comes from the model. No item carries a link: the app adds those.
+//
+// Each item also carries its words (the Groq switch, chunk 3, docs/superpowers/plans/2026-11-13-groq-free-plan.md):
+// folded by `foldWords` from its text, its titles in the app's other languages, its category's names and a few topic
+// words, so `selectPack` (pack-select.ts) can send Ask only the items a question is about. The words never reach the
+// model.
 
 export type PackKind = 'range' | 'price' | 'tip' | 'discount' | 'swap' | 'semester' | 'fee' | 'checklist';
 
@@ -21,6 +26,8 @@ export type PackItem = {
   checked: string;
   /** Nothing states the figure: it is the app's own estimate. */
   estimate: boolean;
+  /** What a question about it may say, as `foldWords` writes words, joined by spaces. Never sent to the model. */
+  words: string;
 };
 
 /**
@@ -53,4 +60,69 @@ export function renderPack(items: readonly PackItem[]): string {
       return `[${item.id}] ${item.text}${estimate} Source: ${item.source}; checked ${item.checked}.`;
     })
     .join('\n');
+}
+
+/**
+ * The pack as Ask sends it on Groq's free plan: one item per line, its id first, without its source and checked day.
+ * The app shows a cited item's source from its own data, so the model needs only what the item says.
+ */
+export function renderPackBrief(items: readonly PackItem[]): string {
+  return items.map((item) => `[${item.id}] ${item.text}${item.estimate ? ' (estimate)' : ''}`).join('\n');
+}
+
+/** Words that say nothing about which item a question is after, in the app's four languages (folded when used). */
+const STOP_LIST = `
+  the and for you your are with can could how what where when which who why this that these those there here have has
+  had from get got does did not but all any some its out per more less than then them they their our was were will
+  would should about into also only just like very much many most each every other same such one two lot lots
+  der die das den dem des und oder aber ist sind war bin bist hat habe haben hast ein eine einen einem einer eines
+  ich mir mich mein meine meinen meinem meiner dir dich dein deine sie ihr ihre wir uns unser euch man wie was wer wem
+  wen woher wohin wann warum welche welcher welches für mit ohne auf aus bei beim von vom zum zur ins fürs nach vor über unter durch
+  gegen bis auch noch nur schon sehr viel viele mehr weniger kann kannst können muss musst müssen soll sollte gibt
+  nicht kein keine keinen dann denn wenn als dass diese dieser dieses etwas hier dort jetzt immer alle allen
+  les des une pour avec dans est sont sur que qui quoi quel quelle quels quelles comment combien pourquoi quand mon mes
+  ton tes son ses notre votre nos vos leur leurs par pas plus moins aux ces cette cet être avoir peux peut puis faire
+  fait tout tous toute toutes très aussi bien mais donc elle ils elles nous vous moi toi lui eux suis avez avons ont ici
+  los las una uno unos unas para con por qué como cómo cuánto cuánta cuántos cuántas donde dónde cuando cuándo mis tus
+  sus del más menos puedo puede pueden hay este esta esto estos estas ese esa eso muy también pero sin sobre entre
+  hasta desde mucho mucha muchos muchas soy eres estoy está tengo tiene tienen hacer algo alguna alguno todo toda todos
+  todas aquí cuál ser
+  regensburg euro euros eur
+`;
+
+/** Lower case, with accents and umlauts dropped and ß as ss, so "Günstig" and "gunstig" are one word. */
+function fold(text: string): string {
+  return text
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/ß/g, 'ss')
+    .replace(/œ/g, 'oe')
+    .replace(/æ/g, 'ae');
+}
+
+const STOP_WORDS: ReadonlySet<string> = new Set(fold(STOP_LIST).split(/\s+/).filter(Boolean));
+
+/** Endings `foldWords` takes off a word, the first that fits: plurals and a few inflections. */
+const ENDINGS = ['en', 'er', 'es', 'e', 's', 'n'];
+
+/**
+ * A word without its ending when at least 4 letters stay, so "Rabatte" and "Rabatt", or "prices" and "price", meet,
+ * while a short word ("essen", "comer") keeps its own.
+ */
+function stem(word: string): string {
+  const ending = ENDINGS.find((end) => word.endsWith(end) && word.length - end.length >= 4);
+  return ending === undefined ? word : word.slice(0, -ending.length);
+}
+
+/**
+ * The words of a text as the pack compares them: folded, at least 3 letters, no number on its own, no stop word, each
+ * without its ending, each once, in the order they come. The same for an item's words and a question's.
+ */
+export function foldWords(text: string): string[] {
+  const words = fold(text)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((word) => word.length >= 3 && !/^\p{N}+$/u.test(word) && !STOP_WORDS.has(word))
+    .map(stem);
+  return [...new Set(words)];
 }
