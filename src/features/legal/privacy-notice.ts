@@ -495,7 +495,7 @@ export function privacySections(o: Operator): LegalSection[] {
             kind: 'list',
             items: [
               'bei Schnell erfassen: die Zeile, das heutige Datum, die Sprache und die Namen deiner Ausgabenkategorien und deiner Konten mit Art und Währung, ohne deren Kennungen;',
-              'bei Fragen: deine Fragen mit den Antworten davor und eine Übersicht deines Budgets: der Plan, die Zahlen dieses und der zwei Monate davor je Umschlag, die Woche, einmalige Kosten und bis zu 60 letzte Ausgaben und Einnahmen mit gekürzten Notizen; keine Kontostände, Konten, E-Mail-Adresse oder Nutzernamen;',
+              'bei Fragen: deine Fragen mit den Antworten davor und eine Übersicht deines Budgets: der Plan, die Zahlen dieses und des Monats davor je Umschlag, die Woche, einmalige Kosten und bis zu 30 letzte Ausgaben und Einnahmen mit gekürzten Notizen; keine Kontostände, Konten, E-Mail-Adresse oder Nutzernamen;',
               'bei Per Chat einrichten: deine Nachrichten mit den Antworten davor und der Entwurf deines Plans, also Beträge sowie Namen, Arten, Währungen und Anfangsstände der Konten darin.',
             ],
           },
@@ -520,7 +520,7 @@ export function privacySections(o: Operator): LegalSection[] {
             kind: 'list',
             items: [
               'with Quick add: the line, today’s date, the language, and the names of your expense categories and of your accounts with their kind and currency, without their identifiers;',
-              'with Ask: your questions with the answers before them, and an overview of your budget: the plan, this month’s and the two months before’s figures per envelope, the week, one-off costs and up to 60 recent expenses and incomes with shortened notes; no balances, accounts, email address or username;',
+              'with Ask: your questions with the answers before them, and an overview of your budget: the plan, this month’s and last month’s figures per envelope, the week, one-off costs and up to 30 recent expenses and incomes with shortened notes; no balances, accounts, email address or username;',
               'with Set up by chatting: your messages with the replies before them, and the draft of your plan, that is amounts and the names, kinds, currencies and starting balances of the accounts in it.',
             ],
           },

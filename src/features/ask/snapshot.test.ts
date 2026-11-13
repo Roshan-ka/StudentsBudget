@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import type { Entry, Plan } from '@/db/types';
-import { askRequest, MAX_DATA } from '@/features/ai/contract';
+import { askRequest, MAX_SNAPSHOT } from '@/features/ai/contract';
 import { categoryNameIn } from '@/i18n/category-name';
 import { MESSAGES } from '@/i18n/messages';
 import { monthStatus, planSummary, weekToSpend } from '@/lib/budget';
@@ -161,8 +161,8 @@ describe('askSnapshot', () => {
     expect(plan.incomeEur).toBe(500);
   });
 
-  it('gives the two months before this one, newest first, but none before the plan began', () => {
-    expect(snap().pastMonths.map((past) => past.month)).toEqual(['2026-10', '2026-09']);
+  it('gives the month before this one, but none before the plan began', () => {
+    expect(snap().pastMonths.map((past) => past.month)).toEqual(['2026-10']);
     const october = snap().pastMonths[0];
     expect(october).toEqual({
       month: '2026-10',
@@ -175,10 +175,11 @@ describe('askSnapshot', () => {
       ],
     });
 
-    // In October the plan began only in September: one month.
     expect(askSnapshot({ plan: PLAN, entries: ENTRIES }, '2026-10-20', en).pastMonths.map((past) => past.month)).toEqual([
       '2026-09',
     ]);
+    // In September the plan began that month: none.
+    expect(askSnapshot({ plan: PLAN, entries: ENTRIES }, '2026-09-25', en).pastMonths).toEqual([]);
   });
 
   it('measures each past month against the plan it had (plan history)', () => {
@@ -224,7 +225,7 @@ describe('askSnapshot', () => {
     expect(recent.find((row) => row.type === 'income')).not.toHaveProperty('note');
   });
 
-  it('keeps at most 60 recent entries', () => {
+  it('keeps at most 30 recent entries', () => {
     const lots = Array.from({ length: 90 }, (_, i) => entry(`2026-10-${String((i % 28) + 1).padStart(2, '0')}`, 'expense', 'food', 100));
     expect(askSnapshot({ plan: PLAN, entries: lots }, TODAY, en).recent).toHaveLength(MAX_RECENT);
   });
@@ -286,7 +287,7 @@ describe('askSnapshot', () => {
     expect(snapshot.oneOffs[0].name).toBe('Fee to');
   });
 
-  it('fits MAX_DATA at its largest, leaving out the oldest recent entries first', () => {
+  it('fits MAX_SNAPSHOT at its largest: the recent entries go first, then the past month and the top expenses', () => {
     const flexible = CATEGORIES.filter((c) => c.kind === 'flexible').map((c) => c.id);
     // Three bytes a letter, 60 letters a note: the heaviest note there is.
     const heavy = '漢'.repeat(80);
@@ -313,18 +314,41 @@ describe('askSnapshot', () => {
     );
     const snapshot: AskSnapshot = askSnapshot({ plan, entries }, TODAY, MESSAGES.de);
 
-    expect(snapshotBytes(snapshot)).toBeLessThanOrEqual(MAX_DATA);
-    // Some recent entries had to go, and they were the oldest: what is left is the newest, in order.
+    expect(snapshotBytes(snapshot)).toBeLessThanOrEqual(MAX_SNAPSHOT);
+    // What could go went; the plan and its one-offs stayed.
+    expect(snapshot.recent).toEqual([]);
+    expect(snapshot.pastMonths).toEqual([]);
+    expect(snapshot.topExpenses).toEqual([]);
+    expect(snapshot.oneOffs.length).toBeGreaterThan(0);
+    expect(snapshot.thisMonth.envelopes).toHaveLength(flexible.length);
+
+    // And the function takes it.
+    const request = { feature: 'ask', lang: 'de', today: TODAY, snapshot, turns: [{ role: 'user', text: 'Wie stehe ich?' }] };
+    expect(askRequest.safeParse(request).success).toBe(true);
+  });
+
+  it('leaves out the oldest recent entries first, and keeps the newest in order', () => {
+    const flexible = CATEGORIES.filter((c) => c.kind === 'flexible').map((c) => c.id);
+    const plan: Plan = { ...PLAN, envelopes: flexible.map((categoryId) => ({ categoryId, monthlyMinor: 12345 })) };
+    const entries = Array.from({ length: 300 }, (_, i) =>
+      entry(
+        `2026-${['09', '10', '11'][i % 3]}-${String((i % 11) + 1).padStart(2, '0')}`,
+        'expense',
+        flexible[i % flexible.length],
+        1234 + i,
+        'REWE Einkauf Woche',
+      ),
+    );
+    const snapshot = askSnapshot({ plan, entries }, TODAY, MESSAGES.de);
+
+    expect(snapshotBytes(snapshot)).toBeLessThanOrEqual(MAX_SNAPSHOT);
     expect(snapshot.recent.length).toBeGreaterThan(0);
     expect(snapshot.recent.length).toBeLessThan(MAX_RECENT);
+    expect(snapshot.pastMonths).toHaveLength(1);
     const newest = entries
       .filter((row) => row.date <= TODAY)
       .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
       .map((row) => `${row.date} ${row.eurMinor / 100}`);
     expect(snapshot.recent.map((row) => `${row.date} ${row.amountEur}`)).toEqual(newest.slice(0, snapshot.recent.length));
-
-    // And the function takes it.
-    const request = { feature: 'ask', lang: 'de', today: TODAY, snapshot, turns: [{ role: 'user', text: 'Wie stehe ich?' }] };
-    expect(askRequest.safeParse(request).success).toBe(true);
   });
 });

@@ -15,7 +15,7 @@ export type ModelCall = {
   maxTokens: number;
   /** How hard a reasoning model thinks before it answers (`reasoning_effort`); always sent. */
   effort: 'low' | 'medium' | 'high';
-  /** The feature's frozen rules and data, the same for every student. */
+  /** The feature's rules and data: the same for every student, but for Ask's city items, picked per question. */
   system: string;
   /** The conversation, the student's data in its first message; the last is the student's. */
   messages: { role: 'user' | 'assistant'; content: string }[];

@@ -254,3 +254,21 @@ Both most likely aim at consumers and at dodging limits with extra accounts, not
     - `pack-select.test.ts`: folding and stop words in the four languages, endings, `wordMatch`, cheap food and every semester fee in the four languages, Westbad first in each, ties by spending, the question over the earlier ones and a follow-up, the fallback, the limits and a skipped long item, the same picks each time;
     - `city-pack.test.ts`: every item's words (sorted, once, its own text's), the other languages' titles and offers and the category names in them, `TOPIC_WORDS` for every category and kind with no alcohol word, and the brief form without sources or words.
   - **CLAUDE.md:** the writer's rule names `src/i18n/city`, and the checklist rule says the pack and the MCP server carry the checklist (they have since the checklist was built).
+- **Chunk 4** (13-11-2026), Ask within the free plan's tokens (on top of chunk 3's branch):
+  - **`ask.ts`:**
+    - `askPicks(request)`: `selectPack` with the last question, the earlier ones and `spendOf(snapshot)` (`thisMonth.envelopes`, read with zod; nothing when it doesn't read).
+    - `askSystem(picks)`: the rules, then the picks in `renderPackBrief` form under "City data for Regensburg that may help with this question".
+    - `finishAsk(answer, request, picks = askPicks(request))`: keeps only the ids sent, and backs amounts with the snapshot and the brief picks. The function hands `call` and `finish` the same scrubbed request, so both pick alike.
+  - **`turns.ts`, `lastTurns`:** the last 3 turns, an earlier answer cut at a space to 800 characters (`KEPT_ANSWER`, `cutAnswer`); the snapshot rides on the first kept question.
+  - **`contract.ts`:** `MAX_SNAPSHOT` (6,000 bytes) for Ask's snapshot; the setup draft keeps `MAX_DATA` (12,000).
+  - **`snapshot.ts`:** `MAX_RECENT` 30 and `PAST_MONTHS` 1. Over `MAX_SNAPSHOT` it drops the oldest recent entries, then the past month, the smallest top expenses and the latest one-offs. A budget with every flexible envelope keeps about 17 recent entries; the heaviest test budget keeps only its plan and one-offs.
+  - **`budget.ts`:** `GROQ_FREE_PLAN` (dated), `MAX_CALL_TOKENS` 7,000 and `callTokens(call)`: the system prompt, the messages and the answer's strict schema in UTF-8 bytes, 30 bytes of framing a message, 3 bytes a token, plus the output limit.
+  - **Measured with `callTokens`:**
+    - quick add's largest call (60 categories, 20 accounts, the longest line, all in two-byte letters): 5,916;
+    - Ask's largest: 5,925 as picked, 6,809 with the most city data a pick can hold (3,000 characters at the pack's most bytes a character).
+    - At 1,000 characters for the earlier answer it was 6,942, too close, hence 800.
+  - **The privacy notice:** Ask's line says this month's and last month's figures and up to 30 entries; the rest of its AI section waits for chunk 6.
+  - **Tests:**
+    - `budget.test.ts`: both largest calls, the margin, what `callTokens` counts;
+    - `ask.test.ts`: the picks in the system prompt and not the rest, no sources, the same picks for the same question, ties by the snapshot's spending, the last exchange only, `cutAnswer`, ids and amounts held to what was sent;
+    - `contract.test.ts` and `snapshot.test.ts`: the new cap, one past month, the drop order.

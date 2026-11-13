@@ -1,5 +1,5 @@
 import type { Entry, Plan, PlanMonth } from '@/db/types';
-import { MAX_DATA } from '@/features/ai/contract';
+import { MAX_SNAPSHOT } from '@/features/ai/contract';
 import { categoryNameIn } from '@/i18n/category-name';
 import type { Messages } from '@/i18n/messages';
 import { monthStatus, planSummary, setAsideBy, setAsideMonthly, weekToSpend } from '@/lib/budget';
@@ -20,15 +20,18 @@ import { planForMonth } from '@/lib/plan-history';
 //
 // It never holds a balance, an account (its name, id or currency), the email or the username. Notes and one-off names
 // are scrubbed here as well as on the server, and cut to NOTE_LENGTH.
+//
+// Since the Groq switch, chunk 4 (docs/superpowers/plans/2026-11-13-groq-free-plan.md), it fits MAX_SNAPSHOT (6,000
+// bytes) with 30 recent entries and one past month, so a question stays under the free plan's tokens a minute.
 
 /** The most recent expenses and incomes it lists, before the size bound. */
-export const MAX_RECENT = 60;
+export const MAX_RECENT = 30;
 /** The longest note or one-off name, in characters. */
 export const NOTE_LENGTH = 60;
 /** The month's largest expenses it lists. */
 export const TOP_EXPENSES = 5;
 /** The months before this one it lists per envelope. */
-export const PAST_MONTHS = 2;
+export const PAST_MONTHS = 1;
 /** The one-offs it lists: the ones not yet due, soonest first. */
 export const MAX_ONE_OFFS = 10;
 
@@ -104,14 +107,15 @@ const isMoneyEntry = (entry: Entry): entry is Entry & { type: 'expense' | 'incom
 const newestFirst = (a: Entry, b: Entry) =>
   a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date);
 
-/** The bytes the function counts: UTF-8 JSON, as the contract's MAX_DATA. */
+/** The bytes the function counts: UTF-8 JSON, as the contract's MAX_SNAPSHOT. */
 export function snapshotBytes(snapshot: AskSnapshot): number {
   return new TextEncoder().encode(JSON.stringify(snapshot)).length;
 }
 
 /**
- * The snapshot of the budget on `today`, with category names from `t` (the phone's dictionary). It fits MAX_DATA: when
- * it wouldn't, the oldest recent entries are left out first.
+ * The snapshot of the budget on `today`, with category names from `t` (the phone's dictionary). It fits MAX_SNAPSHOT:
+ * when it wouldn't, the oldest recent entries are left out first, then the past month, the smallest of the month's top
+ * expenses and the latest one-offs.
  */
 export function askSnapshot(
   { plan, entries, planMonths = [] }: { plan: Plan; entries: Entry[]; planMonths?: readonly PlanMonth[] },
@@ -220,10 +224,15 @@ export function askSnapshot(
     recent,
   };
 
-  // The size bound: the oldest recent entries go first, and the names go with what is left.
+  // The size bound: the oldest recent entries go first, then the past month, the smallest top expenses and the latest
+  // one-offs; the names go with what is left.
   snapshot.categories = namesOf(snapshot, t);
-  while (snapshotBytes(snapshot) > MAX_DATA && snapshot.recent.length > 0) {
-    snapshot.recent = snapshot.recent.slice(0, -1);
+  while (snapshotBytes(snapshot) > MAX_SNAPSHOT) {
+    if (snapshot.recent.length > 0) snapshot.recent = snapshot.recent.slice(0, -1);
+    else if (snapshot.pastMonths.length > 0) snapshot.pastMonths = snapshot.pastMonths.slice(0, -1);
+    else if (snapshot.topExpenses.length > 0) snapshot.topExpenses = snapshot.topExpenses.slice(0, -1);
+    else if (snapshot.oneOffs.length > 0) snapshot.oneOffs = snapshot.oneOffs.slice(0, -1);
+    else break;
     snapshot.categories = namesOf(snapshot, t);
   }
   return snapshot;
