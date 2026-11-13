@@ -16,11 +16,13 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:real": "playwright test -c e2e-real/playwright.config.ts",
     "test:offline": "playwright test -c playwright.offline.config.ts",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "test:db": "supabase test db",
     "test:contract": "vitest run .contract.test --no-file-parallelism",
+    "test:red-green": "node testkit/red-green.mjs --mutations e2e/mutations",
     "mcp": "node mcp/server.ts"
   },
   "dependencies": {

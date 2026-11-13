@@ -1,9 +1,9 @@
 name: CI
 
 # A pull request that is ready for review (never a draft) runs the quick checks by itself, on opening, on Ready for
-# review and on each push after (Roshan, 2026-11-02): lint, types, build, unit tests, and the db job when the change
-# reaches it; no e2e and no offline check. Those run only by hand (Actions → CI → Run workflow, or
-# `gh workflow run ci.yml --ref <branch>`), and Claude asks Roshan before starting one. A `changed` run tests what the
+# review and on each push after (Roshan, 2026-11-02): lint, types, build, unit tests, and the stack job's db checks when
+# the change reaches them; no e2e, no offline check and no real-server journeys. Those run only by hand (Actions → CI →
+# Run workflow, or `gh workflow run ci.yml --ref <branch>`), and Claude asks Roshan before starting one. A `changed` run tests what the
 # branch changes against main (scripts/ci-affected.mjs, which says why in the job summary); a `full` run tests
 # everything, after Roshan's approval.
 # The last job posts the verdict on the tested commit: `full-gate` (a full run on every browser and language),
@@ -40,8 +40,9 @@ concurrency:
 
 jobs:
   # What this run needs: `run` (anything but notes), `e2e` (none, all, or the specs as Playwright file arguments),
-  # `offline`, `db`, the Playwright `projects` argument and the `languages`, plus the commit every later job checks out
-  # and the lockfile's Playwright version, whose image the browser jobs run in.
+  # `offline`, `db` and `real` (the stack job's db checks and real-server journeys; `stack` is either), the Playwright
+  # `projects` argument and the `languages`, and `jobs`, the jobs the gate requires; plus the commit every later job
+  # checks out and the lockfile's Playwright version, whose image the browser jobs run in.
   changes:
     # A draft runs nothing: the person is still working on it.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
@@ -53,8 +54,16 @@ jobs:
       e2e: ${{ steps.affected.outputs.e2e }}
       offline: ${{ steps.affected.outputs.offline }}
       db: ${{ steps.affected.outputs.db }}
+      real: ${{ steps.affected.outputs.real }}
+      roles: ${{ steps.affected.outputs.roles }}
+      stack: ${{ steps.affected.outputs.stack }}
       projects: ${{ steps.affected.outputs.projects }}
       languages: ${{ steps.affected.outputs.languages }}
+      repeat_mocked: ${{ steps.affected.outputs.repeat_mocked }}
+      repeat_real: ${{ steps.affected.outputs.repeat_real }}
+      prove_mocked: ${{ steps.affected.outputs.prove_mocked }}
+      prove_real: ${{ steps.affected.outputs.prove_real }}
+      jobs: ${{ steps.affected.outputs.jobs }}
       playwright: ${{ steps.playwright.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -98,6 +107,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      # The workflows themselves: expressions, contexts, job outputs and needs, and their shell scripts (shellcheck),
+      # beyond what parsing the YAML catches.
+      - run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
       - run: npm run typecheck
       - run: npm run build
       # The whole unit suite, never `vitest --changed`: that misses changed fixtures, the lockfile and the map's tests.
@@ -138,11 +150,13 @@ jobs:
           # `all` runs the 375 px tour in every offered language besides English (e2e/helpers/languages.ts).
           E2E_LANGUAGES: ${{ needs.changes.outputs.languages }}
         # $SPECS and $PROJECTS stay unquoted: each spec is an argument of its own, and no projects means every project.
+        # A quarantined test runs in the quarantine job instead, where it doesn't block.
         run: |
+          # shellcheck disable=SC2086
           if [ "$SPECS" = all ]; then
-            npx playwright test $PROJECTS --shard="$SHARD" --reporter=dot,blob
+            npx playwright test $PROJECTS --grep-invert @quarantine --shard="$SHARD" --reporter=dot,blob
           else
-            npx playwright test $PROJECTS $SPECS --reporter=dot,blob
+            npx playwright test $PROJECTS $SPECS --grep-invert @quarantine --reporter=dot,blob
           fi
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -208,13 +222,18 @@ jobs:
             test-results/
           retention-days: 14
 
-  # The database: the migrations in supabase/migrations on a local Supabase stack (Docker is on the runner), then the
-  # pgTAP tests in supabase/tests. No secrets: the local stack makes its own keys.
-  db:
+  # The local Supabase stack (Docker is on the runner), started once for everything that needs it: the db checks (the
+  # migrations in supabase/migrations, then the pgTAP tests in supabase/tests and the account store's contract tests)
+  # when the change reaches them; the role and security tests (e2e-real/roles/) when the database, the moderation code
+  # or the sign-in code changes, a ready pull request's quick run included; and all the real-server journeys
+  # (e2e-real/) in runs started by hand. No secrets: the local stack makes its own keys, and every user is a throwaway
+  # account on it.
+  stack:
     needs: changes
-    if: needs.changes.outputs.db == 'true'
+    if: needs.changes.outputs.stack == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The stack's start, the db checks, then the journeys' production build and run.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -224,23 +243,189 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run supabase:start -- --exclude studio
-      - run: npm run test:db
+      # Only what the tests use: the database, Auth, the REST API and Mailpit.
+      - run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - if: needs.changes.outputs.db == 'true'
+        run: npm run test:db
+      # The stack's URL, browser key and Mailpit, for the contract tests and the journeys.
+      - run: node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
       # The account store (src/sync/store.ts) and the emailed codes against the same stack, as signed-in users; the codes
       # come from its Mailpit.
-      - run: node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
-      - run: npm run test:contract
+      - if: needs.changes.outputs.db == 'true'
+        run: npm run test:contract
+      # The moderators the role tests sign in as, one per worker, made in the database here on the runner (the browser
+      # image has no Docker), and the role matrix held to every function the running database guards for moderators.
+      - if: needs.changes.outputs.real == 'true' || needs.changes.outputs.roles == 'true'
+        run: node e2e-real/db.mjs seed
+      - if: needs.changes.outputs.roles == 'true'
+        run: node e2e-real/db.mjs check-matrix
+      # The journeys run in Playwright's image, like e2e (no browser install from the Ubuntu mirror), started from here
+      # because the stack needs the runner's Docker. `--network host` lets the image reach the stack and serve the app
+      # on the runner's own localhost:3210, the port supabase/config.toml lists for passkeys; uid 1001 owns the workspace.
+      # A run started by hand runs every journey; a quick run with the role tests picked runs those only.
+      - id: real
+        if: needs.changes.outputs.real == 'true' || needs.changes.outputs.roles == 'true'
+        env:
+          PLAYWRIGHT: ${{ needs.changes.outputs.playwright }}
+          PROJECTS: ${{ needs.changes.outputs.projects }}
+          SPECS: ${{ needs.changes.outputs.real != 'true' && 'e2e-real/roles/' || '' }}
+        # $PROJECTS and $SPECS stay unquoted: none means every project, and every spec.
+        run: |
+          # shellcheck disable=SC2086
+          docker run --rm --network host --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL \
+            "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
+            npx playwright test -c e2e-real/playwright.config.ts $PROJECTS $SPECS --grep-invert @quarantine
+      # The journeys' result kinds (testkit/result-kinds-reporter.mjs) in the job summary, whatever the outcome.
+      - if: always() && steps.real.outcome != 'skipped'
+        run: |
+          if [ -f result-kinds-real.md ]; then cat result-kinds-real.md >> "$GITHUB_STEP_SUMMARY"; fi
+      # Traces of the failed journeys: synthetic users on a stack that is gone when the job ends.
+      - if: failure() && steps.real.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-real
+          path: |
+            playwright-report-real/
+            test-results/
+          retention-days: 14
+
+  # The quarantined tests (`@quarantine`, each with its owner and fix-by date, which `npm test` holds), apart and never
+  # blocking: the gate doesn't wait for this job, and a failure here is a note in the summary, not a red run.
+  quarantine:
+    needs: changes
+    if: needs.changes.outputs.e2e != 'none'
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.changes.outputs.playwright }}-resolute
+      options: --user 1001
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - env:
+          PROJECTS: ${{ needs.changes.outputs.projects }}
+        # $PROJECTS stays unquoted: no projects means every project.
+        run: |
+          # shellcheck disable=SC2086
+          npx playwright test $PROJECTS --grep @quarantine --pass-with-no-tests --reporter=dot
+
+  # The repeat check, in runs started by hand: the test files the branch changes, 10 times at 2 workers, stopping at
+  # the first failure. A test that fails once in ten is flaky, whatever its last run said. The mocked ones run in
+  # Playwright's image; the real-server ones against a stack of their own, as in the stack job.
+  repeat:
+    needs: changes
+    if: needs.changes.outputs.repeat_mocked != '' || needs.changes.outputs.repeat_real != ''
+    runs-on: ubuntu-latest
+    # Ten rounds of every changed test, and a code wait of up to 30 s in each real sign-in.
+    timeout-minutes: 90
+    env:
+      PLAYWRIGHT: ${{ needs.changes.outputs.playwright }}
+      PROJECTS: ${{ needs.changes.outputs.projects }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - if: needs.changes.outputs.repeat_mocked != ''
+        env:
+          SPECS: ${{ needs.changes.outputs.repeat_mocked }}
+        # $PROJECTS and $SPECS stay unquoted: no projects means every project; each spec is an argument of its own.
+        run: |
+          # shellcheck disable=SC2086
+          docker run --rm --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work -e HOME=/tmp -e CI=true \
+            "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
+            npx playwright test $PROJECTS $SPECS --repeat-each=10 --workers=2 --max-failures=1 --retries=0 --grep-invert @quarantine
+      - if: needs.changes.outputs.repeat_real != ''
+        run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - if: needs.changes.outputs.repeat_real != ''
+        run: |
+          node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
+      - if: needs.changes.outputs.repeat_real != ''
+        run: node e2e-real/db.mjs seed
+      - if: needs.changes.outputs.repeat_real != ''
+        env:
+          SPECS: ${{ needs.changes.outputs.repeat_real }}
+        run: |
+          # shellcheck disable=SC2086
+          docker run --rm --network host --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL \
+            "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
+            npx playwright test -c e2e-real/playwright.config.ts $PROJECTS $SPECS --repeat-each=10 --workers=2 --max-failures=1 --grep-invert @quarantine
+
+  # Red before green, in runs started by hand: the saved mutations of the specs a change reaches (a changed spec, a
+  # changed mutations file, or changed code a mutation breaks; testkit/changed-proofs.mjs), each applied, tested and put
+  # back. It runs on the runner itself, because a migration's mutation resets the stack's database: Chromium only,
+  # downloaded from Playwright's own servers (not the Ubuntu mirror; the runner has its libraries).
+  red-green:
+    needs: changes
+    if: needs.changes.outputs.prove_mocked != '' || needs.changes.outputs.prove_real != ''
+    runs-on: ubuntu-latest
+    # A build and a run per mutation, about 3 minutes each, and two database resets for a migration's: a branch that
+    # brings many mutations at once (the first one did, about 26) needs the room.
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - if: needs.changes.outputs.prove_mocked != ''
+        env:
+          SPECS: ${{ needs.changes.outputs.prove_mocked }}
+        run: |
+          # shellcheck disable=SC2086
+          node testkit/red-green.mjs --mutations e2e/mutations --project desktop-chrome $SPECS
+      - if: needs.changes.outputs.prove_real != ''
+        run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - if: needs.changes.outputs.prove_real != ''
+        run: |
+          node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
+      - if: needs.changes.outputs.prove_real != ''
+        run: node e2e-real/db.mjs seed
+      - if: needs.changes.outputs.prove_real != ''
+        env:
+          SPECS: ${{ needs.changes.outputs.prove_real }}
+        run: |
+          # shellcheck disable=SC2086
+          node testkit/red-green.mjs --mutations e2e/mutations --config e2e-real/playwright.config.ts \
+            --adapter e2e-real/apply-step.mjs --project desktop-chrome $SPECS
+      # The verdicts, and the traces of any test that wasn't green before a mutation: synthetic users only.
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: red-green
+          path: |
+            .red-green/summary.json
+            .red-green/green-test-results/
+          retention-days: 14
+          include-hidden-files: true
 
   # The run's one verdict, posted as a commit status on the commit it tested, where a pull request shows it (check runs
   # of a manual run don't appear there). `node scripts/ci-affected.mjs verdict` decides it (statusContext, verdict):
   # - `full-gate` only for a full run on every browser and language; a full run narrowed by an option posts
   #   `partial-check`, and a changed or quick run `quick-check`. No branch protection requires any of them yet.
-  # - A full run needs every job, the report merge included, to pass: skipped, cancelled or no result is a failure.
-  # - A changed or quick run passes when every job passed or was skipped.
+  # - `changes` names the jobs the run needs (`jobs`); each of them must pass: skipped, cancelled or no result is a
+  #   failure. A job the run doesn't need passes when it was skipped. A changed or quick run's report merge doesn't count.
   # A job its `if:` skips counts as passed, and a crash in `changes` skips every job after it, so this job reads every
   # result itself.
   gate:
-    needs: [changes, checks, e2e, e2e-report, offline, db]
+    needs: [changes, checks, e2e, e2e-report, offline, stack, repeat, red-green]
     # Not for a draft, whose run was skipped on purpose.
     if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-latest

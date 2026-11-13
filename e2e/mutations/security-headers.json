@@ -1,0 +1,12 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "pages may be framed by the same origin",
+      "file": "src/lib/security-headers.ts",
+      "find": "{ key: 'X-Frame-Options', value: 'DENY' }",
+      "replace": "{ key: 'X-Frame-Options', value: 'SAMEORIGIN' }",
+      "expect": { "e2e/security-headers.spec.ts": ["frame-deny"] }
+    }
+  ]
+}

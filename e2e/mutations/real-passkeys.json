@@ -1,0 +1,19 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "passkey sign-in never asks the server",
+      "file": "src/features/account/passkeys.tsx",
+      "find": "const { error } = await supabase.auth.signInWithPasskey();",
+      "replace": "const { error } = { error: new Error('passkey sign-in left out') };",
+      "expect": { "e2e-real/passkeys.spec.ts": ["passkey-signs-in"] }
+    },
+    {
+      "name": "removing a passkey only says so: the account keeps it",
+      "file": "src/features/account/passkeys.tsx",
+      "find": "const { error: removeError } = await supabase.auth.passkey.delete({ passkeyId: passkey.id });",
+      "replace": "const removeError = null as { status?: number; code?: string } | null;",
+      "expect": { "e2e-real/passkeys.spec.ts": ["removed-passkey"] }
+    }
+  ]
+}

@@ -7,6 +7,9 @@ import {
   githubOutput,
   importsOf,
   readRepo,
+  requiredJobs,
+  changedSpecs,
+  withProofs,
   routePages,
   runOptions,
   selectAffected,
@@ -269,6 +272,77 @@ describe('selectAffected', () => {
   });
 });
 
+// The real-server journeys (e2e-real/) run in the stack job, against the local Supabase stack; the testkit and its data
+// files (saved mutations, the skip allow-list) are checked by unit tests.
+describe('the real-server journeys and the testkit', () => {
+  /** The made-up app with an account page and one journey, which imports the tips data. */
+  const withJourneys = {
+    ...REPO,
+    'src/app/settings/account/page.tsx': "import { AccountView } from '@/features/account/account-view';\n",
+    'src/features/account/account-view.tsx': "import { formatMoney } from '@/lib/money';\n",
+    'e2e-real/linking.spec.ts': "import { TIPS } from '../src/data/tips';\nimport { test } from './fixtures';\n",
+    'e2e-real/fixtures.ts': "import { openApp } from '../e2e/helpers/app';\n",
+  };
+  const selectReal = (changed) => selectAffected({ changed, repo: withJourneys, map: MAP });
+
+  it('runs the journeys, and no mocked spec, for a change in e2e-real/', () => {
+    expect(selectReal(['e2e-real/linking.spec.ts', 'e2e-real/fixtures.ts'])).toMatchObject({ run: true, e2e: 'none', db: false, real: true });
+  });
+
+  it('runs the journeys for a module their specs import, or one that reaches the account page', () => {
+    const tips = selectReal(['src/data/tips.ts']);
+    expect(tips.real).toBe(true);
+    expect(tips.why.real).toEqual(['`src/data/tips.ts` is imported by the real-server journeys']);
+    expect(selectReal(['src/features/account/account-view.tsx']).why.real).toEqual(['`src/features/account/account-view.tsx` → /settings/account']);
+    expect(selectReal(['src/features/check-in/week-rows.ts']).real).toBe(false);
+  });
+
+  it('runs the journeys with the db checks, and with everything', () => {
+    expect(select(['supabase/migrations/1_init.sql'])).toMatchObject({ e2e: 'none', db: true, real: true });
+    expect(select(['vitest.config.ts'])).toMatchObject({ e2e: 'all', db: true, real: true });
+  });
+
+  it('runs no e2e for the testkit, the saved mutations or the skip allow-list: the unit tests check them', () => {
+    for (const file of ['testkit/judge.mjs', 'e2e/mutations/linking.json', 'e2e/skip-allow-list.json']) {
+      expect(select([file]), file).toMatchObject({ run: true, e2e: 'none', offline: false, db: false, real: false });
+    }
+  });
+
+  it('leaves the journeys out of a quick run, and keeps the db checks and the role tests', () => {
+    const quick = forScope(select(['supabase/migrations/1_init.sql']), runOptions({ scope: 'quick' }));
+    expect(quick).toMatchObject({ db: true, real: false, roles: true });
+    expect(githubOutput(quick, runOptions({ scope: 'quick' }))).toContain('db=true\nreal=false\nroles=true\nstack=true\n');
+  });
+});
+
+// The role and security tests (e2e-real/roles/) run whenever the database, the moderation code or the sign-in code
+// changes, a ready pull request's quick run included (Roshan, 2026-11-12).
+describe('the role and security tests', () => {
+  const withModeration = {
+    ...REPO,
+    'src/app/settings/moderation/page.tsx': "import { ModerationView } from '@/features/hacks/moderation-view';\n",
+    'src/features/hacks/moderation-view.tsx': "import { formatMoney } from '@/lib/money';\n",
+  };
+  const selectRoles = (changed) => selectAffected({ changed, repo: withModeration, map: MAP });
+
+  it('run for the database, the moderation code, the sign-in code and their own files', () => {
+    for (const file of ['supabase/migrations/1_init.sql', 'src/features/hacks/moderation.ts', 'src/features/account/two-step.tsx', 'e2e-real/roles/roles.spec.ts']) {
+      expect(select([file]).roles, file).toBe(true);
+    }
+    expect(select(['src/features/check-in/week-rows.ts']).roles).toBe(false);
+  });
+
+  it('run for a change that reaches the moderation page', () => {
+    expect(selectRoles(['src/lib/money.ts']).why.roles).toContain('`src/lib/money.ts` → /settings/moderation');
+  });
+
+  it('stay in a quick run, which then needs the stack job', () => {
+    const quick = forScope(select(['src/features/hacks/moderation.ts']), runOptions({ scope: 'quick' }));
+    expect(quick).toMatchObject({ e2e: 'none', real: false, roles: true });
+    expect(requiredJobs(quick)).toEqual(['checks', 'stack']);
+  });
+});
+
 describe('e2eArgs', () => {
   it('anchors each file, so a name never matches a longer one', () => {
     expect(e2eArgs(['account.spec.ts', 'smoke.spec.ts'])).toBe('e2e/account\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$');
@@ -358,60 +432,95 @@ describe('statusDescription', () => {
 });
 
 describe('verdict', () => {
-  /** What `toJSON(needs)` gives the gate job: each job's result, and the selection as `changes`' outputs. */
-  const needs = (results, selection = { run: 'true', e2e: 'all', offline: 'true', db: 'true' }) => ({
-    changes: { result: results.changes ?? 'success', outputs: results.changes === 'failure' ? {} : selection },
+  const EVERY_JOB = ['checks', 'e2e', 'e2e-report', 'offline', 'stack'];
+  /** What `toJSON(needs)` gives the gate job: each job's result, and the jobs the run needs as `changes`' output. */
+  const needs = (results, jobs = EVERY_JOB) => ({
+    changes: { result: results.changes ?? 'success', outputs: results.changes === 'failure' ? {} : { jobs: JSON.stringify(jobs) } },
     ...Object.fromEntries(
-      ['checks', 'e2e', 'e2e-report', 'offline', 'db']
-        .filter((job) => results[job] !== undefined)
-        .map((job) => [job, { result: results[job], outputs: {} }]),
+      EVERY_JOB.filter((job) => results[job] !== undefined).map((job) => [job, { result: results[job], outputs: {} }]),
     ),
   });
-  const allPassed = { checks: 'success', e2e: 'success', 'e2e-report': 'success', offline: 'success', db: 'success' };
+  const allPassed = { checks: 'success', e2e: 'success', 'e2e-report': 'success', offline: 'success', stack: 'success' };
 
   it('passes a full run only when every job passed', () => {
     expect(verdict('full', needs(allPassed)).state).toBe('success');
   });
 
-  it('fails a full run when a needed job was skipped, cancelled, failed or left no result', () => {
+  it('fails a run when a job it needs was skipped, cancelled, failed or left no result', () => {
     for (const [job, result] of [
       ['e2e', 'skipped'],
-      ['db', 'cancelled'],
+      ['stack', 'cancelled'],
       ['offline', 'failure'],
       ['e2e-report', 'skipped'],
       ['checks', undefined],
     ]) {
       const { state, problems } = verdict('full', needs({ ...allPassed, [job]: result }));
       expect(state, `${job} ${result}`).toBe('failure');
-      expect(problems, `${job} ${result}`).toEqual([`${job}: ${result ?? 'no result'}, but this full run needs it`]);
+      expect(problems, `${job} ${result}`).toEqual([`${job}: ${result ?? 'no result'}, but this run needs it`]);
     }
   });
 
-  it('fails any run whose changes job did not pass', () => {
-    expect(verdict('full', needs({ ...allPassed, changes: 'failure' })).state).toBe('failure');
-    expect(verdict('changed', needs({ changes: 'cancelled' })).state).toBe('failure');
+  it('passes a job the run does not need when it was skipped, even in a full run', () => {
+    const jobs = ['checks', 'e2e', 'e2e-report', 'offline'];
+    expect(verdict('full', needs({ ...allPassed, stack: 'skipped' }, jobs))).toEqual({ state: 'success', problems: [] });
+    expect(verdict('full', needs({ ...allPassed, stack: 'failure' }, jobs))).toEqual({ state: 'failure', problems: ['stack: failure'] });
   });
 
-  it('passes a changed run when every job passed or was skipped', () => {
-    const selection = { run: 'true', e2e: 'e2e/smoke\\.spec\\.ts$', offline: 'false', db: 'false' };
-    const results = { checks: 'success', e2e: 'success', 'e2e-report': 'success', offline: 'skipped', db: 'skipped' };
-    expect(verdict('changed', needs(results, selection))).toEqual({ state: 'success', problems: [] });
+  it('fails any run whose changes job did not pass, or gave no list of jobs', () => {
+    expect(verdict('full', needs({ ...allPassed, changes: 'failure' })).state).toBe('failure');
+    expect(verdict('changed', needs({ changes: 'cancelled' })).state).toBe('failure');
+    expect(verdict('changed', { changes: { result: 'success', outputs: {} } })).toEqual({
+      state: 'failure',
+      problems: ['changes: it gave no list of the jobs this run needs'],
+    });
+  });
+
+  it('passes a changed run when the jobs it needs passed and the rest were skipped', () => {
+    const results = { checks: 'success', e2e: 'success', 'e2e-report': 'success', offline: 'skipped', stack: 'skipped' };
+    expect(verdict('changed', needs(results, ['checks', 'e2e', 'e2e-report']))).toEqual({ state: 'success', problems: [] });
   });
 
   it('fails a changed run when a job failed or was cancelled, and ignores the report merge', () => {
-    const results = { checks: 'success', e2e: 'cancelled', 'e2e-report': 'failure', offline: 'skipped', db: 'skipped' };
-    expect(verdict('changed', needs(results))).toEqual({ state: 'failure', problems: ['e2e: cancelled'] });
+    const results = { checks: 'success', e2e: 'cancelled', 'e2e-report': 'failure', offline: 'skipped', stack: 'skipped' };
+    expect(verdict('changed', needs(results, ['checks', 'e2e', 'e2e-report']))).toEqual({
+      state: 'failure',
+      problems: ['e2e: cancelled, but this run needs it'],
+    });
+  });
+});
+
+describe('requiredJobs', () => {
+  it('needs checks for anything, e2e with its report for any spec, and the stack job for the db checks or the journeys', () => {
+    expect(requiredJobs(select(['src/features/check-in/week-rows.ts']))).toEqual(['checks', 'e2e', 'e2e-report']);
+    expect(requiredJobs(select(['supabase/migrations/1_init.sql']))).toEqual(['checks', 'stack']);
+    expect(requiredJobs(select(['README.md'], { full: true }))).toEqual(['checks', 'e2e', 'e2e-report', 'offline', 'stack']);
+    expect(requiredJobs(select([]))).toEqual([]);
   });
 });
 
 describe('githubOutput', () => {
-  it('writes run, e2e, offline and db, with the list as Playwright arguments, and the browsers and languages', () => {
+  it('writes the selection, the list as Playwright arguments, the browsers and languages, and the jobs the gate needs', () => {
     expect(githubOutput(select(['src/features/check-in/week-rows.ts']), runOptions({}))).toBe(
-      'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\n' +
-        'projects=--project=desktop-chrome\nlanguages=default\n',
+      'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\nreal=false\nroles=false\nstack=false\n' +
+        'projects=--project=desktop-chrome\nlanguages=default\nrepeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\n' +
+        'jobs=["checks","e2e","e2e-report"]\n',
     );
     expect(githubOutput(select(['README.md'], { full: true }), runOptions({ scope: 'full' }))).toBe(
-      'run=true\ne2e=all\noffline=true\ndb=true\nprojects=\nlanguages=all\n',
+      'run=true\ne2e=all\noffline=true\ndb=true\nreal=true\nroles=true\nstack=true\nprojects=\nlanguages=all\n' +
+        'repeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\njobs=["checks","e2e","e2e-report","offline","stack"]\n',
+    );
+  });
+
+  it('writes the specs for the repeat check and red before green', () => {
+    const repo = { ...REPO, 'e2e-real/two-step.spec.ts': '' };
+    const selection = withProofs(select(['e2e/tips.spec.ts']), {
+      changed: ['e2e/tips.spec.ts', 'e2e-real/two-step.spec.ts'],
+      repo,
+      prove: ['e2e/tips.spec.ts', 'e2e-real/two-step.spec.ts'],
+    });
+    expect(githubOutput(selection, runOptions({}))).toContain(
+      'repeat_mocked=e2e/tips.spec.ts\nrepeat_real=e2e-real/two-step.spec.ts\nprove_mocked=e2e/tips.spec.ts\nprove_real=e2e-real/two-step.spec.ts\n' +
+        'jobs=["checks","e2e","e2e-report","repeat","red-green"]\n',
     );
   });
 });
@@ -421,7 +530,8 @@ describe('summary', () => {
     const text = summary(select(['src/features/check-in/week-rows.ts', 'src/sync/push.ts', 'public/sw.js']));
     expect(text).toContain('| every e2e spec | `src/sync/push.ts` → /settings |');
     expect(text).toContain('| offline check | `public/sw.js`; every e2e spec runs |');
-    expect(text).toContain('| db job | `src/sync/push.ts` |');
+    expect(text).toContain('| db checks (stack job) | `src/sync/push.ts` |');
+    expect(text).toContain('| real-server journeys (stack job) | `src/sync/push.ts` |');
   });
 
   it('lists the specs of a subset, and shortens a long list of reasons', () => {
@@ -512,14 +622,43 @@ describe('a quick run’s verdict', () => {
   it('posts quick-check, and passes with e2e, its report and the offline check skipped', () => {
     expect(statusContext({ scope: 'quick' })).toBe('quick-check');
     const needs = {
-      changes: { result: 'success' },
+      changes: { result: 'success', outputs: { jobs: '["checks","stack"]' } },
       checks: { result: 'success' },
       e2e: { result: 'skipped' },
       'e2e-report': { result: 'skipped' },
       offline: { result: 'skipped' },
-      db: { result: 'success' },
+      stack: { result: 'success' },
     };
     expect(verdict('quick', needs)).toEqual({ state: 'success', problems: [] });
     expect(verdict('quick', { ...needs, checks: { result: 'failure' } }).state).toBe('failure');
+  });
+});
+
+// The proof jobs (runs started by hand): the changed test files ×10 at 2 workers, and red before green for the specs
+// whose saved mutations a change reaches (testkit/changed-proofs.mjs).
+describe('the repeat check and red before green', () => {
+  const repo = { ...REPO, 'e2e/offline.spec.ts': '', 'e2e-real/roles/roles.spec.ts': '' };
+
+  it('repeats the test files the branch changes, by config, without a deleted one or the offline spec', () => {
+    expect(changedSpecs(['e2e/tips.spec.ts', 'e2e/offline.spec.ts', 'e2e/gone.spec.ts', 'e2e-real/roles/roles.spec.ts', 'src/data/tips.ts'], repo)).toEqual({
+      mocked: ['e2e/tips.spec.ts'],
+      real: ['e2e-real/roles/roles.spec.ts'],
+    });
+  });
+
+  it('needs the repeat and red-green jobs only when there are tests for them', () => {
+    const none = withProofs(select(['src/lib/money.test.ts']), { changed: ['src/lib/money.test.ts'], repo, prove: [] });
+    expect(requiredJobs(none)).toEqual(['checks']);
+    const some = withProofs(select(['e2e/tips.spec.ts']), { changed: ['e2e/tips.spec.ts'], repo, prove: ['e2e/gone.spec.ts'] });
+    expect(some.prove).toEqual({ mocked: [], real: [] });
+    expect(requiredJobs(some)).toEqual(['checks', 'e2e', 'e2e-report', 'repeat']);
+  });
+
+  it('leaves both out of a quick run', () => {
+    const picked = withProofs(select(['e2e/tips.spec.ts']), { changed: ['e2e/tips.spec.ts'], repo, prove: ['e2e/tips.spec.ts'] });
+    const quick = forScope(picked, runOptions({ scope: 'quick' }));
+    expect(requiredJobs(quick)).toEqual(['checks']);
+    expect(summary(picked)).toContain('| repeat ×10 at 2 workers | `e2e/tips.spec.ts` |');
+    expect(summary(picked)).toContain('| red before green | `e2e/tips.spec.ts` |');
   });
 });

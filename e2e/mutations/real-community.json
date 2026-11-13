@@ -1,0 +1,33 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "posting says Posted. but sends nothing",
+      "file": "src/features/hacks/posts.ts",
+      "find": "const { error } = await supabase.rpc('post_hack', {",
+      "replace": "const { error } = { error: null as null | { hint?: string; code?: string } }; void ({",
+      "expect": { "e2e-real/community.spec.ts": ["posted"] }
+    },
+    {
+      "name": "commenting says Comment posted. but sends nothing",
+      "file": "src/features/hacks/comments.ts",
+      "find": "const { error } = await supabase.rpc('post_comment', { p_hack_id: hackId, p_body: body, p_lang: lang });",
+      "replace": "const { error } = { error: null as null | { hint?: string; code?: string } };",
+      "expect": { "e2e-real/community.spec.ts": ["commented"] }
+    },
+    {
+      "name": "a vote shows on the phone but isn't saved",
+      "file": "src/features/hacks/votes.ts",
+      "find": "const { error } = await supabase.rpc('vote_hack', { p_id: id, p_up: vote.up, p_verdict: vote.verdict });",
+      "replace": "const { error } = { error: null as null | { hint?: string } };",
+      "expect": { "e2e-real/community.spec.ts": ["voted"] }
+    },
+    {
+      "name": "adding a discount says Discount added. but sends nothing",
+      "file": "src/features/discounts/add-discount.ts",
+      "find": "const { error } = await supabase.rpc('post_discount', {",
+      "replace": "const { error } = { error: null as null | { hint?: string; code?: string } }; void ({",
+      "expect": { "e2e-real/community.spec.ts": ["discount-added"] }
+    }
+  ]
+}

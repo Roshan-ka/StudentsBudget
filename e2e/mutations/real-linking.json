@@ -1,0 +1,19 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "an empty phone links to an account with data without loading it",
+      "file": "src/sync/link.ts",
+      "find": "if (!phoneHasData) return { kind: 'download', data: download.data, account };",
+      "replace": "if (!phoneHasData) return { kind: 'link' };",
+      "expect": { "e2e-real/linking.spec.ts": ["loaded-from-account"] }
+    },
+    {
+      "name": "an empty phone and an empty account are taken for an unfinished save",
+      "file": "src/sync/link.ts",
+      "find": "phoneHasData ? { kind: 'upload', upload: await planUpload(store, phone) } : { kind: 'link' };",
+      "replace": "phoneHasData ? { kind: 'upload', upload: await planUpload(store, phone) } : { kind: 'unfinished' };",
+      "expect": { "e2e-real/linking.spec.ts": ["empty-linked"] }
+    }
+  ]
+}
