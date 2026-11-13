@@ -1,6 +1,7 @@
 import { CalendarCheckIcon, ChevronRightIcon } from 'lucide-react';
 import Link from 'next/link';
 import { cardVariants } from '@/components/ui/card';
+import { RowCardLink } from '@/features/home/row-card';
 import { useT } from '@/i18n/use-t';
 import { isSunday, type IsoDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
@@ -16,14 +17,10 @@ export function CheckInCard({ today }: { today: IsoDate }) {
 
   if (!isSunday(today)) {
     return (
-      <Link href="/check-in" className="flex min-h-11 items-center gap-3 rounded-md text-sm">
-        <CalendarCheckIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1">
-          <span className="font-semibold">{text.title}</span>{' '}
-          <span className="text-muted-foreground">{text.other}</span>
-        </span>
-        <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 rtl:rotate-180" />
-      </Link>
+      <RowCardLink href="/check-in" icon={CalendarCheckIcon} tint="var(--accent)">
+        <span className="font-semibold">{text.title}</span>{' '}
+        <span className="text-sm text-muted-foreground">{text.other}</span>
+      </RowCardLink>
     );
   }
 

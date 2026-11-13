@@ -1,6 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { CalendarDaysIcon, LandmarkIcon } from 'lucide-react';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
@@ -11,7 +12,8 @@ import { BadgesCard } from '@/features/badges/badges-card';
 import { CheckInCard } from '@/features/check-in/check-in-card';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { RecapLink } from '@/features/reveal/reveal-view';
-import { listFormat } from '@/i18n/format';
+import { categoryTint } from '@/features/charts/colors';
+import { dayLabel, listFormat } from '@/i18n/format';
 import { PageHeading } from '@/components/page-heading';
 import { useT } from '@/i18n/use-t';
 import { monthStatus, weekToSpend } from '@/lib/budget';
@@ -21,6 +23,7 @@ import { useToday } from '@/lib/use-today';
 import { cn } from '@/lib/utils';
 import { EnvelopeList, type EnvelopeRow } from './envelope-list';
 import { LeftThisMonthCard } from './left-this-month-card';
+import { ROW_CARD, RowTile } from './row-card';
 import { SuggestedBudget } from './suggested-budget';
 
 /**
@@ -87,24 +90,29 @@ export function HomeScreen({
         {/* Keyed by month: an installed app stays mounted for days, and "Not now", typed amounts and the saved note
             should not carry into the next month. */}
         <SuggestedBudget key={monthOf(today)} plan={plan} entries={entries} today={today} />
-        {/* Quiet lines, not cards (pain points, chunk 2); only Sunday's check-in is a card. */}
-        <div className="flex flex-col gap-1">
+        {/* Each its own card, with its tile (Roshan, from the mockups, 13-11-2026: "divide the check-in, badges and all
+            accounts"); Sunday's check-in in the accent colour. */}
+        <div className="flex flex-col gap-3">
           <CheckInCard today={today} />
           <BadgesCard badges={badges} />
           {/* Shows once a month is over. */}
           <RecapLink startedOn={plan.createdOn} today={today} />
         </div>
-        <div className={cn(cardVariants(), 'gap-1')}>
-          <p className="font-semibold">
-            {t.home.acrossAccounts(
-              nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { whole: true, locale }),
-            )}
-          </p>
-          {total.missingRates.length > 0 && (
-            <p className="text-sm text-muted-foreground">
-              {t.home.missingRates(listFormat(locale).format(total.missingRates), total.missingRates.length)}
+        {/* The bank's tile in blue, as setup's accounts have it: a category's tint, for its colour. */}
+        <div className={cn(cardVariants(), ROW_CARD)}>
+          <RowTile icon={LandmarkIcon} tint={categoryTint('rent')} />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <p className="font-semibold">
+              {t.home.acrossAccounts(
+                nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { whole: true, locale }),
+              )}
             </p>
-          )}
+            {total.missingRates.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {t.home.missingRates(listFormat(locale).format(total.missingRates), total.missingRates.length)}
+              </p>
+            )}
+          </div>
         </div>
       </>
     );
@@ -113,10 +121,21 @@ export function HomeScreen({
   return (
     <div className="flex flex-col gap-5">
       <PageHeading id="home" visuallyHidden />
-      {name !== '' && (
-        <p className="font-heading text-[28px] leading-tight font-extrabold tracking-tight break-words">
-          {t.home.greeting(name)}
-        </p>
+      {/* Today's day over the greeting, in the language (13-11-2026); there once the browser knows the date. */}
+      {(today !== null || name !== '') && (
+        <div className="flex flex-col gap-1">
+          {today !== null && (
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+              <CalendarDaysIcon aria-hidden="true" className="size-4 shrink-0" />
+              {dayLabel(today, locale)}
+            </p>
+          )}
+          {name !== '' && (
+            <p className="font-heading text-[28px] leading-tight font-extrabold tracking-tight break-words">
+              {t.home.greeting(name)}
+            </p>
+          )}
+        </div>
       )}
       <QuickAddField />
       {content}

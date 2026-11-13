@@ -2,10 +2,12 @@
 
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarCheckIcon, ChevronRightIcon } from 'lucide-react';
+import { CalendarRangeIcon } from 'lucide-react';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
+import { categoryTint } from '@/features/charts/colors';
+import { RowCardLink } from '@/features/home/row-card';
 import { db } from '@/db/db';
 import type { Entry, Plan, PlanMonth } from '@/db/types';
 import { dateFormat } from '@/i18n/format';
@@ -32,11 +34,10 @@ export function RecapLink({ startedOn, today }: { startedOn: IsoDate; today: Iso
   const [latest] = completedMonths(startedOn, today);
   if (latest === undefined) return null;
   return (
-    <Link href="/reveal" className="flex min-h-11 items-center gap-3 text-sm font-semibold">
-      <CalendarCheckIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1">{t.reveal.link(monthName(latest, locale))}</span>
-      <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 rtl:rotate-180" />
-    </Link>
+    // Green, a category's tint for its colour (13-11-2026).
+    <RowCardLink href="/reveal" icon={CalendarRangeIcon} tint={categoryTint('eating-out')}>
+      <span className="font-semibold">{t.reveal.link(monthName(latest, locale))}</span>
+    </RowCardLink>
   );
 }
 
