@@ -56,7 +56,7 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
       }
     } else {
       // The guest way leads on to setup, which starts with the Accounts step (the file has none).
-      await page.getByRole('link', { name: 'Continue as guest', exact: true }).click();
+      await page.getByRole('link', { name: 'Continue without an account', exact: true }).click();
       await expect(page).toHaveURL('/setup');
       await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
     }

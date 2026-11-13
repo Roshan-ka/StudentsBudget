@@ -21,14 +21,20 @@ export const account: Messages['account'] = {
     signedOut: 'Connecte-toi pour récupérer tes données',
   },
   start: {
-    pitch: `Ton budget d’étudiant à Regensburg${NNBSP}: planifier, noter, épargner.`,
-    withAccount: 'Avec un compte',
+    /** Au-dessus du titre, avec une épingle. */
+    place: 'Pour les étudiants à Regensburg',
+    headline: 'Ton argent, bien rangé pour ta vie d’étudiant.',
+    pitch: 'Planifie ton mois, note tes dépenses en quelques secondes et vois les prix locaux avec leurs sources.',
+    /** Ce que fait l’appli, une ligne chacune, dans une carte. */
+    features: {
+      plan: 'Planifier ton mois',
+      log: 'Noter tes dépenses en quelques secondes',
+      week: 'Connaître ton budget de la semaine',
+      tips: 'Des astuces locales, avec leurs sources',
+    },
     signIn: 'J’ai un compte',
     create: 'Créer un compte',
-    accountWhy: 'Avec un compte, ton plan est sauvegardé et disponible sur chaque téléphone où tu te connectes.',
-    withoutAccount: 'Sans compte',
     guest: 'Continuer sans compte',
-    guestNote: 'Tes données restent uniquement sur ce téléphone. Tu pourras créer un compte plus tard dans les Réglages.',
     signedOut: 'Ta session est fermée. Tes données ont été supprimées de ce téléphone.',
     back: 'Retour',
     afterSignIn: 'Une fois la session ouverte, l’appli récupère tes données depuis ton compte. S’il est encore vide, tu configures ensuite ton plan.',

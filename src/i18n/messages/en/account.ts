@@ -19,14 +19,20 @@ export const account = {
   },
   /** The start page (06-11-2026): a phone with no plan and nobody signed in chooses how to begin. */
   start: {
-    pitch: 'Your student budget in Regensburg: plan it, log it, save.',
-    withAccount: 'With an account',
+    /** Above the headline, with a pin. */
+    place: 'For students in Regensburg',
+    headline: 'Your money, sorted for student life.',
+    pitch: 'Plan your month, log spending in seconds, and see local prices with their sources.',
+    /** What the app does, one line each, in one card. */
+    features: {
+      plan: 'Plan your month',
+      log: 'Log spending in seconds',
+      week: 'Know your weekly budget',
+      tips: 'Local tips with sources',
+    },
     signIn: 'I have an account',
     create: 'Create an account',
-    accountWhy: 'With an account, your plan is backed up and on every phone you sign in on.',
-    withoutAccount: 'Without an account',
-    guest: 'Continue as guest',
-    guestNote: 'Your data stays on this phone only. You can create an account later in Settings.',
+    guest: 'Continue without an account',
     /** On the start page, once, after signing out. */
     signedOut: "You're signed out. Your data was removed from this phone.",
     back: 'Back',

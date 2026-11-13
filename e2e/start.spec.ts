@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan, Profile } from '../src/db/types';
-import { openApp, waitForHome } from './helpers/app';
+import { MESSAGES } from '../src/i18n/messages';
+import { openApp, waitForApp, waitForHome } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import { seedSetup } from './helpers/seed-setup';
 import { fillSetup, readStore, SETUP_DAY } from './helpers/setup';
@@ -13,9 +14,10 @@ import {
   SUPABASE_REST,
 } from './helpers/supabase';
 
-// The start page (06-11-2026): a phone with no plan and nobody signed in chooses "I have an account", "Create an
-// account" or "Continue as guest", and signing out syncs, clears the phone and ends there. Supabase is mocked: the
-// configs point the app at a project that never resolves.
+// The start page (06-11-2026; redesigned 13-11-2026): a phone with no plan and nobody signed in chooses "Create an
+// account", "I have an account" or "Continue without an account", and signing out syncs, clears the phone and ends
+// there. The language is the globe in the header. Supabase is mocked: the configs point the app at a project that never
+// resolves.
 
 test.use({ viewport: { width: 375, height: 812 } });
 
@@ -72,28 +74,61 @@ test('a first visit offers an account or the guest way, and each leads on', asyn
   // No line about signing out: nobody did.
   await expect(page.getByText("You're signed out. Your data was removed from this phone.")).toHaveCount(0);
 
-  const withAccount = page.getByRole('region', { name: 'With an account', exact: true });
-  await expect(withAccount.getByRole('link', { name: 'I have an account', exact: true })).toBeVisible();
-  await expect(withAccount.getByRole('link', { name: 'Create an account', exact: true })).toBeVisible();
-  const without = page.getByRole('region', { name: 'Without an account', exact: true });
+  // What the app is and does, then the three ways on.
+  await expect(page.getByText('Your money, sorted for student life.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('main').getByRole('listitem')).toHaveText([
+    'Plan your month',
+    'Log spending in seconds',
+    'Know your weekly budget',
+    'Local tips with sources',
+  ]);
+  await expect(page.getByRole('link', { name: 'Create an account', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'I have an account', exact: true })).toBeVisible();
 
   // Sign in, and back.
-  await withAccount.getByRole('link', { name: 'I have an account', exact: true }).click();
+  await page.getByRole('link', { name: 'I have an account', exact: true }).click();
   await expect(page).toHaveURL('/start/sign-in');
   await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Back', exact: true }).click();
   await expect(page).toHaveURL('/start');
 
   // Create an account opens on the sign-up form.
-  await withAccount.getByRole('link', { name: 'Create an account', exact: true }).click();
+  await page.getByRole('link', { name: 'Create an account', exact: true }).click();
   await expect(page).toHaveURL('/start/new-account');
   await expect(page.getByRole('button', { name: 'Create account', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Back', exact: true }).click();
 
   // The guest goes on to setup, and Home keeps sending a phone without a plan there.
-  await without.getByRole('link', { name: 'Continue as guest', exact: true }).click();
+  await page.getByRole('link', { name: 'Continue without an account', exact: true }).click();
   await expect(page).toHaveURL('/setup');
   await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
+  // The globe is the start pages' own: setup keeps its language select.
+  await expect(page.getByRole('button', { name: 'Language', exact: true })).toHaveCount(0);
+});
+
+test('the globe in the header picks the language, and the choice stays after a reload', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await openApp(page, '/start');
+  const de = MESSAGES.de;
+
+  await page.getByRole('button', { name: 'Language', exact: true }).click();
+  // Each language in its own name, the phone's checked.
+  await expect(page.getByRole('menuitemradio')).toHaveText(['English', 'Deutsch', 'Français', 'Español']);
+  await expect(page.getByRole('menuitemradio', { name: 'English', exact: true })).toHaveAttribute('aria-checked', 'true');
+  await page.getByRole('menuitemradio', { name: 'Deutsch', exact: true }).click();
+
+  // The menu closes, and the page is German at once.
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(page.getByText(de.account.start.headline, { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: de.account.start.create, exact: true })).toBeVisible();
+
+  // Kept on this phone.
+  await page.reload();
+  await waitForApp(page);
+  await expect(page.getByText(de.account.start.headline, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: de.language.label, exact: true }).click();
+  await expect(page.getByRole('menuitemradio', { name: 'Deutsch', exact: true })).toHaveAttribute('aria-checked', 'true');
 });
 
 test('a new account is created from the start page, set up next, and its plan saved to the account', async ({

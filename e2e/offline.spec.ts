@@ -22,9 +22,11 @@ const PRECACHED_PAGES = [
   '/settings/account',
   '/settings/backup',
   '/settings/moderation',
-  '/setup',
   '/privacy',
   '/impressum',
+  // Last: with a plan saved, /setup sends the page on to Home. Offline that hop ends in a full page load, which
+  // aborted the next page's load when one followed (run 43398380189, /privacy after /setup).
+  '/setup',
 ];
 
 /** A same-origin URL that no cache holds and no page serves: offline, a fetch of it must fail at the network. */
