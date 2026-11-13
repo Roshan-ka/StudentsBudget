@@ -34,6 +34,10 @@ export const account: Messages['account'] = {
     guest: 'Ohne Konto weiter',
     signedOut: 'Du bist abgemeldet. Deine Daten sind von diesem Handy gelöscht.',
     back: 'Zurück',
-    afterSignIn: 'Nach der Anmeldung holt die App deine Daten aus deinem Konto. Ist es noch leer, richtest du als Nächstes deinen Plan ein.',
+    /** Die Formulare der Startseiten (13-11-2026): ihre große Überschrift und die Zeile darunter. */
+    signInHeading: 'Anmelden',
+    signInLine: 'Dein Plan und deine Einträge kommen aus deinem Konto zurück.',
+    createHeading: 'Dein Konto erstellen',
+    createLine: 'Sichere deinen Plan und nutze ihn auf jedem Handy.',
   },
 };

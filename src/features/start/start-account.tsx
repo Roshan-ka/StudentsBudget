@@ -15,8 +15,9 @@ import { useT } from '@/i18n/use-t';
 
 /**
  * The start page's "I have an account" and "Create an account" (06-11-2026): the account forms of Settings → Your
- * account, the code steps and passkeys included. Once signed in, the phone links as it does there; a plan that came
- * down from the account opens Home, an empty account goes on to setup.
+ * account, the code steps and passkeys included, in the start page's look since 13-11-2026 (`SignInForm look="page"`:
+ * no card, a big heading, and a link to the other start page). Once signed in, the phone links as it does there; a plan
+ * that came down from the account opens Home, an empty account goes on to setup.
  */
 export function StartAccount({ mode }: { mode: AuthMode }) {
   const router = useRouter();
@@ -47,12 +48,7 @@ export function StartAccount({ mode }: { mode: AuthMode }) {
       content = <SecondStepForm email={auth.email} factorId={auth.factorId} />;
       break;
     case 'signed-out':
-      content = (
-        <>
-          <SignInForm initialMode={mode} />
-          <p className="text-sm text-muted-foreground">{t.account.start.afterSignIn}</p>
-        </>
-      );
+      content = <SignInForm initialMode={mode} look="page" />;
       break;
     case 'signed-in':
       // Signed in with a "Forgot password" code: the new password comes first, as on the account page.
@@ -66,7 +62,9 @@ export function StartAccount({ mode }: { mode: AuthMode }) {
         <ChevronLeftIcon aria-hidden="true" className="size-4 rtl:rotate-180" />
         {t.account.start.back}
       </Link>
-      <PageHeading id="account" />
+      {/* "Your account" names the page in the title and takes the focus after a page change; the form's big heading
+          says which form it is. */}
+      <PageHeading id="account" visuallyHidden />
       {content}
     </div>
   );

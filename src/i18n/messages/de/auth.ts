@@ -65,6 +65,12 @@ export const auth: Messages['auth'] = {
     toSignIn: 'Schon ein Konto? Anmelden',
     toCreate: 'Neu hier? Konto erstellen',
     forgot: 'Passwort vergessen?',
+    /** Beim Erstellen: der Name der ersten Gruppe; die zweite ist postingName.heading. */
+    details: 'Anmeldedaten',
+    /** Die Linie zwischen Formular und Passkey. */
+    or: 'oder',
+    showPassword: 'Passwort anzeigen',
+    hidePassword: 'Passwort verbergen',
   },
   /** Der Code aus der E-Mail nach dem Erstellen eines Kontos (P2.4). Die E-Mail-Adresse steht fett mitten im Satz. */
   confirm: {
@@ -253,7 +259,6 @@ export const auth: Messages['auth'] = {
       'Schlüssel, mit dem sich niemand anmelden kann.',
     offline: 'Du bist offline. Passkeys brauchen eine Verbindung.',
     signIn: 'Mit einem Passkey anmelden',
-    orPassword: 'Oder mit deiner E-Mail und deinem Passwort:',
     checking: 'Deine Passkeys werden geprüft …',
     unknown: 'Deine Passkeys ließen sich nicht laden.',
     tryAgain: 'Noch einmal versuchen',

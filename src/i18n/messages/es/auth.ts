@@ -70,6 +70,12 @@ export const auth: Messages['auth'] = {
     toSignIn: '¿Tienes una cuenta? Inicia sesión',
     toCreate: '¿Primera vez aquí? Crea una cuenta',
     forgot: '¿Has olvidado tu contraseña?',
+    /** Al crear: el nombre del primer grupo; el segundo es postingName.heading. */
+    details: 'Datos de acceso',
+    /** La línea entre el formulario y la llave de acceso. */
+    or: 'o',
+    showPassword: 'Mostrar contraseña',
+    hidePassword: 'Ocultar contraseña',
   },
   /** El código del correo tras crear una cuenta (P2.4). La dirección va en negrita en medio de la frase. */
   confirm: {
@@ -257,7 +263,6 @@ export const auth: Messages['auth'] = {
       'iniciar sesión a nadie.',
     offline: 'No tienes conexión. Las llaves de acceso necesitan conexión.',
     signIn: 'Iniciar sesión con una llave de acceso',
-    orPassword: 'O con tu correo y tu contraseña:',
     checking: 'Comprobando tus llaves de acceso…',
     unknown: 'No se han podido cargar tus llaves de acceso.',
     tryAgain: 'Intentar de nuevo',

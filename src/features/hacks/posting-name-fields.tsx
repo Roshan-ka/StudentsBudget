@@ -46,36 +46,39 @@ export function PostingNameFields({
           {text.usernameHint}
         </p>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${id}-label`}>{text.label}</Label>
-        <NativeSelect
-          id={`${id}-label`}
-          className="w-full"
-          value={draft.label}
-          onChange={(event) => onChange({ ...draft, label: event.target.value as PostingLabel })}
-        >
-          {LABELS.map((label) => (
-            <NativeSelectOption key={label} value={label}>
-              {text.labels[label]}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${id}-batch`}>{text.batch}</Label>
-        <Input
-          id={`${id}-batch`}
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={4}
-          aria-invalid={problem === 'batch' || undefined}
-          aria-describedby={describedBy(`${id}-batch-hint`, problem === 'batch' && errorId)}
-          value={draft.batch}
-          onChange={(event) => onChange({ ...draft, batch: event.target.value })}
-        />
-        <p id={`${id}-batch-hint`} className="text-sm text-muted-foreground">
-          {text.batchHint}
-        </p>
+      {/* Side by side while they fit (13-11-2026), one under the other once the text is large. */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] items-start gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${id}-label`}>{text.label}</Label>
+          <NativeSelect
+            id={`${id}-label`}
+            className="w-full"
+            value={draft.label}
+            onChange={(event) => onChange({ ...draft, label: event.target.value as PostingLabel })}
+          >
+            {LABELS.map((label) => (
+              <NativeSelectOption key={label} value={label}>
+                {text.labels[label]}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${id}-batch`}>{text.batch}</Label>
+          <Input
+            id={`${id}-batch`}
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={4}
+            aria-invalid={problem === 'batch' || undefined}
+            aria-describedby={describedBy(`${id}-batch-hint`, problem === 'batch' && errorId)}
+            value={draft.batch}
+            onChange={(event) => onChange({ ...draft, batch: event.target.value })}
+          />
+          <p id={`${id}-batch-hint`} className="text-sm text-muted-foreground">
+            {text.batchHint}
+          </p>
+        </div>
       </div>
     </>
   );

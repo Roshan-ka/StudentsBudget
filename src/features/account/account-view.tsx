@@ -1,6 +1,9 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { AtSignIcon, LockIcon } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { PasswordInput } from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,7 +24,7 @@ import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { reminderOffBeforeSignOut } from '@/features/reminder/reminder';
 import { useShowInstallHint } from '@/features/setup/install-hint';
-import { markSignedOut } from '@/features/start/signed-out';
+import { forgetSignedOut, markSignedOut } from '@/features/start/signed-out';
 import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
@@ -405,8 +408,18 @@ export function NewPasswordForm({ email }: { email: string }) {
 /** The sign-in form's fields a message can be about. */
 type SignInField = 'email' | 'password' | 'username' | 'batch';
 
-/** `initialMode`: the start page's "Create an account" opens the form in its create mode. */
-export function SignInForm({ initialMode = 'sign-in' }: { initialMode?: AuthMode }) {
+/**
+ * `initialMode`: the start page's "Create an account" opens the form in its create mode. `look` (13-11-2026): `card` on
+ * Settings → Your account, a card with its heading and a toggle between signing in and creating; `page` on the start
+ * pages, no card, a big heading and one line, and a link to the other start page instead of the toggle.
+ */
+export function SignInForm({
+  initialMode = 'sign-in',
+  look = 'card',
+}: {
+  initialMode?: AuthMode;
+  look?: 'card' | 'page';
+}) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.auth.signIn;
@@ -590,73 +603,111 @@ export function SignInForm({ initialMode = 'sign-in' }: { initialMode?: AuthMode
   const errorFor = (field: SignInField) => invalid(field) && errorId;
   const nameProblem = error?.field === 'username' || error?.field === 'batch' ? error.field : null;
 
-  return (
-    <section aria-labelledby={`${id}-heading`} className={cn(cardVariants(), 'gap-4')}>
-      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
-        {creating ? text.headingCreate : text.headingSignIn}
-      </h3>
-      <p className="text-muted-foreground">{text.optional}</p>
-      {showIosHint && <p className="rounded-lg bg-muted px-4 py-3 text-sm">{text.iosHint}</p>}
-      {/* A passkey belongs to an account that exists, so only when signing in. Its message is the form's: one at a time. */}
-      {!creating && (
-        <PasskeySignIn
-          onStart={() => {
+  const page = look === 'page';
+  const words = t.account.start;
+  const emailField = (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={`${id}-email`}>{text.email}</Label>
+      <Input
+        id={`${id}-email`}
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        autoCapitalize="none"
+        spellCheck={false}
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        aria-invalid={invalid('email')}
+        aria-describedby={describedBy(errorFor('email'))}
+      />
+    </div>
+  );
+  const passwordField = (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={`${id}-password`}>{text.password}</Label>
+      <PasswordInput
+        id={`${id}-password`}
+        autoComplete={creating ? 'new-password' : 'current-password'}
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        aria-invalid={invalid('password')}
+        aria-describedby={describedBy(creating && `${id}-password-hint`, errorFor('password'))}
+      />
+      {creating ? (
+        <p id={`${id}-password-hint`} className="text-sm text-muted-foreground">
+          {text.minLength(MIN_PASSWORD_LENGTH)}
+        </p>
+      ) : (
+        <Button
+          type="button"
+          variant="link"
+          className="self-end px-0"
+          onClick={() => {
             setError(null);
             setNotice(null);
+            setUnconfirmed(null);
+            setStep({ at: 'reset-email' });
           }}
-          onError={(message) => setError(message)}
-        />
+        >
+          {text.forgot}
+        </Button>
       )}
+    </div>
+  );
+  // A group's name, with its icon (13-11-2026): creating, the sign-in details and the name on posts apart.
+  const legend = (icon: ReactNode, name: string) => (
+    <legend className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+      {icon}
+      {name}
+    </legend>
+  );
+
+  return (
+    <section aria-labelledby={`${id}-heading`} className={page ? 'flex flex-col gap-4' : cn(cardVariants(), 'gap-4')}>
+      <h3
+        id={`${id}-heading`}
+        className={
+          page
+            ? 'font-heading text-[30px] leading-tight font-extrabold tracking-tight text-balance'
+            : 'text-xl leading-tight font-extrabold'
+        }
+      >
+        {page
+          ? creating
+            ? words.createHeading
+            : words.signInHeading
+          : creating
+            ? text.headingCreate
+            : text.headingSignIn}
+      </h3>
+      <p className="text-muted-foreground">
+        {page ? (creating ? words.createLine : words.signInLine) : text.optional}
+      </p>
+      {showIosHint && <p className="rounded-lg bg-muted px-4 py-3 text-sm">{text.iosHint}</p>}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${id}-email`}>{text.email}</Label>
-          <Input
-            id={`${id}-email`}
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            aria-invalid={invalid('email')}
-            aria-describedby={describedBy(errorFor('email'))}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${id}-password`}>{text.password}</Label>
-          <Input
-            id={`${id}-password`}
-            type="password"
-            autoComplete={creating ? 'new-password' : 'current-password'}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            aria-invalid={invalid('password')}
-            aria-describedby={describedBy(creating && `${id}-password-hint`, errorFor('password'))}
-          />
-          {creating ? (
-            <p id={`${id}-password-hint`} className="text-sm text-muted-foreground">
-              {text.minLength(MIN_PASSWORD_LENGTH)}
-            </p>
-          ) : (
-            <Button
-              type="button"
-              variant="link"
-              className="self-start px-0"
-              onClick={() => {
-                setError(null);
-                setNotice(null);
-                setUnconfirmed(null);
-                setStep({ at: 'reset-email' });
-              }}
-            >
-              {text.forgot}
-            </Button>
-          )}
-        </div>
-        {creating && (
-          <PostingNameFields draft={nameDraft} onChange={setNameDraft} problem={nameProblem} errorId={errorId} />
+        {creating ? (
+          <>
+            <fieldset>
+              {legend(<LockIcon aria-hidden="true" className="size-4 shrink-0" />, text.details)}
+              <div className="flex flex-col gap-3">
+                {emailField}
+                {passwordField}
+              </div>
+            </fieldset>
+            <div aria-hidden="true" className="my-1 h-px bg-border" />
+            <fieldset>
+              {legend(<AtSignIcon aria-hidden="true" className="size-4 shrink-0" />, t.auth.postingName.heading)}
+              <div className="flex flex-col gap-3">
+                <PostingNameFields draft={nameDraft} onChange={setNameDraft} problem={nameProblem} errorId={errorId} />
+              </div>
+            </fieldset>
+          </>
+        ) : (
+          <>
+            {emailField}
+            {passwordField}
+          </>
         )}
         {error && (
           <p id={errorId} role="alert" className="text-sm text-destructive">
@@ -685,29 +736,52 @@ export function SignInForm({ initialMode = 'sign-in' }: { initialMode?: AuthMode
             onCancel={() => setAccountNote(false)}
           />
         ) : (
-          <Button type="submit" className="self-start px-4" disabled={busy}>
+          <Button type="submit" size="lg" className="w-full" disabled={busy}>
             {creating ? text.create : text.signIn}
           </Button>
         )}
       </form>
 
+      {/* A passkey belongs to an account that exists, so only when signing in, under an "or" line. Its message is the
+          form's: one at a time. */}
+      {!creating && (
+        <PasskeySignIn
+          onStart={() => {
+            setError(null);
+            setNotice(null);
+          }}
+          onError={(message) => setError(message)}
+        />
+      )}
+
       {/* Always rendered, so a screen reader is already listening when the text appears. */}
       <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
         {notice}
       </p>
-      <Button
-        type="button"
-        variant="link"
-        className="self-start px-0"
-        onClick={() => {
-          setMode(creating ? 'sign-in' : 'create');
-          setError(null);
-          setNotice(null);
-          setAccountNote(false);
-        }}
-      >
-        {creating ? text.toSignIn : text.toCreate}
-      </Button>
+      {page ? (
+        // The start pages: the other form is the other page, so the address always matches the form.
+        <Link
+          href={creating ? '/start/sign-in' : '/start/new-account'}
+          onClick={forgetSignedOut}
+          className="mx-auto inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4"
+        >
+          {creating ? text.toSignIn : text.toCreate}
+        </Link>
+      ) : (
+        <Button
+          type="button"
+          variant="link"
+          className="self-start px-0"
+          onClick={() => {
+            setMode(creating ? 'sign-in' : 'create');
+            setError(null);
+            setNotice(null);
+            setAccountNote(false);
+          }}
+        >
+          {creating ? text.toSignIn : text.toCreate}
+        </Button>
+      )}
     </section>
   );
 }

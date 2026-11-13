@@ -37,6 +37,10 @@ export const account: Messages['account'] = {
     guest: 'Continuer sans compte',
     signedOut: 'Ta session est fermée. Tes données ont été supprimées de ce téléphone.',
     back: 'Retour',
-    afterSignIn: 'Une fois la session ouverte, l’appli récupère tes données depuis ton compte. S’il est encore vide, tu configures ensuite ton plan.',
+    /** Les formulaires des pages de départ (13-11-2026) : leur grand titre et la ligne en dessous. */
+    signInHeading: 'Se connecter',
+    signInLine: 'Ton plan et tes saisies reviennent depuis ton compte.',
+    createHeading: 'Créer ton compte',
+    createLine: 'Sauvegarde ton plan et utilise-le sur chaque téléphone.',
   },
 };
