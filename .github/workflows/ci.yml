@@ -324,7 +324,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.repeat_mocked != '' || needs.changes.outputs.repeat_real != ''
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Ten rounds of every changed test, and a code wait of up to 30 s in each real sign-in.
+    timeout-minutes: 90
     env:
       PLAYWRIGHT: ${{ needs.changes.outputs.playwright }}
       PROJECTS: ${{ needs.changes.outputs.projects }}
@@ -371,7 +372,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.prove_mocked != '' || needs.changes.outputs.prove_real != ''
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # A build and a run per mutation, about 3 minutes each, and two database resets for a migration's: a branch that
+    # brings many mutations at once (the first one did, about 26) needs the room.
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
