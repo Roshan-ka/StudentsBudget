@@ -52,6 +52,8 @@ export const setup: Messages['setup'] = {
       after: ', para que el dinero que ya está en tu cuenta no cuente dos veces.',
     },
     later: '¿Recibes BAföG o una beca? Añádelo más tarde en Ajustes → Plan → Editar plan.',
+    more: '¿Ahorros, BAföG o una beca?',
+    moreEdit: '¿Vives de tus ahorros?',
   },
   fixed: {
     intro: '¿Qué pagas cada mes, en euros? Deja fuera lo que no pagas.',
@@ -60,6 +62,7 @@ export const setup: Messages['setup'] = {
     later:
       'Las suscripciones, el gimnasio, los suministros, el Rundfunkbeitrag y los gastos puntuales como la cuota ' +
       'semestral se pueden añadir más tarde en Ajustes → Plan → Editar plan.',
+    more: '¿Gimnasio, suscripciones, la cuota semestral?',
   },
   oneOffs: {
     intro:

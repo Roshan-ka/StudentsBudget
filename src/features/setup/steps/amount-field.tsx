@@ -14,6 +14,7 @@ import { useT } from '@/i18n/use-t';
 import { afterPress, watchPresses } from '@/lib/after-press';
 import { describedBy as describedByIds } from '@/lib/described-by';
 import { amountInputText, parseAmount, type Minor } from '@/lib/money';
+import { cn } from '@/lib/utils';
 
 /** What an empty field means: 0 (income, costs, envelopes), or no answer yet (guesses). */
 type Blank = 'zero' | 'unset';
@@ -50,6 +51,10 @@ function toText(value: Minor | undefined, blank: Blank, locale: string): string 
  * With `signed` the amount may be below zero, as an account's opening balance is: an "Overdrawn (below zero)"
  * checkbox sits under the field, its hint and its error, and puts a minus sign in the text; a typed "-250" is
  * accepted too.
+ *
+ * `layout="row"` (a setup step's category card, 13-11-2026): the label and its hint at the start, a compact field at
+ * the end, and the field under them where the line is too narrow (large text). The ids and the description's order
+ * stay the same in both layouts.
  */
 export function AmountField({
   label,
@@ -62,6 +67,7 @@ export function AmountField({
   unit = '€',
   inputRef,
   problemId = null,
+  layout = 'stack',
 }: {
   label: string;
   hint?: ReactNode;
@@ -77,6 +83,8 @@ export function AmountField({
   inputRef?: Ref<HTMLInputElement>;
   /** The id of a message about this field elsewhere on the page, while it shows. */
   problemId?: string | null;
+  /** The label above the field (`stack`), or beside it (`row`). */
+  layout?: 'stack' | 'row';
 }) {
   const id = useId();
   const { t, locale } = useT();
@@ -101,44 +109,64 @@ export function AmountField({
     onChange(parseField(next, blank, range));
   }
 
+  const row = layout === 'row';
+  const hintBlock = hint && (
+    <div id={`${id}-hint`} className="text-sm text-muted-foreground">
+      {hint}
+    </div>
+  );
+  const field = (
+    <div className={cn('relative', row && 'w-32 shrink-0')}>
+      {/* Hidden from the reading order beside the field, and read with it as its description instead. */}
+      <span
+        id={`${id}-unit`}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 start-3.5 flex items-center text-muted-foreground"
+      >
+        {unit}
+      </span>
+      <Input
+        id={id}
+        ref={inputRef}
+        className={cn(unit.length > 1 ? 'ps-12' : 'ps-8', row && 'min-h-11')}
+        inputMode="decimal"
+        autoComplete="off"
+        value={shown}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        onChange={(event) => {
+          if (!signed) return edit(event.target.value);
+          const typed = typeOpening(event.target.value, pending);
+          setWaiting(typed.waiting);
+          edit(typed.text);
+        }}
+        // Shown once a press that took the focus has ended: on the way down it would push Next from under the
+        // pointer, and the click would miss it (after-press.ts).
+        onBlur={() => afterPress(() => setTouched(true))}
+      />
+    </div>
+  );
+
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id} className="leading-snug">
-        {label}
-      </Label>
-      <div className="relative">
-        {/* Hidden from the reading order beside the field, and read with it as its description instead. */}
-        <span
-          id={`${id}-unit`}
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 start-3.5 flex items-center text-muted-foreground"
-        >
-          {unit}
-        </span>
-        <Input
-          id={id}
-          ref={inputRef}
-          className={unit.length > 1 ? 'ps-12' : 'ps-8'}
-          inputMode="decimal"
-          autoComplete="off"
-          value={shown}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          onChange={(event) => {
-            if (!signed) return edit(event.target.value);
-            const typed = typeOpening(event.target.value, pending);
-            setWaiting(typed.waiting);
-            edit(typed.text);
-          }}
-          // Shown once a press that took the focus has ended: on the way down it would push Next from under the
-          // pointer, and the click would miss it (after-press.ts).
-          onBlur={() => afterPress(() => setTouched(true))}
-        />
-      </div>
-      {hint && (
-        <div id={`${id}-hint`} className="text-sm text-muted-foreground">
-          {hint}
+      {row ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <div className="flex min-w-0 flex-1 basis-20 flex-col gap-0.5">
+            <Label htmlFor={id} className="text-base leading-snug break-words">
+              {label}
+            </Label>
+            {hintBlock}
+          </div>
+          {field}
         </div>
+      ) : (
+        <>
+          <Label htmlFor={id} className="leading-snug">
+            {label}
+          </Label>
+          {field}
+          {hintBlock}
+        </>
       )}
       {showError && (
         <p id={`${id}-error`} className="text-sm text-destructive">
