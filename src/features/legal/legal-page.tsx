@@ -4,7 +4,7 @@ import { ChevronLeftIcon } from 'lucide-react';
 import Link from 'next/link';
 import { PageHeading } from '@/components/page-heading';
 import { legalFilledIn, OPERATOR } from '@/data/legal';
-import { aiInBuild } from '@/features/ai/switch';
+import { aiInBuild, aiSetupChatInBuild } from '@/features/ai/switch';
 import { mapInBuild } from '@/features/discounts/map/map-flag';
 import { remindersInBuild } from '@/features/reminder/reminder';
 import { useT } from '@/i18n/use-t';
@@ -81,6 +81,7 @@ export function LegalPage({ page }: { page: keyof typeof PAGES }) {
   const shown = sectionsFor(sections(OPERATOR), {
     supabase: isSupabaseConfigured(),
     ai: aiInBuild(),
+    aiSetup: aiSetupChatInBuild(),
     reminder: remindersInBuild(),
     map: mapInBuild(),
   });

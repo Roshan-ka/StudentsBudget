@@ -129,12 +129,12 @@ Until go-live, nothing reaches students: `NEXT_PUBLIC_AI` is unset in Production
 1. **Groq console:**
    - an organisation only for this app (limits are per organisation, and Playground use spends them);
    - a project and an API key;
-   - Data Controls: zero data retention on if offered (tell Claude: the notice text changes);
-   - confirm the DPA covers the free plan.
-2. **Function secret:** `npx supabase secrets set GROQ_API_KEY=… AI_ALLOWED_ORIGINS=https://students-budget.vercel.app`.
-3. **Migrations:** `npx supabase migration list --linked`, then `db push`.
+   - Data Controls: turn on Zero Data Retention ("All customers may enable" it, per the docs' "Your data" page, read 13-11-2026). The notice's "up to 30 days" stays true as the most Groq keeps, so its text needn't change;
+   - confirm the DPA covers the free plan: as written it covers all of Groq's processing on your behalf and excludes only Beta Services (Services Agreement § 3.6), and gpt-oss is a production model, but ask Groq if in doubt.
+2. **Function secret:** `npx supabase secrets set GROQ_API_KEY=… AI_ALLOWED_ORIGINS=https://students-budget.vercel.app`. If an `ANTHROPIC_API_KEY` secret was ever set, `npx supabase secrets unset ANTHROPIC_API_KEY`.
+3. **Migrations:** `npx supabase migration list --linked` (expect `20261109125656_ai_allowance` and `20261113113428_ai_limits_groq_free` pending if the AI never went live), then `db push`.
 4. **Deploy:** `npx supabase functions deploy ai --no-verify-jwt`. Then the curl checks: OPTIONS 204, another origin 403, no token 401.
-5. **Turn the app on:** `NEXT_PUBLIC_AI=1` for Production on Vercel, built from a fresh commit.
+5. **Turn the app on:** `NEXT_PUBLIC_AI=1` for Production on Vercel, built from a fresh commit. Leave `NEXT_PUBLIC_AI_SETUP_CHAT` unset (set it on Previews only, to try the chat as a moderator).
 6. **Real try**, watching the function's logs and Groq's usage page:
    - quick add (typed, dictated);
    - Ask in English and German, with sources that fit;
@@ -221,3 +221,101 @@ Both most likely aim at consumers and at dodging limits with extra accounts, not
     - `strict-schema.test.ts`: the three answers in strict form, the unions, the enum, inlined references, and the refusals;
     - `groq.test.ts` against a fake `fetch`, clock and sleep: the body, the URL and key, the signal, no key, reading the answer and the tokens, every stop, a cut-off answer, a refusal, empty text, a broken reply, `retry-after`, 429 on quick add (no retry) and on Ask (one), a wait too long or too late, 5xx twice, a lost connection, 400 and 401 codes, and an abort before the call or during the wait.
   - **The AI plan** points here at its top.
+- **Chunk 2** (13-11-2026), the switch:
+  - **`index.ts`:** `groqClient(GROQ_API_KEY)` in place of the Anthropic client; no key still means `unavailable` before any allowance. `deno.json` maps only supabase-js and zod, and `pins.test.ts` expects just those.
+  - **`model.ts`:** `ModelId` is the two gpt-oss ids; `ModelCall` loses `thinking` and `fallbacks`; `ModelMessage.usage` loses `cache_creation_input_tokens` and `iterations`; `readStructured` reads the text blocks (no fallback blocks any more); `fellBack` is gone.
+  - **`handle.ts`:** `ModelBusy` (a Groq 429) answers `busy` (503), which Ask and the setup chat already explain ("busy right now, try again"); `ModelApiError` answers `failed` and logs `errorStatus` and `errorCode`; the log adds `reasoningTokens` and drops `fallback` and `cacheWriteTokens`. The contract's comment on `busy` names the provider's rate limit.
+  - **The builders:**
+
+    | Builder | Model | Effort | Max output |
+    |---|---|---|---|
+    | Quick add | gpt-oss-20b | low | 600 |
+    | Ask | gpt-oss-120b | low | 2,000 |
+    | Setup chat | gpt-oss-120b | medium | 8,000 (paid plan only) |
+
+    Ask's prompt still holds the whole city pack until chunks 3 and 4 shrink it, so the function isn't deployed before then.
+  - **Tests:** the builders' calls, the handle test (a 429 → `busy`, a refused request → `failed` with status and code, the log's fields), `model.test.ts` without fallbacks, `groq.test.ts`'s sample call.
+  - **Left for a follow-up:** `@anthropic-ai/sdk` stays in `package.json` and the lockfile, unused. Removing it is an npm install (heavy lane, Roshan's approval today), and npm 12 may refuse the lockfile change (EALLOWREMOTE). Done on 13-11-2026 (`npm uninstall @anthropic-ai/sdk --package-lock-only` through the heavy lane; npm 12 took it without `--allow-remote`): the package and its own dependencies leave `package.json` and the lockfile.
+  - **Left for chunk 6:** the texts that name Anthropic (the notice, the `ai` note, the switch, their e2e specs). AI stays off in Production meanwhile.
+- **Chunk 3** (13-11-2026), picking the city items, not wired into Ask yet:
+  - **`pack.ts`:**
+    - `PackItem.words`: the item's words, joined by spaces, sorted; never sent to the model.
+    - `foldWords(text)`: NFKD with the marks dropped, lower case, ß as ss; words of 3 letters or more, no number alone, no stop word (English, German, French and Spanish, plus Regensburg and euro); each without one ending (en, er, es, e, s, n) when 4 letters stay; each once. Questions and items fold alike.
+    - `renderPackBrief(items)`: `[id] text (estimate)`, without the source and checked day, which the app shows from its own data.
+  - **`city-pack-build.ts`:** each item's words come from its English text, its title in German, French and Spanish (`CITY_WORDS`: tips, swaps and checklist items; a discount's place and offer), its category's names in all four (`src/i18n/messages/<code>/categories.ts`) and `TOPIC_WORDS` (one line per category in the pack and per kind, in the four languages, no alcohol). 64 words an item on average, 125 at most; `city-pack.ts` grows to 80 KB.
+  - **`write-city-pack.mjs`** registers the app's imports (`mcp/app-imports.ts`) before it loads the builder, since the city words import without extensions. Run it after changing `src/data`, `src/i18n/city` or the category names.
+  - **`pack-select.ts`, `selectPack({ question, earlier, spend }, pack, limits)`:**
+    - Each word of the question counts 2, each word of an earlier question 1, times its rarity (`log(1 + items / items it matches)`), against every item it matches.
+    - `wordMatch`: the same word is 1; a half when the shorter (5 letters or more) starts the longer ("cheap", "cheaply") or the shorter (6 or more) ends it ("beitrag", "semesterbeitrag").
+    - Equal scores go by this month's spending in the item's category (`spend`, euros by category id: the snapshot's envelopes in chunk 4), then by the pack's order.
+    - No match: the 7 ranges and 3 prices. At most 10 items and 3,000 characters (`PICK_LIMITS`); an item that would go over is skipped.
+    - Measured: the whole pack is 32,445 characters with its sources and 15,781 brief; the sample questions' picks take 1,602 to 2,934 characters, the fallback 655.
+  - **Tests:**
+    - `pack-select.test.ts`: folding and stop words in the four languages, endings, `wordMatch`, cheap food and every semester fee in the four languages, Westbad first in each, ties by spending, the question over the earlier ones and a follow-up, the fallback, the limits and a skipped long item, the same picks each time;
+    - `city-pack.test.ts`: every item's words (sorted, once, its own text's), the other languages' titles and offers and the category names in them, `TOPIC_WORDS` for every category and kind with no alcohol word, and the brief form without sources or words.
+  - **CLAUDE.md:** the writer's rule names `src/i18n/city`, and the checklist rule says the pack and the MCP server carry the checklist (they have since the checklist was built).
+- **Chunk 4** (13-11-2026), Ask within the free plan's tokens (on top of chunk 3's branch):
+  - **`ask.ts`:**
+    - `askPicks(request)`: `selectPack` with the last question, the earlier ones and `spendOf(snapshot)` (`thisMonth.envelopes`, read with zod; nothing when it doesn't read).
+    - `askSystem(picks)`: the rules, then the picks in `renderPackBrief` form under "City data for Regensburg that may help with this question".
+    - `finishAsk(answer, request, picks = askPicks(request))`: keeps only the ids sent, and backs amounts with the snapshot and the brief picks. The function hands `call` and `finish` the same scrubbed request, so both pick alike.
+  - **`turns.ts`, `lastTurns`:** the last 3 turns, an earlier answer cut at a space to 800 characters (`KEPT_ANSWER`, `cutAnswer`); the snapshot rides on the first kept question.
+  - **`contract.ts`:** `MAX_SNAPSHOT` (6,000 bytes) for Ask's snapshot; the setup draft keeps `MAX_DATA` (12,000).
+  - **`snapshot.ts`:** `MAX_RECENT` 30 and `PAST_MONTHS` 1. Over `MAX_SNAPSHOT` it drops the oldest recent entries, then the past month, the smallest top expenses and the latest one-offs. A budget with every flexible envelope keeps about 17 recent entries; the heaviest test budget keeps only its plan and one-offs.
+  - **`budget.ts`:** `GROQ_FREE_PLAN` (dated), `MAX_CALL_TOKENS` 7,000 and `callTokens(call)`: the system prompt, the messages and the answer's strict schema in UTF-8 bytes, 30 bytes of framing a message, 3 bytes a token, plus the output limit.
+  - **Measured with `callTokens`:**
+    - quick add's largest call (60 categories, 20 accounts, the longest line, all in two-byte letters): 5,916;
+    - Ask's largest: 5,925 as picked, 6,809 with the most city data a pick can hold (3,000 characters at the pack's most bytes a character).
+    - At 1,000 characters for the earlier answer it was 6,942, too close, hence 800.
+  - **The privacy notice:** Ask's line says this month's and last month's figures and up to 30 entries; the rest of its AI section waits for chunk 6.
+- **Chunk 5** (13-11-2026), fitting the free plan (on top of chunk 4's branch):
+  - **Migration `20261113113428_ai_limits_groq_free.sql`:** `create or replace` of both limit functions (owner and privileges kept, revoked again).
+
+    | Feature | Per account (was) | For everyone (was) |
+    |---|---|---|
+    | Quick add | 30 (50) | 120 (3,000) |
+    | Ask | 6 (6) | 36 (300) |
+    | Setup chat | **0** (15) | **0** (300) |
+
+    The setup chat is 0 for one account as well as for everyone, so a call is refused as `daily-limit`, not `busy` (everyone's limit is checked second). The plan had 15 per account; that only changed which hint came back. A moderator still has no limit, so Roshan can try the chat on a preview with the flag.
+  - **`ai_allowance.test.sql`:** sections 1 to 5 read the limits through `pg_temp.own` and `pg_temp.everyone`; everyone's limit is now tested on Ask (the setup chat is 0); section 6 holds the numbers in force and the setup chat's `daily-limit`. 24 checks.
+  - **`limits.test.ts`:** reads the latest migration that defines each function; checks every feature is named, one account never above everyone, the setup chat at 0, and each model's day.
+    - Quick add has gpt-oss-20b to itself: 120 a day at a typical 1,299 tokens is 155,880.
+    - Ask and the setup chat share gpt-oss-120b: 36 at a typical 4,111 is 147,996, and the setup chat adds nothing at 0.
+    - Both are under 160,000 (80 % of 200,000) and 1,000 requests.
+    - A typical call is its input as `callTokens` counts it, plus a typical answer (quick add 250 tokens, Ask 800) in place of the output limit.
+  - **The flag:** `aiSetupChatInBuild()` (`src/features/ai/switch.ts`) is `aiInBuild()` and `NEXT_PUBLIC_AI_SETUP_CHAT=1`.
+    - The wizard's `chatOffered` reads it, so without it there is no offer and no switch hint.
+    - `E2E_SUPABASE_ENV` sets it, so `setup-chat.spec.ts` still runs.
+    - `switch.test.ts` covers on, off without the flag (the free plan's build) and off without the AI. A second e2e build without the flag would cost a full build per run, so the unit test stands in.
+  - **After merging:** `db push` for the migration (Roshan), before the function goes live.
+- **Chunk 6** (13-11-2026), texts and docs (on top of chunk 5's branch). Built before Roshan's two confirmations, since Groq's own pages answer them as far as documents can (read 13-11-2026); the go-live keeps both checks.
+  - **Groq's terms, as read:**
+    - **Contract:** Groq UK Limited (London) for customers in the EEA (Services Agreement, last modified 22-06-2026).
+    - **Training:** "Groq is not permitted to use Inputs or Outputs for training" (§ 4.2).
+    - **DPA (15-10-2025):** Groq is the processor; EU SCCs modules 2 and 3; processing "in the United States and other countries" of Groq and its subprocessors. It excludes no free use; Beta Services sit outside it (§ 3.6).
+    - **"Your data" page:**
+      - no inference data retained by default;
+      - inputs and outputs may be logged for troubleshooting or abuse investigations, up to 30 days unless the law requires longer;
+      - stored in GCP buckets in the USA;
+      - Zero Data Retention open to all customers.
+    - **Privacy policy (12-11-2025):** Groq LLC as controller covers only its own services, not API customer data.
+  - **The privacy notice:**
+    - **"AI features (Groq)":**
+      - what quick add and Ask send;
+      - that Ask's conversation reaches Groq only as its last exchange;
+      - Groq UK Limited as processor, with processing in the USA and its subprocessors' countries;
+      - no training, and logs only for troubleshooting or abuse, up to 30 days.
+    - **The setup chat** moves into its own section, "Set up by chatting (Groq)" (`ai-setup`, `when: 'aiSetup'`). `LegalWhen` and `LegalPage` gain `aiSetup` from `aiSetupChatInBuild()`, so the free plan's build doesn't describe a chat it doesn't offer.
+    - **Transfers:** names Groq (United Kingdom, with processing in the USA) under the SCCs beside Supabase.
+    - **The top comment** names Groq's documents and their dates.
+  - **The `ai` note and the switch's hint** in English, German, French and Spanish: "to Groq, an AI service, in the USA" (the switch: "to Groq, an AI service in the USA … nothing goes to Groq").
+  - **Tests:**
+    - `privacy-notice.test.ts`: the new section's place, the free plan's build without it, Set up by chatting named there and not in `ai`, its legal basis;
+    - `content.test.ts`: the build record with `aiSetup`;
+    - e2e: `ai-quick-add`, `setup-chat`, `account` and `legal` pin the new texts and headings (the e2e build has the setup chat's flag).
+  - **The AI plan's go-live** now points here; this plan's go-live names Zero Data Retention, the DPA reading, the two pending migrations, the old secret to unset and the setup chat's flag.
+  - **Tests:**
+    - `budget.test.ts`: both largest calls, the margin, what `callTokens` counts;
+    - `ask.test.ts`: the picks in the system prompt and not the rest, no sources, the same picks for the same question, ties by the snapshot's spending, the last exchange only, `cutAnswer`, ids and amounts held to what was sent;
+    - `contract.test.ts` and `snapshot.test.ts`: the new cap, one past month, the drop order.

@@ -1,5 +1,7 @@
 // The setup chat on the server (the AI phase, chunk 11, docs/superpowers/plans/2026-11-09-ai-phase-1.md): how a new
-// student's setup conversation goes to Claude Haiku 5.5, and what the app gets back.
+// student's setup conversation goes to the model (gpt-oss-120b on Groq since
+// docs/superpowers/plans/2026-11-13-groq-free-plan.md), and what the app gets back. Off on Groq's free plan
+// (Roshan, 13-11-2026): the app doesn't offer it and everyone's allowance for it is 0 until a paid plan.
 //
 // The system prompt is the rules, the app's categories by step and the Regensburg ranges and semester fees from the
 // city pack: the same for everyone, so it caches. The latest message carries the wizard's draft as it is now (the app's
@@ -160,13 +162,11 @@ export function finishSetup(answer: SetupAnswer, pack: readonly PackItem[] = CIT
 export const setupBuilder: FeatureBuilder<SetupRequest> = {
   call(request): ModelCall {
     return {
-      // Haiku 5.5, not Opus (Roshan, 10-11-2026): about 40 times cheaper, behind the same checks. Its adaptive thinking
-      // stays on; it has no server-side fallback, so a refusal is the answer.
-      model: 'claude-haiku-5-5',
+      // The larger model at medium effort, its prompts as built: they fit a paid plan's limits, not the free one's.
+      // A refusal is the answer.
+      model: 'openai/gpt-oss-120b',
       maxTokens: 8000,
       effort: 'medium',
-      thinking: true,
-      fallbacks: false,
       system: setupSystem(),
       messages: setupMessages(request),
       answer: setupAnswer,

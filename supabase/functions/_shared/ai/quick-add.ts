@@ -1,5 +1,6 @@
 // Quick add on the server (the AI phase, chunk 4, docs/superpowers/plans/2026-11-09-ai-phase-1.md): how a typed or
-// dictated line goes to Claude Haiku 5.5, and what the app gets back.
+// dictated line goes to the model (gpt-oss-20b on Groq since docs/superpowers/plans/2026-11-13-groq-free-plan.md),
+// and what the app gets back.
 //
 // The rules are frozen: the same text for every student and every line, with no date, id or name in them, so the API
 // can cache them. Everything that differs (today, the language, the categories, the accounts and the line) goes in the
@@ -103,11 +104,11 @@ export function finishQuickAdd(answer: QuickAddAnswer, request: QuickAddRequest)
 export const quickAddBuilder: FeatureBuilder<QuickAddRequest> = {
   call(request): ModelCall {
     return {
-      model: 'claude-haiku-5-5',
-      maxTokens: 400,
+      // The small model, on a per-minute limit of its own, so Ask never crowds quick add out; low effort keeps it
+      // inside the 8 seconds. The output limit counts its reasoning too.
+      model: 'openai/gpt-oss-20b',
+      maxTokens: 600,
       effort: 'low',
-      thinking: false,
-      fallbacks: false,
       system: QUICK_ADD_RULES,
       messages: [{ role: 'user', content: quickAddMessage(request) }],
       answer: quickAddAnswer,

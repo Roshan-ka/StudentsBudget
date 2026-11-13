@@ -1,0 +1,26 @@
+name: Nightly
+
+# Every night on main, the whole CI with nothing left out (ci.yml, called with its own inputs): a full run on every
+# browser and language, every saved mutation proven again (red before green, shared over up to 4 machines), and the
+# random clicker walking the real app as each role. At 02:17 UTC, off the hour, when GitHub's scheduler is less busy.
+# It also starts by hand (Actions → Nightly → Run workflow). GitHub pauses a schedule in a public repository after 60
+# days with no activity in it; a push brings it back.
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+# The gate in ci.yml posts the run's commit status; a called workflow gets no more than its caller grants.
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    with:
+      scope: full
+      browsers: all
+      languages: all
+      mutations: all
+      monkey: 'yes'

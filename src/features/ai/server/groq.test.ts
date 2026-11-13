@@ -25,8 +25,6 @@ const QUICK: ModelCall = {
   model: 'openai/gpt-oss-20b',
   maxTokens: 600,
   effort: 'low',
-  thinking: false,
-  fallbacks: false,
   system: 'The rules.',
   messages: [{ role: 'user', content: 'döner 6' }],
   answer: quickAddAnswer,

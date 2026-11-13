@@ -23,6 +23,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // A test that fails once is a finding: the repeat check, not a retry, tells a flaky test apart.
   retries: 0,
+  // The random clicker (monkey.spec.ts, @monkey) walks for minutes: only when asked for, by `npm run test:monkey` or
+  // the nightly's monkey job (E2E_MONKEY=1). A `--grep-invert` on the command line takes this one's place.
+  grepInvert: process.env.E2E_MONKEY ? undefined : /@monkey/,
   // Throwaway users and authenticator codes from one IP: two at a time, as the 2FA proof ran them.
   workers: 2,
   // The tree check (testkit/tree-check.mjs): the run fails when a test wrote a file into the repo.

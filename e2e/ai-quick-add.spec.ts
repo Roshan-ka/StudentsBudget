@@ -75,7 +75,7 @@ test('signed in, the example line asks first, then saves €12 · Eating out · 
   await add(page, EXAMPLE);
   // The first time on this phone, the note on where the line goes, and nothing sent before Continue.
   const note = page.getByRole('group', { name: 'About your data', exact: true });
-  await expect(note).toContainText('Anthropic (Claude), in the USA');
+  await expect(note).toContainText('Groq, an AI service, in the USA');
   expect(ai).toEqual([]);
   await note.getByRole('button', { name: 'Continue', exact: true }).click();
 

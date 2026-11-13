@@ -18,7 +18,8 @@ export type AiFeature = (typeof AI_FEATURES)[number];
  * - `bad-request`: not a POST, not JSON, or not what the contract allows;
  * - `too-large`: a body over MAX_BODY_BYTES;
  * - `signed-out`, `second-step`: no user, or an account with two-step sign-in before its code;
- * - `daily-limit`, `busy`: the account's own allowance, or everyone's, is used up for today;
+ * - `daily-limit`: the account's own allowance is used up for today;
+ * - `busy`: everyone's is, or the model provider's rate limit holds the request back for a moment;
  * - `refused`: the model declined to answer;
  * - `failed`: the model answered with something the contract doesn't allow, or cut off;
  * - `unavailable`: the model or the function's settings can't be reached right now.
@@ -55,8 +56,14 @@ export const PROBLEM_STATUS: Record<AiProblem, number> = {
  */
 export const MAX_BODY_BYTES = 64 * 1024;
 
-/** The most bytes Ask's snapshot or the setup draft may take as JSON (UTF-8). */
+/** The most bytes the setup draft may take as JSON (UTF-8). */
 export const MAX_DATA = 12_000;
+
+/**
+ * The most bytes Ask's snapshot may take as JSON (UTF-8): half the setup draft's, so a question with its city items
+ * and the exchange before it stays under Groq's free plan's 8,000 tokens a minute (the Groq switch, chunk 4; budget.ts).
+ */
+export const MAX_SNAPSHOT = 6_000;
 
 const utf8Length = (text: string) => new TextEncoder().encode(text).length;
 
@@ -117,14 +124,15 @@ export const quickAddRequest = z.strictObject({
     .max(20),
 });
 
-/** JSON the app builds from its own data (Ask's snapshot, the setup draft), up to MAX_DATA; the function scrubs it. */
-const json = z.json().refine((value) => utf8Length(JSON.stringify(value)) <= MAX_DATA, { message: 'too much data' });
+/** JSON the app builds from its own data (Ask's snapshot, the setup draft), up to `max` bytes; the function scrubs it. */
+const json = (max: number) =>
+  z.json().refine((value) => utf8Length(JSON.stringify(value)) <= max, { message: 'too much data' });
 
 export const askRequest = z.strictObject({
   feature: z.literal('ask'),
   lang: LANG,
   today: ISO_DATE,
-  snapshot: json,
+  snapshot: json(MAX_SNAPSHOT),
   turns: conversation(MAX_QUESTION, MAX_ANSWER, MAX_QUESTIONS),
 });
 
@@ -132,7 +140,7 @@ export const setupRequest = z.strictObject({
   feature: z.literal('setup'),
   lang: LANG,
   today: ISO_DATE,
-  draft: json,
+  draft: json(MAX_DATA),
   turns: conversation(MAX_SETUP_MESSAGE, MAX_REPLY, MAX_SETUP_MESSAGES),
 });
 

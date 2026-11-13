@@ -1,22 +1,21 @@
-// The model, as the `ai` Edge Function sees it (the AI phase, chunk 3, docs/superpowers/plans/2026-11-09-ai-phase-1.md):
-// the call a feature asks for, the message that comes back, and how its answer is read. The Anthropic SDK stays in the
-// function's entry (../../ai/index.ts), which turns a `ModelCall` into a request; everything here is plain TypeScript
-// the app's tests run.
+// The model, as the `ai` Edge Function sees it (the AI phase, chunk 3, docs/superpowers/plans/2026-11-09-ai-phase-1.md;
+// on Groq since docs/superpowers/plans/2026-11-13-groq-free-plan.md): the call a feature asks for, the message that
+// comes back, and how its answer is read. The provider's API is in groq.ts, which turns a `ModelCall` into a request;
+// everything here is plain TypeScript the app's tests run.
 
 import type { z } from 'zod';
 
-/** What a feature asks of the model. The entry adds the structured-output format from `answer`. */
+/** The models on Groq's free plan that are for production (console.groq.com/docs/models, read 13-11-2026). */
+export type ModelId = 'openai/gpt-oss-20b' | 'openai/gpt-oss-120b';
+
+/** What a feature asks of the model. The client adds the structured-output format from `answer`. */
 export type ModelCall = {
-  /** Claude's ids until the Groq switch's chunk 2 wires Groq in and drops them (docs/superpowers/plans/2026-11-13-groq-free-plan.md). */
-  model: 'claude-haiku-5-5' | 'claude-opus-5-5' | 'openai/gpt-oss-20b' | 'openai/gpt-oss-120b';
+  model: ModelId;
+  /** The most the answer may take, reasoning included (`max_completion_tokens`). */
   maxTokens: number;
-  /** Always sent: each model has its own default, and the call says what it wants. */
+  /** How hard a reasoning model thinks before it answers (`reasoning_effort`); always sent. */
   effort: 'low' | 'medium' | 'high';
-  /** False turns thinking off (quick add, at low effort); true leaves the model's adaptive thinking on. */
-  thinking: boolean;
-  /** Server-side fallbacks on a refusal (`fallbacks: "default"`), for Opus only: Haiku 5.5 has none. No call uses them now. */
-  fallbacks: boolean;
-  /** The feature's frozen rules and data, the same for every student, cached. */
+  /** The feature's rules and data: the same for every student, but for Ask's city items, picked per question. */
   system: string;
   /** The conversation, the student's data in its first message; the last is the student's. */
   messages: { role: 'user' | 'assistant'; content: string }[];
@@ -30,17 +29,14 @@ export type ModelCall = {
 export type ModelMessage = {
   model: string;
   stop_reason: string | null;
-  /** Text, thinking and, after a server-side fallback, `fallback` blocks. */
+  /** The answer's text, as one `text` block (none when the reply had no text). */
   content: { type: string; text?: string }[];
   usage: {
     input_tokens: number;
     output_tokens: number;
     cache_read_input_tokens?: number | null;
-    cache_creation_input_tokens?: number | null;
     /** The tokens a reasoning model spent thinking, where the API says (Groq's gpt-oss). */
     reasoning_tokens?: number | null;
-    /** One entry per model that ran; a `fallback_message` entry when a fallback model answered. */
-    iterations?: { type: string }[] | null;
   };
 };
 
@@ -80,17 +76,14 @@ export class ModelApiError extends Error {
 export type Reading<T> = { ok: true; value: T } | { ok: false; problem: 'refused' | 'failed' };
 
 /**
- * The answer in a message: the text after the last `fallback` block (what came before it is the declined model's),
- * read as JSON and checked with the schema, bounds included (structured outputs leave those to the reader).
- * A refusal, or any stop but the end of the turn (cut off at max_tokens, paused), is no answer.
+ * The answer in a message: its text read as JSON and checked with the schema, bounds included (strict structured
+ * outputs leave those to the reader, strict-schema.ts). A refusal, or any stop but the end of the turn (cut off at
+ * the output limit, say), is no answer.
  */
 export function readStructured<T>(message: ModelMessage, schema: z.ZodType<T>): Reading<T> {
   if (message.stop_reason === 'refusal') return { ok: false, problem: 'refused' };
   if (message.stop_reason !== 'end_turn') return { ok: false, problem: 'failed' };
-  const blocks = message.content;
-  const lastFallback = blocks.map((block) => block.type).lastIndexOf('fallback');
-  const text = blocks
-    .slice(lastFallback + 1)
+  const text = message.content
     .filter((block) => block.type === 'text')
     .map((block) => block.text ?? '')
     .join('');
@@ -102,12 +95,4 @@ export function readStructured<T>(message: ModelMessage, schema: z.ZodType<T>): 
   }
   const checked = schema.safeParse(parsed);
   return checked.success ? { ok: true, value: checked.data } : { ok: false, problem: 'failed' };
-}
-
-/** Whether a fallback model answered (or declined in turn), for the logs. */
-export function fellBack(message: ModelMessage): boolean {
-  return (
-    message.content.some((block) => block.type === 'fallback') ||
-    (message.usage.iterations ?? []).some((entry) => entry.type === 'fallback_message')
-  );
 }

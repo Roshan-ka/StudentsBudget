@@ -2,7 +2,7 @@
 // docs/superpowers/plans/2026-11-13-groq-free-plan.md). Plain `fetch`, no SDK: the base URL, the key and the model ids
 // are settings, so another provider that speaks this format is a matter of configuration (and the privacy texts).
 // It turns a `ModelCall` into a request with a strict JSON-schema answer, and the reply into the `ModelMessage` that
-// `readStructured` already reads. Wired into the `ai` function in chunk 2.
+// `readStructured` already reads. The `ai` function's entry uses it since chunk 2.
 
 import { z } from 'zod';
 import {
@@ -56,8 +56,8 @@ const DEFAULT_DEPS: ChatDeps = { fetch: (input, init) => fetch(input, init), now
 
 /**
  * The request for a call: the system prompt first, then the turns, a strict JSON-schema answer and the reasoning
- * effort. `thinking` and `fallbacks` are Anthropic's and are not sent: a reasoning model always reasons, at the
- * effort asked (chunk 2 takes them out of `ModelCall`).
+ * effort. No temperature and no streaming: a reasoning model answers at its own settings, and strict structured
+ * outputs don't stream.
  */
 export function chatBody(call: ModelCall) {
   return {

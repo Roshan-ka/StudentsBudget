@@ -17,7 +17,8 @@ describe('the ai function’s packages', () => {
       const match = /^npm:\/?(@?[^@]+)@([^/]+)\/?$/.exec(target);
       return { name: name.replace(/\/$/, ''), target, package: match?.[1], version: match?.[2] };
     });
-    expect(pinned.map((entry) => entry.name).sort()).toEqual(['@anthropic-ai/sdk', '@anthropic-ai/sdk', '@supabase/supabase-js', 'zod']);
+    // The model is reached with plain `fetch` since the Groq switch (groq.ts): no provider SDK.
+    expect(pinned.map((entry) => entry.name).sort()).toEqual(['@supabase/supabase-js', 'zod']);
     for (const entry of pinned) {
       expect(entry.package, entry.target).toBe(entry.name);
       expect(entry.version, entry.name).toMatch(/^\d+\.\d+\.\d+$/);

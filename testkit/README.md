@@ -12,8 +12,9 @@ What's here now:
 | `network-guard.mjs` | Stops any request to a host outside the test setup, and fails the test that made it. |
 | `tree-check.mjs` | A Playwright `globalSetup`: the run fails when a test wrote a file into the repo. |
 | `result-kinds.mjs`, `result-kinds-reporter.mjs` | Sorts each test into a result kind, writes the summary, and fails a run that isn't all verified. |
-
-The other parts the plan names (the role-matrix runner, the walker for the random clicker) join when a phase uses them.
+| `role-matrix.mjs` | Reads the role matrix, and names actions with no row and cells with no proof. |
+| `changed-proofs.mjs` | Which specs' saved mutations a change reaches, for a CI run that proves only those. |
+| `walker.mjs` | The random clicker: a seeded walk through a running app, its step log, its replay, and a watcher. |
 
 ## Network guard
 
@@ -81,8 +82,10 @@ The proof id is found by text each time, so editing above a test never breaks it
 ### Running
 
 ```sh
-node testkit/red-green.mjs --mutations <dir> [--config <file>] [--project <name>] [--adapter <module>] <spec>…
+node testkit/red-green.mjs --mutations <dir> [--config <file>] [--project <name>] [--adapter <module>] [--shard <i>/<n>] <spec>…
 ```
+
+- **`--shard i/n`** proves every n-th mutation from the i-th on, so n machines share one list: each one builds and runs its own share, and together they cover every mutation once. A shard left with none ends at once with 0.
 
 - Every Playwright run gets a free port of its own for the app (`E2E_PORT`), so no run reuses a server that's already running (an unmutated app), and the config's web server builds the mutated app.
 - An assertion with its own message (`expect(value, 'message')`) counts: Playwright puts the message first and `expect(…)` on the next line.
@@ -150,7 +153,24 @@ The one app-specific module the kit talks to:
 | `discoverActions()` | every protected server action, read from the running backend |
 | `applyStep(file)` | commands that bring the backend in line with a changed file |
 | `appEnv`, `allowedHosts`, `readySignal` | how the app is built and reached, and when it's ready |
-| `neverClick`, `consoleAllow` | for the random clicker: what it must not press, and console messages that aren't errors |
+| `neverClick`, `consoleAllow` | for the random clicker (`walker.mjs`): what it must not press, and console messages that aren't errors |
+
+## Random clicker (`walker.mjs`)
+
+A seeded walk through the running app, with no AI: at each step it picks a visible link, button, tab, checkbox, switch, field or list at random, acts on it, and logs the step. Now and then it goes back or reloads.
+
+```js
+import { walk, replay, watch, logText, readLog } from '../testkit/walker.mjs';
+
+const watcher = watch(page, { consoleAllow: adapter.consoleAllow, forbidden: [{ what: 'the admin list', locator }] });
+const log = await walk(page, { seed, until: Date.now() + minutes * 60_000, neverClick: adapter.neverClick, afterStep: watcher.check });
+expect(watcher.problems).toEqual([]); // in the spec: the kit never calls expect
+```
+
+- **What it never does:** press a control whose name matches the adapter's `neverClick` (a string anywhere in the name, case-insensitive, or a pattern), follow a link to another origin, or open a new window or a download. Everything else on the page is fair game, so a walk runs only against a throwaway backend.
+- **What the watcher reports**, each with the step it came after: an uncaught page error, a console error not on `consoleAllow`, a response of 500 or more, and a `forbidden` locator that became visible (content the walking user's role must not see).
+- **The step log** is JSON lines, one step each: `{ n, action, role, name, nth, value, url }`, with `missed: true` where the control had gone by then (not a finding). Keep it with the result: `replay(page, readLog(text), { afterStep })` does the same steps again. The log, not the seed, is what replays: on a slower or faster server the same seed can branch differently, the log can't.
+- **The same seed on the same pages gives the same walk** (`seededRandom`, mulberry32), so a seed alone is enough to try a walk again on the same build.
 
 ## Result kinds
 

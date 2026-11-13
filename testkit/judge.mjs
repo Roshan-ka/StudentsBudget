@@ -235,3 +235,17 @@ export function summarize(rows) {
   };
   return { ...totals, ok: rows.length > 0 && totals.notProven + totals.stale + totals.inconclusive === 0 };
 }
+
+/** `--shard i/n` read as `{ index, total }`, or null when it isn't one (1 <= i <= n). */
+export function parseShard(text) {
+  const match = /^(\d+)\/(\d+)$/.exec(String(text ?? ''));
+  if (!match) return null;
+  const index = Number(match[1]);
+  const total = Number(match[2]);
+  return index >= 1 && total >= 1 && index <= total ? { index, total } : null;
+}
+
+/** Every `total`-th item, starting at the `index`-th: n shards together take each item exactly once. */
+export function inShard(list, { index, total }) {
+  return list.filter((_, k) => k % total === index - 1);
+}
