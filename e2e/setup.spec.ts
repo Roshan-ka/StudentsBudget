@@ -468,11 +468,13 @@ test('saves and lands on home', async ({ page }) => {
   await expect(page.getByText('1 € = 95 INR')).toBeVisible();
 });
 
-test('home sends a first-time visitor to the start page, and Continue as guest goes on to setup', async ({ page }) => {
+test('home sends a first-time visitor to the start page, and Continue without an account goes on to setup', async ({
+  page,
+}) => {
   await page.goto('/');
   await expect(page).toHaveURL('/start');
   await expect(page.getByRole('heading', { level: 2, name: 'Welcome', exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Continue as guest', exact: true }).click();
+  await page.getByRole('link', { name: 'Continue without an account', exact: true }).click();
   await expect(page).toHaveURL('/setup');
   await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
 });

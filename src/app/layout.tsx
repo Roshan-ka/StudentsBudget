@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google';
 import { AppInit } from '@/components/app-init';
 import { BottomNav } from '@/components/bottom-nav';
+import { StartLanguageMenu } from '@/components/language-menu';
 import { LanguageAttributes } from '@/components/language-attributes';
 import { RouteFocus } from '@/components/route-focus';
 import { ThemeAttributes } from '@/components/theme-attributes';
@@ -76,8 +77,10 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         {/* The wordmark on the page itself, no coloured bar. The dot is decoration: the heading's name stays
             "StudentsBudget", which smoke.spec.ts and offline.spec.ts look for. With text at 200 % the name is wider
             than the phone, so it may break before "Budget" (<wbr> adds no text to the name). */}
-        <header className="pt-[env(safe-area-inset-top)]">
-          <h1 className="flex min-h-14 items-center gap-2 px-4 text-lg font-extrabold">
+        {/* On the start pages the language's globe sits at the end of the row (StartLanguageMenu); elsewhere it is in
+            Settings. */}
+        <header className="flex items-center justify-between gap-2 pe-4 pt-[env(safe-area-inset-top)]">
+          <h1 className="flex min-h-14 min-w-0 items-center gap-2 ps-4 text-lg font-extrabold">
             <span
               aria-hidden="true"
               className="flex size-8 shrink-0 items-center justify-center rounded-full border-[1.5px] border-outline bg-highlight"
@@ -90,6 +93,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
               Budget
             </span>
           </h1>
+          <StartLanguageMenu />
         </header>
         {/* The bottom padding clears the nav (at least 4 rem and its outline) with room to spare. A word longer than its
             line (a title's "Rundfunkbeitrag" at 200 % text) breaks instead of widening the page. */}
