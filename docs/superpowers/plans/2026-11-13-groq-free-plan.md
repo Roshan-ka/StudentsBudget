@@ -235,5 +235,5 @@ Both most likely aim at consumers and at dodging limits with extra accounts, not
 
     Ask's prompt still holds the whole city pack until chunks 3 and 4 shrink it, so the function isn't deployed before then.
   - **Tests:** the builders' calls, the handle test (a 429 → `busy`, a refused request → `failed` with status and code, the log's fields), `model.test.ts` without fallbacks, `groq.test.ts`'s sample call.
-  - **Left for a follow-up:** `@anthropic-ai/sdk` stays in `package.json` and the lockfile, unused. Removing it is an npm install (heavy lane, Roshan's approval today), and npm 12 may refuse the lockfile change (EALLOWREMOTE).
+  - **Left for a follow-up:** `@anthropic-ai/sdk` stays in `package.json` and the lockfile, unused. Removing it is an npm install (heavy lane, Roshan's approval today), and npm 12 may refuse the lockfile change (EALLOWREMOTE). Done on 13-11-2026 (`npm uninstall @anthropic-ai/sdk --package-lock-only` through the heavy lane; npm 12 took it without `--allow-remote`): the package and its own dependencies leave `package.json` and the lockfile.
   - **Left for chunk 6:** the texts that name Anthropic (the notice, the `ai` note, the switch, their e2e specs). AI stays off in Production meanwhile.

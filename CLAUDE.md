@@ -37,7 +37,6 @@ All versions are pinned exactly (`.npmrc` has `save-exact=true`). Node 24, npm.
 | @types/react-dom | 19.3.0 |
 | supabase (the CLI, a dev dependency) | 2.122.0 |
 | @modelcontextprotocol/sdk (the MCP server in `mcp/`, a dev dependency) | 1.32.2 |
-| @anthropic-ai/sdk (unused since the Groq switch, chunk 2: the `ai` function calls Groq with plain `fetch`; it leaves `package.json` and the lockfile in a follow-up through the heavy lane) | 1.3.0 |
 
 ## Commands
 
