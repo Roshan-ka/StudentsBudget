@@ -18,6 +18,17 @@ export function aiInBuild(): boolean {
   return isSupabaseConfigured() && process.env.NEXT_PUBLIC_AI === '1';
 }
 
+/**
+ * Whether this build offers the setup chat: the AI features and `NEXT_PUBLIC_AI_SETUP_CHAT=1` (the Groq switch, chunk 5,
+ * docs/superpowers/plans/2026-11-13-groq-free-plan.md). Unset in Production while the AI runs on Groq's free plan
+ * (Roshan, 13-11-2026), whose tokens a setup chat doesn't fit; the function refuses it there too (its daily allowance
+ * is 0). Without it a new setup is the four steps, with no offer and no hint. Safe during render.
+ */
+export function aiSetupChatInBuild(): boolean {
+  // Written out in full, so Next puts the value in the build.
+  return aiInBuild() && process.env.NEXT_PUBLIC_AI_SETUP_CHAT === '1';
+}
+
 /** Whether this phone's switch is on. Only in effects and event handlers: the page is prerendered with it on. */
 export function aiOnHere(): boolean {
   return readPref(AI_PREF) !== 'off';
