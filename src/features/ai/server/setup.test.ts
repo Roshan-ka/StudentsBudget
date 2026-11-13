@@ -33,13 +33,11 @@ const REQUEST: SetupRequest = {
 const NONE: SetupPatch = { rent: null, incomes: [], fixed: [], envelopes: [], spendingBudget: null, accounts: null };
 
 describe('the call', () => {
-  it('asks Claude Haiku 5.5 at medium effort, thinking, without fallbacks (it has none), for the setup answer', () => {
+  it('asks gpt-oss-120b at medium effort for the setup answer (a paid plan only; off on the free one)', () => {
     expect(setupBuilder.call(REQUEST)).toMatchObject({
-      model: 'claude-haiku-5-5',
+      model: 'openai/gpt-oss-120b',
       maxTokens: 8000,
       effort: 'medium',
-      thinking: true,
-      fallbacks: false,
       system: setupSystem(),
       answer: setupAnswer,
       timeoutMs: 55_000,
@@ -137,9 +135,9 @@ describe('the setup chat through the function', () => {
     };
     const calls: ModelCall[] = [];
     const message: ModelMessage = {
-      model: 'claude-haiku-5-5',
+      model: 'openai/gpt-oss-120b',
       stop_reason: 'end_turn',
-      content: [{ type: 'thinking' }, { type: 'text', text: JSON.stringify(answer) }],
+      content: [{ type: 'text', text: JSON.stringify(answer) }],
       usage: { input_tokens: 4000, output_tokens: 500 },
     };
     const response = await handleAi(
@@ -168,6 +166,6 @@ describe('the setup chat through the function', () => {
       answer: { ...answer, patch: { ...answer.patch, incomes: [{ categoryId: 'income-job', amount: 520 }] } },
       left: 14,
     });
-    expect(calls[0]).toMatchObject({ model: 'claude-haiku-5-5', fallbacks: false });
+    expect(calls[0]).toMatchObject({ model: 'openai/gpt-oss-120b', effort: 'medium' });
   });
 });

@@ -37,19 +37,17 @@ const ANSWER: QuickAddAnswer = {
 };
 
 describe('the call', () => {
-  it('asks Claude Haiku 5.5 at low effort, without thinking or fallbacks, for the quick-add answer', () => {
+  it('asks gpt-oss-20b at low effort for the quick-add answer, within an output limit that counts its reasoning', () => {
     const call = quickAddBuilder.call(REQUEST);
-    expect(call).toMatchObject({
-      model: 'claude-haiku-5-5',
-      maxTokens: 400,
+    expect(call).toEqual({
+      model: 'openai/gpt-oss-20b',
+      maxTokens: 600,
       effort: 'low',
-      thinking: false,
-      fallbacks: false,
       system: QUICK_ADD_RULES,
       answer: quickAddAnswer,
       timeoutMs: 8000,
+      messages: [{ role: 'user', content: quickAddMessage(REQUEST) }],
     });
-    expect(call.messages).toEqual([{ role: 'user', content: quickAddMessage(REQUEST) }]);
   });
 
   it('keeps the rules the same for everyone: no date, no id, no name from a request', () => {
@@ -147,7 +145,7 @@ describe('quick add through the function', () => {
   }
 
   const message = (answer: unknown, stop: string): ModelMessage => ({
-    model: 'claude-haiku-5-5',
+    model: 'openai/gpt-oss-20b',
     stop_reason: stop,
     content: [{ type: 'text', text: JSON.stringify(answer) }],
     usage: { input_tokens: 500, output_tokens: 40 },

@@ -3,7 +3,14 @@ import { MAX_BODY_BYTES, quickAddAnswer, type QuickAddAnswer, type QuickAddReque
 import type { Allowance } from '../../../../supabase/functions/_shared/ai/allowance';
 import { allowedOrigins } from '../../../../supabase/functions/_shared/ai/cors';
 import { handleAi, type AiDeps, type AiLog, type FeatureBuilder } from '../../../../supabase/functions/_shared/ai/handle';
-import { ModelUnavailable, type ModelCall, type ModelClient, type ModelMessage } from '../../../../supabase/functions/_shared/ai/model';
+import {
+  ModelApiError,
+  ModelBusy,
+  ModelUnavailable,
+  type ModelCall,
+  type ModelClient,
+  type ModelMessage,
+} from '../../../../supabase/functions/_shared/ai/model';
 
 // What the `ai` function does with one request (the AI phase, chunk 3), with the allowance, the model and the log
 // played here.
@@ -24,21 +31,19 @@ const ANSWER: QuickAddAnswer = { amount: 12, otherAmount: null, note: 'pizza wit
 
 function message(answer: unknown = ANSWER, stop = 'end_turn'): ModelMessage {
   return {
-    model: 'claude-haiku-5-5',
+    model: 'openai/gpt-oss-20b',
     stop_reason: stop,
     content: [{ type: 'text', text: JSON.stringify(answer) }],
-    usage: { input_tokens: 420, output_tokens: 38, cache_read_input_tokens: 300, cache_creation_input_tokens: 0 },
+    usage: { input_tokens: 420, output_tokens: 38, cache_read_input_tokens: 300, reasoning_tokens: 20 },
   };
 }
 
 /** Quick add as chunk 4 will write it, in short: the line goes to the model, and an unknown category is no answer. */
 const quickAdd: FeatureBuilder<QuickAddRequest> = {
   call: (request): ModelCall => ({
-    model: 'claude-haiku-5-5',
-    maxTokens: 400,
+    model: 'openai/gpt-oss-20b',
+    maxTokens: 600,
     effort: 'low',
-    thinking: false,
-    fallbacks: false,
     system: 'Read the line.',
     messages: [{ role: 'user', content: request.line }],
     answer: quickAddAnswer,
@@ -174,15 +179,14 @@ describe('handleAi: the model', () => {
     expect(logs).toEqual([
       {
         feature: 'quick-add',
-        model: 'claude-haiku-5-5',
+        model: 'openai/gpt-oss-20b',
         ms: 250,
         problem: null,
         stop: 'end_turn',
-        fallback: false,
         inputTokens: 420,
         outputTokens: 38,
         cacheReadTokens: 300,
-        cacheWriteTokens: 0,
+        reasoningTokens: 20,
       },
     ]);
   });
@@ -200,7 +204,10 @@ describe('handleAi: the model', () => {
       [async () => message(ANSWER, 'max_tokens'), 502, 'failed'],
       [async () => message({ ...ANSWER, categoryId: 'casino' }), 502, 'failed'],
       [async () => Promise.reject(new ModelUnavailable('overloaded')), 503, 'unavailable'],
-      [async () => Promise.reject(new Error('400 bad schema')), 502, 'failed'],
+      // The provider's rate limit: busy, as when everyone's allowance is taken (the Groq switch, chunk 2).
+      [async () => Promise.reject(new ModelBusy('rate limited', 7000)), 503, 'busy'],
+      [async () => Promise.reject(new ModelApiError(400, 'json_validate_failed')), 502, 'failed'],
+      [async () => Promise.reject(new Error('a reply that is not one')), 502, 'failed'],
     ];
     for (const [reply, status, problem] of cases) {
       const { deps, taken, logs } = play({ reply });
@@ -210,12 +217,18 @@ describe('handleAi: the model', () => {
     }
   });
 
-  it('logs the status of an error the API answered with, never its message', async () => {
-    const refused = Object.assign(new Error('fallbacks: the beta is not enabled for this account'), { status: 400 });
+  it('logs the status and code of a request the API refused, never its message', async () => {
+    const refused = new ModelApiError(400, 'json_validate_failed');
     const { deps, logs } = play({ reply: async () => Promise.reject(refused) });
     expect((await handleAi(post(REQUEST), deps)).status).toBe(502);
-    expect(logs[0]).toMatchObject({ problem: 'failed', errorStatus: 400 });
-    expect(JSON.stringify(logs)).not.toContain('beta');
+    expect(logs[0]).toMatchObject({ problem: 'failed', errorStatus: 400, errorCode: 'json_validate_failed' });
+    expect(JSON.stringify(logs)).not.toContain('answered');
+
+    // A code that isn't a plain token was never kept (groq.ts), so only the status is logged.
+    const { deps: bare, logs: bareLogs } = play({ reply: async () => Promise.reject(new ModelApiError(401, null)) });
+    await handleAi(post(REQUEST), bare);
+    expect(bareLogs[0]).toMatchObject({ problem: 'failed', errorStatus: 401 });
+    expect(bareLogs[0]).not.toHaveProperty('errorCode');
   });
 
   it('gives up on a model that takes too long', async () => {

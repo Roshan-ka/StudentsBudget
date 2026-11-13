@@ -18,7 +18,8 @@ export type AiFeature = (typeof AI_FEATURES)[number];
  * - `bad-request`: not a POST, not JSON, or not what the contract allows;
  * - `too-large`: a body over MAX_BODY_BYTES;
  * - `signed-out`, `second-step`: no user, or an account with two-step sign-in before its code;
- * - `daily-limit`, `busy`: the account's own allowance, or everyone's, is used up for today;
+ * - `daily-limit`: the account's own allowance is used up for today;
+ * - `busy`: everyone's is, or the model provider's rate limit holds the request back for a moment;
  * - `refused`: the model declined to answer;
  * - `failed`: the model answered with something the contract doesn't allow, or cut off;
  * - `unavailable`: the model or the function's settings can't be reached right now.
