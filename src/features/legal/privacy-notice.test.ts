@@ -42,11 +42,16 @@ describe('the privacy notice (legal pages, chunks 2 and 3)', () => {
       ['shared', 'supabase'],
       ['reminder', 'reminder'],
       ['ai', 'ai'],
+      ['ai-setup', 'aiSetup'],
       ['transfers', 'always'],
       ['rights', 'always'],
     ]);
-    const bare = sectionsFor(sections, { supabase: false, ai: false, reminder: false, map: false }).map((at) => at.id);
-    for (const id of ['map', 'translate', 'account', 'sign-in', 'shared', 'reminder', 'ai']) expect(bare).not.toContain(id);
+    const bare = sectionsFor(sections, { supabase: false, ai: false, aiSetup: false, reminder: false, map: false }).map((at) => at.id);
+    for (const id of ['map', 'translate', 'account', 'sign-in', 'shared', 'reminder', 'ai', 'ai-setup']) expect(bare).not.toContain(id);
+    // The free plan's build: the AI without the setup chat.
+    const free = sectionsFor(sections, { supabase: true, ai: true, aiSetup: false, reminder: false, map: false }).map((at) => at.id);
+    expect(free).toContain('ai');
+    expect(free).not.toContain('ai-setup');
   });
 
   it('has a section for every in-app note to link to, shown in every build where the note can show', () => {
@@ -80,9 +85,9 @@ describe('the privacy notice (legal pages, chunks 2 and 3)', () => {
       expect(words('translate', lang)).toContain(t.tips.hacks.translate);
       expect(words('account', lang)).toContain(`${settings} → ${t.shell.headings.account} → ${t.auth.deleteAccount.heading}`);
       expect(words('sign-in', lang)).toContain(`${settings} → ${t.shell.headings.account}`);
-      for (const feature of [t.entries.quickAdd.label, t.shell.headings.ask, t.setup.chat.open]) {
-        expect(words('ai', lang)).toContain(feature);
-      }
+      for (const feature of [t.entries.quickAdd.label, t.shell.headings.ask]) expect(words('ai', lang)).toContain(feature);
+      expect(words('ai-setup', lang)).toContain(t.setup.chat.open);
+      expect(words('ai', lang)).not.toContain(t.setup.chat.open);
       expect(words('rights', lang)).toContain(`${settings} → ${t.shell.headings.backup}`);
       expect(words('rights', lang)).toContain(t.backup.export.button);
       expect(words('rights', lang)).toContain(t.backup.delete.button);
@@ -98,7 +103,7 @@ describe('the privacy notice (legal pages, chunks 2 and 3)', () => {
       expect(words(id, 'de'), id).toContain('Art. 6 Abs. 1 lit. f DSGVO');
       expect(words(id, 'en'), id).toContain('Art. 6 (1) (f) GDPR');
     }
-    for (const id of ['account', 'sign-in', 'shared', 'reminder', 'ai']) {
+    for (const id of ['account', 'sign-in', 'shared', 'reminder', 'ai', 'ai-setup']) {
       expect(words(id, 'de'), id).toContain('Art. 6 Abs. 1 lit. b DSGVO');
       expect(words(id, 'en'), id).toContain('Art. 6 (1) (b) GDPR');
     }

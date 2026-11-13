@@ -202,8 +202,8 @@ export const auth: Messages['auth'] = {
     heading: 'KI-Funktionen',
     use: 'KI-Funktionen auf diesem Handy nutzen',
     hint:
-      'Sie schicken, was du schreibst, an Anthropic (Claude) in den USA, mit einem Tageskontingent für dein Konto. ' +
-      'Ausgeschaltet geht nichts an Anthropic, und Schnell erfassen liest deine Zeilen auf diesem Handy.',
+      'Sie schicken, was du schreibst, an Groq, einen KI-Dienst in den USA, mit einem Tageskontingent für dein Konto. ' +
+      'Ausgeschaltet geht nichts an Groq, und Schnell erfassen liest deine Zeilen auf diesem Handy.',
   },
   /** Der Name, unter dem jemand im Tipp-Feed postet: beim Erstellen des Kontos gefragt, unter „Dein Konto“ änderbar. */
   postingName: {

@@ -129,12 +129,12 @@ Until go-live, nothing reaches students: `NEXT_PUBLIC_AI` is unset in Production
 1. **Groq console:**
    - an organisation only for this app (limits are per organisation, and Playground use spends them);
    - a project and an API key;
-   - Data Controls: zero data retention on if offered (tell Claude: the notice text changes);
-   - confirm the DPA covers the free plan.
-2. **Function secret:** `npx supabase secrets set GROQ_API_KEY=… AI_ALLOWED_ORIGINS=https://students-budget.vercel.app`.
-3. **Migrations:** `npx supabase migration list --linked`, then `db push`.
+   - Data Controls: turn on Zero Data Retention ("All customers may enable" it, per the docs' "Your data" page, read 13-11-2026). The notice's "up to 30 days" stays true as the most Groq keeps, so its text needn't change;
+   - confirm the DPA covers the free plan: as written it covers all of Groq's processing on your behalf and excludes only Beta Services (Services Agreement § 3.6), and gpt-oss is a production model, but ask Groq if in doubt.
+2. **Function secret:** `npx supabase secrets set GROQ_API_KEY=… AI_ALLOWED_ORIGINS=https://students-budget.vercel.app`. If an `ANTHROPIC_API_KEY` secret was ever set, `npx supabase secrets unset ANTHROPIC_API_KEY`.
+3. **Migrations:** `npx supabase migration list --linked` (expect `20261109125656_ai_allowance` and `20261113113428_ai_limits_groq_free` pending if the AI never went live), then `db push`.
 4. **Deploy:** `npx supabase functions deploy ai --no-verify-jwt`. Then the curl checks: OPTIONS 204, another origin 403, no token 401.
-5. **Turn the app on:** `NEXT_PUBLIC_AI=1` for Production on Vercel, built from a fresh commit.
+5. **Turn the app on:** `NEXT_PUBLIC_AI=1` for Production on Vercel, built from a fresh commit. Leave `NEXT_PUBLIC_AI_SETUP_CHAT` unset (set it on Previews only, to try the chat as a moderator).
 6. **Real try**, watching the function's logs and Groq's usage page:
    - quick add (typed, dictated);
    - Ask in English and German, with sources that fit;
@@ -289,6 +289,32 @@ Both most likely aim at consumers and at dodging limits with extra accounts, not
     - `E2E_SUPABASE_ENV` sets it, so `setup-chat.spec.ts` still runs.
     - `switch.test.ts` covers on, off without the flag (the free plan's build) and off without the AI. A second e2e build without the flag would cost a full build per run, so the unit test stands in.
   - **After merging:** `db push` for the migration (Roshan), before the function goes live.
+- **Chunk 6** (13-11-2026), texts and docs (on top of chunk 5's branch). Built before Roshan's two confirmations, since Groq's own pages answer them as far as documents can (read 13-11-2026); the go-live keeps both checks.
+  - **Groq's terms, as read:**
+    - **Contract:** Groq UK Limited (London) for customers in the EEA (Services Agreement, last modified 22-06-2026).
+    - **Training:** "Groq is not permitted to use Inputs or Outputs for training" (§ 4.2).
+    - **DPA (15-10-2025):** Groq is the processor; EU SCCs modules 2 and 3; processing "in the United States and other countries" of Groq and its subprocessors. It excludes no free use; Beta Services sit outside it (§ 3.6).
+    - **"Your data" page:**
+      - no inference data retained by default;
+      - inputs and outputs may be logged for troubleshooting or abuse investigations, up to 30 days unless the law requires longer;
+      - stored in GCP buckets in the USA;
+      - Zero Data Retention open to all customers.
+    - **Privacy policy (12-11-2025):** Groq LLC as controller covers only its own services, not API customer data.
+  - **The privacy notice:**
+    - **"AI features (Groq)":**
+      - what quick add and Ask send;
+      - that Ask's conversation reaches Groq only as its last exchange;
+      - Groq UK Limited as processor, with processing in the USA and its subprocessors' countries;
+      - no training, and logs only for troubleshooting or abuse, up to 30 days.
+    - **The setup chat** moves into its own section, "Set up by chatting (Groq)" (`ai-setup`, `when: 'aiSetup'`). `LegalWhen` and `LegalPage` gain `aiSetup` from `aiSetupChatInBuild()`, so the free plan's build doesn't describe a chat it doesn't offer.
+    - **Transfers:** names Groq (United Kingdom, with processing in the USA) under the SCCs beside Supabase.
+    - **The top comment** names Groq's documents and their dates.
+  - **The `ai` note and the switch's hint** in English, German, French and Spanish: "to Groq, an AI service, in the USA" (the switch: "to Groq, an AI service in the USA … nothing goes to Groq").
+  - **Tests:**
+    - `privacy-notice.test.ts`: the new section's place, the free plan's build without it, Set up by chatting named there and not in `ai`, its legal basis;
+    - `content.test.ts`: the build record with `aiSetup`;
+    - e2e: `ai-quick-add`, `setup-chat`, `account` and `legal` pin the new texts and headings (the e2e build has the setup chat's flag).
+  - **The AI plan's go-live** now points here; this plan's go-live names Zero Data Retention, the DPA reading, the two pending migrations, the old secret to unset and the setup chat's flag.
   - **Tests:**
     - `budget.test.ts`: both largest calls, the margin, what `callTokens` counts;
     - `ask.test.ts`: the picks in the system prompt and not the rest, no sources, the same picks for the same question, ties by the snapshot's spending, the last exchange only, `cutAnswer`, ids and amounts held to what was sent;

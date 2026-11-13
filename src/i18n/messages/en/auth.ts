@@ -195,8 +195,8 @@ export const auth = {
     heading: 'AI features',
     use: 'Use AI features on this phone',
     hint:
-      'They send what you write to Anthropic (Claude), in the USA, within a daily allowance for your account. ' +
-      'Off, nothing goes to Anthropic, and quick add reads your lines on this phone.',
+      'They send what you write to Groq, an AI service in the USA, within a daily allowance for your account. ' +
+      'Off, nothing goes to Groq, and quick add reads your lines on this phone.',
   },
   /** The name a student posts under in the hacks feed: asked at sign-up, changed on Your account. */
   postingName: {
