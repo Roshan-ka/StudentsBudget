@@ -314,7 +314,29 @@ describe('the real-server journeys and the testkit', () => {
   it('leaves the journeys out of a quick run, and keeps the db checks and the role tests', () => {
     const quick = forScope(select(['supabase/migrations/1_init.sql']), runOptions({ scope: 'quick' }));
     expect(quick).toMatchObject({ db: true, real: false, roles: true });
-    expect(githubOutput(quick, runOptions({ scope: 'quick' }))).toContain('db=true\nreal=false\nroles=true\nstack=true\n');
+    expect(githubOutput(quick, runOptions({ scope: 'quick' }))).toContain('db=true\nreal=false\nroles=true\nlive=false\nstack=true\n');
+  });
+});
+
+// The live smoke's leak check (e2e-live/leak-check.mjs) runs in the stack job when the live smoke or the kit's leak
+// finder changes, and in a full run; never in a quick run, and it needs no e2e spec.
+describe('the live smoke’s leak check', () => {
+  it('runs for the live smoke’s folder and the leak finder, in the stack job, with no e2e spec', () => {
+    for (const file of ['e2e-live/smoke.spec.ts', 'e2e-live/playwright.config.ts', 'testkit/leak-check.mjs']) {
+      const picked = select([file]);
+      expect(picked, file).toMatchObject({ live: true, e2e: 'none', db: false, real: false });
+      expect(requiredJobs(picked), file).toEqual(['checks', 'stack']);
+      expect(summary(picked), file).toContain('| the live smoke’s leak check (stack job) |');
+    }
+    expect(select(['testkit/judge.mjs']).live).toBe(false);
+    expect(select(['README.md'], { full: true }).live).toBe(true);
+  });
+
+  it('stays out of a quick run', () => {
+    const quick = forScope(select(['e2e-live/smoke.spec.ts']), runOptions({ scope: 'quick' }));
+    expect(quick.live).toBe(false);
+    expect(requiredJobs(quick)).toEqual(['checks']);
+    expect(githubOutput(quick, runOptions({ scope: 'quick' }))).toContain('live=false\nstack=false\n');
   });
 });
 
@@ -506,12 +528,12 @@ describe('requiredJobs', () => {
 describe('githubOutput', () => {
   it('writes the selection, the list as Playwright arguments, the browsers and languages, and the jobs the gate needs', () => {
     expect(githubOutput(select(['src/features/check-in/week-rows.ts']), runOptions({}))).toBe(
-      'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\nreal=false\nroles=false\nstack=false\n' +
+      'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\nreal=false\nroles=false\nlive=false\nstack=false\n' +
         'projects=--project=desktop-chrome\nlanguages=default\nrepeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\nprove_shards=[]\n' +
         'monkey=false\njobs=["checks","e2e","e2e-report"]\n',
     );
     expect(githubOutput(select(['README.md'], { full: true }), runOptions({ scope: 'full' }))).toBe(
-      'run=true\ne2e=all\noffline=true\ndb=true\nreal=true\nroles=true\nstack=true\nprojects=\nlanguages=all\n' +
+      'run=true\ne2e=all\noffline=true\ndb=true\nreal=true\nroles=true\nlive=true\nstack=true\nprojects=\nlanguages=all\n' +
         'repeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\nprove_shards=[]\nmonkey=false\n' +
         'jobs=["checks","e2e","e2e-report","offline","stack"]\n',
     );

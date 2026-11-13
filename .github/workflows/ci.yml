@@ -85,6 +85,7 @@ jobs:
       db: ${{ steps.affected.outputs.db }}
       real: ${{ steps.affected.outputs.real }}
       roles: ${{ steps.affected.outputs.roles }}
+      live: ${{ steps.affected.outputs.live }}
       stack: ${{ steps.affected.outputs.stack }}
       projects: ${{ steps.affected.outputs.projects }}
       languages: ${{ steps.affected.outputs.languages }}
@@ -322,6 +323,17 @@ jobs:
             playwright-report-real/
             test-results/
           retention-days: 14
+      # The live smoke's leak check (e2e-live/leak-check.mjs), before its config ever meets the live site: that config
+      # on this stack with a throwaway account, failing on purpose; any secret in what it printed or kept fails the job.
+      # Nothing of it is uploaded.
+      - if: needs.changes.outputs.live == 'true'
+        env:
+          PLAYWRIGHT: ${{ needs.changes.outputs.playwright }}
+        run: |
+          docker run --rm --network host --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL \
+            "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
+            node e2e-live/leak-check.mjs
 
   # The quarantined tests (`@quarantine`, each with its owner and fix-by date, which `npm test` holds), apart and never
   # blocking: the gate doesn't wait for this job, and a failure here is a note in the summary, not a red run.

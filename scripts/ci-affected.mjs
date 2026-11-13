@@ -69,6 +69,11 @@ const ROLES = [
 ];
 const ROLES_ROUTES = ['/settings/moderation'];
 /**
+ * What the live smoke's leak check (e2e-live/leak-check.mjs, in the stack job) depends on: the live smoke's folder and
+ * the kit's leak finder. It runs in runs started by hand, as the journeys do, and before every live smoke.
+ */
+const LIVE = [/^e2e-live\//, /^testkit\/leak-check\./];
+/**
  * Paths with no e2e spec of their own: the database (e2e answers Supabase's calls itself), the service worker (only a
  * production build registers it), the MCP server (nothing in src/ imports it; its tests are unit tests), unit tests
  * (the checks job runs them all), the offline spec (its own job), the script that writes the AI's city pack into
@@ -84,6 +89,7 @@ const NO_E2E = [
   /^src\/.*\.test\.ts$/,
   /^e2e\/offline\.spec\.ts$/,
   /^e2e-real\//,
+  /^e2e-live\//,
   /^testkit\//,
   /^e2e\/mutations\//,
   /^e2e\/skip-allow-list\.json$/,
@@ -194,6 +200,7 @@ export function selectAffected({ changed, repo, map, full = false }) {
     pick('db', reason);
     pick('real', reason);
     pick('roles', reason);
+    pick('live', reason);
   };
 
   if (full) everything('a full run was asked for');
@@ -219,6 +226,7 @@ export function selectAffected({ changed, repo, map, full = false }) {
     if (DB.some((rule) => rule.test(file))) pick('db', name);
     if (REAL.some((rule) => rule.test(file))) pick('real', name);
     if (ROLES.some((rule) => rule.test(file))) pick('roles', name);
+    if (LIVE.some((rule) => rule.test(file))) pick('live', name);
     if (NO_E2E.some((rule) => rule.test(file))) continue;
     const spec = SPEC.exec(file);
     if (!file.startsWith('src/') && !spec) {
@@ -270,7 +278,16 @@ export function selectAffected({ changed, repo, map, full = false }) {
       .sort();
   }
   if (!run) pick('skip', changed.length === 0 ? 'nothing changed against main' : 'notes only');
-  return { run, e2e, offline: Boolean(why.offline), db: Boolean(why.db), real: Boolean(why.real), roles: Boolean(why.roles), why };
+  return {
+    run,
+    e2e,
+    offline: Boolean(why.offline),
+    db: Boolean(why.db),
+    real: Boolean(why.real),
+    roles: Boolean(why.roles),
+    live: Boolean(why.live),
+    why,
+  };
 }
 
 /**
@@ -382,15 +399,15 @@ const any = (specs = NO_SPECS) => specs.mocked.length + specs.real.length > 0;
 
 /**
  * The jobs a selection needs, which `changes` hands the gate (`jobs`): checks for anything but notes, e2e and its report
- * merge for any spec, the offline check, the stack job for the db checks, the role tests or the journeys, and the
- * repeat and red-green jobs when there are tests for them.
+ * merge for any spec, the offline check, the stack job for the db checks, the role tests, the journeys or the live
+ * smoke's leak check, and the repeat and red-green jobs when there are tests for them.
  */
-export function requiredJobs({ run, e2e, offline, db, real, roles, repeat, prove, monkey }) {
+export function requiredJobs({ run, e2e, offline, db, real, roles, live = false, repeat, prove, monkey }) {
   return [
     ...(run ? ['checks'] : []),
     ...(e2e !== 'none' ? ['e2e', 'e2e-report'] : []),
     ...(offline ? ['offline'] : []),
-    ...(db || real || roles ? ['stack'] : []),
+    ...(db || real || roles || live ? ['stack'] : []),
     ...(any(repeat) ? ['repeat'] : []),
     ...(any(prove) ? ['red-green'] : []),
     ...(monkey ? ['monkey'] : []),
@@ -429,8 +446,8 @@ const QUICK_REASON = 'a pull request’s automatic run has no e2e: start a chang
 
 /**
  * The selection a run's scope allows. A pull request's automatic run (`quick`, Roshan 2026-11-02) leaves out e2e, the
- * offline check and the real-server journeys, which only runs started by hand test; the checks and the db checks stay
- * as picked.
+ * offline check, the real-server journeys and the live smoke's leak check, which only runs started by hand test; the
+ * checks and the db checks stay as picked.
  */
 export function forScope(selection, options) {
   if (options.e2e) return selection;
@@ -439,6 +456,7 @@ export function forScope(selection, options) {
     e2e: 'none',
     offline: false,
     real: false,
+    live: false,
     repeat: NO_SPECS,
     prove: NO_SPECS,
     proveShards: [],
@@ -454,13 +472,14 @@ export function e2eArgs(specs) {
 
 /**
  * The lines for $GITHUB_OUTPUT. `projects` is Playwright's project argument, empty for every project; `stack` whether
- * the stack job runs (the db checks or the journeys); `jobs` the jobs the gate requires, as JSON.
+ * the stack job runs (the db checks, the role tests, the journeys or the leak check); `jobs` the jobs the gate requires,
+ * as JSON.
  */
 export function githubOutput(selection, options = runOptions({})) {
-  const { run, e2e, offline, db, real, roles, repeat = NO_SPECS, prove = NO_SPECS, proveShards: shards = [], monkey = false } = selection;
+  const { run, e2e, offline, db, real, roles, live = false, repeat = NO_SPECS, prove = NO_SPECS, proveShards: shards = [], monkey = false } = selection;
   const list = Array.isArray(e2e) ? e2eArgs(e2e) : e2e;
   return (
-    `run=${run}\ne2e=${list}\noffline=${offline}\ndb=${db}\nreal=${real}\nroles=${roles}\nstack=${db || real || roles}\n` +
+    `run=${run}\ne2e=${list}\noffline=${offline}\ndb=${db}\nreal=${real}\nroles=${roles}\nlive=${live}\nstack=${db || real || roles || live}\n` +
     `projects=${options.projectArgs}\nlanguages=${options.languages}\n` +
     `repeat_mocked=${repeat.mocked.join(' ')}\nrepeat_real=${repeat.real.join(' ')}\n` +
     `prove_mocked=${prove.mocked.join(' ')}\nprove_real=${prove.real.join(' ')}\nprove_shards=${JSON.stringify(shards)}\n` +
@@ -478,7 +497,7 @@ function reasonsText(reasons) {
  * The job summary: the options the run used, then a row for the e2e run (or each picked spec), the offline check and
  * the db job, with why.
  */
-export function summary({ run, e2e, offline, db, real, roles, repeat = NO_SPECS, prove = NO_SPECS, why }, options = runOptions({})) {
+export function summary({ run, e2e, offline, db, real, roles, live = false, repeat = NO_SPECS, prove = NO_SPECS, why }, options = runOptions({})) {
   const chosen = (name) => `${name} **${options[name]}**${options.auto.includes(name) ? ' (auto)' : ''}`;
   const head = `### Affected tests\n\nScope **${options.scope}** · ${chosen('browsers')} · ${chosen('languages')}\n\n`;
   if (!run) return `${head}No checks run: ${why.skip[0]}.\n`;
@@ -490,6 +509,7 @@ export function summary({ run, e2e, offline, db, real, roles, repeat = NO_SPECS,
   if (db) rows.push(['db checks (stack job)', why.db]);
   if (real) rows.push(['real-server journeys (stack job)', why.real]);
   if (roles) rows.push(['roles and security (stack job)', why.roles]);
+  if (live) rows.push(['the live smoke’s leak check (stack job)', why.live]);
   const specs = (list) => [...list.mocked, ...list.real].map((spec) => `\`${spec}\``);
   if (any(repeat)) rows.push(['repeat ×10 at 2 workers', specs(repeat)]);
   if (any(prove)) rows.push(['red before green', specs(prove)]);

@@ -112,22 +112,24 @@ export const freshTotp = (user: TestUser) => freshCode(user.secret as string, us
  * A confirmed account, signed up and confirmed through the API. With `secondFactor: 'totp'`, its authenticator is on
  * and verified, and its session is aal2. With `username`, sign-up gives it a name to post under (public_profiles).
  * Every user made here is a student; a moderator comes from the host side's seed (`moderatorFor`, e2e-real/db.mjs).
+ * `password` replaces the shared test password, for a run that must find its own password again (the live smoke's
+ * leak check, e2e-live/leak-check.mjs).
  */
 export async function createUser(
   request: APIRequestContext,
-  { secondFactor, username = false }: { secondFactor: SecondFactor; username?: boolean },
+  { secondFactor, username = false, password = TEST_PASSWORD }: { secondFactor: SecondFactor; username?: boolean; password?: string },
 ): Promise<TestUser> {
   const email = newEmail();
   // 3 to 20 of a-z, 0-9 and _ (public_profiles' rule), from the address's run, process and number.
   const name = `u${email.slice('test-'.length, email.indexOf('@')).replace(/-/g, '_')}`.slice(0, 20);
-  await auth(request, 'signup', { email, password: TEST_PASSWORD, ...(username ? { data: { username: name, label: 'student' } } : {}) });
+  await auth(request, 'signup', { email, password, ...(username ? { data: { username: name, label: 'student' } } : {}) });
   let session = await auth<Session>(request, 'verify', { type: 'email', email, token: await readEmailCode(request, email) });
-  if (secondFactor === 'none') return { email, password: TEST_PASSWORD, session };
+  if (secondFactor === 'none') return { email, password, session };
   const factor = await auth<{ id: string; totp: { secret: string } }>(request, 'factors', { factor_type: 'totp', friendly_name: 'Test phone' }, session.access_token);
   const challenge = await auth<{ id: string }>(request, `factors/${factor.id}/challenge`, {}, session.access_token);
   const usedCode = totp(factor.totp.secret);
   session = await auth<Session>(request, `factors/${factor.id}/verify`, { challenge_id: challenge.id, code: usedCode }, session.access_token);
-  return { email, password: TEST_PASSWORD, secret: factor.totp.secret, usedCode, session };
+  return { email, password, secret: factor.totp.secret, usedCode, session };
 }
 
 /** Deletes the account with its own session (`delete_my_account`, P2.5): aal2 for one with two-step sign-in. */

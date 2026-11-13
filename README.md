@@ -170,6 +170,13 @@ Without Supabase settings the app runs local-only and hides the account UI. To t
    - Someone who lost their authenticator app and its key: remove the factor in the SQL editor (`delete from auth.mfa_factors where user_id = '<their id>' and factor_type = 'totp';`), and they sign in with the password again.
    - Recovery codes are parked: Supabase's server keeps them off for now (see the [P2.3b plan](docs/superpowers/plans/2026-10-29-p2-3b-passkeys-and-recovery-codes.md)).
 
+### Live smoke (optional)
+Once a day at 05:11 UTC, GitHub signs in to the live site with an account of its own and the authenticator code, checks the account is signed in and synced, and signs out (`.github/workflows/live-smoke.yml`). It changes no data. To turn it on:
+
+1. On https://students-budget.vercel.app, make an account for it with an address that has `+smoke@` in it (for example `you+smoke@gmail.com`; it must receive the sign-up code). Turn on two-step sign-in with an authenticator app, and copy the key the page shows. Never set up a plan or add anything on it: the account stays empty.
+2. On GitHub: Settings → Environments → New environment `live-smoke`. Under Deployment branches, choose Selected branches and add `main`. Add three environment secrets: `E2E_LIVE_EMAIL`, `E2E_LIVE_PASSWORD` and `E2E_LIVE_TOTP_SECRET` (the key from step 1). Not as repository secrets.
+3. After it's merged: Actions → Live smoke → Run workflow once, and read its log. The leak check runs first and stops the run if anything would show a secret.
+
 With Docker running, `npm run supabase:start` starts a local Supabase stack with the migrations applied (Studio on http://127.0.0.1:54323), `npm run test:db` runs the database tests (pgTAP, in `supabase/tests`) against it, `npm run test:contract` checks the app's account store against it (after `node scripts/supabase-test-env.mjs` has printed the two settings it needs), and `npm run supabase:stop` stops it. A CI run (started by hand) runs them when the branch changes the database, the account store or what its tests import, or with scope **full**; a branch that changes only Markdown or `docs/` runs no checks.
 
 ### StudentsBudget in Claude (MCP server)

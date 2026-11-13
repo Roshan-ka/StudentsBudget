@@ -1,0 +1,70 @@
+name: Live smoke
+
+# Once a day, one read-only sign-in on the live site (e2e-live/smoke.spec.ts): the password, the authenticator code,
+# the account signed in and synced, sign out. Its account is the smoke's own, kept empty, with "+smoke@" in its address.
+# The leak check runs first, on a stack of its own with a throwaway account: when anything the live config prints or
+# keeps would hold a secret, the smoke doesn't run. At 05:11 UTC, off the hour. Also by hand: Actions → Live smoke →
+# Run workflow. Never from a pull request: the secrets live in the `live-smoke` environment, open to `main` only.
+on:
+  schedule:
+    - cron: '11 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One sign-in at a time on the shared account, across runs too; a second run waits, it never cancels the first.
+concurrency:
+  group: live-smoke
+  cancel-in-progress: false
+
+jobs:
+  leak-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      playwright: ${{ steps.playwright.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: playwright
+        run: |
+          version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - run: |
+          node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
+      # In Playwright's image, as the smoke runs, reaching the stack and serving the app on the runner's localhost.
+      - env:
+          PLAYWRIGHT: ${{ steps.playwright.outputs.version }}
+        run: |
+          docker run --rm --network host --ipc=host --user 1001 -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL \
+            "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
+            node e2e-live/leak-check.mjs
+
+  # Real credentials from here on: nothing recorded (the config), nothing uploaded (no artifact step, ever).
+  smoke:
+    needs: leak-check
+    runs-on: ubuntu-latest
+    environment: live-smoke
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.leak-check.outputs.playwright }}-resolute
+      options: --user 1001
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - env:
+          E2E_LIVE_EMAIL: ${{ secrets.E2E_LIVE_EMAIL }}
+          E2E_LIVE_PASSWORD: ${{ secrets.E2E_LIVE_PASSWORD }}
+          E2E_LIVE_TOTP_SECRET: ${{ secrets.E2E_LIVE_TOTP_SECRET }}
+        run: npx playwright test -c e2e-live/playwright.config.ts --grep @smoke

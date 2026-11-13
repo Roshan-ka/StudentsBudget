@@ -29,6 +29,8 @@
 /result-kinds-real.md
 # the random clicker's step logs (e2e-real/monkey.spec.ts), to replay a walk
 /.monkey/
+# the live smoke's leak check (e2e-live/leak-check.mjs): its throwaway account's email and key
+/.leak-check/
 /playwright/.cache/
 
 # next.js
