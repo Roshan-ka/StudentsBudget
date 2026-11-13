@@ -15,6 +15,8 @@ import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow } from './he
 // budget, answered by the `ai` function (mocked: `mockAiFunction`) from the plan, the recent entries and the city data.
 // A guest is told to sign in and sends nothing; the first question waits for the `ai` note; an answer shows with its
 // sources from the app's own data; a later question carries the answers before it; Start over ends the conversation.
+// Since 13-11-2026 Ask is a sheet that a chat bubble opens (`AskBubble`), on the navigation's pages and the check-in,
+// not a page of its own: it hands the focus back when it closes, keeps its conversation, and keeps off the map.
 
 test.use({ viewport: { width: 375, height: 812 } });
 
@@ -45,6 +47,16 @@ async function signIn(page: Page) {
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
 }
 
+const bubble = (page: Page) => page.getByRole('button', { name: TEXT.link, exact: true });
+const sheet = (page: Page) => page.getByRole('dialog', { name: EN.shell.headings.ask, exact: true });
+
+/** Home, then the bubble: Ask's one way in. */
+async function openAsk(page: Page) {
+  await openApp(page, '/');
+  await bubble(page).click();
+  await expect(sheet(page)).toBeVisible();
+}
+
 const questionField = (page: Page) => page.getByRole('textbox', { name: TEXT.question, exact: true });
 const askButton = (page: Page) => page.getByRole('button', { name: TEXT.submit, exact: true });
 
@@ -57,14 +69,14 @@ test('a guest is told to sign in, and nothing is sent', async ({ page }) => {
   await acceptPrivacyNotes(page);
   const calls = await mockAiFunction(page, { answers: { ask: FIRST } });
   await seedSetup(page);
-  await openApp(page, '/ask');
+  await openAsk(page);
   await expect(page.getByText(TEXT.signedOut, { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: TEXT.toAccount, exact: true })).toBeVisible();
   await expect(questionField(page)).toHaveCount(0);
   expect(calls).toEqual([]);
 });
 
-test('Home links to Ask; the first question waits for the note, then the answer shows with its sources', async ({ page }) => {
+test("Home's bubble opens Ask; the first question waits for the note, then the answer shows with its sources", async ({ page }) => {
   await skipUnlessAccountsShow(page);
   // Every note but Ask's own, which this test answers.
   await acceptPrivacyNotes(page, (Object.keys(PRIVACY_NOTES) as PrivacyNoteId[]).filter((id) => id !== 'ai'));
@@ -73,8 +85,7 @@ test('Home links to Ask; the first question waits for the note, then the answer 
   await seedSetup(page);
   await signIn(page);
 
-  await openApp(page, '/');
-  await page.getByRole('link', { name: TEXT.link, exact: true }).click();
+  await openAsk(page);
   await expect(page.getByRole('heading', { level: 2, name: EN.shell.headings.ask, exact: true })).toBeVisible();
 
   await ask(page, 'How much can I spend this week?');
@@ -115,7 +126,7 @@ test('a later question carries the answers before it; an amount nothing backs sa
   });
   await seedSetup(page);
   await signIn(page);
-  await openApp(page, '/ask');
+  await openAsk(page);
 
   await ask(page, 'How much can I spend this week?');
   await expect(page.getByText('You have €47.20 left this week.', { exact: true })).toBeVisible();
@@ -142,15 +153,71 @@ test('the daily limit says so; with the AI switched off on this phone nothing is
   const calls = await mockAiFunction(page, { dailyLimit: true });
   await seedSetup(page);
   await signIn(page);
-  await openApp(page, '/ask');
+  await openAsk(page);
 
   await ask(page, 'Where does my money go?');
   await expect(page.getByText(TEXT.problems.dailyLimit, { exact: true })).toBeVisible();
   expect(calls).toHaveLength(1);
 
   await page.evaluate((key) => localStorage.setItem(key, 'off'), AI_PREF);
-  await openApp(page, '/ask');
+  await openAsk(page);
   await expect(page.getByText(TEXT.switchedOff, { exact: true })).toBeVisible();
   await expect(questionField(page)).toHaveCount(0);
   expect(calls).toHaveLength(1);
+});
+
+test("the bubble shows on the navigation's pages and the check-in, never in setup", async ({ page }) => {
+  await acceptPrivacyNotes(page);
+  await seedSetup(page);
+  for (const path of ['/', '/entries', '/charts', '/tips', '/settings', '/settings/profile', '/check-in']) {
+    await openApp(page, path);
+    await expect(bubble(page), path).toBeVisible();
+  }
+  // Edit plan is setup's wizard: no chat over it.
+  await openApp(page, '/setup?edit=1');
+  await expect(page.getByRole('heading', { level: 2, name: EN.setup.headingEdit, exact: true })).toBeVisible();
+  await expect(bubble(page)).toHaveCount(0); // proof: no-bubble-in-setup
+});
+
+test('the bubble keeps off the discount map, and comes back with the list', async ({ page }) => {
+  await acceptPrivacyNotes(page);
+  await seedSetup(page);
+  await openApp(page, '/tips');
+  await page
+    .getByRole('tablist', { name: 'Tips, discounts, hacks or checklist', exact: true })
+    .getByRole('tab', { name: 'Discounts', exact: true })
+    .click();
+  await expect(bubble(page)).toBeVisible();
+  const view = page.getByRole('group', { name: 'Show discounts as', exact: true });
+  // The map view mounts its map with or without WebGL 2 (without it, it says so in its place).
+  await view.getByRole('button', { name: 'Map', exact: true }).click();
+  await expect(bubble(page)).toBeHidden(); // proof: bubble-off-map
+  await view.getByRole('button', { name: 'List', exact: true }).click();
+  await expect(bubble(page)).toBeVisible();
+});
+
+test('Escape closes the sheet and hands the focus back to the bubble', async ({ page }) => {
+  await acceptPrivacyNotes(page);
+  await seedSetup(page);
+  await openAsk(page);
+  await page.keyboard.press('Escape');
+  await expect(sheet(page)).toBeHidden();
+  await expect(bubble(page)).toBeFocused(); // proof: focus-back-on-bubble
+});
+
+test('closing the sheet keeps the conversation for the next time it opens', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await acceptPrivacyNotes(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await mockAiFunction(page, { answers: { ask: FIRST } });
+  await seedSetup(page);
+  await signIn(page);
+  await openAsk(page);
+
+  await ask(page, 'How much can I spend this week?');
+  await expect(page.getByText('You have €47.20 left this week.', { exact: true })).toBeVisible();
+  await sheet(page).getByRole('button', { name: TEXT.close, exact: true }).click();
+  await expect(sheet(page)).toBeHidden();
+  await bubble(page).click();
+  await expect(page.getByText('You have €47.20 left this week.', { exact: true })).toBeVisible(); // proof: conversation-kept
 });

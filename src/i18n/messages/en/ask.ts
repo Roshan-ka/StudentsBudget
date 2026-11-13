@@ -37,6 +37,8 @@ export const ask = {
   switchedOff: 'AI features are off on this phone. You can turn them on again under Settings → Your account.',
   noPlan: 'Ask answers from your plan, so set it up first.',
   toSetup: 'Set up your plan',
-  /** The quiet line on Home and on the check-in. */
+  /** The chat bubble's name (13-11-2026; before, the quiet line on Home and on the check-in). */
   link: 'Ask about your budget',
+  /** The chat sheet's close button, an icon (13-11-2026). */
+  close: 'Close',
 };

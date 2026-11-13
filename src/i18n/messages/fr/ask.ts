@@ -41,4 +41,5 @@ export const ask: Messages['ask'] = {
   noPlan: 'Les réponses s’appuient sur ton plan, alors configure-le d’abord.',
   toSetup: 'Configurer ton plan',
   link: 'Pose une question sur ton budget',
+  close: 'Fermer',
 };

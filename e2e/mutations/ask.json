@@ -1,0 +1,49 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the bubble shows on every page, setup's wizard included",
+      "file": "src/features/ask/ask-bubble.tsx",
+      "find": "(onNavPage(pathname) || pathname === '/check-in')",
+      "replace": "true",
+      "expect": {
+        "e2e/ask.spec.ts": [
+          "no-bubble-in-setup"
+        ]
+      }
+    },
+    {
+      "name": "the map no longer tells the bubble it is open",
+      "file": "src/features/discounts/map/discount-map.tsx",
+      "find": "    root.dataset.mapOpen = '';\n",
+      "replace": "",
+      "expect": {
+        "e2e/ask.spec.ts": [
+          "bubble-off-map"
+        ]
+      }
+    },
+    {
+      "name": "closing the sheet leaves the focus where it falls",
+      "file": "src/features/ask/ask-bubble.tsx",
+      "find": "          ref={popup}\n",
+      "replace": "          ref={popup}\n          finalFocus={false}\n",
+      "expect": {
+        "e2e/ask.spec.ts": [
+          "focus-back-on-bubble"
+        ]
+      }
+    },
+    {
+      "name": "the sheet's conversation goes when it closes",
+      "file": "src/features/ask/ask-bubble.tsx",
+      "find": "<Dialog.Portal keepMounted>",
+      "replace": "<Dialog.Portal>",
+      "expect": {
+        "e2e/ask.spec.ts": [
+          "conversation-kept"
+        ]
+      }
+    }
+  ]
+}

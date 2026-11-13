@@ -38,4 +38,5 @@ export const ask: Messages['ask'] = {
   noPlan: 'Die Antworten kommen aus deinem Plan, richte ihn also zuerst ein.',
   toSetup: 'Plan einrichten',
   link: 'Frag zu deinem Budget',
+  close: 'Schließen',
 };

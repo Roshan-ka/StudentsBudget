@@ -29,6 +29,11 @@ function isActive(pathname: string, href: string): boolean {
   return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
 }
 
+/** Whether a path is one of the navigation's pages or below one (Settings' pages): where Ask's bubble shows. */
+export function onNavPage(pathname: string): boolean {
+  return NAV_ITEMS.some(({ href }) => isActive(pathname, href));
+}
+
 export function BottomNav() {
   const pathname = usePathname();
   const { t } = useT();

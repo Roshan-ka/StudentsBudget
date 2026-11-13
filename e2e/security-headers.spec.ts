@@ -73,8 +73,9 @@ test('using the app breaks no rule of the Content-Security-Policy', async ({ pag
   await page.getByRole('button', { name: EN.auth.signIn.signIn, exact: true }).click();
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
 
-  // Ask, through the `ai` function.
-  await openApp(page, '/ask');
+  // Ask, through the `ai` function: the chat bubble on Home opens it (13-11-2026).
+  await openApp(page, '/');
+  await page.getByRole('button', { name: EN.ask.link, exact: true }).click();
   await page.getByRole('textbox', { name: EN.ask.question, exact: true }).fill('How much is left this week?');
   await page.getByRole('button', { name: EN.ask.submit, exact: true }).click();
   await expect(page.getByText(REPLY.answer, { exact: true })).toBeVisible();
