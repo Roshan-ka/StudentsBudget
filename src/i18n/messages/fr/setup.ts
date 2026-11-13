@@ -56,6 +56,8 @@ export const setup: Messages['setup'] = {
       after: ', pour que l’argent déjà sur ton compte ne compte pas deux fois.',
     },
     later: `Tu touches le BAföG ou une bourse${NNBSP}? Ajoute-le plus tard dans Réglages → Plan → Modifier le plan.`,
+    more: `Économies, BAföG ou bourse${NNBSP}?`,
+    moreEdit: `Tu vis de tes économies${NNBSP}?`,
   },
   fixed: {
     intro: `Que paies-tu chaque mois, en euros${NNBSP}? Laisse de côté ce que tu ne paies pas.`,
@@ -64,6 +66,7 @@ export const setup: Messages['setup'] = {
     later:
       'Les abonnements, la salle de sport, les charges, le Rundfunkbeitrag et les frais ponctuels comme les frais de ' +
       'semestre peuvent être ajoutés plus tard dans Réglages → Plan → Modifier le plan.',
+    more: `Salle de sport, abonnements, frais de semestre${NNBSP}?`,
   },
   oneOffs: {
     intro:

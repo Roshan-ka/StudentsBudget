@@ -54,6 +54,8 @@ export const setup: Messages['setup'] = {
       after: ' aus, damit Geld, das schon auf deinem Konto ist, nicht doppelt zählt.',
     },
     later: 'Bekommst du BAföG oder ein Stipendium? Trag es später unter Einstellungen → Plan → Plan bearbeiten ein.',
+    more: 'Ersparnisse, BAföG oder ein Stipendium?',
+    moreEdit: 'Lebst du von Ersparnissen?',
   },
   fixed: {
     intro: 'Was zahlst du jeden Monat, in Euro? Lass weg, was du nicht zahlst.',
@@ -62,6 +64,7 @@ export const setup: Messages['setup'] = {
     later:
       'Abos, Fitnessstudio, Nebenkosten, Rundfunkbeitrag und einmalige Kosten wie den Semesterbeitrag kannst du ' +
       'später unter Einstellungen → Plan → Plan bearbeiten ergänzen.',
+    more: 'Fitnessstudio, Abos, der Semesterbeitrag?',
   },
   oneOffs: {
     intro:

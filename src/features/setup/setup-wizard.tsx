@@ -212,9 +212,16 @@ function Wizard({
         <SetupChatView draft={draft} update={update} accountsExist={accountsExist} today={today} onClose={closeChat} />
       )}
 
-      {/* The step's fields in one card. While the problems show, the fields they name point at them. */}
+      {/* The step's fields in one card; Income and Fixed costs show each category as its own card instead, with
+          nothing around them (13-11-2026). While the problems show, the fields they name point at them. */}
       <StepProblemsContext value={attempted && problems.length > 0 ? problemsId : null}>
-        <div className={cn(cardVariants(), 'gap-4', chatting && 'hidden')}>
+        <div
+          className={cn(
+            step === 'income' || step === 'fixed' ? 'flex flex-col' : cardVariants(),
+            'gap-4',
+            chatting && 'hidden',
+          )}
+        >
           {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
           {step === 'income' && !edit && accountsExist && (
             <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
