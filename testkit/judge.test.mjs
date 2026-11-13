@@ -229,3 +229,19 @@ describe('applyEdits', () => {
     expect(applyEdits([{ file: 'db/b.sql', find: 'gone', replace: 'y' }], read)).toEqual({ ok: false, reason: 'db/b.sql: find no longer matches the file' });
   });
 });
+
+describe('shards', async () => {
+  const { inShard, parseShard } = await import('./judge.mjs');
+
+  it('reads i/n, and refuses anything else', () => {
+    expect(parseShard('2/4')).toEqual({ index: 2, total: 4 });
+    for (const bad of ['0/4', '5/4', '1/0', 'two/4', '', undefined]) expect(parseShard(bad), String(bad)).toBeNull();
+  });
+
+  it('gives each item to exactly one shard', () => {
+    const items = ['a', 'b', 'c', 'd', 'e'];
+    const shards = [1, 2, 3].map((index) => inShard(items, { index, total: 3 }));
+    expect(shards).toEqual([['a', 'd'], ['b', 'e'], ['c']]);
+    expect(shards.flat().sort()).toEqual(items);
+  });
+});

@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 // Red before green for saved mutations, without AI (testkit/README.md, "Mutations"):
 //
-//   node testkit/red-green.mjs --mutations <dir> [--config <file>] [--project <name>]… [--adapter <module>] <spec>…
+//   node testkit/red-green.mjs --mutations <dir> [--config <file>] [--project <name>]… [--adapter <module>]
+//                              [--shard <i>/<n>] <spec>…
+//
+// `--shard i/n` takes every n-th of the chosen mutations, starting at the i-th, so n machines share them (a nightly
+// run proves them all); each shard runs green only for the specs its own mutations name.
 //
 // 1. The specs run once as they are: every test a proof id names must pass (green).
 // 2. Each saved mutation that names one of the specs is applied in place, the specs run again, and the file is put back
@@ -21,7 +25,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { applyEdits, flattenReport, judgeProof, parseMutations, proofLines, summarize } from './judge.mjs';
+import { applyEdits, flattenReport, inShard, judgeProof, parseMutations, parseShard, proofLines, summarize } from './judge.mjs';
 
 const MARK = { proven: '✓', 'not-proven': '✗', stale: 'stale', inconclusive: '?', 'known-bug': 'known bug' };
 
@@ -31,7 +35,7 @@ function fail(code, text) {
 }
 
 function parseArgs(argv) {
-  const options = { config: 'playwright.config.ts', mutations: null, projects: [], adapter: null, specs: [] };
+  const options = { config: 'playwright.config.ts', mutations: null, projects: [], adapter: null, shard: null, specs: [] };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const value = () => {
@@ -44,7 +48,10 @@ function parseArgs(argv) {
     else if (arg === '--mutations') options.mutations = value();
     else if (arg === '--project') options.projects.push(value());
     else if (arg === '--adapter') options.adapter = value();
-    else if (arg.startsWith('--')) fail(2, `unknown option ${arg}`);
+    else if (arg === '--shard') {
+      options.shard = parseShard(value());
+      if (!options.shard) fail(2, '--shard must be <i>/<n>, with 1 <= i <= n');
+    } else if (arg.startsWith('--')) fail(2, `unknown option ${arg}`);
     else options.specs.push(path.posix.normalize(arg.replace(/\\/g, '/')));
   }
   if (!options.mutations) fail(2, '--mutations <dir> is required');
@@ -117,6 +124,12 @@ async function main() {
     }
   }
   if (chosen.length === 0) fail(2, `no saved mutation in ${options.mutations} names ${options.specs.join(', ')}`);
+  if (options.shard) {
+    const mine = inShard(chosen, options.shard);
+    console.log(`red-green: shard ${options.shard.index}/${options.shard.total}: ${mine.length} of ${chosen.length} mutations`);
+    if (mine.length === 0) process.exit(0);
+    chosen.splice(0, chosen.length, ...mine);
+  }
   const specs = [...new Set(chosen.flatMap((m) => m.specs))];
 
   const cli = path.join(root, 'node_modules', '@playwright', 'test', 'cli.js');

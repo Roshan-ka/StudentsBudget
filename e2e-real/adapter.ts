@@ -191,3 +191,24 @@ export async function readAccount(request: APIRequestContext, user: TestUser): P
   const entries = await Promise.all(SERVER_TABLES.map(async (table) => [table, await readBack(request, user, table)] as const));
   return Object.fromEntries(entries) as Record<ServerTable, unknown[]>;
 }
+
+/**
+ * What the random clicker (testkit/walker.mjs) must never press: what can't be undone or ends the walk. A name that
+ * contains one of these, or matches it, is left alone.
+ */
+export const NEVER_CLICK: (string | RegExp)[] = [
+  'Delete my account',
+  'Delete everything',
+  /^Sign out/i,
+  'Change password',
+  /^Remove (authenticator|passkey|Passkey)/,
+  /turn off two-step/i,
+  /^Restore/i,
+  /^Import/i,
+];
+
+/**
+ * Console errors that are no finding on a walk: the browser's own line for a request the server refused (4xx), which a
+ * student's or an outsider's walk meets by design (a moderator page, an account call signed out).
+ */
+export const CONSOLE_ALLOW: (string | RegExp)[] = [/Failed to load resource: the server responded with a status of 4\d\d/];

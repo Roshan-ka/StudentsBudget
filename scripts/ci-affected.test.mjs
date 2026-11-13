@@ -10,6 +10,9 @@ import {
   requiredJobs,
   changedSpecs,
   withProofs,
+  allProvedSpecs,
+  mutationsFor,
+  proveShards,
   routePages,
   runOptions,
   selectAffected,
@@ -363,6 +366,8 @@ describe('runOptions', () => {
       browsers: 'chromium',
       languages: 'default',
       projectArgs: '--project=desktop-chrome',
+      allMutations: false,
+      monkey: false,
       auto: ['browsers', 'languages'],
     });
   });
@@ -502,26 +507,59 @@ describe('githubOutput', () => {
   it('writes the selection, the list as Playwright arguments, the browsers and languages, and the jobs the gate needs', () => {
     expect(githubOutput(select(['src/features/check-in/week-rows.ts']), runOptions({}))).toBe(
       'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\nreal=false\nroles=false\nstack=false\n' +
-        'projects=--project=desktop-chrome\nlanguages=default\nrepeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\n' +
-        'jobs=["checks","e2e","e2e-report"]\n',
+        'projects=--project=desktop-chrome\nlanguages=default\nrepeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\nprove_shards=[]\n' +
+        'monkey=false\njobs=["checks","e2e","e2e-report"]\n',
     );
     expect(githubOutput(select(['README.md'], { full: true }), runOptions({ scope: 'full' }))).toBe(
       'run=true\ne2e=all\noffline=true\ndb=true\nreal=true\nroles=true\nstack=true\nprojects=\nlanguages=all\n' +
-        'repeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\njobs=["checks","e2e","e2e-report","offline","stack"]\n',
+        'repeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\nprove_shards=[]\nmonkey=false\n' +
+        'jobs=["checks","e2e","e2e-report","offline","stack"]\n',
     );
   });
 
-  it('writes the specs for the repeat check and red before green', () => {
+  it('writes the specs for the repeat check and red before green, with its shards', () => {
     const repo = { ...REPO, 'e2e-real/two-step.spec.ts': '' };
     const selection = withProofs(select(['e2e/tips.spec.ts']), {
       changed: ['e2e/tips.spec.ts', 'e2e-real/two-step.spec.ts'],
       repo,
       prove: ['e2e/tips.spec.ts', 'e2e-real/two-step.spec.ts'],
+      mutations: 3,
     });
     expect(githubOutput(selection, runOptions({}))).toContain(
       'repeat_mocked=e2e/tips.spec.ts\nrepeat_real=e2e-real/two-step.spec.ts\nprove_mocked=e2e/tips.spec.ts\nprove_real=e2e-real/two-step.spec.ts\n' +
-        'jobs=["checks","e2e","e2e-report","repeat","red-green"]\n',
+        'prove_shards=["1/1"]\nmonkey=false\njobs=["checks","e2e","e2e-report","repeat","red-green"]\n',
     );
+  });
+});
+
+// The nightly (nightly.yml calls ci.yml): every saved mutation, on up to 4 machines, and the random clicker.
+describe('the nightly options', () => {
+  const mutationFiles = [
+    { path: 'e2e/mutations/a.json', mutations: [{ expect: { 'e2e/a.spec.ts': ['x'] } }, { expect: { 'e2e/b.spec.ts': ['y'] } }] },
+    { path: 'e2e/mutations/c.json', mutations: [{ expect: { 'e2e-real/c.spec.ts': ['z'], 'e2e/a.spec.ts': ['w'] } }] },
+  ];
+
+  it('reads mutations and monkey, and refuses other values', () => {
+    expect(runOptions({ scope: 'full', mutations: 'all', monkey: 'yes' })).toMatchObject({ allMutations: true, monkey: true });
+    expect(() => runOptions({ mutations: 'some' })).toThrow('mutations must be one of changed, all');
+  });
+
+  it('proves every spec a saved mutation names, and counts the mutations a list of specs reaches', () => {
+    expect(allProvedSpecs(mutationFiles)).toEqual(['e2e-real/c.spec.ts', 'e2e/a.spec.ts', 'e2e/b.spec.ts']);
+    expect(mutationsFor(mutationFiles, ['e2e/a.spec.ts'])).toBe(2);
+  });
+
+  it('shares the mutations out: about 7 a machine, at most 4 machines', () => {
+    expect(proveShards(0)).toEqual([]);
+    expect(proveShards(5)).toEqual(['1/1']);
+    expect(proveShards(8)).toEqual(['1/2', '2/2']);
+    expect(proveShards(40)).toEqual(['1/4', '2/4', '3/4', '4/4']);
+  });
+
+  it('needs the monkey job when the clicker runs, and leaves it and the proofs out of a quick run', () => {
+    const picked = withProofs(select(['e2e/tips.spec.ts']), { changed: ['e2e/tips.spec.ts'], repo: REPO, prove: ['e2e/tips.spec.ts'], mutations: 1, monkey: true });
+    expect(requiredJobs(picked)).toContain('monkey');
+    expect(forScope(picked, runOptions({ scope: 'quick' }))).toMatchObject({ monkey: false, proveShards: [] });
   });
 });
 
@@ -644,6 +682,17 @@ describe('the repeat check and red before green', () => {
       mocked: ['e2e/tips.spec.ts'],
       real: ['e2e-real/roles/roles.spec.ts'],
     });
+  });
+
+  it('runs the random clicker, not the repeat check, when its own files change', () => {
+    const withMonkey = { ...repo, 'e2e-real/monkey.spec.ts': '', 'testkit/walker.mjs': '' };
+    expect(changedSpecs(['e2e-real/monkey.spec.ts'], withMonkey)).toEqual({ mocked: [], real: [] });
+    for (const file of ['e2e-real/monkey.spec.ts', 'testkit/walker.mjs']) {
+      expect(withProofs(select([file]), { changed: [file], repo: withMonkey, prove: [] }).monkey).toBe(true);
+    }
+    expect(withProofs(select(['e2e/tips.spec.ts']), { changed: ['e2e/tips.spec.ts'], repo: withMonkey, prove: [] }).monkey).toBe(false);
+    const quick = forScope(withProofs(select(['testkit/walker.mjs']), { changed: ['testkit/walker.mjs'], repo: withMonkey, prove: [] }), runOptions({ scope: 'quick' }));
+    expect(quick.monkey).toBe(false);
   });
 
   it('needs the repeat and red-green jobs only when there are tests for them', () => {
