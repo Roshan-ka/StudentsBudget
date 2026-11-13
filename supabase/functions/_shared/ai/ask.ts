@@ -1,5 +1,6 @@
 // Ask on the server (the AI phase, chunk 8, docs/superpowers/plans/2026-11-09-ai-phase-1.md): how a student's question
-// about their own budget goes to Claude Haiku 5.5, and what the app gets back.
+// about their own budget goes to the model (gpt-oss-120b on Groq since docs/superpowers/plans/2026-11-13-groq-free-plan.md),
+// and what the app gets back.
 //
 // The system prompt is the rules and the city pack (city-pack.ts): the same for everyone, so the API caches it. The
 // student's snapshot (built on the phone, chunk 9) goes in the first message, inside <budget_data>; each question
@@ -125,13 +126,11 @@ export function finishAsk(answer: AskAnswer, request: AskRequest, pack: readonly
 export const askBuilder: FeatureBuilder<AskRequest> = {
   call(request): ModelCall {
     return {
-      // Haiku 5.5, not Opus (Roshan, 10-11-2026): about 40 times cheaper, behind the same checks. Its adaptive thinking
-      // stays on; it has no server-side fallback, so a refusal is the answer.
-      model: 'claude-haiku-5-5',
-      maxTokens: 6000,
-      effort: 'medium',
-      thinking: true,
-      fallbacks: false,
+      // The larger model, at low effort: a free-plan request must stay under 8,000 tokens a minute, its reasoning and
+      // answer included (the Groq switch). A refusal is the answer.
+      model: 'openai/gpt-oss-120b',
+      maxTokens: 2000,
+      effort: 'low',
       system: askSystem(),
       messages: askMessages(request),
       answer: askAnswer,

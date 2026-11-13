@@ -11,7 +11,15 @@
 import { aiRequest, MAX_BODY_BYTES, PROBLEM_STATUS, type AiFeature, type AiProblem, type AiRequest } from './contract.ts';
 import type { Allowance } from './allowance.ts';
 import { corsHeaders } from './cors.ts';
-import { fellBack, ModelUnavailable, readStructured, type ModelCall, type ModelClient, type ModelMessage } from './model.ts';
+import {
+  ModelApiError,
+  ModelBusy,
+  ModelUnavailable,
+  readStructured,
+  type ModelCall,
+  type ModelClient,
+  type ModelMessage,
+} from './model.ts';
 import { scrub, scrubJson, type Json } from './scrub.ts';
 
 /** How a feature asks the model and what it does with the answer. Chunks 4, 8 and 11 write the three. */
@@ -36,23 +44,18 @@ export type AiLog = {
   /** The client went away before the answer. */
   aborted?: true;
   stop?: string | null;
-  fallback?: boolean;
   inputTokens?: number;
   outputTokens?: number;
   cacheReadTokens?: number;
-  cacheWriteTokens?: number;
+  /** The tokens a reasoning model spent thinking, inside `outputTokens`. */
+  reasoningTokens?: number;
   /**
-   * The HTTP status of an error the model's API answered with (400 for a request it refuses, say), so a `failed` in
-   * the logs says why. Only the number: an error's message is never logged.
+   * The HTTP status and code of a request the model's API refused (400 `json_validate_failed`, say), so a `failed` in
+   * the logs says why. Only the number and a plain-token code (`ModelApiError`): an error's message is never logged.
    */
   errorStatus?: number;
+  errorCode?: string;
 };
-
-/** The HTTP status an error carries (the Anthropic SDK's `APIError.status`), or undefined. */
-function statusOf(error: unknown): number | undefined {
-  if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
-  return typeof error.status === 'number' ? error.status : undefined;
-}
 
 export type AiDeps = {
   /** From the `AI_ALLOWED_ORIGINS` secret (`allowedOrigins`). */
@@ -130,11 +133,10 @@ function usageOf(message: ModelMessage): Partial<AiLog> {
   return {
     model: message.model,
     stop: message.stop_reason,
-    fallback: fellBack(message),
     inputTokens: message.usage.input_tokens,
     outputTokens: message.usage.output_tokens,
     cacheReadTokens: message.usage.cache_read_input_tokens ?? 0,
-    cacheWriteTokens: message.usage.cache_creation_input_tokens ?? 0,
+    reasoningTokens: message.usage.reasoning_tokens ?? 0,
   };
 }
 
@@ -189,9 +191,13 @@ export async function handleAi(request: Request, deps: AiDeps): Promise<Response
     message = await client.create(call, signal);
   } catch (error) {
     if (request.signal.aborted) return refuse('failed', { aborted: true });
+    // The provider's rate limit: busy, as when everyone's allowance is taken at once; try again in a moment.
+    if (error instanceof ModelBusy) return refuse('busy');
     if (timeout.aborted || error instanceof ModelUnavailable) return refuse('unavailable');
-    const errorStatus = statusOf(error);
-    return refuse('failed', errorStatus === undefined ? {} : { errorStatus });
+    if (error instanceof ModelApiError) {
+      return refuse('failed', { errorStatus: error.status, ...(error.code === null ? {} : { errorCode: error.code }) });
+    }
+    return refuse('failed');
   }
 
   const usage = usageOf(message);

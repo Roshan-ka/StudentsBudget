@@ -221,3 +221,19 @@ Both most likely aim at consumers and at dodging limits with extra accounts, not
     - `strict-schema.test.ts`: the three answers in strict form, the unions, the enum, inlined references, and the refusals;
     - `groq.test.ts` against a fake `fetch`, clock and sleep: the body, the URL and key, the signal, no key, reading the answer and the tokens, every stop, a cut-off answer, a refusal, empty text, a broken reply, `retry-after`, 429 on quick add (no retry) and on Ask (one), a wait too long or too late, 5xx twice, a lost connection, 400 and 401 codes, and an abort before the call or during the wait.
   - **The AI plan** points here at its top.
+- **Chunk 2** (13-11-2026), the switch:
+  - **`index.ts`:** `groqClient(GROQ_API_KEY)` in place of the Anthropic client; no key still means `unavailable` before any allowance. `deno.json` maps only supabase-js and zod, and `pins.test.ts` expects just those.
+  - **`model.ts`:** `ModelId` is the two gpt-oss ids; `ModelCall` loses `thinking` and `fallbacks`; `ModelMessage.usage` loses `cache_creation_input_tokens` and `iterations`; `readStructured` reads the text blocks (no fallback blocks any more); `fellBack` is gone.
+  - **`handle.ts`:** `ModelBusy` (a Groq 429) answers `busy` (503), which Ask and the setup chat already explain ("busy right now, try again"); `ModelApiError` answers `failed` and logs `errorStatus` and `errorCode`; the log adds `reasoningTokens` and drops `fallback` and `cacheWriteTokens`. The contract's comment on `busy` names the provider's rate limit.
+  - **The builders:**
+
+    | Builder | Model | Effort | Max output |
+    |---|---|---|---|
+    | Quick add | gpt-oss-20b | low | 600 |
+    | Ask | gpt-oss-120b | low | 2,000 |
+    | Setup chat | gpt-oss-120b | medium | 8,000 (paid plan only) |
+
+    Ask's prompt still holds the whole city pack until chunks 3 and 4 shrink it, so the function isn't deployed before then.
+  - **Tests:** the builders' calls, the handle test (a 429 → `busy`, a refused request → `failed` with status and code, the log's fields), `model.test.ts` without fallbacks, `groq.test.ts`'s sample call.
+  - **Left for a follow-up:** `@anthropic-ai/sdk` stays in `package.json` and the lockfile, unused. Removing it is an npm install (heavy lane, Roshan's approval today), and npm 12 may refuse the lockfile change (EALLOWREMOTE).
+  - **Left for chunk 6:** the texts that name Anthropic (the notice, the `ai` note, the switch, their e2e specs). AI stays off in Production meanwhile.
