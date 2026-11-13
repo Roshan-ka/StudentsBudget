@@ -220,7 +220,8 @@ export const tips = {
       summary: 'Reported hacks and discounts',
       intro:
         'Posts, comments and discounts students reported, newest report first. Hide takes one out of every list; ' +
-        'Keep shows it again and starts its report count afresh.',
+        'Keep shows it again and starts its report count afresh. Anything hidden is deleted 30 days after it was ' +
+        'hidden, unless you keep it.',
       signedOut: 'Sign in with the moderator account to moderate.',
       notModerator: "This page is for the app's moderator.",
       needsCode:
@@ -235,7 +236,7 @@ export const tips = {
       states: { hand: 'Hidden by you', reports: 'Hidden by reports', visible: 'Visible' },
       hide: 'Hide',
       keep: 'Keep',
-      hidden: 'Hidden from every feed.',
+      hidden: 'Hidden from every feed, and deleted in 30 days unless you keep it.',
       kept: 'Kept: it shows again.',
       failed: "That didn't work. Try again.",
       /** The sections (community, chunks 3 and 7). */

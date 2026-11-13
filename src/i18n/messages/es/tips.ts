@@ -212,7 +212,8 @@ export const tips: Messages['tips'] = {
       summary: 'Trucos y descuentos denunciados',
       intro:
         'Publicaciones, comentarios y descuentos que los estudiantes han denunciado, la denuncia más reciente ' +
-        'primero. Ocultar los quita de todas las listas; Mantener los muestra otra vez y pone sus denuncias a cero.',
+        'primero. Ocultar los quita de todas las listas; Mantener los muestra otra vez y pone sus denuncias a cero. ' +
+        'Lo que está oculto se borra 30 días después, salvo que lo mantengas.',
       signedOut: 'Inicia sesión con la cuenta de moderación para moderar.',
       notModerator: 'Esta página es para la moderación de la app.',
       needsCode:
@@ -231,7 +232,7 @@ export const tips: Messages['tips'] = {
       states: { hand: 'Ocultada por ti', reports: 'Ocultada por denuncias', visible: 'Visible' },
       hide: 'Ocultar',
       keep: 'Mantener',
-      hidden: 'Quitada de todos los feeds.',
+      hidden: 'Quitada de todos los feeds, y borrada en 30 días si no la mantienes.',
       kept: 'Mantenida: se ve otra vez.',
       failed: 'No funcionó. Inténtalo de nuevo.',
       postsHeading: 'Publicaciones',

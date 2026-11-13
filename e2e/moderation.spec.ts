@@ -108,7 +108,7 @@ test('the moderator with the code hides and keeps reported posts', async ({ page
   await expect(items(page).filter({ hasText: 'Bread' })).toContainText('1 report since last kept · Visible');
 
   await phones.getByRole('button', { name: 'Hide', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Hidden from every feed.');
+  await expect(page.getByRole('status')).toHaveText('Hidden from every feed, and deleted in 30 days unless you keep it.');
   await expect(phones).toContainText('Hidden by you');
   await expect(phones.getByRole('button', { name: 'Hide', exact: true })).toHaveCount(0);
 
@@ -161,7 +161,7 @@ test('the moderator with the code hides and keeps reported comments, in their ow
   await expect(spam).toContainText('5 reports since last kept · Hidden by reports');
 
   await spam.getByRole('button', { name: 'Hide', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Hidden from every feed.');
+  await expect(page.getByRole('status')).toHaveText('Hidden from every feed, and deleted in 30 days unless you keep it.');
   await expect(spam).toContainText('Hidden by you');
 
   const sunday = comments.filter({ hasText: 'Sunday' });
@@ -218,7 +218,7 @@ test('the moderator with the code hides and keeps reported discounts, with their
   await expect(shop.getByRole('link', { name: 'example.de', exact: true })).toHaveAttribute('href', 'https://www.example.de/deals');
 
   await shop.getByRole('button', { name: 'Hide', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Hidden from every feed.');
+  await expect(page.getByRole('status')).toHaveText('Hidden from every feed, and deleted in 30 days unless you keep it.');
   await expect(shop).toContainText('Hidden by you');
 
   const copyshop = discounts.filter({ hasText: 'Copyshop Uni' });

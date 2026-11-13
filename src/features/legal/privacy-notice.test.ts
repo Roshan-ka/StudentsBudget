@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Operator } from '@/data/legal';
 import { NOTE_SECTIONS, PRIVACY_NOTES, type PrivacyNoteId } from '@/features/privacy/notes';
@@ -105,6 +106,22 @@ describe('the privacy notice (legal pages, chunks 2 and 3)', () => {
     expect(words('transfers', 'de')).toContain('Art. 46 Abs. 2 lit. c DSGVO');
     expect(words('transfers', 'en')).toContain('Art. 45 GDPR');
     expect(words('transfers', 'en')).toContain('Art. 46 (2) (c) GDPR');
+  });
+
+  it('says how long deleted and hidden content and the AI counts are kept, as the daily purge does it', () => {
+    // The purge's own intervals (data retention, chunk 1): the notice changes with them.
+    const migrations = 'supabase/migrations';
+    const purge = readdirSync(migrations).find((name) => name.endsWith('_purge_old_content.sql'));
+    expect(purge, 'the purge migration').toBeDefined();
+    const sql = readFileSync(`${migrations}/${purge}`, 'utf8');
+    for (const interval of ["interval '1 day'", "interval '30 days'", "interval '2 days'"]) expect(sql).toContain(interval);
+
+    expect(words('shared', 'de')).toContain('spätestens nach zwei Tagen');
+    expect(words('shared', 'de')).toContain('30 Tage danach gelöscht');
+    expect(words('shared', 'en')).toContain('within two days at the latest');
+    expect(words('shared', 'en')).toContain('deleted 30 days later');
+    expect(words('ai', 'de')).toContain('nach zwei Tagen gelöscht');
+    expect(words('ai', 'en')).toContain('deleted after two days');
   });
 
   it('names the supervisory authority with its address', () => {
