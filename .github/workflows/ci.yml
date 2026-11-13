@@ -405,6 +405,16 @@ jobs:
           # shellcheck disable=SC2086
           node testkit/red-green.mjs --mutations e2e/mutations --config e2e-real/playwright.config.ts \
             --adapter e2e-real/apply-step.mjs --project desktop-chrome $SPECS
+      # The verdicts, and the traces of any test that wasn't green before a mutation: synthetic users only.
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: red-green
+          path: |
+            .red-green/summary.json
+            .red-green/green-test-results/
+          retention-days: 14
+          include-hidden-files: true
 
   # The run's one verdict, posted as a commit status on the commit it tested, where a pull request shows it (check runs
   # of a manual run don't appear there). `node scripts/ci-affected.mjs verdict` decides it (statusContext, verdict):

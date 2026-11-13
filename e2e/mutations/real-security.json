@@ -22,7 +22,23 @@
           "replace": "if false then"
         }
       ],
-      "expect": { "e2e-real/roles/security.spec.ts": ["other-change", "other-delete", "other-insert"] }
+      "expect": { "e2e-real/roles/security.spec.ts": ["other-change", "other-insert"] }
+    },
+    {
+      "name": "both delete guards are off: row-level security, and the DELETE right given back",
+      "edits": [
+        {
+          "file": "supabase/migrations/20261023121726_user_data.sql",
+          "find": "execute format('alter table public.%I enable row level security', t);",
+          "replace": "execute format('alter table public.%I disable row level security', t);"
+        },
+        {
+          "file": "supabase/migrations/20261026132206_sync.sql",
+          "find": "execute format('revoke delete on table public.%I from authenticated', t);",
+          "replace": "null;"
+        }
+      ],
+      "expect": { "e2e-real/roles/security.spec.ts": ["other-delete"] }
     },
     {
       "name": "someone signed out may use the account tables",

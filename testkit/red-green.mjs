@@ -156,6 +156,14 @@ async function main() {
   console.log(`red-green: green run of ${specs.join(', ')}`);
   const green = await runPlaywright('green', specs);
   if (!green) fail(2, 'the green run wrote no report');
+  // A test that wasn't green leaves its proofs inconclusive: keep its traces and error context before the next run
+  // clears test-results, so the cause can be read afterwards (CI uploads .red-green/).
+  const failedGreen = green.filter((e) => e.status !== 'passed' && e.status !== 'skipped');
+  const results = path.join(root, 'test-results');
+  if (failedGreen.length && fs.existsSync(results)) {
+    fs.cpSync(results, path.join(work, 'green-test-results'), { recursive: true });
+    console.log(`red-green: ${failedGreen.length} test(s) not green; their traces are in .red-green/green-test-results`);
+  }
 
   const rows = [];
   for (const [i, m] of chosen.entries()) {
