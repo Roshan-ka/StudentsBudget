@@ -8,6 +8,8 @@ test.use({ viewport: { width: 375, height: 812 } });
 
 /** The picker, named in the language the page is in. A role, not a label: a hidden page keeps its labels. */
 const picker = (page: Page) => page.getByRole('combobox', { name: /^(Language|Sprache)$/ });
+/** The header's globe on the start pages and setup (13-11-2026): a button that opens the languages as a menu. */
+const globe = (page: Page) => page.getByRole('button', { name: /^(Language|Sprache)$/ });
 
 const nav = (page: Page, name: string) => page.getByRole('navigation', { name, exact: true });
 
@@ -38,17 +40,16 @@ test('Settings switches the app to German and back, and the choice survives a re
   await expect(nav(page, 'Main').getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
 });
 
-test('setup offers the language before anything else, each in its own words', async ({ page }) => {
+test('setup offers the language in the header’s globe, each in its own words', async ({ page }) => {
   await page.goto('/setup');
-  await expect(picker(page)).toBeVisible();
+  await globe(page).click();
   // Each language by its own name.
-  await expect(picker(page).locator('option[value="en"]')).toHaveText('English');
-  await expect(picker(page).locator('option[value="de"]')).toHaveText('Deutsch');
-  await expect(picker(page).locator('option[value="de"]')).toHaveAttribute('lang', 'de');
+  await expect(page.getByRole('menuitemradio', { name: 'English', exact: true })).toBeVisible();
+  await expect(page.getByRole('menuitemradio', { name: 'Deutsch', exact: true })).toHaveAttribute('lang', 'de');
 
-  await picker(page).selectOption('de');
+  await page.getByRole('menuitemradio', { name: 'Deutsch', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
-  await expect(picker(page)).toHaveAccessibleName('Sprache');
+  await expect(globe(page)).toHaveAccessibleName('Sprache');
   await expect(page.getByRole('heading', { level: 2, name: 'Richte deinen Plan ein', exact: true })).toBeVisible();
 });
 
@@ -60,7 +61,8 @@ test.describe('a phone set to German', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'de');
     await expect(page.getByRole('heading', { level: 2, name: 'Richte deinen Plan ein', exact: true })).toBeVisible();
 
-    await picker(page).selectOption('en');
+    await globe(page).click();
+    await page.getByRole('menuitemradio', { name: 'English', exact: true }).click();
     await expect(page.getByRole('heading', { level: 2, name: 'Set up your plan', exact: true })).toBeVisible();
     // The choice wins over the phone's language.
     await page.reload();

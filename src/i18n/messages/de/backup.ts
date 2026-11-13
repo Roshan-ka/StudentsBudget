@@ -32,7 +32,8 @@ export const backup: Messages['backup'] = {
     readFailed: 'Die Datei konnte nicht gelesen werden.',
     failed: 'Das Backup konnte nicht wiederhergestellt werden. Die Daten auf diesem Gerät sind unverändert.',
     setupHeading: 'Hast du ein Backup? Stell es wieder her',
-    setupIntro: 'StudentsBudget schon benutzt? Wähle deine Backup-Datei und mach da weiter, wo du aufgehört hast.',
+    /** Setup's quiet button that opens the file field (13-11-2026). */
+    setupButton: 'Backup wiederherstellen',
   },
   delete: {
     heading: 'Alles löschen',

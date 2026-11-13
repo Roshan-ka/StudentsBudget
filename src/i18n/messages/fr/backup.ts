@@ -34,7 +34,8 @@ export const backup: Messages['backup'] = {
     readFailed: 'Impossible de lire ce fichier.',
     failed: 'Impossible de restaurer la sauvegarde. Les données de cet appareil n’ont pas changé.',
     setupHeading: `Tu as une sauvegarde${NNBSP}? Restaure-la`,
-    setupIntro: `Tu as déjà utilisé StudentsBudget${NNBSP}? Choisis ton fichier de sauvegarde pour reprendre là où tu en étais.`,
+    /** Setup's quiet button that opens the file field (13-11-2026). */
+    setupButton: 'Restaurer une sauvegarde',
   },
   delete: {
     heading: 'Tout supprimer',

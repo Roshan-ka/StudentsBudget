@@ -7,13 +7,11 @@ import { useEffect } from 'react';
 import { PageHeading } from '@/components/page-heading';
 import { StatusLine } from '@/components/status-line';
 import { buttonVariants } from '@/components/ui/button';
-import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { useAuth } from '@/features/account/use-auth';
 import { categoryTint } from '@/features/charts/colors';
 import { LegalLinks } from '@/features/legal/legal-page';
 import { useT } from '@/i18n/use-t';
-import { cn } from '@/lib/utils';
 import { forgetSignedOut, useJustSignedOut } from './signed-out';
 
 /**
@@ -77,15 +75,19 @@ export function StartView() {
         <p className="text-muted-foreground">{text.pitch}</p>
       </div>
 
-      <ul className={cn(cardVariants(), 'gap-0 divide-y divide-border py-1')}>
+      {/* Each feature its own card, in its tint (Roshan, 13-11-2026), as Home's envelopes are. */}
+      <ul className="flex flex-col gap-2.5">
         {FEATURES.map(({ id, icon: Icon, tint }) => (
-          <li key={id} className="flex min-h-12 items-center gap-3 py-2">
+          <li
+            key={id}
+            className="flex min-h-14 items-center gap-3 rounded-lg border-[1.5px] border-outline px-3 py-2 text-card-foreground shadow-offset"
+            style={{ backgroundColor: categoryTint(tint) }}
+          >
             <span
               aria-hidden="true"
-              className="flex size-8 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline text-foreground"
-              style={{ background: categoryTint(tint) }}
+              className="flex size-9 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card/80"
             >
-              <Icon className="size-4" />
+              <Icon className="size-[18px]" />
             </span>
             <span className="font-semibold">{text.features[id]}</span>
           </li>

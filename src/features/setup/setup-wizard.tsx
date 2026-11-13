@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
+import { SetupAccountLink } from '@/features/account/setup-account-link';
 import { syncAfterSetup } from '@/features/account/sync-status';
 import { useAuth } from '@/features/account/use-auth';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
 import { aiInBuild, useAiSwitch } from '@/features/ai/switch';
+import { SetupRestoreSection } from '@/features/backup/setup-restore-section';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
@@ -165,26 +167,29 @@ function Wizard({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* The page's heading: it names the page in the title, and takes the focus after a page change (RouteFocus). */}
-      <h2
-        data-page-heading
-        tabIndex={-1}
-        className="font-sans text-sm font-semibold tracking-normal text-muted-foreground outline-none"
-      >
-        {edit ? text.headingEdit : text.headingNew}
-      </h2>
       <div className="flex flex-col gap-2">
-        {/* One segment per step, filled up to this one: the line under it says the same in words. */}
+        {/* One line (13-11-2026): the page's heading at the start, the step at the end. The heading names the page in
+            the title and takes the focus after a page change (RouteFocus). */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <h2
+            data-page-heading
+            tabIndex={-1}
+            className="font-sans text-sm font-semibold tracking-normal text-muted-foreground outline-none"
+          >
+            {edit ? text.headingEdit : text.headingNew}
+          </h2>
+          <p className="text-sm font-semibold text-muted-foreground">{text.stepOf(index + 1, steps.length)}</p>
+        </div>
+        {/* One segment per step, filled up to this one: the line above says the same in words. */}
         <div aria-hidden="true" className="flex gap-1">
           {steps.map((id, i) => (
             <span key={id} className={cn('h-1.5 flex-1 rounded-full', i <= index ? 'bg-primary' : 'bg-track')} />
           ))}
         </div>
-        <p className="text-sm font-semibold text-muted-foreground">{text.stepOf(index + 1, steps.length)}</p>
         <h3
           ref={headingRef}
           tabIndex={-1}
-          className="text-[30px] leading-tight font-extrabold text-balance break-words outline-none"
+          className="mt-1 font-heading text-[30px] leading-tight font-extrabold tracking-tight text-balance break-words outline-none"
         >
           {chatting ? text.chat.heading : text.titles[step]}
         </h3>
@@ -283,6 +288,15 @@ function Wizard({
           </Button>
         )}
       </div>
+
+      {/* The first step of a new setup only, quiet, under the buttons (13-11-2026): a phone with an account signs in
+          instead, and one with a backup restores it. Each hides itself where it doesn't apply (no accounts, a plan). */}
+      {!edit && index === 0 && !chatting && (
+        <div className="flex flex-col items-center gap-1 text-center">
+          <SetupAccountLink />
+          <SetupRestoreSection />
+        </div>
+      )}
     </div>
   );
 }

@@ -63,10 +63,13 @@ export function LanguageMenu() {
   );
 }
 
-/** The start pages' paths: the first screen, and its sign-in and new-account forms. */
-const START_PATHS = ['/start', '/start/sign-in', '/start/new-account'];
+/** Where the header shows the globe: the start pages (the first screen, its sign-in and new-account forms) and setup. */
+const START_PATHS = ['/start', '/start/sign-in', '/start/new-account', '/setup'];
 
-/** The globe at the end of the header, on the start pages only: anywhere else the language lives in Settings. */
+/**
+ * The globe at the end of the header, on the start pages and setup only (setup since 13-11-2026): anywhere else the
+ * language lives in Settings.
+ */
 export function StartLanguageMenu() {
   const pathname = usePathname();
   return START_PATHS.includes(pathname) ? <LanguageMenu /> : null;

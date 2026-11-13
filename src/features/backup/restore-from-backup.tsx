@@ -1,6 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { UploadIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
@@ -16,10 +17,12 @@ type Chosen = { fileName: string; data: BackupData; exportedAt: string };
 /**
  * Pick a backup file, check it, ask once, then swap the data on this device for it. A file that does not
  * pass the check is refused with a message and nothing changes. Used in Settings and on /setup, so a new or
- * wiped phone can restore before it has a plan.
+ * wiped phone can restore before it has a plan. `compact` (setup, 13-11-2026): the file field is hidden but keeps its
+ * label, and a quiet "Restore a backup" button opens it.
  */
-export function RestoreFromBackup() {
+export function RestoreFromBackup({ compact = false }: { compact?: boolean }) {
   const inputId = useId();
+  const fileRef = useRef<HTMLInputElement>(null);
   const { t, lang } = useT();
   const text = t.backup.restore;
   const questionRef = useRef<HTMLParagraphElement>(null);
@@ -94,18 +97,35 @@ export function RestoreFromBackup() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
+    <div className={compact ? 'flex w-full flex-col items-center gap-3' : 'flex flex-col gap-3'}>
+      <div className={compact ? 'flex flex-col items-center' : 'flex flex-col gap-1.5'}>
         {/* Not "Backup file": a file field is a button to Chromium, and the wizard's "Back" would match it by name. */}
-        <Label htmlFor={inputId}>{text.file}</Label>
+        <Label htmlFor={inputId} className={compact ? 'sr-only' : undefined}>
+          {text.file}
+        </Label>
         <Input
+          ref={fileRef}
           id={inputId}
           type="file"
           accept=".json,application/json"
-          className="py-1.5"
+          // Compact: out of sight and out of the tab order; the button below opens it.
+          className={compact ? 'sr-only' : 'py-1.5'}
+          tabIndex={compact ? -1 : undefined}
           onChange={(event) => void onChoose(event)}
           disabled={restoring}
         />
+        {compact && (
+          <Button
+            type="button"
+            variant="link"
+            className="min-h-11 px-0"
+            onClick={() => fileRef.current?.click()}
+            disabled={restoring}
+          >
+            <UploadIcon aria-hidden="true" />
+            {text.setupButton}
+          </Button>
+        )}
         {reading && <StatusLine className="text-sm text-muted-foreground">{text.reading}</StatusLine>}
       </div>
       {chosen && (
