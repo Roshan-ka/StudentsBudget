@@ -1,6 +1,10 @@
 import { AwardIcon } from 'lucide-react';
 import Link from 'next/link';
+import { cardVariants } from '@/components/ui/card';
+import { categoryTint } from '@/features/charts/colors';
+import { ROW_CARD, RowTile } from '@/features/home/row-card';
 import { useT } from '@/i18n/use-t';
+import { cn } from '@/lib/utils';
 import type { Badge } from './badges';
 
 /** The badge to work on next: the first not earned yet, or Under-Budget Week's next tier once all are earned. */
@@ -23,8 +27,9 @@ export function BadgesCard({ badges }: { badges: Badge[] }) {
   const next = nextBadge(badges);
 
   return (
-    <section aria-labelledby="badges-card-heading" className="flex min-h-11 flex-wrap items-center gap-x-3 text-sm">
-      <AwardIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+    // Violet, a category's tint for its colour (13-11-2026).
+    <section aria-labelledby="badges-card-heading" className={cn(cardVariants(), ROW_CARD, 'flex-wrap text-sm')}>
+      <RowTile icon={AwardIcon} tint={categoryTint('going-out')} />
       <div className="min-w-0 flex-1">
         <h2 id="badges-card-heading" className="inline font-sans text-sm font-semibold tracking-normal">
           {text.heading}

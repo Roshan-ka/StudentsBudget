@@ -14,7 +14,7 @@ import { deleteEntry, entriesInRange } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
 import { categoryTint } from '@/features/charts/colors';
 import { categoryNameIn } from '@/i18n/category-name';
-import { dateFormat } from '@/i18n/format';
+import { dateFormat, dayLabel } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
 import { daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
@@ -32,11 +32,6 @@ const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline und
 
 /** The focus key of the list itself, for the last entry of a month that is deleted. */
 const LIST_KEY = 'entries-list';
-
-/** "Friday, 16 October". `parseISO` reads a date-only string as local midnight, so the day never shifts. */
-function headingOf(date: IsoDate, locale: string): string {
-  return dateFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(parseISO(date));
-}
 
 /** "Oct 2026". */
 function labelOf(month: IsoMonth, locale: string): string {
@@ -278,7 +273,7 @@ export function EntriesList() {
         groupByDate(entries).map((group) => (
           <div key={group.date} className="flex flex-col gap-1.5">
             <h3 className="font-sans text-sm font-semibold tracking-normal text-muted-foreground">
-              {headingOf(group.date, locale)}
+              {dayLabel(group.date, locale)}
             </h3>
             {/* One card per day; the rows inside it are divided by hairlines. */}
             <ul className={cn(cardVariants(), 'gap-0 divide-y py-0')}>

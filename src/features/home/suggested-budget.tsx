@@ -5,12 +5,12 @@ import { ChevronDownIcon } from 'lucide-react';
 import { useId, useState } from 'react';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
-import { cardVariants } from '@/components/ui/card';
 import { CITIES } from '@/data/cities';
 import type { Amount, Entry, Plan } from '@/db/types';
 import { updatePlan } from '@/features/recurring/update-plan';
 import { budgetLine, rangeLine } from '@/features/setup/draft';
 import { AmountField } from '@/features/setup/steps/amount-field';
+import { CategoryCard } from '@/features/setup/steps/category-card';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
 import { rangeIn } from '@/i18n/city';
@@ -171,7 +171,8 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
   const listed = folding && !showZero ? rows.filter((row) => !folds(row)) : rows;
 
   return (
-    <section aria-labelledby={headingId} className={cn(cardVariants(), 'gap-4')}>
+    // No card around it (13-11-2026): each category is a card of its own, as the envelopes above are.
+    <section aria-labelledby={headingId} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h2 ref={focusOnMount} id={headingId} tabIndex={-1} className="text-[22px] leading-tight font-extrabold outline-none">
           {text.heading}
@@ -179,22 +180,28 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
         <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor, t, lang)}</p>
       </div>
 
-      {listed.map((row) => {
-        const value = amountOf(row);
-        return (
-          <div key={row.categoryId} className="grid gap-1.5">
-            <AmountField
-              label={text.perMonth(categoryNameIn(t, row.categoryId))}
-              value={value}
-              onChange={(minor) => setEdits((current) => ({ ...current, [row.categoryId]: minor ?? 0 }))}
-              hint={<p>{basisLine(row, lastMonth, t, lang)}</p>}
-            />
+      {/* Each category in setup's card (13-11-2026): its tint and tile, the amount at the end, its basis and source. */}
+      <ul className="flex flex-col gap-2.5">
+        {listed.map((row) => (
+          <CategoryCard
+            key={row.categoryId}
+            categoryId={row.categoryId}
+            field={
+              <AmountField
+                layout="row"
+                label={text.perMonth(categoryNameIn(t, row.categoryId))}
+                value={amountOf(row)}
+                onChange={(minor) => setEdits((current) => ({ ...current, [row.categoryId]: minor ?? 0 }))}
+                hint={<p>{basisLine(row, lastMonth, t, lang)}</p>}
+              />
+            }
+          >
             {row.basis === 'city' && row.range && (
               <RangeSource range={rangeIn(row.range, lang)} about={categoryNameIn(t, row.categoryId)} />
             )}
-          </div>
-        );
-      })}
+          </CategoryCard>
+        ))}
+      </ul>
 
       {folding && (
         <Button

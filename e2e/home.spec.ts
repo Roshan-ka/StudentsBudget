@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Amount, Entry, Plan } from '../src/db/types';
+import { dayLabel } from '../src/i18n/format';
+import { LANGUAGES } from '../src/i18n/languages';
+import type { IsoDate } from '../src/lib/dates';
 import { seedSetup } from './helpers/seed-setup';
 import { FRANKFURTER, fillSetup, readStore } from './helpers/setup';
 
@@ -579,4 +582,23 @@ test('opened in the first week of the month, the suggested budget changes only t
       { categoryId: 'other', monthlyMinor: 10000 },
     ],
   });
+});
+
+// Home in the new look (13-11-2026, Roshan's mockups): today's day over the greeting, and Edit plan beside the
+// envelopes.
+test("today's day sits over the greeting, in the phone's language", async ({ page }) => {
+  await seedSetup(page);
+  // The page's own clock: the day the seed set up on.
+  const today = await page.evaluate(() => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  });
+  await expect(page.getByText(dayLabel(today as IsoDate, LANGUAGES.en.locale), { exact: true })).toBeVisible(); // proof: date-line
+});
+
+test('Edit plan beside the envelopes opens Edit plan', async ({ page }) => {
+  await seedSetup(page);
+  await page.getByRole('region', { name: 'Envelopes', exact: true }).getByRole('link', { name: 'Edit plan', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Edit plan', exact: true })).toBeVisible(); // proof: edit-plan-link
 });

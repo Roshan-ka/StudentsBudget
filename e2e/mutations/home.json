@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "Home's date line shows the bare ISO date",
+      "file": "src/features/home/home.tsx",
+      "find": "{dayLabel(today, locale)}",
+      "replace": "{today}",
+      "expect": {
+        "e2e/home.spec.ts": [
+          "date-line"
+        ]
+      }
+    },
+    {
+      "name": "Edit plan beside the envelopes leads to Settings instead",
+      "file": "src/features/home/envelope-list.tsx",
+      "find": "href=\"/setup?edit=1\"",
+      "replace": "href=\"/settings/plan\"",
+      "expect": {
+        "e2e/home.spec.ts": [
+          "edit-plan-link"
+        ]
+      }
+    }
+  ]
+}

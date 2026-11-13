@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { useId } from 'react';
 import { categoryBarFill, categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
@@ -85,9 +86,18 @@ export function EnvelopeList({ rows, today }: { rows: EnvelopeRow[]; today: IsoD
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h2 id={headingId} className="text-[22px] leading-tight font-extrabold">
-        {t.home.envelopes.heading}
-      </h2>
+      {/* Edit plan at the end of the heading's line (13-11-2026), where the envelopes are changed. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+        <h2 id={headingId} className="text-[22px] leading-tight font-extrabold">
+          {t.home.envelopes.heading}
+        </h2>
+        <Link
+          href="/setup?edit=1"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4"
+        >
+          {t.setup.editPlan.link}
+        </Link>
+      </div>
       <ul aria-labelledby={headingId} className="flex flex-col gap-3">
         {rows.map((row) => (
           <EnvelopeItem
