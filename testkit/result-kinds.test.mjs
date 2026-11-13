@@ -121,3 +121,21 @@ describe('ResultKindsReporter', () => {
     }
   });
 });
+
+describe('the duration flag', () => {
+  it('flags a test over half its timeout, and lists it without failing the run', async () => {
+    const { isSlow } = await import('./result-kinds.mjs');
+    expect(isSlow(16_000, 30_000)).toBe(true);
+    expect(isSlow(15_000, 30_000)).toBe(false);
+    expect(isSlow(undefined, 30_000)).toBe(false);
+    const rows = [
+      { title: 'code wait', project: 'chrome', kind: 'verified', duration: 31_100, timeout: 60_000 },
+      { title: 'quick', project: 'chrome', kind: 'verified', duration: 2_000, timeout: 30_000 },
+    ];
+    const text = summaryMarkdown('Journeys', rows);
+    expect(text).toContain('**2 verified**');
+    expect(text).toContain('**Slow:** 1 test over half the timeout');
+    expect(text).toContain('| code wait [chrome] | 31.1 s | 60.0 s |');
+    expect(tally(rows).ok).toBe(true);
+  });
+});

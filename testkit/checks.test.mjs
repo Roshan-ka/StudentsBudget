@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkMutationFile, checkSkips, proofKind, skipSites, testAbove } from './checks.mjs';
+import { checkMutationFile, checkQuarantine, checkSkips, proofKind, skipSites, testAbove } from './checks.mjs';
 
 describe('proofKind', () => {
   it('tells page matchers from value matchers', () => {
@@ -89,5 +89,23 @@ describe('skips', () => {
       'e2e/a.spec.ts: "Needs Chromium" matches 1 skip, the allow-list says 2',
       'e2e/gone.spec.ts: on the allow-list, but not among the files checked',
     ]);
+  });
+});
+
+describe('checkQuarantine', () => {
+  const file = (source) => [{ path: 'e2e/a.spec.ts', source }];
+
+  it('passes a quarantined test with an owner and a date still ahead', () => {
+    const source = "test('flaky', { tag: '@quarantine', annotation: { type: 'quarantine', description: 'Roshan, fix by 2026-12-01: WebKit' } }, async () => {});";
+    expect(checkQuarantine(file(source), '2026-11-13')).toEqual([]);
+  });
+
+  it('names a quarantined test without a note, without an owner and date, or past its date', () => {
+    expect(checkQuarantine(file("test('a', { tag: '@quarantine' }, async () => {});"), '2026-11-13')[0]).toContain('needs annotation');
+    expect(checkQuarantine(file("test('a', { tag: '@quarantine', annotation: { type: 'quarantine', description: 'someday' } }, async () => {});"), '2026-11-13')[0]).toContain('owner and a date');
+    expect(checkQuarantine(file("test('a', { tag: '@quarantine', annotation: { type: 'quarantine', description: 'Roshan, fix by 2026-11-01' } }, async () => {});"), '2026-11-13')).toEqual([
+      'e2e/a.spec.ts:1: past its fix-by date (2026-11-01): fix the test, or take it out',
+    ]);
+    expect(checkQuarantine(file("// test('a', { tag: '@quarantine' })"), '2026-11-13')).toEqual([]);
   });
 });

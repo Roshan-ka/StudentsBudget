@@ -1,0 +1,12 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "Delete my account says it is gone but leaves the account",
+      "file": "src/features/account/delete-account.tsx",
+      "find": "const deleted = await checker.rpc('delete_my_account');",
+      "replace": "const deleted = { error: null as null | { code?: string } };",
+      "expect": { "e2e-real/delete-account.spec.ts": ["deleted"] }
+    }
+  ]
+}

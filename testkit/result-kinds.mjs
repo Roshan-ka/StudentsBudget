@@ -42,7 +42,20 @@ export function tally(rows) {
   return { counts, ok: rows.length > 0 && counts.failed + counts.inconclusive + counts['not run'] === 0 };
 }
 
-/** The summary as Markdown: the verdict, the counts, then every test that isn't plainly verified, with why. */
+/**
+ * The duration flag: a test that took more than half its timeout, which a slower machine or a busier run could push
+ * over. It never fails a run; the summary lists it, with both times, so it is looked at before it flakes.
+ */
+export function isSlow(duration, timeout) {
+  return typeof duration === 'number' && typeof timeout === 'number' && timeout > 0 && duration > timeout / 2;
+}
+
+const seconds = (ms) => `${(ms / 1000).toFixed(1)} s`;
+
+/**
+ * The summary as Markdown: the verdict, the counts, every test that isn't plainly verified, with why, and the slow
+ * ones (rows with `duration` and `timeout`).
+ */
 export function summaryMarkdown(title, rows) {
   const { counts, ok } = tally(rows);
   const blocking = ['failed', 'inconclusive', 'not run'].filter((k) => counts[k]).map((k) => `${counts[k]} ${k}`);
@@ -52,6 +65,12 @@ export function summaryMarkdown(title, rows) {
   if (listed.length) {
     lines.push('| Test | Kind | Why |', '|---|---|---|');
     for (const r of listed) lines.push(`| ${r.title} [${r.project}] | ${r.kind} | ${r.note ?? ''} |`);
+    lines.push('');
+  }
+  const slow = rows.filter((r) => isSlow(r.duration, r.timeout));
+  if (slow.length) {
+    lines.push(`**Slow:** ${slow.length} test${slow.length === 1 ? '' : 's'} over half the timeout`, '', '| Test | Took | Timeout |', '|---|---|---|');
+    for (const r of slow) lines.push(`| ${r.title} [${r.project}] | ${seconds(r.duration)} | ${seconds(r.timeout)} |`);
     lines.push('');
   }
   return lines.join('\n');

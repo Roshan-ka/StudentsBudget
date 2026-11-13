@@ -307,19 +307,53 @@ export function statusDescription(sha, options) {
   return `${sha.slice(0, 7)} · ${options.scope} · browsers ${options.browsers} · languages ${options.languages}`;
 }
 
-/** The jobs after `changes`, as ci.yml names them. */
-const JOBS = ['checks', 'e2e', 'e2e-report', 'offline', 'stack'];
+/** The jobs after `changes`, as ci.yml names them. The quarantine job never counts: it doesn't block. */
+const JOBS = ['checks', 'e2e', 'e2e-report', 'offline', 'stack', 'repeat', 'red-green'];
+/** Where the saved mutations live (testkit/README.md, "Mutations"). */
+const MUTATIONS_DIR = 'e2e/mutations';
+const NO_SPECS = { mocked: [], real: [] };
+
+/**
+ * The test files the branch changes, for the repeat check, mocked (e2e/) and real-server (e2e-real/); a deleted one
+ * and the offline spec (its own job) left out.
+ */
+export function changedSpecs(changed, repo) {
+  const live = changed.filter((file) => Object.hasOwn(repo, file));
+  return {
+    mocked: live.filter((file) => SPEC.test(file) && file !== 'e2e/offline.spec.ts'),
+    real: live.filter((file) => REAL_SPEC.test(file)),
+  };
+}
+
+/**
+ * The selection with what the proof jobs run: `repeat`, the changed test files (×10 at 2 workers), and `prove`, the
+ * specs whose saved mutations to prove again (testkit/changed-proofs.mjs), each split by config. Both run only when
+ * started by hand (forScope).
+ */
+export function withProofs(selection, { changed, repo, prove }) {
+  const live = prove.filter((spec) => Object.hasOwn(repo, spec));
+  return {
+    ...selection,
+    repeat: changedSpecs(changed, repo),
+    prove: { mocked: live.filter((spec) => spec.startsWith('e2e/')), real: live.filter((spec) => spec.startsWith('e2e-real/')) },
+  };
+}
+
+const any = (specs = NO_SPECS) => specs.mocked.length + specs.real.length > 0;
 
 /**
  * The jobs a selection needs, which `changes` hands the gate (`jobs`): checks for anything but notes, e2e and its report
- * merge for any spec, the offline check, and the stack job for the db checks or the real-server journeys.
+ * merge for any spec, the offline check, the stack job for the db checks, the role tests or the journeys, and the
+ * repeat and red-green jobs when there are tests for them.
  */
-export function requiredJobs({ run, e2e, offline, db, real, roles }) {
+export function requiredJobs({ run, e2e, offline, db, real, roles, repeat, prove }) {
   return [
     ...(run ? ['checks'] : []),
     ...(e2e !== 'none' ? ['e2e', 'e2e-report'] : []),
     ...(offline ? ['offline'] : []),
     ...(db || real || roles ? ['stack'] : []),
+    ...(any(repeat) ? ['repeat'] : []),
+    ...(any(prove) ? ['red-green'] : []),
   ];
 }
 
@@ -360,7 +394,7 @@ const QUICK_REASON = 'a pull request’s automatic run has no e2e: start a chang
  */
 export function forScope(selection, options) {
   if (options.e2e) return selection;
-  return { ...selection, e2e: 'none', offline: false, real: false, why: { ...selection.why, quick: [QUICK_REASON] } };
+  return { ...selection, e2e: 'none', offline: false, real: false, repeat: NO_SPECS, prove: NO_SPECS, why: { ...selection.why, quick: [QUICK_REASON] } };
 }
 
 /** The specs as Playwright file arguments: each a regex over the path, anchored so `account` never runs `accounts`. */
@@ -373,11 +407,14 @@ export function e2eArgs(specs) {
  * the stack job runs (the db checks or the journeys); `jobs` the jobs the gate requires, as JSON.
  */
 export function githubOutput(selection, options = runOptions({})) {
-  const { run, e2e, offline, db, real, roles } = selection;
+  const { run, e2e, offline, db, real, roles, repeat = NO_SPECS, prove = NO_SPECS } = selection;
   const list = Array.isArray(e2e) ? e2eArgs(e2e) : e2e;
   return (
     `run=${run}\ne2e=${list}\noffline=${offline}\ndb=${db}\nreal=${real}\nroles=${roles}\nstack=${db || real || roles}\n` +
-    `projects=${options.projectArgs}\nlanguages=${options.languages}\njobs=${JSON.stringify(requiredJobs(selection))}\n`
+    `projects=${options.projectArgs}\nlanguages=${options.languages}\n` +
+    `repeat_mocked=${repeat.mocked.join(' ')}\nrepeat_real=${repeat.real.join(' ')}\n` +
+    `prove_mocked=${prove.mocked.join(' ')}\nprove_real=${prove.real.join(' ')}\n` +
+    `jobs=${JSON.stringify(requiredJobs(selection))}\n`
   );
 }
 
@@ -391,7 +428,7 @@ function reasonsText(reasons) {
  * The job summary: the options the run used, then a row for the e2e run (or each picked spec), the offline check and
  * the db job, with why.
  */
-export function summary({ run, e2e, offline, db, real, roles, why }, options = runOptions({})) {
+export function summary({ run, e2e, offline, db, real, roles, repeat = NO_SPECS, prove = NO_SPECS, why }, options = runOptions({})) {
   const chosen = (name) => `${name} **${options[name]}**${options.auto.includes(name) ? ' (auto)' : ''}`;
   const head = `### Affected tests\n\nScope **${options.scope}** · ${chosen('browsers')} · ${chosen('languages')}\n\n`;
   if (!run) return `${head}No checks run: ${why.skip[0]}.\n`;
@@ -403,6 +440,9 @@ export function summary({ run, e2e, offline, db, real, roles, why }, options = r
   if (db) rows.push(['db checks (stack job)', why.db]);
   if (real) rows.push(['real-server journeys (stack job)', why.real]);
   if (roles) rows.push(['roles and security (stack job)', why.roles]);
+  const specs = (list) => [...list.mocked, ...list.real].map((spec) => `\`${spec}\``);
+  if (any(repeat)) rows.push(['repeat ×10 at 2 workers', specs(repeat)]);
+  if (any(prove)) rows.push(['red before green', specs(prove)]);
   const table = rows.map(([what, reasons]) => `| ${what} | ${reasonsText(reasons)} |`);
   return [`${head}| Runs | Why |`, '|---|---|', ...table, ''].join('\n');
 }
@@ -437,7 +477,7 @@ function report(output, table) {
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, table);
 }
 
-function main() {
+async function main() {
   const root = fileURLToPath(new URL('..', import.meta.url));
   const options = runOptions(inputsFromEnv());
   // What the checked-out branch changes since it left main (three dots: newer commits on main don't count). CI checks
@@ -449,7 +489,15 @@ function main() {
     .split('\0')
     .filter(Boolean);
   const map = JSON.parse(readFileSync(path.join(root, MAP_FILE), 'utf8'));
-  const selection = forScope(selectAffected({ changed, repo: readRepo(root), map, full: options.full }), options);
+  const repo = readRepo(root);
+  // The saved mutations, for which specs to prove again (loaded here only: the gate job checks out scripts/ alone).
+  const { specsToProve } = await import('../testkit/changed-proofs.mjs');
+  const { parseMutations } = await import('../testkit/judge.mjs');
+  const mutationFiles = Object.keys(repo)
+    .filter((file) => file.startsWith(`${MUTATIONS_DIR}/`) && file.endsWith('.json'))
+    .map((file) => ({ path: file, mutations: parseMutations(JSON.parse(readFileSync(path.join(root, file), 'utf8'))).mutations }));
+  const picked = withProofs(selectAffected({ changed, repo, map, full: options.full }), { changed, repo, prove: specsToProve({ changed, mutationFiles }) });
+  const selection = forScope(picked, options);
   const output = githubOutput(selection, options);
   const table = summary(selection, options);
   process.stdout.write(`${changed.length} changed files\n${output}\n${table}`);

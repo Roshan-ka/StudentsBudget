@@ -129,3 +129,33 @@ export function checkSkips(files, allowList) {
   }
   return problems;
 }
+
+const FIX_BY = /^(.+?),\s*fix by (\d{4}-\d{2}-\d{2})\b/;
+
+/**
+ * Every test tagged `@quarantine` carries a `quarantine` annotation naming its owner and a fix-by date,
+ * `{ type: 'quarantine', description: '<owner>, fix by <YYYY-MM-DD>[: why]' }`, and the date hasn't passed. A
+ * quarantined test runs apart and doesn't block (testkit/README.md, "Result kinds"); the date keeps it from staying
+ * there.
+ * @param files [{ path, source }]; `today` YYYY-MM-DD
+ */
+export function checkQuarantine(files, today) {
+  const problems = [];
+  for (const { path, source } of files) {
+    const lines = source.split(/\r?\n/);
+    lines.forEach((text, i) => {
+      if (COMMENT.test(text) || !text.includes("'@quarantine'")) return;
+      const call = lines.slice(Math.max(0, i - 3), i + 6).join('\n');
+      const description = /type:\s*'quarantine',\s*description:\s*'([^']*)'/.exec(call)?.[1];
+      const where = `${path}:${i + 1}`;
+      if (description === undefined) {
+        problems.push(`${where}: a quarantined test needs annotation { type: 'quarantine', description: '<owner>, fix by <YYYY-MM-DD>' }`);
+        return;
+      }
+      const parts = FIX_BY.exec(description);
+      if (!parts) problems.push(`${where}: the quarantine note must name an owner and a date: '<owner>, fix by <YYYY-MM-DD>'`);
+      else if (parts[2] < today) problems.push(`${where}: past its fix-by date (${parts[2]}): fix the test, or take it out`);
+    });
+  }
+  return problems;
+}

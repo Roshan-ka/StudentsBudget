@@ -8,6 +8,8 @@ import {
   importsOf,
   readRepo,
   requiredJobs,
+  changedSpecs,
+  withProofs,
   routePages,
   runOptions,
   selectAffected,
@@ -500,11 +502,25 @@ describe('githubOutput', () => {
   it('writes the selection, the list as Playwright arguments, the browsers and languages, and the jobs the gate needs', () => {
     expect(githubOutput(select(['src/features/check-in/week-rows.ts']), runOptions({}))).toBe(
       'run=true\ne2e=e2e/check-in\\.spec\\.ts$ e2e/smoke\\.spec\\.ts$\noffline=false\ndb=false\nreal=false\nroles=false\nstack=false\n' +
-        'projects=--project=desktop-chrome\nlanguages=default\njobs=["checks","e2e","e2e-report"]\n',
+        'projects=--project=desktop-chrome\nlanguages=default\nrepeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\n' +
+        'jobs=["checks","e2e","e2e-report"]\n',
     );
     expect(githubOutput(select(['README.md'], { full: true }), runOptions({ scope: 'full' }))).toBe(
       'run=true\ne2e=all\noffline=true\ndb=true\nreal=true\nroles=true\nstack=true\nprojects=\nlanguages=all\n' +
-        'jobs=["checks","e2e","e2e-report","offline","stack"]\n',
+        'repeat_mocked=\nrepeat_real=\nprove_mocked=\nprove_real=\njobs=["checks","e2e","e2e-report","offline","stack"]\n',
+    );
+  });
+
+  it('writes the specs for the repeat check and red before green', () => {
+    const repo = { ...REPO, 'e2e-real/two-step.spec.ts': '' };
+    const selection = withProofs(select(['e2e/tips.spec.ts']), {
+      changed: ['e2e/tips.spec.ts', 'e2e-real/two-step.spec.ts'],
+      repo,
+      prove: ['e2e/tips.spec.ts', 'e2e-real/two-step.spec.ts'],
+    });
+    expect(githubOutput(selection, runOptions({}))).toContain(
+      'repeat_mocked=e2e/tips.spec.ts\nrepeat_real=e2e-real/two-step.spec.ts\nprove_mocked=e2e/tips.spec.ts\nprove_real=e2e-real/two-step.spec.ts\n' +
+        'jobs=["checks","e2e","e2e-report","repeat","red-green"]\n',
     );
   });
 });
@@ -615,5 +631,34 @@ describe('a quick run’s verdict', () => {
     };
     expect(verdict('quick', needs)).toEqual({ state: 'success', problems: [] });
     expect(verdict('quick', { ...needs, checks: { result: 'failure' } }).state).toBe('failure');
+  });
+});
+
+// The proof jobs (runs started by hand): the changed test files ×10 at 2 workers, and red before green for the specs
+// whose saved mutations a change reaches (testkit/changed-proofs.mjs).
+describe('the repeat check and red before green', () => {
+  const repo = { ...REPO, 'e2e/offline.spec.ts': '', 'e2e-real/roles/roles.spec.ts': '' };
+
+  it('repeats the test files the branch changes, by config, without a deleted one or the offline spec', () => {
+    expect(changedSpecs(['e2e/tips.spec.ts', 'e2e/offline.spec.ts', 'e2e/gone.spec.ts', 'e2e-real/roles/roles.spec.ts', 'src/data/tips.ts'], repo)).toEqual({
+      mocked: ['e2e/tips.spec.ts'],
+      real: ['e2e-real/roles/roles.spec.ts'],
+    });
+  });
+
+  it('needs the repeat and red-green jobs only when there are tests for them', () => {
+    const none = withProofs(select(['src/lib/money.test.ts']), { changed: ['src/lib/money.test.ts'], repo, prove: [] });
+    expect(requiredJobs(none)).toEqual(['checks']);
+    const some = withProofs(select(['e2e/tips.spec.ts']), { changed: ['e2e/tips.spec.ts'], repo, prove: ['e2e/gone.spec.ts'] });
+    expect(some.prove).toEqual({ mocked: [], real: [] });
+    expect(requiredJobs(some)).toEqual(['checks', 'e2e', 'e2e-report', 'repeat']);
+  });
+
+  it('leaves both out of a quick run', () => {
+    const picked = withProofs(select(['e2e/tips.spec.ts']), { changed: ['e2e/tips.spec.ts'], repo, prove: ['e2e/tips.spec.ts'] });
+    const quick = forScope(picked, runOptions({ scope: 'quick' }));
+    expect(requiredJobs(quick)).toEqual(['checks']);
+    expect(summary(picked)).toContain('| repeat ×10 at 2 workers | `e2e/tips.spec.ts` |');
+    expect(summary(picked)).toContain('| red before green | `e2e/tips.spec.ts` |');
   });
 });

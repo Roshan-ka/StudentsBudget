@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { checkMutationFile, checkSkips } from '../testkit/checks.mjs';
+import { checkMutationFile, checkQuarantine, checkSkips } from '../testkit/checks.mjs';
 import { missingActions, parseMatrix, proofProblems } from '../testkit/role-matrix.mjs';
 
 // StudentsBudget's side of testkit/ (testkit/README.md): the kit stays free of this app's names, every saved mutation
@@ -99,5 +99,14 @@ describe('e2e-real/roles/matrix.json', () => {
     const guarded = guardedInMigrations();
     expect(guarded.length).toBeGreaterThan(0);
     expect(missingActions(rows, guarded)).toEqual([]);
+  });
+});
+
+describe('quarantined tests', () => {
+  it('each name an owner and a fix-by date that has not passed', () => {
+    const files = [...filesUnder('e2e'), ...filesUnder('e2e-real')]
+      .filter((f) => f.endsWith('.ts'))
+      .map((f) => ({ path: f, source: read(f) }));
+    expect(checkQuarantine(files, new Date().toISOString().slice(0, 10))).toEqual([]);
   });
 });

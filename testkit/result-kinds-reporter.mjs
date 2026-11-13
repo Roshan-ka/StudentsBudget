@@ -31,7 +31,13 @@ export default class ResultKindsReporter {
       const flaky = results.length > 1 && last?.status === 'passed';
       const file = path.relative(repo, test.location.file).replace(/\\/g, '/');
       const kind = kindOf({ file, tags: test.tags, expectedStatus: test.expectedStatus, annotations: test.annotations }, last, { flaky, allowList: this.allowList });
-      this.rows.push({ title: test.titlePath().slice(3).join(' › ') || test.title, project: test.parent.project()?.name ?? '', ...kind });
+      this.rows.push({
+        title: test.titlePath().slice(3).join(' › ') || test.title,
+        project: test.parent.project()?.name ?? '',
+        ...kind,
+        // For the duration flag: what the last run took, against the test's own timeout.
+        ...(last?.status === 'passed' ? { duration: last.duration, timeout: test.timeout } : {}),
+      });
     }
     const markdown = summaryMarkdown(this.title, this.rows);
     if (this.outputFile) {

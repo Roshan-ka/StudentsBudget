@@ -13,7 +13,8 @@ describe('treeChanges', () => {
   });
 });
 
-describe('the tree check as a globalSetup', () => {
+// Each case runs git in a scratch checkout: on a busy machine (a build beside it) that takes seconds, not milliseconds.
+describe('the tree check as a globalSetup', { timeout: 30_000 }, () => {
   let dir;
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 

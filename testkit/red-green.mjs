@@ -124,7 +124,9 @@ async function main() {
   const playwrightOnce = async (out, files) => {
     fs.rmSync(out, { force: true });
     const port = await freePort();
-    const args = [cli, 'test', '-c', options.config, '--reporter=line,json', '--retries=0', ...options.projects.flatMap((p) => ['--project', p]), ...files];
+    // `--project=<name>`, joined: Playwright's --project takes several values, so a spec after `--project <name>` would
+    // be read as a project name (seen in the 1c live check's demos, 2026-11-13).
+    const args = [cli, 'test', '-c', options.config, '--reporter=line,json', '--retries=0', ...options.projects.map((p) => `--project=${p}`), ...files];
     const env = { ...process.env, E2E_PORT: String(port), PLAYWRIGHT_JSON_OUTPUT_FILE: out, PLAYWRIGHT_JSON_OUTPUT_NAME: out };
     const started = Date.now();
     const done = spawnSync(process.execPath, args, { cwd: root, stdio: ['ignore', 'inherit', 'inherit'], env });
@@ -199,6 +201,12 @@ async function main() {
   const totals = summarize(rows);
   console.log(`  ${totals.proven} proven, ${totals.notProven} not proven, ${totals.stale} stale, ${totals.inconclusive} inconclusive, ${totals.knownBug} known bug`);
   fs.writeFileSync(path.join(work, 'summary.json'), `${JSON.stringify({ rows, totals }, null, 2)}\n`);
+  // In CI, the same table in the job summary.
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    const table = rows.map((r) => `| ${MARK[r.verdict]} | \`${r.spec}\` | ${r.id} | ${r.mutation} | ${r.reason ?? ''} |`);
+    const head = `### Red before green\n\n${totals.proven} proven, ${totals.notProven} not proven, ${totals.stale} stale, ${totals.inconclusive} inconclusive, ${totals.knownBug} known bug\n\n`;
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${head}| | Spec | Proof | Mutation | Why |\n|---|---|---|---|---|\n${table.join('\n')}\n\n`);
+  }
   if (after !== before) fail(3, `the tree changed during the run:\n${after}`);
   process.exit(totals.ok ? 0 : 1);
 }
