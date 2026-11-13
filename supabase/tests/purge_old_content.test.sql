@@ -44,16 +44,16 @@ values
 -- Reports: five on 06 (the fifth 31 days ago), five on 07 before it was kept, four on 08, five on 09 (the fifth 29
 -- days ago).
 insert into public.hack_reports (user_id, hack_id, created_at)
-select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '20000000-0000-4000-8000-000000000006', now() - make_interval(days => 36 - n)
+select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '20000000-0000-4000-8000-000000000006'::uuid, now() - make_interval(days => 36 - n)
 from generate_series(1, 5) n
 union all
-select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '20000000-0000-4000-8000-000000000007', now() - make_interval(days => 40 - n)
+select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '20000000-0000-4000-8000-000000000007'::uuid, now() - make_interval(days => 40 - n)
 from generate_series(1, 5) n
 union all
-select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '20000000-0000-4000-8000-000000000008', now() - make_interval(days => 45 - n)
+select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '20000000-0000-4000-8000-000000000008'::uuid, now() - make_interval(days => 45 - n)
 from generate_series(1, 4) n
 union all
-select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '20000000-0000-4000-8000-000000000009', now() - make_interval(days => 34 - n)
+select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '20000000-0000-4000-8000-000000000009'::uuid, now() - make_interval(days => 34 - n)
 from generate_series(1, 5) n;
 
 -- Comments: one on the deleted post 02 (it goes with it), and on the live post 01 one per case.
@@ -72,7 +72,7 @@ values
   ('40000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-00000000000a', 'Report-hidden place', 'Ten percent off', 'food', 'https://example.com/c', 'en', now() - interval '60 days', null, null),
   ('40000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-00000000000a', 'Hidden 29 days ago', 'Ten percent off', 'food', 'https://example.com/d', 'en', now() - interval '60 days', null, now() - interval '29 days');
 insert into public.community_discount_reports (user_id, discount_id, created_at)
-select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '40000000-0000-4000-8000-000000000003', now() - make_interval(days => 36 - n)
+select ('00000000-0000-4000-8000-00000000000' || n)::uuid, '40000000-0000-4000-8000-000000000003'::uuid, now() - make_interval(days => 36 - n)
 from generate_series(1, 5) n;
 
 -- AI uses: one three days old, one an hour old.
