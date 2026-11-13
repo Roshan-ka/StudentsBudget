@@ -268,8 +268,9 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
 test('a line on a foreign account waits for a rate, then catches up', async ({ page }) => {
   await page.clock.setFixedTime(on(2026, 10, 16));
   await seedSetup(page);
-  // From here Frankfurter is down and the rate setup fetched is gone: INR has no rate.
-  await page.unrouteAll();
+  // From here Frankfurter is down and the rate setup fetched is gone: INR has no rate. The abort is added on top of
+  // setup's mock, which it overrides as the newer route: dropping the mock first left a moment in which the app's own
+  // rate fetch reached the real Frankfurter and wrote a rate back after the clear (run 43404176671, iPhone).
   await page.route(FRANKFURTER, (route) => route.abort());
   await clearStore(page, 'fxRates');
   await openSettings(page);
@@ -305,6 +306,8 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   await rent.getByRole('button', { name: 'Save', exact: true }).click();
   // Saved before the clock moves: a reload while the save is in flight would start the app without the schedule.
   await expect(list(page, 'Fixed costs').getByText('€400.00 · Monthly on day 1 · Local bank', { exact: true })).toBeVisible();
+  // Cleared again once setup's own rate fetch has long settled, so no rate can come back before 1 November.
+  await clearStore(page, 'fxRates');
   await openOn(page, on(2026, 11, 1));
   await expect.poll(() => posted(page, 'rent'), POSTING).toEqual([['2026-11-01', 40000]]);
   expect(await posted(page, 'income-parents')).toEqual([]);
