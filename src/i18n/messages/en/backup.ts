@@ -33,7 +33,8 @@ export const backup = {
     readFailed: 'Could not read that file.',
     failed: 'Could not restore the backup. The data on this device is unchanged.',
     setupHeading: 'Have a backup? Restore it',
-    setupIntro: 'Used StudentsBudget before? Choose your backup file to carry on where you left off.',
+    /** Setup's quiet button that opens the file field (13-11-2026). */
+    setupButton: 'Restore a backup',
   },
   delete: {
     heading: 'Delete everything',

@@ -1,23 +1,17 @@
 import { Suspense } from 'react';
-import { LanguagePicker } from '@/components/language-picker';
-import { SetupAccountLink } from '@/features/account/setup-account-link';
-import { SetupRestoreSection } from '@/features/backup/setup-restore-section';
 import { InstallHint } from '@/features/setup/install-hint';
 import { SetupWizard } from '@/features/setup/setup-wizard';
 
 export default function SetupPage() {
   return (
     <div className="flex flex-col gap-4">
-      {/* Before anything to read: the wizard, its prefilled names and its checks follow the language picked here. */}
-      <LanguagePicker />
+      {/* The language is the globe in the header (StartLanguageMenu). The account line and the restore sit under the
+          wizard's first step (13-11-2026). */}
       <InstallHint />
-      <SetupAccountLink />
       {/* The wizard reads ?edit=1 with useSearchParams, which needs a Suspense boundary under cacheComponents. */}
       <Suspense fallback={null}>
         <SetupWizard />
       </Suspense>
-      {/* Below the wizard: someone setting up for the first time meets the wizard first. */}
-      <SetupRestoreSection />
     </div>
   );
 }
