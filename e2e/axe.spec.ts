@@ -78,7 +78,11 @@ for (const theme of ['light', 'dark'] as const satisfies readonly Theme[]) {
     // Ask's sheet, opened from the chat bubble (13-11-2026): a guest's, which says how to sign in.
     await page.goto('/');
     await page.getByRole('button', { name: t.ask.link, exact: true }).click();
-    await expect(page.getByRole('dialog', { name: t.shell.headings.ask, exact: true })).toBeVisible();
+    const sheet = page.getByRole('dialog', { name: t.shell.headings.ask, exact: true });
+    await expect(sheet).toBeVisible();
+    // The sheet fades in (200 ms): mid-fade, axe reads its text as too faint (once in ten repeats, in dark). It waits
+    // for the sheet's own transitions to end, which are finite.
+    await sheet.evaluate((element) => Promise.all(element.getAnimations({ subtree: true }).map((a) => a.finished)));
     expect.soft(await findings(page), 'Ask sheet').toEqual([]);
   });
 }
