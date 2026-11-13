@@ -12,6 +12,7 @@ What's here now:
 | `network-guard.mjs` | Stops any request to a host outside the test setup, and fails the test that made it. |
 | `tree-check.mjs` | A Playwright `globalSetup`: the run fails when a test wrote a file into the repo. |
 | `result-kinds.mjs`, `result-kinds-reporter.mjs` | Sorts each test into a result kind, writes the summary, and fails a run that isn't all verified. |
+| `leak-check.mjs` | Finds secrets and authenticator codes in what a run printed or kept, for the leak check before a run with real credentials. |
 
 The other parts the plan names (the role-matrix runner, the walker for the random clicker) join when a phase uses them.
 
@@ -174,3 +175,21 @@ reporter: [['list'], ['../testkit/result-kinds-reporter.mjs', { title, allowList
 
 - It writes the summary to `outputFile` (for a CI job summary) and prints it.
 - It turns a run Playwright would pass into a failed one when anything failed, is inconclusive or didn't run.
+
+## Leak check (`leak-check.mjs`)
+
+Before a config that types real credentials (a smoke on a live site) runs for real, run it once with throwaway ones, failing on purpose at its very end, and search everything it printed and every file it kept. Nothing may hold a secret. Logging masks (GitHub's included) aren't relied on.
+
+```js
+import { codesBetween, filesUnder, findLeaks, recordings, redact } from '../testkit/leak-check.mjs';
+
+const secrets = [{ name: 'password', value: password }, ...codesBetween(key, started, ended).map((value) => ({ name: 'code', value, digits: true }))];
+const leaks = findLeaks([{ where: 'output', text: output }, ...files.map((f) => ({ where: f, text: read(f) }))], secrets);
+```
+
+- **The codes are computed here** (`totp`, RFC 6238, SHA-1, 30 s): every code the key gave while the run lasted, one window either side. The app's adapter should hold the kit's codes to its own in a test.
+- **A code counts only on its own:** no digit right before or after it, so a timestamp holding the six digits isn't a find.
+- **A line starting with `::add-mask::` doesn't count:** the runner takes it and never shows it.
+- **`recordings(files)`** names traces, screenshots and videos: a run with real credentials keeps none.
+- **`redact(text, secrets)`** gives the output safe to print, each secret replaced by its name.
+- **The run must reach its end,** where it fails on purpose after every secret was typed. A run that failed earlier proves nothing, and the app's driver must say so instead of passing.

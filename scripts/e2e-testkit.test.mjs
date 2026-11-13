@@ -2,7 +2,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { totpCode } from '../src/sync/totp.ts';
 import { checkMutationFile, checkQuarantine, checkSkips } from '../testkit/checks.mjs';
+import { totp } from '../testkit/leak-check.mjs';
 import { missingActions, parseMatrix, proofProblems } from '../testkit/role-matrix.mjs';
 
 // StudentsBudget's side of testkit/ (testkit/README.md): the kit stays free of this app's names, every saved mutation
@@ -53,8 +55,8 @@ describe('e2e/mutations/', () => {
 });
 
 describe('e2e/skip-allow-list.json', () => {
-  it('lists every skip in the e2e specs and helpers, mocked and real, and nothing else', () => {
-    const files = [...filesUnder('e2e'), ...filesUnder('e2e-real')]
+  it('lists every skip in the e2e specs and helpers, mocked, real and live, and nothing else', () => {
+    const files = [...filesUnder('e2e'), ...filesUnder('e2e-real'), ...filesUnder('e2e-live')]
       .filter((f) => f.endsWith('.ts'))
       .map((f) => ({ path: f, source: read(f) }));
     expect(checkSkips(files, JSON.parse(read('e2e/skip-allow-list.json')))).toEqual([]);
@@ -108,5 +110,61 @@ describe('quarantined tests', () => {
       .filter((f) => f.endsWith('.ts'))
       .map((f) => ({ path: f, source: read(f) }));
     expect(checkQuarantine(files, new Date().toISOString().slice(0, 10))).toEqual([]);
+  });
+});
+
+/** The lines of a workflow's top-level block `key:` (or of a job, `  name:`), up to the next line as far out. */
+function block(text, key) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => line === `${key}:`);
+  if (start === -1) return [];
+  const indent = key.length - key.trimStart().length;
+  const out = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line.trim() && !line.trim().startsWith('#') && line.length - line.trimStart().length <= indent) break;
+    out.push(line);
+  }
+  return out;
+}
+/** The keys one level inside a block. */
+const keysOf = (lines) => {
+  const inner = Math.min(...lines.filter((line) => line.trim() && !line.trim().startsWith('#')).map((line) => line.length - line.trimStart().length));
+  return lines.filter((line) => line.length - line.trimStart().length === inner && /^\s*[\w-]+:/.test(line)).map((line) => line.trim().split(':')[0]);
+};
+
+// The live smoke types a real password and key (the skill's scheduled-runs.md, A9 and E6): its config records nothing,
+// its workflow uploads nothing, starts only on a schedule or by hand, keeps the secrets in the live-smoke environment,
+// runs one at a time, and runs the leak check first.
+describe('the live smoke (e2e-live/, .github/workflows/live-smoke.yml)', () => {
+  const config = read('e2e-live/playwright.config.ts');
+  const workflow = read('.github/workflows/live-smoke.yml');
+
+  it('records nothing, with one worker and one browser', () => {
+    for (const setting of ["trace: 'off'", "screenshot: 'off'", "video: 'off'", 'workers: 1,', "process.env.PLAYWRIGHT_NO_COPY_PROMPT = '1'"]) {
+      expect(config, setting).toContain(setting);
+    }
+    expect(config.match(/name: '[\w-]+'/g)).toEqual(["name: 'desktop-chrome'"]);
+  });
+
+  it('starts on a schedule or by hand only, one run at a time, and uploads nothing', () => {
+    expect(keysOf(block(workflow, 'on'))).toEqual(['schedule', 'workflow_dispatch']);
+    expect(block(workflow, 'concurrency').map((line) => line.trim())).toEqual(['group: live-smoke', 'cancel-in-progress: false', '']);
+    expect(workflow).not.toMatch(/upload-artifact|pull_request/);
+  });
+
+  it('runs the smoke after the leak check, with the secrets of the live-smoke environment and nowhere else', () => {
+    expect(keysOf(block(workflow, 'jobs'))).toEqual(['leak-check', 'smoke']);
+    const smoke = block(workflow, '  smoke').join('\n');
+    expect(smoke).toMatch(/^ {4}needs: leak-check$/m);
+    expect(smoke).toMatch(/^ {4}environment: live-smoke$/m);
+    expect(block(workflow, '  leak-check').join('\n')).toContain('node e2e-live/leak-check.mjs');
+    const secrets = workflow.match(/secrets\.\w+/g);
+    expect(secrets).toEqual(['secrets.E2E_LIVE_EMAIL', 'secrets.E2E_LIVE_PASSWORD', 'secrets.E2E_LIVE_TOTP_SECRET']);
+    expect(smoke.match(/secrets\.\w+/g)).toEqual(secrets);
+  });
+
+  it('looks for the same codes the smoke types: the kit computes them as src/sync/totp.ts does', () => {
+    const key = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
+    for (const time of [0, 59_000, 1_763_000_000_000, Date.now()]) expect(totp(key, time), String(time)).toBe(totpCode(key, time));
   });
 });
