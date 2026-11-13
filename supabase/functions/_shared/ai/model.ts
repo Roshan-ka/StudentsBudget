@@ -7,7 +7,8 @@ import type { z } from 'zod';
 
 /** What a feature asks of the model. The entry adds the structured-output format from `answer`. */
 export type ModelCall = {
-  model: 'claude-haiku-5-5' | 'claude-opus-5-5';
+  /** Claude's ids until the Groq switch's chunk 2 wires Groq in and drops them (docs/superpowers/plans/2026-11-13-groq-free-plan.md). */
+  model: 'claude-haiku-5-5' | 'claude-opus-5-5' | 'openai/gpt-oss-20b' | 'openai/gpt-oss-120b';
   maxTokens: number;
   /** Always sent: each model has its own default, and the call says what it wants. */
   effort: 'low' | 'medium' | 'high';
@@ -36,6 +37,8 @@ export type ModelMessage = {
     output_tokens: number;
     cache_read_input_tokens?: number | null;
     cache_creation_input_tokens?: number | null;
+    /** The tokens a reasoning model spent thinking, where the API says (Groq's gpt-oss). */
+    reasoning_tokens?: number | null;
     /** One entry per model that ran; a `fallback_message` entry when a fallback model answered. */
     iterations?: { type: string }[] | null;
   };
@@ -47,6 +50,32 @@ export interface ModelClient {
 
 /** The model can't be reached right now: rate limited, overloaded, down, or the connection failed. */
 export class ModelUnavailable extends Error {}
+
+/**
+ * The provider's rate limit refused the call (HTTP 429): busy, worth trying again shortly. `retryAfterMs` is its
+ * `retry-after`, when it sent one.
+ */
+export class ModelBusy extends ModelUnavailable {
+  readonly retryAfterMs: number | null;
+  constructor(message: string, retryAfterMs: number | null = null) {
+    super(message);
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
+/**
+ * The provider refused the request itself (a 4xx other than 429: a bad key, a schema it won't take, a model gone).
+ * `code` is its error code, kept only when it is a plain token, so a log never carries text from a request.
+ */
+export class ModelApiError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+  constructor(status: number, code: string | null) {
+    super(`the model's API answered ${status}${code === null ? '' : ` (${code})`}`);
+    this.status = status;
+    this.code = code;
+  }
+}
 
 export type Reading<T> = { ok: true; value: T } | { ok: false; problem: 'refused' | 'failed' };
 
