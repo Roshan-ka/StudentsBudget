@@ -5,11 +5,15 @@ import { CITIES } from '@/data/cities';
 import { DISCOUNTS } from '@/data/discounts';
 import { SWAPS } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
+import { CITY_WORDS } from '@/i18n/city';
 import { CITY_PACK } from '../../../../supabase/functions/_shared/ai/city-pack';
-import { renderPack } from '../../../../supabase/functions/_shared/ai/pack';
-import { buildCategories, buildCityPack, cityPackFile, LEFT_OUT_PRICES } from './city-pack-build';
+import { foldWords, renderPack, renderPackBrief } from '../../../../supabase/functions/_shared/ai/pack';
+import { buildCategories, buildCityPack, cityPackFile, LEFT_OUT_PRICES, TOPIC_WORDS } from './city-pack-build';
 
-// The Regensburg data the AI may quote (the AI phase, chunk 8), written from src/data.
+// The Regensburg data the AI may quote (the AI phase, chunk 8), written from src/data; each item's words since the Groq
+// switch, chunk 3.
+
+const ALCOHOL = /\b(beer|bier|wine|wein|alcohol|alkohol|cocktails?|spirits|schnaps|happy hour|drinks?|drinking)\b/i;
 
 describe('the city pack', () => {
   it('is what src/data says now (run `node scripts/write-city-pack.mjs` when this fails)', () => {
@@ -34,7 +38,7 @@ describe('the city pack', () => {
 
   it('holds nothing about alcohol, and no links', () => {
     const text = renderPack(CITY_PACK);
-    expect(text).not.toMatch(/\b(beer|bier|wine|wein|alcohol|alkohol|cocktails?|spirits|schnaps|happy hour)\b/i);
+    expect(text).not.toMatch(ALCOHOL);
     expect(text).not.toMatch(/https?:\/\/|www\./);
   });
 
@@ -58,5 +62,48 @@ describe('the city pack', () => {
     expect(text('keep-kindergeld')).toMatch(/^Checklist for new students \(money to claim, for students under 25\): /);
     expect(text('rundfunkbeitrag-exemption')).toMatch(/^Checklist for new students \(money to claim, for students on BAföG\): /);
     for (const item of CITY_PACK.filter((i) => i.kind === 'checklist')) expect(item.categoryId, item.id).toBeNull();
+  });
+
+  it('gives every item its words: its own text’s, sorted, each once', () => {
+    for (const item of CITY_PACK) {
+      const words = item.words.split(' ');
+      expect(words.length, item.id).toBeGreaterThan(0);
+      expect(words, item.id).toEqual([...new Set(words)].sort());
+      expect(words, item.id).toEqual(expect.arrayContaining(foldWords(item.text)));
+    }
+  });
+
+  it('adds the titles in the app’s other languages and the category’s names, so a question in any of them finds it', () => {
+    const wordsOf = (id: string) => CITY_PACK.find((item) => item.id === id)?.words.split(' ') ?? [];
+    for (const words of Object.values(CITY_WORDS)) {
+      for (const tip of TIPS) {
+        const title = words?.tips[tip.id]?.title;
+        if (title !== undefined) expect(wordsOf(`tip:${tip.id}`), tip.id).toEqual(expect.arrayContaining(foldWords(title)));
+      }
+      for (const discount of DISCOUNTS) {
+        const offer = words?.discounts[discount.id]?.offer;
+        if (offer === undefined) continue;
+        expect(wordsOf(`discount:${discount.id}`), discount.id).toEqual(expect.arrayContaining(foldWords(offer)));
+      }
+    }
+    expect(wordsOf('range:food')).toEqual(expect.arrayContaining(foldWords('Lebensmittel Alimentation Alimentación')));
+  });
+
+  it('has topic words for every category in the pack and every kind, none about alcohol', () => {
+    for (const item of CITY_PACK) {
+      if (item.categoryId !== null) expect(TOPIC_WORDS[item.categoryId], item.categoryId).toBeTruthy();
+      expect(TOPIC_WORDS[`kind:${item.kind}`], item.kind).toBeTruthy();
+    }
+    for (const [key, words] of Object.entries(TOPIC_WORDS)) expect(words, key).not.toMatch(ALCOHOL);
+    for (const item of CITY_PACK) expect(item.words, item.id).not.toMatch(ALCOHOL);
+  });
+
+  it('sends the model an item’s text without its source, and never its words', () => {
+    const brief = renderPackBrief(CITY_PACK);
+    expect(brief.split('\n')).toHaveLength(CITY_PACK.length);
+    expect(brief).toContain('[range:eating-out] Eating out in Regensburg: €30–€135 a month. (estimate)\n');
+    expect(brief).not.toContain('Source:');
+    expect(brief).not.toContain(CITY_PACK[0].words);
+    expect(renderPack(CITY_PACK)).not.toContain(CITY_PACK[0].words);
   });
 });

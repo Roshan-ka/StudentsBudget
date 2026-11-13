@@ -237,3 +237,20 @@ Both most likely aim at consumers and at dodging limits with extra accounts, not
   - **Tests:** the builders' calls, the handle test (a 429 → `busy`, a refused request → `failed` with status and code, the log's fields), `model.test.ts` without fallbacks, `groq.test.ts`'s sample call.
   - **Left for a follow-up:** `@anthropic-ai/sdk` stays in `package.json` and the lockfile, unused. Removing it is an npm install (heavy lane, Roshan's approval today), and npm 12 may refuse the lockfile change (EALLOWREMOTE).
   - **Left for chunk 6:** the texts that name Anthropic (the notice, the `ai` note, the switch, their e2e specs). AI stays off in Production meanwhile.
+- **Chunk 3** (13-11-2026), picking the city items, not wired into Ask yet:
+  - **`pack.ts`:**
+    - `PackItem.words`: the item's words, joined by spaces, sorted; never sent to the model.
+    - `foldWords(text)`: NFKD with the marks dropped, lower case, ß as ss; words of 3 letters or more, no number alone, no stop word (English, German, French and Spanish, plus Regensburg and euro); each without one ending (en, er, es, e, s, n) when 4 letters stay; each once. Questions and items fold alike.
+    - `renderPackBrief(items)`: `[id] text (estimate)`, without the source and checked day, which the app shows from its own data.
+  - **`city-pack-build.ts`:** each item's words come from its English text, its title in German, French and Spanish (`CITY_WORDS`: tips, swaps and checklist items; a discount's place and offer), its category's names in all four (`src/i18n/messages/<code>/categories.ts`) and `TOPIC_WORDS` (one line per category in the pack and per kind, in the four languages, no alcohol). 64 words an item on average, 125 at most; `city-pack.ts` grows to 80 KB.
+  - **`write-city-pack.mjs`** registers the app's imports (`mcp/app-imports.ts`) before it loads the builder, since the city words import without extensions. Run it after changing `src/data`, `src/i18n/city` or the category names.
+  - **`pack-select.ts`, `selectPack({ question, earlier, spend }, pack, limits)`:**
+    - Each word of the question counts 2, each word of an earlier question 1, times its rarity (`log(1 + items / items it matches)`), against every item it matches.
+    - `wordMatch`: the same word is 1; a half when the shorter (5 letters or more) starts the longer ("cheap", "cheaply") or the shorter (6 or more) ends it ("beitrag", "semesterbeitrag").
+    - Equal scores go by this month's spending in the item's category (`spend`, euros by category id: the snapshot's envelopes in chunk 4), then by the pack's order.
+    - No match: the 7 ranges and 3 prices. At most 10 items and 3,000 characters (`PICK_LIMITS`); an item that would go over is skipped.
+    - Measured: the whole pack is 32,445 characters with its sources and 15,781 brief; the sample questions' picks take 1,602 to 2,934 characters, the fallback 655.
+  - **Tests:**
+    - `pack-select.test.ts`: folding and stop words in the four languages, endings, `wordMatch`, cheap food and every semester fee in the four languages, Westbad first in each, ties by spending, the question over the earlier ones and a follow-up, the fallback, the limits and a skipped long item, the same picks each time;
+    - `city-pack.test.ts`: every item's words (sorted, once, its own text's), the other languages' titles and offers and the category names in them, `TOPIC_WORDS` for every category and kind with no alcohol word, and the brief form without sources or words.
+  - **CLAUDE.md:** the writer's rule names `src/i18n/city`, and the checklist rule says the pack and the MCP server carry the checklist (they have since the checklist was built).
