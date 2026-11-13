@@ -77,7 +77,7 @@ test('the chat fills the steps, and nothing is saved before Save plan', async ({
 
   // The first time on this phone, the note on where it goes, and nothing sent before Continue.
   const note = page.getByRole('group', { name: 'About your data', exact: true });
-  await expect(note).toContainText('Anthropic (Claude), in the USA');
+  await expect(note).toContainText('Groq, an AI service, in the USA');
   expect(ai).toEqual([]);
   await note.getByRole('button', { name: 'Continue', exact: true }).click();
 

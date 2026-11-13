@@ -98,7 +98,7 @@ export const common = {
       'message arrives, but not what it says.',
     ai:
       'The AI features send what you write, with what each needs from your budget (such as your category and ' +
-      'account names, or your plan’s figures), to Anthropic (Claude), in the USA, to be answered. Account and card ' +
+      'account names, or your plan’s figures), to Groq, an AI service, in the USA, to be answered. Account and card ' +
       'numbers, email addresses and phone numbers are taken out first. Your account counts how often you use each ' +
       'feature a day. You can turn them off in Settings → Your account.',
   },

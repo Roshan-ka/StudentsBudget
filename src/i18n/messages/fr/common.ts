@@ -90,7 +90,7 @@ export const common: Messages['common'] = {
       'qui voit qu’un message arrive, mais pas ce qu’il dit.',
     ai:
       'Les fonctions d’IA envoient ce que tu écris, avec ce dont chacune a besoin dans ton budget (comme les noms ' +
-      'de tes catégories et de tes comptes, ou les chiffres de ton plan), à Anthropic (Claude), aux États-Unis, pour ' +
+      'de tes catégories et de tes comptes, ou les chiffres de ton plan), à Groq, un service d’IA, aux États-Unis, pour ' +
       'y répondre. Les numéros de compte et de carte, les adresses e-mail et les numéros de téléphone sont retirés ' +
       'avant. Ton compte enregistre combien de fois tu utilises chaque fonction par jour. Tu peux les désactiver ' +
       'dans Réglages → Ton compte.',

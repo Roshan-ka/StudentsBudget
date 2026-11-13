@@ -60,7 +60,7 @@ describe('the legal pages’ texts', () => {
       en: { heading: id, blocks: [{ kind: 'p', text: id }] },
     });
     const sections = [at('a', 'always'), at('b', 'supabase'), at('c', 'ai'), at('d', 'reminder'), at('e', 'map')];
-    const none = { supabase: false, ai: false, reminder: false, map: false };
+    const none = { supabase: false, ai: false, aiSetup: false, reminder: false, map: false };
     expect(sectionsFor(sections, none).map((s) => s.id)).toEqual(['a']);
     expect(sectionsFor(sections, { ...none, supabase: true, map: true }).map((s) => s.id)).toEqual(['a', 'b', 'e']);
   });

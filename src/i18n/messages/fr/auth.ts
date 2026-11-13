@@ -207,8 +207,8 @@ export const auth: Messages['auth'] = {
     heading: 'Fonctions d’IA',
     use: 'Utiliser les fonctions d’IA sur ce téléphone',
     hint:
-      'Elles envoient ce que tu écris à Anthropic (Claude), aux États-Unis, dans la limite d’un quota quotidien ' +
-      'pour ton compte. Désactivées, rien ne part chez Anthropic, et l’Ajout rapide lit tes lignes sur ce téléphone.',
+      'Elles envoient ce que tu écris à Groq, un service d’IA aux États-Unis, dans la limite d’un quota quotidien ' +
+      'pour ton compte. Désactivées, rien ne part chez Groq, et l’Ajout rapide lit tes lignes sur ce téléphone.',
   },
   /** Le nom sous lequel on publie dans le fil d’astuces : demandé à la création du compte, modifiable ensuite. */
   postingName: {

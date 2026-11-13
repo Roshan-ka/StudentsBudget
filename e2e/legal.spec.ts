@@ -18,7 +18,7 @@ test('Settings leads to both pages, and Back returns there', async ({ page }) =>
   await expect(heading(page, 'Privacy notice')).toBeVisible();
   await expect(page.getByRole('heading', { level: 3, name: 'Controller', exact: true })).toBeVisible();
   // The notice (chunks 2 and 3): the phone's own storage and the rights always, and the sections of the map, the
-  // account, the reminder and the AI, which the e2e build has.
+  // account, the reminder, the AI and the setup chat, which the e2e build has.
   for (const name of [
     'What stays on your phone',
     'Hosting and server logs',
@@ -26,7 +26,8 @@ test('Settings leads to both pages, and Back returns there', async ({ page }) =>
     'Translate',
     'Your account and syncing',
     'Weekly reminder',
-    'AI features (Anthropic)',
+    'AI features (Groq)',
+    'Set up by chatting (Groq)',
     'Your rights',
   ]) {
     await expect(page.getByRole('heading', { level: 3, name, exact: true })).toBeVisible();

@@ -208,8 +208,8 @@ test('signed in, AI features holds this phone’s switch: on until turned off, a
   await expect(signedInLine(page, EMAIL)).toBeVisible();
   await expect(use).toBeChecked();
   await expect(use).toHaveAccessibleDescription(
-    'They send what you write to Anthropic (Claude), in the USA, within a daily allowance for your account. Off, ' +
-      'nothing goes to Anthropic, and quick add reads your lines on this phone.',
+    'They send what you write to Groq, an AI service in the USA, within a daily allowance for your account. Off, ' +
+      'nothing goes to Groq, and quick add reads your lines on this phone.',
   );
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 

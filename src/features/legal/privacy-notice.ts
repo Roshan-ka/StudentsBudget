@@ -11,8 +11,9 @@ export const PRIVACY_UPDATED: IsoDate = '2026-11-13';
  * change there finds its text here. Drafted from what the app does, to be checked before go-live. What others do with
  * the data is from their own pages, as read on 12-11-2026: Vercel's privacy notice (updated 01-06-2026) and Speed
  * Insights' privacy page; the FAQ on frankfurter.dev; Supabase's terms, DPA (01-08-2026), region and logging docs and
- * pricing (Free plan: logs kept a day); Anthropic's commercial terms (17-06-2025), DPA (24-02-2025) and privacy
- * center; the Data Privacy Framework list; and lda.bayern.de. A section that names one of them changes with it.
+ * pricing (Free plan: logs kept a day); the Data Privacy Framework list; and lda.bayern.de. Groq's (the AI features
+ * since the Groq switch) as read on 13-11-2026: its Services Agreement (22-06-2026), DPA (15-10-2025), privacy policy
+ * (12-11-2025) and the "Your data" page of its docs. A section that names one of them changes with it.
  */
 export function privacySections(o: Operator): LegalSection[] {
   const contact = [o.name, o.street, `${o.postcode} ${o.city}`, o.country];
@@ -477,31 +478,32 @@ export function privacySections(o: Operator): LegalSection[] {
         ],
       },
     },
-    // The AI features (the AI phase): what each sends (contract.ts, askSnapshot, draftForChat), `scrub`, the
-    // allowance in `private.ai_uses` (rows over 2 days go in the daily purge), logs without text (handle.ts), and
-    // Anthropic's terms (Anthropic Ireland, Limited for the EEA; no training; deleted within 30 days at the latest;
-    // flagged content up to 2 years), read on 12-11-2026.
+    // The AI features (the AI phase; on Groq since docs/superpowers/plans/2026-11-13-groq-free-plan.md): what quick add
+    // and Ask send (contract.ts, askSnapshot), `scrub`, Ask's last exchange (`lastTurns`), the allowance in
+    // `private.ai_uses` (rows over 2 days go in the daily purge), logs without text (handle.ts), and Groq's terms read on
+    // 13-11-2026: Groq UK Limited for customers in the EEA (Services Agreement 22-06-2026), a processor under its DPA
+    // (15-10-2025) with processing in the USA and other countries of its subprocessors, no training on inputs or
+    // outputs (§ 4.2), and no data kept by default but logs for troubleshooting or abuse for up to 30 days ("Your data").
     {
       id: 'ai',
       when: 'ai',
       de: {
-        heading: 'KI-Funktionen (Anthropic)',
+        heading: 'KI-Funktionen (Groq)',
         blocks: [
           {
             kind: 'p',
-            text: 'Angemeldet kannst du drei Funktionen mit KI nutzen. Vor der ersten Nutzung sagt dir die App, was sie sendet; abschalten kannst du sie für dieses Handy unter Einstellungen → Dein Konto. Gesendet wird:',
+            text: 'Angemeldet kannst du Funktionen mit KI nutzen. Vor der ersten Nutzung sagt dir die App, was sie sendet; abschalten kannst du sie für dieses Handy unter Einstellungen → Dein Konto. Gesendet wird:',
           },
           {
             kind: 'list',
             items: [
               'bei Schnell erfassen: die Zeile, das heutige Datum, die Sprache und die Namen deiner Ausgabenkategorien und deiner Konten mit Art und Währung, ohne deren Kennungen;',
-              'bei Fragen: deine Fragen mit den Antworten davor und eine Übersicht deines Budgets: der Plan, die Zahlen dieses und des Monats davor je Umschlag, die Woche, einmalige Kosten und bis zu 30 letzte Ausgaben und Einnahmen mit gekürzten Notizen; keine Kontostände, Konten, E-Mail-Adresse oder Nutzernamen;',
-              'bei Per Chat einrichten: deine Nachrichten mit den Antworten davor und der Entwurf deines Plans, also Beträge sowie Namen, Arten, Währungen und Anfangsstände der Konten darin.',
+              'bei Fragen: deine Fragen mit den Antworten davor und eine Übersicht deines Budgets: der Plan, die Zahlen dieses und des Monats davor je Umschlag, die Woche, einmalige Kosten und bis zu 30 letzte Ausgaben und Einnahmen mit gekürzten Notizen; keine Kontostände, Konten, E-Mail-Adresse oder Nutzernamen.',
             ],
           },
           {
             kind: 'p',
-            text: 'Eine Funktion bei Supabase prüft deine Anmeldung, zählt, wie oft du jede Funktion nutzt (nach zwei Tagen gelöscht, alle mit dem Konto), und entfernt aus allen Texten Konto- und Kartennummern, SEPA-Angaben, E-Mail-Adressen, Telefonnummern und lange Zahlenfolgen. Die Antwort erstellt dann Anthropic Ireland, Limited in meinem Auftrag (Art. 28 DSGVO), auch in den USA durch Anthropic, PBC. Anthropic nutzt die Anfragen nicht zum Training seiner Modelle und löscht Anfragen und Antworten spätestens nach 30 Tagen; was gegen seine Nutzungsrichtlinien verstößt, kann es bis zu zwei Jahre aufbewahren. Die Protokolle der Funktion enthalten keine Texte.',
+            text: 'Eine Funktion bei Supabase prüft deine Anmeldung, zählt, wie oft du jede Funktion nutzt (nach zwei Tagen gelöscht, alle mit dem Konto), und entfernt aus allen Texten Konto- und Kartennummern, SEPA-Angaben, E-Mail-Adressen, Telefonnummern und lange Zahlenfolgen. Von einem Gespräch bei Fragen gibt sie nur die letzte Frage mit der Frage und Antwort davor weiter. Die Antwort erstellt dann Groq UK Limited (London) in meinem Auftrag (Art. 28 DSGVO), mit Verarbeitung in den USA und in weiteren Ländern, in denen Groq oder seine Unterauftragsverarbeiter arbeiten. Groq darf Anfragen und Antworten nicht zum Training von Modellen nutzen. Es speichert sie nur, wenn es sie protokolliert, um einen Fehler zu beheben oder Missbrauch nachzugehen, und dann bis zu 30 Tage, sofern kein Gesetz eine längere Aufbewahrung verlangt. Die Protokolle der Funktion enthalten keine Texte.',
           },
           {
             kind: 'p',
@@ -510,23 +512,22 @@ export function privacySections(o: Operator): LegalSection[] {
         ],
       },
       en: {
-        heading: 'AI features (Anthropic)',
+        heading: 'AI features (Groq)',
         blocks: [
           {
             kind: 'p',
-            text: 'Signed in, you can use three features with AI. Before the first use, the app tells you what they send; you can turn them off for this phone in Settings → Your account. What is sent:',
+            text: 'Signed in, you can use features with AI. Before the first use, the app tells you what they send; you can turn them off for this phone in Settings → Your account. What is sent:',
           },
           {
             kind: 'list',
             items: [
               'with Quick add: the line, today’s date, the language, and the names of your expense categories and of your accounts with their kind and currency, without their identifiers;',
-              'with Ask: your questions with the answers before them, and an overview of your budget: the plan, this month’s and last month’s figures per envelope, the week, one-off costs and up to 30 recent expenses and incomes with shortened notes; no balances, accounts, email address or username;',
-              'with Set up by chatting: your messages with the replies before them, and the draft of your plan, that is amounts and the names, kinds, currencies and starting balances of the accounts in it.',
+              'with Ask: your questions with the answers before them, and an overview of your budget: the plan, this month’s and last month’s figures per envelope, the week, one-off costs and up to 30 recent expenses and incomes with shortened notes; no balances, accounts, email address or username.',
             ],
           },
           {
             kind: 'p',
-            text: 'A function at Supabase checks your sign-in, counts how often you use each feature (deleted after two days, all of them with the account), and takes account and card numbers, SEPA details, email addresses, phone numbers and long runs of digits out of every text. Anthropic Ireland, Limited then writes the answer on my behalf (Art. 28 GDPR), also in the USA through Anthropic, PBC. Anthropic doesn’t use the requests to train its models, and deletes requests and answers within 30 days at the latest; what breaks its usage policies it may keep for up to two years. The function’s logs hold no text.',
+            text: 'A function at Supabase checks your sign-in, counts how often you use each feature (deleted after two days, all of them with the account), and takes account and card numbers, SEPA details, email addresses, phone numbers and long runs of digits out of every text. Of an Ask conversation it passes on only the last question with the question and answer before it. Groq UK Limited (London) then writes the answer on my behalf (Art. 28 GDPR), with processing in the USA and in other countries where Groq or its subprocessors work. Groq may not use the requests or answers to train models. It keeps them only when it logs them to fix a problem or look into abuse, and then for up to 30 days, unless the law requires longer. The function’s logs hold no text.',
           },
           {
             kind: 'p',
@@ -535,8 +536,32 @@ export function privacySections(o: Operator): LegalSection[] {
         ],
       },
     },
-    // Transfers: the DPF list read on 12-11-2026 (Vercel Inc. and Cloudflare, Inc. active; Supabase and Anthropic
-    // not listed, so their DPAs' SCCs).
+    // The setup chat (the AI phase, chunk 12): only in a build with it (`aiSetupChatInBuild`, off on Groq's free plan).
+    // What it sends is `draftForChat`'s draft and the conversation; the rest is as in the section above.
+    {
+      id: 'ai-setup',
+      when: 'aiSetup',
+      de: {
+        heading: 'Per Chat einrichten (Groq)',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'In dieser Fassung der App kannst du deinen Plan auch im Chat mit der KI einrichten (Per Chat einrichten). Gesendet werden deine Nachrichten mit den Antworten davor und der Entwurf deines Plans, also Beträge sowie Namen, Arten, Währungen und Anfangsstände der Konten darin. Sie gehen denselben Weg wie bei den KI-Funktionen oben: über die Funktion bei Supabase an Groq, mit denselben Regeln. Rechtsgrundlage ist, dass du die Funktion nutzt (Art. 6 Abs. 1 lit. b DSGVO).',
+          },
+        ],
+      },
+      en: {
+        heading: 'Set up by chatting (Groq)',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'In this version of the app you can also set up your plan in a chat with the AI (Set up by chatting). It sends your messages with the replies before them and the draft of your plan, that is amounts and the names, kinds, currencies and starting balances of the accounts in it. They go the same way as with the AI features above: through the function at Supabase to Groq, under the same rules. The legal basis is that you use the feature (Art. 6 (1) (b) GDPR).',
+          },
+        ],
+      },
+    },
+    // Transfers: the DPF list read on 12-11-2026 (Vercel Inc. and Cloudflare, Inc. active; Supabase not listed) and
+    // 13-11-2026 (Groq not listed), so Supabase's and Groq's DPAs' SCCs (Groq's: modules 2 and 3).
     {
       id: 'transfers',
       when: 'always',
@@ -549,7 +574,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'Wo die App ein Konto oder KI-Funktionen hat, gilt für Supabase (Singapur, mit der Datenbank in Frankfurt) und Anthropic (Irland, mit Verarbeitung in den USA), die nicht so zertifiziert sind: Die Übermittlung stützt sich auf die Standardvertragsklauseln der EU-Kommission (Art. 46 Abs. 2 lit. c DSGVO) in ihren Verträgen zur Auftragsverarbeitung. Eine Kopie bekommst du auf Anfrage von mir.',
+            text: 'Wo die App ein Konto oder KI-Funktionen hat, gilt für Supabase (Singapur, mit der Datenbank in Frankfurt) und Groq (Vereinigtes Königreich, mit Verarbeitung in den USA), die nicht so zertifiziert sind: Die Übermittlung stützt sich auf die Standardvertragsklauseln der EU-Kommission (Art. 46 Abs. 2 lit. c DSGVO) in ihren Verträgen zur Auftragsverarbeitung. Eine Kopie bekommst du auf Anfrage von mir.',
           },
         ],
       },
@@ -562,7 +587,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'Where the app has an account or AI features, Supabase (Singapore, with the database in Frankfurt) and Anthropic (Ireland, with processing in the USA) are not certified in this way: transfers to them rest on the European Commission’s standard contractual clauses (Art. 46 (2) (c) GDPR) in their data processing agreements. You can ask me for a copy.',
+            text: 'Where the app has an account or AI features, Supabase (Singapore, with the database in Frankfurt) and Groq (United Kingdom, with processing in the USA) are not certified in this way: transfers to them rest on the European Commission’s standard contractual clauses (Art. 46 (2) (c) GDPR) in their data processing agreements. You can ask me for a copy.',
           },
         ],
       },
