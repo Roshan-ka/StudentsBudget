@@ -52,9 +52,9 @@ function toText(value: Minor | undefined, blank: Blank, locale: string): string 
  * checkbox sits under the field, its hint and its error, and puts a minus sign in the text; a typed "-250" is
  * accepted too.
  *
- * `layout="row"` (a setup step's category card, 13-11-2026): the label and its hint at the start, a compact field at
- * the end, and the field under them where the line is too narrow (large text). The ids and the description's order
- * stay the same in both layouts.
+ * `layout="row"` (a setup step's category card, 13-11-2026): the label at the start and a compact field at the end,
+ * the field under the label where the line is too narrow (large text), and the hint under both, across the width. The
+ * ids and the description's order stay the same in both layouts.
  */
 export function AmountField({
   label,
@@ -150,15 +150,15 @@ export function AmountField({
   return (
     <div className="grid gap-1.5">
       {row ? (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <div className="flex min-w-0 flex-1 basis-20 flex-col gap-0.5">
-            <Label htmlFor={id} className="text-base leading-snug break-words">
+        <>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <Label htmlFor={id} className="min-w-0 flex-1 basis-20 text-base leading-snug break-words">
               {label}
             </Label>
-            {hintBlock}
+            {field}
           </div>
-          {field}
-        </div>
+          {hintBlock}
+        </>
       ) : (
         <>
           <Label htmlFor={id} className="leading-snug">
@@ -169,7 +169,12 @@ export function AmountField({
         </>
       )}
       {showError && (
-        <p id={`${id}-error`} className="text-sm text-destructive">
+        // In a row, the field sits on a category's tint, where the error colour falls to 4.4:1 (Phone's): there the
+        // message sits on the card colour, where tokens.test.ts holds it at 4.5:1.
+        <p
+          id={`${id}-error`}
+          className={cn('text-sm text-destructive', row && 'w-fit rounded-md bg-card px-2 py-1')}
+        >
           {positive ? t.common.amountField.positive : t.common.amountField.number}
         </p>
       )}
