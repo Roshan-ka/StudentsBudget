@@ -33,8 +33,10 @@ const linkClass = 'self-start text-sm font-semibold text-primary underline-offse
 /**
  * Settings → Moderation (the hacks feed, chunk 7; comments since community, chunk 3, discounts students added since
  * chunk 7): the posts, comments and discounts students reported, for the moderator, each in its own section. Hide
- * takes one out of every list; Keep shows it again and starts its report count afresh. The database answers only the
- * moderator, in a session that gave the authenticator code; anyone else is told why there is nothing here.
+ * takes one out of every list; Keep shows it again and starts its report count afresh. Whatever stays hidden is deleted
+ * 30 days after hiding by the daily purge (`purge_old_content`, data retention), and the page says so. The database
+ * answers only the moderator, in a session that gave the authenticator code; anyone else is told why there is nothing
+ * here.
  */
 export function ModerationView() {
   const { t } = useT();

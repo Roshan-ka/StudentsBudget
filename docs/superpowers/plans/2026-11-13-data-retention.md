@@ -48,3 +48,10 @@ The privacy notice (`docs/superpowers/plans/2026-11-12-legal-pages.md`, live sin
   - **Tests:** `purge_old_content.test.sql` (31): the job, its schedule and who may run it; each case of hacks (live, deleted within or after the day, hidden by the moderator 29 or 31 days ago, by five reports 29 or 31 days ago, kept after reports, four reports), comments (live, deleted, hidden, gone with their post) and discounts (live, deleted, report-hidden with its reports, hidden 29 days ago); AI uses; the metadata (the name out, `lang` in, `public_profiles` untouched, no name left as it is); the counts, and a second run that deletes nothing.
   - **CLAUDE.md:** the plan in the opening list, and the purge in the Supabase schema rule.
   - **Go-live:** Roshan's `db push` once merged (Verification); chunk 2's texts merge only after it.
+  - **First CI run:** the `db` job failed in the test, not the migration: inside `UNION ALL`, a quoted id in a select list is read as text, so the report inserts stopped it after six checks (run 43392634785). The ids are cast to `uuid` now; the next run passed, and #228 merged.
+  - **Live:** `20261113081710` is on the hosted project (`migration list --linked`, 13-11-2026); the first run is at 03:20 UTC that night.
+- **Chunk 2** (13-11-2026), saying it:
+  - **The privacy notice** (Stand 13-11-2026): the shared section says a deleted hack, comment or discount is deleted for good once it no longer counts for the daily limit, within two days at the latest, and what is hidden and not kept 30 days later; the AI section says the counts are deleted after two days.
+  - **Settings → Moderation**, in four languages: the intro ends with the 30 days, and the line after Hide says it ("Hidden from every feed, and deleted in 30 days unless you keep it."); `moderation.spec.ts` follows the new line.
+  - **Tests:** `privacy-notice.test.ts` reads the purge migration's three intervals (a day, 30 days, two days) and checks the notice's words in both languages, so neither changes without the other.
+  - **Notes:** CLAUDE.md (the plan as built, and Moderation's line), and the legal plan's open point on retention marked done.

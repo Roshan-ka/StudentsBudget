@@ -214,7 +214,7 @@ export const tips: Messages['tips'] = {
       intro:
         'Les publications, les commentaires et les réductions que des étudiants ont signalés, le signalement le ' +
         `plus récent d’abord. Masquer les retire de toutes les listes${NNBSP}; Garder les montre à nouveau et remet ` +
-        'leurs signalements à zéro.',
+        'leurs signalements à zéro. Ce qui est masqué est supprimé 30 jours plus tard, sauf si tu le gardes.',
       signedOut: 'Connecte-toi avec le compte de modération pour modérer.',
       notModerator: 'Cette page est pour la modération de l’app.',
       needsCode:
@@ -233,7 +233,7 @@ export const tips: Messages['tips'] = {
       states: { hand: 'Masquée par toi', reports: 'Masquée par les signalements', visible: 'Visible' },
       hide: 'Masquer',
       keep: 'Garder',
-      hidden: 'Retirée de tous les fils.',
+      hidden: 'Retirée de tous les fils, et supprimée dans 30 jours si tu ne la gardes pas.',
       kept: `Gardée${NNBSP}: elle s’affiche à nouveau.`,
       failed: 'Ça n’a pas marché. Réessaie.',
       postsHeading: 'Publications',

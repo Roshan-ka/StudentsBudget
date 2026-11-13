@@ -198,7 +198,8 @@ export const tips: Messages['tips'] = {
       summary: 'Gemeldete Hacks und Rabatte',
       intro:
         'Beiträge, Kommentare und Rabatte, die Studierende gemeldet haben, die neueste Meldung zuerst. Verstecken ' +
-        'nimmt sie aus allen Listen; Behalten zeigt sie wieder und zählt ihre Meldungen neu.',
+        'nimmt sie aus allen Listen; Behalten zeigt sie wieder und zählt ihre Meldungen neu. Was versteckt ist, ' +
+        'wird 30 Tage danach gelöscht, wenn du es nicht behältst.',
       signedOut: 'Melde dich mit dem Moderationskonto an, um zu moderieren.',
       notModerator: 'Diese Seite ist für die Moderation der App.',
       needsCode:
@@ -214,7 +215,7 @@ export const tips: Messages['tips'] = {
       states: { hand: 'Von dir versteckt', reports: 'Durch Meldungen versteckt', visible: 'Sichtbar' },
       hide: 'Verstecken',
       keep: 'Behalten',
-      hidden: 'Aus allen Feeds genommen.',
+      hidden: 'Aus allen Feeds genommen und in 30 Tagen gelöscht, wenn du ihn nicht behältst.',
       kept: 'Behalten: Er ist wieder zu sehen.',
       failed: 'Das hat nicht geklappt. Versuch es noch einmal.',
       postsHeading: 'Beiträge',

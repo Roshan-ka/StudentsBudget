@@ -3,7 +3,7 @@ import type { IsoDate } from '@/lib/dates';
 import type { LegalSection } from './content';
 
 /** When the privacy notice last changed. */
-export const PRIVACY_UPDATED: IsoDate = '2026-11-12';
+export const PRIVACY_UPDATED: IsoDate = '2026-11-13';
 
 /**
  * The privacy notice (legal pages): who is responsible, from `OPERATOR` (chunk 1), then what the app keeps and sends,
@@ -389,7 +389,8 @@ export function privacySections(o: Operator): LegalSection[] {
     },
     // Shared content (the hacks feed, the community plan): hacks, comments and students' discounts, their feeds
     // (never a user id), votes, reports (`hide_after_reports()` = 5), the moderation queues (username, counts, no
-    // reporter), the daily limits, soft deletes kept until the account goes, and the feeds cached on the phone.
+    // reporter), the daily limits, the daily purge (`purge_old_content`: deleted ones within two days, hidden ones 30
+    // days after hiding unless kept), and the feeds cached on the phone.
     {
       id: 'shared',
       when: 'supabase',
@@ -406,7 +407,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'Am Tag kannst du bis zu fünf Hacks, 20 Kommentare und drei Rabatte teilen. Löschst du einen, sieht ihn niemand mehr; im Konto bleibt er als gelöscht markiert, damit die Tagesgrenzen gelten, bis du das Konto löschst. Die zuletzt geladenen Listen merkt sich die App auf deinem Handy und vergisst sie beim Abmelden.',
+            text: 'Am Tag kannst du bis zu fünf Hacks, 20 Kommentare und drei Rabatte teilen. Löschst du einen, sieht ihn niemand mehr; ganz gelöscht wird er, sobald er nicht mehr für die Tagesgrenze zählt, spätestens nach zwei Tagen. Was für alle ausgeblendet ist und ich nicht stehen lasse, wird 30 Tage danach gelöscht. Die zuletzt geladenen Listen merkt sich die App auf deinem Handy und vergisst sie beim Abmelden.',
           },
           {
             kind: 'p',
@@ -427,7 +428,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'You can share up to five hacks, 20 comments and three discounts a day. When you delete one, nobody sees it any more; the account keeps it marked as deleted, so that the daily limits hold, until you delete the account. The app keeps the lists it last loaded on your phone, and forgets them when you sign out.',
+            text: 'You can share up to five hacks, 20 comments and three discounts a day. When you delete one, nobody sees it any more; it is deleted for good once it no longer counts for the daily limit, within two days at the latest. Whatever is hidden from everyone and I don’t keep is deleted 30 days later. The app keeps the lists it last loaded on your phone, and forgets them when you sign out.',
           },
           {
             kind: 'p',
@@ -477,7 +478,7 @@ export function privacySections(o: Operator): LegalSection[] {
       },
     },
     // The AI features (the AI phase): what each sends (contract.ts, askSnapshot, draftForChat), `scrub`, the
-    // allowance in `private.ai_uses` (rows over 2 days go at the next use), logs without text (handle.ts), and
+    // allowance in `private.ai_uses` (rows over 2 days go in the daily purge), logs without text (handle.ts), and
     // Anthropic's terms (Anthropic Ireland, Limited for the EEA; no training; deleted within 30 days at the latest;
     // flagged content up to 2 years), read on 12-11-2026.
     {
@@ -500,7 +501,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'Eine Funktion bei Supabase prüft deine Anmeldung, zählt, wie oft du jede Funktion nutzt (Einträge, die älter als zwei Tage sind, löscht sie bei der nächsten Nutzung, alle mit dem Konto), und entfernt aus allen Texten Konto- und Kartennummern, SEPA-Angaben, E-Mail-Adressen, Telefonnummern und lange Zahlenfolgen. Die Antwort erstellt dann Anthropic Ireland, Limited in meinem Auftrag (Art. 28 DSGVO), auch in den USA durch Anthropic, PBC. Anthropic nutzt die Anfragen nicht zum Training seiner Modelle und löscht Anfragen und Antworten spätestens nach 30 Tagen; was gegen seine Nutzungsrichtlinien verstößt, kann es bis zu zwei Jahre aufbewahren. Die Protokolle der Funktion enthalten keine Texte.',
+            text: 'Eine Funktion bei Supabase prüft deine Anmeldung, zählt, wie oft du jede Funktion nutzt (nach zwei Tagen gelöscht, alle mit dem Konto), und entfernt aus allen Texten Konto- und Kartennummern, SEPA-Angaben, E-Mail-Adressen, Telefonnummern und lange Zahlenfolgen. Die Antwort erstellt dann Anthropic Ireland, Limited in meinem Auftrag (Art. 28 DSGVO), auch in den USA durch Anthropic, PBC. Anthropic nutzt die Anfragen nicht zum Training seiner Modelle und löscht Anfragen und Antworten spätestens nach 30 Tagen; was gegen seine Nutzungsrichtlinien verstößt, kann es bis zu zwei Jahre aufbewahren. Die Protokolle der Funktion enthalten keine Texte.',
           },
           {
             kind: 'p',
@@ -525,7 +526,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'A function at Supabase checks your sign-in, counts how often you use each feature (entries older than two days are deleted at the next use, all of them with the account), and takes account and card numbers, SEPA details, email addresses, phone numbers and long runs of digits out of every text. Anthropic Ireland, Limited then writes the answer on my behalf (Art. 28 GDPR), also in the USA through Anthropic, PBC. Anthropic doesn’t use the requests to train its models, and deletes requests and answers within 30 days at the latest; what breaks its usage policies it may keep for up to two years. The function’s logs hold no text.',
+            text: 'A function at Supabase checks your sign-in, counts how often you use each feature (deleted after two days, all of them with the account), and takes account and card numbers, SEPA details, email addresses, phone numbers and long runs of digits out of every text. Anthropic Ireland, Limited then writes the answer on my behalf (Art. 28 GDPR), also in the USA through Anthropic, PBC. Anthropic doesn’t use the requests to train its models, and deletes requests and answers within 30 days at the latest; what breaks its usage policies it may keep for up to two years. The function’s logs hold no text.',
           },
           {
             kind: 'p',

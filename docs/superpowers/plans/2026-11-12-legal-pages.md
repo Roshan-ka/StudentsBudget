@@ -200,7 +200,7 @@ The plan is copied into `docs/superpowers/plans/2026-11-12-legal-pages.md` in ch
     - **BayLDA:** "the one responsible for me" holds if you live in Bavaria.
     - **Push services:** Google LLC is on the DPF list; Apple's, Mozilla's and Microsoft's listings and the transfer basis for the push address weren't checked.
     - **Anthropic:** its DPA doesn't name the mechanism for its onward transfer from Ireland to the USA.
-    - **Kept for good:** soft-deleted posts, comments and discounts stay until the account is deleted, and tombstones are never purged. The check may ask for a time limit; that would be a migration and a scheduled purge.
+    - **Kept for good:** soft-deleted posts, comments and discounts stay until the account is deleted, and tombstones are never purged. The check may ask for a time limit; that would be a migration and a scheduled purge. **Done** by data retention (`docs/superpowers/plans/2026-11-13-data-retention.md`, #228): deleted ones go within two days and hidden ones after 30 days; tombstones stay, holding no content.
     - **The name at sign-up:** Supabase Auth's user metadata keeps the username, label and batch given at sign-up even after they change on Your account. The notice's "your name on posts" covers it, but clearing the metadata after sign-up would be tidier.
 - **Chunk 4** (12-11-2026), the security headers:
   - **`securityHeaders()`** (`src/lib/security-headers.ts`, no imports, so `next.config.ts` can load it) on `/:path*`, beside `/sw.js`'s no-cache:
