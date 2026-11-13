@@ -260,6 +260,10 @@ jobs:
             -e HOME=/tmp -e CI=true -e SUPABASE_TEST_URL -e SUPABASE_TEST_KEY -e SUPABASE_TEST_MAIL_URL \
             "mcr.microsoft.com/playwright:v$PLAYWRIGHT-resolute" \
             npx playwright test -c e2e-real/playwright.config.ts $PROJECTS
+      # The journeys' result kinds (testkit/result-kinds-reporter.mjs) in the job summary, whatever the outcome.
+      - if: always() && steps.real.outcome != 'skipped'
+        run: |
+          if [ -f result-kinds-real.md ]; then cat result-kinds-real.md >> "$GITHUB_STEP_SUMMARY"; fi
       # Traces of the failed journeys: synthetic users on a stack that is gone when the job ends.
       - if: failure() && steps.real.outcome == 'failure'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

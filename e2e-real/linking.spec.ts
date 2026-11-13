@@ -6,7 +6,7 @@ import { mockFrankfurter, readStore } from '../e2e/helpers/setup';
 import type { Plan } from '../src/db/types';
 import { readAccount, type TestUser } from './adapter';
 import { REAL_BASE_URL } from './env';
-import { expect, signedInAs, signIn, syncRegion, test } from './fixtures';
+import { expect, guard, signedInAs, signIn, syncRegion, test } from './fixtures';
 
 // Journey 3, linking (P2.2) against the real database: a phone with a plan fills an empty account, and a fresh browser
 // that signs in later loads it. Each test also records what a sign-in on a fresh browser writes to the account: nothing
@@ -19,16 +19,17 @@ test.beforeEach(async ({ page }) => {
   await mockFrankfurter(page);
 });
 
-/** A fresh browser, as a second phone: signed in on its account page, and nothing else. */
-async function freshPhone(browser: Browser, user: TestUser): Promise<Page> {
+/** A fresh browser, as a second phone, behind the network guard: signed in on its account page, and nothing else. */
+async function freshPhone(browser: Browser, user: TestUser): Promise<{ page: Page; guarded: Awaited<ReturnType<typeof guard>> }> {
   const context = await browser.newContext({ baseURL: REAL_BASE_URL, locale: 'en-GB', serviceWorkers: 'block', viewport: { width: 375, height: 812 } });
+  const guarded = await guard(context);
   const page = await context.newPage();
   await aiSwitchedOff(page);
   await mockFrankfurter(page);
   await openApp(page, '/settings/account');
   await signIn(page, user);
   await expect(signedInAs(page, user.email)).toBeVisible();
-  return page;
+  return { page, guarded };
 }
 
 test('a phone with a plan fills the account, and a fresh browser that signs in loads it and writes nothing', async ({ page, browser, request, makeUser }) => {
@@ -45,12 +46,13 @@ test('a phone with a plan fills the account, and a fresh browser that signs in l
   const before = await readAccount(request, user);
   expect(before.plans.length, 'the plan reached the account').toBeGreaterThan(0);
 
-  const phoneB = await freshPhone(browser, user);
+  const { page: phoneB, guarded } = await freshPhone(browser, user);
   await expect(phoneB.getByText(/^Loaded from your account: \d+ accounts?, \d+ entr(y|ies) and your plan\.$/)).toBeVisible(); // proof: loaded-from-account
   await expect(syncRegion(phoneB).getByText('Synced just now.', { exact: true })).toBeVisible();
   expect((await readStore<Plan>(phoneB, 'plan'))[0]).toEqual(planA);
   // The fresh browser's sign-in, linking and first sync changed no row of the account.
   expect(await readAccount(request, user)).toEqual(before);
+  guarded.assertClean();
   await phoneB.context().close();
 });
 

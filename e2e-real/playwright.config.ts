@@ -25,7 +25,14 @@ export default defineConfig({
   retries: 0,
   // Throwaway users and authenticator codes from one IP: two at a time, as the 2FA proof ran them.
   workers: 2,
-  reporter: process.env.CI ? [['dot'], ['html', { open: 'never', outputFolder: '../playwright-report-real' }]] : 'list',
+  // The tree check (testkit/tree-check.mjs): the run fails when a test wrote a file into the repo.
+  globalSetup: '../testkit/tree-check.mjs',
+  reporter: [
+    ...(process.env.CI ? ([['dot'], ['html', { open: 'never', outputFolder: '../playwright-report-real' }]] as const) : ([['list']] as const)),
+    // Each test's result kind (testkit/README.md): verified, failed, not run, skipped by design…, for the job summary.
+    // A run with anything failed, inconclusive or not run ends as failed. Paths are from the repo root, where it runs.
+    ['../testkit/result-kinds-reporter.mjs', { title: 'Real-server journeys', allowList: 'e2e/skip-allow-list.json', outputFile: 'result-kinds-real.md' }],
+  ],
   // English and no service workers, as in playwright.config.ts. Traces stay for failed tests: synthetic users on a
   // throwaway stack, nothing real to leak.
   use: { baseURL: REAL_BASE_URL, trace: 'retain-on-failure', locale: 'en-GB', serviceWorkers: 'block' },

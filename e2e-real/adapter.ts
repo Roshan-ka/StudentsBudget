@@ -1,6 +1,7 @@
 import { expect, type APIRequestContext } from '@playwright/test';
 import { freshCode, totpCode } from '../src/sync/totp';
 import { SERVER_TABLES, type ServerTable } from '../src/sync/tables';
+import { REAL_BASE_URL } from './env';
 
 // StudentsBudget's adapter for the real-server e2e (testkit/README.md, "Adapter (v0)"): everything that knows the backend
 // is the local Supabase stack lives here, so the kit in testkit/ never has to. Users are made through Playwright's
@@ -31,6 +32,14 @@ export function backend() {
     if (!LOOPBACK.includes(host)) throw new Error(`not the local stack: ${host}`);
   }
   return { url, key, mail };
+}
+
+/**
+ * The hosts a real-server test's browser may reach (the network guard, testkit/network-guard.mjs): the app and the
+ * stack's API. Mailpit is reached only through Playwright's `request`, which the guard doesn't route.
+ */
+export function allowedHosts(): string[] {
+  return [REAL_BASE_URL, new URL(backend().url).origin];
 }
 
 type Session = { access_token: string; user?: { id: string } };

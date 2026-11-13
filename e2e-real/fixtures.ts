@@ -1,11 +1,15 @@
 import path from 'node:path';
-import { test as base, expect, request as playwrightRequest, type Page } from '@playwright/test';
+import { test as base, expect, request as playwrightRequest, type BrowserContext, type Page } from '@playwright/test';
 import { openApp } from '../e2e/helpers/app';
-import { createUser, deleteUser, freshTotp, totp, type SecondFactor, type TestUser } from './adapter';
+import { guardContext } from '../testkit/network-guard.mjs';
+import { allowedHosts, createUser, deleteUser, freshTotp, totp, type SecondFactor, type TestUser } from './adapter';
 import { REAL_BASE_URL } from './env';
 import { AUTH_DIR, assertNeverCommitted } from './saved-state';
 
 // The real-server e2e's fixtures and the account page's UI steps (CLAUDE.md, "Real-server e2e").
+// - `networkGuard` (automatic): the test's browser reaches only the app and the stack (adapter.ts allowedHosts); a
+//   request to any other host is stopped and fails the test (testkit/network-guard.mjs). A host a test mocks with
+//   page.route never reaches the guard.
 // - `makeUser`: a throwaway account per test, deleted after it, pass or fail.
 // - `signedIn` (a test object): starts each test from a saved sign-in, second step done, made once per worker with an
 //   account of the worker's own, and made again when it is older than SAVED_FOR (the session lasts an hour:
@@ -53,8 +57,19 @@ export function wrongCode(secret: string): string {
   return String(candidate).padStart(6, '0');
 }
 
-export const test = base.extend<{ makeUser: (options: { secondFactor: SecondFactor }) => Promise<TestUser> }>({
+/** Puts a second browser context (another phone) behind the network guard; call `assertClean()` before closing it. */
+export const guard = (context: BrowserContext) => guardContext(context, allowedHosts());
+
+export const test = base.extend<{ networkGuard: string[]; makeUser: (options: { secondFactor: SecondFactor }) => Promise<TestUser> }>({
   // `provide`, not Playwright's usual `use`: the React hooks lint rule takes any call named use() for a hook.
+  networkGuard: [
+    async ({ context }, provide) => {
+      const guarded = await guard(context);
+      await provide(guarded.stopped);
+      guarded.assertClean();
+    },
+    { auto: true },
+  ],
   makeUser: async ({ request }, provide) => {
     const users: TestUser[] = [];
     await provide(async (options) => {

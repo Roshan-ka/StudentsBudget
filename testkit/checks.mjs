@@ -97,7 +97,8 @@ export function skipSites(source) {
 
 /**
  * Every skip in the files must be on the allow-list, and every entry must still match its skips. An entry is
- * `{ file, reason, kind, count? }`: `reason` is text found in the call (its message, or the constant holding it), `kind`
+ * `{ file, reason, kind, count?, message? }`: `reason` is text found in the call (its message, or the constant holding
+ * it), `message` text of the message the run reports when the call holds only a constant (result-kinds.mjs), `kind`
  * is `by-design` (a browser or option that can't run the test) or `environment` (a setup problem the run reports as
  * not run), `count` how many skips in the file carry it (1 by default).
  * @param files [{ path, source }]
@@ -109,6 +110,7 @@ export function checkSkips(files, allowList) {
   entries.forEach((e, i) => {
     if (typeof e?.file !== 'string' || typeof e?.reason !== 'string' || e.reason === '') problems.push(`entry ${i + 1}: needs a file and a reason`);
     if (!SKIP_KINDS.has(e?.kind)) problems.push(`entry ${i + 1}: kind must be by-design or environment`);
+    if (e?.message !== undefined && (typeof e.message !== 'string' || e.message === '')) problems.push(`entry ${i + 1}: message, when given, is text`);
   });
   const matched = new Map(entries.map((e) => [e, 0]));
   for (const { path, source } of files) {

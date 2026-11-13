@@ -9,8 +9,24 @@ What's here now:
 | `judge.mjs` | Judges red before green: was a test red, at the right line, under a saved mutation? Pure functions. |
 | `red-green.mjs` | Runs the saved mutations of the specs you name, and prints the verdict per proof. |
 | `checks.mjs` | Checks at rest: saved mutation files still fit the code, and every skip is on the allow-list. |
+| `network-guard.mjs` | Stops any request to a host outside the test setup, and fails the test that made it. |
+| `tree-check.mjs` | A Playwright `globalSetup`: the run fails when a test wrote a file into the repo. |
+| `result-kinds.mjs`, `result-kinds-reporter.mjs` | Sorts each test into a result kind, writes the summary, and fails a run that isn't all verified. |
 
-The other parts the plan names (the result-kind reporter, the network guard, the tree check, the role-matrix runner, the walker for the random clicker) join when a phase uses them.
+The other parts the plan names (the role-matrix runner, the walker for the random clicker) join when a phase uses them.
+
+## Network guard
+
+`guardContext(context, allowed)` puts a browser context behind the guard. `allowed` lists origins (`http://localhost:3210`) or hosts with their port (`127.0.0.1:54321`), from the adapter. Schemes that need no network (`data:`, `blob:`) always pass.
+
+- **The guard is the last route in line.** A host the test mocks with `page.route` never reaches it, and a test's own route can still `fallback()` to it.
+- **A request to any other host is aborted.** After the test, `assertClean()` fails it, naming each host once and never a path or query.
+- **One per context.** A suite's automatic fixture guards the test's context. A test that opens another context, a second phone say, guards that one too.
+- **Requests through Playwright's `request` fixture aren't routed,** so the adapter guards those itself (its environment guard).
+
+## Tree check
+
+`tree-check.mjs` is a `globalSetup`. It records `git status` before the run, and the teardown it returns fails the run when that changed, naming the files. Git-ignored output, such as test results, the build and saved sign-ins, isn't counted.
 
 ## Mutations (format 0)
 
@@ -84,6 +100,7 @@ Every skip in the specs is listed with its kind, so a skip can't hide a test tha
 ```
 
 - `reason` is text found in the skip call: its message, or the constant holding it.
+- `message` (optional) is text of the message the run reports, for a call that holds only a constant. The result-kind reporter matches skips by it (or by `reason`).
 - `kind`:
   - `by-design`: a browser or option that can't run the test. Reported as "skipped by design".
   - `environment`: a setup problem. Reported as "not run".
@@ -128,11 +145,23 @@ The one app-specific module the kit talks to:
 
 ## Result kinds
 
-Every run's summary sorts each test into one of these. A run is never "all green" while anything is inconclusive or not run.
+Every run's summary sorts each test into one of these. A run is never "all green" while anything failed, is inconclusive or didn't run.
 
-- verified
-- inconclusive
-- not run
-- skipped by design (only skips on the allow-list)
-- quarantined
-- known bug (listed apart)
+| Kind | When |
+|---|---|
+| verified | it passed, first time |
+| failed | it failed or timed out, or a known bug passed |
+| inconclusive | it passed only on a retry |
+| not run | interrupted, never ran, or skipped for a reason that isn't on the allow-list as `by-design` (an `environment` skip included) |
+| skipped by design | skipped for a reason the allow-list holds as `by-design` |
+| quarantined | tagged `@quarantine`; its `quarantine` annotation names the owner and the fix-by date |
+| known bug | `test.fail()` that failed, listed apart with its `issue` annotation |
+
+Add the reporter to a config:
+
+```ts
+reporter: [['list'], ['../testkit/result-kinds-reporter.mjs', { title, allowList: 'e2e/skip-allow-list.json', outputFile: 'result-kinds.md' }]]
+```
+
+- It writes the summary to `outputFile` (for a CI job summary) and prints it.
+- It turns a run Playwright would pass into a failed one when anything failed, is inconclusive or didn't run.

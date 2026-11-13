@@ -11,5 +11,5 @@
   { "file": "e2e/privacy-notes.spec.ts", "reason": "needs a virtual authenticator, which only Chromium has", "kind": "by-design" },
   { "file": "e2e/profile.spec.ts", "reason": "The backup download runs on desktop-chrome", "kind": "by-design" },
   { "file": "e2e/reminder.spec.ts", "reason": "The reused dev server has no NEXT_PUBLIC_VAPID_PUBLIC_KEY", "kind": "environment" },
-  { "file": "e2e-real/passkeys.spec.ts", "reason": "VIRTUAL_ONLY", "kind": "by-design", "count": 2 }
+  { "file": "e2e-real/passkeys.spec.ts", "reason": "VIRTUAL_ONLY", "message": "needs a virtual authenticator, which only Chromium has", "kind": "by-design", "count": 2 }
 ]
