@@ -7,8 +7,9 @@ import { useT } from '@/i18n/use-t';
 import { useAuth } from './use-auth';
 
 /**
- * One line at the top of a new setup: a second phone can sign in and get the data the first one keeps in the account,
- * instead of setting up again. Not shown without a Supabase project, or once there is a plan (Edit plan).
+ * One quiet line under the first step of a new setup (13-11-2026; before, at the top): a second phone can sign in and
+ * get the data the first one keeps in the account, instead of setting up again. Not shown without a Supabase project,
+ * or once there is a plan (Edit plan).
  */
 export function SetupAccountLink() {
   const { t } = useT();

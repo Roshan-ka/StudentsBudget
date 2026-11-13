@@ -567,10 +567,12 @@ test.describe('choosing a file to restore, on every screen size', () => {
     await expect(confirmation(page)).toHaveCount(0);
   });
 
-  test('the restore section sits below the wizard on /setup, under its own heading', async ({ page }) => {
+  test('the restore entry sits under the first step on /setup, under its own heading', async ({ page }) => {
     await page.goto('/setup');
     const restore = page.getByRole('heading', { level: 2, name: 'Have a backup? Restore it' });
     await expect(restore).toBeVisible();
+    // Quiet since 13-11-2026: one button opens the file field, which keeps its label out of sight.
+    await expect(page.getByRole('button', { name: 'Restore a backup', exact: true })).toBeVisible();
 
     // The wizard has headings of its own, and every one of them comes before the restore heading.
     const headings = page.getByRole('main').getByRole('heading');

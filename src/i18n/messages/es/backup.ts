@@ -33,7 +33,8 @@ export const backup: Messages['backup'] = {
     readFailed: 'No se ha podido leer ese archivo.',
     failed: 'No se ha podido restaurar la copia. Los datos de este dispositivo no han cambiado.',
     setupHeading: '¿Tienes una copia? Restáurala',
-    setupIntro: '¿Ya usabas StudentsBudget? Elige tu archivo de copia para seguir donde lo dejaste.',
+    /** Setup's quiet button that opens the file field (13-11-2026). */
+    setupButton: 'Restaurar una copia',
   },
   delete: {
     heading: 'Borrarlo todo',

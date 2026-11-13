@@ -102,8 +102,9 @@ test('a first visit offers an account or the guest way, and each leads on', asyn
   await page.getByRole('link', { name: 'Continue without an account', exact: true }).click();
   await expect(page).toHaveURL('/setup');
   await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
-  // The globe is the start pages' own: setup keeps its language select.
-  await expect(page.getByRole('button', { name: 'Language', exact: true })).toHaveCount(0);
+  // The globe follows on to setup (13-11-2026), where the language select was.
+  await expect(page.getByRole('button', { name: 'Language', exact: true })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Language', exact: true })).toHaveCount(0);
 });
 
 test('the sign-in and new-account pages lead to each other, and the password can be shown', async ({ page }) => {
