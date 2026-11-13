@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fieldValue, logText, mayUse, pick, readLog, seededRandom, watch } from './walker.mjs';
+import { fieldValue, logText, mayUse, pick, readLog, seededRandom, walk, watch } from './walker.mjs';
 
 describe('seededRandom', () => {
   it('gives the same numbers for the same seed, and others for another', () => {
@@ -72,10 +72,42 @@ describe('watch', () => {
     ]);
   });
 
+  it('leaves out errors while the page is off the app, such as about:blank after going back too far', async () => {
+    const page = { ...fakePage(), where: 'http://localhost:3210/plan' };
+    page.url = () => page.where;
+    const watcher = watch(page, {});
+    page.where = 'about:blank';
+    page.fire('pageerror', new Error("Failed to read the 'localStorage' property from 'Window'"));
+    page.where = 'http://localhost:3210/plan';
+    page.fire('pageerror', new Error('boom'));
+    expect(watcher.problems).toEqual(['before the first step: page error: boom']);
+  });
+
   it('names forbidden content that became visible', async () => {
     const page = fakePage();
     const watcher = watch(page, { forbidden: [{ what: 'the reported posts', locator: { isVisible: async () => true } }] });
     await watcher.check({ n: 0, action: 'click', name: 'Admin', url: '/settings' });
     expect(watcher.problems).toEqual(['after step 0 (click "Admin" on /settings): the reported posts is shown']);
+  });
+});
+
+describe('walk', () => {
+  it('goes back to where it started when a step leaves the app, and logs that step too', async () => {
+    const start = 'http://localhost:3210/plan';
+    let where = start;
+    // A page with nothing to press: every step is back or a reload, and back leaves the app.
+    const page = {
+      url: () => where,
+      goBack: async () => (where = 'about:blank'),
+      reload: async () => {},
+      goto: async (to) => (where = to),
+      getByRole: () => ({ all: async () => [] }),
+    };
+    const log = await walk(page, { seed: 3, steps: 6 });
+    expect(log.map((step) => step.n)).toEqual([0, 1, 2, 3, 4, 5]);
+    const left = log.filter((step) => step.url === 'blank');
+    expect(left.length).toBeGreaterThan(0);
+    for (const step of left) expect(log[step.n + 1] ?? { action: 'goto' }).toMatchObject({ action: 'goto', to: start });
+    expect(log.filter((step) => step.action === 'goto').every((step) => step.url === '/plan')).toBe(true);
   });
 });

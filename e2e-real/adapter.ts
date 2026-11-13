@@ -211,4 +211,9 @@ export const NEVER_CLICK: (string | RegExp)[] = [
  * Console errors that are no finding on a walk: the browser's own line for a request the server refused (4xx), which a
  * student's or an outsider's walk meets by design (a moderator page, an account call signed out).
  */
-export const CONSOLE_ALLOW: (string | RegExp)[] = [/Failed to load resource: the server responded with a status of 4\d\d/];
+export const CONSOLE_ALLOW: (string | RegExp)[] = [
+  /Failed to load resource: the server responded with a status of 4\d\d/,
+  // Vercel Speed Insights: Vercel serves its script on its own hosts only, so a local build's request for it gets the
+  // not-found answer as text, which the browser won't run (the nightly's first walk, 2026-11-13).
+  /^Refused to execute script from '[^']*\/_vercel\/speed-insights\/script\.js' because its MIME type/,
+];

@@ -87,6 +87,15 @@ export async function controls(page) {
   return found;
 }
 
+/** The page's origin, or null for a page that has none to give (a stand-in in a unit test). */
+function originOf(page) {
+  try {
+    return new URL(page.url()).origin;
+  } catch {
+    return null;
+  }
+}
+
 /** The locator a logged step names: the nth control of its role with that name. */
 function locate(page, step) {
   return page.getByRole(step.role, step.name ? { name: step.name, exact: true } : undefined).nth(step.nth ?? 0);
@@ -96,6 +105,7 @@ function locate(page, step) {
 async function perform(page, step) {
   try {
     if (step.action === 'back') await page.goBack({ timeout: 5_000 });
+    else if (step.action === 'goto') await page.goto(step.to, { timeout: 10_000 });
     else if (step.action === 'reload') await page.reload({ timeout: 10_000 });
     else if (step.action === 'fill') await locate(page, step).fill(step.value ?? '', { timeout: 2_000 });
     else if (step.action === 'select') await locate(page, step).selectOption({ index: step.value ?? 0 }, { timeout: 2_000 });
@@ -108,15 +118,23 @@ async function perform(page, step) {
 
 /**
  * A seeded walk until `until` (a time) or `steps` steps: each step a control picked at random among those `mayUse`
- * allows, now and then back or a reload. `afterStep(step)` runs after each (a watcher's check, say). Returns the log:
- * every step as it was done, `missed: true` where its control was gone by then.
+ * allows, now and then back or a reload. A step that leaves the app (back past its first page, to about:blank) is
+ * followed by a step back to the page the walk started on (`goto`), logged like any other so a replay does the same.
+ * `afterStep(step)` runs after each (a watcher's check, say). Returns the log: every step as it was done,
+ * `missed: true` where its control was gone by then.
  * @param {any} page a Playwright page
  * @param {{ seed: number, until?: number, steps?: number, neverClick?: (string | RegExp)[], afterStep?: (step: any) => Promise<void> }} options
  */
 export async function walk(page, { seed, until, steps = Infinity, neverClick = [], afterStep = async () => {} }) {
   const random = seededRandom(seed);
-  const origin = new URL(page.url()).origin;
+  const start = page.url();
+  const origin = new URL(start).origin;
   const log = [];
+  const done = async (n, step, ok) => {
+    const entry = { n, ...step, url: new URL(page.url()).pathname, ...(ok ? {} : { missed: true }) };
+    log.push(entry);
+    await afterStep(entry);
+  };
   for (let n = 0; n < steps && (until === undefined || Date.now() < until); n += 1) {
     const roll = random();
     let step;
@@ -133,10 +151,12 @@ export async function walk(page, { seed, until, steps = Infinity, neverClick = [
         else step = { action: 'click', role, name, nth };
       }
     }
-    const done = await perform(page, step);
-    const entry = { n, ...step, url: new URL(page.url()).pathname, ...(done ? {} : { missed: true }) };
-    log.push(entry);
-    await afterStep(entry);
+    await done(n, step, await perform(page, step));
+    if (originOf(page) !== origin && n + 1 < steps) {
+      n += 1;
+      const home = { action: 'goto', to: start };
+      await done(n, home, await perform(page, home));
+    }
   }
   return log;
 }
@@ -167,7 +187,9 @@ export const readLog = (text) => text.split(/\r?\n/).filter(Boolean).map((line) 
 /**
  * Watches a page for what a walk must never meet: an uncaught page error, a console error that isn't on
  * `consoleAllow`, a response of 500 or more, or a `forbidden` locator becoming visible (admin content for someone who
- * isn't one). Returns `problems` (each with the step it came after) and `check(step)`, for walk's `afterStep`.
+ * isn't one). Errors while the page is off the app's origin (about:blank after going back past the first page) aren't
+ * the app's and don't count. Returns `problems` (each with the step it came after) and `check(step)`, for walk's
+ * `afterStep`.
  * @param {any} page a Playwright page
  * @param {{ consoleAllow?: (string | RegExp)[], forbidden?: { what: string, locator: { isVisible(): Promise<boolean> } }[] }} [options]
  * @returns {{ problems: string[], check(step: any): Promise<void> }}
@@ -175,10 +197,14 @@ export const readLog = (text) => text.split(/\r?\n/).filter(Boolean).map((line) 
 export function watch(page, { consoleAllow = [], forbidden = [] } = {}) {
   const problems = [];
   let at = 'before the first step';
+  const origin = originOf(page);
+  const onApp = () => origin === null || originOf(page) === origin;
   const allowed = (text) => consoleAllow.some((rule) => (rule instanceof RegExp ? rule.test(text) : text.includes(rule)));
-  page.on('pageerror', (error) => problems.push(`${at}: page error: ${String(error.message).split('\n')[0]}`));
+  page.on('pageerror', (error) => {
+    if (onApp()) problems.push(`${at}: page error: ${String(error.message).split('\n')[0]}`);
+  });
   page.on('console', (message) => {
-    if (message.type() === 'error' && !allowed(message.text())) problems.push(`${at}: console error: ${message.text().split('\n')[0].slice(0, 200)}`);
+    if (message.type() === 'error' && onApp() && !allowed(message.text())) problems.push(`${at}: console error: ${message.text().split('\n')[0].slice(0, 200)}`);
   });
   page.on('response', (response) => {
     if (response.status() >= 500) problems.push(`${at}: ${response.status()} from ${new URL(response.url()).pathname}`);
