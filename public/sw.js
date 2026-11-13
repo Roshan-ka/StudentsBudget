@@ -26,7 +26,6 @@ const PAGES = [
   '/badges',
   '/check-in',
   '/reveal',
-  '/ask',
   '/settings',
   '/settings/accounts',
   '/settings/plan',

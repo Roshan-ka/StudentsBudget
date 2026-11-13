@@ -8,6 +8,7 @@ import { StartLanguageMenu } from '@/components/language-menu';
 import { LanguageAttributes } from '@/components/language-attributes';
 import { RouteFocus } from '@/components/route-focus';
 import { ThemeAttributes } from '@/components/theme-attributes';
+import { AskBubble } from '@/features/ask/ask-bubble';
 import { languageHeadScript } from '@/i18n/head-script';
 import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, SELECTABLE } from '@/i18n/languages';
 import { DEFAULT_REGION } from '@/i18n/regions';
@@ -58,8 +59,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       // The region's design layer (src/app/regions/): one region so far, so it is the same on every phone.
       data-region={DEFAULT_REGION}
       // scroll-padding-bottom: the browser scrolls a focused control above the bottom nav, never behind it (WCAG 2.2,
-      // Focus Not Obscured).
-      className={`${dmSans.variable} ${bricolage.variable} ${geistMono.variable} h-full scroll-pb-[calc(5rem+env(safe-area-inset-bottom))] antialiased`}
+      // Focus Not Obscured), and above Ask's bubble while it shows (data-ask-bubble, AskBubble).
+      className={`${dmSans.variable} ${bricolage.variable} ${geistMono.variable} h-full scroll-pb-[calc(5rem+env(safe-area-inset-bottom))] antialiased data-[ask-bubble]:scroll-pb-[calc(9rem+env(safe-area-inset-bottom))]`}
       suppressHydrationWarning
     >
       <head>
@@ -95,12 +96,14 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           </h1>
           <StartLanguageMenu />
         </header>
-        {/* The bottom padding clears the nav (at least 4 rem and its outline) with room to spare. A word longer than its
-            line (a title's "Rundfunkbeitrag" at 200 % text) breaks instead of widening the page. */}
-        <main className="flex-1 px-4 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))] break-words hyphens-auto">
+        {/* The bottom padding clears the nav (at least 4 rem and its outline) with room to spare, and Ask's bubble above
+            it while that shows. A word longer than its line (a title's "Rundfunkbeitrag" at 200 % text) breaks instead
+            of widening the page. */}
+        <main className="flex-1 px-4 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))] break-words hyphens-auto [[data-ask-bubble]_&]:pb-[calc(9rem+env(safe-area-inset-bottom))]">
           {children}
         </main>
         <BottomNav />
+        <AskBubble />
         <SpeedInsights />
       </body>
     </html>

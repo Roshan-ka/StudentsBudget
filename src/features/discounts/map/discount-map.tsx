@@ -289,6 +289,16 @@ export function DiscountMap({
     if (map !== null) placeOnMap(map);
   });
 
+  // While the map fills the screen, Ask's bubble keeps off it: its controls and its card sit at the bottom (AskBubble).
+  // A hidden page's effects clean up, so the bubble comes back on the other pages.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.mapOpen = '';
+    return () => {
+      delete root.dataset.mapOpen;
+    };
+  }, []);
+
   useEffect(() => {
     if (!drawable) return;
     let current = true;

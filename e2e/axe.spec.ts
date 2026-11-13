@@ -74,5 +74,11 @@ for (const theme of ['light', 'dark'] as const satisfies readonly Theme[]) {
       await page.waitForLoadState('networkidle');
       expect.soft(await findings(page), path).toEqual([]);
     }
+
+    // Ask's sheet, opened from the chat bubble (13-11-2026): a guest's, which says how to sign in.
+    await page.goto('/');
+    await page.getByRole('button', { name: t.ask.link, exact: true }).click();
+    await expect(page.getByRole('dialog', { name: t.shell.headings.ask, exact: true })).toBeVisible();
+    expect.soft(await findings(page), 'Ask sheet').toEqual([]);
   });
 }
