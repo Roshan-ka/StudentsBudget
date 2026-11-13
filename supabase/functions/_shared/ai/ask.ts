@@ -2,21 +2,24 @@
 // about their own budget goes to the model (gpt-oss-120b on Groq since docs/superpowers/plans/2026-11-13-groq-free-plan.md),
 // and what the app gets back.
 //
-// The system prompt is the rules and the city pack (city-pack.ts): the same for everyone, so the API caches it. The
-// student's snapshot (built on the phone, chunk 9) goes in the first message, inside <budget_data>; each question
-// inside <question>. The answer's sources are only ids the pack has, so the app renders every source, link and date
-// from its own data; any link the model writes is taken out; and a € amount that matches nothing the model was given,
-// or a sum or difference of two such amounts, is listed in `unbacked`, so the page can say the answer holds an
-// estimate.
+// The system prompt is the rules, the same for everyone, then the city items the question is about (`askPicks`, at most
+// 10, without their sources: the Groq switch, chunk 4, so a question fits Groq's free plan). The conversation is the
+// last question with the exchange before it (`lastTurns`); the student's snapshot (built on the phone, chunk 9) goes in
+// its first message, inside <budget_data>; each question inside <question>. The answer's sources are only ids the
+// model was sent, so the app renders every source, link and date from its own data; any link the model writes is
+// taken out; and a € amount that matches nothing the model was given, or a sum or difference of two such amounts, is
+// listed in `unbacked`, so the page can say the answer holds an estimate.
 
+import { z } from 'zod';
 import { askAnswer, type AskAnswer, type AskReply, type AskRequest } from './contract.ts';
-import { CITY_PACK } from './city-pack.ts';
 import type { FeatureBuilder } from './handle.ts';
 import { withoutLinks } from './links.ts';
 import type { ModelCall } from './model.ts';
 import { moneyIn } from './money.ts';
-import { renderPack, type PackItem } from './pack.ts';
+import { renderPackBrief, type PackItem } from './pack.ts';
+import { selectPack } from './pack-select.ts';
 import type { Json } from './scrub.ts';
+import { lastTurns } from './turns.ts';
 
 /** How long the function waits for the model: the phone gives Ask 60 seconds. */
 const TIMEOUT_MS = 55_000;
@@ -43,9 +46,35 @@ How to answer:
 - Write in the language the student's message asks for. Write money as that language writes it (€12.50 in English, 12,50 € in German, French and Spanish).
 - Be calm and kind. Spending more than planned is "€12 over", never "failed" or a warning.`;
 
-/** The city data as the rules introduce it. */
-export function askSystem(pack: readonly PackItem[] = CITY_PACK): string {
-  return `${ASK_RULES}\n\nCity data for Regensburg, one item per line:\n<city_data>\n${renderPack(pack)}\n</city_data>`;
+/** The rules, then the city items picked for the question, one per line. */
+export function askSystem(picks: readonly PackItem[]): string {
+  return `${ASK_RULES}\n\nCity data for Regensburg that may help with this question, one item per line:\n<city_data>\n${renderPackBrief(picks)}\n</city_data>`;
+}
+
+/** The snapshot's envelopes this month, as far as they read: `thisMonth.envelopes`, chunk 9's shape. */
+const spendShape = z.object({
+  thisMonth: z.object({ envelopes: z.array(z.object({ categoryId: z.string(), spentEur: z.number() })) }),
+});
+
+/** Euros spent this month by category, from the snapshot; nothing when it doesn't read. */
+export function spendOf(snapshot: Json): Record<string, number> {
+  const read = spendShape.safeParse(snapshot);
+  if (!read.success) return {};
+  return Object.fromEntries(read.data.thisMonth.envelopes.map((row) => [row.categoryId, row.spentEur]));
+}
+
+/**
+ * The city items sent with the request's last question: picked by its words, the earlier questions' and this month's
+ * spending (`selectPack`). The same request always picks the same items, so `finishAsk` can check the answer against
+ * them again.
+ */
+export function askPicks(request: AskRequest): PackItem[] {
+  const questions = request.turns.filter((turn) => turn.role === 'user').map((turn) => turn.text);
+  return selectPack({
+    question: questions.at(-1) ?? '',
+    earlier: questions.slice(0, -1),
+    spend: spendOf(request.snapshot as Json),
+  });
 }
 
 /** Text the student wrote, with nothing that could close or open the message's blocks. */
@@ -58,10 +87,10 @@ function snapshotJson(snapshot: Json): string {
   return JSON.stringify(snapshot).replace(/</g, '\\u003c');
 }
 
-/** The conversation: the snapshot and the language with the first question, then the turns as they went. */
+/** The conversation as sent: the turns `lastTurns` keeps, with the snapshot and the language on the first of them. */
 export function askMessages(request: AskRequest): ModelCall['messages'] {
   const language = LANGUAGE_NAMES[request.lang] ?? request.lang;
-  return request.turns.map((turn, at) => {
+  return lastTurns(request.turns).map((turn, at) => {
     if (turn.role === 'assistant') return { role: 'assistant', content: turn.text };
     const question = `<question>${plain(turn.text)}</question>`;
     if (at > 0) return { role: 'user', content: question };
@@ -114,12 +143,15 @@ export function unbackedAmounts(answer: string, given: readonly number[]): strin
   return unbacked.slice(0, MAX_UNBACKED);
 }
 
-/** The model's answer as the app gets it: known sources only, no links, and what it couldn't back. */
-export function finishAsk(answer: AskAnswer, request: AskRequest, pack: readonly PackItem[] = CITY_PACK): AskReply {
-  const known = new Set(pack.map((item) => item.id));
+/**
+ * The model's answer as the app gets it: only sources it was sent (`picks`), no links, and what it couldn't back from
+ * the snapshot and the items it was sent.
+ */
+export function finishAsk(answer: AskAnswer, request: AskRequest, picks: readonly PackItem[] = askPicks(request)): AskReply {
+  const known = new Set(picks.map((item) => item.id));
   const sourceIds = [...new Set(answer.sourceIds)].filter((id) => known.has(id));
   const text = withoutLinks(answer.answer);
-  const given = [...snapshotCents(request.snapshot as Json), ...moneyIn(renderPack(pack)).map((m) => m.cents)];
+  const given = [...snapshotCents(request.snapshot as Json), ...moneyIn(renderPackBrief(picks)).map((m) => m.cents)];
   return { answer: text, sourceIds, unbacked: unbackedAmounts(text, given) };
 }
 
@@ -131,7 +163,7 @@ export const askBuilder: FeatureBuilder<AskRequest> = {
       model: 'openai/gpt-oss-120b',
       maxTokens: 2000,
       effort: 'low',
-      system: askSystem(),
+      system: askSystem(askPicks(request)),
       messages: askMessages(request),
       answer: askAnswer,
       timeoutMs: TIMEOUT_MS,

@@ -13,6 +13,7 @@ import {
   MAX_REPLY,
   MAX_SETUP_MESSAGE,
   MAX_SETUP_MESSAGES,
+  MAX_SNAPSHOT,
   quickAddAnswer,
 } from '@/features/ai/contract';
 
@@ -77,7 +78,10 @@ describe('the requests', () => {
     expect(aiRequest.safeParse({ ...ask, turns: turns(2, 'Why?', 'Because.').slice(0, 2) }).success).toBe(false);
     expect(aiRequest.safeParse({ ...ask, turns: [{ role: 'assistant', text: 'Hello' }] }).success).toBe(false);
     expect(aiRequest.safeParse({ ...ask, turns: turns(1, 'x'.repeat(MAX_QUESTION + 1), '') }).success).toBe(false);
-    expect(aiRequest.safeParse({ ...ask, snapshot: data(MAX_DATA + 1), turns: turns(1, 'Why?', '') }).success).toBe(false);
+    // Ask's snapshot has half the setup draft's room (the Groq switch, chunk 4).
+    expect(aiRequest.safeParse({ ...ask, snapshot: data(MAX_SNAPSHOT - 1), turns: turns(1, 'Why?', '') }).success).toBe(true);
+    expect(aiRequest.safeParse({ ...ask, snapshot: data(MAX_SNAPSHOT + 1), turns: turns(1, 'Why?', '') }).success).toBe(false);
+    expect(MAX_SNAPSHOT).toBeLessThan(MAX_DATA);
   });
 
   it('fits the longest conversations it allows, in two-byte letters, with the most data, in MAX_BODY_BYTES', () => {
@@ -85,7 +89,7 @@ describe('the requests', () => {
       feature: 'ask',
       lang: 'de',
       today: '2026-11-09',
-      snapshot: data(MAX_DATA - 1),
+      snapshot: data(MAX_SNAPSHOT - 1),
       turns: turns(MAX_QUESTIONS, 'ä'.repeat(MAX_QUESTION), 'ä'.repeat(MAX_ANSWER)),
     };
     const setup = {
