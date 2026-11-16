@@ -1,5 +1,4 @@
 import type { Messages } from '../en';
-import { NNBSP } from './count';
 
 // Le mois par mois en français : la ligne de l'accueil, la page et les lignes de reveal-text.ts.
 export const reveal: Messages['reveal'] = {
@@ -8,9 +7,10 @@ export const reveal: Messages['reveal'] = {
   notYet: (month) => `Ton premier bilan arrive une fois ${month} terminé.`,
   adjust: 'Modifier les enveloppes',
   recap: {
-    savings: (label, amount) => `${label}${NNBSP}: ${amount} restants → épargne`,
-    over: (label, amount) => `${label}${NNBSP}: ${amount} au-delà du plan`,
-    onPlan: (label) => `${label}${NNBSP}: pile dans le plan`,
+    savings: (amount) => `${amount} restants → épargne`,
+    over: (amount) => `${amount} au-delà du plan`,
+    onPlan: 'Pile dans le plan',
   },
+  spentOf: (spent, planned) => `${spent} dépensés sur ${planned}`,
   noPlan: 'Configure ton plan pour voir comment se passe chaque mois.',
 };

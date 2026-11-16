@@ -7,11 +7,13 @@ export const reveal = {
   /** Before the setup month is over: "Your first recap comes once October is over." */
   notYet: (month: string) => `Your first recap comes once ${month} is over.`,
   adjust: 'Edit envelopes',
-  /** One finished month (recapLine): "October 2026: €15 left over → savings". */
+  /** How one finished month went (recapResult), the big line under its name: "€15 left over → savings". */
   recap: {
-    savings: (label: string, amount: string) => `${label}: ${amount} left over → savings`,
-    over: (label: string, amount: string) => `${label}: ${amount} over plan`,
-    onPlan: (label: string) => `${label}: right on plan`,
+    savings: (amount: string) => `${amount} left over → savings`,
+    over: (amount: string) => `${amount} over plan`,
+    onPlan: 'Right on plan',
   },
+  /** Under the big line: the month's spending across the envelopes against their plan, "€462 spent of €500". */
+  spentOf: (spent: string, planned: string) => `${spent} spent of ${planned}`,
   noPlan: 'Set up your plan to see how each month goes.',
 };

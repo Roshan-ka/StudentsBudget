@@ -23,8 +23,9 @@ const SENT_BY_ITSELF = { timeout: 15_000 };
 /** Noon on a day, local time, as the clock the page should show. */
 const noon = (iso: string) => new Date(`${iso}T12:00:00`);
 
-function recaps(page: Page) {
-  return page.getByRole('list', { name: 'Month by month', exact: true }).getByRole('listitem');
+/** How a finished month went: the big line in its recap, a section named by the month. */
+function recap(page: Page, month: string) {
+  return page.getByRole('region', { name: month, exact: true });
 }
 
 /** Sets the eating-out envelope on `day` through Edit plan's envelopes step, the way the recaps page leads there. */
@@ -57,10 +58,10 @@ test('raising an envelope in November leaves October’s recap with the plan Oct
   // 2 December: both months are over, nothing was spent. Without plan history both would read €510.
   await page.clock.setFixedTime(noon('2026-12-02'));
   await openApp(page, '/reveal');
-  await expect(recaps(page)).toHaveText([
-    'November 2026: €510 left over → savings',
-    'October 2026: €410 left over → savings',
-  ]);
+  await expect(recap(page, 'November 2026').getByText('€510 left over → savings', { exact: true })).toBeVisible();
+  await expect(recap(page, 'October 2026').getByText('€410 left over → savings', { exact: true })).toBeVisible();
+  // October's eating-out envelope keeps the €100 it had then.
+  await expect(recap(page, 'October 2026').getByText('€0 of €100', { exact: true })).toBeVisible();
 });
 
 test('on a linked phone, the month’s plan reaches the account', async ({ page }) => {

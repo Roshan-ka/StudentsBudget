@@ -23,8 +23,26 @@ async function overflow(page: Page) {
   return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
 
-function recaps(page: Page) {
-  return page.getByRole('list', { name: 'Month by month', exact: true }).getByRole('listitem');
+/** Each month that is over, newest first: a section named by its month and year, with its big line. */
+function months(page: Page) {
+  return page.getByRole('region', { name: /^\S+ \d{4}$/ });
+}
+
+/** The months shown, in order, each with how it went: `[['October 2026', '€274 left over → savings']]`. */
+async function expectRecaps(page: Page, expected: [month: string, line: string][]) {
+  await expect(months(page)).toHaveCount(expected.length);
+  for (const [i, [name, line]] of expected.entries()) {
+    await expect(months(page).nth(i)).toHaveAccessibleName(name);
+    await expect(months(page).nth(i).getByText(line, { exact: true })).toBeVisible();
+  }
+}
+
+/** One envelope's card in a month's recap, found by its category's name. */
+function envelope(page: Page, month: string, category: string) {
+  return page
+    .getByRole('region', { name: month, exact: true })
+    .getByRole('listitem')
+    .filter({ has: page.getByText(category, { exact: true }) });
 }
 
 test('while the setup month runs, home has no recap line and the page says when the first comes', async ({ page }) => {
@@ -34,7 +52,7 @@ test('while the setup month runs, home has no recap line and the page says when 
   await page.goto('/reveal');
   await expect(page.getByRole('heading', { level: 2, name: 'Month by month', exact: true })).toBeVisible();
   await expect(page.getByText('Your first recap comes once October is over.', { exact: true })).toBeVisible();
-  await expect(recaps(page)).toHaveCount(0);
+  await expect(months(page)).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Edit envelopes' })).toHaveCount(0);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
@@ -58,7 +76,7 @@ test('once October is over, home leads to its recap, and the envelopes can be ch
 
   // Planned 31000 + 12400, spent 10000 + 6000, so €274 left over, and savings: the setup month counts whole.
   // November is still running.
-  await expect(recaps(page)).toHaveText(['October 2026: €274 left over → savings']);
+  await expectRecaps(page, [['October 2026', '€274 left over → savings']]);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   const adjust = page.getByRole('link', { name: 'Edit envelopes', exact: true });
@@ -75,8 +93,26 @@ test('a finished month that went over its plan reads calmly', async ({ page }) =
   // 2 Nov: October is over. Planned 43400, spent 50000: €66 over.
   await page.clock.setFixedTime(noon('2026-11-02'));
   await page.goto('/reveal');
-  await expect(recaps(page)).toHaveText(['October 2026: €66 over plan']);
+  await expectRecaps(page, [['October 2026', '€66 over plan']]);
+  // The envelope that went over reads its numbers, in the same look as the others.
+  await expect(envelope(page, 'October 2026', 'Eating out').getByText('€500 of €124', { exact: true })).toBeVisible();
   await expect(page.getByText(/failed|warning/i)).toHaveCount(0);
+});
+
+test('a finished month shows what was spent of its plan, and a card per envelope', async ({ page }) => {
+  await seedSetup(page);
+  await logOn(page, '2026-10-20', 'döner 60', 'Eating out', 'Saved €60.00 · döner · Eating out');
+
+  // 2 Nov: October is over. Planned 31000 + 12400, spent 6000 on eating out.
+  await page.clock.setFixedTime(noon('2026-11-02'));
+  await page.goto('/reveal');
+  const october = page.getByRole('region', { name: 'October 2026', exact: true });
+  await expect(october.getByText('€60 spent of €434', { exact: true })).toBeVisible(); // proof: recap-spent-of
+  // Only the planned envelopes: those at €0 and never used add no card.
+  await expect(october.getByRole('listitem')).toHaveCount(2);
+  await expect(envelope(page, 'October 2026', 'Eating out').getByText('€60 of €124', { exact: true })).toBeVisible(); // proof: recap-envelope-line
+  await expect(envelope(page, 'October 2026', 'Food & groceries').getByText('€0 of €310', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
 test('every finished month reads alike, the setup month too: what is left of it is savings', async ({ page }) => {
@@ -87,9 +123,9 @@ test('every finished month reads alike, the setup month too: what is left of it 
   await page.goto('/');
   await expect(page.getByRole('link', { name: 'See how November went', exact: true })).toBeVisible();
   await page.goto('/reveal');
-  await expect(recaps(page)).toHaveText([
-    'November 2026: €434 left over → savings',
-    'October 2026: €434 left over → savings',
+  await expectRecaps(page, [
+    ['November 2026', '€434 left over → savings'],
+    ['October 2026', '€434 left over → savings'],
   ]);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
