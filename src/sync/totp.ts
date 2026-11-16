@@ -6,14 +6,19 @@ import { createHmac } from 'node:crypto';
 const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const STEP_SECONDS = 30;
 
-/** The bytes of a base32 secret (RFC 4648), as GoTrue hands it out: upper case, with no padding. */
+/**
+ * The bytes of a base32 secret (RFC 4648), as GoTrue hands it out (upper case, no padding) or as a person copies it from
+ * the app, which shows it in groups (`groupedSecret`): spaces, dashes and padding are ignored, in either case. The live
+ * smoke's secret was pasted grouped and stopped at the first space (16-11-2026).
+ */
 export function base32Bytes(secret: string): Buffer {
   const bytes: number[] = [];
   let bits = 0;
   let value = 0;
-  for (const char of secret.replace(/=+$/, '').toUpperCase()) {
+  for (const char of secret.toUpperCase().replace(/[\s=-]/g, '')) {
     const digit = BASE32.indexOf(char);
-    if (digit === -1) throw new Error(`Not a base32 secret: "${char}" isn't a base32 digit.`);
+    // The character itself stays out of the message: it is part of a secret, and CI logs keep errors.
+    if (digit === -1) throw new Error("Not a base32 secret: it holds a character that isn't a base32 digit (A-Z, 2-7).");
     value = (value << 5) | digit;
     bits += 5;
     if (bits >= 8) {

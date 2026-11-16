@@ -11,7 +11,15 @@ describe('totpCode', () => {
     expect(base32Bytes('MZXW6YTBOI').toString()).toBe('foobar');
     expect(base32Bytes('MZXW6===').toString()).toBe('foo');
     expect(base32Bytes('mzxw6ytboi').toString()).toBe('foobar');
-    expect(() => base32Bytes('MZXW1')).toThrow('isn\'t a base32 digit');
+    expect(() => base32Bytes('MZXW1')).toThrow("isn't a base32 digit");
+  });
+
+  it('reads a secret as the app shows it, in groups, and never names the character it refuses', () => {
+    const grouped = 'GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ';
+    expect(base32Bytes(grouped).toString()).toBe('12345678901234567890');
+    expect(base32Bytes('gezd-gnbv-gy3t-qojq gezd gnbv gy3t qojq\n').toString()).toBe('12345678901234567890');
+    expect(totpCode(grouped, 59_000)).toBe(totpCode(SEED, 59_000));
+    expect(() => base32Bytes('MZXW1')).toThrow(/^(?!.*"1").*isn't a base32 digit/);
   });
 
   it('gives the RFC 6238 test codes', () => {
