@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef } from 'react';
+import { ExternalLinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { useT } from '@/i18n/use-t';
@@ -13,7 +14,8 @@ const CONTROLS = 'button:not([disabled]), [href], input:not([disabled]), select:
 /**
  * A one-time data-protection note, inline, before a feature's first use: what it sends to whom. Continue remembers it on
  * this phone (`notes.ts`) and goes on; Cancel does nothing. `label` names the group for screen readers. A link under the
- * text opens the note's section of the privacy notice in a new tab, so a form being filled in stays as it is.
+ * text, in the button look, opens the note's section of the privacy notice in a new tab, so a form being filled in
+ * stays as it is.
  *
  * It takes the focus as it shows, so a screen reader reads it first (accessibility, chunk 5); Cancel gives the focus
  * back to what opened it, or, when the note took that control's place, to the control that is back in its place.
@@ -78,17 +80,11 @@ export function PrivacyNote({
       <p ref={takeFocus} tabIndex={-1} className="outline-none">
         {text}
       </p>
-      <p>
-        {/* A tap target of its own, 44 px tall like the buttons beside it. */}
-        <a
-          href={`/privacy#${NOTE_SECTIONS[id]}`}
-          target="_blank"
-          rel="noopener"
-          className="inline-flex min-h-11 items-center underline"
-        >
-          {t.common.privacy.more}
-        </a>
-      </p>
+      {/* An outlined button of its own, 44 px tall like the buttons under it (16-11-2026: buttons, never text
+          links). */}
+      <ExternalLinkButton href={`/privacy#${NOTE_SECTIONS[id]}`} rel="noopener">
+        {t.common.privacy.more}
+      </ExternalLinkButton>
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"

@@ -12,7 +12,7 @@ import { FRANKFURTER, fillSetup, readStore } from './helpers/setup';
 // (spread over October to February) = €440.
 
 function leftThisMonth(page: Page) {
-  return page.getByRole('region', { name: 'Left to spend this month' });
+  return page.getByRole('region', { name: 'This month’s budget' });
 }
 
 function envelopes(page: Page) {

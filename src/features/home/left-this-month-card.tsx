@@ -38,9 +38,10 @@ function MonthRing({ percent }: { percent: number }) {
 }
 
 /**
- * The one number the app leads with: what is left to spend this month across the envelopes (the whole monthly
- * amounts minus what was spent), and under it what is safe to spend this week (`weekToSpend`). Overspending is said
- * plainly and in the same colours as the good case.
+ * The one number the app leads with: what is left of this month's budget across the envelopes (the whole monthly
+ * amounts minus what was spent), "€420 unspent", and under it what is safe to spend this week (`weekToSpend`).
+ * Overspending is said plainly and in the same colours as the good case. The heading says "This month's budget", not
+ * "Left to spend", which read as an invitation to spend it (Roshan, 16-11-2026).
  */
 export function LeftThisMonthCard({
   leftMinor,
@@ -60,6 +61,7 @@ export function LeftThisMonthCard({
   const month = formatWeekAmount(leftMinor, locale);
   const week = formatWeekAmount(weekMinor, locale);
   const amount = <span className="font-heading text-5xl leading-none font-extrabold tracking-tight">{month.text}</span>;
+  const words = month.over ? text.overThisMonth : text.unspentThisMonth;
 
   return (
     <section aria-labelledby={headingId} className={cn(cardVariants({ variant: 'accent' }), 'gap-2')}>
@@ -68,18 +70,12 @@ export function LeftThisMonthCard({
       </h2>
       <div className="flex items-center gap-4">
         <MonthRing percent={percentUsed(plannedMinor, spentMinor)} />
-        {/* One line of text, however it wraps, so "€12 over this month" reads as one. The amount sits where the
-            language puts it. */}
+        {/* One line of text, however it wraps, so "€12 over this month" and "€420 unspent" each read as one. The
+            amount sits where the language puts it. */}
         <p className="min-w-0 tabular-nums break-words">
-          {month.over ? (
-            <>
-              {text.overThisMonth.before && <span className="text-xl font-semibold">{text.overThisMonth.before}</span>}
-              {amount}
-              <span className="text-xl font-semibold">{text.overThisMonth.after}</span>
-            </>
-          ) : (
-            amount
-          )}
+          {words.before && <span className="text-xl font-semibold">{words.before}</span>}
+          {amount}
+          <span className="text-xl font-semibold">{words.after}</span>
         </p>
       </div>
       <p className="w-fit rounded-full bg-foreground/10 px-3 py-1 text-[13px] font-semibold tabular-nums">

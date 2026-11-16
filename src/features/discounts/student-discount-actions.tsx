@@ -1,6 +1,8 @@
 'use client';
 
+import { LanguagesIcon } from 'lucide-react';
 import { useState } from 'react';
+import { ExternalLinkButton, FoldSummary, linkButtonClass } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { translateUrl } from '@/features/hacks/feed';
 import { postingNameText } from '@/features/hacks/posting-name';
@@ -15,25 +17,21 @@ import { getSupabase } from '@/lib/supabase/client';
 import { deleteStudentDiscount, reportStudentDiscount, type StudentDiscount } from './student-discounts';
 
 /**
- * Where a student's discount comes from, collapsed as any source is (`RangeSource`): who added it and when, that the
- * app never checked it, and the page the student gave. It shows no "checked" date, since nobody checked it.
+ * Where a student's discount comes from, collapsed as any source is (`RangeSource`, in the same outlined button): who
+ * added it and when, that the app never checked it, and the page the student gave. It shows no "checked" date, since
+ * nobody checked it.
  */
 export function StudentDiscountSource({ item, t }: { item: StudentDiscount; t: Messages }) {
   const { discount, info } = item;
   const name = info.author === null ? t.tips.hacks.noName : postingNameText(info.author, t.auth.postingName);
   return (
     <details className="text-xs text-muted-foreground">
-      <summary
-        aria-label={t.common.source.of(discount.place)}
-        className="w-fit cursor-pointer py-3.5 text-[13px] font-semibold text-primary underline underline-offset-4"
-      >
-        {t.common.source.label}
-      </summary>
-      <div className="mb-3.5 flex flex-col gap-1">
+      <FoldSummary aria-label={t.common.source.of(discount.place)}>{t.common.source.label}</FoldSummary>
+      <div className="mt-2 flex flex-col gap-1">
         <p className="break-words">{t.tips.studentDiscounts.source(name, formatDate(discount.checked))}</p>
-        <a href={discount.url} target="_blank" rel="noopener noreferrer" className="w-fit break-all underline">
+        <ExternalLinkButton href={discount.url} className="mt-1 break-all">
           {hostOf(discount.url)}
-        </a>
+        </ExternalLinkButton>
       </div>
     </details>
   );
@@ -106,7 +104,8 @@ export function StudentDiscountActions({
             href={translation}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline"
+            // An outlined button that says what it does (16-11-2026: buttons, never text links).
+            className={linkButtonClass()}
             onClick={(event) => {
               if (noteSeen('translate')) return;
               event.preventDefault();
@@ -114,6 +113,7 @@ export function StudentDiscountActions({
             }}
             aria-label={hacks.named(hacks.translate, which)}
           >
+            <LanguagesIcon aria-hidden="true" />
             {hacks.translate}
           </a>
         )}

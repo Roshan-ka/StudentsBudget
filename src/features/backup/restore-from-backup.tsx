@@ -18,7 +18,7 @@ type Chosen = { fileName: string; data: BackupData; exportedAt: string };
  * Pick a backup file, check it, ask once, then swap the data on this device for it. A file that does not
  * pass the check is refused with a message and nothing changes. Used in Settings and on /setup, so a new or
  * wiped phone can restore before it has a plan. `compact` (setup, 13-11-2026): the file field is hidden but keeps its
- * label, and a quiet "Restore a backup" button opens it.
+ * label, and an outlined "Restore a backup" button opens it (16-11-2026: buttons, never text links).
  */
 export function RestoreFromBackup({ compact = false }: { compact?: boolean }) {
   const inputId = useId();
@@ -117,8 +117,7 @@ export function RestoreFromBackup({ compact = false }: { compact?: boolean }) {
         {compact && (
           <Button
             type="button"
-            variant="link"
-            className="min-h-11 px-0"
+            variant="outline"
             onClick={() => fileRef.current?.click()}
             disabled={restoring}
           >

@@ -1,8 +1,8 @@
 'use client';
 
-import { AtSignIcon, LockIcon } from 'lucide-react';
-import Link from 'next/link';
+import { AtSignIcon, ChevronLeftIcon, KeyRoundIcon, LockIcon, LogInIcon, LogOutIcon, UserPlusIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { PasswordInput } from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -216,7 +216,8 @@ function EmailCodeStep({
       <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
         {notice ?? (resent && !acted ? t.common.codeResent : null)}
       </p>
-      <Button type="button" variant="link" className="self-start px-0" onClick={onBack}>
+      <Button type="button" variant="outline" className="self-start" onClick={onBack}>
+        <ChevronLeftIcon aria-hidden="true" className="rtl:rotate-180" />
         {text.back}
       </Button>
     </section>
@@ -297,7 +298,8 @@ function ResetEmailStep({
           {text.send}
         </Button>
       </form>
-      <Button type="button" variant="link" className="self-start px-0" onClick={onBack}>
+      <Button type="button" variant="outline" className="self-start" onClick={onBack}>
+        <ChevronLeftIcon aria-hidden="true" className="rtl:rotate-180" />
         {text.back}
       </Button>
     </section>
@@ -397,7 +399,8 @@ export function NewPasswordForm({ email }: { email: string }) {
         </Button>
       </form>
       {/* Signing out ends the reset too (use-auth.ts): the old password, or another code, is the way back in. */}
-      <Button type="button" variant="link" className="self-start px-0" onClick={() => void signOutLocally()}>
+      <Button type="button" variant="outline" className="self-start" onClick={() => void signOutLocally()}>
+        <LogOutIcon aria-hidden="true" className="rtl:rotate-180" />
         {text.signOut}
       </Button>
     </section>
@@ -640,8 +643,8 @@ export function SignInForm({
       ) : (
         <Button
           type="button"
-          variant="link"
-          className="self-end px-0"
+          variant="outline"
+          className="self-end"
           onClick={() => {
             setError(null);
             setNotice(null);
@@ -649,6 +652,7 @@ export function SignInForm({
             setStep({ at: 'reset-email' });
           }}
         >
+          <KeyRoundIcon aria-hidden="true" />
           {text.forgot}
         </Button>
       )}
@@ -758,20 +762,23 @@ export function SignInForm({
       <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
         {notice}
       </p>
+      {/* The other form, as a full-width outlined button under the form's own (16-11-2026: buttons, never text
+          links). */}
       {page ? (
         // The start pages: the other form is the other page, so the address always matches the form.
-        <Link
+        <LinkButton
           href={creating ? '/start/sign-in' : '/start/new-account'}
           onClick={forgetSignedOut}
-          className="mx-auto inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4"
+          icon={creating ? LogInIcon : UserPlusIcon}
+          className="w-full"
         >
           {creating ? text.toSignIn : text.toCreate}
-        </Link>
+        </LinkButton>
       ) : (
         <Button
           type="button"
-          variant="link"
-          className="self-start px-0"
+          variant="outline"
+          className="w-full"
           onClick={() => {
             setMode(creating ? 'sign-in' : 'create');
             setError(null);
@@ -779,6 +786,7 @@ export function SignInForm({
             setAccountNote(false);
           }}
         >
+          {creating ? <LogInIcon aria-hidden="true" /> : <UserPlusIcon aria-hidden="true" />}
           {creating ? text.toSignIn : text.toCreate}
         </Button>
       )}
@@ -889,7 +897,8 @@ export function SecondStepForm({ email, factorId }: { email: string; factorId: s
           {text.continue}
         </Button>
       </form>
-      <Button type="button" variant="link" className="self-start px-0" onClick={() => void signOutLocally()}>
+      <Button type="button" variant="outline" className="self-start" onClick={() => void signOutLocally()}>
+        <LogOutIcon aria-hidden="true" className="rtl:rotate-180" />
         {text.otherAccount}
       </Button>
     </section>

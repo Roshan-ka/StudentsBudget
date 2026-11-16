@@ -1,9 +1,9 @@
 'use client';
 
 import { ChevronLeftIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { PageHeading } from '@/components/page-heading';
 import { db } from '@/db/db';
 import { AccountLink } from '@/features/account/account-link';
@@ -58,10 +58,9 @@ export function StartAccount({ mode }: { mode: AuthMode }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/start" className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-primary">
-        <ChevronLeftIcon aria-hidden="true" className="size-4 rtl:rotate-180" />
+      <LinkButton href="/start" icon={ChevronLeftIcon} iconClassName="rtl:rotate-180">
         {t.account.start.back}
-      </Link>
+      </LinkButton>
       {/* "Your account" names the page in the title and takes the focus after a page change; the form's big heading
           says which form it is. */}
       <PageHeading id="account" visuallyHidden />

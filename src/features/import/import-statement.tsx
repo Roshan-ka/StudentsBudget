@@ -1,8 +1,9 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import Link from 'next/link';
+import { ClipboardListIcon } from 'lucide-react';
 import { useId, useRef, useState, type ChangeEvent } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -177,9 +178,9 @@ export function ImportStatement() {
       {plan === null ? (
         <div className="flex flex-col gap-2 text-sm">
           <p>{text.noPlan}</p>
-          <Link href="/setup" className="font-semibold text-primary underline underline-offset-4">
+          <LinkButton href="/setup" icon={ClipboardListIcon}>
             {t.common.toSetup}
-          </Link>
+          </LinkButton>
         </div>
       ) : step.kind === 'done' ? (
         <ImportSummary saved={step.saved} accounts={accounts} onUndo={() => void onUndo(step.saved)} onAnother={() => startOver()} />

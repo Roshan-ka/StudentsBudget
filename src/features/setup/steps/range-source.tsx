@@ -1,5 +1,6 @@
 'use client';
 
+import { ExternalLinkButton, FoldSummary } from '@/components/link-button';
 import type { CityRange } from '@/data/cities';
 import { contentLang } from '@/i18n/content';
 import { useT } from '@/i18n/use-t';
@@ -38,25 +39,20 @@ export function RangeSource({
   const sourceLang = 'textLang' in range ? range.textLang : contentLang(lang);
   return (
     <details className="text-xs text-muted-foreground">
-      {/* A line and 28 px of padding: at least a 44 px tap target, as everywhere else in the app. Bold cobalt and
-          underlined, so it reads as something to open; it sits on the card colour, where cobalt is 6.9:1, or on a
-          category's tint in setup's cards (tokens.test.ts holds it at 4.5:1 there). */}
-      <summary
-        aria-label={label === undefined && about !== undefined ? t.common.source.of(about) : undefined}
-        className="w-fit cursor-pointer py-3.5 text-[13px] font-semibold text-primary underline underline-offset-4"
-      >
+      {/* An outlined button with a chevron, as every fold-out (16-11-2026: buttons, never text links), at least 44 px
+          high. The card colour under the foreground text, on the page or on a category's tint in setup's cards. */}
+      <FoldSummary aria-label={label === undefined && about !== undefined ? t.common.source.of(about) : undefined}>
         {label ?? t.common.source.label}
-      </summary>
-      {/* Space below: a card ends flush with the closed summary, which is tall enough on its own. */}
-      <div className="mb-3.5 flex flex-col gap-1">
+      </FoldSummary>
+      <div className="mt-2 flex flex-col gap-1">
         {/* The source's own text is city content; "Estimate" is the app's word. */}
         <p lang={estimate ? undefined : sourceLang} className="break-words">
           {estimate ? t.common.estimate : range.source}
         </p>
         <p>{t.common.source.checked(formatDate(range.checked))}</p>
-        <a href={range.url} target="_blank" rel="noopener noreferrer" className="w-fit break-all underline">
+        <ExternalLinkButton href={range.url} className="mt-1 break-all">
           {hostOf(range.url)}
-        </a>
+        </ExternalLinkButton>
       </div>
     </details>
   );

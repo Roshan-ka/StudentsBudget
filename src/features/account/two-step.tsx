@@ -265,6 +265,7 @@ export function TwoStepSection() {
             href={view.setup.uri}
             className={buttonVariants({ variant: 'outline', className: 'self-start px-4' })}
           >
+            <SmartphoneIcon aria-hidden="true" />
             {text.openApp}
           </a>
           <div className="flex flex-col gap-1">

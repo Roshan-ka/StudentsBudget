@@ -32,7 +32,7 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
     if (file.data.plan) {
       // Use the app's links: full reloads can abort an in-flight rate refresh in WebKit.
       const nav = page.getByRole('navigation', { name: 'Main', exact: true });
-      await expect(page.getByRole('heading', { name: 'Left to spend this month', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'This month’s budget', exact: true })).toBeVisible();
       for (const heading of ['Entries', 'Charts', 'Settings']) {
         await nav.getByRole('link', { name: heading, exact: true }).click();
         await expect(page.getByRole('heading', { level: 2, name: heading, exact: true })).toBeVisible();
@@ -51,7 +51,7 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
         await recaps.click();
         await expect(page.getByRole('heading', { name: 'Month by month', exact: true })).toBeVisible();
       } else {
-        await expect(page.getByRole('heading', { name: 'Left to spend this month', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'This month’s budget', exact: true })).toBeVisible();
         await expect(recaps).toHaveCount(0);
       }
     } else {

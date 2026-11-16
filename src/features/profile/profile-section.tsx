@@ -43,7 +43,7 @@ function PeriodSource({ draft, today }: { draft: ProfileDraft; today: IsoDate })
   const { period } = semesterOn(university, isIsoDate(draft.semesterStart) ? draft.semesterStart : today);
   const name = UNIVERSITIES.find((u) => u.id === university)?.name ?? university;
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <p className="text-sm text-muted-foreground">
         {t.profile.period(termName(period.term, lang), name, periodLabel(period, locale))}
       </p>

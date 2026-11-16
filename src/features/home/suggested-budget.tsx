@@ -1,8 +1,9 @@
 'use client';
 
 import { parseISO } from 'date-fns';
-import { ChevronDownIcon } from 'lucide-react';
+import { CalculatorIcon, ChevronDownIcon } from 'lucide-react';
 import { useId, useState } from 'react';
+import { linkButtonClass } from '@/components/link-button';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { CITIES } from '@/data/cities';
@@ -155,8 +156,10 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
             setOutcome(null);
             setShown(true);
           }}
-          className="inline-flex min-h-11 cursor-pointer items-center text-sm text-primary underline underline-offset-4"
+          // An outlined button, never a text link (16-11-2026).
+          className={linkButtonClass('cursor-pointer')}
         >
+          <CalculatorIcon aria-hidden="true" />
           {text.show}
         </button>
       </div>

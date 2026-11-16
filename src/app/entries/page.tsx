@@ -8,7 +8,8 @@ import { ScanReceipt } from '@/features/receipts/scan-receipt';
 export default function EntriesPage() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
+      {/* Add entry goes under the heading where the two don't fit side by side (large text). */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <PageHeading id="entries" />
         <AddEntryLink />
       </div>

@@ -1,5 +1,6 @@
-import Link from 'next/link';
+import { PencilIcon } from 'lucide-react';
 import { useId } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { categoryBarFill, categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { furthestOver, localSuggestions, type Suggestion } from '@/features/swaps/suggest';
@@ -86,17 +87,15 @@ export function EnvelopeList({ rows, today }: { rows: EnvelopeRow[]; today: IsoD
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      {/* Edit plan at the end of the heading's line (13-11-2026), where the envelopes are changed. */}
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+      {/* Edit plan at the end of the heading's line (13-11-2026), where the envelopes are changed: an outlined button
+          with a pencil (16-11-2026: buttons, never text links). */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <h2 id={headingId} className="text-[22px] leading-tight font-extrabold">
           {t.home.envelopes.heading}
         </h2>
-        <Link
-          href="/setup?edit=1"
-          className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4"
-        >
+        <LinkButton href="/setup?edit=1" icon={PencilIcon}>
           {t.setup.editPlan.link}
-        </Link>
+        </LinkButton>
       </div>
       <ul aria-labelledby={headingId} className="flex flex-col gap-3">
         {rows.map((row) => (

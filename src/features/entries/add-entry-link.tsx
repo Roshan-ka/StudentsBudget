@@ -1,16 +1,18 @@
 'use client';
 
-import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
+import { PlusIcon } from 'lucide-react';
+import { LinkButton } from '@/components/link-button';
 import { useT } from '@/i18n/use-t';
-import { cn } from '@/lib/utils';
 
-/** The way to the full entry form, in the phone's language: the Entries page around it renders on the server. */
+/**
+ * The way to the full entry form, in the phone's language: the Entries page around it renders on the server. An
+ * outlined button with its icon, as every way on (16-11-2026).
+ */
 export function AddEntryLink() {
   const { t } = useT();
   return (
-    <Link href="/entries/new" className={cn(buttonVariants({ variant: 'outline' }), 'px-4')}>
+    <LinkButton href="/entries/new" icon={PlusIcon}>
       {t.entries.addEntry}
-    </Link>
+    </LinkButton>
   );
 }

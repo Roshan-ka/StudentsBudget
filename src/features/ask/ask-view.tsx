@@ -1,8 +1,9 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import Link from 'next/link';
+import { ClipboardListIcon, CloudIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -23,8 +24,6 @@ import { askRequestOf, conversationFull, paragraphsOf, problemText, type AskTurn
 import { askSnapshot, type AskSnapshot } from './snapshot';
 import { askSourcesOf } from './sources';
 
-const linkClass = 'self-start text-sm font-semibold text-primary underline-offset-4 hover:underline';
-
 /** One answer: its paragraphs in the phone's language, the estimate line when it needs one, and its sources. */
 function Answer({ reply }: { reply: AskReply }) {
   const { t, lang, locale } = useT();
@@ -43,7 +42,7 @@ function Answer({ reply }: { reply: AskReply }) {
       </div>
       {reply.unbacked.length > 0 && <p className="text-sm text-muted-foreground">{text.estimate}</p>}
       {sources.length > 0 && (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold">{text.sources}</p>
           {sources.flatMap((source) =>
             source.parts.map((part, i) => (
@@ -127,9 +126,9 @@ export function AskView() {
   }
 
   const toAccount = (
-    <Link href="/settings/account" className={linkClass}>
+    <LinkButton href="/settings/account" icon={CloudIcon}>
       {t.common.toAccount}
-    </Link>
+    </LinkButton>
   );
   const said = (words: string, link?: React.ReactNode) => (
     <div className="flex flex-col gap-3">
@@ -148,9 +147,9 @@ export function AskView() {
   if (plan === null) {
     return said(
       text.noPlan,
-      <Link href="/setup" className={linkClass}>
+      <LinkButton href="/setup" icon={ClipboardListIcon}>
         {t.common.toSetup}
-      </Link>,
+      </LinkButton>,
     );
   }
 

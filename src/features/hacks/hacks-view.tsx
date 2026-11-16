@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
+import { CloudIcon, LanguagesIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ExternalLinkButton, LinkButton, linkButtonClass } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { useAuth } from '@/features/account/use-auth';
@@ -101,9 +102,9 @@ export function HacksView() {
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">{text.intro}</p>
         <p className="text-sm">{text.signedOut}</p>
-        <Link href="/settings/account" className="self-start text-sm font-semibold text-primary underline-offset-4 hover:underline">
+        <LinkButton href="/settings/account" icon={CloudIcon}>
           {t.common.toAccount}
-        </Link>
+        </LinkButton>
       </div>
     );
   }
@@ -333,7 +334,8 @@ function HackCard({
           href={translation}
           target="_blank"
           rel="noopener noreferrer"
-          className="self-start text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          // An outlined button that says what it does (16-11-2026: buttons, never text links).
+          className={linkButtonClass()}
           onClick={(event) => {
             if (noteSeen('translate')) return;
             event.preventDefault();
@@ -341,6 +343,7 @@ function HackCard({
           }}
           aria-label={text.named(text.translate, which)}
         >
+          <LanguagesIcon aria-hidden="true" />
           {text.translate}
         </a>
       )}
@@ -360,14 +363,9 @@ function HackCard({
         />
       )}
       {post.link !== null && (
-        <a
-          href={post.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="self-start text-sm font-semibold break-all text-primary underline-offset-4 hover:underline"
-        >
+        <ExternalLinkButton href={post.link} className="break-all">
           {linkHost(post.link)}
-        </a>
+        </ExternalLinkButton>
       )}
       <p className="text-sm font-semibold break-words">
         {post.author === null ? text.noName : postingNameText(post.author, t.auth.postingName)}

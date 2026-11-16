@@ -11,8 +11,9 @@ export const home: Messages['home'] = {
   missingRates: (currencies, count) =>
     count === 1 ? `Wechselkurs für ${currencies} fehlt` : `Wechselkurse für ${currencies} fehlen`,
   leftThisMonth: {
-    heading: 'Diesen Monat noch frei',
+    heading: 'Budget diesen Monat',
     overThisMonth: { before: '', after: ' zu viel diesen Monat' },
+    unspentThisMonth: { before: '', after: ' nicht ausgegeben' },
     weekOver: (amount) => `Diese Woche: ${amount} zu viel`,
     weekSafe: (amount) => `Diese Woche: ${amount} frei`,
   },
