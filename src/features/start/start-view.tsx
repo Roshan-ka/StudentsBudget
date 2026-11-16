@@ -1,9 +1,18 @@
 'use client';
 
-import { CalendarDaysIcon, ListChecksIcon, MapPinIcon, ZapIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  CalendarDaysIcon,
+  ListChecksIcon,
+  LogInIcon,
+  MapPinIcon,
+  UserPlusIcon,
+  ZapIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { PageHeading } from '@/components/page-heading';
 import { StatusLine } from '@/components/status-line';
 import { buttonVariants } from '@/components/ui/button';
@@ -100,6 +109,7 @@ export function StartView() {
           onClick={forgetSignedOut}
           className={buttonVariants({ size: 'lg', className: 'w-full' })}
         >
+          <UserPlusIcon aria-hidden="true" />
           {text.create}
         </Link>
         <Link
@@ -107,16 +117,20 @@ export function StartView() {
           onClick={forgetSignedOut}
           className={buttonVariants({ size: 'lg', variant: 'outline', className: 'w-full' })}
         >
+          <LogInIcon aria-hidden="true" />
           {text.signIn}
         </Link>
-        {/* Quiet, at least 44 px high: the guest's way, with no note (Roshan, 13-11-2026). */}
-        <Link
+        {/* The guest's way, with no note (Roshan, 13-11-2026): an outlined button of the default size under the two
+            big ones (16-11-2026: buttons, never text links). */}
+        <LinkButton
           href="/setup"
           onClick={forgetSignedOut}
-          className="mx-auto inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4"
+          icon={ArrowRightIcon}
+          iconClassName="rtl:rotate-180"
+          className="w-full"
         >
           {text.guest}
-        </Link>
+        </LinkButton>
       </div>
 
       <div className="flex justify-center">

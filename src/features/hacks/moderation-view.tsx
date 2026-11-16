@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
+import { CloudIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ExternalLinkButton, LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { useAuth } from '@/features/account/use-auth';
@@ -27,8 +28,6 @@ import {
 type Kind = 'posts' | 'comments' | 'discounts';
 
 const DECIDE = { posts: moderate, comments: moderateComment, discounts: moderateDiscount } as const;
-
-const linkClass = 'self-start text-sm font-semibold text-primary underline-offset-4 hover:underline';
 
 /**
  * Settings → Moderation (the hacks feed, chunk 7; comments since community, chunk 3, discounts students added since
@@ -76,9 +75,9 @@ export function ModerationView() {
       <div className="flex flex-col gap-3">
         <p className="text-sm">{text.signedOut}</p>
         {auth.status !== 'off' && (
-          <Link href="/settings/account" className={linkClass}>
+          <LinkButton href="/settings/account" icon={CloudIcon}>
             {t.common.toAccount}
-          </Link>
+          </LinkButton>
         )}
       </div>
     );
@@ -93,9 +92,9 @@ export function ModerationView() {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm">{text.needsCode}</p>
-        <Link href="/settings/account" className={linkClass}>
+        <LinkButton href="/settings/account" icon={CloudIcon}>
           {t.common.toAccount}
-        </Link>
+        </LinkButton>
       </div>
     );
   }
@@ -239,14 +238,9 @@ export function ModerationView() {
                   {item.conditions !== '' && <p className="text-sm break-words text-muted-foreground">{item.conditions}</p>}
                 </div>
                 {/* The page the student gave, to check the offer against. */}
-                <a
-                  href={item.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-fit text-sm break-all text-primary underline underline-offset-4"
-                >
+                <ExternalLinkButton href={item.link} className="break-all">
                   {hostOf(item.link)}
-                </a>
+                </ExternalLinkButton>
                 <p className="text-sm font-semibold break-words">
                   {item.username === null ? t.tips.hacks.noName : `@${item.username}`}
                 </p>

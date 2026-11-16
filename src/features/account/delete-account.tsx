@@ -1,8 +1,8 @@
 'use client';
 
-import { Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
+import { ArchiveIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -140,9 +140,10 @@ export function DeleteAccountCard({ email }: { email: string }) {
         {text.heading}
       </CardHeading>
       <p className="text-sm text-muted-foreground">{text.intro}</p>
-      <Link href="/settings/backup" className="text-sm font-medium text-primary underline underline-offset-4">
+      {/* Backup's own icon, as on Settings' list. */}
+      <LinkButton href="/settings/backup" icon={ArchiveIcon}>
         {text.backup}
-      </Link>
+      </LinkButton>
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`${id}-password`}>{text.password}</Label>

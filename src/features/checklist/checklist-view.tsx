@@ -74,7 +74,7 @@ export function ChecklistView({ onSeeTip }: { onSeeTip: (tipId: string) => void 
               const words = checklistIn(item, lang);
               const tick = tickOf(item.id);
               return (
-                <li key={item.id} className={cn(cardVariants(), 'gap-2 pb-0')}>
+                <li key={item.id} className={cn(cardVariants(), 'gap-2')}>
                   <span className="inline-flex w-fit items-center rounded-full border-[1.5px] border-outline bg-muted px-2.5 py-0.5 text-xs font-semibold">
                     {text.who[item.who]}
                   </span>

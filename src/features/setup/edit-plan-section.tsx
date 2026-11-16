@@ -1,8 +1,8 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
+import { PencilIcon } from 'lucide-react';
+import { LinkButton } from '@/components/link-button';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { useT } from '@/i18n/use-t';
@@ -19,9 +19,10 @@ export function EditPlanSection() {
     // Named by its page's heading (/settings/plan), which has the id.
     <section aria-labelledby="plan-heading" className={cardVariants()}>
       <p className="text-muted-foreground">{text.body}</p>
-      <Link href="/setup?edit=1" className={buttonVariants({ variant: 'outline', className: 'self-start px-4' })}>
+      {/* With Home's pencil: "Edit plan" looks the same everywhere. */}
+      <LinkButton href="/setup?edit=1" icon={PencilIcon}>
         {text.link}
-      </Link>
+      </LinkButton>
     </section>
   );
 }

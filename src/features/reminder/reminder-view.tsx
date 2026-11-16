@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
+import { CalendarCheckIcon, CloudIcon } from 'lucide-react';
 import { useId, useState, useSyncExternalStore } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -27,8 +28,6 @@ import {
   type ReminderChoice,
   type SaveResult,
 } from './reminder';
-
-const linkClass = 'self-start text-sm font-semibold text-primary underline-offset-4 hover:underline';
 
 const subscribeNever = () => () => {};
 // What the browser allows is read on the phone only: the page is prerendered, and the server knows no browser.
@@ -129,9 +128,9 @@ export function ReminderView() {
   }
 
   const toAccount = (
-    <Link href="/settings/account" className={linkClass}>
+    <LinkButton href="/settings/account" icon={CloudIcon}>
       {t.common.toAccount}
-    </Link>
+    </LinkButton>
   );
 
   let body;
@@ -256,9 +255,10 @@ export function ReminderView() {
       </p>
       <div className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">{text.calendar}</p>
-        <Link href="/check-in" className={linkClass}>
+        {/* The check-in's own icon, as on Home's card. */}
+        <LinkButton href="/check-in" icon={CalendarCheckIcon}>
           {text.toCheckIn}
-        </Link>
+        </LinkButton>
       </div>
     </div>
   );

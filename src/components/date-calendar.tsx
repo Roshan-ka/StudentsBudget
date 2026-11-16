@@ -1,7 +1,7 @@
 'use client';
 
 import { Dialog } from '@base-ui/react/dialog';
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import { CalendarDaysIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { parseISO } from 'date-fns';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { cn } from 'cn';
@@ -346,10 +346,10 @@ export function DateCalendar({
               )}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
+              {/* An outlined button beside Close (16-11-2026: buttons, never text links). */}
               <Button
                 type="button"
-                variant="link"
-                className="px-1"
+                variant="outline"
                 disabled={today === null}
                 onClick={() => {
                   if (today === null) return;
@@ -357,6 +357,7 @@ export function DateCalendar({
                   setView('days');
                 }}
               >
+                <CalendarDaysIcon aria-hidden="true" />
                 {text.goToToday}
               </Button>
               <Dialog.Close render={<Button type="button" variant="outline" />}>{text.close}</Dialog.Close>

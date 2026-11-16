@@ -1,6 +1,7 @@
 'use client';
 
 import { useId } from 'react';
+import { FoldSummary } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { SETUP_ENVELOPE_IDS } from '@/data/categories';
@@ -118,9 +119,9 @@ export function EnvelopesStep({
           />
         </div>
         <details className="text-xs text-muted-foreground">
-          {/* The same 44 px tap target as a source line. */}
-          <summary className="w-fit cursor-pointer py-3.5">{text.whereFrom}</summary>
-          <div className="flex flex-col">
+          {/* The same outlined button as a source line (16-11-2026: buttons, never text links). */}
+          <FoldSummary>{text.whereFrom}</FoldSummary>
+          <div className="mt-2 flex flex-col gap-2">
             {RANGES.map((range) => (
               <RangeSource
                 key={range.categoryId}

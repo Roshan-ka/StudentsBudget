@@ -346,7 +346,7 @@ test('in a later week, an envelope that is used up is listed as used up and the 
   // month is €72 over, which is €36 over for each of the two weeks.
   await page.clock.setFixedTime(new Date(2026, 9, 19, 12, 0, 0));
   await openApp(page, '/');
-  const card = page.getByRole('region', { name: 'Left to spend this month' });
+  const card = page.getByRole('region', { name: 'This month’s budget' });
   await expect(card.getByText('€72 over this month', { exact: true })).toBeVisible();
   await expect(card.getByText('This week: €36 over', { exact: true })).toBeVisible();
 

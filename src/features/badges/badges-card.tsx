@@ -1,5 +1,5 @@
 import { AwardIcon } from 'lucide-react';
-import Link from 'next/link';
+import { LinkButton } from '@/components/link-button';
 import { cardVariants } from '@/components/ui/card';
 import { categoryTint } from '@/features/charts/colors';
 import { ROW_CARD, RowTile } from '@/features/home/row-card';
@@ -45,9 +45,11 @@ export function BadgesCard({ badges }: { badges: Badge[] }) {
           </>
         )}
       </div>
-      <Link href="/badges" className="inline-flex min-h-11 items-center text-primary underline underline-offset-4">
+      {/* An outlined button at the end of the line, under it on a narrow phone (16-11-2026: buttons, never text
+          links). */}
+      <LinkButton href="/badges" icon={AwardIcon}>
         {text.seeAll}
-      </Link>
+      </LinkButton>
     </section>
   );
 }

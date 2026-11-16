@@ -1,8 +1,10 @@
 'use client';
 
 import { parseISO } from 'date-fns';
+import { ReceiptTextIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { linkButtonClass } from '@/components/link-button';
 import { cardVariants } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import { dateFormat } from '@/i18n/format';
@@ -74,8 +76,6 @@ export function entriesHref(categoryId: string | null, month: IsoMonth): string 
   const params = new URLSearchParams(categoryId === null ? { month } : { category: categoryId, month });
   return `/entries?${params.toString()}`;
 }
-
-export const LINK_CLASS = 'text-primary underline underline-offset-4';
 
 /** One slice, bar or column, with everything a chart, its tooltip and its table need. */
 export type ChartRow = {
@@ -190,7 +190,7 @@ export function ChartFrame({
  * (the "Table" style); otherwise it is the text of a chart for screen readers and keyboards, out of sight until a
  * link in it has focus, so a keyboard user sees where they are. `linkedElsewhere` names the rows whose link is already
  * on the page (the donut's legend): those are plain text here, so a keyboard meets each link once (accessibility,
- * chunk 7).
+ * chunk 7). A row's link is an outlined button with the entries' icon (16-11-2026: buttons, never text links).
  */
 export function DataTable({
   caption,
@@ -226,17 +226,18 @@ export function DataTable({
         <tbody className={visible ? 'divide-y' : undefined}>
           {rows.map(({ row, cells }) => (
             <tr key={row.id}>
-              <th scope="row" className={`text-start font-normal ${visible ? 'py-3' : 'py-1'}`}>
+              <th scope="row" className={`text-start font-normal ${visible ? 'py-2' : 'py-1'}`}>
                 {row.href === null || linkedElsewhere?.has(row.id) ? (
                   row.label
                 ) : (
-                  <Link href={row.href} className={LINK_CLASS}>
+                  <Link href={row.href} className={linkButtonClass('justify-start text-start')}>
+                    <ReceiptTextIcon aria-hidden="true" />
                     {row.label}
                   </Link>
                 )}
               </th>
               {cells.map((cell, i) => (
-                <td key={columns[i]} className={`ps-3 text-end tabular-nums ${visible ? 'py-3' : 'py-1'}`}>
+                <td key={columns[i]} className={`ps-3 text-end tabular-nums ${visible ? 'py-2' : 'py-1'}`}>
                   {cell}
                 </td>
               ))}

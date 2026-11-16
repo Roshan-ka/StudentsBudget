@@ -148,7 +148,7 @@ function TipList({
           const words = tipIn(tip, lang);
           const Icon = CATEGORY_ICONS[tip.categoryId] ?? OTHER_ICON;
           return (
-            <li key={tip.id} className={cn(cardVariants(), 'gap-2 pb-0')}>
+            <li key={tip.id} className={cn(cardVariants(), 'gap-2')}>
               {/* The category's tint and icon; its name is the text, in the foreground colour (4.5:1 on every tint). */}
               <span
                 className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold"

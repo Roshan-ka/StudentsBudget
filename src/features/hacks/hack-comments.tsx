@@ -1,6 +1,8 @@
 'use client';
 
+import { LanguagesIcon } from 'lucide-react';
 import { useId, useRef, useState, type FormEvent } from 'react';
+import { linkButtonClass } from '@/components/link-button';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -276,7 +278,8 @@ function CommentItem({
             href={translation}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline"
+            // An outlined button that says what it does (16-11-2026: buttons, never text links).
+            className={linkButtonClass()}
             onClick={(event) => {
               if (noteSeen('translate')) return;
               event.preventDefault();
@@ -284,6 +287,7 @@ function CommentItem({
             }}
             aria-label={hacks.named(hacks.translate, which)}
           >
+            <LanguagesIcon aria-hidden="true" />
             {hacks.translate}
           </a>
         )}

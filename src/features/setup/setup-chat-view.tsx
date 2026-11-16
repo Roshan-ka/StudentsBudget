@@ -44,7 +44,7 @@ function Reply({ reply }: { reply: NonNullable<SetupTurn['reply']> }) {
         </div>
       )}
       {sources.length > 0 && (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold">{text.sources}</p>
           {sources.flatMap((source) =>
             source.parts.map((part, i) => (

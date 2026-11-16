@@ -1,12 +1,15 @@
 'use client';
 
+import { ChevronRightIcon } from 'lucide-react';
 import { Fragment, useId, useState } from 'react';
+import { linkButtonClass } from '@/components/link-button';
 import type { Swap } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { swapIn, tipIn, type InLanguage } from '@/i18n/city';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
+import { cn } from '@/lib/utils';
 import { amountText, swapLineParts, type Suggestion } from './suggest';
 
 /**
@@ -53,13 +56,21 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         onClick={() => setOpen(!open)}
-        // The foreground colour, bold and underlined: it sits on an envelope's tint, where cobalt is under 4.5:1.
-        className="inline-flex min-h-11 w-fit max-w-full cursor-pointer items-center text-start text-sm font-semibold break-words text-foreground underline underline-offset-4"
+        // The outlined button with a chevron, as every fold-out (16-11-2026: buttons, never text links): the card
+        // colour and the foreground text, on the page or on an envelope's tint. The words start at the chevron.
+        className={linkButtonClass('cursor-pointer justify-start text-start text-pretty break-words')}
       >
-        {/* A title still in English is marked so, inside a line in the phone's language. */}
-        {swapLineParts(suggestion, lang).map((part, i) => (
-          <Fragment key={i}>{part.lang ? <span lang={part.lang}>{part.text}</span> : part.text}</Fragment>
-        ))}
+        <ChevronRightIcon
+          aria-hidden="true"
+          className={cn('transition-transform rtl:-scale-x-100', open && 'rotate-90 rtl:-rotate-90')}
+        />
+        {/* One span, so the line wraps as a sentence beside the chevron. A title still in English is marked so,
+            inside a line in the phone's language. */}
+        <span>
+          {swapLineParts(suggestion, lang).map((part, i) => (
+            <Fragment key={i}>{part.lang ? <span lang={part.lang}>{part.text}</span> : part.text}</Fragment>
+          ))}
+        </span>
       </button>
       {open && (
         <div

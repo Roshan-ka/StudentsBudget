@@ -15,8 +15,9 @@ export const home: Messages['home'] = {
       other: `Taux de change manquants pour ${currencies}`,
     }),
   leftThisMonth: {
-    heading: 'Reste à dépenser ce mois-ci',
+    heading: 'Budget du mois',
     overThisMonth: { before: '', after: ' de trop ce mois-ci' },
+    unspentThisMonth: { before: '', after: ' non dépensés' },
     weekOver: (amount) => `Cette semaine${NNBSP}: ${amount} de trop`,
     weekSafe: (amount) => `Cette semaine${NNBSP}: ${amount} à dépenser`,
   },

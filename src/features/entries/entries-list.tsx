@@ -2,10 +2,11 @@
 
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowLeftRightIcon } from 'lucide-react';
+import { ArrowLeftRightIcon, ChevronLeftIcon, ChevronRightIcon, XIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState, type Ref } from 'react';
+import { LinkButton, linkButtonClass } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { CATEGORIES } from '@/data/categories';
@@ -27,8 +28,6 @@ import { entryTitle } from './entry-title';
 import { RecurringTag, isRecurring } from './recurring-tag';
 
 const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
-
-const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline underline-offset-4';
 
 /** The focus key of the list itself, for the last entry of a month that is deleted. */
 const LIST_KEY = 'entries-list';
@@ -242,27 +241,31 @@ export function EntriesList() {
       aria-label={text.label}
       className="flex flex-col gap-3 outline-none"
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-4 text-sm text-muted-foreground">
-        <p className="flex flex-wrap items-center gap-x-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{summary.join(' · ')}</span>
           {filtered && (
             <>
               <span aria-hidden="true">{' · '}</span>
-              <Link href="/entries" className={LINK_CLASS}>
+              <LinkButton href="/entries" icon={XIcon}>
                 {text.clear}
-              </Link>
+              </LinkButton>
             </>
           )}
         </p>
-        <nav aria-label={text.monthNav} className="flex items-center gap-4">
-          {/* The arrows are decoration: a screen reader says only "Previous" and "Next". */}
-          <Link href={listHref(shiftMonth(loaded.month, -1), category)} className={LINK_CLASS}>
-            <span aria-hidden="true">‹&nbsp;</span>
+        {/* Two outlined buttons (16-11-2026: buttons, never text links), one under the other where they don't fit
+            side by side (large text). The chevrons are decoration: a screen reader says only "Previous" and "Next". */}
+        <nav aria-label={text.monthNav} className="flex flex-wrap items-center gap-2">
+          <LinkButton
+            href={listHref(shiftMonth(loaded.month, -1), category)}
+            icon={ChevronLeftIcon}
+            iconClassName="rtl:rotate-180"
+          >
             {text.previous}
-          </Link>
-          <Link href={listHref(shiftMonth(loaded.month, 1), category)} className={LINK_CLASS}>
+          </LinkButton>
+          <Link href={listHref(shiftMonth(loaded.month, 1), category)} className={linkButtonClass()}>
             {text.next}
-            <span aria-hidden="true">&nbsp;›</span>
+            <ChevronRightIcon aria-hidden="true" className="rtl:rotate-180" />
           </Link>
         </nav>
       </div>

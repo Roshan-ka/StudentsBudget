@@ -2,9 +2,8 @@
 
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarRangeIcon } from 'lucide-react';
-import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
+import { CalendarRangeIcon, ClipboardListIcon, PencilIcon } from 'lucide-react';
+import { LinkButton } from '@/components/link-button';
 import { cardVariants } from '@/components/ui/card';
 import { categoryTint } from '@/features/charts/colors';
 import { RowCardLink } from '@/features/home/row-card';
@@ -17,8 +16,6 @@ import { planForMonth } from '@/lib/plan-history';
 import { useToday } from '@/lib/use-today';
 import { completedMonths, monthRecap } from './reveal';
 import { recapLine } from './reveal-text';
-
-const LINK_CLASS = 'text-primary underline-offset-4 hover:underline';
 
 /** "October", "Oktober", "octobre": a month's name alone, in the language's own case. */
 const monthName = (month: IsoMonth, locale: string): string =>
@@ -73,9 +70,9 @@ function Recaps({
           ))}
         </ul>
       </section>
-      <Link href="/setup?edit=1&step=envelopes" className={buttonVariants({ variant: 'outline', className: 'self-start px-4' })}>
+      <LinkButton href="/setup?edit=1&step=envelopes" icon={PencilIcon}>
         {t.reveal.adjust}
-      </Link>
+      </LinkButton>
     </div>
   );
 }
@@ -92,12 +89,12 @@ export function RevealView() {
   if (today === null || plan === 'loading' || entries === undefined || planMonths === undefined) return null;
   if (plan === null) {
     return (
-      <p className="text-muted-foreground">
-        {t.reveal.noPlan}{' '}
-        <Link href="/setup" className={LINK_CLASS}>
+      <div className="flex flex-col gap-3">
+        <p className="text-muted-foreground">{t.reveal.noPlan}</p>
+        <LinkButton href="/setup" icon={ClipboardListIcon}>
           {t.common.toSetup}
-        </Link>
-      </p>
+        </LinkButton>
+      </div>
     );
   }
   return <Recaps plan={plan} planMonths={planMonths} entries={entries} today={today} />;

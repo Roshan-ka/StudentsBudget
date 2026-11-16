@@ -1,7 +1,7 @@
 'use client';
 
-import { ChevronLeftIcon } from 'lucide-react';
-import Link from 'next/link';
+import { ChevronLeftIcon, InfoIcon, ShieldCheckIcon } from 'lucide-react';
+import { LinkButton } from '@/components/link-button';
 import { PageHeading } from '@/components/page-heading';
 import { legalFilledIn, OPERATOR } from '@/data/legal';
 import { aiInBuild, aiSetupChatInBuild } from '@/features/ai/switch';
@@ -19,16 +19,15 @@ const PAGES = {
   impressum: { sections: impressumSections, updated: IMPRESSUM_UPDATED },
 } as const;
 
-const LINK = 'inline-flex min-h-11 w-fit items-center text-sm font-semibold text-primary underline underline-offset-4';
-
 /**
  * Back to where the person came from: the page before in this tab, or the app when the page opened on its own (a link
- * from a note opens it in a new tab).
+ * from a note opens it in a new tab). The legal pages' ways on are outlined buttons, as everywhere (16-11-2026:
+ * buttons, never text links).
  */
 function LegalBack() {
   const { t } = useT();
   return (
-    <Link
+    <LinkButton
       href="/"
       onClick={(event) => {
         if (window.history.length > 1) {
@@ -36,11 +35,11 @@ function LegalBack() {
           window.history.back();
         }
       }}
-      className={LINK}
+      icon={ChevronLeftIcon}
+      iconClassName="rtl:rotate-180"
     >
-      <ChevronLeftIcon aria-hidden="true" className="size-4 rtl:rotate-180" />
       {t.common.legal.back}
-    </Link>
+    </LinkButton>
   );
 }
 
@@ -85,7 +84,10 @@ export function LegalPage({ page }: { page: keyof typeof PAGES }) {
     reminder: remindersInBuild(),
     map: mapInBuild(),
   });
-  const other = page === 'privacy' ? { href: '/impressum', text: t.common.legal.impressum } : { href: '/privacy', text: t.common.legal.privacy };
+  const other =
+    page === 'privacy'
+      ? { href: '/impressum', text: t.common.legal.impressum, icon: InfoIcon }
+      : { href: '/privacy', text: t.common.legal.privacy, icon: ShieldCheckIcon };
 
   return (
     <div className="flex flex-col gap-5">
@@ -111,24 +113,27 @@ export function LegalPage({ page }: { page: keyof typeof PAGES }) {
         })}
         <p className="text-sm text-muted-foreground">{LEGAL_WORDS[legal.lang].updated(formatDate(updated))}</p>
       </div>
-      <Link href={other.href} className={LINK}>
+      <LinkButton href={other.href} icon={other.icon}>
         {other.text}
-      </Link>
+      </LinkButton>
     </div>
   );
 }
 
-/** The two pages, as small links: on the start page, where the bottom navigation isn't yet. */
+/**
+ * The two pages, as two outlined buttons side by side that wrap on a narrow screen: on the start page, where the bottom
+ * navigation isn't yet. The icons are Settings' rows for the same pages.
+ */
 export function LegalLinks() {
   const { t } = useT();
   return (
-    <nav aria-label={t.common.legal.label} className="flex flex-wrap gap-x-5">
-      <Link href="/privacy" className={LINK}>
+    <nav aria-label={t.common.legal.label} className="flex flex-wrap justify-center gap-2">
+      <LinkButton href="/privacy" icon={ShieldCheckIcon}>
         {t.common.legal.privacy}
-      </Link>
-      <Link href="/impressum" className={LINK}>
+      </LinkButton>
+      <LinkButton href="/impressum" icon={InfoIcon}>
         {t.common.legal.impressum}
-      </Link>
+      </LinkButton>
     </nav>
   );
 }

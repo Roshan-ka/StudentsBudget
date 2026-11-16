@@ -25,7 +25,7 @@ export function SemesterFeeSource({ offer }: { offer: SemesterFeeOffer }) {
   const due = reRegistration ? text.dueReRegistration(month) : text.dueBeforeSemester(month);
 
   return (
-    <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+    <div className="flex flex-col gap-2 text-sm text-muted-foreground">
       <p className="break-words">{amount}</p>
       {parts.map((part) => (
         <RangeSource key={part.label} range={part} label={t.common.source.of(part.label)} />

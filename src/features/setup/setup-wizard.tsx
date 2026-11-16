@@ -290,10 +290,11 @@ function Wizard({
         )}
       </div>
 
-      {/* The first step of a new setup only, quiet, under the buttons (13-11-2026): a phone with an account signs in
-          instead, and one with a backup restores it. Each hides itself where it doesn't apply (no accounts, a plan). */}
+      {/* The first step of a new setup only, under the buttons (13-11-2026): a phone with an account signs in instead,
+          and one with a backup restores it, each an outlined button (16-11-2026). Each hides itself where it doesn't
+          apply (no accounts, a plan). */}
       {!edit && index === 0 && !chatting && (
-        <div className="flex flex-col items-center gap-1 text-center">
+        <div className="flex flex-col items-center gap-2 text-center">
           <SetupAccountLink />
           <SetupRestoreSection />
         </div>

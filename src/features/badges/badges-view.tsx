@@ -1,8 +1,8 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AwardIcon } from 'lucide-react';
-import Link from 'next/link';
+import { AwardIcon, ClipboardListIcon } from 'lucide-react';
+import { FoldSummary, LinkButton } from '@/components/link-button';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import type { Messages } from '@/i18n/messages';
@@ -57,12 +57,12 @@ export function BadgesView() {
   if (profile === 'loading') return null;
   if (plan === null) {
     return (
-      <p className="text-muted-foreground">
-        {t.badges.noPlan}{' '}
-        <Link href="/setup" className="text-primary underline underline-offset-4">
+      <div className="flex flex-col gap-3">
+        <p className="text-muted-foreground">{t.badges.noPlan}</p>
+        <LinkButton href="/setup" icon={ClipboardListIcon}>
           {t.common.toSetup}
-        </Link>
-      </p>
+        </LinkButton>
+      </div>
     );
   }
 
@@ -96,12 +96,11 @@ export function BadgesView() {
           </li>
         ))}
       </ul>
-      {/* The rules are published, not hidden, but read once: one fold for all of them (pain points, chunk 8). */}
+      {/* The rules are published, not hidden, but read once: one fold for all of them (pain points, chunk 8), opened
+          by an outlined button with a chevron (16-11-2026). */}
       <details className="text-sm">
-        <summary className="w-fit cursor-pointer py-3 font-semibold text-primary underline underline-offset-4">
-          {t.badges.howItWorks}
-        </summary>
-        <div className="flex flex-col gap-3 pb-2">
+        <FoldSummary>{t.badges.howItWorks}</FoldSummary>
+        <div className="flex flex-col gap-3 pt-3 pb-2">
           <p className="text-muted-foreground">{t.badges.intro}</p>
           <ul className="flex flex-col gap-2">
             {badges.map((b) => (

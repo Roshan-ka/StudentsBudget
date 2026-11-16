@@ -12,6 +12,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
+import { ExternalLinkButton } from '@/components/link-button';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { categoryTint } from '@/features/charts/colors';
@@ -190,6 +191,7 @@ export function DiscountMap({
   const controls = useRef<HTMLDivElement>(null);
   const showMeButton = useRef<HTMLButtonElement>(null);
   const cardWrap = useRef<HTMLDivElement>(null);
+  const credits = useRef<HTMLDivElement>(null);
   /** Their boxes within the map, as last measured: a pin under one isn't drawn (`clear`). */
   const [covered, setCovered] = useState<Covered | null>(null);
   /** The card's heading after a tap opened it, and a pin after the card closed (keys `card` and `pin:<spot>`). */
@@ -423,7 +425,10 @@ export function DiscountMap({
     if (element === null) return;
     const fill = () => {
       const top = element.getBoundingClientRect().top + window.scrollY;
-      element.style.height = `max(18rem, calc(100svh - ${top}px - 5rem - env(safe-area-inset-bottom) - 2rem - var(--ask-bubble-space, 0rem)))`;
+      // The credits under the box stay in view: their buttons' own height (two lines of them on a narrow phone), and a
+      // rem for the gap and the room under them.
+      const below = credits.current?.offsetHeight ?? 16;
+      element.style.height = `max(18rem, calc(100svh - ${top}px - 5rem - env(safe-area-inset-bottom) - ${below}px - 1rem - var(--ask-bubble-space, 0rem)))`;
     };
     fill();
     const observer = new ResizeObserver(fill);
@@ -649,15 +654,12 @@ export function DiscountMap({
       </div>
       {state === 'loading' && <p className="text-sm text-muted-foreground">{text.loading}</p>}
       {locationNote !== null && <StatusLine className="text-sm">{locationNote}</StatusLine>}
-      <p className="text-xs text-muted-foreground">
-        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">
-          {text.osm}
-        </a>
-        {' · '}
-        <a href="https://protomaps.com" target="_blank" rel="noopener noreferrer" className="underline">
-          {PROTOMAPS}
-        </a>
-      </p>
+      {/* The credits the data's licences ask for, as two outlined buttons that wrap on a narrow phone (16-11-2026:
+          buttons, never text links). */}
+      <div ref={credits} className="flex flex-wrap gap-2">
+        <ExternalLinkButton href="https://www.openstreetmap.org/copyright">{text.osm}</ExternalLinkButton>
+        <ExternalLinkButton href="https://protomaps.com">{PROTOMAPS}</ExternalLinkButton>
+      </div>
     </div>
   );
 }

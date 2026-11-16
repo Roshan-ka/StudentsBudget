@@ -1,9 +1,10 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import Link from 'next/link';
+import { ChevronLeftIcon, ChevronRightIcon, ClipboardListIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useChoicePref } from '@/lib/phone-pref';
+import { LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import type { Entry, Plan, PlanMonth } from '@/db/types';
@@ -20,7 +21,7 @@ import {
   spendingByCategoryOver,
   type Period,
 } from './aggregate';
-import { LINK_CLASS, monthAndYear, monthOnly, rangeText, SegmentedControl } from './chart-parts';
+import { monthAndYear, monthOnly, rangeText, SegmentedControl } from './chart-parts';
 import { IncomeSection, OverTimeSection, SavingsSection, SpendingSection } from './sections';
 
 const PERIODS = [1, 3, 6, 12] as const;
@@ -56,8 +57,10 @@ function MonthSwitcher({
       aria-label={t.charts.monthLabel}
       className="@container flex flex-wrap items-center justify-between gap-2"
     >
-      <Button variant="ghost" className="min-w-0 shrink px-3" onClick={() => onChange(shiftMonth(month, -1))}>
-        <span aria-hidden="true">‹</span> {t.charts.previous}
+      {/* Two outlined buttons with chevrons, as the entries list's months (16-11-2026: buttons, never text links). */}
+      <Button variant="outline" className="min-w-0 shrink" onClick={() => onChange(shiftMonth(month, -1))}>
+        <ChevronLeftIcon aria-hidden="true" className="rtl:rotate-180" />
+        {t.charts.previous}
       </Button>
       <div aria-live="polite" className="order-first w-full min-w-0 text-center @xs:order-none @xs:w-auto">
         <p className="font-medium">{monthAndYear(month, locale)}</p>
@@ -65,8 +68,9 @@ function MonthSwitcher({
           <p className="text-xs text-muted-foreground">{rangeText(first, month, locale)}</p>
         )}
       </div>
-      <Button variant="ghost" className="min-w-0 shrink px-3" onClick={() => onChange(shiftMonth(month, 1))}>
-        {t.charts.next} <span aria-hidden="true">›</span>
+      <Button variant="outline" className="min-w-0 shrink" onClick={() => onChange(shiftMonth(month, 1))}>
+        {t.charts.next}
+        <ChevronRightIcon aria-hidden="true" className="rtl:rotate-180" />
       </Button>
     </div>
   );
@@ -168,12 +172,12 @@ export function ChartsView() {
   if (today === null || plan === 'loading' || entries === undefined || planMonths === undefined) return null;
   if (plan === null) {
     return (
-      <p className="text-muted-foreground">
-        {t.charts.noPlan}{' '}
-        <Link href="/setup" className={LINK_CLASS}>
+      <div className="flex flex-col gap-3">
+        <p className="text-muted-foreground">{t.charts.noPlan}</p>
+        <LinkButton href="/setup" icon={ClipboardListIcon}>
           {t.common.toSetup}
-        </Link>
-      </p>
+        </LinkButton>
+      </div>
     );
   }
   return <Charts plan={plan} planMonths={planMonths} entries={entries} today={today} />;

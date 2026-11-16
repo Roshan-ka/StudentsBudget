@@ -2,8 +2,9 @@
 
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
-import Link from 'next/link';
+import { BellIcon, CalendarPlusIcon, ClipboardListIcon, PlusIcon } from 'lucide-react';
 import { useId, type ReactNode } from 'react';
+import { LinkButton, linkButtonClass } from '@/components/link-button';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan, PlanMonth } from '@/db/types';
@@ -27,8 +28,6 @@ import { calendarFileOf } from './calendar-file';
 import { weekLine, weekTotalLine } from './week-line';
 import { weekRows } from './week-rows';
 import { weekSwaps } from './week-swaps';
-
-const LINK_CLASS = 'inline-flex min-h-11 items-center text-primary underline underline-offset-4';
 
 /**
  * "Fri 16", or another locale's own short day ("Fr., 16."). English stays built from its two parts, as weekLabel's
@@ -273,25 +272,28 @@ function CheckIn({
           </h3>
           <QuickAddField />
           {/* Saving brings the person back here, to the check-in they were in. */}
-          <Link href="/entries/new?from=check-in" className={`${LINK_CLASS} self-start`}>
+          <LinkButton href="/entries/new?from=check-in" icon={PlusIcon}>
             {t.checkIn.add.earlier}
-          </Link>
+          </LinkButton>
         </section>
       </WeekPart>
       <AwayToggle plan={plan} today={today} />
 
-      {/* A plain link, not <Link>: this is a file, and the browser or the phone's calendar app takes it from here. */}
-      <a href={calendarFileOf(lang)} className={`${LINK_CLASS} self-start`}>
+      {/* A plain link, not <Link>: this is a file, and the browser or the phone's calendar app takes it from here. In
+          the button look, as every way on (16-11-2026: buttons, never text links). */}
+      <a href={calendarFileOf(lang)} className={linkButtonClass()}>
+        <CalendarPlusIcon aria-hidden="true" />
         {t.checkIn.reminder}
       </a>
-      {/* The other way to be reminded (weekly reminder, chunk 4): the two point to each other, so nobody gets both. */}
+      {/* The other way to be reminded (weekly reminder, chunk 4): the two point to each other, so nobody gets both. The
+          sentence, then its button. */}
       {remindersInBuild() && (
-        <p className="text-sm">
-          {t.checkIn.reminderOr}{' '}
-          <Link href="/settings/reminder" className={LINK_CLASS}>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm">{t.checkIn.reminderOr}</p>
+          <LinkButton href="/settings/reminder" icon={BellIcon}>
             {t.checkIn.reminderOrLink}
-          </Link>
-        </p>
+          </LinkButton>
+        </div>
       )}
     </div>
   );
@@ -315,12 +317,12 @@ export function CheckInView() {
   }
   if (plan === null) {
     return (
-      <p className="text-muted-foreground">
-        {t.checkIn.noPlan}{' '}
-        <Link href="/setup" className={LINK_CLASS}>
+      <div className="flex flex-col gap-3">
+        <p className="text-muted-foreground">{t.checkIn.noPlan}</p>
+        <LinkButton href="/setup" icon={ClipboardListIcon}>
           {t.common.toSetup}
-        </Link>
-      </p>
+        </LinkButton>
+      </div>
     );
   }
   return <CheckIn plan={plan} planMonths={planMonths} entries={entries} accounts={accounts} today={today} />;

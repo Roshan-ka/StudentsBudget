@@ -9,12 +9,15 @@ export const home = {
   /** "INR rate missing", or "INR and USD rates missing". */
   missingRates: (currencies: string, count: number) => `${currencies} ${count === 1 ? 'rate' : 'rates'} missing`,
   leftThisMonth: {
-    heading: 'Left to spend this month',
+    /** Not "Left to spend", which reads as an invitation to spend it (Roshan, 16-11-2026). */
+    heading: 'This month’s budget',
     /**
      * "€12 over this month": the words around the amount, which the card writes large between them. A language puts
      * the amount where its grammar needs it; each part keeps its own spaces.
      */
     overThisMonth: { before: '', after: ' over this month' },
+    /** "€420 unspent": the same, for a month not over its plan (16-11-2026). */
+    unspentThisMonth: { before: '', after: ' unspent' },
     weekOver: (amount: string) => `This week: ${amount} over`,
     weekSafe: (amount: string) => `This week: ${amount} safe to spend`,
   },

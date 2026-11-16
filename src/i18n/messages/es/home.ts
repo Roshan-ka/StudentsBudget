@@ -14,8 +14,9 @@ export const home: Messages['home'] = {
       other: `Faltan los tipos de cambio de ${currencies}`,
     }),
   leftThisMonth: {
-    heading: 'Disponible este mes',
+    heading: 'Presupuesto del mes',
     overThisMonth: { before: '', after: ' de más este mes' },
+    unspentThisMonth: { before: '', after: ' sin gastar' },
     weekOver: (amount) => `Esta semana: ${amount} de más`,
     weekSafe: (amount) => `Esta semana: ${amount} para gastar`,
   },
