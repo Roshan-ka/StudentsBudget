@@ -40,7 +40,7 @@ export const setup: Messages['setup'] = {
     cash: 'Efectivo',
     currency: 'Moneda',
     opening: 'Saldo inicial',
-    remove: (number) => `Quitar la cuenta ${number}`,
+    remove: (name, number) => `Quitar ${name ?? `la cuenta ${number}`}`,
     add: 'Añadir cuenta',
     prefilled: { localBank: 'Banco de aquí', cash: 'Efectivo' },
   },
@@ -73,7 +73,8 @@ export const setup: Messages['setup'] = {
     amount: 'Importe',
     leftOut: 'Sin importe, este gasto no se guarda.',
     due: 'Mes del pago',
-    remove: (number) => `Quitar el gasto puntual ${number}`,
+    remove: 'Quitar',
+    removeOne: (name, number) => `Quitar ${name ?? `el gasto puntual ${number}`}`,
     add: 'Añadir un gasto puntual',
     feeOffer: (amount, month) => `Añadir la cuota semestral${amount === null ? '' : `: ${amount}`}, a pagar en ${month}`,
   },
@@ -87,11 +88,12 @@ export const setup: Messages['setup'] = {
   },
   envelopes: {
     budgetIntroNew: (amount) =>
-      `Un presupuesto del día a día es opcional. Sin él, las sugerencias reparten lo que queda tras el alquiler y los gastos fijos: ${amount}.`,
+      'Un presupuesto del día a día es opcional. Sin él, las sugerencias reparten lo que queda tras tus gastos fijos ' +
+      `(alquiler incluido): ${amount}.`,
     budgetIntroEdit: (amount) =>
-      'Un presupuesto del día a día es opcional. Sin él, las sugerencias reparten lo que queda tras el alquiler, los ' +
-      `gastos fijos y lo que se aparta para gastos puntuales: ${amount}.`,
-    budgetQuestion: '¿Cuánto quieres gastar al mes en el día a día, sin contar el alquiler ni tus gastos fijos?',
+      'Un presupuesto del día a día es opcional. Sin él, las sugerencias reparten lo que queda tras tus gastos fijos ' +
+      `(alquiler incluido) y lo que se aparta para gastos puntuales: ${amount}.`,
+    budgetQuestion: '¿Cuánto quieres gastar al mes en el día a día, sin contar tus gastos fijos (alquiler incluido)?',
     typicalSpend: (range) => `Los estudiantes de aquí suelen gastar unos ${range} al mes en esto.`,
     estimates: (list, count) =>
       `${list.charAt(0).toUpperCase()}${list.slice(1)} ${byCount(count, { one: 'es una estimación', other: 'son estimaciones' })}.`,
@@ -122,7 +124,6 @@ export const setup: Messages['setup'] = {
   setupRow: { title: 'Configura tu plan', summary: 'Tu plan aún no está configurado' },
   editPlan: {
     summary: 'Ingresos, gastos fijos y sobres',
-    heading: 'Plan',
     body:
       'Cambia tus sobres, añade gastos puntuales como la cuota semestral y las fuentes de ingresos, los gastos ' +
       'fijos y los sobres que la configuración se saltó, o repasa todo el plan otra vez.',
@@ -158,7 +159,7 @@ export const setup: Messages['setup'] = {
       unavailable: 'No se puede conectar con el chat ahora mismo. Inténtalo más tarde o rellena los pasos tú mismo.',
       offline: 'Estás sin conexión. El chat necesita conexión.',
       timeout: 'El chat tardó demasiado en responder. Inténtalo de nuevo.',
-      signedOut: 'Vuelve a iniciar sesión en Tu cuenta para usar el chat.',
+      signedOut: 'Vuelve a iniciar sesión en Ajustes → Tu cuenta para usar el chat.',
       needsCode: 'Introduce el código de tu app de autenticación en Ajustes → Tu cuenta para usar el chat.',
       failed: 'Algo salió mal con esa respuesta. Inténtalo de nuevo.',
     },

@@ -82,7 +82,7 @@ describe('planDownload', () => {
     const { store } = fakeStore({ ...PLAN_ROW, entries: { e1: expense('e1') } });
     expect(await planDownload(store, snapshot())).toEqual({
       kind: 'invalid',
-      problem: "an entry uses an account that isn't in the file",
+      problem: 'an entry uses an account that isn’t in the file',
     });
   });
 

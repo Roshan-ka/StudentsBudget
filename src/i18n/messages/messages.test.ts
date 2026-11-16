@@ -29,7 +29,6 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'tips.hacks.form.link',
     'tips.hacks.tab',
     'tips.hacks.cities.regensburg',
-    'auth.postingName.labels.alumni',
     'common.accountOption',
     'common.dateField.letters.month',
     'home.leftThisMonth.overThisMonth.before',
@@ -38,7 +37,6 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'setup.accounts.bank',
     'setup.oneOffs.name',
     'setup.lines.range',
-    'setup.editPlan.heading',
     'shell.headings.plan',
     // "Melden: …": the button's word, then the post, as in English.
     'tips.hacks.named',
@@ -65,7 +63,6 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'common.dateField.letters.month',
     'categories.income-bafoeg',
     'setup.lines.range',
-    'setup.editPlan.heading',
     'shell.headings.plan',
     'tips.hacks.named',
     'accounts.total',
@@ -81,7 +78,6 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'setup.chat.sources',
     'tips.hacks.moderation.states.visible',
     'tips.hacks.cities.regensburg',
-    'auth.postingName.labels.alumni',
     'common.accountOption',
     'home.leftThisMonth.overThisMonth.before',
     'common.dateField.label',
@@ -92,7 +88,6 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'shell.headings.badges',
     'entries.form.note',
     'setup.accounts.type',
-    'setup.editPlan.heading',
     'shell.headings.plan',
     'accounts.type',
     'accounts.total',
@@ -180,7 +175,7 @@ describe('the dictionaries', () => {
   it('names a button repeated once per item starting with the word it shows (WCAG 2.5.3, review of 09-11-2026)', () => {
     // Voice control says the visible word ("Mettre en pause"); the name must start with it, then say which item.
     for (const code of Object.keys(LANGUAGES) as (keyof typeof LANGUAGES)[]) {
-      const { accounts, recurring } = MESSAGES[code];
+      const { accounts, recurring, setup } = MESSAGES[code];
       const pairs: [string, (name: string) => string][] = [
         [accounts.edit, accounts.editAccount],
         [accounts.delete, accounts.deleteAccount],
@@ -189,10 +184,31 @@ describe('the dictionaries', () => {
         [recurring.delete, recurring.deleteLine],
         [recurring.pause, recurring.pauseLine],
         [recurring.resume, recurring.resumeLine],
+        // The line's form is named as its Edit button.
+        [recurring.edit, recurring.change],
+        [setup.oneOffs.remove, (name) => setup.oneOffs.removeOne(name, 1)],
       ];
       for (const [shown, named] of pairs) {
         expect(named('Miete').toLowerCase().startsWith(shown.toLowerCase()), `${code}: "${named('Miete')}"`).toBe(true);
       }
+    }
+  });
+
+  it('names a button in English as its word, a colon, then the item ("Edit: Rent"), as German does (16-11-2026)', () => {
+    const { accounts, recurring, setup, auth } = MESSAGES.en;
+    expect(accounts.editAccount('Wise')).toBe('Edit: Wise');
+    expect(accounts.makeDefaultOf('Wise')).toBe('Make default: Wise');
+    expect(recurring.pauseLine('Rent')).toBe('Pause: Rent');
+    expect(setup.accounts.remove('Local bank', 1)).toBe('Remove: Local bank');
+    expect(setup.accounts.remove(null, 2)).toBe('Remove: Account 2');
+    expect(setup.oneOffs.removeOne(null, 2)).toBe('Remove: One-off cost 2');
+    expect(auth.passkeys.removeOne('Passkey', '04.11.2026, 10:00')).toBe('Remove: Passkey, added 04.11.2026, 10:00');
+  });
+
+  it('writes English with curly apostrophes, never a straight one (16-11-2026)', () => {
+    // "Couldn’t", "phone’s": the typographic apostrophe, as in every other English text of the app.
+    for (const [path, text] of texts(MESSAGES.en, 'en')) {
+      expect(text.includes("'"), `${path}: ${text}`).toBe(false);
     }
   });
 });

@@ -200,7 +200,7 @@ recurring.data.plan.incomes.push({ categoryId: 'income-job', monthlyMinor: 21667
 recurring.data.plan.fixed[0].schedule = schedule('demo-rent');
 recurring.data.plan.fixed[1].schedule = schedule('demo-paused-phone', { amountMinor: 2000, paused: true });
 add('08-recurring-due-and-paused', recurring, 'Three occurrences due on the generation date; one paused.', [
-  'On the demo date, restore then open Entries: Parents EUR 1,200 income, Job EUR 50 income, Rent EUR 450 expense appear with Recurring tags; no Phone entry.',
+  'On the demo date, restore then open Entries: Parents EUR 1,200 income, Job EUR 50 income, Rent EUR 450 expense appear with Automatic tags; no Phone entry.',
   'After posting: bank EUR 1,800; cash EUR 100; combined EUR 1,900. Envelope money stays EUR 500.',
   'Reload twice: exactly three entries remain. Settings lets you pause, resume and edit schedules; resuming starts from the next day, without backfilling the pause.',
 ], { afterPosting: { entries: 3, bankMinor: 180000 } });
@@ -299,7 +299,7 @@ const extras = base(); extras.futureField = 'ignored'; extras.data.accounts[0].c
 add('24-unknown-extra-fields', extras, 'Unknown object fields are ignored for forward-compatible additions.', ['Restore succeeds with the same values as 02-clean-budget. Export does not retain unknown fields.']);
 
 // Deliberately corrupt one thing at a time so the expected refusal is unambiguous.
-const notBackup = "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.";
+const notBackup = 'This isn’t a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.';
 const incomplete = 'This backup file is incomplete. Choose another backup, or export a new one.';
 const damaged = (reason) => `This backup file is damaged: ${reason}. Choose another backup, or export a new one.`;
 reject('wrong-app', (f) => f.app = 'another-app', notBackup);
@@ -320,14 +320,14 @@ reject('amount-is-text', (f) => f.data.entries[0].amountMinor = '1000', incomple
 reject('entry-zero', (f) => f.data.entries[0].amountMinor = 0, damaged('an amount is zero or negative'), withEntry);
 reject('entry-negative', (f) => f.data.entries[0].amountMinor = -1, damaged('an amount is zero or negative'), withEntry);
 reject('entry-negative-euros', (f) => f.data.entries[0].eurMinor = -1, damaged('an amount is negative'), withEntry);
-reject('missing-entry-account', (f) => f.data.entries[0].accountId = 'ghost', damaged("an entry uses an account that isn't in the file"), withEntry);
-reject('missing-entry-category', (f) => f.data.entries[0].categoryId = 'ghost', damaged("an entry uses a category that isn't in the file"), withEntry);
-reject('unknown-plan-category', (f) => f.data.plan.envelopes[0].categoryId = 'ghost', damaged('the plan or the guesses use an unknown category'));
+reject('missing-entry-account', (f) => f.data.entries[0].accountId = 'ghost', damaged('an entry uses an account that isn’t in the file'), withEntry);
+reject('missing-entry-category', (f) => f.data.entries[0].categoryId = 'ghost', damaged('an entry uses a category that isn’t in the file'), withEntry);
+reject('unknown-plan-category', (f) => f.data.plan.envelopes[0].categoryId = 'ghost', damaged('the plan uses an unknown category'));
 reject('negative-envelope', (f) => f.data.plan.envelopes[0].monthlyMinor = -1, damaged('an amount is negative'));
 reject('negative-spending-budget', (f) => f.data.plan.spendingBudgetMinor = -1, damaged('an amount is negative'));
 const transferFile = base();
 const transfer = entry(transferFile, '', 1000, { type: 'transfer', toAccountId: 'cash', toAmountMinor: 1000, note: 'Demo transfer' }); delete transfer.categoryId;
-reject('missing-transfer-target', (f) => f.data.entries[0].toAccountId = 'ghost', damaged("a transfer goes to an account that isn't in the file"), transferFile);
+reject('missing-transfer-target', (f) => f.data.entries[0].toAccountId = 'ghost', damaged('a transfer goes to an account that isn’t in the file'), transferFile);
 reject('transfer-without-target-field', (f) => delete f.data.entries[0].toAccountId, incomplete, transferFile);
 reject('transfer-received-zero', (f) => f.data.entries[0].toAmountMinor = 0, damaged('an amount is zero or negative'), transferFile);
 for (const [table, name] of [['accounts', 'accounts'], ['categories', 'categories'], ['entries', 'entries'], ['guesses', 'guesses'], ['fxRates', 'fx-rates'], ['weekResults', 'week-results'], ['discountVotes', 'discount-votes']]) {
@@ -344,8 +344,8 @@ reject('schedule-weekday-8', (f) => f.data.plan.incomes[1].schedule.day = 8, dam
 reject('schedule-watermark-before-start', (f) => f.data.plan.fixed[0].schedule.postedThrough = day(`${month}-01`, -2), damaged('a fixed cost or income has an impossible schedule'), recurring);
 reject('schedule-before-plan-start', (f) => f.data.plan.fixed[0].schedule.startOn = day(f.data.plan.createdOn, -1), damaged('a fixed cost or income has an impossible schedule'), recurring);
 reject('schedule-frequency-daily', (f) => f.data.plan.fixed[0].schedule.frequency = 'daily', incomplete, recurring);
-reject('week-start-not-monday', (f) => { const w = savedWeek(lastSunday); w.weekStart = day(w.weekStart, 1); f.data.weekResults = [w]; }, damaged("a saved week doesn't run from Monday to Sunday"));
-reject('week-end-not-sunday', (f) => { const w = savedWeek(lastSunday); w.weekEnd = day(w.weekEnd, -1); f.data.weekResults = [w]; }, damaged("a saved week doesn't run from Monday to Sunday"));
+reject('week-start-not-monday', (f) => { const w = savedWeek(lastSunday); w.weekStart = day(w.weekStart, 1); f.data.weekResults = [w]; }, damaged('a saved week doesn’t run from Monday to Sunday'));
+reject('week-end-not-sunday', (f) => { const w = savedWeek(lastSunday); w.weekEnd = day(w.weekEnd, -1); f.data.weekResults = [w]; }, damaged('a saved week doesn’t run from Monday to Sunday'));
 reject('negative-week-amount', (f) => { const w = savedWeek(lastSunday); w.spentMinor = -1; f.data.weekResults = [w]; }, damaged('an amount is negative'));
 reject('negative-log-count', (f) => { const w = savedWeek(lastSunday); w.handLoggedCount = -1; f.data.weekResults = [w]; }, incomplete);
 reject('unknown-discount-vote', (f) => f.data.discountVotes = [{ discountId: DISCOUNTS[0].id, vote: 'maybe', on: today }], incomplete);

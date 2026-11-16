@@ -5,7 +5,7 @@ import { NNBSP } from './count';
 export const entries: Messages['entries'] = {
   addEntry: 'Ajouter une saisie',
   transfer: 'Virement',
-  recurring: 'Récurrent',
+  recurring: 'Automatique',
   noAccount: 'Ajoute d’abord un compte, dans Réglages → Comptes et virements.',
   saveFailed: 'Impossible d’enregistrer la saisie.',
   list: {

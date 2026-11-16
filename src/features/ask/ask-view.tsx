@@ -128,7 +128,7 @@ export function AskView() {
 
   const toAccount = (
     <Link href="/settings/account" className={linkClass}>
-      {text.toAccount}
+      {t.common.toAccount}
     </Link>
   );
   const said = (words: string, link?: React.ReactNode) => (
@@ -143,13 +143,13 @@ export function AskView() {
     return <p className="text-muted-foreground">{text.loading}</p>;
   }
   if (auth.status === 'signed-out' || auth.status === 'off') return said(text.signedOut, toAccount);
-  if (auth.status === 'second-step') return said(text.needsCode, toAccount);
+  if (auth.status === 'second-step') return said(t.common.needsCode, toAccount);
   if (!aiOn) return said(text.switchedOff, toAccount);
   if (plan === null) {
     return said(
       text.noPlan,
       <Link href="/setup" className={linkClass}>
-        {text.toSetup}
+        {t.common.toSetup}
       </Link>,
     );
   }
@@ -167,7 +167,7 @@ export function AskView() {
                 <p className="font-semibold break-words">{turn.question}</p>
               </div>
               {turn.reply && <Answer reply={turn.reply} />}
-              {turn.problem && <p className="text-sm">{problemText(turn.problem, text)}</p>}
+              {turn.problem && <p className="text-sm">{problemText(turn.problem, t)}</p>}
             </li>
           ))}
         </ol>

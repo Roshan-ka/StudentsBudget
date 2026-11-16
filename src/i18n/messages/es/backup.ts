@@ -31,7 +31,7 @@ export const backup: Messages['backup'] = {
     replace: 'Sustituir todos los datos',
     cancel: 'Cancelar',
     readFailed: 'No se ha podido leer ese archivo.',
-    failed: 'No se ha podido restaurar la copia. Los datos de este dispositivo no han cambiado.',
+    failed: 'No se ha podido restaurar la copia. Los datos de este móvil no han cambiado.',
     setupHeading: '¿Tienes una copia? Restáurala',
     /** Setup's quiet button that opens the file field (13-11-2026). */
     setupButton: 'Restaurar una copia',
@@ -39,12 +39,12 @@ export const backup: Messages['backup'] = {
   delete: {
     heading: 'Borrarlo todo',
     intro:
-      'Quita de este móvil tu plan, cuentas, registros, semanas guardadas e insignias, respuestas sobre ' +
-      'descuentos, perfil y tipos de cambio. Un móvil vinculado a tu cuenta se desvincula: tu cuenta conserva su ' +
-      'copia y sigues con la sesión iniciada. Los cambios aún no sincronizados se pierden.',
+      'Quita de este móvil tu plan, cuentas, registros, semanas guardadas e insignias, votos sobre descuentos, ' +
+      'marcas de la lista, perfil y tipos de cambio. Un móvil vinculado a tu cuenta de StudentsBudget se desvincula: ' +
+      'esa cuenta conserva su copia y sigues con la sesión iniciada. Los cambios aún no sincronizados se pierden.',
     warning:
       'Esto no se puede deshacer en este móvil. Para recuperar tus datos más tarde, exporta antes una copia de ' +
-      'seguridad o guarda en tu cuenta.',
+      'seguridad o sincronízalos con tu cuenta.',
     word: 'BORRAR',
     typeToConfirm: (word) => `Escribe ${word} para confirmar`,
     button: 'Borrarlo todo',
@@ -61,7 +61,7 @@ export const backup: Messages['backup'] = {
     entryAccount: 'un registro usa una cuenta que no está en el archivo',
     transferAccount: 'una transferencia va a una cuenta que no está en el archivo',
     entryCategory: 'un registro usa una categoría que no está en el archivo',
-    planCategory: 'el plan o las estimaciones usan una categoría desconocida',
+    planCategory: 'el plan usa una categoría desconocida',
     duplicateId: 'dos filas tienen el mismo id',
     weekShape: 'una semana guardada no va de lunes a domingo',
     zeroAmount: 'un importe es cero o negativo',

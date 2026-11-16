@@ -46,7 +46,7 @@ export const NO_ONE_OFF: SetupFixture['oneOff'] = { name: '', amount: '', dueMon
 
 /** The question of the everyday budget, at the top of the envelopes step. */
 export const BUDGET_LABEL =
-  'How much do you want to spend in a month on everyday things, apart from rent and your fixed costs?';
+  'How much do you want to spend in a month on everyday things, apart from your fixed costs (rent included)?';
 
 /** The everyday budget field. A role and an exact name: the label is long, and a text match would be ambiguous. */
 export function budgetField(page: Page) {

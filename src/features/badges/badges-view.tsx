@@ -60,7 +60,7 @@ export function BadgesView() {
       <p className="text-muted-foreground">
         {t.badges.noPlan}{' '}
         <Link href="/setup" className="text-primary underline underline-offset-4">
-          {t.badges.startSetup}
+          {t.common.toSetup}
         </Link>
       </p>
     );

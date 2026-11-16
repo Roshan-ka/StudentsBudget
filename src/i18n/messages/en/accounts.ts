@@ -13,14 +13,15 @@ export const accounts = {
   type: 'Type',
   currency: 'Currency',
   opening: 'Opening balance',
-  currencyLocked: "The currency can't change once the account has entries, or a fixed cost or income runs through it.",
+  currencyLocked: 'The currency can’t change once the account has entries, or a fixed cost or income runs through it.',
   save: 'Save account',
   cancel: 'Cancel',
   edit: 'Edit',
   delete: 'Delete',
   makeDefault: 'Make default',
-  editAccount: (name: string) => `Edit ${name}`,
-  deleteAccount: (name: string) => `Delete ${name}`,
+  /** Each account's buttons, named by their word, then the account: "Edit: Wise". */
+  editAccount: (name: string) => `Edit: ${name}`,
+  deleteAccount: (name: string) => `Delete: ${name}`,
   deleteQuestion: (name: string) => `Delete ${name}?`,
   makeDefaultOf: (name: string) => `Make default: ${name}`,
   defaultMark: 'Default for new entries',
@@ -31,12 +32,12 @@ export const accounts = {
   errors: {
     name: 'Enter a name.',
     opening: 'Enter the opening balance as a number, like 250 or 12.50.',
-    saveFailed: 'Could not save the account.',
+    saveFailed: 'Couldn’t save the account.',
     inUse: 'This account has entries. Delete them first.',
     hasSchedule:
       'This account pays or receives a fixed cost or income. Change that first in Settings → Plan → Fixed costs and income.',
-    deleteFailed: 'Could not delete the account.',
-    defaultFailed: 'Could not change the default account.',
+    deleteFailed: 'Couldn’t delete the account.',
+    defaultFailed: 'Couldn’t change the default account.',
   },
   transfer: {
     open: 'Move money between accounts',
@@ -46,7 +47,7 @@ export const accounts = {
     received: 'Amount received',
     move: 'Move money',
     saved: 'Transfer saved.',
-    saveFailed: 'Could not save the transfer.',
+    saveFailed: 'Couldn’t save the transfer.',
     cancel: 'Cancel',
     /** buildTransfer's answers; an amount or a rate missing reads as an expense's would (`entries.errors`). */
     pickTwo: 'Pick two different accounts.',
@@ -63,7 +64,7 @@ export const accounts = {
     save: 'Save rate',
     useEcb: 'Use ECB rate again',
     invalid: 'Enter a rate greater than zero, like 95.12.',
-    saveFailed: 'Could not save the rate.',
-    ecbFailed: 'Could not switch back to the ECB rate.',
+    saveFailed: 'Couldn’t save the rate.',
+    ecbFailed: 'Couldn’t switch back to the ECB rate.',
   },
 };

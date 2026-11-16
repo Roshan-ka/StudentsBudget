@@ -72,7 +72,7 @@ test('a first visit offers an account or the guest way, and each leads on', asyn
   await expect(page).toHaveURL('/start');
   await expect(startHeading(page)).toBeVisible();
   // No line about signing out: nobody did.
-  await expect(page.getByText("You're signed out. Your data was removed from this phone.")).toHaveCount(0);
+  await expect(page.getByText('You’re signed out. Your data was removed from this phone.')).toHaveCount(0);
 
   // What the app is and does, then the three ways on.
   await expect(page.getByText('Your money, sorted for student life.', { exact: true })).toBeVisible();
@@ -205,7 +205,7 @@ test('signing out clears the phone and opens the start page; signing in there br
   // The last change reached the account before the phone was cleared.
   expect((account.get('profiles')?.get('current') as Profile | undefined)?.name).toBe('Changed before signing out');
   await expect(
-    page.getByRole('status').filter({ hasText: "You're signed out. Your data was removed from this phone." }),
+    page.getByRole('status').filter({ hasText: 'You’re signed out. Your data was removed from this phone.' }),
   ).toBeVisible();
   await expect(startHeading(page)).toBeVisible();
   expect(await readStore<Plan>(page, 'plan')).toEqual([]);
@@ -239,9 +239,9 @@ test('when the last sync can’t send everything, signing out asks first', async
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   // The rename, and whatever else the phone wrote since the last sync.
-  await expect(page.getByText(/^\d+ changes? (isn't|aren't) in your account yet\.$/)).toBeFocused();
+  await expect(page.getByText(/^\d+ changes? (isn’t|aren’t) in your account yet\.$/)).toBeFocused();
   await expect(
-    page.getByText("You're offline. Stay signed in and sync later, or sign out and lose these changes.", { exact: true }),
+    page.getByText('You’re offline. Stay signed in and sync later, or sign out and lose these changes.', { exact: true }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Stay signed in', exact: true }).click();
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
@@ -252,7 +252,7 @@ test('when the last sync can’t send everything, signing out asks first', async
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(
-    page.getByText("They couldn't be sent. Stay signed in and sync later, or sign out and lose these changes.", {
+    page.getByText('They couldn’t be sent. Stay signed in and sync later, or sign out and lose these changes.', {
       exact: true,
     }),
   ).toBeVisible();

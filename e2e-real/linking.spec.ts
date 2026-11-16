@@ -38,7 +38,7 @@ test('a phone with a plan fills the account, and a fresh browser that signs in l
   await seedSetup(page);
   await openApp(page, '/settings/account');
   await signIn(page, user);
-  await expect(page.getByText("Your account now holds this phone's data.", { exact: true })).toBeVisible();
+  await expect(page.getByText('Your account now holds this phone’s data.', { exact: true })).toBeVisible();
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
   const planA = (await readStore<Plan>(page, 'plan'))[0];
   // Phone A goes first, so its own automatic sync can't write while phone B is measured.
@@ -47,7 +47,7 @@ test('a phone with a plan fills the account, and a fresh browser that signs in l
   expect(before.plans.length, 'the plan reached the account').toBeGreaterThan(0);
 
   const { page: phoneB, guarded } = await freshPhone(browser, user);
-  await expect(phoneB.getByText(/^Loaded from your account: \d+ accounts?, \d+ entr(y|ies) and your plan\.$/)).toBeVisible(); // proof: loaded-from-account
+  await expect(phoneB.getByText(/^Loaded from your StudentsBudget account: \d+ accounts?, \d+ entr(y|ies) and your plan\.$/)).toBeVisible(); // proof: loaded-from-account
   await expect(syncRegion(phoneB).getByText('Synced just now.', { exact: true })).toBeVisible();
   expect((await readStore<Plan>(phoneB, 'plan'))[0]).toEqual(planA);
   // The fresh browser's sign-in, linking and first sync changed no row of the account.

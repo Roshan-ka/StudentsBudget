@@ -50,10 +50,9 @@ export const badges = {
   intro:
     'Each week is saved from the Wednesday after it ends, the next time you open the app, so spending you log for it ' +
     'on Monday or Tuesday still counts. Your badges come from those weeks and your entries. A week you mark as away ' +
-    "in the check-in keeps your streak as it is and doesn't count towards Under-Budget Week or Ramen Royalty.",
+    'in the check-in keeps your streak as it is and doesn’t count towards Under-Budget Week or Ramen Royalty.',
   listLabel: 'Your badges',
   noPlan: 'Set up your plan to start earning badges.',
-  startSetup: 'Start setup',
   card: {
     heading: 'Badges',
     earnedOf: (earned: number, total: number) => `${earned} of ${total} earned`,

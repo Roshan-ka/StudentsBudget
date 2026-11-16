@@ -10,14 +10,14 @@ export const tips = {
   tipsIntro: 'Local ways students pay less. Each tip says where it comes from.',
   tipsFor: 'Show tips for',
   discountsIntro:
-    'Student discounts in Regensburg. Each one says where it is stated. Tell the app whether one still works: your ' +
-    'answers are saved on this phone. Ones you confirm move up; ones you mark as not working, or that haven’t been ' +
-    'confirmed for 8 weeks, move down.',
+    'Student discounts in Regensburg. Each one names its source. Tell the app whether one still works: your votes ' +
+    'are saved on this phone, and in your account once the phone is linked. Ones you confirm move up; ones you mark ' +
+    'as not working, or that haven’t been confirmed for 8 weeks, move down.',
   discountsFor: 'Show discounts for',
-  loadFailed: 'The discounts could not be loaded. Try again later.',
-  votes: { works: 'Still works', outdated: "Doesn't work anymore" },
+  loadFailed: 'The discounts couldn’t be loaded. Try again later.',
+  votes: { works: 'Still works', outdated: 'Doesn’t work any more' },
   voteGroup: (place: string) => `${place}: does it still work?`,
-  markedOutdated: (date: string) => `You marked this as not working on ${date}`,
+  markedOutdated: (date: string) => `You marked this as not working on ${date}.`,
   mayBeOutdated: 'May be outdated',
   lastConfirmed: (date: string) => `Last confirmed ${date}`,
   /** Other students' totals this semester (P2.6), shown while signed in. */
@@ -25,14 +25,14 @@ export const tips = {
   notWorking: (count: number) =>
     count === 1 ? '1 student said it no longer works' : `${count} students said it no longer works`,
   othersSignIn: 'Sign in to see what other students confirmed.',
-  saved: 'Saved on this phone.',
-  saveFailed: 'Could not save your answer. Try again.',
+  saved: 'Saved on this phone, and in your account once the phone is linked.',
+  saveFailed: 'Couldn’t save your vote. Try again.',
   /** What a screen reader hears after a vote. */
   heard: {
     works: (place: string) => `${place}: saved as still working.`,
     outdated: (place: string) => `${place}: saved as not working.`,
     moves: (saved: string, direction: 'up' | 'down') => `${saved} It moves ${direction} the list.`,
-    failed: (place: string) => `${place}: could not save your answer. Try again.`,
+    failed: (place: string) => `${place}: couldn’t save your vote. Try again.`,
   },
   /** The hacks feed: money-saving posts by students (docs/superpowers/plans/2026-11-05-hacks-feed.md). */
   /** The Checklist tab (checklist plan, chunk 5): src/data/checklist.ts. */
@@ -50,7 +50,7 @@ export const tips = {
     markNamed: (title: string) => `Done: ${title}`,
     seeTip: 'See the tip',
     seeTipNamed: (title: string) => `See the tip: ${title}`,
-    saveFailed: 'Could not save the tick. Try again.',
+    saveFailed: 'Couldn’t save the tick. Try again.',
   },
   /** The discount map (docs/superpowers/plans/2026-11-11-discount-map.md). */
   discountMap: {
@@ -60,8 +60,8 @@ export const tips = {
     /** The map's name for screen readers. */
     region: 'Map of the discounts in Regensburg',
     loading: 'Loading the map…',
-    noWebgl: "The map can't show on this phone. The list has every discount.",
-    failed: "The map couldn't load. The list has every discount.",
+    noWebgl: 'The map can’t show on this phone. The list has every discount.',
+    failed: 'The map couldn’t load. The list has every discount.',
     /** OpenStreetMap's attribution, as its licence asks; "Protomaps" follows it, as a name. */
     osm: '© OpenStreetMap contributors',
     /** A pin's name (chunk 4): the place and what you get there. The pin shows only the category's icon. */
@@ -81,13 +81,13 @@ export const tips = {
     /** Show me (chunk 6): it asks for the phone's position only on a tap, which stays on the phone. */
     showMe: 'Show me',
     /** The pressed Show me, once the map knows where the phone is. */
-    youreHere: "You're here",
+    youreHere: 'You’re here',
     /** How far a discount is from the phone: "850 m away", "2.9 km away". */
     away: (distance: string) => `${distance} away`,
     locating: 'Finding where you are…',
-    locationDenied: "Location is turned off for this app. You can allow it in your browser's settings.",
-    locationUnavailable: "Your location couldn't be found just now. Try again in a moment.",
-    outsideCity: "You're outside Regensburg, so the map stays on the city.",
+    locationDenied: 'Location is turned off for this app. You can allow it in your browser’s settings.',
+    locationUnavailable: 'Your location couldn’t be found just now. Try again in a moment.',
+    outsideCity: 'You’re outside Regensburg, so the map stays on the city.',
     /** MapLibre's hints when one finger or the wheel alone tries to move the map (its cooperative gestures). */
     gestures: {
       touch: 'Use two fingers to move the map',
@@ -102,13 +102,13 @@ export const tips = {
     source: (name: string, date: string) => `Added by ${name} on ${date}, not checked by the app`,
     /** Delete, Report and Translate say which discount, as on a post. */
     which: (place: string) => `the discount at ${place}`,
-    deleteQuestion: 'Delete this discount? Nobody will see it anymore.',
+    deleteQuestion: 'Delete this discount? Nobody will see it any more.',
     deleted: 'Discount deleted.',
-    deleteFailed: "The discount couldn't be deleted. Try again.",
+    deleteFailed: 'The discount couldn’t be deleted. Try again.',
     reportQuestion: 'Report this discount? It disappears for you at once, and for everyone once enough students report it.',
-    reported: 'Reported. You won’t see this discount anymore.',
-    reportFailed: "The report couldn't be sent. Try again.",
-    gone: "This discount isn't there anymore.",
+    reported: 'Reported. You won’t see this discount any more.',
+    reportFailed: 'The report couldn’t be sent. Try again.',
+    gone: 'This discount isn’t there any more.',
     /** Tips → Discounts → Add a discount (community, chunk 6). */
     form: {
       open: 'Add a discount',
@@ -118,7 +118,7 @@ export const tips = {
       place: 'Place',
       placeHint: 'The shop, café or service. 2 to 80 characters.',
       offer: 'Offer',
-      offerHint: 'What students get, like 10 % off with a student card. 3 to 120 characters.',
+      offerHint: 'What students get, like 10% off with a student card. 3 to 120 characters.',
       conditions: 'Conditions (optional)',
       conditionsHint: 'When or how it works, like weekdays before 5 pm. Up to 300 characters.',
       address: 'Address (optional)',
@@ -138,7 +138,7 @@ export const tips = {
       setPin: 'Set the pin here',
       pinSet: 'Pin set',
       removePin: 'Remove the pin',
-      pinNoMap: "The map can't show on this phone. You can add the discount without a pin.",
+      pinNoMap: 'The map can’t show on this phone. You can add the discount without a pin.',
       errors: {
         placeShort: 'Name the place, with at least 2 characters.',
         placeLong: 'Keep the place to 80 characters.',
@@ -148,10 +148,10 @@ export const tips = {
         addressLong: 'Keep the address to 120 characters.',
         link: 'Give the link to the page that states the offer, starting with https://',
         pin: 'Set the pin inside Regensburg, or remove it.',
-        dailyLimit: "You've added 3 discounts in a day. Add more tomorrow.",
-        invalid: "The discount couldn't be saved as it is. Check the fields and the link.",
-        offline: "You're offline. Adding a discount needs a connection.",
-        failed: "The discount couldn't be saved. Try again.",
+        dailyLimit: 'You’ve added 3 discounts in a day. Add more tomorrow.',
+        invalid: 'The discount couldn’t be saved as it is. Check the fields and the link.',
+        offline: 'You’re offline. Adding a discount needs a connection.',
+        failed: 'The discount couldn’t be saved. Try again.',
       },
     },
   },
@@ -161,10 +161,9 @@ export const tips = {
       'Money-saving hacks posted by students, in their own words. The app doesn’t check them: the votes show what ' +
       'worked.',
     signedOut: 'Sign in to read and post students’ hacks.',
-    toAccount: 'Go to Your account',
-    off: "Students' posts need an account, and accounts aren't set up in this copy of the app.",
+    off: 'Students’ posts need an account, and accounts aren’t set up in this copy of the app.',
     loading: 'Loading posts…',
-    loadFailed: "The posts couldn't be loaded. Check your connection and try again.",
+    loadFailed: 'The posts couldn’t be loaded. Check your connection and try again.',
     tryAgain: 'Try again',
     lastLoaded: (when: string) => `Shown as last loaded, ${when}.`,
     empty: 'No posts yet.',
@@ -190,18 +189,24 @@ export const tips = {
         short: 'Write at least 10 characters.',
         long: 'Keep it to 500 characters.',
         link: 'Give a link that starts with https://, or leave it empty.',
-        dailyLimit: "You've posted 5 hacks in a day. Post again tomorrow.",
-        invalid: "The post couldn't be saved as it is. Check the text and the link.",
-        offline: "You're offline. Posting needs a connection.",
-        failed: "The post couldn't be saved. Try again.",
+        dailyLimit: 'You’ve posted 5 hacks in a day. Post again tomorrow.',
+        invalid: 'The post couldn’t be saved as it is. Check the text and the link.',
+        offline: 'You’re offline. Posting needs a connection.',
+        failed: 'The post couldn’t be saved. Try again.',
       },
     },
     delete: 'Delete',
-    deleteQuestion: 'Delete this post? Nobody will see it anymore.',
+    deleteQuestion: 'Delete this post? Nobody will see it any more.',
     keep: 'Keep it',
     deleted: 'Post deleted.',
-    deleteFailed: "The post couldn't be deleted. Try again.",
-    vote: { group: 'Your vote on this post', up: 'Upvote', worked: 'Worked for me', outdated: 'Outdated' },
+    deleteFailed: 'The post couldn’t be deleted. Try again.',
+    /** `group` names the post, as `which` words it: "Your vote on the post by @lena, 04.11.2026". */
+    vote: {
+      group: (post: string) => `Your vote on ${post}`,
+      up: 'Upvote',
+      worked: 'Worked for me',
+      outdated: 'Outdated',
+    },
     report: 'Report',
     /**
      * A post's Report, Delete and Translate say which post (accessibility, chunk 8): the button's own word, then the
@@ -212,23 +217,23 @@ export const tips = {
     named: (button: string, post: string) => `${button}: ${post}`,
     reportQuestion: 'Report this post? It disappears for you at once, and for everyone once enough students report it.',
     reportCancel: 'Cancel',
-    reported: 'Reported. You won’t see this post anymore.',
-    gone: "This post isn't there anymore.",
-    voteFailed: "Your vote couldn't be saved. Try again.",
-    reportFailed: "The report couldn't be sent. Try again.",
+    reported: 'Reported. You won’t see this post any more.',
+    gone: 'This post isn’t there any more.',
+    voteFailed: 'Your vote couldn’t be saved. Try again.',
+    reportFailed: 'The report couldn’t be sent. Try again.',
     moderation: {
-      summary: 'Reported hacks and discounts',
+      summary: 'Reported posts, comments and discounts',
       intro:
         'Posts, comments and discounts students reported, newest report first. Hide takes one out of every list; ' +
         'Keep shows it again and starts its report count afresh. Anything hidden is deleted 30 days after it was ' +
         'hidden, unless you keep it.',
       signedOut: 'Sign in with the moderator account to moderate.',
-      notModerator: "This page is for the app's moderator.",
+      notModerator: 'This page is for the app’s moderator.',
       needsCode:
-        'Moderating needs a session that gave the authenticator code. Turn on two-step sign-in in Your account, ' +
-        'then sign in again with the code.',
+        'To moderate, sign in with your authenticator code: turn on two-step sign-in in Settings → Your account → ' +
+        'Sign-in and security, then sign in again.',
       loading: 'Loading reported posts…',
-      loadFailed: "The reported posts couldn't be loaded.",
+      loadFailed: 'The reported posts couldn’t be loaded.',
       tryAgain: 'Try again',
       empty: 'No reported posts.',
       queue: 'Reported posts',
@@ -238,25 +243,28 @@ export const tips = {
       keep: 'Keep',
       hidden: 'Hidden from every feed, and deleted in 30 days unless you keep it.',
       kept: 'Kept: it shows again.',
-      failed: "That didn't work. Try again.",
+      failed: 'That didn’t work. Try again.',
       /** The sections (community, chunks 3 and 7). */
       postsHeading: 'Posts',
       commentsHeading: 'Comments',
       commentsQueue: 'Reported comments',
       commentsEmpty: 'No reported comments.',
-      commentsLoadFailed: "The reported comments couldn't be loaded.",
+      commentsLoadFailed: 'The reported comments couldn’t be loaded.',
       discountsHeading: 'Discounts',
       discountsQueue: 'Reported discounts',
       discountsEmpty: 'No reported discounts.',
-      discountsLoadFailed: "The reported discounts couldn't be loaded.",
+      discountsLoadFailed: 'The reported discounts couldn’t be loaded.',
     },
     /** Comments on a post (community, chunk 2): flat, oldest first. */
     comments: {
-      /** The button that opens a post's comments, with how many there are. */
+      /**
+       * The button that opens a post's comments, with how many there are. Its name adds the post, as `named` words it:
+       * "Comments (3): the post by @lena, 04.11.2026".
+       */
       toggle: (count: number) => (count === 0 ? 'Comments' : `Comments (${count})`),
       list: 'Comments',
       loading: 'Loading the comments…',
-      loadFailed: "The comments couldn't be loaded. Try again later.",
+      loadFailed: 'The comments couldn’t be loaded. Try again later.',
       none: 'No comments yet.',
       body: 'Your comment',
       bodyHint: '3 to 300 characters. Every student with an account can read it.',
@@ -267,22 +275,22 @@ export const tips = {
       errors: {
         short: 'Write at least 3 characters.',
         long: 'Keep it to 300 characters.',
-        dailyLimit: "You've written 20 comments in a day. Comment again tomorrow.",
-        gone: "This post isn't there anymore.",
-        invalid: "The comment couldn't be saved as it is. Check the text.",
-        offline: "You're offline. Commenting needs a connection.",
-        failed: "The comment couldn't be saved. Try again.",
+        dailyLimit: 'You’ve written 20 comments in a day. Comment again tomorrow.',
+        gone: 'This post isn’t there any more.',
+        invalid: 'The comment couldn’t be saved as it is. Check the text.',
+        offline: 'You’re offline. Commenting needs a connection.',
+        failed: 'The comment couldn’t be saved. Try again.',
       },
       /** A comment's Report, Delete and Translate say which comment, as a post's do. */
       which: (author: string | null, date: string) =>
         author === null ? `a comment from ${date}` : `the comment by ${author}, ${date}`,
       whichMine: (date: string) => `your comment, ${date}`,
-      deleteQuestion: 'Delete this comment? Nobody will see it anymore.',
+      deleteQuestion: 'Delete this comment? Nobody will see it any more.',
       deleted: 'Comment deleted.',
-      deleteFailed: "The comment couldn't be deleted. Try again.",
+      deleteFailed: 'The comment couldn’t be deleted. Try again.',
       reportQuestion: 'Report this comment? It disappears for you at once, and for everyone once enough students report it.',
-      reported: 'Reported. You won’t see this comment anymore.',
-      reportFailed: "The report couldn't be sent. Try again.",
+      reported: 'Reported. You won’t see this comment any more.',
+      reportFailed: 'The report couldn’t be sent. Try again.',
     },
     translate: 'Translate',
     counts: (ups: number, worked: number, outdated: number) =>

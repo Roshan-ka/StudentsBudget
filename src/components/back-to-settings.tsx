@@ -8,8 +8,8 @@ import { useT } from '@/i18n/use-t';
 
 /**
  * The way back from a page of Settings to its list (pain points, chunk 3). The bottom nav's Settings goes there too.
- * Before a plan is saved it goes back to setup instead: setup's "Sign in to get your data" opens Your account, the
- * bottom nav doesn't show yet, and the Settings list would be a dead end.
+ * Before a plan is saved it goes back to setup instead: the bottom nav doesn't show yet, and the Settings list would be
+ * a dead end.
  */
 export function BackToSettings() {
   const { t } = useT();

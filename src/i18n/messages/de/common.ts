@@ -38,7 +38,14 @@ export const common: Messages['common'] = {
     plan: 'dein Plan',
   },
   estimate: 'Schätzung',
-  /** Einmalige Datenschutzhinweise (`PrivacyNote`), einmal pro Handy, bevor eine Funktion erstmals Daten schickt. */
+  /** Der Link zur Einrichtung auf einer Seite, die einen Plan braucht (Check-in, Diagramme, Abzeichen, Fragen …). */
+  toSetup: 'Plan einrichten',
+  /** Der Link zu Einstellungen → Dein Konto unter einer Zeile, die sagt, warum eine Funktion es braucht. */
+  toAccount: 'Zu „Dein Konto“',
+  /** Eine Funktion, die über das Konto läuft, solange diese Anmeldung noch ihren Code schuldet (Fragen, Erinnerung). */
+  needsCode: 'Dein Konto hat die zweistufige Anmeldung: Gib zuerst den Code aus deiner Authenticator-App ein.',
+  /** Nach „Neuen Code senden“ beim Code aus einer E-Mail (Konto bestätigen, Passwort vergessen). */
+  codeResent: 'Ein neuer Code ist unterwegs. Nimm den neuesten.',
   legal: {
     back: 'Zurück',
     onlyDeEn: 'Diese Seite gibt es nur auf Deutsch und Englisch.',
@@ -48,6 +55,7 @@ export const common: Messages['common'] = {
     privacySummary: 'Was die App speichert und sendet, und deine Rechte',
     impressumSummary: 'Wer StudentsBudget betreibt',
   },
+  /** Einmalige Datenschutzhinweise (`PrivacyNote`), einmal pro Handy, bevor eine Funktion erstmals Daten schickt. */
   privacy: {
     label: 'Zu deinen Daten',
     more: 'Mehr in der Datenschutzerklärung',
@@ -55,10 +63,10 @@ export const common: Messages['common'] = {
     cancel: 'Abbrechen',
     account:
       'Dein Konto liegt bei Supabase in Frankfurt (EU): deine E-Mail-Adresse, dein Passwort (nur als Hash ' +
-      'gespeichert), die Sprache deines Handys, dein Benutzername mit Status und Jahrgang und eine Kopie der Daten, ' +
-      'die du synchronisierst. Andere Studierende sehen nur Benutzername, Status und Jahrgang, neben deinen ' +
-      'Beiträgen. Braucht das Konto einen Code, zum Bestätigen oder für ein neues Passwort, kommt er per E-Mail. ' +
-      'Du kannst das Konto jederzeit unter Einstellungen → Dein Konto löschen.',
+      'gespeichert), die Sprache deines Handys, dein Benutzername mit Status und Abschlussjahr und eine Kopie der ' +
+      'Daten, die du synchronisierst. Andere Studierende sehen nur Benutzername, Status und Abschlussjahr, neben ' +
+      'deinen Beiträgen. Braucht das Konto einen Code, zum Bestätigen oder für ein neues Passwort, kommt er per ' +
+      'E-Mail. Du kannst das Konto jederzeit unter Einstellungen → Dein Konto löschen.',
     passkey:
       'Der Passwortmanager deines Handys bewahrt den Passkey auf und kann ihn mit deinen anderen Geräten ' +
       'synchronisieren (zum Beispiel iCloud-Schlüsselbund oder Google Passwortmanager). Dein Konto speichert nur ' +
@@ -72,7 +80,7 @@ export const common: Messages['common'] = {
       'Studierende für dieses Semester sehen. Niemand sieht, wer abgestimmt hat.',
     post:
       'Alle Studierenden mit Konto können lesen, was du hier postest, einen Hack, einen Kommentar oder einen Rabatt, ' +
-      'mit Benutzername, Status und Jahrgang, und es melden; Hacks und Rabatte können sie auch bewerten. Du kannst ' +
+      'mit Benutzername, Status und Abschlussjahr, und es melden; Hacks und Rabatte können sie auch bewerten. Du kannst ' +
       'es jederzeit löschen.',
     hackVotes:
       'Deine Stimmen zählen in den Summen, die alle Studierenden am Beitrag sehen; niemand sieht, wer abgestimmt ' +

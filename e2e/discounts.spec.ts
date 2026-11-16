@@ -46,7 +46,7 @@ function item(page: Page, d: Discount) {
     .filter({ has: page.getByRole('heading', { level: 3, name: d.place, exact: true }) });
 }
 
-function voteButton(page: Page, d: Discount, name: 'Still works' | "Doesn't work anymore") {
+function voteButton(page: Page, d: Discount, name: 'Still works' | 'Doesn’t work any more') {
   return item(page, d)
     .getByRole('group', { name: `${d.place}: does it still work?`, exact: true })
     .getByRole('button', { name, exact: true });
@@ -68,7 +68,7 @@ async function openDiscounts(page: Page, at: Date) {
 }
 
 async function showDiscounts(page: Page) {
-  await expect(page.getByRole('heading', { level: 2, name: 'Regensburg tips and discounts', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Tips for Regensburg', exact: true })).toBeVisible();
   const tab = switcher(page).getByRole('tab', { name: 'Discounts', exact: true });
   await tab.click();
   await expect(tab).toHaveAttribute('aria-selected', 'true');
@@ -92,7 +92,7 @@ test('the Tips tab switches to a sourced discount list and back', async ({ page 
     await expect(first.getByText(text, { exact: true })).toBeVisible();
   }
   await expect(voteButton(page, FIRST, 'Still works')).toHaveAttribute('aria-pressed', 'false');
-  await expect(voteButton(page, FIRST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'false');
+  await expect(voteButton(page, FIRST, 'Doesn’t work any more')).toHaveAttribute('aria-pressed', 'false');
 
   // Where it comes from, collapsed until asked for.
   await expect(first.locator('details[open]')).toHaveCount(0);
@@ -140,12 +140,12 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await expect(voteButton(page, LAST, 'Still works')).toBeFocused();
   await expect(announced(page)).toHaveText(`${LAST.place}: saved as still working. It moves up the list.`);
 
-  await voteButton(page, FIRST, "Doesn't work anymore").click();
-  await expect(voteButton(page, FIRST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
+  await voteButton(page, FIRST, 'Doesn’t work any more').click();
+  await expect(voteButton(page, FIRST, 'Doesn’t work any more')).toHaveAttribute('aria-pressed', 'true');
   await expect(places(page)).toHaveText([LAST.place, ...middle, FIRST.place]);
-  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-24')}`, { exact: true })).toBeVisible();
-  await expect(item(page, FIRST).getByText('Saved on this phone.', { exact: true })).toBeVisible();
-  await expect(voteButton(page, FIRST, "Doesn't work anymore")).toBeFocused();
+  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-24')}.`, { exact: true })).toBeVisible();
+  await expect(item(page, FIRST).getByText('Saved on this phone, and in your account once the phone is linked.', { exact: true })).toBeVisible();
+  await expect(voteButton(page, FIRST, 'Doesn’t work any more')).toBeFocused();
   await expect(announced(page)).toHaveText(`${FIRST.place}: saved as not working. It moves down the list.`);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
@@ -160,11 +160,11 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await expect(places(page)).toHaveText([LAST.place, ...middle, FIRST.place]);
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'true');
   await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-11-24')}`, { exact: true })).toBeVisible();
-  await expect(voteButton(page, FIRST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
-  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-24')}`, { exact: true })).toBeVisible();
+  await expect(voteButton(page, FIRST, 'Doesn’t work any more')).toHaveAttribute('aria-pressed', 'true');
+  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-24')}.`, { exact: true })).toBeVisible();
   await expect(item(page, FIRST).getByText(/^Last confirmed/)).toHaveCount(0);
   // What was said about the votes before the reload is gone.
-  await expect(discountList(page).getByText('Saved on this phone.', { exact: true })).toHaveCount(0);
+  await expect(discountList(page).getByText('Saved on this phone, and in your account once the phone is linked.', { exact: true })).toHaveCount(0);
 });
 
 test('after eight weeks without a confirmation every discount may be outdated, and tapping again changes the vote', async ({
@@ -188,11 +188,11 @@ test('after eight weeks without a confirmation every discount may be outdated, a
   await expect(places(page).first()).toHaveText(LAST.place);
 
   // Changing your mind replaces the vote: it sinks below the ones that may be outdated.
-  await voteButton(page, LAST, "Doesn't work anymore").click();
-  await expect(voteButton(page, LAST, "Doesn't work anymore")).toHaveAttribute('aria-pressed', 'true');
+  await voteButton(page, LAST, 'Doesn’t work any more').click();
+  await expect(voteButton(page, LAST, 'Doesn’t work any more')).toHaveAttribute('aria-pressed', 'true');
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'false');
   await expect(places(page).last()).toHaveText(LAST.place);
-  await expect(item(page, LAST).getByText(`You marked this as not working on ${formatDate('2027-01-05')}`, { exact: true })).toBeVisible();
+  await expect(item(page, LAST).getByText(`You marked this as not working on ${formatDate('2027-01-05')}.`, { exact: true })).toBeVisible();
   await expect.poll(() => votes(page)).toEqual([{ discountId: LAST.id, vote: 'outdated', on: '2027-01-05' }]);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
@@ -203,7 +203,7 @@ test.describe('on a phone set to German', () => {
   test('the discounts read in German, place names kept, and none is marked English', async ({ page }) => {
     await page.clock.setFixedTime(NOV_24);
     await page.goto('/tips');
-    await expect(page.getByRole('heading', { level: 2, name: 'Tipps und Rabatte in Regensburg', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'Tipps für Regensburg', exact: true })).toBeVisible();
     await page.getByRole('tablist', { name: 'Tipps, Rabatte, Hacks oder Checkliste', exact: true }).getByRole('tab', { name: 'Rabatte', exact: true }).click();
     const list = page.getByRole('list', { name: 'Rabatte', exact: true });
     await expect(list.getByRole('listitem')).toHaveCount(DISCOUNTS.length);

@@ -6,7 +6,7 @@ export const reveal = {
   intro: 'How each month that is over went against your envelopes.',
   /** Before the setup month is over: "Your first recap comes once October is over." */
   notYet: (month: string) => `Your first recap comes once ${month} is over.`,
-  adjust: 'Change my envelopes',
+  adjust: 'Edit envelopes',
   /** One finished month (recapLine): "October 2026: €15 left over → savings". */
   recap: {
     savings: (label: string, amount: string) => `${label}: ${amount} left over → savings`,
@@ -14,5 +14,4 @@ export const reveal = {
     onPlan: (label: string) => `${label}: right on plan`,
   },
   noPlan: 'Set up your plan to see how each month goes.',
-  startSetup: 'Start setup',
 };

@@ -8,7 +8,7 @@ export const profile: Messages['profile'] = {
   summaryNone: 'Pas encore rempli',
   intro:
     'Ton profil est enregistré sur ce téléphone et figure dans chaque sauvegarde que tu exportes, ainsi que dans ton ' +
-    'compte quand tu y enregistres.',
+    'compte une fois ce téléphone associé.',
   name: 'Ton prénom',
   nameHint: 'Facultatif. L’accueil te salue avec ce prénom.',
   university: 'Université',

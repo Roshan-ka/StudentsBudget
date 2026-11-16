@@ -102,7 +102,7 @@ export function HacksView() {
         <p className="text-sm text-muted-foreground">{text.intro}</p>
         <p className="text-sm">{text.signedOut}</p>
         <Link href="/settings/account" className="self-start text-sm font-semibold text-primary underline-offset-4 hover:underline">
-          {text.toAccount}
+          {t.common.toAccount}
         </Link>
       </div>
     );
@@ -375,7 +375,7 @@ function HackCard({
       </p>
       <p className="text-sm text-muted-foreground">{text.counts(post.ups, post.worked, post.outdated)}</p>
       {!post.mine && (
-        <div role="group" aria-label={text.vote.group} className="flex flex-wrap gap-2">
+        <div role="group" aria-label={text.vote.group(which)} className="flex flex-wrap gap-2">
           {VOTE_BUTTONS.map((button) => (
             <Button
               key={button}
@@ -479,7 +479,7 @@ function HackCard({
           {problem}
         </p>
       )}
-      <HackComments postId={post.id} count={commentCount} t={t} lang={lang} onCount={onCommentCount} />
+      <HackComments postId={post.id} post={which} count={commentCount} t={t} lang={lang} onCount={onCommentCount} />
     </li>
   );
 }

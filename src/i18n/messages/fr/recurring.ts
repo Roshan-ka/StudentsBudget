@@ -8,7 +8,7 @@ export const recurring: Messages['recurring'] = {
   heading: 'Charges fixes et revenus',
   intro:
     'Le loyer, les revenus et tout argent qui entre ou sort à jour fixe. Les enveloppes et les frais ponctuels sont ' +
-    'dans Plan.',
+    `dans «${NNBSP}Modifier le plan${NNBSP}», plus haut.`,
   income: 'Revenus',
   fixedCosts: 'Charges fixes',
   noIncome: 'Pas encore de revenus.',
@@ -23,8 +23,7 @@ export const recurring: Messages['recurring'] = {
   newFrequency: 'Une nouvelle fréquence s’applique à partir de la période suivante.',
   account: 'Compte',
   pickAccountOption: 'Choisis un compte',
-  pickAccount: 'Choisis un compte pour cela',
-  pickAccountError: 'Choisis un compte pour cela.',
+  pickAccount: 'Choisis un compte pour cela.',
   addedAgain: 'À partir de demain, ça s’ajoute de nouveau tout seul.',
   amountIn: (currency) => `Montant en ${currency}`,
   eachTime: 'À chaque ajout.',

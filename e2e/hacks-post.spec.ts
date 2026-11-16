@@ -90,7 +90,7 @@ test('a first post is checked, waits for its note, and shows as one’s own', as
   expect(await page.evaluate((key) => localStorage.getItem(key), PRIVACY_NOTES.post)).toBe('seen');
 
   const mine = posts(page).filter({ hasText: BODY });
-  await expect(mine).toContainText("@roshan · Student · Batch '27 · Your post");
+  await expect(mine).toContainText('@roshan · Student · Class of ’27 · Your post');
   await expect(mine.getByRole('link', { name: 'www.rvv.de', exact: true })).toBeVisible();
   await expect(form(page)).toHaveCount(0);
 });
@@ -123,7 +123,7 @@ test('a sixth post in a day is refused, and says when to post again', async ({ p
   await panel(page).getByRole('button', { name: 'Post a hack', exact: true }).click();
   await form(page).getByRole('textbox', { name: 'Your hack', exact: true }).fill(BODY);
   await form(page).getByRole('button', { name: 'Post', exact: true }).click();
-  await expect(form(page).getByRole('alert')).toHaveText("You've posted 5 hacks in a day. Post again tomorrow.");
+  await expect(form(page).getByRole('alert')).toHaveText('You’ve posted 5 hacks in a day. Post again tomorrow.');
 });
 
 test('one’s own post can be deleted, after a question; others’ cannot', async ({ page }) => {
@@ -156,7 +156,7 @@ test('one’s own post can be deleted, after a question; others’ cannot', asyn
   // Delete says which post (accessibility, chunk 8).
   const deleteMine = mine.getByRole('button', { name: /^Delete: your post, \d{2}\.\d{2}\.\d{4}$/ });
   await deleteMine.click();
-  await expect(mine).toContainText('Delete this post? Nobody will see it anymore.');
+  await expect(mine).toContainText('Delete this post? Nobody will see it any more.');
   await mine.getByRole('button', { name: 'Keep it', exact: true }).click();
   await expect(posts(page)).toHaveCount(2);
 

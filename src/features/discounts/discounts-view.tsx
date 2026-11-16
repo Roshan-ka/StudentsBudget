@@ -54,8 +54,8 @@ function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'dow
 }
 
 /**
- * The Regensburg student discounts, freshest first. "Still works" and "Doesn't work anymore" are saved on this
- * phone, dated today; tapping again replaces the answer. The list comes from `source` (bundled now, a server
+ * The Regensburg student discounts, freshest first. "Still works" and "Doesn’t work any more" are saved on this
+ * phone, dated today; tapping again replaces the vote. The list comes from `source` (bundled now, a server
  * later; keep the same one for the view's lifetime), the votes from the database, and the chosen category is kept
  * only while the page stays mounted. Signed in, other students' totals for this semester join in (P2.6,
  * `discount_confirmations`): they confirm a discount too, and show as counts; and so do the discounts students added

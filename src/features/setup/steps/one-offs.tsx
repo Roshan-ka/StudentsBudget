@@ -117,7 +117,6 @@ function OneOffRow({
         <Input
           id={`${id}-due`}
           type="month"
-          placeholder="YYYY-MM"
           min={monthAfter(today)}
           value={oneOff.dueMonth}
           aria-invalid={dueProblem || undefined}
@@ -131,8 +130,15 @@ function OneOffRow({
           </p>
         )}
       </div>
-      <Button type="button" variant="ghost" className="self-start px-4" onClick={onRemove}>
-        {text.remove(index + 1)}
+      {/* Its word, named after the cost: "Remove: Semester fee". */}
+      <Button
+        type="button"
+        variant="ghost"
+        className="self-start px-4"
+        aria-label={text.removeOne(oneOff.name.trim() || null, index + 1)}
+        onClick={onRemove}
+      >
+        {text.remove}
       </Button>
     </div>
   );

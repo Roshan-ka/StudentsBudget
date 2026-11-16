@@ -27,7 +27,7 @@ type View =
   | Exclude<LinkOutcome, { kind: 'code' } | { kind: 'problem' }>
   | { kind: 'problem'; problem: PageProblem };
 
-/** What moved, in words: "Your account now holds this phone's data." or "Loaded from your account: …". */
+/** What moved, in words: "Your account now holds this phone’s data." or "Loaded from your StudentsBudget account: …". */
 function noteText(note: LinkNote, t: Messages, lang: Language): string {
   return note.kind === 'uploaded' ? t.sync.link.uploaded : t.sync.link.loaded(contentsText(note.contents, lang));
 }

@@ -56,7 +56,6 @@ export const badges: Messages['badges'] = {
     'et ne compte pas pour Semaine sous budget ni Royauté du ramen.',
   listLabel: 'Tes badges',
   noPlan: 'Configure ton plan pour commencer à obtenir des badges.',
-  startSetup: 'Commencer la configuration',
   card: {
     heading: 'Badges',
     earnedOf: (earned, total) => `${earned} sur ${total} obtenus`,

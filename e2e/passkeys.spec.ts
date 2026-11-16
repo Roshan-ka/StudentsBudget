@@ -97,7 +97,7 @@ test('a passkey added in Settings signs in instead of the password, and stops wh
   await expect(item.getByText(new RegExp(`^Added ${today()}, \\d{2}:\\d{2}; last used ${today()}$`))).toBeVisible();
 
   // Removing asks first, and Cancel keeps it.
-  const remove = passkeys(page).getByRole('button', { name: new RegExp(`^Remove Passkey, added ${today()}, \\d{2}:\\d{2}$`) });
+  const remove = passkeys(page).getByRole('button', { name: new RegExp(`^Remove: Passkey, added ${today()}, \\d{2}:\\d{2}$`) });
   await remove.click();
   await expect(passkeys(page).getByText('Remove this passkey?', { exact: false })).toBeVisible();
   const confirm = passkeys(page).getByRole('button', { name: 'Remove', exact: true });
@@ -208,7 +208,7 @@ test('passkeys that can’t be read say so, Try again reads them, and switched o
   await page.route('**/auth/v1/passkeys', unreachable);
   await signIn(page);
 
-  await expect(passkeys(page).getByText("Couldn't load your passkeys.", { exact: true })).toBeVisible();
+  await expect(passkeys(page).getByText('Couldn’t load your passkeys.', { exact: true })).toBeVisible();
   await expect(passkeys(page).getByRole('button', { name: 'Add a passkey', exact: true })).toHaveCount(0);
   await page.unroute('**/auth/v1/passkeys', unreachable);
   await passkeys(page).getByRole('button', { name: 'Try again', exact: true }).click();

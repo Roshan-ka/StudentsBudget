@@ -39,7 +39,7 @@ test('a removed passkey no longer signs in', async ({ page, browserName, makeUse
   test.skip(browserName !== 'chromium', VIRTUAL_ONLY);
   const user = await makeUser({ secondFactor: 'none' });
   await signInAndAddPasskey(page, user);
-  await passkeys(page).getByRole('button', { name: /^Remove Passkey, added / }).click();
+  await passkeys(page).getByRole('button', { name: /^Remove: Passkey, added / }).click();
   await passkeys(page).getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(passkeys(page).getByRole('status')).toHaveText('Passkey removed.');
 

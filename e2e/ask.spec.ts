@@ -71,7 +71,7 @@ test('a guest is told to sign in, and nothing is sent', async ({ page }) => {
   await seedSetup(page);
   await openAsk(page);
   await expect(page.getByText(TEXT.signedOut, { exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: TEXT.toAccount, exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: EN.common.toAccount, exact: true })).toBeVisible();
   await expect(questionField(page)).toHaveCount(0);
   expect(calls).toEqual([]);
 });

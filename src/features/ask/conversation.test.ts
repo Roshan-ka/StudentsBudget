@@ -48,10 +48,11 @@ describe('paragraphsOf', () => {
 
 describe('problemText', () => {
   it('says why for every problem, the account ones as the page says them', () => {
-    const text = MESSAGES.en.ask;
-    expect(problemText('daily-limit', text)).toBe(text.problems.dailyLimit);
-    expect(problemText('second-step', text)).toBe(text.needsCode);
-    expect(problemText('off', text)).toBe(text.switchedOff);
-    expect(problemText('too-large', text)).toBe(text.problems.failed);
+    const t = MESSAGES.en;
+    const text = t.ask;
+    expect(problemText('daily-limit', t)).toBe(text.problems.dailyLimit);
+    expect(problemText('second-step', t)).toBe(t.common.needsCode);
+    expect(problemText('off', t)).toBe(text.switchedOff);
+    expect(problemText('too-large', t)).toBe(text.problems.failed);
   });
 });

@@ -68,7 +68,7 @@ describe('syncNow', () => {
     expect(await syncNow(refusing, USER)).toEqual({ kind: 'problem', problem: 'failed' });
     expect(await db.outbox.count()).toBe(2);
     expect((await state())?.problem).toBe('failed');
-    expect(problemText('failed')).toBe("Couldn't sync just now. Your changes wait on this phone; try again.");
+    expect(problemText('failed')).toBe('Couldn’t sync just now. Your changes wait on this phone; try again.');
 
     await syncNow(store, USER);
     expect((await state())?.problem).toBeNull();
@@ -81,7 +81,7 @@ describe('syncNow', () => {
     const expired = { ...store, upsert: async () => Promise.reject(new StoreError('accounts', 401, 'PGRST301', 'JWT expired')) };
     expect(await syncNow(expired, USER)).toEqual({ kind: 'problem', problem: 'signed-out' });
     expect(problemText('signed-out')).toBe(
-      'Your sign-in has run out. Sign out and in again; your changes wait on this phone.',
+      'This sign-in has ended. Sign out, then sign in again; your changes wait on this phone.',
     );
   });
 
@@ -120,6 +120,7 @@ describe('syncStatusText', () => {
   });
 
   it('shows a sentence an earlier version stored as it is', () => {
+    // As an earlier version stored it, straight apostrophe and all.
     const old = "Couldn't sync just now. Your changes wait on this phone; try again.";
     expect(syncStatusText({ ...base, problem: old })).toBe(old);
   });
@@ -354,7 +355,7 @@ describe('a change the app refuses', () => {
     expect(tables.entries.has('good')).toBe(true);
     expect((await state())?.problem).toBe('held:1');
     expect((await state())?.lastSyncedAt).not.toBeNull();
-    expect(problemText('held:1')).toBe('1 change can’t be synced: this app refuses it. It stays on this phone.');
-    expect(problemText('held:2')).toBe('2 changes can’t be synced: this app refuses them. They stay on this phone.');
+    expect(problemText('held:1')).toBe('1 change can’t be synced: this version of the app can’t send it. It stays on this phone.');
+    expect(problemText('held:2')).toBe('2 changes can’t be synced: this version of the app can’t send them. They stay on this phone.');
   });
 });

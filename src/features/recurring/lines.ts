@@ -107,7 +107,7 @@ export function describeLine(
   const account = accounts.find((a) => a.id === s.accountId);
   const parts = account
     ? [formatMoney(s.amountMinor, account.currency, { locale }), describeTiming(s, lang), account.name]
-    : [describeTiming(s, lang), text.pickAccount];
+    : [describeTiming(s, lang), text.pickAccountOption];
   // A paused line leaves the plan too (`planSummary`), not only the posting.
   if (s.paused) parts.push(text.paused, text.notInPlan);
   return parts.join(' · ');

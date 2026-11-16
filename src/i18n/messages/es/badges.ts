@@ -55,7 +55,6 @@ export const badges: Messages['badges'] = {
     'presupuesto ni Realeza del ramen.',
   listLabel: 'Tus insignias',
   noPlan: 'Configura tu plan para empezar a conseguir insignias.',
-  startSetup: 'Empezar la configuración',
   card: {
     heading: 'Insignias',
     earnedOf: (earned, total) => `${earned} de ${total} conseguidas`,

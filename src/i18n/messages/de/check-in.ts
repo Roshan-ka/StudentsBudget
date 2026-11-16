@@ -48,5 +48,4 @@ export const checkIn: Messages['checkIn'] = {
   reminderOr: 'Oder stattdessen eine Mitteilung auf diesem Handy:',
   reminderOrLink: 'Wöchentliche Erinnerung',
   noPlan: 'Richte deinen Plan ein, um auf deine Woche zu schauen.',
-  startSetup: 'Einrichtung starten',
 };

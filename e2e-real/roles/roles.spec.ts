@@ -9,8 +9,8 @@ import { codeStep, expect, giveCode, signedInAs, signIn, test, UI_SIGN_IN_TIMEOU
 // student must not see holds a reported post, so "nothing shown" can't pass on an empty page.
 
 const SIGNED_OUT = 'Sign in with the moderator account to moderate.';
-const NOT_MODERATOR = "This page is for the app's moderator.";
-const NEEDS_CODE = /^Moderating needs a session that gave the authenticator code\./;
+const NOT_MODERATOR = 'This page is for the app’s moderator.';
+const NEEDS_CODE = /^To moderate, sign in with your authenticator code: /;
 
 function moderationLink(page: Page) {
   return page.getByRole('link', { name: /^Moderation/ });

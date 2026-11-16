@@ -32,12 +32,15 @@ import { postingNameText } from './posting-name';
  */
 export function HackComments({
   postId,
+  post,
   count,
   t,
   lang,
   onCount,
 }: {
   postId: string;
+  /** The post as its Report and Delete name it ("the post by @lena, 04.11.2026"), for the toggle's name. */
+  post: string;
   count: number;
   t: Messages;
   lang: Language;
@@ -129,6 +132,8 @@ export function HackComments({
         className="self-start px-3"
         aria-expanded={open}
         aria-controls={listId}
+        // Its words, then the post: "Comments (3): the post by @lena, 04.11.2026".
+        aria-label={t.tips.hacks.named(text.toggle(count), post)}
         onClick={toggle}
       >
         {text.toggle(count)}

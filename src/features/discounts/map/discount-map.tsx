@@ -482,7 +482,7 @@ export function DiscountMap({
           // A map's x runs from the left whatever the language, so the pins are placed left to right.
           <div dir="ltr" className="pointer-events-none absolute inset-0">
             {/* Where the phone is (Show me): a dot in the primary colour, ringed in the card's, with a soft halo. Under
-                the pins, and only for the eye: the pressed "You're here" says it. `placeOnMap` places it. */}
+                the pins, and only for the eye: the pressed "You’re here" says it. `placeOnMap` places it. */}
             {here !== null && (
               <span
                 ref={dot}

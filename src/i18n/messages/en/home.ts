@@ -40,7 +40,7 @@ export const home = {
     availableWithinBudget: (amount: string, budget: string) =>
       `${available(amount)} These amounts keep to your everyday budget of ${budget}.`,
     availableBelowBudget: (amount: string, budget: string) =>
-      `${available(amount)} That is less than your everyday budget of ${budget}, so these amounts keep to ${amount}.`,
+      `${available(amount)} That’s less than your everyday budget of ${budget}, so these amounts keep to ${amount}.`,
     leftForSavings: (amount: string) => `${amount} left for savings`,
     overAvailable: (amount: string) => `${amount} over what is available`,
     use: 'Use this budget',
@@ -49,6 +49,6 @@ export const home = {
     replaces: 'Using it replaces the amounts in your envelopes.',
     fixAmounts: 'Fix the amounts marked above to use this budget.',
     enterOne: 'Enter at least one amount to use this budget.',
-    failed: 'That did not save. Try again.',
+    failed: 'That didn’t save. Try again.',
   },
 };

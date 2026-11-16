@@ -34,11 +34,8 @@ export const ask: Messages['ask'] = {
   unavailable: 'Las preguntas no forman parte de esta versión de la app.',
   loading: 'Cargando…',
   signedOut: 'Las preguntas funcionan a través de tu cuenta: inicia sesión primero en este móvil.',
-  needsCode: 'Tu cuenta tiene verificación en dos pasos: introduce primero el código de tu app de autenticación.',
-  toAccount: 'Ir a «Tu cuenta»',
   switchedOff: 'Las funciones de IA están desactivadas en este móvil. Puedes volver a activarlas en Ajustes, en «Tu cuenta».',
   noPlan: 'Las respuestas salen de tu plan, así que configúralo primero.',
-  toSetup: 'Configurar tu plan',
   link: 'Pregunta sobre tu presupuesto',
   close: 'Cerrar',
 };

@@ -34,7 +34,7 @@ export const shell = {
     start: 'Welcome',
     ask: 'Ask',
     settings: 'Settings',
-    tips: 'Regensburg tips and discounts',
+    tips: 'Tips for Regensburg',
     privacy: 'Privacy notice',
     impressum: 'Legal notice (Impressum)',
   },

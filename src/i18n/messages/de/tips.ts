@@ -11,14 +11,14 @@ export const tips: Messages['tips'] = {
   tipsIntro: 'Wie Studierende vor Ort weniger zahlen. Jeder Tipp sagt, woher er stammt.',
   tipsFor: 'Tipps zeigen für',
   discountsIntro:
-    'Rabatte für Studierende in Regensburg. Bei jedem steht, wo er genannt wird. Sag der App, ob einer noch gilt: ' +
-    'Deine Antworten werden auf diesem Handy gespeichert. Bestätigte rücken nach oben; solche, die du als ungültig ' +
-    'markierst oder die 8 Wochen lang nicht bestätigt wurden, rücken nach unten.',
+    'Rabatte für Studierende in Regensburg. Jeder nennt seine Quelle. Sag der App, ob einer noch gilt: Deine Stimmen ' +
+    'werden auf diesem Handy gespeichert und in deinem Konto, sobald das Handy verknüpft ist. Bestätigte rücken nach ' +
+    'oben; solche, die du als ungültig markierst oder die 8 Wochen lang nicht bestätigt wurden, rücken nach unten.',
   discountsFor: 'Rabatte zeigen für',
   loadFailed: 'Die Rabatte ließen sich nicht laden. Versuch es später noch einmal.',
   votes: { works: 'Gilt noch', outdated: 'Gilt nicht mehr' },
   voteGroup: (place) => `${place}: Gilt das noch?`,
-  markedOutdated: (date) => `Du hast das am ${date} als ungültig markiert`,
+  markedOutdated: (date) => `Du hast das am ${date} als ungültig markiert.`,
   mayBeOutdated: 'Vielleicht veraltet',
   lastConfirmed: (date) => `Zuletzt bestätigt am ${date}`,
   /** Was andere Studierende in diesem Semester bestätigt haben (P2.6), angemeldet zu sehen. */
@@ -26,13 +26,13 @@ export const tips: Messages['tips'] = {
   notWorking: (count) =>
     count === 1 ? '1 Person sagt, es gilt nicht mehr' : `${count} Personen sagen, es gilt nicht mehr`,
   othersSignIn: 'Melde dich an, um zu sehen, was andere Studierende bestätigt haben.',
-  saved: 'Auf diesem Handy gespeichert.',
-  saveFailed: 'Deine Antwort ließ sich nicht speichern. Versuch es noch einmal.',
+  saved: 'Auf diesem Handy gespeichert und in deinem Konto, sobald das Handy verknüpft ist.',
+  saveFailed: 'Deine Stimme ließ sich nicht speichern. Versuch es noch einmal.',
   heard: {
     works: (place) => `${place}: als gültig gespeichert.`,
     outdated: (place) => `${place}: als ungültig gespeichert.`,
     moves: (saved, direction) => `${saved} Er rückt in der Liste ${direction === 'up' ? 'nach oben' : 'nach unten'}.`,
-    failed: (place) => `${place}: Deine Antwort ließ sich nicht speichern. Versuch es noch einmal.`,
+    failed: (place) => `${place}: Deine Stimme ließ sich nicht speichern. Versuch es noch einmal.`,
   },
   /** Der Hacks-Feed: Spartipps von Studierenden. */
   checklist: {
@@ -142,7 +142,6 @@ export const tips: Messages['tips'] = {
       'Spar-Hacks von Studierenden, in ihren eigenen Worten. Die App prüft sie nicht: Die Stimmen zeigen, was ' +
       'geklappt hat.',
     signedOut: 'Melde dich an, um die Hacks von Studierenden zu lesen und selbst welche zu posten.',
-    toAccount: 'Zu „Dein Konto“',
     off: 'Beiträge von Studierenden brauchen ein Konto, und Konten sind in dieser Version der App nicht eingerichtet.',
     loading: 'Beiträge werden geladen …',
     loadFailed: 'Die Beiträge konnten nicht geladen werden. Prüf deine Verbindung und versuch es noch einmal.',
@@ -182,7 +181,12 @@ export const tips: Messages['tips'] = {
     keep: 'Behalten',
     deleted: 'Beitrag gelöscht.',
     deleteFailed: 'Der Beitrag konnte nicht gelöscht werden. Versuch es noch einmal.',
-    vote: { group: 'Deine Stimme zu diesem Beitrag', up: 'Daumen hoch', worked: 'Hat geklappt', outdated: 'Veraltet' },
+    vote: {
+      group: (post) => `Deine Stimme: ${post}`,
+      up: 'Daumen hoch',
+      worked: 'Hat geklappt',
+      outdated: 'Veraltet',
+    },
     report: 'Melden',
     which: (author, date) => (author === null ? `ein Beitrag vom ${date}` : `Beitrag von ${author}, ${date}`),
     whichMine: (date) => `dein Beitrag, ${date}`,
@@ -195,7 +199,7 @@ export const tips: Messages['tips'] = {
     voteFailed: 'Deine Stimme konnte nicht gespeichert werden. Versuch es noch einmal.',
     reportFailed: 'Die Meldung konnte nicht gesendet werden. Versuch es noch einmal.',
     moderation: {
-      summary: 'Gemeldete Hacks und Rabatte',
+      summary: 'Gemeldete Beiträge, Kommentare und Rabatte',
       intro:
         'Beiträge, Kommentare und Rabatte, die Studierende gemeldet haben, die neueste Meldung zuerst. Verstecken ' +
         'nimmt sie aus allen Listen; Behalten zeigt sie wieder und zählt ihre Meldungen neu. Was versteckt ist, ' +
@@ -203,8 +207,8 @@ export const tips: Messages['tips'] = {
       signedOut: 'Melde dich mit dem Moderationskonto an, um zu moderieren.',
       notModerator: 'Diese Seite ist für die Moderation der App.',
       needsCode:
-        'Moderieren braucht eine Sitzung mit dem Code der Authenticator-App. Schalte unter „Dein Konto“ die ' +
-        'zweistufige Anmeldung ein und melde dich mit dem Code neu an.',
+        'Um zu moderieren, melde dich mit dem Code deiner Authenticator-App an: Schalte in den Einstellungen → Dein ' +
+        'Konto → Anmeldung und Sicherheit die zweistufige Anmeldung ein und melde dich dann neu an.',
       loading: 'Gemeldete Beiträge werden geladen …',
       loadFailed: 'Die gemeldeten Beiträge konnten nicht geladen werden.',
       tryAgain: 'Noch einmal versuchen',

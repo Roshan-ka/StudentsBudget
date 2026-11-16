@@ -220,7 +220,7 @@ test('quick add without an amount says so and saves nothing', async ({ page }) =
 
   await quickAdd(page, 'döner');
 
-  await expect(inlineAlert(page)).toHaveText('Add an amount, like “döner 6”');
+  await expect(inlineAlert(page)).toHaveText('Add an amount, like “döner 6”.');
   await expect(page.getByRole('group', { name: 'Category' })).toHaveCount(0);
   await expect(page.getByLabel('Quick add')).toHaveValue('döner');
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
@@ -843,7 +843,7 @@ test('quick add shows the original six categories first, and More shows the othe
   expect(await names()).toEqual([...original, 'More']);
 });
 
-test('an entry a schedule posted shows a Recurring tag in the list', async ({ page }) => {
+test('an entry a schedule posted shows an Automatic tag in the list', async ({ page }) => {
   await setupAndOpenEntries(page);
   const accountId = (await readStore<Account>(page, 'accounts')).find((a) => a.name === 'Cash')?.id;
   const base = { type: 'expense', accountId, createdAt: '2026-10-16T10:00:00.000Z' };
@@ -865,9 +865,9 @@ test('an entry a schedule posted shows a Recurring tag in the list', async ({ pa
 
   await openEntries(page);
   const list = entriesList(page);
-  await expect(list.getByRole('listitem').filter({ hasText: 'Rent' }).getByText('Recurring', { exact: true })).toBeVisible();
-  await expect(list.getByRole('listitem').filter({ hasText: 'Rewe' }).getByText('Recurring')).toHaveCount(0);
-  await expect(list.getByText('Recurring', { exact: true })).toHaveCount(1);
+  await expect(list.getByRole('listitem').filter({ hasText: 'Rent' }).getByText('Automatic', { exact: true })).toBeVisible();
+  await expect(list.getByRole('listitem').filter({ hasText: 'Rewe' }).getByText('Automatic')).toHaveCount(0);
+  await expect(list.getByText('Automatic', { exact: true })).toHaveCount(1);
   // The note is the category name, so the row says "Rent" once, not "Rent" over "Rent". Rewe keeps its category.
   await expect(list.getByRole('listitem').filter({ hasText: 'Rent' }).getByText('Rent', { exact: true })).toHaveCount(1);
   await expect(list.getByRole('listitem').filter({ hasText: 'Rewe' }).getByText('Food & groceries', { exact: true })).toBeVisible();
@@ -879,7 +879,7 @@ test('an entry a schedule posted shows a Recurring tag in the list', async ({ pa
   await panel.getByRole('button', { name: 'Save changes' }).click();
   await expect(panel).toHaveCount(0);
   const renamed = list.getByRole('listitem').filter({ hasText: 'October rent' });
-  await expect(renamed.getByText('Recurring', { exact: true })).toBeVisible();
+  await expect(renamed.getByText('Automatic', { exact: true })).toBeVisible();
   // A note of its own brings the category back under it.
   await expect(renamed.getByText('Rent', { exact: true })).toBeVisible();
   expect(await pageOverflow(page)).toBeLessThanOrEqual(0);

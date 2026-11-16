@@ -179,7 +179,7 @@ describe('checkEmail and checkNewPassword ("Forgot password", P2.4)', () => {
 describe('authErrorMessage', () => {
   it('says that a new password is the old one', () => {
     expect(authErrorMessage({ code: 'same_password', status: 422 })).toBe(
-      "That's your current password. Choose a different one.",
+      'That’s your current password. Choose a different one.',
     );
   });
 
@@ -192,7 +192,7 @@ describe('authErrorMessage', () => {
       'Too many emails for now. Wait a minute, then send a new code.',
     );
     expect(authErrorMessage({ code: 'email_address_not_authorized', status: 400 })).toBe(
-      "The email couldn't be sent. Try again later.",
+      'The email couldn’t be sent. Try again later.',
     );
     expect(authErrorMessage({ code: 'email_not_confirmed', status: 400 })).toBe(
       'This account still has to be confirmed with the code from its email.',
@@ -238,7 +238,7 @@ describe('authErrorMessage', () => {
       'That passkey didn’t work. Try again, or sign in with your email and password.',
     );
     expect(passkeySignInMessage({ name: 'AuthRetryableFetchError', status: 0 })).toBe(
-      "The account server can't be reached. Check your connection and try again.",
+      'The account server can’t be reached. Check your connection and try again.',
     );
   });
 
@@ -288,7 +288,7 @@ describe('authErrorMessage', () => {
 
   it('says the server cannot be reached when the request never got an answer', () => {
     expect(authErrorMessage({ name: 'AuthRetryableFetchError', status: 0 })).toBe(
-      "The account server can't be reached. Check your connection and try again.",
+      'The account server can’t be reached. Check your connection and try again.',
     );
   });
 
@@ -299,6 +299,6 @@ describe('authErrorMessage', () => {
   });
 
   it('has a line for being offline', () => {
-    expect(MESSAGES.en.auth.offline).toBe("You're offline. Signing in needs a connection.");
+    expect(MESSAGES.en.auth.offline).toBe('You’re offline. Signing in needs a connection.');
   });
 });

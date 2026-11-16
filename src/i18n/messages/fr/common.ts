@@ -40,7 +40,14 @@ export const common: Messages['common'] = {
     plan: 'ton plan',
   },
   estimate: 'Estimation',
-  /** Notes uniques sur les données (`PrivacyNote`), une fois par téléphone, avant le premier envoi d’une fonction. */
+  /** Le lien vers la configuration sur une page qui a besoin d’un plan (check-in, graphiques, badges, Demander…). */
+  toSetup: 'Configurer ton plan',
+  /** Le lien vers Réglages → Ton compte, sous une ligne qui dit pourquoi une fonction en a besoin. */
+  toAccount: `Aller à «${NNBSP}Ton compte${NNBSP}»`,
+  /** Une fonction qui passe par le compte, tant que cette connexion doit encore son code (Demander, le rappel). */
+  needsCode: `Ton compte a la validation en deux étapes${NNBSP}: saisis d’abord le code de ton appli d’authentification.`,
+  /** Après « Envoyer un nouveau code » à l’étape d’un code reçu par e-mail. */
+  codeResent: 'Un nouveau code est en route. Utilise le plus récent.',
   legal: {
     back: 'Retour',
     onlyDeEn: 'Cette page n’existe qu’en allemand et en anglais, elle s’affiche donc en anglais.',
@@ -50,6 +57,7 @@ export const common: Messages['common'] = {
     privacySummary: 'Ce que l’appli garde et envoie, et tes droits',
     impressumSummary: 'Qui gère StudentsBudget',
   },
+  /** Notes uniques sur les données (`PrivacyNote`), une fois par téléphone, avant le premier envoi d’une fonction. */
   privacy: {
     label: 'À propos de tes données',
     more: 'En savoir plus dans la politique de confidentialité',
@@ -57,10 +65,11 @@ export const common: Messages['common'] = {
     cancel: 'Annuler',
     account:
       `Ton compte est gardé par Supabase, à Francfort (UE)${NNBSP}: ton adresse e-mail, ton mot de passe (stocké ` +
-      'seulement sous forme de hachage), la langue de ton téléphone, ton nom d’utilisateur, ton statut et ta promo, ' +
-      'et une copie des données que tu synchronises. Les autres étudiants ne voient que ton nom d’utilisateur, ton ' +
-      'statut et ta promo, à côté de tes publications. Si le compte a besoin d’un code, pour le confirmer ou pour ' +
-      'un nouveau mot de passe, il arrive par e-mail. Tu peux supprimer le compte à tout moment dans Réglages → Ton compte.',
+      'seulement sous forme de hachage), la langue de ton téléphone, ton nom d’utilisateur, ton statut et ton année ' +
+      'de fin d’études, et une copie des données que tu synchronises. Les autres étudiants ne voient que ton nom ' +
+      'd’utilisateur, ton statut et cette année, à côté de tes publications. Si le compte a besoin d’un code, pour ' +
+      'le confirmer ou pour un nouveau mot de passe, il arrive par e-mail. Tu peux supprimer le compte à tout moment ' +
+      'dans Réglages → Ton compte.',
     passkey:
       'Le gestionnaire de mots de passe de ton téléphone garde la clé d’accès et peut la synchroniser avec tes ' +
       'autres appareils (le trousseau iCloud ou le Gestionnaire de mots de passe de Google, par exemple). Ton ' +
@@ -74,8 +83,8 @@ export const common: Messages['common'] = {
       'étudiants voient pour ce semestre. Personne ne voit qui a voté.',
     post:
       'Tous les étudiants qui ont un compte peuvent lire ce que tu publies ici, une astuce, un commentaire ou une ' +
-      `réduction, avec ton nom d’utilisateur, ton statut et ta promo, et le signaler${NNBSP}; ils peuvent aussi voter ` +
-      'sur les astuces et les réductions. Tu peux le supprimer à tout moment.',
+      'réduction, avec ton nom d’utilisateur, ton statut et ton année de fin d’études, et le signaler' +
+      `${NNBSP}; ils peuvent aussi voter sur les astuces et les réductions. Tu peux le supprimer à tout moment.`,
     hackVotes:
       `Tes votes comptent dans les totaux que tous les étudiants voient sur la publication${NNBSP}; personne ne ` +
       'voit qui a voté. Un signalement cache la publication pour toi tout de suite, et pour tous quand assez ' +

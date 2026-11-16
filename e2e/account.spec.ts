@@ -109,7 +109,7 @@ test('Settings lists Your account; signing in and out there keeps the plan on th
   await signOut(page);
   expect(calls).toContainEqual(expect.objectContaining({ method: 'POST', path: '/logout', search: '?scope=local' }));
   await expect(
-    page.getByText("You're signed out. Your data was removed from this phone.", { exact: true }),
+    page.getByText('You’re signed out. Your data was removed from this phone.', { exact: true }),
   ).toBeVisible();
   expect(await readStore<Plan>(page, 'plan')).toEqual([]);
 });
@@ -178,7 +178,7 @@ test('says calmly what went wrong: a wrong password, a taken email, offline, no 
   const before = calls.length;
   await context.setOffline(true);
   await signIn(page, EMAIL, PASSWORD);
-  await expect(alert(page)).toHaveText("You're offline. Signing in needs a connection.");
+  await expect(alert(page)).toHaveText('You’re offline. Signing in needs a connection.');
   expect(calls).toHaveLength(before);
   await context.setOffline(false);
 
@@ -187,7 +187,7 @@ test('says calmly what went wrong: a wrong password, a taken email, offline, no 
   await page.route(SUPABASE_AUTH, (route) => route.abort('connectionfailed'));
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(alert(page)).toHaveText(
-    "The account server can't be reached. Check your connection and try again.",
+    'The account server can’t be reached. Check your connection and try again.',
   );
   await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
 });

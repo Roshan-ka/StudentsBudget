@@ -12,14 +12,14 @@ export const tips: Messages['tips'] = {
   tipsIntro: 'Formas locales de pagar menos como estudiante. Cada consejo dice de dónde sale.',
   tipsFor: 'Mostrar consejos de',
   discountsIntro:
-    'Descuentos para estudiantes en Regensburg. Cada uno dice dónde se indica. Dile a la app si uno sigue ' +
-    'funcionando: tus respuestas se guardan en este móvil. Los que confirmas suben; los que marcas como que ya no ' +
-    'funcionan, o que llevan 8 semanas sin confirmar, bajan.',
+    'Descuentos para estudiantes en Regensburg. Cada uno indica su fuente. Dile a la app si uno sigue ' +
+    'funcionando: tus votos se guardan en este móvil, y en tu cuenta en cuanto el móvil esté vinculado. Los que ' +
+    'confirmas suben; los que marcas como que ya no funcionan, o que llevan 8 semanas sin confirmar, bajan.',
   discountsFor: 'Mostrar descuentos de',
   loadFailed: 'No se han podido cargar los descuentos. Inténtalo más tarde.',
   votes: { works: 'Sigue funcionando', outdated: 'Ya no funciona' },
   voteGroup: (place) => `${place}: ¿sigue funcionando?`,
-  markedOutdated: (date) => `Lo marcaste como que ya no funciona el ${date}`,
+  markedOutdated: (date) => `Lo marcaste como que ya no funciona el ${date}.`,
   mayBeOutdated: 'Puede estar desactualizado',
   lastConfirmed: (date) => `Confirmado por última vez el ${date}`,
   /** Lo que otros estudiantes han confirmado este semestre (P2.6), visible con la sesión iniciada. */
@@ -28,13 +28,13 @@ export const tips: Messages['tips'] = {
   notWorking: (count) =>
     byCount(count, { one: '1 persona dice que ya no funciona', other: `${count} personas dicen que ya no funciona` }),
   othersSignIn: 'Inicia sesión para ver lo que han confirmado otros estudiantes.',
-  saved: 'Guardado en este móvil.',
-  saveFailed: 'No se ha podido guardar tu respuesta. Inténtalo de nuevo.',
+  saved: 'Guardado en este móvil, y en tu cuenta en cuanto el móvil esté vinculado.',
+  saveFailed: 'No se ha podido guardar tu voto. Inténtalo de nuevo.',
   heard: {
     works: (place) => `${place}: guardado como que sigue funcionando.`,
     outdated: (place) => `${place}: guardado como que ya no funciona.`,
     moves: (saved, direction) => `${saved} ${direction === 'up' ? 'Sube' : 'Baja'} en la lista.`,
-    failed: (place) => `${place}: no se ha podido guardar tu respuesta. Inténtalo de nuevo.`,
+    failed: (place) => `${place}: no se ha podido guardar tu voto. Inténtalo de nuevo.`,
   },
   /** El feed de trucos: trucos para ahorrar publicados por estudiantes. */
   checklist: {
@@ -149,7 +149,6 @@ export const tips: Messages['tips'] = {
       'Trucos para ahorrar publicados por estudiantes, con sus propias palabras. La app no los comprueba: los ' +
       'votos muestran qué funcionó.',
     signedOut: 'Inicia sesión para leer y publicar trucos de estudiantes.',
-    toAccount: 'Ir a «Tu cuenta»',
     off:
       'Las publicaciones de estudiantes necesitan una cuenta, y las cuentas no están configuradas en esta ' +
       'versión de la app.',
@@ -192,7 +191,7 @@ export const tips: Messages['tips'] = {
     deleted: 'Publicación borrada.',
     deleteFailed: 'No se pudo borrar la publicación. Inténtalo de nuevo.',
     vote: {
-      group: 'Tu voto sobre esta publicación',
+      group: (post) => `Tu voto sobre ${post}`,
       up: 'Me gusta',
       worked: 'Me funcionó',
       outdated: 'Desactualizado',
@@ -209,7 +208,7 @@ export const tips: Messages['tips'] = {
     voteFailed: 'No se pudo guardar tu voto. Inténtalo de nuevo.',
     reportFailed: 'No se pudo enviar la denuncia. Inténtalo de nuevo.',
     moderation: {
-      summary: 'Trucos y descuentos denunciados',
+      summary: 'Publicaciones, comentarios y descuentos denunciados',
       intro:
         'Publicaciones, comentarios y descuentos que los estudiantes han denunciado, la denuncia más reciente ' +
         'primero. Ocultar los quita de todas las listas; Mantener los muestra otra vez y pone sus denuncias a cero. ' +
@@ -217,8 +216,8 @@ export const tips: Messages['tips'] = {
       signedOut: 'Inicia sesión con la cuenta de moderación para moderar.',
       notModerator: 'Esta página es para la moderación de la app.',
       needsCode:
-        'Moderar necesita una sesión que haya dado el código de la app de autenticación. Activa la verificación en ' +
-        'dos pasos en «Tu cuenta» y vuelve a iniciar sesión con el código.',
+        'Para moderar, inicia sesión con el código de tu app de autenticación: activa la verificación en dos pasos ' +
+        'en Ajustes → Tu cuenta → Inicio de sesión y seguridad, y vuelve a iniciar sesión.',
       loading: 'Cargando publicaciones denunciadas…',
       loadFailed: 'No se pudieron cargar las publicaciones denunciadas.',
       tryAgain: 'Intentar de nuevo',

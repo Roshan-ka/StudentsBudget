@@ -4,7 +4,7 @@
 export const checkIn = {
   card: {
     title: 'Weekly check-in',
-    sunday: "It's Sunday — time for your weekly check-in.",
+    sunday: 'It’s Sunday — time for your weekly check-in.',
     other: 'Your weekly check-in is on Sunday.',
   },
   /** The two sections of a part of the week: this week, or its days in the previous month. */
@@ -37,18 +37,17 @@ export const checkIn = {
     lastWeek: 'I was away last week',
     thisWeek: 'I was away this week',
     hint:
-      "A week away keeps your logging streak as it is and doesn't count towards Under-Budget Week or Ramen " +
+      'A week away keeps your logging streak as it is and doesn’t count towards Under-Budget Week or Ramen ' +
       'Royalty.',
   },
   add: {
     heading: 'Forgot something? Add it here',
     earlier: 'Add something from an earlier day',
   },
-  reminder: 'Add weekly reminder to calendar',
+  reminder: 'Add a weekly reminder to your calendar',
   /** The calendar event's title, in its file (`public/weekly-check-in*.ics`, one per language; tested). */
   calendarEvent: 'StudentsBudget weekly check-in',
   reminderOr: 'Or a notification on this phone instead:',
   reminderOrLink: 'Weekly reminder',
   noPlan: 'Set up your plan to check in on your week.',
-  startSetup: 'Start setup',
 };

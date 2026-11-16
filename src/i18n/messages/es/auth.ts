@@ -84,7 +84,6 @@ export const auth: Messages['auth'] = {
     code: 'Código de 6 cifras',
     confirm: 'Confirmar',
     sendAgain: 'Enviar un código nuevo',
-    resent: 'Un código nuevo va de camino. Usa el más reciente.',
     back: 'Volver',
   },
   /** «¿Has olvidado tu contraseña?» (P2.4): el correo y luego su código. La dirección va en negrita en la frase. */
@@ -96,7 +95,6 @@ export const auth: Messages['auth'] = {
     code: 'Código de 6 cifras',
     confirm: 'Continuar',
     sendAgain: 'Enviar un código nuevo',
-    resent: 'Un código nuevo va de camino. Usa el más reciente.',
     back: 'Volver',
   },
   /** El último paso: con la sesión iniciada por el código, una contraseña nueva lo termina. */
@@ -110,7 +108,7 @@ export const auth: Messages['auth'] = {
   secondStep: {
     heading: 'Verificación en dos pasos',
     prompt: { before: 'Escribe el código de tu app de autenticación para ', after: '.' },
-    ended: { before: 'Esta sesión de ', after: ' ha terminado, quizá porque se completó en otro dispositivo.' },
+    ended: { before: 'Esta sesión de ', after: ' ha terminado, quizá porque se completó en otro móvil o en otra pestaña.' },
     signInAgain: 'Volver a iniciar sesión',
     code: 'Código de 6 cifras',
     continue: 'Continuar',
@@ -137,7 +135,8 @@ export const auth: Messages['auth'] = {
     stay: 'Mantener la sesión',
     signOutAnyway: 'Cerrar sesión y perderlos',
     wipeFailed:
-      'Has cerrado sesión, pero no se pudieron borrar los datos de este móvil. Bórralos en Copia de seguridad y datos.',
+      'Has cerrado sesión, pero no se pudieron borrar los datos de este móvil. Bórralos en Ajustes → Copia de ' +
+      'seguridad y datos → Borrarlo todo.',
     passwordChanged: 'Contraseña cambiada.',
   },
   /** Ajustes → Tu cuenta → Eliminar mi cuenta (P2.5). La palabra que se escribe es la de la copia de seguridad. */
@@ -216,8 +215,8 @@ export const auth: Messages['auth'] = {
     usernameHint: 'De 3 a 20 caracteres: letras a–z, números o _. Los demás lo ven como @nombre.',
     label: 'Eres',
     labels: { student: 'Estudiante', graduate: 'Graduado/a', alumni: 'Exalumno/a' },
-    batch: 'Promoción (opcional)',
-    batchHint: 'El año en que terminas o terminaste, por ejemplo 2027.',
+    batch: 'Año en que terminas (opcional)',
+    batchHint: 'O el año en que terminaste, por ejemplo 2027.',
     batchShort: (year) => `Promoción ${year}`,
     none: 'Aún no tienes nombre. Elige uno ahora o antes de tu primera publicación.',
     loading: 'Comprobando tu nombre…',
@@ -234,7 +233,7 @@ export const auth: Messages['auth'] = {
       long: 'El nombre de usuario puede tener como mucho 20 caracteres.',
       reserved: 'Ese nombre de usuario está reservado para la app. Elige otro.',
       taken: 'Ese nombre de usuario ya está ocupado. Elige otro.',
-      batch: 'Escribe la promoción como un año, por ejemplo 2027.',
+      batch: 'Escribe un año entre 2000 y 2100, por ejemplo 2027.',
       checkFailed: 'No se pudo comprobar el nombre de usuario. Revisa tu conexión e inténtalo de nuevo.',
       saveFailed: 'No se pudo guardar tu nombre. Inténtalo de nuevo.',
     },

@@ -14,12 +14,12 @@ export const auth = {
     tooMany: 'Too many tries. Wait a minute, then try again.',
     codeWrongOrExpired: 'That code is wrong or has expired. Check the newest email, or send a new code.',
     waitForCode: 'Too many emails for now. Wait a minute, then send a new code.',
-    emailNotSent: "The email couldn't be sent. Try again later.",
-    samePassword: "That's your current password. Choose a different one.",
+    emailNotSent: 'The email couldn’t be sent. Try again later.',
+    samePassword: 'That’s your current password. Choose a different one.',
     codeFailed: 'That code didn’t work. Codes change every 30 seconds: enter the newest one.',
     codeExpired: 'That took a little long. Enter the newest code from your authenticator app.',
     factorGone: 'Two-step sign-in was turned off for this account. Sign out, then sign in again.',
-    setupOpen: 'An earlier set-up is still open. Try again.',
+    setupOpen: 'An earlier setup is still open. Try again.',
     enrollOff: 'Two-step sign-in can’t be turned on right now.',
     verifyOff: 'Codes can’t be checked right now. Try again later.',
     connectionChanged: 'Your connection changed while checking the code. Enter the newest code again.',
@@ -28,7 +28,7 @@ export const auth = {
     passkeyOnAccount: 'This passkey is already on your account.',
     passkeyExpired: 'That took a little long. Try again.',
     passkeyOnDevice: 'This device already has a passkey for your account.',
-    unreachable: "The account server can't be reached. Check your connection and try again.",
+    unreachable: 'The account server can’t be reached. Check your connection and try again.',
     sessionEnded: 'This sign-in has ended. Sign out, then sign in again.',
     general: 'Something went wrong. Try again.',
   },
@@ -40,7 +40,7 @@ export const auth = {
   /** A passkey sign-in that can't work here: the reason, then the way that always works. */
   passkeyUnavailable: (reason: string) => `${reason} Sign in with your email and password.`,
   passkeyFailed: 'That passkey didn’t work. Try again, or sign in with your email and password.',
-  offline: "You're offline. Signing in needs a connection.",
+  offline: 'You’re offline. Signing in needs a connection.',
   /** credentials.ts: what stops the fields before anything is sent. */
   check: {
     enterEmail: 'Enter your email.',
@@ -50,7 +50,7 @@ export const auth = {
     emailCode: 'Enter the 6-digit code from the email.',
   },
   view: {
-    off: "Accounts aren't set up in this copy of the app. Everything stays on this phone.",
+    off: 'Accounts aren’t set up in this copy of the app. Everything stays on this phone.',
     checking: 'Checking your account…',
   },
   signIn: {
@@ -80,19 +80,17 @@ export const auth = {
     code: '6-digit code',
     confirm: 'Confirm',
     sendAgain: 'Send a new code',
-    resent: 'A new code is on its way. Use the newest one.',
     back: 'Back',
   },
   /** "Forgot password" (P2.4): the email, then its code. The email sits in bold between the parts of a sentence. */
   reset: {
     heading: 'Reset your password',
-    intro: "Enter your account's email, and we'll send it a 6-digit code.",
+    intro: 'Enter your account’s email, and we’ll send it a 6-digit code.',
     send: 'Send code',
     prompt: { before: 'If ', after: ' has an account, we sent it a 6-digit code. It works for 60 minutes.' },
     code: '6-digit code',
     confirm: 'Continue',
     sendAgain: 'Send a new code',
-    resent: 'A new code is on its way. Use the newest one.',
     back: 'Back',
   },
   /** The last step of "Forgot password": signed in with the code, a new password finishes it. */
@@ -107,7 +105,7 @@ export const auth = {
   secondStep: {
     heading: 'Two-step sign-in',
     prompt: { before: 'Enter the code from your authenticator app for ', after: '.' },
-    ended: { before: 'This sign-in for ', after: ' has ended, maybe because it was finished on another device.' },
+    ended: { before: 'This sign-in for ', after: ' has ended, maybe because it was finished on another phone or tab.' },
     signInAgain: 'Sign in again',
     code: '6-digit code',
     continue: 'Continue',
@@ -124,41 +122,43 @@ export const auth = {
     cancel: 'Cancel',
     /** The last sync left changes in the outbox. */
     unsynced: (count: number) =>
-      count === 1 ? "1 change isn't in your account yet." : `${count} changes aren't in your account yet.`,
-    unsyncedOffline: "You're offline. Stay signed in and sync later, or sign out and lose these changes.",
-    unsyncedFailed: "They couldn't be sent. Stay signed in and sync later, or sign out and lose these changes.",
+      count === 1 ? '1 change isn’t in your account yet.' : `${count} changes aren’t in your account yet.`,
+    unsyncedOffline: 'You’re offline. Stay signed in and sync later, or sign out and lose these changes.',
+    unsyncedFailed: 'They couldn’t be sent. Stay signed in and sync later, or sign out and lose these changes.',
     stay: 'Stay signed in',
     signOutAnyway: 'Sign out and lose them',
-    wipeFailed: "You're signed out, but this phone's data couldn't be removed. Remove it under Backup and data.",
+    wipeFailed:
+      'You’re signed out, but this phone’s data couldn’t be removed. Remove it in Settings → Backup and data → ' +
+      'Delete everything.',
     passwordChanged: 'Password changed.',
   },
   /** Settings → Your account → Delete my account (P2.5). The word to type is Backup's (`backup.delete.word`). */
   deleteAccount: {
     heading: 'Delete my account',
     intro:
-      "Deletes your account and everything it keeps, for good: this can't be undone. The data on this phone stays, " +
-      "and so does the data on your other phones; they're no longer linked.",
-    backup: 'Download a backup first',
+      'Deletes your account and everything it keeps, for good: this can’t be undone. The data on this phone stays, ' +
+      'and so does the data on your other phones; they’re no longer linked.',
+    backup: 'Export a backup first',
     password: 'Password',
     code: '6-digit code',
     codeNeeded: 'Your account has two-step sign-in: enter the code from your authenticator app too.',
     button: 'Delete my account',
     deleting: 'Deleting your account…',
-    failed: "Couldn't delete your account. Try again.",
+    failed: 'Couldn’t delete your account. Try again.',
     done: 'Your account is deleted. Everything on this phone stays.',
   },
   security: {
     heading: 'Sign-in and security',
     intro:
       'You can always sign in with your password. A passkey is a quicker way in. With two-step sign-in on, a code ' +
-      'from your authenticator app follows either, so a stolen password alone opens nothing.',
+      'from your authenticator app follows both, so a stolen password alone opens nothing.',
   },
   twoStep: {
     heading: 'Two-step sign-in',
     badges: { on: 'On', off: 'Off', settingUp: 'Setting up' },
-    offline: "You're offline. Turning two-step sign-in on or off needs a connection.",
+    offline: 'You’re offline. Turning two-step sign-in on or off needs a connection.',
     checking: 'Checking two-step sign-in…',
-    unknown: "Couldn't check whether two-step sign-in is on.",
+    unknown: 'Couldn’t check whether two-step sign-in is on.',
     tryAgain: 'Try again',
     offIntro:
       'Turn it on and signing in also asks for a 6-digit code from an authenticator app, such as Google ' +
@@ -166,8 +166,8 @@ export const auth = {
     turnOn: 'Turn on',
     setupIntro: 'Add StudentsBudget to your authenticator app, then enter the code it shows.',
     restarted:
-      'This starts the set-up again. If your authenticator app already has a StudentsBudget entry from the ' +
-      "unfinished one, delete it: its codes won't work.",
+      'This starts the setup again. If your authenticator app already has a StudentsBudget entry from the ' +
+      'unfinished one, delete it: its codes won’t work.',
     openApp: 'Open in authenticator app',
     typeKey: 'Or type this key into the app:',
     scan: 'Or scan this code from another device:',
@@ -187,8 +187,8 @@ export const auth = {
     alreadyOn: 'Two-step sign-in is already on.',
     isOn: 'Two-step sign-in is on.',
     isOff: 'Two-step sign-in is off.',
-    setupCancelled: 'Set-up cancelled.',
-    cancelledElsewhere: 'This set-up was cancelled, maybe from another phone. Turn on to start again.',
+    setupCancelled: 'Setup cancelled.',
+    cancelledElsewhere: 'This setup was cancelled, maybe from another phone. Tap Turn on to start again.',
   },
   /** Your account → AI features (the AI phase, chunk 5): this phone's switch, on by default. */
   ai: {
@@ -196,7 +196,7 @@ export const auth = {
     use: 'Use AI features on this phone',
     hint:
       'They send what you write to Groq, an AI service in the USA, within a daily allowance for your account. ' +
-      'Off, nothing goes to Groq, and quick add reads your lines on this phone.',
+      'When it’s off, nothing goes to Groq, and quick add reads your lines on this phone.',
   },
   /** The name a student posts under in the hacks feed: asked at sign-up, changed on Your account. */
   postingName: {
@@ -205,13 +205,16 @@ export const auth = {
     username: 'Username',
     usernameHint: '3–20 letters a–z, digits or _. Others see it as @name.',
     label: 'You are',
-    labels: { student: 'Student', graduate: 'Graduate', alumni: 'Alumni' },
-    batch: 'Batch (optional)',
-    batchHint: 'The year you finish or finished, like 2027.',
-    batchShort: (year: number) => `Batch '${String(year).slice(2)}`,
+    /** The words only: the stored values stay `student`, `graduate` and `alumni`. */
+    labels: { student: 'Student', graduate: 'Graduate', alumni: 'Alum' },
+    /** The `batch` column's field: the year the student finishes, or finished. */
+    batch: 'Year you finish (optional)',
+    batchHint: 'Or the year you finished, like 2027.',
+    /** Next to a post: "Class of ’27". */
+    batchShort: (year: number) => `Class of ’${String(year).slice(2)}`,
     none: 'No name yet. Pick one now, or before your first post.',
     loading: 'Checking your name…',
-    loadFailed: "Your name on posts couldn't be read. Try again later.",
+    loadFailed: 'Your name on posts couldn’t be read. Try again later.',
     pick: 'Pick a name',
     change: 'Change',
     save: 'Save name',
@@ -224,9 +227,10 @@ export const auth = {
       long: 'Use at most 20 characters for the username.',
       reserved: 'That username is kept for the app. Pick another.',
       taken: 'That username is taken. Pick another.',
-      batch: 'Enter the batch as a year, like 2027.',
-      checkFailed: "The username couldn't be checked. Check your connection and try again.",
-      saveFailed: "Your name couldn't be saved. Try again.",
+      /** posting-name.ts takes 2000 to 2100 (`BATCH_MIN`, `BATCH_MAX`), as the table's check does. */
+      batch: 'Enter a year from 2000 to 2100, like 2027.',
+      checkFailed: 'The username couldn’t be checked. Check your connection and try again.',
+      saveFailed: 'Your name couldn’t be saved. Try again.',
     },
   },
   /** Sign-in and security → Password: a new password, the current one asked when this session signed in with it. */
@@ -241,32 +245,33 @@ export const auth = {
     save: 'Save password',
     cancel: 'Cancel',
     changed: 'Password changed.',
-    wrongCurrent: "That isn't your current password.",
+    wrongCurrent: 'That isn’t your current password.',
   },
   passkeys: {
     heading: 'Passkeys',
     /** The card's status: how many the account has. */
     count: (count: number) => (count === 0 ? 'None yet' : count === 1 ? '1 passkey' : `${count} passkeys`),
     intro:
-      "Sign in with Face ID, a fingerprint or your phone's PIN instead of your password. The passkey stays with you, " +
-      "on your phone or in your password manager; your account keeps its public key, which can't sign anyone in.",
-    offline: "You're offline. Passkeys need a connection.",
+      'Sign in with Face ID, a fingerprint or your phone’s PIN instead of your password. The passkey stays with you, ' +
+      'on your phone or in your password manager; your account keeps its public key, which can’t sign anyone in.',
+    offline: 'You’re offline. Passkeys need a connection.',
     signIn: 'Sign in with a passkey',
     checking: 'Checking your passkeys…',
-    unknown: "Couldn't load your passkeys.",
+    unknown: 'Couldn’t load your passkeys.',
     tryAgain: 'Try again',
     /** A passkey the account has no name for. */
     unnamed: 'Passkey',
     added: (dateTime: string) => `Added ${dateTime}`,
     lastUsed: (day: string) => `; last used ${day}`,
-    removeOne: (name: string, dateTime: string) => `Remove ${name}, added ${dateTime}`,
+    /** The Remove button's name: its word, then which passkey. */
+    removeOne: (name: string, dateTime: string) => `Remove: ${name}, added ${dateTime}`,
     remove: 'Remove',
     removeQuestion:
       'Remove this passkey? It will stop signing you in; your password and any other passkey keep working. You can ' +
       'then delete it from your phone or password manager too.',
     cancel: 'Cancel',
     add: 'Add a passkey',
-    unsupported: "This browser can't make passkeys.",
+    unsupported: 'This browser can’t make passkeys.',
     addFailed: 'Couldn’t add the passkey. Try again.',
     removeFailed: 'Couldn’t remove the passkey. Try again.',
     addedStatus: 'Passkey added.',

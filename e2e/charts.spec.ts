@@ -652,6 +652,6 @@ test('the bottom navigation has Charts between Entries and Tips and opens it', a
 test('without a plan the page points to setup instead of showing charts', async ({ page }) => {
   await page.goto('/charts');
   await expect(page.getByText('Set up your plan to see where the money goes.')).toBeVisible();
-  await page.getByRole('link', { name: 'Start setup' }).click();
+  await page.getByRole('link', { name: 'Set up your plan', exact: true }).click();
   await expect(page).toHaveURL('/setup');
 });

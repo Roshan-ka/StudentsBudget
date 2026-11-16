@@ -35,11 +35,8 @@ export const ask: Messages['ask'] = {
   unavailable: 'Les questions ne font pas partie de cette version de l’appli.',
   loading: 'Chargement…',
   signedOut: `Les questions passent par ton compte${NNBSP}: connecte-toi d’abord sur ce téléphone.`,
-  needsCode: `Ton compte a la validation en deux étapes${NNBSP}: saisis d’abord le code de ton appli d’authentification.`,
-  toAccount: `Aller à «${NNBSP}Ton compte${NNBSP}»`,
   switchedOff: `Les fonctions IA sont désactivées sur ce téléphone. Tu peux les réactiver dans les Réglages, sous «${NNBSP}Ton compte${NNBSP}».`,
   noPlan: 'Les réponses s’appuient sur ton plan, alors configure-le d’abord.',
-  toSetup: 'Configurer ton plan',
   link: 'Pose une question sur ton budget',
   close: 'Fermer',
 };

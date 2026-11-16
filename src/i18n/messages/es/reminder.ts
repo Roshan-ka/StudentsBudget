@@ -9,8 +9,6 @@ export const reminder: Messages['reminder'] = {
   loading: 'Cargando…',
   unavailable: 'Los recordatorios no están configurados en esta versión de la app.',
   signedOut: 'El recordatorio llega a través de tu cuenta: inicia sesión primero en este móvil.',
-  toAccount: 'Ir a «Tu cuenta»',
-  needsCode: 'Tu cuenta tiene verificación en dos pasos: introduce primero el código de tu app de autenticación.',
   installFirst:
     'En un iPhone o iPad, el recordatorio necesita la app en tu pantalla de inicio: en Safari, toca Compartir, luego ' +
     '«Añadir a pantalla de inicio», y ábrela desde ahí.',
@@ -23,7 +21,7 @@ export const reminder: Messages['reminder'] = {
   hint: 'Elijas el día que elijas, la revisión mira la semana hasta ahora, de lunes a domingo.',
   turnOn: 'Activar el recordatorio',
   save: 'Guardar cambios',
-  turnOff: 'Desactivar',
+  turnOff: 'Desactivar el recordatorio',
   status: {
     on: (day: string, time: string) => `El recordatorio está activado: ${day.toLowerCase()} a las ${time}.`,
     off: 'El recordatorio está desactivado.',

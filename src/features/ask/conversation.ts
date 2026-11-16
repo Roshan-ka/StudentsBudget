@@ -42,8 +42,9 @@ export function paragraphsOf(answer: string): string[] {
     .filter((paragraph) => paragraph !== '');
 }
 
-/** What the page says when a question has no answer. */
-export function problemText(problem: AiCallProblem, text: Messages['ask']): string {
+/** What the page says when a question has no answer: Ask's own words, and the code owed as everywhere else says it. */
+export function problemText(problem: AiCallProblem, t: Pick<Messages, 'ask' | 'common'>): string {
+  const text = t.ask;
   switch (problem) {
     case 'daily-limit':
       return text.problems.dailyLimit;
@@ -60,7 +61,7 @@ export function problemText(problem: AiCallProblem, text: Messages['ask']): stri
     case 'signed-out':
       return text.signedOut;
     case 'second-step':
-      return text.needsCode;
+      return t.common.needsCode;
     case 'off':
       return text.switchedOff;
     default:

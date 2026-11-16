@@ -82,7 +82,6 @@ export const auth: Messages['auth'] = {
     code: 'Code à 6 chiffres',
     confirm: 'Confirmer',
     sendAgain: 'Envoyer un nouveau code',
-    resent: 'Un nouveau code est en route. Utilise le plus récent.',
     back: 'Retour',
   },
   /** « Mot de passe oublié » (P2.4) : l’e-mail, puis son code. L’adresse est en gras au milieu de la phrase. */
@@ -94,7 +93,6 @@ export const auth: Messages['auth'] = {
     code: 'Code à 6 chiffres',
     confirm: 'Continuer',
     sendAgain: 'Envoyer un nouveau code',
-    resent: 'Un nouveau code est en route. Utilise le plus récent.',
     back: 'Retour',
   },
   /** La dernière étape de « Mot de passe oublié » : connecté avec le code, un nouveau mot de passe la termine. */
@@ -110,7 +108,7 @@ export const auth: Messages['auth'] = {
     prompt: { before: 'Saisis le code de ton appli d’authentification pour ', after: '.' },
     ended: {
       before: 'Cette connexion pour ',
-      after: ' est terminée, peut-être parce qu’elle a été achevée sur un autre appareil.',
+      after: ' est terminée, peut-être parce qu’elle a été achevée sur un autre téléphone ou dans un autre onglet.',
     },
     signInAgain: 'Se reconnecter',
     code: 'Code à 6 chiffres',
@@ -138,7 +136,8 @@ export const auth: Messages['auth'] = {
     stay: 'Garder ma session ouverte',
     signOutAnyway: 'Me déconnecter et les perdre',
     wipeFailed:
-      'Ta session est fermée, mais tes données n’ont pas pu être supprimées de ce téléphone. Supprime-les dans Sauvegarde et données.',
+      'Ta session est fermée, mais tes données n’ont pas pu être supprimées de ce téléphone. Supprime-les dans ' +
+      'Réglages → Sauvegarde et données → Tout supprimer.',
     passwordChanged: 'Mot de passe modifié.',
   },
   /** Réglages → Ton compte → Supprimer mon compte (P2.5). Le mot à saisir est celui de Sauvegarde. */
@@ -217,9 +216,9 @@ export const auth: Messages['auth'] = {
     username: 'Nom d’utilisateur',
     usernameHint: `3 à 20 caractères${NNBSP}: lettres a–z, chiffres ou _. Les autres le voient comme @nom.`,
     label: 'Tu es',
-    labels: { student: 'En études', graduate: 'Diplômé·e', alumni: 'Alumni' },
-    batch: 'Promo (facultatif)',
-    batchHint: 'L’année où tu finis ou as fini, par exemple 2027.',
+    labels: { student: 'En études', graduate: 'Diplômé·e', alumni: 'Ancien·ne étudiant·e' },
+    batch: 'Année de fin d’études (facultatif)',
+    batchHint: 'Ou l’année où tu as fini, par exemple 2027.',
     batchShort: (year) => `Promo ${year}`,
     none: 'Pas encore de nom. Choisis-en un maintenant, ou avant ta première publication.',
     loading: 'Vérification de ton nom…',
@@ -236,7 +235,7 @@ export const auth: Messages['auth'] = {
       long: 'Le nom d’utilisateur peut avoir au plus 20 caractères.',
       reserved: 'Ce nom d’utilisateur est réservé à l’app. Choisis-en un autre.',
       taken: 'Ce nom d’utilisateur est déjà pris. Choisis-en un autre.',
-      batch: 'Saisis la promo comme une année, par exemple 2027.',
+      batch: 'Saisis une année entre 2000 et 2100, par exemple 2027.',
       checkFailed: 'Le nom d’utilisateur n’a pas pu être vérifié. Vérifie ta connexion et réessaie.',
       saveFailed: 'Ton nom n’a pas pu être enregistré. Réessaie.',
     },

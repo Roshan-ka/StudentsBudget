@@ -55,7 +55,6 @@ export const badges: Messages['badges'] = {
     'nicht für Unter-Budget-Woche oder Ramen-Majestät.',
   listLabel: 'Deine Abzeichen',
   noPlan: 'Richte deinen Plan ein, um Abzeichen zu sammeln.',
-  startSetup: 'Einrichtung starten',
   card: {
     heading: 'Abzeichen',
     earnedOf: (earned, total) => `${earned} von ${total} erhalten`,

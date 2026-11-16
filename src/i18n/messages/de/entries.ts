@@ -4,7 +4,7 @@ import type { Messages } from '../en';
 export const entries: Messages['entries'] = {
   addEntry: 'Eintrag hinzufügen',
   transfer: 'Umbuchung',
-  recurring: 'Wiederkehrend',
+  recurring: 'Automatisch',
   noAccount: 'Lege zuerst ein Konto an, unter Einstellungen → Konten und Umbuchungen.',
   saveFailed: 'Der Eintrag konnte nicht gespeichert werden.',
   list: {

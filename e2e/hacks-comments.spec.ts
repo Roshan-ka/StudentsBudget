@@ -77,6 +77,11 @@ function bread(page: Page) {
   return page.getByRole('list', { name: 'Posts', exact: true }).getByRole('listitem').filter({ hasText: 'Bread is half price' }).first();
 }
 
+/** The bread post's comments button: its words, then the post ("Comments (2): the post by @bea, 05.11.2026"). */
+function commentsButton(page: Page, shown: string) {
+  return bread(page).getByRole('button', { name: `${shown}: the post by @bea, ${dayOf(BREAD.created_at)}`, exact: true });
+}
+
 function commentItems(page: Page, name = 'Comments') {
   return bread(page).getByRole('list', { name, exact: true }).getByRole('listitem');
 }
@@ -96,7 +101,7 @@ test('a post shows how many comments it has, opens them oldest first, and a new 
   await signIn(page);
   await openHacks(page);
 
-  const toggle = bread(page).getByRole('button', { name: 'Comments (2)', exact: true });
+  const toggle = commentsButton(page, 'Comments (2)');
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
@@ -116,7 +121,7 @@ test('a post shows how many comments it has, opens them oldest first, and a new 
   await expect(commentItems(page)).toHaveCount(3);
   await expect(commentItems(page).nth(2)).toContainText('Thanks, it worked for me.');
   await expect(commentItems(page).nth(2)).toContainText('Your comment');
-  await expect(bread(page).getByRole('button', { name: 'Comments (3)', exact: true })).toBeVisible();
+  await expect(commentsButton(page, 'Comments (3)')).toBeVisible();
   await expect(bread(page).getByRole('textbox', { name: 'Your comment', exact: true })).toHaveValue('');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
@@ -131,12 +136,12 @@ test('one’s own comment can be deleted, and someone else’s reported, each af
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signIn(page);
   await openHacks(page);
-  await bread(page).getByRole('button', { name: 'Comments (2)', exact: true }).click();
+  await commentsButton(page, 'Comments (2)').click();
 
   // Delete names the comment; Keep it changes nothing.
   const deleteMine = bread(page).getByRole('button', { name: `Delete: your comment, ${dayOf(comments[1].created_at)}`, exact: true });
   await deleteMine.click();
-  await expect(bread(page).getByText('Delete this comment? Nobody will see it anymore.', { exact: true })).toBeVisible();
+  await expect(bread(page).getByText('Delete this comment? Nobody will see it any more.', { exact: true })).toBeVisible();
   await bread(page).getByRole('button', { name: 'Keep it', exact: true }).click();
   await expect(deleteMine).toBeFocused();
   await deleteMine.click();
@@ -149,9 +154,9 @@ test('one’s own comment can be deleted, and someone else’s reported, each af
   await expect(bread(page).getByText(/^Report this comment\?/)).toBeVisible();
   await bread(page).getByRole('button', { name: 'Report', exact: true }).click();
   await bread(page).getByRole('group', { name: 'About your data', exact: true }).getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(bread(page).getByRole('status')).toHaveText('Reported. You won’t see this comment anymore.');
+  await expect(bread(page).getByRole('status')).toHaveText('Reported. You won’t see this comment any more.');
   await expect(bread(page).getByText('No comments yet.', { exact: true })).toBeVisible();
-  await expect(bread(page).getByRole('button', { name: 'Comments', exact: true })).toBeVisible();
+  await expect(commentsButton(page, 'Comments')).toBeVisible();
 });
 
 test('a comment needs a posting name first, and twenty a day is the limit', async ({ page }) => {
@@ -161,7 +166,7 @@ test('a comment needs a posting name first, and twenty a day is the limit', asyn
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signIn(page);
   await openHacks(page);
-  await bread(page).getByRole('button', { name: 'Comments', exact: true }).click();
+  await commentsButton(page, 'Comments').click();
   await expect(bread(page).getByText('No comments yet.', { exact: true })).toBeVisible();
 
   const box = bread(page).getByRole('textbox', { name: 'Your comment', exact: true });
@@ -185,10 +190,10 @@ test('the daily limit is said calmly', async ({ page }) => {
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signIn(page);
   await openHacks(page);
-  await bread(page).getByRole('button', { name: 'Comments', exact: true }).click();
+  await commentsButton(page, 'Comments').click();
   await bread(page).getByRole('textbox', { name: 'Your comment', exact: true }).fill('Thanks, it worked for me.');
   await bread(page).getByRole('button', { name: 'Post comment', exact: true }).click();
-  await expect(bread(page).getByRole('alert')).toHaveText("You've written 20 comments in a day. Comment again tomorrow.");
+  await expect(bread(page).getByRole('alert')).toHaveText('You’ve written 20 comments in a day. Comment again tomorrow.');
 });
 
 test.describe('on a phone set to German', () => {
@@ -207,7 +212,8 @@ test.describe('on a phone set to German', () => {
     await openHacks(page, 'Tipps, Rabatte, Hacks oder Checkliste', 'Hacks');
 
     const card = page.getByRole('list', { name: 'Beiträge', exact: true }).getByRole('listitem').filter({ hasText: 'Bread is half price' }).first();
-    await card.getByRole('button', { name: 'Kommentare (1)', exact: true }).click();
+    // Its words, then the post, as the German Report says it.
+    await card.getByRole('button', { name: `Kommentare (1): Beitrag von @bea, ${dayOf(BREAD.created_at)}`, exact: true }).click();
     await expect(card.getByRole('list', { name: 'Kommentare', exact: true }).getByRole('listitem')).toHaveCount(1);
     await expect(card.getByRole('textbox', { name: 'Dein Kommentar', exact: true })).toBeVisible();
     await expect(card.getByRole('button', { name: 'Kommentieren', exact: true })).toBeVisible();

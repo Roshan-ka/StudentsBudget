@@ -107,12 +107,12 @@ test('a phone with a plan links by uploading, a second by loading, and Sync now 
   await seedSetup(page);
   await page.goto('/settings/account');
   await signIn(page);
-  await expect(page.getByText("Your account now holds this phone's data.", { exact: true })).toBeVisible();
+  await expect(page.getByText('Your account now holds this phone’s data.', { exact: true })).toBeVisible();
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
   expect(account.get('plans')?.has('current')).toBe(true);
 
   const pageB = await secondPhone(browser, account);
-  await expect(pageB.getByText(/^Loaded from your account: \d+ accounts?, 0 entries and your plan\.$/)).toBeVisible();
+  await expect(pageB.getByText(/^Loaded from your StudentsBudget account: \d+ accounts?, 0 entries and your plan\.$/)).toBeVisible();
   expect((await readStore<Plan>(pageB, 'plan'))[0]).toEqual((await readStore<Plan>(page, 'plan'))[0]);
 
   await renameProfile(page, 'Named on phone A');
@@ -147,10 +147,10 @@ test('when both phones hold data, the person chooses which to keep', async ({ pa
   await expect(
     linkRegion(pageB).getByText('from your account, and from your other phones when they next sync.', { exact: false }),
   ).toBeVisible();
-  const useAccount = linkRegion(pageB).getByRole('button', { name: "Use my account's data", exact: true });
+  const useAccount = linkRegion(pageB).getByRole('button', { name: 'Use my account’s data', exact: true });
   await useAccount.click();
   // The button went with the choice: the focus moves to the line on what moved, not to the top of the page.
-  await expect(pageB.getByText(/^Loaded from your account: /)).toBeFocused();
+  await expect(pageB.getByText(/^Loaded from your StudentsBudget account: /)).toBeFocused();
   await expect(syncRegion(pageB).getByText('Synced just now.', { exact: true })).toBeVisible();
   const accountsA = (await readStore<{ id: string }>(page, 'accounts')).map((a) => a.id).sort();
   expect((await readStore<{ id: string }>(pageB, 'accounts')).map((a) => a.id).sort()).toEqual(accountsA);
@@ -168,7 +168,7 @@ test('a phone linked to one account stays apart from another account', async ({ 
   await endSession(page);
 
   await signIn(page, OTHER);
-  await expect(linkRegion(page).getByRole('alert')).toHaveText(/^This phone holds another account's data/);
+  await expect(linkRegion(page).getByRole('alert')).toHaveText(/^This phone holds another account’s data/);
   await expect(syncRegion(page)).toHaveCount(0);
 
   // Settings' Your account row doesn't show the first account's sync status to this one.
@@ -202,7 +202,7 @@ test('signing out sends the last change first, then clears this phone; signing i
   // Signing in again loads the account's data onto the empty phone.
   await openApp(page, '/settings/account');
   await signIn(page);
-  await expect(page.getByText(/^Loaded from your account: /)).toBeVisible();
+  await expect(page.getByText(/^Loaded from your StudentsBudget account: /)).toBeVisible();
   expect(await profileName(page)).toBe('Changed before signing out');
 });
 
@@ -224,7 +224,7 @@ test('Sync now carries an entry, and then its delete, to the other phone', async
   await signIn(page);
   await expect(syncRegion(page).getByText('Synced just now.', { exact: true })).toBeVisible();
   const pageB = await secondPhone(browser, account);
-  await expect(pageB.getByText(/^Loaded from your account: /)).toBeVisible();
+  await expect(pageB.getByText(/^Loaded from your StudentsBudget account: /)).toBeVisible();
 
   // Phone A logs a döner through quick add.
   await page.goto('/entries');
@@ -267,8 +267,8 @@ test('keeping this phone’s data takes the account’s own rows from the other 
   await expect(
     linkRegion(pageB).getByText('from your account, and from your other phones when they next sync.', { exact: false }),
   ).toBeVisible();
-  await linkRegion(pageB).getByRole('button', { name: "Keep this phone's data", exact: true }).click();
-  await expect(pageB.getByText("Your account now holds this phone's data.", { exact: true })).toBeFocused();
+  await linkRegion(pageB).getByRole('button', { name: 'Keep this phone’s data', exact: true }).click();
+  await expect(pageB.getByText('Your account now holds this phone’s data.', { exact: true })).toBeFocused();
 
   // Phone A's next sync brings phone B's data, and its own accounts go, as the choice said.
   const accountsB = (await readStore<{ id: string }>(pageB, 'accounts')).map((a) => a.id).sort();
@@ -291,7 +291,7 @@ test('when linking fails it says so, and Try again links', async ({ page }) => {
   await page.goto('/settings/account');
   await signIn(page);
   await expect(linkRegion(page).getByRole('alert')).toHaveText(
-    "Couldn't link this phone to your account. Check your connection and try again.",
+    'Couldn’t link this phone to your account. Check your connection and try again.',
   );
   await expect(syncRegion(page)).toHaveCount(0);
 

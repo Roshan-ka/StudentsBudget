@@ -4,7 +4,7 @@ import type { Messages } from '../en';
 export const entries: Messages['entries'] = {
   addEntry: 'Añadir registro',
   transfer: 'Transferencia',
-  recurring: 'Recurrente',
+  recurring: 'Automático',
   noAccount: 'Primero añade una cuenta en Ajustes → Cuentas y transferencias.',
   saveFailed: 'No se ha podido guardar el registro.',
   list: {

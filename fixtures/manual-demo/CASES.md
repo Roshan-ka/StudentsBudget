@@ -94,7 +94,7 @@ Before automatic processing: **2 accounts · 0 entries** · envelope remainder �
 
 Account balances: Demo EUR bank: €1,000.00; Demo cash: €100.00.
 
-- [ ] On the demo date, restore then open Entries: Parents EUR 1,200 income, Job EUR 50 income, Rent EUR 450 expense appear with Recurring tags; no Phone entry.
+- [ ] On the demo date, restore then open Entries: Parents EUR 1,200 income, Job EUR 50 income, Rent EUR 450 expense appear with Automatic tags; no Phone entry.
 - [ ] After posting: bank EUR 1,800; cash EUR 100; combined EUR 1,900. Envelope money stays EUR 500.
 - [ ] Reload twice: exactly three entries remain. Settings lets you pause, resume and edit schedules; resuming starts from the next day, without backfilling the pause.
 
@@ -274,7 +274,7 @@ For each file: restore 02-clean-budget first, choose the invalid file, check the
 
 | File | Expected message |
 |---|---|
-| [wrong-app.json](invalid/wrong-app.json) | This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup. |
+| [wrong-app.json](invalid/wrong-app.json) | This isn’t a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup. |
 | [newer-version.json](invalid/newer-version.json) | This backup is from a newer version of the app. Reload the app while online to update it, then try again. |
 | [missing-version.json](invalid/missing-version.json) | This backup file is incomplete. Choose another backup, or export a new one. |
 | [missing-exported-at.json](invalid/missing-exported-at.json) | This backup file is incomplete. Choose another backup, or export a new one. |
@@ -299,12 +299,12 @@ For each file: restore 02-clean-budget first, choose the invalid file, check the
 | [entry-zero.json](invalid/entry-zero.json) | This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one. |
 | [entry-negative.json](invalid/entry-negative.json) | This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one. |
 | [entry-negative-euros.json](invalid/entry-negative-euros.json) | This backup file is damaged: an amount is negative. Choose another backup, or export a new one. |
-| [missing-entry-account.json](invalid/missing-entry-account.json) | This backup file is damaged: an entry uses an account that isn't in the file. Choose another backup, or export a new one. |
-| [missing-entry-category.json](invalid/missing-entry-category.json) | This backup file is damaged: an entry uses a category that isn't in the file. Choose another backup, or export a new one. |
-| [unknown-plan-category.json](invalid/unknown-plan-category.json) | This backup file is damaged: the plan or the guesses use an unknown category. Choose another backup, or export a new one. |
+| [missing-entry-account.json](invalid/missing-entry-account.json) | This backup file is damaged: an entry uses an account that isn’t in the file. Choose another backup, or export a new one. |
+| [missing-entry-category.json](invalid/missing-entry-category.json) | This backup file is damaged: an entry uses a category that isn’t in the file. Choose another backup, or export a new one. |
+| [unknown-plan-category.json](invalid/unknown-plan-category.json) | This backup file is damaged: the plan uses an unknown category. Choose another backup, or export a new one. |
 | [negative-envelope.json](invalid/negative-envelope.json) | This backup file is damaged: an amount is negative. Choose another backup, or export a new one. |
 | [negative-spending-budget.json](invalid/negative-spending-budget.json) | This backup file is damaged: an amount is negative. Choose another backup, or export a new one. |
-| [missing-transfer-target.json](invalid/missing-transfer-target.json) | This backup file is damaged: a transfer goes to an account that isn't in the file. Choose another backup, or export a new one. |
+| [missing-transfer-target.json](invalid/missing-transfer-target.json) | This backup file is damaged: a transfer goes to an account that isn’t in the file. Choose another backup, or export a new one. |
 | [transfer-without-target-field.json](invalid/transfer-without-target-field.json) | This backup file is incomplete. Choose another backup, or export a new one. |
 | [transfer-received-zero.json](invalid/transfer-received-zero.json) | This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one. |
 | [duplicate-accounts.json](invalid/duplicate-accounts.json) | This backup file is damaged: two rows share the same id. Choose another backup, or export a new one. |
@@ -321,8 +321,8 @@ For each file: restore 02-clean-budget first, choose the invalid file, check the
 | [schedule-watermark-before-start.json](invalid/schedule-watermark-before-start.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one. |
 | [schedule-before-plan-start.json](invalid/schedule-before-plan-start.json) | This backup file is damaged: a fixed cost or income has an impossible schedule. Choose another backup, or export a new one. |
 | [schedule-frequency-daily.json](invalid/schedule-frequency-daily.json) | This backup file is incomplete. Choose another backup, or export a new one. |
-| [week-start-not-monday.json](invalid/week-start-not-monday.json) | This backup file is damaged: a saved week doesn't run from Monday to Sunday. Choose another backup, or export a new one. |
-| [week-end-not-sunday.json](invalid/week-end-not-sunday.json) | This backup file is damaged: a saved week doesn't run from Monday to Sunday. Choose another backup, or export a new one. |
+| [week-start-not-monday.json](invalid/week-start-not-monday.json) | This backup file is damaged: a saved week doesn’t run from Monday to Sunday. Choose another backup, or export a new one. |
+| [week-end-not-sunday.json](invalid/week-end-not-sunday.json) | This backup file is damaged: a saved week doesn’t run from Monday to Sunday. Choose another backup, or export a new one. |
 | [negative-week-amount.json](invalid/negative-week-amount.json) | This backup file is damaged: an amount is negative. Choose another backup, or export a new one. |
 | [negative-log-count.json](invalid/negative-log-count.json) | This backup file is incomplete. Choose another backup, or export a new one. |
 | [unknown-discount-vote.json](invalid/unknown-discount-vote.json) | This backup file is incomplete. Choose another backup, or export a new one. |
@@ -330,4 +330,4 @@ For each file: restore 02-clean-budget first, choose the invalid file, check the
 | [invalid-semester-date.json](invalid/invalid-semester-date.json) | This backup file is incomplete. Choose another backup, or export a new one. |
 | [one-off-zero.json](invalid/one-off-zero.json) | This backup file is damaged: an amount is zero or negative. Choose another backup, or export a new one. |
 | [one-off-invalid-month.json](invalid/one-off-invalid-month.json) | This backup file is incomplete. Choose another backup, or export a new one. |
-| [malformed-json.json](invalid/malformed-json.json) | This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup. |
+| [malformed-json.json](invalid/malformed-json.json) | This isn’t a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup. |

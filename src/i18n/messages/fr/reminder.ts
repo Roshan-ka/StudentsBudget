@@ -10,8 +10,6 @@ export const reminder: Messages['reminder'] = {
   loading: 'Chargement…',
   unavailable: 'Les rappels ne sont pas configurés dans cette version de l’appli.',
   signedOut: `Le rappel passe par ton compte${NNBSP}: connecte-toi d’abord sur ce téléphone.`,
-  toAccount: `Aller à «${NNBSP}Ton compte${NNBSP}»`,
-  needsCode: `Ton compte a la validation en deux étapes${NNBSP}: saisis d’abord le code de ton appli d’authentification.`,
   installFirst:
     `Sur un iPhone ou un iPad, le rappel a besoin de l’appli sur ton écran d’accueil${NNBSP}: dans Safari, touche ` +
     `Partager, puis «${NNBSP}Sur l’écran d’accueil${NNBSP}», et ouvre-la depuis là.`,
@@ -24,7 +22,7 @@ export const reminder: Messages['reminder'] = {
   hint: `Quel que soit le jour choisi, le bilan regarde la semaine en cours, du lundi au dimanche.`,
   turnOn: 'Activer le rappel',
   save: 'Enregistrer les modifications',
-  turnOff: 'Désactiver',
+  turnOff: 'Désactiver le rappel',
   status: {
     on: (day: string, time: string) => `Le rappel est activé${NNBSP}: ${day.toLowerCase()} à ${time}.`,
     off: 'Le rappel est désactivé.',
