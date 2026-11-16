@@ -3,14 +3,14 @@ import type { Messages } from '../en';
 // Backup auf Deutsch: Einstellungen → Backup (exportieren, wiederherstellen, alles löschen), die Wiederherstellung auf
 // /setup und die Prüfungen aus backup.ts. "Backup" ist im Deutschen gängig und bleibt so.
 export const backup: Messages['backup'] = {
-  heading: 'Backup',
   summary: 'Daten auf diesem Handy exportieren, wiederherstellen oder löschen',
-  intro:
-    'Alles, was du eingibst, bleibt auf diesem Handy, außer du verknüpfst es mit deinem Konto. Eine Backup-Datei ist ' +
-    'eine Kopie, die du selbst aufbewahrst: Exportier ab und zu eine und bewahr sie sicher auf.',
+  intro: 'Deine Daten bleiben auf diesem Handy, außer du verknüpfst ein Konto.',
+  more: 'Wozu ein Backup?',
+  moreText:
+    'Eine Backup-Datei ist eine Kopie, die du selbst aufbewahrst: Exportier ab und zu eine und bewahr sie sicher auf.',
   export: {
     heading: 'Backup exportieren',
-    hint: 'Speichert alles in einer Datei. Auf dem iPhone wähle im Teilen-Menü „In Dateien sichern“.',
+    hint: 'Eine Datei mit allem. Auf dem iPhone wähle „In Dateien sichern“.',
     button: 'Backup exportieren',
     shareTitle: 'StudentsBudget-Backup',
     shared: 'Backup geteilt.',
@@ -20,7 +20,9 @@ export const backup: Messages['backup'] = {
     failed: 'Deine Daten konnten nicht exportiert werden.',
   },
   restore: {
-    heading: 'Aus einem Backup wiederherstellen',
+    heading: 'Backup wiederherstellen',
+    intro: 'Ersetzt die Daten auf diesem Handy durch die der Datei.',
+    choose: 'Backup-Datei auswählen',
     file: 'Datei zum Wiederherstellen',
     reading: 'Wird gelesen …',
     confirmGroup: 'Wiederherstellen bestätigen',
@@ -37,11 +39,10 @@ export const backup: Messages['backup'] = {
   },
   delete: {
     heading: 'Alles löschen',
-    intro:
-      'Entfernt deinen Plan, deine Konten und Einträge, gespeicherte Wochen und Abzeichen, Stimmen zu Rabatten, ' +
-      'Haken der Checkliste, dein Profil und die Wechselkurse von diesem Handy. Ein mit deinem StudentsBudget-Konto ' +
-      'verknüpftes Handy wird getrennt: Dieses Konto behält seine Kopie, und du bleibst angemeldet. Noch nicht ' +
-      'synchronisierte Änderungen gehen verloren.',
+    intro: 'Entfernt deinen Plan, deine Konten, deine Einträge und alle anderen Daten von diesem Handy.',
+    linked:
+      'Ein mit deinem StudentsBudget-Konto verknüpftes Handy wird getrennt: Dieses Konto behält seine Kopie, und du ' +
+      'bleibst angemeldet. Noch nicht synchronisierte Änderungen gehen verloren.',
     warning:
       'Das lässt sich auf diesem Handy nicht rückgängig machen. Um deine Daten später zurückzubekommen, exportier ' +
       'vorher ein Backup oder synchronisiere sie mit deinem Konto.',

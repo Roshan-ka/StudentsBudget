@@ -44,7 +44,6 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'accounts.name',
     'accounts.kinds.bank',
     'accounts.rates.rate',
-    'backup.heading',
     'auth.signedIn.as.after',
     'auth.passkeys.heading',
     'auth.passkeys.unnamed',

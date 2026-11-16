@@ -2,15 +2,17 @@
 // backup.ts's file checks.
 
 export const backup = {
-  heading: 'Backup',
   /** The Backup row on the Settings list. */
   summary: 'Export, restore or delete the data on this phone',
-  intro:
-    'Everything you enter stays on this phone unless you link it to your account. A backup file is a copy you keep ' +
-    'yourself, so export one now and then and keep it somewhere safe.',
+  /** The one line under the page heading (16-11-2026). */
+  intro: 'Your data stays on this phone unless you link an account.',
+  /** The rest of the intro, folded under this question. */
+  more: 'Why keep a backup?',
+  moreText: 'A backup file is a copy you keep yourself, so export one now and then and keep it somewhere safe.',
   export: {
     heading: 'Export a backup',
-    hint: 'Saves everything as one file. On an iPhone, choose Save to Files in the share sheet.',
+    /** The card's one line. */
+    hint: 'One file with everything. On an iPhone, choose Save to Files.',
     button: 'Export backup',
     /** The share sheet's title for the file. */
     shareTitle: 'StudentsBudget backup',
@@ -21,7 +23,11 @@ export const backup = {
     failed: 'Couldn’t export your data.',
   },
   restore: {
-    heading: 'Restore from a backup',
+    heading: 'Restore a backup',
+    /** The card's one line. */
+    intro: 'Replaces the data on this phone with the file’s.',
+    /** The card's button that opens the hidden file field. */
+    choose: 'Choose a backup file',
     file: 'File to restore',
     reading: 'Reading…',
     confirmGroup: 'Confirm restore',
@@ -38,10 +44,12 @@ export const backup = {
   },
   delete: {
     heading: 'Delete everything',
-    intro:
-      'Removes your plan, accounts, entries, saved weeks and badges, discount votes, checklist ticks, profile and ' +
-      'exchange rates from this phone. A phone linked to your StudentsBudget account is unlinked: that account keeps ' +
-      'its copy, and you stay signed in. Changes not synced yet are lost.',
+    /** The card's one line. */
+    intro: 'Removes your plan, accounts, entries and all your other data from this phone.',
+    /** In the confirmation, before the warning. */
+    linked:
+      'A phone linked to your StudentsBudget account is unlinked: that account keeps its copy, and you stay signed in. ' +
+      'Changes not synced yet are lost.',
     warning:
       'This can’t be undone on this phone. To get your data back later, export a backup first, or sync it to your ' +
       'account.',

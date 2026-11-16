@@ -1,15 +1,18 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { DownloadIcon, Trash2Icon, UploadIcon, type LucideIcon } from 'lucide-react';
+import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 import { ExportFileButton, type ExportFileType } from '@/components/export-file-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { deleteEverything, exportAll, type BackupData } from '@/db/bulk';
+import { categoryTint } from '@/features/charts/colors';
+import { RowTile } from '@/features/home/row-card';
+import { StepMore } from '@/features/setup/steps/step-more';
 import { useT } from '@/i18n/use-t';
-import { cn } from '@/lib/utils';
 import { backupFileName, serializeBackup } from './backup';
 import { RestoreFromBackup } from './restore-from-backup';
 import { focusFirstControl, useFocusAfter } from '@/lib/focus';
@@ -21,6 +24,39 @@ function buildFile(data: BackupData): File {
   return new File([serializeBackup(data, now)], backupFileName(now), { type: BACKUP_FILE.type });
 }
 
+/**
+ * One of the page's three cards (Roshan's mockups, 16-11-2026): its tile in a category's tint, for the colour, a bold
+ * title and one short line, then what it does. Each is a section named by its title.
+ */
+function BackupCard({
+  icon,
+  tint,
+  title,
+  line,
+  children,
+}: {
+  icon: LucideIcon;
+  tint: string;
+  title: string;
+  line: string;
+  children: ReactNode;
+}) {
+  const headingId = useId();
+  return (
+    <section aria-labelledby={headingId} className={cardVariants()}>
+      <div className="flex items-center gap-3">
+        <RowTile icon={icon} tint={tint} />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <h3 id={headingId} className="text-lg leading-tight font-bold">{title}</h3>
+          <p className="text-sm text-muted-foreground">{line}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Export: the bank's blue, as setup's accounts have it. */
 function ExportBackup() {
   const { t } = useT();
   const text = t.backup.export;
@@ -29,9 +65,7 @@ function ExportBackup() {
   const snapshot = useLiveQuery(() => exportAll(), []);
 
   return (
-    <div className="flex flex-col gap-2">
-      <h4 className="font-medium">{text.heading}</h4>
-      <p className="text-sm text-muted-foreground">{text.hint}</p>
+    <BackupCard icon={DownloadIcon} tint={categoryTint('rent')} title={text.heading} line={text.hint}>
       <ExportFileButton
         build={() => {
           // Only called once ready, which means the snapshot is there.
@@ -41,11 +75,24 @@ function ExportBackup() {
         fileType={BACKUP_FILE}
         ready={snapshot !== undefined}
         text={text}
+        primary
       />
-    </div>
+    </BackupCard>
   );
 }
 
+/** Restore: cash's green. The question and the restore show inside the card once a file is chosen. */
+function RestoreBackup() {
+  const { t } = useT();
+  const text = t.backup.restore;
+  return (
+    <BackupCard icon={UploadIcon} tint={categoryTint('eating-out')} title={text.heading} line={text.intro}>
+      <RestoreFromBackup />
+    </BackupCard>
+  );
+}
+
+/** Delete everything: going out's violet, and an outlined button, not a red one; the typed word still guards it. */
 function DeleteEverything() {
   const inputId = useId();
   const { t } = useT();
@@ -96,9 +143,7 @@ function DeleteEverything() {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <h4 className="font-medium">{text.heading}</h4>
-      <p className="text-sm text-muted-foreground">{text.intro}</p>
+    <BackupCard icon={Trash2Icon} tint={categoryTint('going-out')} title={text.heading} line={text.intro}>
       {open ? (
         <form
           ref={focusFirstControl}
@@ -106,6 +151,8 @@ function DeleteEverything() {
           noValidate
           className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3"
         >
+          {/* What the card's short line leaves out, read before the word is typed. */}
+          <p className="text-sm">{text.linked}</p>
           <p className="text-sm">{text.warning}</p>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={inputId}>{text.typeToConfirm(text.word)}</Label>
@@ -137,7 +184,7 @@ function DeleteEverything() {
       ) : (
         <Button
           ref={focus.refFor('open')}
-          variant="destructive"
+          variant="outline"
           className="self-start px-4"
           onClick={() => setOpen(true)}
         >
@@ -149,25 +196,33 @@ function DeleteEverything() {
           {error}
         </p>
       )}
-    </div>
+    </BackupCard>
   );
 }
 
-/** Settings: save everything to a file, bring it back, or wipe the phone. Always shown, plan or no plan. */
-export function BackupPanel() {
+/**
+ * Under the page heading: one line, and the rest of why a backup matters folded under a question (Roshan's mockups,
+ * 16-11-2026), so the three cards come first.
+ */
+export function BackupIntro() {
   const { t } = useT();
   return (
-    <section aria-labelledby="backup-heading" className={cn(cardVariants(), 'gap-4')}>
-      <h3 id="backup-heading" className="text-xl leading-tight font-extrabold">
-        {t.backup.heading}
-      </h3>
+    <>
       <p className="text-muted-foreground">{t.backup.intro}</p>
+      <StepMore summary={t.backup.more}>
+        <p>{t.backup.moreText}</p>
+      </StepMore>
+    </>
+  );
+}
+
+/** Settings: save everything to a file, bring it back, or wipe the phone, a card each. Always shown, plan or no plan. */
+export function BackupPanel() {
+  return (
+    <div className="flex flex-col gap-3">
       <ExportBackup />
-      <div className="flex flex-col gap-2">
-        <h4 className="font-medium">{t.backup.restore.heading}</h4>
-        <RestoreFromBackup />
-      </div>
+      <RestoreBackup />
       <DeleteEverything />
-    </section>
+    </div>
   );
 }

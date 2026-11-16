@@ -1,13 +1,17 @@
 import { BackToSettings } from '@/components/back-to-settings';
 import { PageHeading } from '@/components/page-heading';
-import { BackupPanel } from '@/features/backup/backup-panel';
+import { BackupIntro, BackupPanel } from '@/features/backup/backup-panel';
 
-/** Settings → Backup and data: export, restore, and delete everything on this phone. */
+/** Settings → Backup and data: export, restore, and delete everything on this phone, a card each. */
 export default function BackupPage() {
   return (
     <div className="flex flex-col gap-5">
       <BackToSettings />
-      <PageHeading id="backup" />
+      {/* The intro's one line sits right under the heading (Roshan's mockups, 16-11-2026). */}
+      <div className="flex flex-col gap-2">
+        <PageHeading id="backup" />
+        <BackupIntro />
+      </div>
       <BackupPanel />
     </div>
   );
