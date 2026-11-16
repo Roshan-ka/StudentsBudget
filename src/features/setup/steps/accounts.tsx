@@ -1,6 +1,6 @@
 'use client';
 
-import { BanknoteIcon, LandmarkIcon, PlusIcon, XIcon } from 'lucide-react';
+import { PlusIcon, XIcon } from 'lucide-react';
 import { useId, type Ref } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import type { Account } from '@/db/types';
-import { categoryTint } from '@/features/charts/colors';
+import { KIND_TILE } from '@/features/accounts/kind-tile';
 import { useT } from '@/i18n/use-t';
 import { describedBy } from '@/lib/described-by';
 import { CURRENCIES, type CurrencyCode } from '@/lib/money';
@@ -19,12 +19,6 @@ import { AmountField } from './amount-field';
 import { firstField, useFocusAfter } from '@/lib/focus';
 
 type AccountDraft = SetupDraft['accounts'][number];
-
-/** The kind's tile: a bank in blue, cash in green, as in the mockups (13-11-2026). Two category tints, for their colour. */
-const KIND_TILE: Record<Account['kind'], { icon: typeof LandmarkIcon; tint: string }> = {
-  bank: { icon: LandmarkIcon, tint: categoryTint('rent') },
-  cash: { icon: BanknoteIcon, tint: categoryTint('eating-out') },
-};
 
 function AccountRow({
   account,

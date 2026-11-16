@@ -25,7 +25,7 @@ export const accounts: Messages['accounts'] = {
   makeDefaultOf: (name) => `Usar por defecto: ${name}`,
   defaultMark: 'Por defecto para nuevos registros',
   nowDefault: (name) => `${name} es ahora la cuenta por defecto para nuevos registros.`,
-  total: 'Total',
+  total: 'En todas las cuentas',
   withoutRates: (currencies) => `Sin ${currencies}: aún no hay tipo de cambio.`,
   errors: {
     name: 'Escribe un nombre.',

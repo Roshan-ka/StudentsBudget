@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "an account card's kind tile tells a screen reader nothing",
+      "file": "src/features/accounts/accounts-panel.tsx",
+      "find": "label={text.kinds[account.kind]}",
+      "replace": "label={undefined}",
+      "expect": {
+        "e2e/accounts.spec.ts": [
+          "kind-tile"
+        ]
+      }
+    },
+    {
+      "name": "an account card drops its currency tag",
+      "file": "src/features/accounts/accounts-panel.tsx",
+      "find": "<span className={TAG}>{account.currency}</span>",
+      "replace": "{null}",
+      "expect": {
+        "e2e/accounts.spec.ts": [
+          "currency-tag"
+        ]
+      }
+    }
+  ]
+}

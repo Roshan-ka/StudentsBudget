@@ -26,7 +26,8 @@ export const accounts = {
   makeDefaultOf: (name: string) => `Make default: ${name}`,
   defaultMark: 'Default for new entries',
   nowDefault: (name: string) => `${name} is now the default for new entries.`,
-  total: 'Total',
+  /** The label of the page's accent card, over the accounts' total in euros. */
+  total: 'Across all accounts',
   /** "Without INR, USD: no exchange rate yet." */
   withoutRates: (currencies: string) => `Without ${currencies}: no exchange rate yet.`,
   errors: {

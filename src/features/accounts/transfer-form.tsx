@@ -1,6 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { ArrowLeftRightIcon } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
 import { DateField } from '@/components/date-field';
 import { StatusLine } from '@/components/status-line';
@@ -239,15 +240,17 @@ export function TransferSection() {
     return (
       <section className="flex flex-col gap-2">
         {saved && <StatusLine className="text-sm text-muted-foreground">{text.saved}</StatusLine>}
+        {/* The page's way into a transfer: a full-width outlined button with its arrows (16-11-2026). */}
         <Button
           ref={focus.refFor('open')}
           variant="outline"
-          className="px-4"
+          className="w-full"
           onClick={() => {
             setSaved(false);
             setOpen(true);
           }}
         >
+          <ArrowLeftRightIcon aria-hidden="true" />
           {text.open}
         </Button>
       </section>

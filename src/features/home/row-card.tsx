@@ -9,16 +9,19 @@ export const ROW_CARD = 'min-h-14 flex-row items-center gap-3 px-4 py-3';
 
 /**
  * A Home card's icon on its tint (Roshan, from the mockups, 13-11-2026: "divide the check-in, badges and all accounts").
- * Decoration only: the words beside it say what the card is.
+ * Decoration only, as the words beside it say what the card is; unless `label` names what the tile alone shows (an
+ * account's kind on Settings → Accounts and transfers), which a screen reader then reads as an image.
  */
-export function RowTile({ icon: Icon, tint }: { icon: LucideIcon; tint: string }) {
+export function RowTile({ icon: Icon, tint, label }: { icon: LucideIcon; tint: string; label?: string }) {
   return (
     <span
-      aria-hidden="true"
+      aria-hidden={label === undefined ? 'true' : undefined}
+      role={label === undefined ? undefined : 'img'}
+      aria-label={label}
       className="flex size-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline"
       style={{ backgroundColor: tint }}
     >
-      <Icon className="size-5" />
+      <Icon aria-hidden="true" className="size-5" />
     </span>
   );
 }
