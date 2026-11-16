@@ -14,12 +14,12 @@ export const tips: Messages['tips'] = {
   discountsIntro:
     'Rabatte für Studierende in Regensburg. Jeder nennt seine Quelle. Sag der App, ob einer noch gilt: Deine Stimmen ' +
     'werden auf diesem Handy gespeichert und in deinem Konto, sobald das Handy verknüpft ist. Bestätigte rücken nach ' +
-    'oben; solche, die du als ungültig markierst oder die 8 Wochen lang nicht bestätigt wurden, rücken nach unten.',
+    'oben; solche, die du als veraltet markierst oder die 8 Wochen lang nicht bestätigt wurden, rücken nach unten.',
   discountsFor: 'Rabatte zeigen für',
   loadFailed: 'Die Rabatte ließen sich nicht laden. Versuch es später noch einmal.',
-  votes: { works: 'Gilt noch', outdated: 'Gilt nicht mehr' },
+  votes: { works: 'Gilt noch', outdated: 'Veraltet' },
   voteGroup: (place) => `${place}: Gilt das noch?`,
-  markedOutdated: (date) => `Du hast das am ${date} als ungültig markiert.`,
+  markedOutdated: (date) => `Du hast das am ${date} als veraltet markiert.`,
   mayBeOutdated: 'Vielleicht veraltet',
   lastConfirmed: (date) => `Zuletzt bestätigt am ${date}`,
   /** Was andere Studierende in diesem Semester bestätigt haben (P2.6), angemeldet zu sehen. */
@@ -31,7 +31,7 @@ export const tips: Messages['tips'] = {
   saveFailed: 'Deine Stimme ließ sich nicht speichern. Versuch es noch einmal.',
   heard: {
     works: (place) => `${place}: als gültig gespeichert.`,
-    outdated: (place) => `${place}: als ungültig gespeichert.`,
+    outdated: (place) => `${place}: als veraltet gespeichert.`,
     moves: (saved, direction) => `${saved} Er rückt in der Liste ${direction === 'up' ? 'nach oben' : 'nach unten'}.`,
     failed: (place) => `${place}: Deine Stimme ließ sich nicht speichern. Versuch es noch einmal.`,
   },

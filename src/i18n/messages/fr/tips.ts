@@ -15,13 +15,13 @@ export const tips: Messages['tips'] = {
   discountsIntro:
     `Réductions étudiantes à Regensburg. Chacune indique sa source. Dis à l’app si une réduction marche encore${NNBSP}: ` +
     'tes votes sont enregistrés sur ce téléphone, et dans ton compte une fois le téléphone associé. Celles que tu ' +
-    `confirmes remontent${NNBSP}; celles que tu marques comme expirées, ou qui n’ont pas été confirmées depuis 8 ` +
+    `confirmes remontent${NNBSP}; celles que tu marques comme obsolètes, ou qui n’ont pas été confirmées depuis 8 ` +
     'semaines, descendent.',
   discountsFor: 'Afficher les réductions pour',
   loadFailed: 'Impossible de charger les réductions. Réessaie plus tard.',
-  votes: { works: 'Marche encore', outdated: 'Ne marche plus' },
+  votes: { works: 'Marche encore', outdated: 'Obsolète' },
   voteGroup: (place) => `${place}${NNBSP}: ça marche encore${NNBSP}?`,
-  markedOutdated: (date) => `Tu as indiqué le ${date} que ça ne marche plus.`,
+  markedOutdated: (date) => `Tu as marqué ça comme obsolète le ${date}.`,
   mayBeOutdated: 'Peut-être obsolète',
   lastConfirmed: (date) => `Confirmé pour la dernière fois le ${date}`,
   /** Ce que les autres étudiants ont confirmé ce semestre (P2.6), visible une fois connecté. */
@@ -37,7 +37,7 @@ export const tips: Messages['tips'] = {
   saveFailed: 'Impossible d’enregistrer ton vote. Réessaie.',
   heard: {
     works: (place) => `${place}${NNBSP}: enregistré comme marchant encore.`,
-    outdated: (place) => `${place}${NNBSP}: enregistré comme ne marchant plus.`,
+    outdated: (place) => `${place}${NNBSP}: enregistré comme obsolète.`,
     moves: (saved, direction) => `${saved} ${direction === 'up' ? 'Elle remonte' : 'Elle descend'} dans la liste.`,
     failed: (place) => `${place}${NNBSP}: impossible d’enregistrer ton vote. Réessaie.`,
   },

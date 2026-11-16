@@ -20,7 +20,7 @@ export type CardEntry = {
   student: boolean;
   /** The language its own words are in: a translation's, English where there is none, a student's as written. */
   lang: string | undefined;
-  /** "Last confirmed …", with "May be outdated" before it, or "Marked as not working on …". */
+  /** "Last confirmed …", with "May be outdated" before it, or "You marked this as outdated on …". */
   freshness: readonly string[];
   /** "850 m away", once Show me knows where the phone is. */
   distance: string | null;
