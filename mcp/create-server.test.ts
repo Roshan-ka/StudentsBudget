@@ -9,15 +9,19 @@ const shownPrices = city.prices.filter((p) => !HIDDEN_PRICE_LABELS.includes(p.la
 const CATALOG_TOOLS = ['find_checklist', 'find_discounts', 'find_tips', 'regensburg_costs', 'semester_info', 'suggest_swaps'];
 
 describe('the StudentsBudget MCP server', () => {
-  it('introduces itself and lists its tools, all read-only, the catalog ones asking for sources to be cited', async () => {
+  it('introduces itself and lists its tools, all read-only but add_expense, the catalog ones asking for sources to be cited', async () => {
     const client = await connect();
     expect(client.getServerVersion()?.name).toBe('studentsbudget');
     expect(client.getInstructions()).toContain('Cite them');
 
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(['budget_overview', ...CATALOG_TOOLS, 'recent_entries', 'week_check_in'].sort());
+    expect(tools.map((t) => t.name).sort()).toEqual(
+      ['add_expense', 'budget_overview', ...CATALOG_TOOLS, 'recent_entries', 'week_check_in'].sort(),
+    );
     for (const tool of tools) {
-      expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
+      // The one write only adds: never destructive.
+      expect(tool.annotations?.readOnlyHint, tool.name).toBe(tool.name !== 'add_expense');
+      expect(tool.annotations?.destructiveHint ?? false, tool.name).toBe(false);
       expect(tool.outputSchema, tool.name).toBeDefined();
       if (CATALOG_TOOLS.includes(tool.name)) expect(tool.description, tool.name).toMatch(/[Cc]ite/);
     }

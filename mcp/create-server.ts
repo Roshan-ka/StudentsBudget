@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { todayIso, type IsoDate } from '../src/lib/dates.ts';
 import { accountFromEnv, type ReadAccount } from './account.ts';
+import { registerAddExpense } from './add-expense.ts';
 import { registerBudgetOverview, registerRecentEntries } from './budget.ts';
 import { registerFindChecklist } from './checklist.ts';
 import { registerWeekCheckIn } from './check-in.ts';
@@ -26,10 +27,16 @@ export type ServerOptions = {
   today?: () => IsoDate;
   /** How the budget tools read the account; by default signed in with the settings in .env.local. */
   account?: ReadAccount;
+  /** The moment an added expense is made (its `createdAt`); tests pin it. */
+  now?: () => Date;
 };
 
 /** The StudentsBudget MCP server with all its tools, not yet connected to a transport. */
-export function createServer({ today = () => todayIso(), account = accountFromEnv() }: ServerOptions = {}): McpServer {
+export function createServer({
+  today = () => todayIso(),
+  account = accountFromEnv(),
+  now = () => new Date(),
+}: ServerOptions = {}): McpServer {
   const server = new McpServer({ name: 'studentsbudget', version: '0.1.0' }, { instructions: INSTRUCTIONS });
   registerRegensburgCosts(server);
   registerFindDiscounts(server, today);
@@ -40,6 +47,7 @@ export function createServer({ today = () => todayIso(), account = accountFromEn
   registerBudgetOverview(server, account, today);
   registerRecentEntries(server, account, today);
   registerWeekCheckIn(server, account, today);
+  registerAddExpense(server, account, today, now);
   registerPrompts(server);
   return server;
 }

@@ -4,10 +4,11 @@ import { authStateOf } from '@/features/account/auth-state';
 import { parseSupabaseEnv, type SupabaseEnv } from '@/lib/supabase/env';
 import { StoreError, supabaseStore, type UserDataStore } from '@/sync/store';
 import { listed } from '@/sync/summary';
-import { SERVER_TABLES } from '@/sync/tables';
+import { SERVER_TABLES, type ServerRow } from '@/sync/tables';
 
 // Reading the user's account from the server: the app's own Supabase settings and store, signed in as the user, so
-// row-level security keeps every read to their own rows. Read-only: nothing here writes.
+// row-level security keeps every read to their own rows. The one write is adding an entry (`entryWriter`, used by
+// add_expense); every other write is refused.
 
 /** The account as the budget tools read it. */
 export type AccountReader = {
@@ -20,6 +21,17 @@ export type AccountReader = {
    * a read that finds nothing asks this first.
    */
   checkSecondStep(): Promise<void>;
+  /**
+   * The one write the server makes: adding an entry (add_expense). Absent, the account can't be written, as with the
+   * read-only fakes some tests use.
+   */
+  entries?: EntryWriter;
+};
+
+/** Adds one entry the account doesn't have; nothing else. */
+export type EntryWriter = {
+  /** Adds the row, or throws when the account already holds that id (live or deleted): it never overwrites. */
+  add(row: ServerRow): Promise<void>;
 };
 
 /** Why the account couldn't be read, in words the model can pass on. */
@@ -114,9 +126,24 @@ export function readOnly(store: UserDataStore): UserDataStore {
   };
 }
 
-function readerOf(client: SupabaseClient): AccountReader {
+/**
+ * The store's one write the server may use: `insertNew` into `entries`, which never replaces a row the account has.
+ * Everything else stays behind `readOnly`.
+ */
+export function entryWriter(store: UserDataStore): EntryWriter {
   return {
-    store: readOnly(supabaseStore(client)),
+    async add(row) {
+      const had = await store.insertNew('entries', [row]);
+      if (had.length > 0) throw new Error(`The account already holds an entry ${row.id}; nothing was changed.`);
+    },
+  };
+}
+
+function readerOf(client: SupabaseClient): AccountReader {
+  const store = supabaseStore(client);
+  return {
+    store: readOnly(store),
+    entries: entryWriter(store),
     async lastSavedAt() {
       // The newest write to any table, a delete (tombstone) included: a sync sends only the rows that changed, so the
       // plan row alone no longer says when the phone last synced.
