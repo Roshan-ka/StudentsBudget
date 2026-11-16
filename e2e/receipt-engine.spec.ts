@@ -56,8 +56,16 @@ test('the real engine reads a drawn receipt from the app’s own files, under th
   expect(violations).toEqual([]);
   // The page loaded the engine from the set's folder, and asked no other host for anything. What the engine's worker
   // loads (the core, the languages) the policy keeps to this origin too: a request elsewhere would be a violation, and
-  // the offline check finds those files in the worker's cache.
+  // the offline check finds those files in the worker's cache. The one other request is the app's own, not the
+  // engine's: the seeded plan has the Home bank in rupees, so the app asks Frankfurter for the rate.
   const origin = new URL(page.url()).origin;
   expect(requested).toContain(`${origin}${OCR_BASE}/tesseract.esm.min.js`);
-  expect(requested.filter((url) => !url.startsWith(origin) && !url.startsWith('blob:') && !url.startsWith('data:'))).toEqual([]);
+  const elsewhere = requested.filter(
+    (url) =>
+      !url.startsWith(origin) &&
+      !url.startsWith('blob:') &&
+      !url.startsWith('data:') &&
+      !url.startsWith('https://api.frankfurter.dev/'),
+  );
+  expect(elsewhere).toEqual([]);
 });
