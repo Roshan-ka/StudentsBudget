@@ -1,0 +1,38 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "Post a hack stops floating",
+      "file": "src/features/hacks/hacks-view.tsx",
+      "find": "className=\"fixed start-4 bottom-[calc(5rem+env(safe-area-inset-bottom))]",
+      "replace": "className=\"start-4 bottom-[calc(5rem+env(safe-area-inset-bottom))]",
+      "expect": {
+        "e2e/hacks-post.spec.ts": [
+          "pill-fixed"
+        ]
+      }
+    },
+    {
+      "name": "Post a hack never opens its sheet",
+      "file": "src/features/hacks/hacks-view.tsx",
+      "find": "open={writing}",
+      "replace": "open={false}",
+      "expect": {
+        "e2e/hacks-post.spec.ts": [
+          "pill-opens-dialog"
+        ]
+      }
+    },
+    {
+      "name": "closing the sheet hands the focus nowhere",
+      "file": "src/features/hacks/hacks-view.tsx",
+      "find": "finalFocus={pill}",
+      "replace": "finalFocus={false}",
+      "expect": {
+        "e2e/hacks-post.spec.ts": [
+          "pill-focus-back"
+        ]
+      }
+    }
+  ]
+}

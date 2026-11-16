@@ -199,6 +199,7 @@ export const tips: Messages['tips'] = {
     vote: {
       group: (post) => `Ton vote sur ${post}`,
       up: 'Vote positif',
+      upCount: (count) => (count === 0 ? 'Vote positif' : `Vote positif (${count})`),
       worked: 'Ça a marché',
       outdated: 'Dépassé',
     },

@@ -184,6 +184,7 @@ export const tips: Messages['tips'] = {
     vote: {
       group: (post) => `Deine Stimme: ${post}`,
       up: 'Daumen hoch',
+      upCount: (count) => (count === 0 ? 'Daumen hoch' : `Daumen hoch (${count})`),
       worked: 'Hat geklappt',
       outdated: 'Veraltet',
     },

@@ -1,0 +1,49 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "a post's card loses its category's tint",
+      "file": "src/features/hacks/hacks-view.tsx",
+      "find": "<li className={cn(cardVariants(), 'gap-2')} style={{ backgroundColor: categoryTint(post.categoryId) }}>",
+      "replace": "<li className={cn(cardVariants(), 'gap-2')}>",
+      "expect": {
+        "e2e/hacks-feed.spec.ts": [
+          "hack-card-tint"
+        ]
+      }
+    },
+    {
+      "name": "Upvote shows no arrow",
+      "file": "src/features/hacks/hacks-view.tsx",
+      "find": "<ArrowBigUpIcon aria-hidden=\"true\" className=\"size-5\" />",
+      "replace": "",
+      "expect": {
+        "e2e/hacks-feed.spec.ts": [
+          "hack-upvote-icon"
+        ]
+      }
+    },
+    {
+      "name": "Upvote hides its count",
+      "file": "src/features/hacks/hacks-view.tsx",
+      "find": "{post.ups > 0 && post.ups}",
+      "replace": "",
+      "expect": {
+        "e2e/hacks-feed.spec.ts": [
+          "hack-upvote-count"
+        ]
+      }
+    },
+    {
+      "name": "the comments button shows no icon",
+      "file": "src/features/hacks/hack-comments.tsx",
+      "find": "<MessageCircleIcon aria-hidden=\"true\" />",
+      "replace": "",
+      "expect": {
+        "e2e/hacks-feed.spec.ts": [
+          "hack-comments-icon"
+        ]
+      }
+    }
+  ]
+}

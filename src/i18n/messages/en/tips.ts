@@ -206,6 +206,8 @@ export const tips = {
     vote: {
       group: (post: string) => `Your vote on ${post}`,
       up: 'Upvote',
+      /** Upvote's name, with the count its icon shows beside it, as the comments' toggle says theirs. */
+      upCount: (count: number) => (count === 0 ? 'Upvote' : `Upvote (${count})`),
       worked: 'Worked for me',
       outdated: 'Outdated',
     },

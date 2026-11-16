@@ -37,8 +37,14 @@ function panel(page: Page) {
   return page.getByRole('tabpanel', { name: 'Hacks', exact: true });
 }
 
+/** "Post a hack" floats at the bottom of the Hacks tab (16-11-2026). */
+function pill(page: Page) {
+  return panel(page).getByRole('button', { name: 'Post a hack', exact: true });
+}
+
+/** The form, in the sheet the pill opens. */
 function form(page: Page) {
-  return panel(page).getByRole('region', { name: 'Post a hack', exact: true });
+  return page.getByRole('dialog', { name: 'Post a hack', exact: true });
 }
 
 function posts(page: Page) {
@@ -60,7 +66,7 @@ test('a first post is checked, waits for its note, and shows as one’s own', as
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   const calls = postCalls(page);
   await signInAndOpenHacks(page);
-  await panel(page).getByRole('button', { name: 'Post a hack', exact: true }).click();
+  await pill(page).click();
 
   // Checked on the phone first: nothing is sent.
   await form(page).getByRole('textbox', { name: 'Your hack', exact: true }).fill('Too short');
@@ -93,6 +99,8 @@ test('a first post is checked, waits for its note, and shows as one’s own', as
   await expect(mine).toContainText('@roshan · Student · Class of ’27 · Your post');
   await expect(mine.getByRole('link', { name: 'www.rvv.de', exact: true })).toBeVisible();
   await expect(form(page)).toHaveCount(0);
+  // Posting closes the sheet and hands the focus back to the pill.
+  await expect(pill(page)).toBeFocused();
 });
 
 test('an account without a name picks one before its first post', async ({ page }) => {
@@ -102,7 +110,7 @@ test('an account without a name picks one before its first post', async ({ page 
   await mockSupabaseData(page, { profiles });
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signInAndOpenHacks(page);
-  await panel(page).getByRole('button', { name: 'Post a hack', exact: true }).click();
+  await pill(page).click();
   await form(page).getByRole('textbox', { name: 'Your hack', exact: true }).fill(BODY);
   await form(page).getByRole('button', { name: 'Post', exact: true }).click();
 
@@ -120,7 +128,7 @@ test('a sixth post in a day is refused, and says when to post again', async ({ p
   await mockSupabaseData(page, { profiles: named(), dailyLimit: true });
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signInAndOpenHacks(page);
-  await panel(page).getByRole('button', { name: 'Post a hack', exact: true }).click();
+  await pill(page).click();
   await form(page).getByRole('textbox', { name: 'Your hack', exact: true }).fill(BODY);
   await form(page).getByRole('button', { name: 'Post', exact: true }).click();
   await expect(form(page).getByRole('alert')).toHaveText('You’ve posted 5 hacks in a day. Post again tomorrow.');
@@ -165,4 +173,27 @@ test('one’s own post can be deleted, after a question; others’ cannot', asyn
   await expect(panel(page).getByRole('status')).toHaveText('Post deleted.');
   await expect(posts(page)).toHaveCount(1);
   expect(feed.map((post) => post.id)).toEqual(['p2']);
+});
+
+test('Post a hack floats at the bottom of the Hacks tab and opens its form in a dialog', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseData(page, { profiles: named() });
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await signInAndOpenHacks(page);
+
+  // Fixed in the start corner above the navigation, at Ask's bubble's height, whatever the page's scroll.
+  await expect(pill(page)).toHaveCSS('position', 'fixed'); // proof: pill-fixed
+  await expect(pill(page)).toHaveCSS('bottom', '80px');
+
+  // A tap opens the form in a dialog, on its text field; Cancel closes it and the focus goes back to the pill.
+  await pill(page).click();
+  await expect(form(page)).toBeVisible(); // proof: pill-opens-dialog
+  await expect(form(page).getByRole('textbox', { name: 'Your hack', exact: true })).toBeFocused();
+  await form(page).getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(form(page)).toHaveCount(0);
+  await expect(pill(page)).toBeFocused(); // proof: pill-focus-back
+
+  // Another tab hides it: the Hacks panel stays mounted, hidden.
+  await page.getByRole('tablist', { name: 'Tips, discounts, hacks or checklist', exact: true }).getByRole('tab', { name: 'Tips', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Post a hack', exact: true })).toBeHidden();
 });

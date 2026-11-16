@@ -51,6 +51,9 @@ function post(page: Page, text: string) {
   return panel(page).getByRole('list', { name: 'Posts', exact: true }).getByRole('listitem').filter({ hasText: text });
 }
 
+/** Upvote's name holds the count its icon shows beside it: "Upvote (3)", or plain "Upvote" at none. */
+const UPVOTE = /^Upvote( \(\d+\))?$/;
+
 /** Every call to `fn`, by its arguments. */
 function callsTo(page: Page, fn: string): unknown[] {
   const calls: unknown[] = [];
@@ -76,15 +79,15 @@ test('the first vote waits for its note; then each button toggles and the totals
   const bread = post(page, 'Bread is half price');
   // The group says which post, as Report does: "Your vote on the post by @lena, 05.11.2026".
   const buttons = bread.getByRole('group', { name: /^Your vote on (the post by @\w+, |a post from )\d{2}\.\d{2}\.\d{4}$/ });
-  await buttons.getByRole('button', { name: 'Upvote', exact: true }).click();
+  await buttons.getByRole('button', { name: UPVOTE }).click();
   const note = bread.getByRole('group', { name: 'About your data', exact: true });
   await expect(note).toContainText('nobody sees who voted');
   await note.getByRole('button', { name: 'Cancel', exact: true }).click();
   expect(votes).toHaveLength(0);
 
-  await buttons.getByRole('button', { name: 'Upvote', exact: true }).click();
+  await buttons.getByRole('button', { name: UPVOTE }).click();
   await note.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(buttons.getByRole('button', { name: 'Upvote', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(buttons.getByRole('button', { name: UPVOTE })).toHaveAttribute('aria-pressed', 'true');
   await expect(bread).toContainText('Upvotes: 4 · Worked: 2 · Outdated: 1');
   expect(await page.evaluate((key) => localStorage.getItem(key), PRIVACY_NOTES.hackVotes)).toBe('seen');
 
@@ -96,7 +99,7 @@ test('the first vote waits for its note; then each button toggles and the totals
   await expect(buttons.getByRole('button', { name: 'Worked for me', exact: true })).toHaveAttribute('aria-pressed', 'false');
 
   // Tapping the upvote again takes it back.
-  await buttons.getByRole('button', { name: 'Upvote', exact: true }).click();
+  await buttons.getByRole('button', { name: UPVOTE }).click();
   await expect(bread).toContainText('Upvotes: 3 · Worked: 2 · Outdated: 2');
   expect(votes).toEqual([
     { p_id: 'p1', p_up: true, p_verdict: null },
