@@ -71,7 +71,7 @@ describe('weekRows', () => {
       ['health', 0, 1500, false],
     ]);
     // Neither has a plan to be used up, so they read as before.
-    expect(weekLine(rows[3], rows[3].usedUp)).toBe('€0 planned · €15 spent · €15 over');
+    expect(weekLine(rows[3], rows[3].usedUp)).toBe('€15 of €0 · €15 over');
   });
 
   it('is empty for a plan with no amounts in its envelopes and nothing spent', () => {

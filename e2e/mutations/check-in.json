@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the week card's bar stays empty whatever was spent",
+      "file": "src/features/check-in/check-in-view.tsx",
+      "find": "percentUsed(totalMinor + spentMinor, spentMinor)",
+      "replace": "percentUsed(totalMinor + spentMinor, 0)",
+      "expect": {
+        "e2e/check-in.spec.ts": [
+          "week-bar"
+        ]
+      }
+    },
+    {
+      "name": "an envelope card's bar stays empty whatever was spent this week",
+      "file": "src/features/check-in/check-in-view.tsx",
+      "find": "percentUsed(row.weekShareMinor, row.spentThisWeekMinor)",
+      "replace": "percentUsed(row.weekShareMinor, 0)",
+      "expect": {
+        "e2e/check-in.spec.ts": [
+          "envelope-bar"
+        ]
+      }
+    }
+  ]
+}

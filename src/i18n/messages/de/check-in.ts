@@ -9,19 +9,28 @@ export const checkIn: Messages['checkIn'] = {
     other: 'Dein wöchentlicher Check-in ist am Sonntag.',
   },
   thisWeek: {
-    against: 'Diese Woche im Vergleich zu deinem Plan',
+    envelopes: 'Umschläge diese Woche',
+    bar: (category) => `${category} diese Woche`,
     logged: 'Diese Woche',
     empty: 'Diese Woche ist noch nichts erfasst.',
   },
   // Die Tage dieser Woche, die noch im Vormonat liegen.
   earlierThisWeek: {
-    against: 'Anfang der Woche im Vergleich zu deinem Plan',
+    envelopes: 'Umschläge Anfang der Woche',
+    bar: (category) => `${category} Anfang der Woche`,
     logged: 'Anfang der Woche',
     empty: 'Anfang der Woche ist nichts erfasst.',
   },
+  // Die Wochenkarte: „139 € frei zum Ausgeben“ oder „9 € zu viel diese Woche“.
+  week: {
+    safe: { before: '', after: ' frei zum Ausgeben' },
+    over: { before: '', after: ' zu viel diese Woche' },
+    spent: (amount) => `${amount} bisher ausgegeben`,
+    bar: 'Diese Woche ausgegeben',
+  },
   noEnvelopes: 'Kein Umschlag hat in deinem Plan einen Betrag.',
   line: {
-    planned: (planned, spent, verdict) => `${planned} geplant · ${spent} ausgegeben · ${verdict}`,
+    of: (spent, planned, verdict) => `${spent} von ${planned} · ${verdict}`,
     onPlan: 'genau im Plan',
     under: (amount) => `${amount} unter Plan`,
     over: (amount) => `${amount} zu viel`,

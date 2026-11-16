@@ -5,12 +5,13 @@ import { formatMoney, type Minor } from '@/lib/money';
 import { formatWeekAmount } from '@/lib/week-amount';
 
 /**
- * One envelope's week in a line, in `lang`: "€70 planned · €20 spent · €50 under". The week is compared with its own
- * share of what was left of the month when it began, so the line says the same thing the student did this week.
- * Over is said plainly ("€12 over"); equal reads "on plan".
+ * One envelope's week in a line, in `lang`: what was spent of the week's share, then the difference, "€20 of €70 · €50
+ * under" (the check-in's envelope cards, 16-11-2026; "€70 planned · €20 spent · €50 under" before). The week is
+ * compared with its own share of what was left of the month when it began, so the line says the same thing the student
+ * did this week. Over is said plainly ("€12 over"); equal reads "on plan".
  *
  * An envelope with nothing left of its month (`usedUp`) has no share to compare with, so it says that instead of
- * "€0 planned": "Nothing left this month · €6 spent · €6 over", or "Nothing left this month · €0 spent".
+ * "of €0": "Nothing left this month · €6 spent · €6 over", or "Nothing left this month · €0 spent".
  */
 export function weekLine(e: EnvelopeWeek, usedUp = false, lang: Language = 'en'): string {
   const text = MESSAGES[lang].checkIn.line;
@@ -18,8 +19,8 @@ export function weekLine(e: EnvelopeWeek, usedUp = false, lang: Language = 'en')
   const difference = e.weekShareMinor - e.spentThisWeekMinor;
   let planned = formatWeekAmount(e.weekShareMinor, locale).text;
   let spent = formatWeekAmount(e.spentThisWeekMinor, locale).text;
-  // Whole euros that read the same while the amounts differ ("€6 planned · €6 spent · €0.25 under"): the two show their
-  // cents too, so the line adds up (review, 09-11-2026).
+  // Whole euros that read the same while the amounts differ ("€6 of €6 · €0.25 under"): the two show their cents too,
+  // so the line adds up (review, 09-11-2026).
   if (difference !== 0 && planned === spent) {
     planned = formatMoney(Math.abs(e.weekShareMinor), 'EUR', { locale });
     spent = formatMoney(Math.abs(e.spentThisWeekMinor), 'EUR', { locale });
@@ -28,12 +29,13 @@ export function weekLine(e: EnvelopeWeek, usedUp = false, lang: Language = 'en')
   const amount = formatWeekAmount(difference, locale).text;
   if (usedUp) return difference < 0 ? text.usedUpOver(spent, amount) : text.usedUp(spent);
   const verdict = difference === 0 ? text.onPlan : difference > 0 ? text.under(amount) : text.over(amount);
-  return text.planned(planned, spent, verdict);
+  return text.of(spent, planned, verdict);
 }
 
 /**
  * The week in one number, the "This week" Home shows, in `lang`: "In total: €145 to spend this week", or "In total:
- * €36 over this week" when the month has less left than the week has already spent.
+ * €36 over this week" when the month has less left than the week has already spent. The MCP server's line; the
+ * check-in page writes the same number in its week card (16-11-2026).
  */
 export function weekTotalLine(totalMinor: Minor, lang: Language = 'en'): string {
   const text = MESSAGES[lang].checkIn.total;

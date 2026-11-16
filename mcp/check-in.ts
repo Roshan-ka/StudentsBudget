@@ -19,7 +19,7 @@ import { foundSwap, swapSchema } from './swaps.ts';
 const envelopeSchema = z.object({
   categoryId: z.string(),
   category: z.string(),
-  /** The app's own line: "€70 planned · €20 spent · €50 under", or "€12 over". */
+  /** The app's own line: "€20 of €70 · €50 under", or "€12 over". */
   line: z.string(),
   shareMinor: z.number().int(),
   spentMinor: z.number().int(),

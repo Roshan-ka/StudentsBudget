@@ -16,7 +16,7 @@ describe('weekSwaps', () => {
   it('gives no line to a week that came in under its share, even at 93% early in the month', () => {
     // Sunday 18 October: €26 of the €28 share is 93%, and the month's last 7 days have not begun.
     const eatingOut = row('eating-out', 2800, 2600);
-    expect(weekLine(eatingOut)).toBe('€28 planned · €26 spent · €2 under');
+    expect(weekLine(eatingOut)).toBe('€26 of €28 · €2 under');
 
     expect(weekSwaps([eatingOut], '2026-10-18').size).toBe(0);
     // Home's month rule would suggest it on that day: the check-in does not.
@@ -98,7 +98,7 @@ describe('weekSwaps', () => {
         ['transport', 2500, 0],
       ]);
       // Only eating out is over its €20 share ("€5 over").
-      expect(weekLine(rows[1])).toBe('€20 planned · €25 spent · €5 over');
+      expect(weekLine(rows[1])).toBe('€25 of €20 · €5 over');
       expect(swapIds(weekSwaps(rows, day))).toEqual([['eating-out', 'mensa-instead-of-restaurant']]);
     });
 
