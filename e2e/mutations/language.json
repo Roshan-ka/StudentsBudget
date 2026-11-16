@@ -11,6 +11,17 @@
           "globe-on-every-page"
         ]
       }
+    },
+    {
+      "name": "a language picked from the globe changes nothing",
+      "file": "src/components/language-menu.tsx",
+      "find": "                  if (picked !== undefined) setLanguage(picked);",
+      "replace": "",
+      "expect": {
+        "e2e/language.spec.ts": [
+          "globe-switches"
+        ]
+      }
     }
   ]
 }

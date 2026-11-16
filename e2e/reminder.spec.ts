@@ -230,9 +230,10 @@ test('the reminder follows the phone’s language and time zone without a tap', 
   const row = () => reminders.get(E2E_PUSH_ENDPOINT);
   expect(row()).toMatchObject({ p_time_zone: 'Europe/Berlin', p_lang: 'en' });
 
-  // A language picked in Settings: the reminder comes in it from then on, with the day and time as they were.
+  // A language picked from the header's globe: the reminder comes in it from then on, with the day and time as they were.
   await page.goto('/settings');
-  await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('de');
+  await page.getByRole('button', { name: 'Language', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'Deutsch', exact: true }).click();
   await expect.poll(() => row()?.p_lang).toBe('de');
   expect(row()).toMatchObject({ p_weekday: 7, p_local_time: '18:00', p_time_zone: 'Europe/Berlin' });
 

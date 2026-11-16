@@ -10,8 +10,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * The language as a globe button that opens a small menu (the start page, 13-11-2026; every page since 16-11-2026):
- * each language in its own name, the chosen one checked. The same choice as `LanguagePicker`, which stays the select in
- * Settings. Nothing while there is only one language to pick.
+ * each language in its own name, the chosen one checked, and under them what the choice changes. The one place the
+ * language is picked (Settings' field went on 16-11-2026). Nothing while there is only one language to pick.
  */
 export function LanguageMenu() {
   const { t, lang } = useT();
@@ -55,6 +55,8 @@ export function LanguageMenu() {
                 ))}
               </Menu.RadioGroup>
             </Menu.Group>
+            {/* What the choice changes, once Settings' field and its hint were gone (16-11-2026). */}
+            <p className="max-w-60 px-3 pt-1.5 pb-1 text-xs text-muted-foreground">{t.language.hint}</p>
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>
@@ -62,10 +64,7 @@ export function LanguageMenu() {
   );
 }
 
-/**
- * The globe at the end of the header, on every page (Roshan, 16-11-2026; before, the start pages and setup only).
- * Settings keeps its language field as well.
- */
+/** The globe at the end of the header, on every page (Roshan, 16-11-2026; before, the start pages and setup only). */
 export function HeaderLanguageMenu() {
   return <LanguageMenu />;
 }
