@@ -100,12 +100,20 @@ const latte = (months: MonthSpend[]) => badge('latte-survivor', [], 26, { ...HIS
 describe('badgesFrom with no data', () => {
   it('lists all four badges, none earned, each saying how to start', () => {
     expect(badgesFrom([], 26, { planStart: '2026-10-16', months: [], awayNotRecorded: false })).toEqual([
-      { id: 'under-budget-week', title: 'Under-Budget Week', tier: null, progress: '0 of 4 weeks', earnedOn: null },
+      {
+        id: 'under-budget-week',
+        title: 'Under-Budget Week',
+        tier: null,
+        progress: '0 of 4 weeks',
+        meter: { done: 0, goal: 4 },
+        earnedOn: null,
+      },
       {
         id: 'logging-streak',
         title: 'Logging Streak',
         tier: null,
         progress: 'A streak starts with a week of envelope spending you log yourself',
+        meter: { done: 0, goal: 4 },
         earnedOn: null,
       },
       {
@@ -113,6 +121,7 @@ describe('badgesFrom with no data', () => {
         title: 'Ramen Royalty',
         tier: null,
         progress: 'Your first full week of groceries sets the mark',
+        meter: null,
         earnedOn: null,
       },
       {
@@ -120,6 +129,7 @@ describe('badgesFrom with no data', () => {
         title: 'Latte Survivor',
         tier: null,
         progress: 'Your first full month of logging sets the mark',
+        meter: null,
         earnedOn: null,
       },
     ]);
@@ -136,6 +146,7 @@ describe('Under-Budget Week', () => {
       title: 'Under-Budget Week',
       tier: 'bronze',
       progress: '4 of 12 weeks',
+      meter: { done: 4, goal: 12 },
       earnedOn: four[3].weekEnd,
     });
   });
@@ -160,6 +171,8 @@ describe('Under-Budget Week', () => {
     });
     // Gold stays dated the week it was reached.
     expect(underBudget(all)).toMatchObject({ tier: 'gold', progress: '27 weeks under budget', earnedOn: all[25].weekEnd });
+    // Gold has no next tier to count towards.
+    expect(underBudget(all).meter).toBeNull();
   });
 
   it('takes gold from the semester it is given', () => {
@@ -233,7 +246,10 @@ describe('Logging Streak', () => {
   it('counts the weeks in a row with something typed in, and is earned at 4', () => {
     expect(streak(weeks(3))).toMatchObject({ tier: null, progress: '3 of 4 weeks in a row', earnedOn: null });
     const four = weeks(4);
+    expect(streak(weeks(3)).meter).toEqual({ done: 3, goal: 4 });
     expect(streak(four)).toMatchObject({ tier: null, progress: '4 weeks in a row', earnedOn: four[3].weekEnd });
+    // Earned: nothing left to count towards.
+    expect(streak(four).meter).toBeNull();
   });
 
   it('neither breaks nor grows over a week away', () => {
@@ -254,7 +270,11 @@ describe('Logging Streak', () => {
   it('reads as paused while a week not recorded yet is marked away', () => {
     const four = weeks(4);
     expect(streak(four, true)).toMatchObject({ progress: 'Your streak is paused at 4 weeks', earnedOn: four[3].weekEnd });
-    expect(streak(weeks(2), true)).toMatchObject({ progress: 'Your streak is paused at 2 weeks', earnedOn: null });
+    expect(streak(weeks(2), true)).toMatchObject({
+      progress: 'Your streak is paused at 2 weeks',
+      meter: { done: 2, goal: 4 },
+      earnedOn: null,
+    });
     expect(streak(four, false)).toMatchObject({ progress: '4 weeks in a row' });
   });
 
@@ -328,6 +348,7 @@ describe('Latte Survivor', () => {
       title: 'Latte Survivor',
       tier: null,
       progress: 'January 2027: €62 on eating out, down from €124 in November 2026',
+      meter: null,
       earnedOn: '2027-01-31',
     });
   });

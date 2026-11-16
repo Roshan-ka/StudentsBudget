@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the accent card's bar stays empty however many badges are earned",
+      "file": "src/features/badges/badges-view.tsx",
+      "find": "percentUsed(badges.length, earned)",
+      "replace": "percentUsed(badges.length, 0)",
+      "expect": {
+        "e2e/badges.spec.ts": [
+          "earned-bar"
+        ]
+      }
+    },
+    {
+      "name": "Under-Budget Week's bar counts no weeks towards its next tier",
+      "file": "src/features/badges/badges.ts",
+      "find": "meter: goal === null ? null : { done: count, goal },",
+      "replace": "meter: goal === null ? null : { done: 0, goal },",
+      "expect": {
+        "e2e/badges.spec.ts": [
+          "badge-bar"
+        ]
+      }
+    }
+  ]
+}

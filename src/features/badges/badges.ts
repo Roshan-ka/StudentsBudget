@@ -24,6 +24,12 @@ export type Badge = {
   /** Under-Budget Week only; the other badges have no tiers and are null, earned or not. */
   tier: 'bronze' | 'silver' | 'gold' | null;
   progress: string;
+  /**
+   * How far along the next step is, for the Badges page's bar: Under-Budget Week's weeks towards its next tier, the
+   * Logging Streak's run towards 4 until it is earned. Null where there is no next step to count towards (gold, an
+   * earned streak, and the two badges a single week or month earns).
+   */
+  meter: { done: number; goal: number } | null;
   /** The last day of the week or month that earned it (its current tier, for Under-Budget Week). */
   earnedOn: IsoDate | null;
 };
@@ -146,6 +152,7 @@ function underBudgetWeek(weeks: WeekResult[], semesterWeeks: number, { t }: Word
     title: t.badges.names['under-budget-week'],
     tier,
     progress: goal === null ? text.underBudgetCount(count) : text.underBudgetOf(count, goal),
+    meter: goal === null ? null : { done: count, goal },
     earnedOn,
   };
 }
@@ -172,7 +179,9 @@ function loggingStreak(weeks: WeekResult[], awayNotRecorded: boolean, { t }: Wor
   else if (earnedOn === null) progress = text.streakOf(run, STREAK_WEEKS);
   else progress = text.streakRun(run);
 
-  return { id: 'logging-streak', title: t.badges.names['logging-streak'], tier: null, progress, earnedOn };
+  // The run counts towards 4 until the badge is earned; a paused run still holds its weeks.
+  const meter = earnedOn === null ? { done: run, goal: STREAK_WEEKS } : null;
+  return { id: 'logging-streak', title: t.badges.names['logging-streak'], tier: null, progress, meter, earnedOn };
 }
 
 /**
@@ -194,7 +203,7 @@ function ramenRoyalty(weeks: WeekResult[], planStart: IsoDate, { t, locale }: Wo
     best === null
       ? text.ramenFirst
       : text.ramenBest(euros(best.foodSpentMinor, locale), formatDate(best.weekStart), earnedOn !== null);
-  return { id: 'ramen-royalty', title: t.badges.names['ramen-royalty'], tier: null, progress, earnedOn };
+  return { id: 'ramen-royalty', title: t.badges.names['ramen-royalty'], tier: null, progress, meter: null, earnedOn };
 }
 
 /**
@@ -209,6 +218,7 @@ function latteSurvivor(months: MonthSpend[], { t, locale }: Words): Badge {
     title: t.badges.names['latte-survivor'],
     tier: null,
     progress,
+    meter: null,
     earnedOn,
   });
   const logged = months.filter((m) => m.handLoggedCount > 0);

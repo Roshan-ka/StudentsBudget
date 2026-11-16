@@ -126,6 +126,31 @@ test('five finished weeks show on Home and earn the bronze Under-Budget Week', a
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
+test('the Badges page leads with the earned count, and a badge that counts towards a next step has its bar', async ({
+  page,
+}) => {
+  await seedSetup(page, {}, { open: false });
+  await seedFiveWeeks(page);
+  // Wednesday 18 November: the five weeks are recorded as the page opens (the first test above).
+  await page.clock.setFixedTime(on(2026, 11, 18));
+  await openApp(page, '/badges');
+
+  // The accent card's bar is named by its line, "3 of 4 earned".
+  const earned = page.getByRole('progressbar', { name: '3 of 4 earned', exact: true });
+  await expect(earned).toHaveAttribute('aria-valuenow', '75', RECORDING); // proof: earned-bar
+
+  // Bronze Under-Budget Week counts its 4 weeks towards silver's 12; the bar is named by the badge.
+  const underBudget = badge(page, 'Under-Budget Week');
+  const bar = underBudget.getByRole('progressbar', { name: 'Under-Budget Week', exact: true });
+  await expect(bar).toHaveAttribute('aria-valuenow', '33'); // proof: badge-bar
+  await expect(bar).toHaveAttribute('aria-valuetext', '4 of 12 weeks');
+  await expect(underBudget.getByText('4 of 12 weeks', { exact: true })).toBeVisible();
+  // An earned streak and the badges one week or month earns have no next step, so no bar.
+  await expect(badge(page, 'Logging Streak').getByRole('progressbar')).toHaveCount(0);
+  await expect(badge(page, 'Latte Survivor').getByRole('progressbar')).toHaveCount(0);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
 test('"I was away this week" is saved and keeps the logging streak waiting', async ({ page }) => {
   await seedSetup(page, {}, { open: false });
   await seedFiveWeeks(page);
