@@ -1,7 +1,15 @@
 'use client';
 
 import { parseISO } from 'date-fns';
-import { ReceiptTextIcon } from 'lucide-react';
+import {
+  ChartBarIcon,
+  ChartColumnIcon,
+  ChartLineIcon,
+  ChartPieIcon,
+  ReceiptTextIcon,
+  Table2Icon,
+  type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { linkButtonClass } from '@/components/link-button';
@@ -249,33 +257,95 @@ export function DataTable({
   );
 }
 
-/** A heading and what is under it; the section is named by the heading. */
+/**
+ * A heading and what is under it; the section is named by the heading. `action` (the chart's style switch) sits at
+ * the end of the heading's line, and wraps under the heading only when the line has no room for both (large text).
+ */
 export function ChartSection({
   title,
   subtitle,
+  action,
   children,
 }: {
   title: string;
   /** A short line under the title, for a chart whose months differ from the period's: "Last 6 months". */
   subtitle?: string | null;
+  action?: ReactNode;
   children: ReactNode;
 }) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className={cn(cardVariants(), 'gap-3')}>
-      <div>
-        <h3 id={headingId} className="text-xl leading-tight font-extrabold">
-          {title}
-        </h3>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <div className="min-w-32 flex-1">
+          <h3 id={headingId} className="text-xl leading-tight font-extrabold">
+            {title}
+          </h3>
+          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
+        {action}
       </div>
       {children}
     </section>
   );
 }
 
+/** The styles a chart can be shown in, each drawn as its icon on the chart's switch. */
+const CHART_STYLE_ICONS = {
+  donut: ChartPieIcon,
+  bars: ChartBarIcon,
+  columns: ChartColumnIcon,
+  line: ChartLineIcon,
+  table: Table2Icon,
+} satisfies Record<string, LucideIcon>;
+
+export type ChartStyle = keyof typeof CHART_STYLE_ICONS;
+
 /**
- * A row of buttons of which one is on, for the style of a chart or the period of all of them. Each segment is at
+ * A chart's own style switch: a small row of icon buttons, one of them on, for the end of the chart's heading line.
+ * Each button is named by the style's word (visually hidden, and its tooltip), keeps `aria-pressed` and is 44 px
+ * square.
+ */
+export function ChartStyleSwitch<T extends ChartStyle>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: readonly { value: T; text: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="flex shrink-0 gap-0.5 rounded-lg border-[1.5px] border-outline bg-muted p-0.5"
+    >
+      {options.map((option) => {
+        // Widened to the plain icon type: indexed by the generic `T`, TypeScript can't see its props.
+        const Icon: LucideIcon = CHART_STYLE_ICONS[option.value];
+        return (
+          <button
+            key={option.value}
+            type="button"
+            title={option.text}
+            aria-pressed={option.value === value}
+            onClick={() => onChange(option.value)}
+            className="inline-flex size-11 items-center justify-center rounded-md border-[1.5px] border-transparent text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none aria-pressed:border-outline aria-pressed:bg-card aria-pressed:text-foreground"
+          >
+            <Icon aria-hidden="true" className="size-5" />
+            <span className="sr-only">{option.text}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * A row of buttons of which one is on, for the period of all the charts (a chart's own style is `ChartStyleSwitch`). Each segment is at
  * least 44 px high, and the group takes the full width, so it works with a thumb at 375 px. A segment may shrink and
  * wrap its words onto a second line ("Dieser / Monat"), so a language with longer words never widens the page. Where
  * the group is narrower than 20 rem (large text), two segments share a row instead of all of them.

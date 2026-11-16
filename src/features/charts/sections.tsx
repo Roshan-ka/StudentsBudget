@@ -22,13 +22,14 @@ import { HorizontalBars } from './bars';
 import {
   amountText,
   ChartSection,
+  ChartStyleSwitch,
   DataTable,
   entriesHref,
   monthAndYear,
-  SegmentedControl,
   shortMonth,
   signedAmountText,
   type ChartRow,
+  type ChartStyle,
 } from './chart-parts';
 import { chartColor, chartLabel } from './colors';
 import { Donut, EmptyDonut } from './donut';
@@ -37,9 +38,8 @@ import { MonthSeries } from './series';
 const SHARE_STYLES = ['donut', 'bars', 'table'] as const;
 const SERIES_STYLES = ['columns', 'line', 'table'] as const;
 
-
-/** A segmented control's options for a list of chart styles, named in the dictionary's language. */
-function styleOptions<T extends keyof Messages['charts']['styles']>(styles: readonly T[], t: Messages) {
+/** A style switch's options for a list of chart styles, named in the dictionary's language. */
+function styleOptions<T extends ChartStyle & keyof Messages['charts']['styles']>(styles: readonly T[], t: Messages) {
   return styles.map((value) => ({ value, text: t.charts.styles[value] }));
 }
 
@@ -115,18 +115,22 @@ export function SpendingSection({
     rows: rows.map((row) => ({ row, cells: spendingCells(row, withPlanned, t, locale) })),
   };
 
+  const styleSwitch =
+    rows.length === 0 ? null : (
+      <ChartStyleSwitch
+        label={text.styleLabel}
+        options={styleOptions(SHARE_STYLES, t)}
+        value={style}
+        onChange={setStyle}
+      />
+    );
+
   return (
-    <ChartSection title={text.title}>
+    <ChartSection title={text.title} action={styleSwitch}>
       {rows.length === 0 ? (
         <p className="text-muted-foreground">{noneText}</p>
       ) : (
         <>
-          <SegmentedControl
-            label={text.styleLabel}
-            options={styleOptions(SHARE_STYLES, t)}
-            value={style}
-            onChange={setStyle}
-          />
           {style === 'donut' &&
             (slices.length === 0 ? (
               <>
@@ -191,18 +195,22 @@ export function IncomeSection({
   const columns = [t.charts.series.income];
   const tableRows = rows.map((row) => ({ row, cells: [amountText(row.amountMinor, locale)] }));
 
+  const styleSwitch =
+    rows.length === 0 ? null : (
+      <ChartStyleSwitch
+        label={text.styleLabel}
+        options={styleOptions(SHARE_STYLES, t)}
+        value={style}
+        onChange={setStyle}
+      />
+    );
+
   return (
-    <ChartSection title={text.title}>
+    <ChartSection title={text.title} action={styleSwitch}>
       {rows.length === 0 ? (
         <p className="text-muted-foreground">{noneText}</p>
       ) : (
         <>
-          <SegmentedControl
-            label={text.styleLabel}
-            options={styleOptions(SHARE_STYLES, t)}
-            value={style}
-            onChange={setStyle}
-          />
           {style === 'donut' && (
             <>
               <Donut
@@ -276,18 +284,21 @@ export function SavingsSection({
   const columns = [series.income, series.spent, series.saved];
   const cells = savingsCells(rows, months, locale);
 
+  const styleSwitch = (
+    <ChartStyleSwitch
+      label={text.styleLabel}
+      options={styleOptions(SERIES_STYLES, t)}
+      value={style}
+      onChange={setStyle}
+    />
+  );
+
   return (
-    <ChartSection title={text.title} subtitle={subtitle}>
+    <ChartSection title={text.title} subtitle={subtitle} action={styleSwitch}>
       <div>
         <p className="text-2xl font-semibold">{headline}</p>
         <p className="text-sm text-muted-foreground">{text.explain(periodText)}</p>
       </div>
-      <SegmentedControl
-        label={text.styleLabel}
-        options={styleOptions(SERIES_STYLES, t)}
-        value={style}
-        onChange={setStyle}
-      />
       {style === 'table' ? (
         <DataTable visible caption={caption} firstColumn={text.month} columns={columns} rows={cells} />
       ) : (
@@ -357,8 +368,17 @@ export function OverTimeSection({
   const tableRows = rows.map((row) => ({ row, cells: [amountText(row.amountMinor, locale)] }));
   const firstColumn = t.charts.savings.month;
 
+  const styleSwitch = (
+    <ChartStyleSwitch
+      label={text.styleLabel}
+      options={styleOptions(SERIES_STYLES, t)}
+      value={style}
+      onChange={setStyle}
+    />
+  );
+
   return (
-    <ChartSection title={text.title(name)} subtitle={subtitle}>
+    <ChartSection title={text.title(name)} subtitle={subtitle} action={styleSwitch}>
       <div className="grid gap-1.5">
         <Label htmlFor={selectId}>{text.category}</Label>
         <NativeSelect
@@ -374,12 +394,6 @@ export function OverTimeSection({
           ))}
         </NativeSelect>
       </div>
-      <SegmentedControl
-        label={text.styleLabel}
-        options={styleOptions(SERIES_STYLES, t)}
-        value={style}
-        onChange={setStyle}
-      />
       {style === 'table' ? (
         <DataTable visible caption={caption} firstColumn={firstColumn} columns={columns} rows={tableRows} />
       ) : (

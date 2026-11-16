@@ -172,6 +172,40 @@ test('opens spending as a donut of the top 6 and "Everything else", with the tot
   await expect(table.getByRole('link', { name: 'Rent', exact: true })).toHaveCount(1);
 });
 
+test('each chart’s style switch is a row of icon buttons at the end of its heading’s line', async ({ page }) => {
+  await seedSetup(page);
+  await seedEntries(page, OCTOBER);
+  await openCharts(page);
+  const spending = spendingSection(page);
+  const heading = spending.getByRole('heading', { name: 'Spending by category', exact: true });
+
+  // The heading's line holds the heading at its start and the switch at its end, even at 375 px.
+  const headingLine = heading.locator('xpath=../..');
+  const styles = headingLine.getByRole('group', { name: 'Spending chart style', exact: true });
+  await expect(styles).toBeVisible(); // proof: switch-in-heading-line
+  const headingBox = await heading.boundingBox();
+  const stylesBox = await styles.boundingBox();
+  if (!headingBox || !stylesBox) throw new Error('the heading or its switch is not on screen');
+  expect(stylesBox.y).toBeLessThan(headingBox.y + headingBox.height);
+
+  // One icon per style, named by its word, and a 44 px target each.
+  for (const name of ['Donut', 'Bars', 'Table']) {
+    const button = styles.getByRole('button', { name, exact: true });
+    await expect(button.locator('svg')).toBeVisible(); // proof: style-icons
+    const box = await button.boundingBox();
+    if (!box) throw new Error(name + ' is not on screen');
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+  await expect(styles.getByRole('button', { name: 'Donut', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  // The month charts' switch sits on their heading's line too.
+  const savingsLine = savingsSection(page)
+    .getByRole('heading', { name: 'Saved each month', exact: true })
+    .locator('xpath=../..');
+  await expect(savingsLine.getByRole('group', { name: 'Savings chart style', exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
 test('a category keeps its colour, and the bucket is grey', async ({ page }) => {
   await seedSetup(page);
   await seedEntries(page, [

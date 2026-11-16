@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "a chart's style switch sits under its heading's line again",
+      "file": "src/features/charts/chart-parts.tsx",
+      "find": "        {action}\n      </div>\n      {children}",
+      "replace": "      </div>\n      {action}\n      {children}",
+      "expect": {
+        "e2e/charts.spec.ts": [
+          "switch-in-heading-line"
+        ]
+      }
+    },
+    {
+      "name": "the style buttons show no icon",
+      "file": "src/features/charts/chart-parts.tsx",
+      "find": "<Icon aria-hidden=\"true\" className=\"size-5\" />",
+      "replace": "<Icon aria-hidden=\"true\" className=\"hidden\" />",
+      "expect": {
+        "e2e/charts.spec.ts": [
+          "style-icons"
+        ]
+      }
+    }
+  ]
+}
