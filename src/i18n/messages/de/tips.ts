@@ -10,6 +10,7 @@ export const tips: Messages['tips'] = {
   more: 'Mehr',
   tipsIntro: 'Wie Studierende vor Ort weniger zahlen. Jeder Tipp sagt, woher er stammt.',
   tipsFor: 'Tipps zeigen für',
+  sourceLead: 'Quelle:',
   discountsIntro:
     'Rabatte für Studierende in Regensburg. Jeder nennt seine Quelle. Sag der App, ob einer noch gilt: Deine Stimmen ' +
     'werden auf diesem Handy gespeichert und in deinem Konto, sobald das Handy verknüpft ist. Bestätigte rücken nach ' +

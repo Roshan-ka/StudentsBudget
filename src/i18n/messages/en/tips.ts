@@ -9,6 +9,8 @@ export const tips = {
   more: 'More',
   tipsIntro: 'Local ways students pay less. Each tip says where it comes from.',
   tipsFor: 'Show tips for',
+  /** Starts a tip's small source line: "Source: mensa.de · checked 04.11.2026". */
+  sourceLead: 'Source:',
   discountsIntro:
     'Student discounts in Regensburg. Each one names its source. Tell the app whether one still works: your votes ' +
     'are saved on this phone, and in your account once the phone is linked. Ones you confirm move up; ones you mark ' +

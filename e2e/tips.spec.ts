@@ -84,21 +84,40 @@ test('the other categories sit behind More, and folding it away goes back to All
   await expect(tipList(page).getByRole('listitem')).toHaveCount(TIPS.length);
 });
 
-test('a tip shows where it comes from, collapsed until asked for', async ({ page }) => {
+test('a tip says where it comes from in one small line, with no fold-out', async ({ page }) => {
   await openTips(page);
 
   const tip = SORTED[0];
+  const host = new URL(tip.url).hostname.replace(/^www\./, '');
   const item = tipList(page).getByRole('listitem').first();
-  await expect(item.locator('details[open]')).toHaveCount(0);
+  await expect(item.locator('details')).toHaveCount(0);
 
-  await item.getByText('Source', { exact: true }).click();
-  await expect(item.getByText(tip.source, { exact: true })).toBeVisible();
-  await expect(item.getByText(`checked ${formatDate(tip.checked)}`, { exact: true })).toBeVisible();
-  const link = item.getByRole('link', { name: new URL(tip.url).hostname.replace(/^www\./, ''), exact: true });
+  const line = item.getByText(`Source: ${host} · checked ${formatDate(tip.checked)}`, { exact: true });
+  await expect(line).toBeVisible(); // proof: tip-source-line
+  const link = item.getByRole('link', { name: host, exact: true });
   await expect(link).toHaveAttribute('href', tip.url);
   await expect(link).toHaveAttribute('target', '_blank');
   await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  // The source's own words stay with the link, for hover and screen readers.
+  await expect(link).toHaveAttribute('title', tip.source);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
+test('a category chip carries its icon, and the pressed chip a ring as well as its fill', async ({ page }) => {
+  await openTips(page);
+
+  const all = chips(page).getByRole('button', { name: 'All', exact: true });
+  const name = NAMES.get(SORTED[0].categoryId) ?? SORTED[0].categoryId;
+  const chip = chips(page).getByRole('button', { name, exact: true });
+  await expect(all.locator('svg')).toHaveCount(0);
+  await expect(chip.locator('svg')).toHaveCount(1); // proof: chip-icon
+
+  await expect(all).not.toHaveCSS('box-shadow', 'none'); // proof: chip-ring
+  await expect(chip).toHaveCSS('box-shadow', 'none');
+  await chip.click();
+  await expect(chip).toHaveAttribute('aria-pressed', 'true');
+  await expect(chip).not.toHaveCSS('box-shadow', 'none');
+  await expect(all).toHaveCSS('box-shadow', 'none');
 });
 
 test('the tips open without a plan, and the nav stays hidden until setup', async ({ page }) => {
@@ -117,8 +136,8 @@ test.describe('on a phone set to German', () => {
     await expect(list.getByRole('listitem')).toHaveCount(TIPS.length);
     const mensa = list.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Iss in der Mensa' }) });
     await expect(mensa.getByText('Gäste zahlen für denselben Teller 6,10 €.', { exact: false })).toBeVisible();
-    await mensa.getByText('Quelle', { exact: true }).click();
-    await expect(mensa.getByText(/Speiseplan der Mensa Uni Regensburg/)).toBeVisible();
+    await expect(mensa.getByText(/^Quelle: .+ · geprüft am \d{2}\.\d{2}\.\d{4}$/)).toBeVisible();
+    await expect(mensa.getByRole('link')).toHaveAttribute('title', /Speiseplan der Mensa Uni Regensburg/);
     await expect(list.locator('[lang="en"]')).toHaveCount(0);
     expect(await overflow(page)).toBeLessThanOrEqual(0);
   });

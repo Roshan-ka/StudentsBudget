@@ -6,17 +6,19 @@ import { useChoicePref } from '@/lib/phone-pref';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TIPS } from '@/data/tips';
+import { TIPS, type Tip } from '@/data/tips';
 import { categoryTint } from '@/features/charts/colors';
 import { ChecklistView } from '@/features/checklist/checklist-view';
 import { DiscountsView } from '@/features/discounts/discounts-view';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { HacksView } from '@/features/hacks/hacks-view';
-import { RangeSource } from '@/features/setup/steps/range-source';
+import { hostOf } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
-import { tipIn } from '@/i18n/city';
+import { tipIn, type InLanguage } from '@/i18n/city';
 import { useT } from '@/i18n/use-t';
+import { formatDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
+import { CategoryChip } from './category-chip';
 import { sortTips, tipChipIds, tipTag } from './tips';
 
 const SORTED = sortTips(TIPS);
@@ -112,15 +114,13 @@ function TipList({
   const shown = categoryId === null ? SORTED : SORTED.filter((tip) => tip.categoryId === categoryId);
 
   const chip = (id: string | null, label: string) => (
-    <Button
+    <CategoryChip
       key={id ?? 'all'}
-      type="button"
-      variant="chip"
-      aria-pressed={categoryId === id}
-      onClick={() => setCategoryId(id)}
-    >
-      {label}
-    </Button>
+      categoryId={id}
+      label={label}
+      pressed={categoryId === id}
+      onPress={() => setCategoryId(id)}
+    />
   );
 
   // Folding More away while one of its categories is chosen would leave a filter with no pressed chip.
@@ -148,7 +148,12 @@ function TipList({
           const words = tipIn(tip, lang);
           const Icon = CATEGORY_ICONS[tip.categoryId] ?? OTHER_ICON;
           return (
-            <li key={tip.id} className={cn(cardVariants(), 'gap-2')}>
+            // Each card on its category's tint (group 2 redesign); its text keeps 4.5:1 there (`tokens.test.ts`).
+            <li
+              key={tip.id}
+              className={cn(cardVariants(), 'gap-2')}
+              style={{ backgroundColor: categoryTint(tip.categoryId) }}
+            >
               {/* The category's tint and icon; its name is the text, in the foreground colour (4.5:1 on every tint). */}
               <span
                 className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold"
@@ -168,11 +173,38 @@ function TipList({
                 </h3>
                 <p className="text-sm text-muted-foreground">{words.body}</p>
               </div>
-              <RangeSource range={words} about={words.title} />
+              <TipSource words={words} />
             </li>
           );
         })}
       </ul>
     </div>
+  );
+}
+
+/**
+ * Where a tip comes from, as one small muted line (group 2 redesign, Roshan, 16-11-2026: an exception to the buttons
+ * rule, kept small): "Source: mensa.de · checked 04.11.2026". The host is the link, opened in a new tab; the source's own
+ * words (city content, translated with the tip) are its title, so they stay there on hover and for a screen reader.
+ */
+function TipSource({ words }: { words: InLanguage<Tip> }) {
+  const { t } = useT();
+  const estimate = words.source === 'Estimate';
+  return (
+    <p className="text-xs break-words text-muted-foreground">
+      {t.tips.sourceLead}{' '}
+      <a
+        href={words.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={estimate ? t.common.estimate : words.source}
+        lang={estimate ? undefined : words.textLang}
+        className="break-all underline underline-offset-2"
+      >
+        {hostOf(words.url)}
+      </a>
+      {' · '}
+      {t.common.source.checked(formatDate(words.checked))}
+    </p>
   );
 }

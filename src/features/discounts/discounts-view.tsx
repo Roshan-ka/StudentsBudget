@@ -9,10 +9,12 @@ import { db } from '@/db/db';
 import type { DiscountVote } from '@/db/types';
 import { useAuth } from '@/features/account/use-auth';
 import { SegmentedControl } from '@/features/charts/chart-parts';
+import { categoryTint } from '@/features/charts/colors';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { semesterOn } from '@/features/profile/profile';
 import { RangeSource } from '@/features/setup/steps/range-source';
+import { CategoryChip } from '@/features/tips/category-chip';
 import { categoryNameIn } from '@/i18n/category-name';
 import { discountIn } from '@/i18n/city';
 import type { Messages } from '@/i18n/messages';
@@ -329,15 +331,13 @@ export function DiscountsView({
   }
 
   const chip = (id: string | null, label: string) => (
-    <Button
+    <CategoryChip
       key={id ?? 'all'}
-      type="button"
-      variant="chip"
-      aria-pressed={categoryId === id}
-      onClick={() => setCategoryId(id)}
-    >
-      {label}
-    </Button>
+      categoryId={id}
+      label={label}
+      pressed={categoryId === id}
+      onPress={() => setCategoryId(id)}
+    />
   );
 
   /** The category chips: above the list, or along the map's top edge. They filter both. */
@@ -422,6 +422,8 @@ export function DiscountsView({
                   };
                 }}
                 className={cn(cardVariants(), 'gap-2')}
+                // On its category's tint, a student's discount too (group 2 redesign); text keeps 4.5:1 there.
+                style={{ backgroundColor: categoryTint(d.categoryId) }}
               >
                 <DiscountTags categoryId={d.categoryId} student={student !== undefined} t={t} />
                 {/* The discount's own words are city content: in the phone's language where translated (`discountIn`). */}
