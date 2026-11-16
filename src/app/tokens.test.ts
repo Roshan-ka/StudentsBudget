@@ -218,6 +218,17 @@ describe.each(Object.entries(THEMES))('the %s theme', (theme, tokens) => {
       expect(value, `the ${category} bar on its track: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3.05);
     }
   });
+
+  // The Badges page's bars (Group 3, 16-11-2026): primary on the track, over a badge's card and over the accent card.
+  it('keeps the primary bar at 3:1 on its track over the card and the accent', () => {
+    const foreground = tokens.get('foreground') ?? '';
+    const share = TRACK_SHARES[theme as keyof typeof TRACK_SHARES];
+    for (const surface of ['card', 'accent']) {
+      const track = over(linear(foreground), share, linear(tokens.get(surface) ?? ''));
+      const value = ratio(luminance(tokens.get('primary') ?? ''), track);
+      expect(value, `--primary on the track over --${surface}: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+    }
+  });
 });
 
 /**
