@@ -98,15 +98,15 @@ export const entries = {
     reading: 'Reading the receipt…',
     /** The progress bar's name. */
     progress: 'Reading progress',
-    onPhone: "Read on this phone. The photo isn't sent or kept.",
+    onPhone: 'Read on this phone. The photo isn’t sent or kept.',
     /** The thumbnail's text. */
     photo: 'Photo of the receipt',
     checkHeading: 'Check the receipt',
     checkHint: 'Change anything that was read wrong, then save.',
-    failedHeading: "Couldn't read this receipt",
+    failedHeading: 'Couldn’t read this receipt',
     failedHint: 'Faded or crumpled receipts are hard to read. Type in what it says, or try another photo.',
     /** Under the hint when reading failed while the phone was offline: the first scan's download needs a connection. */
-    offline: "You're offline. The first scan needs a connection to download the receipt reader.",
+    offline: 'You’re offline. The first scan needs a connection to download the receipt reader.',
     tryAgain: 'Try another photo',
     pickCategory: 'Pick a category.',
     discard: 'Discard',

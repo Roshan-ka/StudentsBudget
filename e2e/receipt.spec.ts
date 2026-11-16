@@ -151,8 +151,8 @@ test("a receipt it couldn't read opens the card empty, and another photo can be 
   await ocrReads(page, { fail: true });
   await pickPhoto(page, () => scanButton(page).click());
 
-  const card = page.getByRole('region', { name: "Couldn't read this receipt", exact: true });
-  await expect(card.getByRole('heading', { level: 3, name: "Couldn't read this receipt", exact: true })).toBeFocused(); // proof: couldnt-read
+  const card = page.getByRole('region', { name: 'Couldn’t read this receipt', exact: true });
+  await expect(card.getByRole('heading', { level: 3, name: 'Couldn’t read this receipt', exact: true })).toBeFocused(); // proof: couldnt-read
   await expect(card.getByRole('textbox', { name: 'Amount', exact: true })).toHaveValue('');
   await expect(card.getByRole('textbox', { name: 'Date', exact: true })).toHaveValue(formatDate('2026-11-16'));
   await expect(card.getByRole('button', { pressed: true })).toHaveCount(0);
