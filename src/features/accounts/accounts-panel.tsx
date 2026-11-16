@@ -1,6 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { PencilIcon, PlusIcon, StarIcon, Trash2Icon } from 'lucide-react';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { db } from '@/db/db';
 import { loadRates, refreshRates } from '@/db/rates';
 import { AccountHasScheduleError, AccountInUseError, accountUse, deleteAccount } from '@/db/repo';
 import type { Account } from '@/db/types';
+import { RowTile } from '@/features/home/row-card';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
@@ -18,8 +20,10 @@ import { todayIso } from '@/lib/dates';
 import { describedBy } from '@/lib/described-by';
 import { CURRENCIES, amountInputText, formatMoney, type CurrencyCode } from '@/lib/money';
 import { newId } from '@/lib/new-id';
+import { cn } from '@/lib/utils';
 import { accountBalance, defaultAccount, sortAccounts, totalInEur } from './balances';
 import { currencyFixed } from './currency-lock';
+import { KIND_TILE } from './kind-tile';
 import { isOverdrawn, parseSignedAmount, tickOverdrawn, typeOpening } from './opening-balance';
 import { setDefaultAccount } from './set-default-account';
 import { focusFirstControl, focusOnMount, useFocusAfter } from '@/lib/focus';
@@ -113,8 +117,9 @@ function AccountForm({
   const errorFor = (field: FormError['field']) => invalid(field) && errorId;
 
   return (
-    // It opens on its first field (accessibility, chunk 4).
-    <form ref={focusFirstControl} onSubmit={onSubmit} noValidate className="flex flex-col gap-4 rounded-lg border p-4">
+    // It opens on its first field (accessibility, chunk 4). The card it opens in is its frame: the account's own, or the
+    // add form's.
+    <form ref={focusFirstControl} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-name`}>{text.name}</Label>
         <Input
@@ -228,6 +233,10 @@ const deleteKey = (id: string) => `delete:${id}`;
 const ADD_KEY = 'add';
 const HEADING_KEY = 'heading';
 
+/** A small tag beside an account's name: its currency, and the default mark. */
+const TAG =
+  'inline-flex w-fit max-w-full items-center gap-1 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold';
+
 export function AccountsPanel() {
   const { t, locale } = useT();
   const text = t.accounts;
@@ -291,181 +300,209 @@ export function AccountsPanel() {
   const nothingConverted = loaded && total !== null && accounts.every((a) => total.missingRates.includes(a.currency));
 
   return (
-    <section aria-labelledby="accounts-heading" className={cardVariants()}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3
-          ref={focus.refFor(HEADING_KEY)}
-          id="accounts-heading"
-          tabIndex={-1}
-          className="text-xl leading-tight font-extrabold outline-none"
-        >
-          {text.heading}
-        </h3>
-        {editing !== 'new' && (
-          <Button
-            ref={focus.refFor(ADD_KEY)}
-            variant="outline"
-            className="px-4"
-            onClick={() => {
-              setRowError(null);
-              setEditing('new');
-            }}
-          >
-            {text.add}
-          </Button>
-        )}
-      </div>
-
-      {/* Always rendered, so a screen reader is already listening when the text appears. A polite live region rather
-          than role="status": Settings has other status lines that tests find by that role on the page. */}
-      <p aria-live="polite" aria-atomic="true" className="sr-only">
-        {notice}
-      </p>
-
-      {editing === 'new' && (
-        <AccountForm
-          currencyLocked={false}
-          onDone={() => {
-            focus.mark(ADD_KEY);
-            setEditing(null);
-          }}
-        />
-      )}
-
-      {loaded && accounts.length === 0 && editing !== 'new' && (
-        <p className="text-muted-foreground">{text.none}</p>
-      )}
-
-      {loaded && accounts.length > 0 && (
-        <ul className="flex flex-col">
-          {accounts.map((account, index) => (
-            <li key={account.id} className="border-b py-3 last:border-b-0">
-              {editing === account.id ? (
-                <AccountForm
-                  account={account}
-                  currencyLocked={currencyFixed(account.id, entries ?? [], plan)}
-                  onDone={() => {
-                    focus.mark(editKey(account.id));
-                    setEditing(null);
-                  }}
-                />
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium break-words">{account.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {text.kinds[account.kind]} · {account.currency}
-                        {/* With one account there is nothing to choose between. */}
-                        {accounts.length > 1 && account.id === defaultId && (
-                          <>
-                            {' · '}
-                            <span className="text-foreground">{text.defaultMark}</span>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                    <p className="shrink-0 font-medium tabular-nums">
-                      {formatMoney(accountBalance(account, entries), account.currency, { locale })}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      ref={(node: HTMLButtonElement | null) => {
-                        if (node) editButtons.current.set(account.id, node);
-                        else editButtons.current.delete(account.id);
-                        focus.refFor(editKey(account.id))(node);
-                      }}
-                      variant="outline"
-                      className="px-4"
-                      aria-label={text.editAccount(account.name)}
-                      onClick={() => {
-                        setRowError(null);
-                        setEditing(account.id);
-                      }}
-                    >
-                      {text.edit}
-                    </Button>
-                    {accounts.length > 1 && account.id !== defaultId && (
-                      <Button
-                        variant="ghost"
-                        className="px-4"
-                        aria-label={text.makeDefaultOf(account.name)}
-                        onClick={() => void makeDefault(account)}
-                      >
-                        {text.makeDefault}
-                      </Button>
-                    )}
-                    <Button
-                      ref={focus.refFor(deleteKey(account.id))}
-                      variant="ghost"
-                      className="px-4"
-                      aria-label={text.deleteAccount(account.name)}
-                      onClick={() => {
-                        setRowError(null);
-                        setConfirming(account.id);
-                      }}
-                    >
-                      {text.delete}
-                    </Button>
-                  </div>
-                  {/* Asks first, as deleting an entry or a fixed cost does: the question takes the focus. */}
-                  {confirming === account.id && (
-                    <div
-                      role="group"
-                      aria-label={text.deleteQuestion(account.name)}
-                      className="flex flex-wrap items-center gap-2"
-                    >
-                      <p ref={focusOnMount} tabIndex={-1} className="me-auto font-semibold outline-none">
-                        {text.deleteQuestion(account.name)}
-                      </p>
-                      <Button
-                        variant="destructive"
-                        className="px-4"
-                        onClick={() => {
-                          const next = accounts[index + 1] ?? accounts[index - 1];
-                          void remove(account, next ? editKey(next.id) : HEADING_KEY);
-                        }}
-                      >
-                        {text.delete}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="px-4"
-                        onClick={() => {
-                          focus.mark(deleteKey(account.id));
-                          setConfirming(null);
-                        }}
-                      >
-                        {text.cancel}
-                      </Button>
-                    </div>
-                  )}
-                  {rowError?.id === account.id && (
-                    <p role="alert" className="text-sm text-destructive">
-                      {rowError.message}
-                    </p>
-                  )}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
+    <>
+      {/* The one number the page leads with, in the accent card with the bank's tile (Roshan's mockups, 16-11-2026). */}
       {total && (
-        <div className="flex flex-col gap-1 rounded-lg bg-muted px-4 py-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="font-medium">{text.total}</p>
-            <p className="font-medium tabular-nums">
-              {nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { locale })}
-            </p>
+        <section aria-labelledby="accounts-total-heading" className={cn(cardVariants({ variant: 'accent' }), 'gap-2')}>
+          <div className="flex items-center gap-3">
+            <RowTile icon={KIND_TILE.bank.icon} tint={KIND_TILE.bank.tint} />
+            <h3 id="accounts-total-heading" className="min-w-0 font-sans text-sm font-semibold tracking-normal">
+              {text.total}
+            </h3>
           </div>
+          {/* The card's whole width for the amount, so the cents fit at 320 px. */}
+          <p className="font-heading text-4xl leading-tight font-extrabold tracking-tight tabular-nums break-words">
+            {nothingConverted ? '—' : formatMoney(total.totalMinor, 'EUR', { locale })}
+          </p>
           {total.missingRates.length > 0 && (
-            <p className="text-sm text-muted-foreground">{text.withoutRates(total.missingRates.join(', '))}</p>
+            <p className="text-sm">{text.withoutRates(total.missingRates.join(', '))}</p>
+          )}
+        </section>
+      )}
+
+      <section aria-labelledby="accounts-heading" className="flex flex-col gap-3">
+        {/* Add account at the end of the heading's line, an outlined button with a plus (16-11-2026). */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <h3
+            ref={focus.refFor(HEADING_KEY)}
+            id="accounts-heading"
+            tabIndex={-1}
+            className="text-xl leading-tight font-extrabold outline-none"
+          >
+            {text.heading}
+          </h3>
+          {editing !== 'new' && (
+            <Button
+              ref={focus.refFor(ADD_KEY)}
+              variant="outline"
+              onClick={() => {
+                setRowError(null);
+                setEditing('new');
+              }}
+            >
+              <PlusIcon aria-hidden="true" />
+              {text.add}
+            </Button>
           )}
         </div>
-      )}
-    </section>
+
+        {/* Always rendered, so a screen reader is already listening when the text appears. A polite live region rather
+            than role="status": Settings has other status lines that tests find by that role on the page. */}
+        <p aria-live="polite" aria-atomic="true" className="sr-only">
+          {notice}
+        </p>
+
+        {editing === 'new' && (
+          <div className={cardVariants()}>
+            <AccountForm
+              currencyLocked={false}
+              onDone={() => {
+                focus.mark(ADD_KEY);
+                setEditing(null);
+              }}
+            />
+          </div>
+        )}
+
+        {loaded && accounts.length === 0 && editing !== 'new' && (
+          <p className="text-muted-foreground">{text.none}</p>
+        )}
+
+        {loaded && accounts.length > 0 && (
+          <ul aria-labelledby="accounts-heading" className="flex flex-col gap-3">
+            {accounts.map((account, index) => (
+              // Each account its own card (16-11-2026): its kind's tile, the name with its tags, the balance, then its
+              // buttons. The edit form opens inside it.
+              <li key={account.id} className={cardVariants()}>
+                {editing === account.id ? (
+                  <AccountForm
+                    account={account}
+                    currencyLocked={currencyFixed(account.id, entries ?? [], plan)}
+                    onDone={() => {
+                      focus.mark(editKey(account.id));
+                      setEditing(null);
+                    }}
+                  />
+                ) : (
+                  <>
+                    <div className="flex items-start gap-3">
+                      {/* The tile is the only place the kind shows, so a screen reader hears it: "Bank", "Cash". */}
+                      <RowTile
+                        icon={KIND_TILE[account.kind].icon}
+                        tint={KIND_TILE[account.kind].tint}
+                        label={text.kinds[account.kind]}
+                      />
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        {/* The balance at the end of the name's line; where both don't fit (320 px, large text) it
+                            moves under the name, still at the end, instead of squeezing the name to nothing. */}
+                        <div className="flex flex-wrap items-baseline gap-x-3">
+                          <p className="min-w-[min(7rem,100%)] flex-1 basis-0 font-semibold break-words">
+                            {account.name}
+                          </p>
+                          <p className="ms-auto font-semibold tabular-nums">
+                            {formatMoney(accountBalance(account, entries), account.currency, { locale })}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className={TAG}>{account.currency}</span>
+                          {/* With one account there is nothing to choose between. */}
+                          {accounts.length > 1 && account.id === defaultId && (
+                            <span className={cn(TAG, 'bg-muted')}>
+                              <StarIcon aria-hidden="true" className="size-3.5 shrink-0" />
+                              {text.defaultMark}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Outlined, each with its icon (16-11-2026), and allowed to wrap rather than stick out at 200 %. */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        ref={(node: HTMLButtonElement | null) => {
+                          if (node) editButtons.current.set(account.id, node);
+                          else editButtons.current.delete(account.id);
+                          focus.refFor(editKey(account.id))(node);
+                        }}
+                        variant="outline"
+                        className="max-w-full"
+                        aria-label={text.editAccount(account.name)}
+                        onClick={() => {
+                          setRowError(null);
+                          setEditing(account.id);
+                        }}
+                      >
+                        <PencilIcon aria-hidden="true" />
+                        {text.edit}
+                      </Button>
+                      {accounts.length > 1 && account.id !== defaultId && (
+                        <Button
+                          variant="outline"
+                          className="max-w-full"
+                          aria-label={text.makeDefaultOf(account.name)}
+                          onClick={() => void makeDefault(account)}
+                        >
+                          <StarIcon aria-hidden="true" />
+                          {text.makeDefault}
+                        </Button>
+                      )}
+                      <Button
+                        ref={focus.refFor(deleteKey(account.id))}
+                        variant="outline"
+                        className="max-w-full"
+                        aria-label={text.deleteAccount(account.name)}
+                        onClick={() => {
+                          setRowError(null);
+                          setConfirming(account.id);
+                        }}
+                      >
+                        <Trash2Icon aria-hidden="true" />
+                        {text.delete}
+                      </Button>
+                    </div>
+                    {/* Asks first, as deleting an entry or a fixed cost does: the question takes the focus. */}
+                    {confirming === account.id && (
+                      <div
+                        role="group"
+                        aria-label={text.deleteQuestion(account.name)}
+                        className="flex flex-wrap items-center gap-2"
+                      >
+                        <p ref={focusOnMount} tabIndex={-1} className="me-auto font-semibold outline-none">
+                          {text.deleteQuestion(account.name)}
+                        </p>
+                        <Button
+                          variant="destructive"
+                          className="px-4"
+                          onClick={() => {
+                            const next = accounts[index + 1] ?? accounts[index - 1];
+                            void remove(account, next ? editKey(next.id) : HEADING_KEY);
+                          }}
+                        >
+                          {text.delete}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="px-4"
+                          onClick={() => {
+                            focus.mark(deleteKey(account.id));
+                            setConfirming(null);
+                          }}
+                        >
+                          {text.cancel}
+                        </Button>
+                      </div>
+                    )}
+                    {rowError?.id === account.id && (
+                      <p role="alert" className="text-sm text-destructive">
+                        {rowError.message}
+                      </p>
+                    )}
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
   );
 }

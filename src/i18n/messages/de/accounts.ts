@@ -25,7 +25,7 @@ export const accounts: Messages['accounts'] = {
   makeDefaultOf: (name) => `Als Standard: ${name}`,
   defaultMark: 'Standard für neue Einträge',
   nowDefault: (name) => `${name} ist jetzt der Standard für neue Einträge.`,
-  total: 'Summe',
+  total: 'Auf allen Konten',
   withoutRates: (currencies) => `Ohne ${currencies}: noch kein Wechselkurs.`,
   errors: {
     name: 'Gib einen Namen ein.',

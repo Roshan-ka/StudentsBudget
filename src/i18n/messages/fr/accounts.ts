@@ -26,7 +26,7 @@ export const accounts: Messages['accounts'] = {
   makeDefaultOf: (name) => `Définir par défaut${NNBSP}: ${name}`,
   defaultMark: 'Par défaut pour les nouvelles saisies',
   nowDefault: (name) => `${name} est désormais le compte par défaut pour les nouvelles saisies.`,
-  total: 'Total',
+  total: 'Sur tous les comptes',
   withoutRates: (currencies) => `Sans ${currencies}${NNBSP}: pas encore de taux de change.`,
   errors: {
     name: 'Saisis un nom.',

@@ -48,6 +48,32 @@ test('a new INR account shows its balance and the ECB rate', async ({ page }) =>
   await expect(page.getByText('ECB, 16 Oct')).toBeVisible();
 });
 
+test('the page leads with the total in its own card, and each account is a card with its tile, tags and buttons', async ({
+  page,
+}) => {
+  await mockFrankfurter(page);
+  await openSettings(page);
+  await addAccount(page, { name: 'Bank', currency: 'EUR', opening: '200' });
+  await addAccount(page, { name: 'Wallet', currency: 'EUR', opening: '40', kind: 'cash' });
+
+  // The total first, in the yellow card named by its label (Roshan's mockups, 16-11-2026).
+  await expect(page.getByRole('region', { name: 'Across all accounts', exact: true })).toContainText('€240.00');
+
+  // Each account its own card in the list: the kind's tile, which a screen reader reads, since no word beside it says
+  // the kind; the currency and default tags; the balance; and Edit, Make default and Delete.
+  const list = page.getByRole('list', { name: 'Accounts', exact: true });
+  const card = (name: string) =>
+    list.getByRole('listitem').filter({ has: page.getByRole('button', { name: `Edit: ${name}`, exact: true }) });
+  await expect(card('Wallet').getByRole('img', { name: 'Cash', exact: true })).toBeVisible(); // proof: kind-tile
+  await expect(card('Bank').getByRole('img', { name: 'Bank', exact: true })).toBeVisible();
+  await expect(card('Wallet').getByText('EUR', { exact: true })).toBeVisible(); // proof: currency-tag
+  await expect(card('Bank').getByText('Default for new entries', { exact: true })).toBeVisible();
+  await expect(card('Wallet').getByText('€40.00', { exact: true })).toBeVisible();
+  await expect(card('Wallet').getByRole('button', { name: 'Make default: Wallet', exact: true })).toBeVisible();
+  await expect(card('Wallet').getByRole('button', { name: 'Delete: Wallet', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Move money between accounts', exact: true })).toBeVisible();
+});
+
 test('without a rate the panel asks for one', async ({ page }) => {
   await page.route(FRANKFURTER, (route) => route.abort());
   await openSettings(page);

@@ -2,6 +2,7 @@
 
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { CoinsIcon, RotateCcwIcon } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -10,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { db } from '@/db/db';
 import { clearManualRate, loadRates, refreshRates, setManualRate } from '@/db/rates';
 import type { Rate } from '@/db/types';
+import { categoryTint } from '@/features/charts/colors';
+import { RowTile } from '@/features/home/row-card';
 import { dateFormat, numberFormat } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
 import { todayIso, type IsoDate } from '@/lib/dates';
@@ -104,7 +107,8 @@ function RateRow({ currency, rate }: { currency: CurrencyCode; rate: Rate | unde
       )}
       {isManual && (
         <div>
-          <Button variant="ghost" className="px-4" onClick={() => void onUseEcb()}>
+          <Button variant="outline" onClick={() => void onUseEcb()}>
+            <RotateCcwIcon aria-hidden="true" />
             {words.useEcb}
           </Button>
         </div>
@@ -127,10 +131,14 @@ export function RatesPanel() {
   if (currencies.length === 0) return null;
 
   return (
+    // A card in the accounts' look (16-11-2026): its tile beside the heading, coins on a category's tint for its colour.
     <section aria-labelledby="rates-heading" className={cardVariants()}>
-      <h3 id="rates-heading" className="text-xl leading-tight font-extrabold">
-        {t.accounts.rates.heading}
-      </h3>
+      <div className="flex items-center gap-3">
+        <RowTile icon={CoinsIcon} tint={categoryTint('food')} />
+        <h3 id="rates-heading" className="text-xl leading-tight font-extrabold">
+          {t.accounts.rates.heading}
+        </h3>
+      </div>
       {rates !== undefined && (
         <ul className="flex flex-col">
           {currencies.map((code) => (
