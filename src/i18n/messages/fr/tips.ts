@@ -11,6 +11,7 @@ export const tips: Messages['tips'] = {
   more: 'Plus',
   tipsIntro: 'Des façons locales de payer moins quand on est étudiant. Chaque conseil indique sa source.',
   tipsFor: 'Afficher les conseils pour',
+  sourceLead: `Source${NNBSP}:`,
   discountsIntro:
     `Réductions étudiantes à Regensburg. Chacune indique sa source. Dis à l’app si une réduction marche encore${NNBSP}: ` +
     'tes votes sont enregistrés sur ce téléphone, et dans ton compte une fois le téléphone associé. Celles que tu ' +

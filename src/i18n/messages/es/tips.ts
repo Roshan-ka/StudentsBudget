@@ -11,6 +11,7 @@ export const tips: Messages['tips'] = {
   more: 'Más',
   tipsIntro: 'Formas locales de pagar menos como estudiante. Cada consejo dice de dónde sale.',
   tipsFor: 'Mostrar consejos de',
+  sourceLead: 'Fuente:',
   discountsIntro:
     'Descuentos para estudiantes en Regensburg. Cada uno indica su fuente. Dile a la app si uno sigue ' +
     'funcionando: tus votos se guardan en este móvil, y en tu cuenta en cuanto el móvil esté vinculado. Los que ' +
