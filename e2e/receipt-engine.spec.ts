@@ -33,9 +33,10 @@ async function watchViolations(page: Page): Promise<string[]> {
 
 test('the real engine reads a drawn receipt from the app’s own files, under the real policy', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'One real-engine run is enough: the iPhone is checked by hand');
-  // Loading the engine (about 8.4 MB from the e2e server) and reading one receipt take a few seconds on a laptop;
-  // the CI runner's time is to be measured in the first run, and this limit set to it with room.
-  test.setTimeout(90_000);
+  // Loading the engine (about 8.4 MB from the e2e server) and reading one receipt: in CI (run 43855516727, 16-11-2026,
+  // two workers side by side) the amount showed under 5 s after the run began, setup included. 20 s for the reading and
+  // 45 s for the test leave about four times that for a busy runner.
+  test.setTimeout(45_000);
   const violations = await watchViolations(page);
   const requested: string[] = [];
   page.on('request', (request) => requested.push(request.url()));
@@ -47,8 +48,9 @@ test('the real engine reads a drawn receipt from the app’s own files, under th
   await scanPhoto(page, await drawnReceipt(page));
 
   const card = page.getByRole('region', { name: 'Check the receipt', exact: true });
-  await expect(card.getByRole('textbox', { name: 'Amount', exact: true })).toHaveValue('12.34', { timeout: 60_000 }); // proof: real-engine-reads
-  await expect(card.getByRole('textbox', { name: 'Note', exact: true })).toHaveValue('REWE');
+  await expect(card.getByRole('textbox', { name: 'Amount', exact: true })).toHaveValue('12.34', { timeout: 20_000 }); // proof: real-engine-reads
+  // The note is the shop line as the receipt writes it (readReceipt keeps it whole), not the chain's name alone.
+  await expect(card.getByRole('textbox', { name: 'Note', exact: true })).toHaveValue('REWE Markt');
   await expect(card.getByRole('button', { name: 'Food & groceries', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   expect(violations).toEqual([]);

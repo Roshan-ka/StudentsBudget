@@ -123,14 +123,15 @@ So students' receipt photos can't go to Groq.
 - **Chunk 5** (16-11-2026), the real engine and offline, stacked on #257:
   - **`e2e/helpers/receipt.ts`:** `drawnReceipt` draws a clean receipt in the page (56 px monospace, black on white: REWE, two items, `SUMME EUR 12,34`, a date) and gives it as a PNG for the picker. `receiptNoteSeen` and `scanPhoto` cover the steps around a scan.
   - **`e2e/receipt-engine.spec.ts`** (Chromium; WebKit skips it by design, since the iPhone is checked by hand):
-    - the real engine reads the drawn receipt under the production build's policy: amount 12.34, note REWE, Food & groceries chosen;
+    - the real engine reads the drawn receipt under the production build's policy: amount 12.34, note REWE Markt (the shop line as the receipt writes it), Food & groceries chosen;
     - no CSP violation, page or console;
     - the page loads the engine from the set's folder and asks no other host for anything.
     - What the engine's worker fetches isn't asserted from the page's requests, which may leave out a worker's. The policy keeps those to this origin, and the offline case finds them in the cache.
     - **Saved mutations** (`e2e/mutations/receipt-engine.json`): the policy without `'wasm-unsafe-eval'`, and a core file the set doesn't ship. Either turns the card into "Couldn't read this receipt", which fails the `real-engine-reads` proof.
   - **`e2e/offline.spec.ts`:** one real read online under the worker, then checks the worker's cache. `studentsbudget-ocr-<set>` must hold the module, the worker script, both languages and a core build. Then one real read offline.
     - It has no saved mutations, like the rest of that spec, which runs on its own config, apart from red-green.
-  - **Limits:** 90 s for the real-engine test and 120 s for the offline case (two reads), with 60 s for each reading to show. They are estimates until the first CI run measures them.
+  - **Limits**, from the first full CI run (43855516727, 16-11-2026): the amount showed under 5 s after the run began, setup included, and the offline job's seven tests took 43.4 s. So 20 s for each reading to show, 45 s for the real-engine test, and the offline spec's usual 60 s for its case (two reads).
+  - That run also failed on the spec's own mistake: it expected the note `REWE`, but `readReceipt` keeps the shop line whole (`REWE Markt`), as its unit tests intend. Fixed in the spec.
   - **Lists:** `e2e/affected-map.json` adds `receipt-engine` under `/entries`, and the skip allow list adds its WebKit skip.
   - **Still owed:** the real try with real receipts on a phone, an iPhone among them.
 

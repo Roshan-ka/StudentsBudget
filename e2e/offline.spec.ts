@@ -212,8 +212,9 @@ test('the discount map opens offline after one online visit, from a cache of its
 
 test('a receipt is read offline after one online scan, from a cache of its own', async ({ page, context }) => {
   // Two real readings: the first loads the engine (about 8.4 MB) through the worker and reads, the second reads from
-  // the worker's cache alone. The CI runner's time is to be measured in the first run, and this limit set to it.
-  test.setTimeout(120_000);
+  // the worker's cache alone. In CI (run 43855516727, 16-11-2026) the whole offline job, seven tests with this one, took
+  // 43.4 s, and one reading takes under 5 s (receipt-engine.spec.ts): 20 s a reading and the spec's usual 60 s are room.
+  test.setTimeout(60_000);
   await receiptNoteSeen(page);
   await completeSetup(page);
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
@@ -223,7 +224,7 @@ test('a receipt is read offline after one online scan, from a cache of its own',
   const amount = card.getByRole('textbox', { name: 'Amount', exact: true });
 
   await scanPhoto(page, await drawnReceipt(page));
-  await expect(amount).toHaveValue('12.34', { timeout: 60_000 });
+  await expect(amount).toHaveValue('12.34', { timeout: 20_000 });
   await card.getByRole('button', { name: 'Discard', exact: true }).click();
 
   // The worker kept the engine apart from the build's cache: the module, the worker script, a core and both languages.
@@ -240,6 +241,6 @@ test('a receipt is read offline after one online scan, from a cache of its own',
   await context.setOffline(true);
   await page.reload();
   await scanPhoto(page, await drawnReceipt(page));
-  await expect(amount).toHaveValue('12.34', { timeout: 60_000 });
+  await expect(amount).toHaveValue('12.34', { timeout: 20_000 });
 });
 
