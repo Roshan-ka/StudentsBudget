@@ -7,9 +7,10 @@ export const reveal: Messages['reveal'] = {
   notYet: (month) => `Deinen ersten Rückblick gibt es, sobald der ${month} vorbei ist.`,
   adjust: 'Umschläge bearbeiten',
   recap: {
-    savings: (label, amount) => `${label}: ${amount} übrig → Rücklagen`,
-    over: (label, amount) => `${label}: ${amount} über dem Plan`,
-    onPlan: (label) => `${label}: genau im Plan`,
+    savings: (amount) => `${amount} übrig → Rücklagen`,
+    over: (amount) => `${amount} über dem Plan`,
+    onPlan: 'Genau im Plan',
   },
+  spentOf: (spent, planned) => `${spent} von ${planned} ausgegeben`,
   noPlan: 'Richte deinen Plan ein, um zu sehen, wie jeder Monat läuft.',
 };
