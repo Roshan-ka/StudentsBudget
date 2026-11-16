@@ -63,8 +63,11 @@ permissions:
 
 # A new run on the same branch and scope stops the one before it; a changed run never stops a full one. The workflow's
 # name is part of it: in a call it is the caller's, so the nightly and a full run started by hand never stop each other.
+# A draft's run runs nothing, so it has a group of its own: a pull request opened as a draft and marked ready at once can
+# have its `opened` event arrive after Ready for review, and in the same group it stopped the real quick check (#254,
+# 16-11-2026). Outside a pull request the suffix is empty.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.scope }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.scope }}${{ github.event.pull_request.draft && '-draft' || '' }}
   cancel-in-progress: true
 
 jobs:
