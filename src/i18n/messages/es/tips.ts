@@ -194,6 +194,7 @@ export const tips: Messages['tips'] = {
     vote: {
       group: (post) => `Tu voto sobre ${post}`,
       up: 'Me gusta',
+      upCount: (count) => (count === 0 ? 'Me gusta' : `Me gusta (${count})`),
       worked: 'Me funcionó',
       outdated: 'Desactualizado',
     },

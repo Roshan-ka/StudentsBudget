@@ -1,10 +1,11 @@
 'use client';
 
-import { LanguagesIcon } from 'lucide-react';
-import { useId, useRef, useState, type FormEvent } from 'react';
+import { FlagIcon, LanguagesIcon, MessageCircleIcon, Trash2Icon } from 'lucide-react';
+import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { linkButtonClass } from '@/components/link-button';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { noteSeen } from '@/features/privacy/notes';
@@ -15,6 +16,7 @@ import { describedBy } from '@/lib/described-by';
 import { formatDate, todayIso } from '@/lib/dates';
 import { useFocusAfter } from '@/lib/focus';
 import { getSupabase } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
 import {
   checkComment,
   COMMENT_MAX,
@@ -31,6 +33,10 @@ import { postingNameText } from './posting-name';
  * A post's comments (docs/superpowers/plans/2026-11-11-community.md, chunk 2): "Comments (n)" opens them, oldest first,
  * with a short form under them. They load when opened, and again after a comment, a delete or a report. The first
  * comment on a phone waits for the `post` note, and the first report for the `hackVotes` note, as on a post.
+ *
+ * Since the group 3 redesign (16-11-2026) the toggle is an outlined icon button in the post's row of actions: `before`
+ * and `after` are the post's other buttons around it, and `children` (the post's questions and notes) come between
+ * that row and the comments. Each comment is a card of its own.
  */
 export function HackComments({
   postId,
@@ -39,6 +45,9 @@ export function HackComments({
   t,
   lang,
   onCount,
+  before,
+  after,
+  children,
 }: {
   postId: string;
   /** The post as its Report and Delete name it ("the post by @lena, 04.11.2026"), for the toggle's name. */
@@ -48,6 +57,11 @@ export function HackComments({
   lang: Language;
   /** The count as this phone now knows it, after a comment, a delete or a report. */
   onCount: (count: number) => void;
+  /** The post's buttons before the toggle in its row (the votes) and after it (Report, Delete, Translate). */
+  before?: ReactNode;
+  after?: ReactNode;
+  /** What shows between the row and the comments: the post's questions, notes and problems. */
+  children?: ReactNode;
 }) {
   const id = useId();
   const text = t.tips.hacks.comments;
@@ -128,19 +142,25 @@ export function HackComments({
 
   return (
     <div className="flex flex-col gap-2">
-      <Button
-        type="button"
-        variant="ghost"
-        className="self-start px-3"
-        aria-expanded={open}
-        aria-controls={listId}
-        // Its words, then the post: "Comments (3): the post by @lena, 04.11.2026".
-        aria-label={t.tips.hacks.named(text.toggle(count), post)}
-        onClick={toggle}
-      >
-        {text.toggle(count)}
-      </Button>
-      <div id={listId} hidden={!open} className="flex flex-col gap-3 border-s-2 border-outline ps-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {before}
+        <Button
+          type="button"
+          variant="outline"
+          aria-expanded={open}
+          aria-controls={listId}
+          // Its words, then the post: "Comments (3): the post by @lena, 04.11.2026". The icon shows the count beside
+          // it, which the name holds too.
+          aria-label={t.tips.hacks.named(text.toggle(count), post)}
+          onClick={toggle}
+        >
+          <MessageCircleIcon aria-hidden="true" />
+          {count > 0 && count}
+        </Button>
+        {after}
+      </div>
+      {children}
+      <div id={listId} hidden={!open} className="flex flex-col gap-3">
         {open && comments === null && <p className="text-sm text-muted-foreground">{text.loading}</p>}
         {open && comments === 'failed' && <p className="text-sm text-muted-foreground">{text.loadFailed}</p>}
         {open && Array.isArray(comments) && comments.length === 0 && (
@@ -259,7 +279,8 @@ function CommentItem({
   }
 
   return (
-    <li className="flex flex-col gap-1">
+    // A card of its own on the post's tint (group 3 redesign, 16-11-2026).
+    <li className={cn(cardVariants(), 'gap-1 p-3')}>
       <p className="text-sm font-semibold break-words">
         {comment.author === null ? hacks.noName : postingNameText(comment.author, t.auth.postingName)}
         <span className="font-normal text-muted-foreground">
@@ -295,8 +316,7 @@ function CommentItem({
           <Button
             ref={focus.refFor(comment.mine ? 'delete' : 'report')}
             type="button"
-            variant="ghost"
-            className="px-3"
+            variant="outline"
             disabled={busy}
             aria-label={hacks.named(comment.mine ? hacks.delete : hacks.report, which)}
             onClick={() => {
@@ -304,6 +324,7 @@ function CommentItem({
               setAsking(comment.mine ? 'delete' : 'report');
             }}
           >
+            {comment.mine ? <Trash2Icon aria-hidden="true" /> : <FlagIcon aria-hidden="true" />}
             {comment.mine ? hacks.delete : hacks.report}
           </Button>
         )}

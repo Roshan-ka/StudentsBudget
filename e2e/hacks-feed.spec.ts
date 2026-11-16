@@ -136,6 +136,37 @@ test('when the posts can’t be loaded, the last list shows, and signing out for
   expect(await page.evaluate((key) => localStorage.getItem(key), FEED_CACHE_KEY)).toBeNull();
 });
 
+test('each post is a card on its category’s tint, with its actions as outlined icon buttons', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseData(page, { feed: POSTS });
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await signIn(page);
+  await openHacks(page);
+
+  const bread = posts(page).filter({ hasText: 'Bread is half price' });
+  const ticket = posts(page).filter({ hasText: 'Semesterticket' });
+  // Food and Transport each on their own tint.
+  const ticketTint = await ticket.evaluate((element) => getComputedStyle(element).backgroundColor);
+  await expect(bread).not.toHaveCSS('background-color', ticketTint); // proof: hack-card-tint
+
+  // The category's tag, then who and when, on one line.
+  await expect(bread).toContainText(`Food & groceries@bea · Graduate · Class of ’25 · Regensburg · ${dayOf(POSTS[0].created_at)}`);
+
+  // Upvote shows its icon and count, and its name holds the count.
+  const up = bread.getByRole('group', { name: /^Your vote on / }).getByRole('button', { name: 'Upvote (3)', exact: true });
+  await expect(up.locator('svg')).toHaveCount(1); // proof: hack-upvote-icon
+  await expect(up).toHaveText('3'); // proof: hack-upvote-count
+  await expect(bread.getByRole('button', { name: 'Worked for me', exact: true }).locator('svg')).toHaveCount(1);
+  await expect(bread.getByRole('button', { name: 'Outdated', exact: true }).locator('svg')).toHaveCount(1);
+
+  // No comments yet: the comments button is its icon alone, named by its word and the post.
+  const comments = bread.getByRole('button', { name: /^Comments: the post by @bea, / });
+  await expect(comments.locator('svg')).toHaveCount(1); // proof: hack-comments-icon
+  await expect(comments).toHaveText('');
+  await expect(bread.getByRole('button', { name: /^Report: the post by @bea, / }).locator('svg')).toHaveCount(1);
+  await expect(ticket.getByRole('button', { name: /^Delete: your post, / }).locator('svg')).toHaveCount(1);
+});
+
 test.describe('in German', () => {
   test.use({ locale: 'de-DE' });
 

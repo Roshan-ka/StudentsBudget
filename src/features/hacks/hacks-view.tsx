@@ -1,7 +1,18 @@
 'use client';
 
-import { CloudIcon, LanguagesIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Dialog } from '@base-ui/react/dialog';
+import {
+  ArrowBigUpIcon,
+  CheckIcon,
+  CloudIcon,
+  FlagIcon,
+  HistoryIcon,
+  LanguagesIcon,
+  PlusIcon,
+  Trash2Icon,
+  type LucideIcon,
+} from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ExternalLinkButton, LinkButton, linkButtonClass } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -10,6 +21,7 @@ import { categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
+import { CategoryChip } from '@/features/tips/category-chip';
 import { categoryNameIn } from '@/i18n/category-name';
 import type { Language } from '@/i18n/languages';
 import type { Messages } from '@/i18n/messages';
@@ -53,8 +65,10 @@ export function HacksView() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   // Counts "Try again" taps, posts and deletes: each one loads the list once more.
   const [attempt, setAttempt] = useState(0);
-  // The post form (chunk 5), and what a screen reader hears after a post or a delete.
+  // The post form (chunk 5) in its sheet (16-11-2026), and what a screen reader hears after a post or a delete.
   const [writing, setWriting] = useState(false);
+  const pill = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState('');
   // How many comments each post has (community, chunk 2), read once per visit with the list.
   const [commentCounts, setCommentCounts] = useState<ReadonlyMap<string, number>>(new Map());
@@ -89,6 +103,17 @@ export function HacksView() {
       current = false;
     };
   }, [userId, attempt]);
+
+  // While the floating "Post a hack" shows, a focused control scrolls clear of it too (`data-floating-action`, layout).
+  // A hidden page's effects clean up, so the mark goes with the page.
+  useEffect(() => {
+    if (userId === null) return;
+    const root = document.documentElement;
+    root.dataset.floatingAction = '';
+    return () => {
+      delete root.dataset.floatingAction;
+    };
+  }, [userId]);
 
   // A vote or a report changes the list on screen: the phone keeps that list as it now is.
   useEffect(() => {
@@ -168,34 +193,52 @@ export function HacksView() {
   const listed = posts === null ? [] : chosen === null ? posts : posts.filter((post) => post.categoryId === chosen);
 
   const chip = (id: string | null, label: string) => (
-    <Button
+    <CategoryChip
       key={id ?? 'all'}
-      type="button"
-      variant="chip"
-      aria-pressed={chosen === id}
-      onClick={() => setCategoryId(id)}
-    >
-      {label}
-    </Button>
+      categoryId={id}
+      label={label}
+      pressed={chosen === id}
+      onPress={() => setCategoryId(id)}
+    />
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    // The end of the list scrolls clear of the floating button (pb-20, on top of main's own padding).
+    <div className="flex flex-col gap-4 pb-20">
       <p className="text-sm text-muted-foreground">{text.intro}</p>
-      {writing ? (
-        <HackForm userId={userId} onPosted={posted} onCancel={() => setWriting(false)} />
-      ) : (
-        <Button
-          type="button"
-          className="self-start px-4"
-          onClick={() => {
-            setStatus('');
-            setWriting(true);
-          }}
+      {/* "Post a hack" floats at the bottom (Roshan, 16-11-2026), in the start corner at Ask's bubble's height: the
+          bubble keeps the end corner, and the pill's width stops short of it in every language. Inside the Hacks
+          panel, so a hidden tab or a hidden page hides it with them. It opens the form as a sheet, as the bubble opens
+          Ask; the sheet opens on the text field and gives the focus back to the pill when it closes. */}
+      <Dialog.Root
+        open={writing}
+        onOpenChange={(open) => {
+          if (open) setStatus('');
+          setWriting(open);
+        }}
+      >
+        <Dialog.Trigger
+          ref={pill}
+          className="fixed start-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex min-h-14 max-w-[calc(100%-7rem)] items-center gap-2 rounded-full border-[1.5px] border-outline bg-primary px-5 py-2 text-start text-base font-semibold text-primary-foreground shadow-offset outline-none focus-visible:ring-3 focus-visible:ring-ring active:shadow-offset-pressed motion-safe:active:translate-x-0.5 motion-safe:active:translate-y-0.5"
         >
+          <PlusIcon aria-hidden="true" className="size-5 shrink-0" />
           {text.form.open}
-        </Button>
-      )}
+        </Dialog.Trigger>
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/40 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
+          <Dialog.Popup
+            ref={sheet}
+            initialFocus={() => sheet.current?.querySelector<HTMLElement>('textarea') ?? true}
+            finalFocus={pill}
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-[calc(var(--radius)+0.25rem)] border-[1.5px] border-b-0 border-outline bg-background text-foreground outline-none transition-[translate,opacity] duration-200 max-sm:data-[ending-style]:translate-y-full max-sm:data-[starting-style]:translate-y-full motion-reduce:transition-none sm:inset-x-0 sm:top-1/2 sm:bottom-auto sm:mx-auto sm:w-[min(32rem,calc(100%-2rem))] sm:-translate-y-1/2 sm:rounded-[calc(var(--radius)+0.25rem)] sm:border-b-[1.5px] sm:data-[ending-style]:opacity-0 sm:data-[starting-style]:opacity-0"
+          >
+            <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <Dialog.Title className="font-heading text-2xl leading-tight font-extrabold">{text.form.heading}</Dialog.Title>
+              <HackForm userId={userId} onPosted={posted} onCancel={() => setWriting(false)} />
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
       {/* Always rendered, so a screen reader is already listening when the text appears. */}
       <p role="status" className="text-sm text-muted-foreground">
         {status}
@@ -245,7 +288,11 @@ export function HacksView() {
 /** What a tap under someone else's post does, waiting for the note on votes the first time on a phone. */
 type CardAction = { kind: 'vote'; button: VoteButton } | { kind: 'report' };
 
-const VOTE_BUTTONS: readonly VoteButton[] = ['up', 'worked', 'outdated'];
+/** The two verdicts, each with its icon beside its word. */
+const VERDICTS: readonly { button: Exclude<VoteButton, 'up'>; Icon: LucideIcon }[] = [
+  { button: 'worked', Icon: CheckIcon },
+  { button: 'outdated', Icon: HistoryIcon },
+];
 
 /**
  * One post: its category and place, the text in its own language, the link, who wrote it and the votes so far. The
@@ -310,25 +357,72 @@ function HackCard({
     else setPending(action);
   }
 
-  return (
-    <li className={cn(cardVariants(), 'gap-2')}>
-      <div className="flex flex-wrap items-center gap-2">
-        {/* The category's tint and icon, as on a tip; its name is the text. */}
-        <span
-          className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold"
-          style={{ backgroundColor: categoryTint(post.categoryId) }}
+  const author = post.author === null ? text.noName : postingNameText(post.author, t.auth.postingName);
+
+  // The actions in one row of outlined buttons (group 3 redesign, 16-11-2026): Upvote with its count, Worked for me,
+  // Outdated, the comments with theirs (`HackComments`), then Report, Delete and Translate. Each keeps its name, and
+  // Upvote's count is in its name too ("Upvote (3)"), as the comments' is.
+  const before: ReactNode = !post.mine && (
+    <div role="group" aria-label={text.vote.group(which)} className="flex flex-wrap gap-2">
+      <Button
+        type="button"
+        variant="chip"
+        aria-label={text.vote.upCount(post.ups)}
+        aria-pressed={post.myUp}
+        disabled={busy}
+        onClick={() => tap({ kind: 'vote', button: 'up' })}
+      >
+        <ArrowBigUpIcon aria-hidden="true" className="size-5" />
+        {post.ups > 0 && post.ups}
+      </Button>
+      {VERDICTS.map(({ button, Icon: VerdictIcon }) => (
+        <Button
+          key={button}
+          type="button"
+          variant="chip"
+          aria-pressed={post.myVerdict === button}
+          disabled={busy}
+          onClick={() => tap({ kind: 'vote', button })}
         >
-          <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-          {categoryNameIn(t, post.categoryId)}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {text.cities[post.city]} · {posted}
-        </span>
-      </div>
-      {/* A student's own words, in the language they wrote them in. */}
-      <p lang={post.lang} className="break-words whitespace-pre-line">
-        {post.body}
-      </p>
+          <VerdictIcon aria-hidden="true" />
+          {text.vote[button]}
+        </Button>
+      ))}
+    </div>
+  );
+  const after: ReactNode = (
+    <>
+      {!post.mine && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          ref={focus.refFor('report')}
+          aria-label={text.named(text.report, which)}
+          onClick={() => {
+            setProblem(null);
+            setAskingReport(true);
+          }}
+        >
+          <FlagIcon aria-hidden="true" />
+          {text.report}
+        </Button>
+      )}
+      {post.mine && !asking && (
+        <Button
+          ref={focus.refFor('delete')}
+          type="button"
+          variant="outline"
+          aria-label={text.named(text.delete, which)}
+          onClick={() => {
+            setProblem(null);
+            setAsking(true);
+          }}
+        >
+          <Trash2Icon aria-hidden="true" />
+          {text.delete}
+        </Button>
+      )}
       {translation !== null && (
         <a
           href={translation}
@@ -347,137 +441,120 @@ function HackCard({
           {text.translate}
         </a>
       )}
-      {translation !== null && translateNote && (
-        <PrivacyNote
-          id="translate"
-          label={t.common.privacy.label}
-          text={t.common.privacy.translate}
-          continueLabel={t.common.privacy.continue}
-          cancelLabel={t.common.privacy.cancel}
-          onContinue={() => {
-            setTranslateNote(false);
-            // From the same tap, so the browser lets the tab open.
-            window.open(translation, '_blank', 'noopener,noreferrer');
-          }}
-          onCancel={() => setTranslateNote(false)}
-        />
-      )}
+    </>
+  );
+
+  return (
+    // On its category's tint, as a tip is (group 3 redesign); its text keeps 4.5:1 there (`tokens.test.ts`).
+    <li className={cn(cardVariants(), 'gap-2')} style={{ backgroundColor: categoryTint(post.categoryId) }}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {/* The category's icon and name on the card colour; its name is the text. */}
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline bg-card px-2.5 py-0.5 text-xs font-semibold">
+          <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+          {categoryNameIn(t, post.categoryId)}
+        </span>
+        {/* Who and when on the tag's line: the name, "Your post" on one's own, the place and the day. */}
+        <span className="text-xs break-words text-muted-foreground">
+          <span className="font-semibold text-foreground">{author}</span>
+          {post.mine && ` · ${text.yours}`} · {text.cities[post.city]} · {posted}
+        </span>
+      </div>
+      {/* A student's own words, in the language they wrote them in. */}
+      <p lang={post.lang} className="break-words whitespace-pre-line">
+        {post.body}
+      </p>
       {post.link !== null && (
         <ExternalLinkButton href={post.link} className="break-all">
           {linkHost(post.link)}
         </ExternalLinkButton>
       )}
-      <p className="text-sm font-semibold break-words">
-        {post.author === null ? text.noName : postingNameText(post.author, t.auth.postingName)}
-        {post.mine && <span className="font-normal text-muted-foreground"> · {text.yours}</span>}
-      </p>
       <p className="text-sm text-muted-foreground">{text.counts(post.ups, post.worked, post.outdated)}</p>
-      {!post.mine && (
-        <div role="group" aria-label={text.vote.group(which)} className="flex flex-wrap gap-2">
-          {VOTE_BUTTONS.map((button) => (
-            <Button
-              key={button}
-              type="button"
-              variant="chip"
-              aria-pressed={button === 'up' ? post.myUp : post.myVerdict === button}
-              disabled={busy}
-              onClick={() => tap({ kind: 'vote', button })}
-            >
-              {text.vote[button]}
-            </Button>
-          ))}
-          <Button
-            type="button"
-            variant="ghost"
-            className="px-3"
-            disabled={busy}
-            ref={focus.refFor('report')}
-            aria-label={text.named(text.report, which)}
-            onClick={() => {
-              setProblem(null);
-              setAskingReport(true);
+      <HackComments
+        postId={post.id}
+        post={which}
+        count={commentCount}
+        t={t}
+        lang={lang}
+        onCount={onCommentCount}
+        before={before}
+        after={after}
+      >
+        {translation !== null && translateNote && (
+          <PrivacyNote
+            id="translate"
+            label={t.common.privacy.label}
+            text={t.common.privacy.translate}
+            continueLabel={t.common.privacy.continue}
+            cancelLabel={t.common.privacy.cancel}
+            onContinue={() => {
+              setTranslateNote(false);
+              // From the same tap, so the browser lets the tab open.
+              window.open(translation, '_blank', 'noopener,noreferrer');
             }}
-          >
-            {text.report}
-          </Button>
-        </div>
-      )}
-      {askingReport && (
-        <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
-          <p className="text-sm">{text.reportQuestion}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => tap({ kind: 'report' })}>
-              {text.report}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="px-4"
-              disabled={busy}
-              onClick={() => {
-                focus.mark('report');
-                setAskingReport(false);
-              }}
-            >
-              {text.reportCancel}
-            </Button>
+            onCancel={() => setTranslateNote(false)}
+          />
+        )}
+        {askingReport && (
+          <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+            <p className="text-sm">{text.reportQuestion}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => tap({ kind: 'report' })}>
+                {text.report}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="px-4"
+                disabled={busy}
+                onClick={() => {
+                  focus.mark('report');
+                  setAskingReport(false);
+                }}
+              >
+                {text.reportCancel}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
-      {pending !== null && (
-        <PrivacyNote
-          id="hackVotes"
-          label={t.common.privacy.label}
-          text={t.common.privacy.hackVotes}
-          continueLabel={t.common.privacy.continue}
-          cancelLabel={t.common.privacy.cancel}
-          onContinue={() => void act(pending)}
-          onCancel={() => setPending(null)}
-        />
-      )}
-      {post.mine && !asking && (
-        <Button
-          ref={focus.refFor('delete')}
-          type="button"
-          variant="outline"
-          className="self-start px-4"
-          aria-label={text.named(text.delete, which)}
-          onClick={() => {
-            setProblem(null);
-            setAsking(true);
-          }}
-        >
-          {text.delete}
-        </Button>
-      )}
-      {asking && (
-        <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
-          <p className="text-sm">{text.deleteQuestion}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => void confirmDelete()}>
-              {text.delete}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="px-4"
-              disabled={busy}
-              onClick={() => {
-                focus.mark('delete');
-                setAsking(false);
-              }}
-            >
-              {text.keep}
-            </Button>
+        )}
+        {pending !== null && (
+          <PrivacyNote
+            id="hackVotes"
+            label={t.common.privacy.label}
+            text={t.common.privacy.hackVotes}
+            continueLabel={t.common.privacy.continue}
+            cancelLabel={t.common.privacy.cancel}
+            onContinue={() => void act(pending)}
+            onCancel={() => setPending(null)}
+          />
+        )}
+        {asking && (
+          <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+            <p className="text-sm">{text.deleteQuestion}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => void confirmDelete()}>
+                {text.delete}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="px-4"
+                disabled={busy}
+                onClick={() => {
+                  focus.mark('delete');
+                  setAsking(false);
+                }}
+              >
+                {text.keep}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
-      {problem && (
-        <p role="alert" className="text-sm text-destructive">
-          {problem}
-        </p>
-      )}
-      <HackComments postId={post.id} post={which} count={commentCount} t={t} lang={lang} onCount={onCommentCount} />
+        )}
+        {problem && (
+          <p role="alert" className="text-sm text-destructive">
+            {problem}
+          </p>
+        )}
+      </HackComments>
     </li>
   );
 }

@@ -40,8 +40,9 @@ test('posting: a student posts a hack, and it is in the feed after a reload', as
   const body = unique('The night bus to the campus is free with the semester ticket');
   await signedInAs_(page, student);
   await openTab(page, 'Hacks');
+  // "Post a hack" floats at the bottom and opens the form as a sheet (16-11-2026).
   await hacksPanel(page).getByRole('button', { name: 'Post a hack', exact: true }).click();
-  const form = hacksPanel(page).getByRole('region', { name: 'Post a hack', exact: true });
+  const form = page.getByRole('dialog', { name: 'Post a hack', exact: true });
   await form.getByRole('textbox', { name: 'Your hack', exact: true }).fill(body);
   await form.getByRole('combobox', { name: 'Category', exact: true }).selectOption({ label: 'Transport' });
   await form.getByRole('combobox', { name: 'Where', exact: true }).selectOption({ label: 'Anywhere' });
@@ -78,8 +79,9 @@ test("voting: a student upvotes another student's post, and the vote stays", asy
   await signedInAs_(page, student);
   await openTab(page, 'Hacks');
   const votes = postItem(page, body).getByRole('group', { name: /^Your vote on / });
+  // Its name holds the count its icon shows: "Upvote" at none, "Upvote (1)" after the vote.
   await votes.getByRole('button', { name: 'Upvote', exact: true }).click();
-  await expect(votes.getByRole('button', { name: 'Upvote', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(votes.getByRole('button', { name: 'Upvote (1)', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
   await openTab(page, 'Hacks');
   await expect(postItem(page, body)).toContainText('Upvotes: 1'); // proof: voted

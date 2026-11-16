@@ -59,8 +59,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       // The region's design layer (src/app/regions/): one region so far, so it is the same on every phone.
       data-region={DEFAULT_REGION}
       // scroll-padding-bottom: the browser scrolls a focused control above the bottom nav, never behind it (WCAG 2.2,
-      // Focus Not Obscured), and above Ask's bubble while it shows (data-ask-bubble, AskBubble).
-      className={`${dmSans.variable} ${bricolage.variable} ${geistMono.variable} h-full scroll-pb-[calc(5rem+env(safe-area-inset-bottom))] antialiased data-[ask-bubble]:scroll-pb-[calc(9rem+env(safe-area-inset-bottom))]`}
+      // Focus Not Obscured), and above Ask's bubble or the Hacks feed's "Post a hack" while they show (data-ask-bubble,
+      // AskBubble; data-floating-action, HacksView).
+      className={`${dmSans.variable} ${bricolage.variable} ${geistMono.variable} h-full scroll-pb-[calc(5rem+env(safe-area-inset-bottom))] antialiased data-[ask-bubble]:scroll-pb-[calc(9rem+env(safe-area-inset-bottom))] data-[floating-action]:scroll-pb-[calc(9rem+env(safe-area-inset-bottom))]`}
       suppressHydrationWarning
     >
       <head>
