@@ -317,7 +317,7 @@ export function privacySections(o: Operator): LegalSection[] {
             kind: 'list',
             items: [
               'deine E-Mail-Adresse und dein Passwort, dieses nur als Hash, aus dem es sich nicht zurückgewinnen lässt;',
-              'die Sprache deines Handys, damit die E-Mails des Kontos in ihr kommen, und deinen Namen für Beiträge (Nutzername, Bezeichnung und Jahrgang);',
+              'die Sprache deines Handys, damit die E-Mails des Kontos in ihr kommen, und deinen Namen für Beiträge (Nutzername, Bezeichnung und Abschlussjahr);',
               'sobald du ein Handy verknüpfst, eine Kopie der Daten, die es abgleicht: Konten, Einträge, Plan und frühere Pläne, Profil, eigene Wechselkurse, Wochenergebnisse, die Checkliste und deine Bewertungen von Rabatten.',
             ],
           },
@@ -342,7 +342,7 @@ export function privacySections(o: Operator): LegalSection[] {
             kind: 'list',
             items: [
               'your email address and your password, the latter only as a hash it can’t be recovered from;',
-              'your phone’s language, so that the account’s emails come in it, and your name on posts (username, label and batch);',
+              'your phone’s language, so that the account’s emails come in it, and your name on posts (username, label and the year you finish);',
               'once you link a phone, a copy of the data it syncs: accounts, entries, the plan and earlier plans, profile, your own exchange rates, weekly results, the checklist and your votes on discounts.',
             ],
           },
@@ -409,7 +409,7 @@ export function privacySections(o: Operator): LegalSection[] {
         blocks: [
           {
             kind: 'p',
-            text: 'Mit einem Konto kannst du Hacks, Kommentare und Rabatte teilen. Was du teilst, sehen alle Studierenden mit Konto, zusammen mit deinem Nutzernamen, deiner Bezeichnung und deinem Jahrgang: den Text mit Kategorie, Link und Sprache, bei einem Rabatt auch Ort, Angebot, Bedingungen, Adresse und, wenn du sie gesetzt hast, die Stelle auf der Karte. Deine E-Mail-Adresse oder eine Kennung deines Kontos sieht niemand.',
+            text: 'Mit einem Konto kannst du Hacks, Kommentare und Rabatte teilen. Was du teilst, sehen alle Studierenden mit Konto, zusammen mit deinem Nutzernamen, deiner Bezeichnung und deinem Abschlussjahr: den Text mit Kategorie, Link und Sprache, bei einem Rabatt auch Ort, Angebot, Bedingungen, Adresse und, wenn du sie gesetzt hast, die Stelle auf der Karte. Deine E-Mail-Adresse oder eine Kennung deines Kontos sieht niemand.',
           },
           {
             kind: 'p',
@@ -430,7 +430,7 @@ export function privacySections(o: Operator): LegalSection[] {
         blocks: [
           {
             kind: 'p',
-            text: 'With an account you can share hacks, comments and discounts. What you share is seen by every student with an account, with your username, label and batch: the text with its category, link and language, and for a discount also the place, offer, conditions, address and, if you set one, its spot on the map. Nobody sees your email address or any identifier of your account.',
+            text: 'With an account you can share hacks, comments and discounts. What you share is seen by every student with an account, with your username, label and the year you finish: the text with its category, link and language, and for a discount also the place, offer, conditions, address and, if you set one, its spot on the map. Nobody sees your email address or any identifier of your account.',
           },
           {
             kind: 'p',

@@ -54,7 +54,7 @@ export const sync: Messages['sync'] = {
     checking: 'Association de ce téléphone à ton compte…',
     linking: 'Association de ce téléphone…',
     uploaded: 'Ton compte contient maintenant les données de ce téléphone.',
-    loaded: (contents) => `Chargé depuis ton compte${NNBSP}: ${contents}.`,
+    loaded: (contents) => `Chargé depuis ton compte StudentsBudget${NNBSP}: ${contents}.`,
     question: (phone, account) =>
       `Ce téléphone et ton compte contiennent tous deux des données. Ce téléphone${NNBSP}: ${phone}. ` +
       `Ton compte${NNBSP}: ${account}. Lesquelles garder des deux côtés${NNBSP}?`,

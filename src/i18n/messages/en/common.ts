@@ -47,6 +47,14 @@ export const common = {
   },
   /** What a number no page states says instead of a source (the data's `source: 'Estimate'`). */
   estimate: 'Estimate',
+  /** The link to setup on a page that needs a plan (the check-in, charts, badges, the recaps, Ask, the import). */
+  toSetup: 'Set up your plan',
+  /** The link to Settings → Your account under a line that says why a feature needs it (Ask, the hacks, the reminder). */
+  toAccount: 'Go to Your account',
+  /** A feature that works through the account, while this sign-in still owes its code (Ask, the reminder). */
+  needsCode: 'Your account has two-step sign-in: enter the code from your authenticator app first.',
+  /** After "Send a new code" on an emailed code's step (confirming an account, a forgotten password). */
+  codeResent: 'A new code is on its way. Use the newest one.',
   /** The legal pages (legal pages, chunk 1): their frame, links and Settings rows. Their texts are in src/features/legal. */
   legal: {
     back: 'Back',
@@ -68,9 +76,10 @@ export const common = {
     cancel: 'Cancel',
     account:
       'Your account is kept by Supabase, in Frankfurt (EU): your email, your password (stored only as a hash), ' +
-      'your phone’s language, your username, label and batch, and a copy of the data you sync. Other students see ' +
-      'only your username, label and batch, next to your posts. If the account needs a code, to confirm it or for ' +
-      'a new password, it comes by email. You can delete the account at any time in Settings → Your account.',
+      'your phone’s language, your username, label and the year you finish, and a copy of the data you sync. Other ' +
+      'students see only your username, label and that year, next to your posts. If the account needs a code, to ' +
+      'confirm it or for a new password, it comes by email. You can delete the account at any time in Settings → ' +
+      'Your account.',
     passkey:
       'Your phone’s password manager keeps the passkey, and may sync it to your other devices (iCloud Keychain or ' +
       'Google Password Manager, for example). Your account keeps only its public key, which can’t sign anyone in.',
@@ -83,8 +92,8 @@ export const common = {
       'semester. Nobody sees who voted.',
     post:
       'Every student with an account can read what you post here, a hack, a comment or a discount, with your ' +
-      'username, label and batch, and can report it; hacks and discounts can also be voted on. You can delete it at ' +
-      'any time.',
+      'username, label and the year you finish, and can report it; hacks and discounts can also be voted on. You can ' +
+      'delete it at any time.',
     hackVotes:
       'Your votes count in the totals every student sees on the post; nobody sees who voted. A report hides the ' +
       'post for you at once, and for everyone once enough students reported it, until the app’s moderator decides.',

@@ -246,7 +246,7 @@ test('the one-off costs step leaves the amount empty where no page states the fe
   // Another university: the next semester starts the day after the saved end, 1 February 2027.
   const offer = page.getByRole('button', { name: 'Add semester fee, due January 2027', exact: true });
   await expect(
-    page.getByText("No page states this semester's fee yet, so the amount is yours to fill in.", { exact: true }),
+    page.getByText('No page states this semester’s fee yet, so the amount is yours to fill in.', { exact: true }),
   ).toBeVisible();
   await offer.click();
   const row = page.getByRole('group', { name: 'One-off cost 2', exact: true });
@@ -281,7 +281,7 @@ test('the one-off costs step offers nothing without semester dates, or when the 
   await expect(page.getByRole('button', { name: /^Add semester fee/ })).toHaveCount(0);
 
   // The planned fee was what held the offer back: without it, the offer is there.
-  await page.getByRole('button', { name: 'Remove one-off cost 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Remove: Semester fee', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Add semester fee: €215, due March 2027', exact: true })).toBeVisible();
 });
 

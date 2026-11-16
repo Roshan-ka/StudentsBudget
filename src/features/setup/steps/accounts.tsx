@@ -71,12 +71,12 @@ function AccountRow({
             onChange={(event) => onChange({ name: event.target.value })}
           />
         </div>
-        {/* An icon, named after its account ("Remove account 2"), as the words were. */}
+        {/* An icon, named after its account: "Remove: Local bank", or "Remove: Account 2" before it has a name. */}
         <Button
           type="button"
           variant="ghost"
           className="mb-[3px] size-11 shrink-0 px-0"
-          aria-label={text.remove(index + 1)}
+          aria-label={text.remove(account.name.trim() || null, index + 1)}
           onClick={onRemove}
         >
           <XIcon aria-hidden="true" className="size-5" />

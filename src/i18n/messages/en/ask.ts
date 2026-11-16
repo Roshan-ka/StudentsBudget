@@ -31,12 +31,11 @@ export const ask = {
   },
   unavailable: 'Ask isn’t part of this copy of the app.',
   loading: 'Loading…',
+  /** With `common.toAccount` under it; the code owed is `common.needsCode`. */
   signedOut: 'Ask works through your account: sign in on this phone first.',
-  needsCode: 'Your account has two-step sign-in: enter the code from your authenticator app first.',
-  toAccount: 'Go to Your account',
   switchedOff: 'AI features are off on this phone. You can turn them on again under Settings → Your account.',
+  /** With `common.toSetup` under it. */
   noPlan: 'Ask answers from your plan, so set it up first.',
-  toSetup: 'Set up your plan',
   /** The chat bubble's name (13-11-2026; before, the quiet line on Home and on the check-in). */
   link: 'Ask about your budget',
   /** The chat sheet's close button, an icon (13-11-2026). */

@@ -103,7 +103,7 @@ async function putEntries(page: Page, entries: unknown[]) {
   );
 }
 
-test('an entry a schedule posted shows a Recurring tag on the check-in', async ({ page }) => {
+test('an entry a schedule posted shows an Automatic tag on the check-in', async ({ page }) => {
   await seedSetup(page, {}, { open: false });
   const accounts = await readStore<{ id: string; name: string }>(page, 'accounts');
   const accountId = accounts.find((a) => a.name === 'Cash')?.id;
@@ -128,9 +128,9 @@ test('an entry a schedule posted shows a Recurring tag on the check-in', async (
   const entries = section(page, 'This week').getByRole('listitem');
   await expect(entries).toHaveCount(2);
   const posted = entries.filter({ hasText: 'Phone & internet' });
-  await expect(posted.getByText('Recurring', { exact: true })).toBeVisible();
-  await expect(entries.filter({ hasText: 'Rewe' }).getByText('Recurring')).toHaveCount(0);
-  await expect(page.getByText('Recurring', { exact: true })).toHaveCount(1);
+  await expect(posted.getByText('Automatic', { exact: true })).toBeVisible();
+  await expect(entries.filter({ hasText: 'Rewe' }).getByText('Automatic')).toHaveCount(0);
+  await expect(page.getByText('Automatic', { exact: true })).toHaveCount(1);
   // The name is not said twice: under it is only the day. Rewe keeps its category.
   await expect(posted.getByText('Fri 16', { exact: true })).toBeVisible();
   await expect(entries.filter({ hasText: 'Rewe' }).getByText('Food & groceries · Fri 16', { exact: true })).toBeVisible();
@@ -141,7 +141,7 @@ test('the reminder link points at a calendar file that is served as a calendar',
   await seedSetup(page, {}, { open: false });
   await openApp(page, '/check-in');
 
-  await expect(page.getByRole('link', { name: 'Add weekly reminder to calendar' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Add a weekly reminder to your calendar' })).toHaveAttribute(
     'href',
     '/weekly-check-in.ics',
   );
@@ -386,7 +386,7 @@ test('home says when the check-in is and highlights it on Sunday', async ({ page
   // Sunday 18 Oct. Nothing is written; the app only comes back from the background.
   await page.clock.setFixedTime(new Date(2026, 9, 18, 12, 0, 0));
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await expect(card.getByText("It's Sunday — time for your weekly check-in.", { exact: true })).toBeVisible();
+  await expect(card.getByText('It’s Sunday — time for your weekly check-in.', { exact: true })).toBeVisible();
   await expect(page.getByText('Your weekly check-in is on Sunday.')).toHaveCount(0);
   expect(await fill()).not.toBe(ordinaryFill);
 
@@ -405,5 +405,5 @@ test('home says when the check-in is and highlights it on Sunday', async ({ page
 test('without a plan the check-in points to setup', async ({ page }) => {
   await openApp(page, '/check-in');
   await expect(page.getByText('Set up your plan to check in on your week.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Start setup' })).toHaveAttribute('href', '/setup');
+  await expect(page.getByRole('link', { name: 'Set up your plan', exact: true })).toHaveAttribute('href', '/setup');
 });

@@ -114,7 +114,7 @@ test('signed in, a student’s discount shows marked, with who added it and when
   await expect(source).toHaveAccessibleName(`Source: ${TAILOR.place}`);
   await source.click();
   await expect(
-    tailor.getByText(`Added by @bea · Graduate · Batch '25 on ${formatDate(todayIso(new Date(TAILOR.created_at)))}, not checked by the app`, {
+    tailor.getByText(`Added by @bea · Graduate · Class of ’25 on ${formatDate(todayIso(new Date(TAILOR.created_at)))}, not checked by the app`, {
       exact: true,
     }),
   ).toBeVisible();
@@ -151,7 +151,7 @@ test('one’s own discount can be deleted, after a question', async ({ page }) =
   const mine = item(page, MINE.place);
   await expect(item(page, TAILOR.place).getByRole('button', { name: /^Delete: / })).toHaveCount(0);
   await mine.getByRole('button', { name: `Delete: the discount at ${MINE.place}`, exact: true }).click();
-  await expect(mine.getByText('Delete this discount? Nobody will see it anymore.', { exact: true })).toBeVisible();
+  await expect(mine.getByText('Delete this discount? Nobody will see it any more.', { exact: true })).toBeVisible();
   await mine.getByRole('button', { name: 'Keep it', exact: true }).click();
   await expect(mine.getByRole('button', { name: `Delete: the discount at ${MINE.place}`, exact: true })).toBeFocused();
 
@@ -175,7 +175,7 @@ test('someone else’s discount can be reported, and leaves the list', async ({ 
   await expect(tailor.getByText(/^Report this discount\?/)).toBeVisible();
   await tailor.getByRole('button', { name: 'Report', exact: true }).click();
   await expect(item(page, TAILOR.place)).toHaveCount(0);
-  await expect(page.getByText('Reported. You won’t see this discount anymore.', { exact: true })).toBeAttached();
+  await expect(page.getByText('Reported. You won’t see this discount any more.', { exact: true })).toBeAttached();
 
   // It stays gone on the next visit (a full load): the mock took it out, as the database does for the reporter.
   await showDiscounts(page);
@@ -341,7 +341,7 @@ test('a fourth discount in a day is refused, and Cancel closes the form', async 
   await form(page).getByRole('textbox', { name: 'Offer', exact: true }).fill('Ten free copies at the start of term');
   await form(page).getByRole('textbox', { name: 'Source link', exact: true }).fill('https://www.example.de/copyshop');
   await form(page).getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(form(page).getByRole('alert')).toHaveText("You've added 3 discounts in a day. Add more tomorrow.");
+  await expect(form(page).getByRole('alert')).toHaveText('You’ve added 3 discounts in a day. Add more tomorrow.');
 
   await form(page).getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(form(page)).toHaveCount(0);

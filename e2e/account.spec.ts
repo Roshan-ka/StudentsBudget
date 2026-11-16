@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan } from '../src/db/types';
+import { MESSAGES } from '../src/i18n/messages';
 import { mockAiFunction } from './helpers/ai';
 import { waitForApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
@@ -109,7 +110,7 @@ test('Settings lists Your account; signing in and out there keeps the plan on th
   await signOut(page);
   expect(calls).toContainEqual(expect.objectContaining({ method: 'POST', path: '/logout', search: '?scope=local' }));
   await expect(
-    page.getByText("You're signed out. Your data was removed from this phone.", { exact: true }),
+    page.getByText('You’re signed out. Your data was removed from this phone.', { exact: true }),
   ).toBeVisible();
   expect(await readStore<Plan>(page, 'plan')).toEqual([]);
 });
@@ -178,7 +179,7 @@ test('says calmly what went wrong: a wrong password, a taken email, offline, no 
   const before = calls.length;
   await context.setOffline(true);
   await signIn(page, EMAIL, PASSWORD);
-  await expect(alert(page)).toHaveText("You're offline. Signing in needs a connection.");
+  await expect(alert(page)).toHaveText('You’re offline. Signing in needs a connection.');
   expect(calls).toHaveLength(before);
   await context.setOffline(false);
 
@@ -187,7 +188,7 @@ test('says calmly what went wrong: a wrong password, a taken email, offline, no 
   await page.route(SUPABASE_AUTH, (route) => route.abort('connectionfailed'));
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(alert(page)).toHaveText(
-    "The account server can't be reached. Check your connection and try again.",
+    'The account server can’t be reached. Check your connection and try again.',
   );
   await expect(page.getByRole('heading', { level: 3, name: 'Sign in', exact: true })).toBeVisible();
 });
@@ -207,10 +208,8 @@ test('signed in, AI features holds this phone’s switch: on until turned off, a
   await signIn(page, EMAIL, PASSWORD);
   await expect(signedInLine(page, EMAIL)).toBeVisible();
   await expect(use).toBeChecked();
-  await expect(use).toHaveAccessibleDescription(
-    'They send what you write to Groq, an AI service in the USA, within a daily allowance for your account. Off, ' +
-      'nothing goes to Groq, and quick add reads your lines on this phone.',
-  );
+  // The dictionary's own words, so a wording change doesn't break the check.
+  await expect(use).toHaveAccessibleDescription(MESSAGES.en.auth.ai.hint);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   await use.uncheck();

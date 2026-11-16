@@ -7,8 +7,6 @@ export const reminder = {
   loading: 'Loading…',
   unavailable: 'Reminders aren’t set up in this copy of the app.',
   signedOut: 'The reminder comes through your account: sign in on this phone first.',
-  toAccount: 'Go to Your account',
-  needsCode: 'Your account has two-step sign-in: enter the code from your authenticator app first.',
   installFirst:
     'On an iPhone or iPad, the reminder needs the app on your Home Screen: in Safari, tap Share, then Add to Home ' +
     'Screen, and open it from there.',
@@ -21,7 +19,7 @@ export const reminder = {
   hint: 'Whichever day you pick, the check-in looks at the week so far, Monday to Sunday.',
   turnOn: 'Turn on the reminder',
   save: 'Save changes',
-  turnOff: 'Turn off',
+  turnOff: 'Turn off the reminder',
   status: {
     on: (day: string, time: string) => `The reminder is on: ${day} at ${time}.`,
     off: 'The reminder is off.',

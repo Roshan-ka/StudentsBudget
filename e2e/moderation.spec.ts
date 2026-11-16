@@ -72,7 +72,7 @@ test('a reader sees no moderation, and the page says it is for the moderator', a
   await expect(page.getByRole('link', { name: /^Your account/ })).toBeVisible();
   await expect(moderationRow(page)).toHaveCount(0);
   await page.goto('/settings/moderation');
-  await expect(page.getByText("This page is for the app's moderator.", { exact: true })).toBeVisible();
+  await expect(page.getByText('This page is for the app’s moderator.', { exact: true })).toBeVisible();
 });
 
 test('the moderator without the authenticator code is sent to two-step sign-in', async ({ page }) => {
@@ -84,7 +84,7 @@ test('the moderator without the authenticator code is sent to two-step sign-in',
   await page.goto('/settings');
   await moderationRow(page).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Moderation', exact: true })).toBeVisible();
-  await expect(page.getByText(/^Moderating needs a session that gave the authenticator code\./)).toBeVisible();
+  await expect(page.getByText(/^To moderate, sign in with your authenticator code: /)).toBeVisible();
   await expect(items(page)).toHaveCount(0);
 });
 
@@ -99,7 +99,7 @@ test('the moderator with the code hides and keeps reported posts', async ({ page
   await signIn(page, true);
 
   await page.goto('/settings');
-  await expect(moderationRow(page)).toContainText('Reported hacks and discounts');
+  await expect(moderationRow(page)).toContainText('Reported posts, comments and discounts');
   await moderationRow(page).click();
 
   const phones = items(page).filter({ hasText: 'Cheap phones' });

@@ -229,7 +229,7 @@ describe('describeLine', () => {
   });
 
   it('asks for an account when the one it used is gone', () => {
-    expect(describeLine(PLAN.fixed[0], [ACCOUNTS[1]])).toBe('Monthly on day 1 · Pick an account for this');
+    expect(describeLine(PLAN.fixed[0], [ACCOUNTS[1]])).toBe('Monthly on day 1 · Pick an account');
   });
 
   it('gives the monthly amount of a line that is not added automatically', () => {

@@ -54,7 +54,7 @@ export const sync: Messages['sync'] = {
     checking: 'Vinculando este móvil a tu cuenta…',
     linking: 'Vinculando este móvil…',
     uploaded: 'Tu cuenta tiene ahora los datos de este móvil.',
-    loaded: (contents) => `Cargado de tu cuenta: ${contents}.`,
+    loaded: (contents) => `Cargado de tu cuenta de StudentsBudget: ${contents}.`,
     question: (phone, account) =>
       `Este móvil y tu cuenta tienen datos. Este móvil: ${phone}. Tu cuenta: ${account}. ` +
       '¿Cuáles deben conservar ambos?',

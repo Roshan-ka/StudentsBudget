@@ -77,7 +77,7 @@ export function ModerationView() {
         <p className="text-sm">{text.signedOut}</p>
         {auth.status !== 'off' && (
           <Link href="/settings/account" className={linkClass}>
-            {t.tips.hacks.toAccount}
+            {t.common.toAccount}
           </Link>
         )}
       </div>
@@ -94,7 +94,7 @@ export function ModerationView() {
       <div className="flex flex-col gap-3">
         <p className="text-sm">{text.needsCode}</p>
         <Link href="/settings/account" className={linkClass}>
-          {t.tips.hacks.toAccount}
+          {t.common.toAccount}
         </Link>
       </div>
     );

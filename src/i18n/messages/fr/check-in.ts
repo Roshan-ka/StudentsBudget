@@ -49,5 +49,4 @@ export const checkIn: Messages['checkIn'] = {
   reminderOr: `Ou plutôt une notification sur ce téléphone${NNBSP}:`,
   reminderOrLink: 'Rappel hebdomadaire',
   noPlan: 'Configure ton plan pour faire le bilan de ta semaine.',
-  startSetup: 'Commencer la configuration',
 };

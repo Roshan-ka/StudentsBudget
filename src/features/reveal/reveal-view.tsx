@@ -95,7 +95,7 @@ export function RevealView() {
       <p className="text-muted-foreground">
         {t.reveal.noPlan}{' '}
         <Link href="/setup" className={LINK_CLASS}>
-          {t.reveal.startSetup}
+          {t.common.toSetup}
         </Link>
       </p>
     );

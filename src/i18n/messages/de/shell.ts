@@ -33,7 +33,7 @@ export const shell: Messages['shell'] = {
     start: 'Willkommen',
     ask: 'Fragen',
     settings: 'Einstellungen',
-    tips: 'Tipps und Rabatte in Regensburg',
+    tips: 'Tipps für Regensburg',
     privacy: 'Datenschutzerklärung',
     impressum: 'Impressum',
   },

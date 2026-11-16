@@ -6,7 +6,6 @@ const sentences = (...parts: (string | null)[]) => parts.filter((part) => part !
 
 export const charts = {
   noPlan: 'Set up your plan to see where the money goes.',
-  startSetup: 'Start setup',
   /** The period control: "This month", "3 months". */
   periodLabel: 'Period',
   period: (months: number) => (months === 1 ? 'This month' : `${months} months`),

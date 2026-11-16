@@ -7,11 +7,10 @@ export const importExport = {
   import: {
     heading: 'Import a bank statement',
     hint:
-      "Download a CSV statement from your bank's website or app, then pick it here. Statements from Sparkasse, DKB, " +
-      "N26 and Revolut are recognised. The file is read on this phone only and isn't kept.",
+      'Download a CSV statement from your bank’s website or app, then pick it here. Statements from Sparkasse, DKB, ' +
+      'N26 and Revolut are recognised. The file is read on this phone only and isn’t kept.',
     file: 'Statement file (CSV)',
     noPlan: 'Set up your plan first: the import counts each row against it.',
-    toSetup: 'Go to setup',
     reading: 'Reading the file…',
     recognised: (bank: string, rows: number, from: string, to: string) =>
       `${bank}: ${rows} ${rows === 1 ? 'row' : 'rows'}, ${from} to ${to}`,
@@ -22,19 +21,19 @@ export const importExport = {
       tooBig: 'This file is too big for a statement: at most 2 MB and 5,000 rows.',
       empty: 'This file has no rows the app can read.',
       creditCard: (bank: string) =>
-        `This is a ${bank} credit card export, which the app can't read yet. Export your current account's statement instead.`,
-      failed: 'Could not read the file.',
+        `This is a ${bank} credit card export, which the app can’t read yet. Export your current account’s statement instead.`,
+      failed: 'Couldn’t read the file.',
       noRate: (currency: string) =>
-        `There's no exchange rate for ${currency} yet. Enter one in Settings → Accounts and transfers, then import again.`,
+        `There’s no exchange rate for ${currency} yet. Enter one in Settings → Accounts and transfers, then import again.`,
       noAccount: 'That account no longer exists. Choose another one.',
-      saveFailed: 'Could not save the import.',
+      saveFailed: 'Couldn’t save the import.',
     },
   },
   /** Matching a file's columns by hand, for a CSV the app doesn't recognise (chunk 8). */
   match: {
     heading: 'Which column holds what?',
     intro:
-      "The app doesn't recognise this file's columns. Say which column holds what: it remembers your choice for the " +
+      'The app doesn’t recognise this file’s columns. Say which column holds what: it remembers your choice for the ' +
       'next file with the same columns.',
     remembered: 'Matched as for your last file with these columns.',
     date: 'Date',
@@ -50,7 +49,7 @@ export const importExport = {
     currency: 'Currency (optional)',
     none: 'None',
     preview: 'The first rows, as the app reads them',
-    unreadable: "Can't be read with these columns",
+    unreadable: 'Can’t be read with these columns',
     use: 'Use these columns',
     twice: 'Choose a different column for each of these.',
     file: (rows: number, from: string, to: string) => `Your file: ${rows} ${rows === 1 ? 'row' : 'rows'}, ${from} to ${to}`,
@@ -64,14 +63,14 @@ export const importExport = {
     },
     nothing: 'Nothing new: every row was already in the app, or was left out.',
     opening: (account: string, amount: string) =>
-      `The starting balance of ${account} moved by ${amount}: some rows came before you added the account, so its balance today stays the same.`,
+      `The opening balance of ${account} moved by ${amount}: some rows came before you added the account, so its balance today stays the same.`,
     skipped: (count: number) => `Left out (${count})`,
     reasons: {
-      unreadable: 'Could not be read',
+      unreadable: 'Couldn’t be read',
       pending: 'Still pending at the bank',
       internal: 'A move inside the bank',
       zero: 'An amount of zero',
-      currency: "Not in the account's currency",
+      currency: 'Not in the account’s currency',
       future: 'Dated after today',
       beforePlan: 'From before your plan started',
       otherCurrencyTransfer: 'A transfer to an account in another currency',
@@ -91,9 +90,9 @@ export const importExport = {
     shareTitle: 'StudentsBudget entries',
     shared: 'Entries shared.',
     downloaded: (fileName: string) => `Download started: ${fileName}`,
-    shareFailed: "The share sheet didn't open. You can download the file instead.",
+    shareFailed: 'The share sheet didn’t open. You can download the file instead.',
     download: 'Download',
-    failed: 'Could not export your entries.',
+    failed: 'Couldn’t export your entries.',
   },
   /** The file's columns besides those named like the entry form's fields (date, type, category, account, amount, note). */
   columns: { currency: 'Currency', eur: 'Amount in EUR' },

@@ -171,7 +171,7 @@ export function ChartsView() {
       <p className="text-muted-foreground">
         {t.charts.noPlan}{' '}
         <Link href="/setup" className={LINK_CLASS}>
-          {t.charts.startSetup}
+          {t.common.toSetup}
         </Link>
       </p>
     );

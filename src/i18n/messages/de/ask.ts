@@ -32,11 +32,8 @@ export const ask: Messages['ask'] = {
   unavailable: 'Fragen sind in dieser Version der App nicht enthalten.',
   loading: 'Wird geladen …',
   signedOut: 'Fragen laufen über dein Konto: Melde dich zuerst auf diesem Handy an.',
-  needsCode: 'Dein Konto hat die zweistufige Anmeldung: Gib zuerst den Code aus deiner Authenticator-App ein.',
-  toAccount: 'Zu „Dein Konto“',
   switchedOff: 'Die KI-Funktionen sind auf diesem Handy aus. Du kannst sie in den Einstellungen unter „Dein Konto“ wieder einschalten.',
   noPlan: 'Die Antworten kommen aus deinem Plan, richte ihn also zuerst ein.',
-  toSetup: 'Plan einrichten',
   link: 'Frag zu deinem Budget',
   close: 'Schließen',
 };

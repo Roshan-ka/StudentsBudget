@@ -13,7 +13,6 @@ export const importExport: Messages['importExport'] = {
       'Sparkasse, DKB, N26 y Revolut. El archivo se lee solo en este móvil y no se guarda.',
     file: 'Archivo del extracto (CSV)',
     noPlan: 'Primero configura tu plan: la importación cuenta cada fila en él.',
-    toSetup: 'Ir a la configuración',
     reading: 'Leyendo el archivo…',
     recognised: (bank, rows, from, to) => `${bank}: ${byCount(rows, { one: `${rows} fila`, other: `${rows} filas` })}, del ${from} al ${to}`,
     account: 'Importar en',

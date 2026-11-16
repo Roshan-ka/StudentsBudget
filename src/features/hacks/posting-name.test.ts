@@ -74,7 +74,7 @@ describe('how others see the name', () => {
   const text = MESSAGES.en.auth.postingName;
 
   it('joins the username, the label and the batch', () => {
-    expect(postingNameText({ username: 'roshan', label: 'student', batch: 2027 }, text)).toBe("@roshan · Student · Batch '27");
+    expect(postingNameText({ username: 'roshan', label: 'student', batch: 2027 }, text)).toBe('@roshan · Student · Class of ’27');
     expect(postingNameText({ username: 'dana', label: null, batch: null }, text)).toBe('@dana');
   });
 });

@@ -200,7 +200,7 @@ test('Forgot password: the emailed code signs in, and a new password replaces th
   await saveNewPassword(page, 'short');
   await expect(alert(page)).toHaveText('Use at least 8 characters for the password.');
   await saveNewPassword(page, OLD_PASSWORD);
-  await expect(alert(page)).toHaveText("That's your current password. Choose a different one.");
+  await expect(alert(page)).toHaveText('That’s your current password. Choose a different one.');
   await saveNewPassword(page, NEW_PASSWORD);
   await expect(page.getByText('Password changed.', { exact: true })).toBeVisible();
   await expect(page.getByText(`Signed in as ${ACCOUNT}.`, { exact: true })).toBeVisible();

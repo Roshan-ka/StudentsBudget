@@ -71,10 +71,11 @@ test('the first vote waits for its note; then each button toggles and the totals
   await signInAndOpenHacks(page);
 
   // One's own post has no vote or report buttons.
-  await expect(post(page, 'My own hack').getByRole('group', { name: 'Your vote on this post', exact: true })).toHaveCount(0);
+  await expect(post(page, 'My own hack').getByRole('group', { name: /^Your vote on / })).toHaveCount(0);
 
   const bread = post(page, 'Bread is half price');
-  const buttons = bread.getByRole('group', { name: 'Your vote on this post', exact: true });
+  // The group says which post, as Report does: "Your vote on the post by @lena, 05.11.2026".
+  const buttons = bread.getByRole('group', { name: /^Your vote on (the post by @\w+, |a post from )\d{2}\.\d{2}\.\d{4}$/ });
   await buttons.getByRole('button', { name: 'Upvote', exact: true }).click();
   const note = bread.getByRole('group', { name: 'About your data', exact: true });
   await expect(note).toContainText('nobody sees who voted');
@@ -124,7 +125,7 @@ test('a report asks first, then the post leaves the list', async ({ page }) => {
   await report.click();
   // The question's own Report button: the one among the vote buttons is named for its post.
   await advert.getByRole('button', { name: 'Report', exact: true }).click();
-  await expect(panel(page).getByRole('status')).toHaveText('Reported. You won’t see this post anymore.');
+  await expect(panel(page).getByRole('status')).toHaveText('Reported. You won’t see this post any more.');
   await expect(post(page, 'An advert')).toHaveCount(0);
   await expect(post(page, 'Bread is half price')).toHaveCount(1);
   expect(reports).toEqual([{ p_id: 'p1' }]);

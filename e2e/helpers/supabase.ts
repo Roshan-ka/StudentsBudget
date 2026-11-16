@@ -952,7 +952,7 @@ export async function endSession(page: Page) {
   await openApp(page, '/settings/account');
 }
 
-/** "Accounts aren't set up in this copy of the app…" in every language: a spec may run under any locale. */
+/** "Accounts aren’t set up in this copy of the app…" in every language: a spec may run under any locale. */
 const ACCOUNTS_OFF = Object.values(MESSAGES).map((messages) => messages.auth.view.off);
 
 /**

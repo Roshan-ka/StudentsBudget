@@ -37,13 +37,13 @@ test('after a password sign-in it asks for the current password, and the new one
   await current.fill('not my password');
   await next.fill(NEW_PASSWORD);
   await save.click();
-  await expect(card.getByRole('alert')).toHaveText("That isn't your current password.");
+  await expect(card.getByRole('alert')).toHaveText('That isn’t your current password.');
   expect(newPasswords(calls)).toEqual([]);
 
   await current.fill(PASSWORD);
   await next.fill(PASSWORD);
   await save.click();
-  await expect(card.getByRole('alert')).toHaveText("That's your current password. Choose a different one.");
+  await expect(card.getByRole('alert')).toHaveText('That’s your current password. Choose a different one.');
 
   await next.fill(NEW_PASSWORD);
   await save.click();

@@ -39,7 +39,7 @@ export const setup: Messages['setup'] = {
     cash: 'Bargeld',
     currency: 'Währung',
     opening: 'Anfangsstand',
-    remove: (number) => `Konto ${number} entfernen`,
+    remove: (name, number) => `Entfernen: ${name ?? `Konto ${number}`}`,
     add: 'Konto hinzufügen',
     prefilled: { localBank: 'Bank hier', cash: 'Bargeld' },
   },
@@ -76,7 +76,8 @@ export const setup: Messages['setup'] = {
     amount: 'Betrag',
     leftOut: 'Ohne Betrag werden diese Kosten nicht gespeichert.',
     due: 'Fällig im Monat',
-    remove: (number) => `Einmalige Kosten ${number} entfernen`,
+    remove: 'Entfernen',
+    removeOne: (name, number) => `Entfernen: ${name ?? `Einmalige Kosten ${number}`}`,
     add: 'Einmalige Kosten hinzufügen',
     feeOffer: (amount, month) => `Semesterbeitrag hinzufügen${amount === null ? '' : `: ${amount}`}, fällig im ${month}`,
   },
@@ -90,11 +91,13 @@ export const setup: Messages['setup'] = {
   },
   envelopes: {
     budgetIntroNew: (amount) =>
-      `Ein Alltagsbudget ist freiwillig. Ohne eins teilen die Vorschläge auf, was nach Miete und Fixkosten übrig ist: ${amount}.`,
+      'Ein Alltagsbudget ist freiwillig. Ohne eins teilen die Vorschläge auf, was nach deinen Fixkosten (Miete ' +
+      `inklusive) übrig ist: ${amount}.`,
     budgetIntroEdit: (amount) =>
-      'Ein Alltagsbudget ist freiwillig. Ohne eins teilen die Vorschläge auf, was nach Miete, Fixkosten und den ' +
-      `Rücklagen für einmalige Kosten übrig ist: ${amount}.`,
-    budgetQuestion: 'Wie viel willst du im Monat für den Alltag ausgeben, ohne Miete und Fixkosten?',
+      'Ein Alltagsbudget ist freiwillig. Ohne eins teilen die Vorschläge auf, was nach deinen Fixkosten (Miete ' +
+      `inklusive) und den Rücklagen für einmalige Kosten übrig ist: ${amount}.`,
+    budgetQuestion:
+      'Wie viel willst du im Monat für den Alltag ausgeben, abgesehen von deinen Fixkosten (Miete inklusive)?',
     typicalSpend: (range) => `Studierende hier geben dafür meist etwa ${range} im Monat aus.`,
     estimates: (list, count) =>
       `${list.charAt(0).toUpperCase()}${list.slice(1)} ${count === 1 ? 'ist eine Schätzung' : 'sind Schätzungen'}.`,
@@ -125,7 +128,6 @@ export const setup: Messages['setup'] = {
   setupRow: { title: 'Plan einrichten', summary: 'Dein Plan ist noch nicht eingerichtet' },
   editPlan: {
     summary: 'Einnahmen, Fixkosten und Umschläge',
-    heading: 'Plan',
     body:
       'Ändere deine Umschläge, ergänze einmalige Kosten wie den Semesterbeitrag und die Einnahmen, Fixkosten und ' +
       'Umschläge, die die Einrichtung übersprungen hat, oder geh den ganzen Plan noch einmal durch.',
@@ -161,7 +163,7 @@ export const setup: Messages['setup'] = {
       unavailable: 'Der Chat ist gerade nicht erreichbar. Versuch es später noch einmal oder füll die Schritte selbst aus.',
       offline: 'Du bist offline. Der Chat braucht eine Verbindung.',
       timeout: 'Der Chat hat zu lange gebraucht. Versuch es noch einmal.',
-      signedOut: 'Melde dich unter Dein Konto wieder an, um den Chat zu nutzen.',
+      signedOut: 'Melde dich unter Einstellungen → Dein Konto wieder an, um den Chat zu nutzen.',
       needsCode: 'Gib den Code deiner Authenticator-App unter Einstellungen → Dein Konto ein, um den Chat zu nutzen.',
       failed: 'Bei dieser Antwort ist etwas schiefgegangen. Versuch es noch einmal.',
     },

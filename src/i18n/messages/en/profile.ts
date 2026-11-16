@@ -5,8 +5,8 @@ export const profile = {
   /** The Profile row on the Settings list, before anything is saved. */
   summaryNone: 'Not filled in yet',
   intro:
-    'Your profile is stored on this phone and goes into any backup you export, and into your account when you save ' +
-    'to it.',
+    'Your profile is stored on this phone and goes into any backup you export, and into your account once this ' +
+    'phone is linked.',
   name: 'Your name',
   nameHint: 'Optional. Home greets you by this name.',
   university: 'University',
@@ -24,7 +24,7 @@ export const profile = {
   save: 'Save profile',
   clearDates: 'Clear semester dates',
   saved: 'Profile saved.',
-  saveFailed: 'Could not save your profile. Try again.',
+  saveFailed: 'Couldn’t save your profile. Try again.',
   /** Why the semester dates can't be saved yet (profileProblems). */
   problems: {
     both: 'Add both semester dates, or leave both empty.',
@@ -36,7 +36,7 @@ export const profile = {
   /** The one-off the semester fee offer adds (profile.ts keeps SEMESTER_FEE_NAME, the English one, for the MCP). */
   semesterFee: 'Semester fee',
   fee: {
-    noFee: "No page states this semester's fee yet, so the amount is yours to fill in.",
+    noFee: 'No page states this semester’s fee yet, so the amount is yours to fill in.',
     dueReRegistration: (month: string) => `Due in ${month}, when re-registration is expected to open.`,
     dueBeforeSemester: (month: string) => `Due in ${month}, the month before the semester starts.`,
     /** What the re-registration month's source line is about. */

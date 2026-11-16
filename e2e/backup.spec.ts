@@ -14,11 +14,11 @@ const QUESTION = `Replace all data with ${FILE_NAME}?`;
 const PINNED_DAY = formatDate('2026-10-16').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const SUMMARY = new RegExp(`^Saved ${PINNED_DAY}, \\d{2}:\\d{2} · 3 accounts · 1 entry$`);
 const NOT_A_BACKUP =
-  "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.";
+  'This isn’t a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.';
 const NEWER =
   'This backup is from a newer version of the app. Reload the app while online to update it, then try again.';
 const DAMAGED =
-  "This backup file is damaged: an entry uses an account that isn't in the file. Choose another backup, or export a new one.";
+  'This backup file is damaged: an entry uses an account that isn’t in the file. Choose another backup, or export a new one.';
 
 const EMPTY_BACKUP = {
   app: 'studentsbudget',
@@ -469,7 +469,7 @@ test.describe('on a desktop browser', () => {
     await setShareMode(page, 'blocked');
 
     await page.getByRole('button', { name: 'Export backup' }).click();
-    await expect(inlineAlert(page)).toContainText("The share sheet didn't open. You can download the file instead.");
+    await expect(inlineAlert(page)).toContainText('The share sheet didn’t open. You can download the file instead.');
     await expect(page.getByRole('status')).toHaveCount(0);
     // No second, programmatic download without a tap, and no second share.
     expect(downloads.value).toBe(0);

@@ -1,27 +1,24 @@
 import type { Messages } from '../en';
 
-// La cuenta en español: la tarjeta "Tu cuenta" en Ajustes y la línea sobre ella en la configuración.
+// La cuenta en español: la fila "Tu cuenta" de la lista de Ajustes, la línea para iniciar sesión bajo la
+// configuración y la página de inicio.
 export const account: Messages['account'] = {
   card: {
     heading: 'Tu cuenta',
     signedIn: (email) => `Sesión iniciada como ${email}.`,
     secondStep: (email) => `Casi has iniciado sesión como ${email}: escribe el código de tu app de autenticación.`,
     signedOut: 'Opcional: inicia sesión o crea una cuenta. Sin cuenta, todo se queda en este móvil.',
-    manage: 'Gestionar cuenta',
-    finish: 'Terminar de iniciar sesión',
-    signIn: 'Iniciar sesión',
   },
   setupLink: {
     question: '¿Usas StudentsBudget en otro móvil?',
     signedIn: 'Trae tus datos de tu cuenta',
     secondStep: 'Termina de iniciar sesión para traer tus datos',
-    signedOut: 'Inicia sesión para traer tus datos',
   },
   start: {
     /** Sobre el titular, con un pin. */
     place: 'Para estudiantes en Regensburg',
     headline: 'Tu dinero, en orden para tu vida de estudiante.',
-    pitch: 'Planifica tu mes, registra tus gastos en segundos y consulta precios locales con sus fuentes.',
+    pitch: 'Hecha para tus primeros meses en una ciudad nueva, con precios que puedes comprobar.',
     /** Lo que hace la app, una línea cada cosa, en una tarjeta. */
     features: {
       plan: 'Planifica tu mes',

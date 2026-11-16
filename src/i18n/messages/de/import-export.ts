@@ -11,7 +11,6 @@ export const importExport: Messages['importExport'] = {
       'Sparkasse, DKB, N26 und Revolut werden erkannt. Die Datei wird nur auf diesem Handy gelesen und nicht gespeichert.',
     file: 'Auszugsdatei (CSV)',
     noPlan: 'Richte zuerst deinen Plan ein: Der Import rechnet jede Zeile darauf an.',
-    toSetup: 'Zur Einrichtung',
     reading: 'Datei wird gelesen …',
     recognised: (bank, rows, from, to) => `${bank}: ${rows} ${rows === 1 ? 'Zeile' : 'Zeilen'}, ${from} bis ${to}`,
     account: 'Importieren in',

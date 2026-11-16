@@ -9,8 +9,6 @@ export const reminder: Messages['reminder'] = {
   loading: 'Wird geladen …',
   unavailable: 'Erinnerungen sind in dieser Version der App nicht eingerichtet.',
   signedOut: 'Die Erinnerung kommt über dein Konto: Melde dich zuerst auf diesem Handy an.',
-  toAccount: 'Zu „Dein Konto“',
-  needsCode: 'Dein Konto hat die zweistufige Anmeldung: Gib zuerst den Code aus deiner Authenticator-App ein.',
   installFirst:
     'Auf dem iPhone oder iPad braucht die Erinnerung die App auf deinem Home-Bildschirm: Tippe in Safari auf Teilen, ' +
     'dann auf „Zum Home-Bildschirm“, und öffne sie von dort.',
@@ -23,7 +21,7 @@ export const reminder: Messages['reminder'] = {
   hint: 'Egal, welchen Tag du wählst: Der Check-in schaut auf die bisherige Woche, Montag bis Sonntag.',
   turnOn: 'Erinnerung einschalten',
   save: 'Änderungen speichern',
-  turnOff: 'Ausschalten',
+  turnOff: 'Erinnerung ausschalten',
   status: {
     on: (day: string, time: string) => `Die Erinnerung ist an: ${day.toLowerCase()} um ${time}.`,
     off: 'Die Erinnerung ist aus.',

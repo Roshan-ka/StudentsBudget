@@ -75,7 +75,7 @@ async function signInAndTurnOn(page: Page) {
 const removed = (calls: AuthCall[]) => calls.filter((c) => c.method === 'DELETE' && c.path.startsWith('/factors/'));
 
 function restartNote(page: Page) {
-  return twoStep(page).getByText('This starts the set-up again.', { exact: false });
+  return twoStep(page).getByText('This starts the setup again.', { exact: false });
 }
 
 /** Unlinks this phone, as a phone signed in from before linking existed: its sync state goes, straight in IndexedDB. */
@@ -118,7 +118,7 @@ test('turning it on shows the ways to add the app, and takes only a right first 
   // Offline, nothing is tried, and the message says what needs the connection.
   await context.setOffline(true);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
-  await expect(alert(page)).toHaveText("You're offline. Turning two-step sign-in on or off needs a connection.");
+  await expect(alert(page)).toHaveText('You’re offline. Turning two-step sign-in on or off needs a connection.');
   await context.setOffline(false);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
 
@@ -228,7 +228,7 @@ test('a set-up cancelled, or left open, never blocks the next one', async ({ pag
   await twoStep(page).getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(twoStep(page).getByText('Turn it on and signing in', { exact: false })).toBeVisible();
   expect(removed(calls)).toHaveLength(1);
-  await expect(twoStep(page).getByRole('status')).toHaveText('Set-up cancelled.');
+  await expect(twoStep(page).getByRole('status')).toHaveText('Setup cancelled.');
   await expect(twoStep(page).getByRole('button', { name: 'Turn on', exact: true })).toBeFocused();
 
   // Left open: the page reloads mid-way, and the next Turn on clears the old set-up before it starts again, saying so.
@@ -280,9 +280,9 @@ test('when the account can’t be checked, it says so instead of "Off", and Try 
   const unreachable = (route: Route) => route.abort();
   await page.route('**/auth/v1/user', unreachable);
   await page.reload();
-  await expect(twoStep(page).getByText('Couldn\'t check whether two-step sign-in is on.', { exact: true })).toBeVisible();
+  await expect(twoStep(page).getByText('Couldn’t check whether two-step sign-in is on.', { exact: true })).toBeVisible();
   await expect(twoStep(page).getByRole('button', { name: 'Turn on', exact: true })).toHaveCount(0);
-  await expect(alert(page)).toHaveText("The account server can't be reached. Check your connection and try again.");
+  await expect(alert(page)).toHaveText('The account server can’t be reached. Check your connection and try again.');
 
   await page.unroute('**/auth/v1/user', unreachable);
   await twoStep(page).getByRole('button', { name: 'Try again', exact: true }).click();
@@ -369,7 +369,7 @@ test('a set-up removed from another phone says so, and Turn on then finds it on'
 
   await codeField(page).fill(E2E_TOTP_CODE);
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
-  await expect(alert(page)).toHaveText('This set-up was cancelled, maybe from another phone. Turn on to start again.');
+  await expect(alert(page)).toHaveText('This setup was cancelled, maybe from another phone. Tap Turn on to start again.');
   await twoStep(page).getByRole('button', { name: 'Turn on', exact: true }).click();
   await expect(twoStep(page).getByText('Signing in asks for the code from your authenticator app.')).toBeVisible();
   await expect(twoStep(page).getByRole('status')).toHaveText('Two-step sign-in is already on.');
@@ -395,7 +395,7 @@ test('a half sign-in the account server has ended asks to sign in again', async 
   );
   await codeField(page).fill(E2E_TOTP_CODE);
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(alert(page)).toHaveText(`This sign-in for ${EMAIL} has ended, maybe because it was finished on another device.`);
+  await expect(alert(page)).toHaveText(`This sign-in for ${EMAIL} has ended, maybe because it was finished on another phone or tab.`);
   await expect(page.getByRole('button', { name: 'Sign in again', exact: true })).toBeFocused();
   await page.getByRole('button', { name: 'Sign in again', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();

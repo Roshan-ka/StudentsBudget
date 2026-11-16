@@ -1,4 +1,5 @@
-// Setup and Edit plan in English: the wizard, its steps, draft.ts's checks and lines, and the install hint.
+// Setup and Edit plan in English: the wizard, its steps, draft.ts's checks and lines, the install hint, the way into
+// Edit plan from Settings and the setup chat.
 // A text that takes values is a function; one with a number picks its own plural, as each language's grammar needs.
 
 export const setup = {
@@ -13,14 +14,14 @@ export const setup = {
     envelopes: 'Envelopes',
   },
   accountsInSettings: 'Your accounts are already set up, in Settings → Accounts and transfers.',
-  saveFailed: 'Could not save your plan. Try again.',
+  saveFailed: 'Couldn’t save your plan. Try again.',
   back: 'Back',
   next: 'Next',
   save: 'Save plan',
   /** Why a step can't be left yet (validateStep). */
   problems: {
     checkAmount: (name: string) => `Check the amount for ${name}.`,
-    addAccount: 'Add at least one account',
+    addAccount: 'Add at least one account.',
     nameAccounts: 'Give every account a name.',
     /** `name` is null for an account still without one. */
     checkOpening: (name: string | null, number: number) =>
@@ -31,7 +32,7 @@ export const setup = {
     checkOneOff: (name: string | null, number: number) => `Check the amount for ${name ?? `one-off cost ${number}`}.`,
     dueMonth: 'Pick a month after this one.',
     checkBudget: 'Check the amount for your everyday budget.',
-    addEnvelope: (name: string) => `Add an amount for ${name}`,
+    addEnvelope: (name: string) => `Add an amount for ${name}.`,
   },
   accounts: {
     intro: 'Where does your money live? The opening balance is what is in each account today.',
@@ -43,18 +44,19 @@ export const setup = {
     cash: 'Cash',
     currency: 'Currency',
     opening: 'Opening balance',
-    remove: (number: number) => `Remove account ${number}`,
+    /** The icon button's name: "Remove: Local bank", or "Remove: Account 2" while it has no name (`name` null). */
+    remove: (name: string | null, number: number) => `Remove: ${name ?? `Account ${number}`}`,
     add: 'Add account',
-    /** The three accounts a new setup starts with: once saved, they are the person's own names. */
+    /** The two accounts a new setup starts with: once saved, they are the person's own names. */
     prefilled: { localBank: 'Local bank', cash: 'Cash' },
   },
   income: {
-    intro: 'How much comes in each month, in euros? Leave out what you do not get. If it varies, enter a low estimate.',
+    intro: 'How much comes in each month, in euros? Leave out what you don’t get. If it varies, enter a low estimate.',
     /** One sentence around the switch's name, which is set in italics. */
     savings: {
       before: 'Living off savings? Add what you use each month under Other income and switch off ',
       automatic: 'Add it automatically',
-      after: ", so money already in your account isn't counted twice.",
+      after: ', so money already in your account isn’t counted twice.',
     },
     later: 'Get BAföG or a scholarship? Add it later in Settings → Plan → Edit plan.',
     /** The disclosure under the income cards that holds `savings` and, on a new setup, `later` (13-11-2026). */
@@ -63,7 +65,7 @@ export const setup = {
     moreEdit: 'Living off savings?',
   },
   fixed: {
-    intro: 'What do you pay every month, in euros? Leave out what you do not pay.',
+    intro: 'What do you pay every month, in euros? Leave out what you don’t pay.',
     rentLabel: 'Rent per month',
     rooms: (range: string) => `Rooms here: ${range}`,
     later:
@@ -75,13 +77,15 @@ export const setup = {
   oneOffs: {
     intro:
       'Big costs that come once, like a semester fee or a deposit. We set a share aside each month until the due ' +
-      "month. Skip this if you have none. A cost without an amount isn't saved.",
+      'month. Skip this if you have none. A cost without an amount isn’t saved.',
     oneOff: (number: number) => `One-off cost ${number}`,
     name: 'Name',
     amount: 'Amount',
-    leftOut: "Without an amount, this cost isn't saved.",
+    leftOut: 'Without an amount, this cost isn’t saved.',
     due: 'Due month',
-    remove: (number: number) => `Remove one-off cost ${number}`,
+    /** A cost's Remove: its word, and its name, "Remove: Semester fee" ("Remove: One-off cost 2" while it has none). */
+    remove: 'Remove',
+    removeOne: (name: string | null, number: number) => `Remove: ${name ?? `One-off cost ${number}`}`,
     add: 'Add a one-off cost',
     /** "Add semester fee: €215, due March 2027"; `amount` is null when no page states the fee. */
     feeOffer: (amount: string | null, month: string) =>
@@ -97,14 +101,15 @@ export const setup = {
     other: 'other things',
   },
   envelopes: {
-    /** "…what is left after rent and fixed costs: €500." */
+    /** "…what is left after your fixed costs (rent included): €500." */
     budgetIntroNew: (amount: string) =>
-      `An everyday budget is optional. Without one, the suggestions share out what is left after rent and fixed costs: ${amount}.`,
+      'An everyday budget is optional. Without one, the suggestions share out what is left after your fixed costs ' +
+      `(rent included): ${amount}.`,
     budgetIntroEdit: (amount: string) =>
-      'An everyday budget is optional. Without one, the suggestions share out what is left after rent, fixed costs ' +
-      `and what is set aside for one-off costs: ${amount}.`,
+      'An everyday budget is optional. Without one, the suggestions share out what is left after your fixed costs ' +
+      `(rent included) and what is set aside for one-off costs: ${amount}.`,
     budgetQuestion:
-      'How much do you want to spend in a month on everyday things, apart from rent and your fixed costs?',
+      'How much do you want to spend in a month on everyday things, apart from your fixed costs (rent included)?',
     typicalSpend: (range: string) => `Students here typically spend about ${range} a month on these.`,
     /** "Eating out, going out and transport are estimates."; `list` is joined the language's way. */
     estimates: (list: string, count: number) =>
@@ -116,7 +121,7 @@ export const setup = {
       'How much do you want to allow yourself for each of these a month, in euros? You can change them, and add ' +
       'envelopes like study materials or travel, in Settings → Plan → Edit plan.',
     useSuggested: 'Use the suggested amounts',
-    fillsOnly: "It fills only the envelopes you haven't set.",
+    fillsOnly: 'It fills only the envelopes you haven’t set.',
     studentsHere: 'Students here',
     suggested: (amount: string) => `Suggested: ${amount}`,
     below: 'Below what students here typically need.',
@@ -136,14 +141,13 @@ export const setup = {
   installHint:
     'Install first: tap Share → Add to Home Screen, then set up there. Data entered in Safari stays in Safari.',
   /** The first row of the Settings list while no plan is saved: the way back to setup. */
-  setupRow: { title: 'Set up your plan', summary: "Your plan isn't set up yet" },
+  setupRow: { title: 'Set up your plan', summary: 'Your plan isn’t set up yet' },
+  /** The Plan row on the Settings list, and the card on /settings/plan (its heading is `shell.headings.plan`). */
   editPlan: {
-    /** The Plan row on the Settings list. */
     summary: 'Income, fixed costs and envelopes',
-    heading: 'Plan',
     body:
-      'Change your envelopes, add one-off costs like the semester fee and the income sources, fixed costs and ' +
-      'envelopes setup skipped, or go through the whole plan again.',
+      'Change your envelopes, add one-off costs such as the semester fee, or add the income and fixed costs setup ' +
+      'skipped.',
     link: 'Edit plan',
   },
   /** The setup chat (the AI phase, chunk 12): on a new setup's first step, signed in, in a build with the AI. */
@@ -176,8 +180,8 @@ export const setup = {
       unavailable: 'The chat can’t be reached right now. Try again later, or fill in the steps yourself.',
       offline: 'You’re offline. The chat needs a connection.',
       timeout: 'The chat took too long to answer. Try again.',
-      signedOut: 'Sign in again on Your account to use the chat.',
-      needsCode: 'Give your authenticator app’s code in Settings → Your account to use the chat.',
+      signedOut: 'Sign in again in Settings → Your account to use the chat.',
+      needsCode: 'Enter the code from your authenticator app in Settings → Your account to use the chat.',
       failed: 'Something went wrong with that reply. Try again.',
     },
   },

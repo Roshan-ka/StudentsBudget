@@ -12,7 +12,6 @@ export const importExport: Messages['importExport'] = {
       'Sparkasse, DKB, N26 et Revolut sont reconnus. Le fichier est lu sur ce téléphone seulement et n’est pas conservé.',
     file: 'Fichier du relevé (CSV)',
     noPlan: `Commence par configurer ton plan${NNBSP}: l’import compte chaque ligne dedans.`,
-    toSetup: 'Aller à la configuration',
     reading: 'Lecture du fichier…',
     recognised: (bank, rows, from, to) =>
       `${bank}${NNBSP}: ${byCount(rows, { one: `${rows} ligne`, other: `${rows} lignes` })}, du ${from} au ${to}`,
@@ -65,7 +64,7 @@ export const importExport: Messages['importExport'] = {
     },
     nothing: `Rien de nouveau${NNBSP}: chaque ligne était déjà dans l’appli, ou a été laissée de côté.`,
     opening: (account, amount) =>
-      `Le solde de départ de ${account} a bougé de ${amount}${NNBSP}: certaines lignes datent d’avant l’ajout du compte, donc son solde d’aujourd’hui reste le même.`,
+      `Le solde initial de ${account} a bougé de ${amount}${NNBSP}: certaines lignes datent d’avant l’ajout du compte, donc son solde d’aujourd’hui reste le même.`,
     skipped: (count) => `Laissées de côté (${count})`,
     reasons: {
       unreadable: 'Illisible',

@@ -9,7 +9,6 @@ const sentences = (...parts: (string | null)[]) => parts.filter((part) => part !
 
 export const charts: Messages['charts'] = {
   noPlan: 'Richte deinen Plan ein, um zu sehen, wohin das Geld geht.',
-  startSetup: 'Einrichtung starten',
   periodLabel: 'Zeitraum',
   period: (months) => (months === 1 ? 'Dieser Monat' : `${months} Monate`),
   monthLabel: 'Monat',

@@ -313,7 +313,7 @@ describe('draftFromPlan', () => {
 
 describe('validateStep', () => {
   it('needs at least one account, each with a name and a readable balance', () => {
-    expect(validateStep('accounts', { ...draft, accounts: [] }, TODAY)).toEqual(['Add at least one account']);
+    expect(validateStep('accounts', { ...draft, accounts: [] }, TODAY)).toEqual(['Add at least one account.']);
     expect(validateStep('accounts', draft, TODAY)).toEqual([]);
     const blank = [{ name: ' ', kind: 'cash' as const, currency: 'EUR' as const, openingMinor: Number.NaN }];
     expect(validateStep('accounts', { ...draft, accounts: blank }, TODAY)).toEqual([
@@ -467,7 +467,7 @@ describe('validateStep', () => {
   it('wants a readable amount in every envelope', () => {
     expect(validateStep('envelopes', draft, TODAY)).toEqual([]);
     const missing = { ...draft, envelopes: draft.envelopes.filter((e) => e.categoryId !== 'other') };
-    expect(validateStep('envelopes', missing, TODAY)).toEqual(['Add an amount for Other']);
+    expect(validateStep('envelopes', missing, TODAY)).toEqual(['Add an amount for Other.']);
     const bad = withAmount(draft.envelopes, 'food', Number.NaN);
     expect(validateStep('envelopes', { ...draft, envelopes: bad }, TODAY)).toEqual([
       'Check the amount for Food & groceries.',

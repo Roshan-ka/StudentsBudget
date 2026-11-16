@@ -318,7 +318,7 @@ export function CheckInView() {
       <p className="text-muted-foreground">
         {t.checkIn.noPlan}{' '}
         <Link href="/setup" className={LINK_CLASS}>
-          {t.checkIn.startSetup}
+          {t.common.toSetup}
         </Link>
       </p>
     );

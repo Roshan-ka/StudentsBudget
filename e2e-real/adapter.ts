@@ -203,7 +203,8 @@ export const NEVER_CLICK: (string | RegExp)[] = [
   'Delete everything',
   /^Sign out/i,
   'Change password',
-  /^Remove (authenticator|passkey|Passkey)/,
+  // "Remove: Passkey, added …" (16-11-2026), and the older "Remove passkey" wording.
+  /^Remove:? (authenticator|passkey|Passkey)/,
   /turn off two-step/i,
   /^Restore/i,
   /^Import/i,

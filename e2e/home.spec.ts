@@ -308,11 +308,11 @@ test('says which rate is missing and shows a dash when nothing could be converte
   await expect(page.getByText('INR rate missing', { exact: true })).toBeVisible();
 
   await page.goto('/settings/accounts');
-  await page.getByRole('button', { name: 'Delete Local bank' }).click();
+  await page.getByRole('button', { name: 'Delete: Local bank' }).click();
   await page.getByRole('group', { name: 'Delete Local bank?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
-  await page.getByRole('button', { name: 'Delete Cash' }).click();
+  await page.getByRole('button', { name: 'Delete: Cash' }).click();
   await page.getByRole('group', { name: 'Delete Cash?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Delete Cash' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Delete: Cash' })).toHaveCount(0);
 
   await page.goto('/');
   await expect(page.getByText('Across all accounts: —', { exact: true })).toBeVisible();
@@ -423,7 +423,7 @@ test('with an everyday budget, the suggestion keeps to it, or to what is availab
   // €600 is more than the €440 available, so the amounts share out €440: the same as without a budget.
   await expect(
     panel.getByText(
-      '€440 a month is available after your fixed costs and set-asides. That is less than your everyday budget of ' +
+      '€440 a month is available after your fixed costs and set-asides. That’s less than your everyday budget of ' +
         '€600, so these amounts keep to €440.',
       { exact: true },
     ),

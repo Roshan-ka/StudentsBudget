@@ -60,7 +60,7 @@ test('signed out, the page says to sign in, and Settings says it is off', async 
   await skipUnlessReminders(page);
 
   await expect(page.getByText(TEXT.signedOut, { exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: TEXT.toAccount, exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: EN.common.toAccount, exact: true })).toBeVisible();
   await expect(button(page, TEXT.turnOn)).toHaveCount(0);
   // The calendar is the other way, for every phone.
   await expect(page.getByRole('link', { name: TEXT.toCheckIn, exact: true })).toHaveAttribute('href', '/check-in');
@@ -198,7 +198,7 @@ test('an account with two-step sign-in gives its code first', async ({ page }) =
   await expect(page.getByRole('textbox', { name: '6-digit code', exact: true })).toBeVisible();
   await page.goto('/settings/reminder');
 
-  await expect(page.getByText(TEXT.needsCode, { exact: true })).toBeVisible();
+  await expect(page.getByText(EN.common.needsCode, { exact: true })).toBeVisible();
   await expect(button(page, TEXT.turnOn)).toHaveCount(0);
 });
 

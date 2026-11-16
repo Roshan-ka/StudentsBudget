@@ -95,14 +95,14 @@ test('signed in, students’ posts show with who wrote them, and filter by categ
   await expect(posts(page)).toHaveCount(2);
   const bread = posts(page).filter({ hasText: 'Bread is half price' });
   await expect(bread).toContainText(`Regensburg · ${dayOf(POSTS[0].created_at)}`);
-  await expect(bread).toContainText("@bea · Graduate · Batch '25");
+  await expect(bread).toContainText('@bea · Graduate · Class of ’25');
   await expect(bread).toContainText('Upvotes: 3 · Worked: 2 · Outdated: 1');
   await expect(bread.getByRole('link', { name: 'www.example.de', exact: true })).toHaveAttribute('target', '_blank');
 
   // The author's own post, in the language it was written in.
   const ticket = posts(page).filter({ hasText: 'Semesterticket' });
   await expect(ticket).toContainText(`Anywhere · ${dayOf(POSTS[1].created_at)}`);
-  await expect(ticket).toContainText("@roshan · Student · Batch '27 · Your post");
+  await expect(ticket).toContainText('@roshan · Student · Class of ’27 · Your post');
   await expect(ticket.locator('p[lang="de"]')).toHaveText(POSTS[1].body);
 
   await page.getByRole('group', { name: 'Show posts for', exact: true }).getByRole('button', { name: 'Transport', exact: true }).click();
@@ -126,7 +126,7 @@ test('when the posts can’t be loaded, the last list shows, and signing out for
   await page.route('**/rest/v1/rpc/hacks_feed', (route) => route.abort('connectionfailed'));
   await page.reload();
   await expect(page.getByRole('main').getByRole('alert')).toHaveText(
-    "The posts couldn't be loaded. Check your connection and try again.",
+    'The posts couldn’t be loaded. Check your connection and try again.',
   );
   await expect(page.getByText(/^Shown as last loaded, /)).toBeVisible();
   await expect(posts(page)).toHaveCount(2);
@@ -152,7 +152,7 @@ test.describe('in German', () => {
     await page.goto('/tips');
     await tab(page, 'Hacks', 'Tipps, Rabatte, Hacks oder Checkliste').click();
     const bread = posts(page, 'Beiträge').filter({ hasText: 'Bread is half price' });
-    await expect(bread).toContainText('@bea · Mit Abschluss · Jahrgang 2025');
+    await expect(bread).toContainText('@bea · Mit Abschluss · Abschluss 2025');
     await expect(bread).toContainText('Daumen hoch: 3 · Hat geklappt: 2 · Veraltet: 1');
   });
 });

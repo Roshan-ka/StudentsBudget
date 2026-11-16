@@ -79,7 +79,6 @@ export const auth: Messages['auth'] = {
     code: '6-stelliger Code',
     confirm: 'Bestätigen',
     sendAgain: 'Neuen Code senden',
-    resent: 'Ein neuer Code ist unterwegs. Nimm den neuesten.',
     back: 'Zurück',
   },
   /** „Passwort vergessen“ (P2.4): die E-Mail-Adresse, dann ihr Code. Die Adresse steht fett mitten im Satz. */
@@ -91,7 +90,6 @@ export const auth: Messages['auth'] = {
     code: '6-stelliger Code',
     confirm: 'Weiter',
     sendAgain: 'Neuen Code senden',
-    resent: 'Ein neuer Code ist unterwegs. Nimm den neuesten.',
     back: 'Zurück',
   },
   /** Der letzte Schritt von „Passwort vergessen“: mit dem Code angemeldet, ein neues Passwort schließt ab. */
@@ -107,7 +105,7 @@ export const auth: Messages['auth'] = {
     prompt: { before: 'Gib den Code aus deiner Authenticator-App für ', after: ' ein.' },
     ended: {
       before: 'Diese Anmeldung für ',
-      after: ' ist beendet, vielleicht weil sie auf einem anderen Gerät abgeschlossen wurde.',
+      after: ' ist beendet, vielleicht weil sie auf einem anderen Handy oder in einem anderen Tab abgeschlossen wurde.',
     },
     signInAgain: 'Wieder anmelden',
     code: '6-stelliger Code',
@@ -132,7 +130,8 @@ export const auth: Messages['auth'] = {
     stay: 'Angemeldet bleiben',
     signOutAnyway: 'Abmelden und Änderungen verlieren',
     wipeFailed:
-      'Du bist abgemeldet, aber die Daten ließen sich nicht von diesem Handy löschen. Lösche sie unter Backup und Daten.',
+      'Du bist abgemeldet, aber die Daten ließen sich nicht von diesem Handy löschen. Lösche sie in den Einstellungen ' +
+      'unter Backup und Daten → Alles löschen.',
     passwordChanged: 'Passwort geändert.',
   },
   /** Einstellungen → Dein Konto → Mein Konto löschen (P2.5). Das Wort zum Eintippen ist das von Backup. */
@@ -213,9 +212,9 @@ export const auth: Messages['auth'] = {
     usernameHint: '3–20 Zeichen: Buchstaben a–z, Ziffern oder _. Andere sehen ihn als @name.',
     label: 'Du bist',
     labels: { student: 'Im Studium', graduate: 'Mit Abschluss', alumni: 'Alumni' },
-    batch: 'Jahrgang (optional)',
-    batchHint: 'Das Jahr deines Abschlusses, zum Beispiel 2027.',
-    batchShort: (year) => `Jahrgang ${year}`,
+    batch: 'Abschlussjahr (optional)',
+    batchHint: 'Oder das Jahr, in dem du dein Studium abgeschlossen hast, zum Beispiel 2027.',
+    batchShort: (year) => `Abschluss ${year}`,
     none: 'Noch kein Name. Wähl jetzt einen oder vor deinem ersten Beitrag.',
     loading: 'Dein Name wird geprüft …',
     loadFailed: 'Dein Name bei Beiträgen konnte nicht gelesen werden. Versuch es später noch einmal.',
@@ -231,7 +230,7 @@ export const auth: Messages['auth'] = {
       long: 'Der Benutzername darf höchstens 20 Zeichen haben.',
       reserved: 'Dieser Benutzername ist für die App reserviert. Wähl einen anderen.',
       taken: 'Dieser Benutzername ist vergeben. Wähl einen anderen.',
-      batch: 'Gib den Jahrgang als Jahr ein, zum Beispiel 2027.',
+      batch: 'Gib ein Jahr von 2000 bis 2100 ein, zum Beispiel 2027.',
       checkFailed: 'Der Benutzername konnte nicht geprüft werden. Prüf deine Verbindung und versuch es noch einmal.',
       saveFailed: 'Dein Name konnte nicht gespeichert werden. Versuch es noch einmal.',
     },
@@ -265,7 +264,7 @@ export const auth: Messages['auth'] = {
     unnamed: 'Passkey',
     added: (dateTime) => `Hinzugefügt am ${dateTime}`,
     lastUsed: (day) => `; zuletzt genutzt am ${day}`,
-    removeOne: (name, dateTime) => `${name} entfernen, hinzugefügt am ${dateTime}`,
+    removeOne: (name, dateTime) => `Entfernen: ${name}, hinzugefügt am ${dateTime}`,
     remove: 'Entfernen',
     removeQuestion:
       'Diesen Passkey entfernen? Er meldet dich dann nicht mehr an; dein Passwort und jeder andere Passkey ' +

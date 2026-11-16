@@ -42,7 +42,7 @@ export const setup: Messages['setup'] = {
     cash: 'Espèces',
     currency: 'Devise',
     opening: 'Solde initial',
-    remove: (number) => `Retirer le compte ${number}`,
+    remove: (name, number) => `Retirer ${name ?? `le compte ${number}`}`,
     add: 'Ajouter un compte',
     prefilled: { localBank: 'Banque d’ici', cash: 'Espèces' },
   },
@@ -78,7 +78,8 @@ export const setup: Messages['setup'] = {
     amount: 'Montant',
     leftOut: 'Sans montant, ces frais ne sont pas enregistrés.',
     due: 'Mois de l’échéance',
-    remove: (number) => `Retirer les frais ponctuels ${number}`,
+    remove: 'Retirer',
+    removeOne: (name, number) => `Retirer ${name ?? `les frais ponctuels ${number}`}`,
     add: 'Ajouter des frais ponctuels',
     feeOffer: (amount, month) =>
       `Ajouter les frais de semestre${amount === null ? '' : `${NNBSP}: ${amount}`}, à payer en ${month}`,
@@ -93,12 +94,12 @@ export const setup: Messages['setup'] = {
   },
   envelopes: {
     budgetIntroNew: (amount) =>
-      `Un budget du quotidien est facultatif. Sans lui, les suggestions répartissent ce qui reste après le loyer et ` +
-      `les charges fixes${NNBSP}: ${amount}.`,
+      'Un budget du quotidien est facultatif. Sans lui, les suggestions répartissent ce qui reste après tes charges ' +
+      `fixes (loyer compris)${NNBSP}: ${amount}.`,
     budgetIntroEdit: (amount) =>
-      `Un budget du quotidien est facultatif. Sans lui, les suggestions répartissent ce qui reste après le loyer, ` +
-      `les charges fixes et ce qui est mis de côté pour les frais ponctuels${NNBSP}: ${amount}.`,
-    budgetQuestion: `Combien veux-tu dépenser par mois pour le quotidien, hors loyer et charges fixes${NNBSP}?`,
+      'Un budget du quotidien est facultatif. Sans lui, les suggestions répartissent ce qui reste après tes charges ' +
+      `fixes (loyer compris) et ce qui est mis de côté pour les frais ponctuels${NNBSP}: ${amount}.`,
+    budgetQuestion: `Combien veux-tu dépenser par mois pour le quotidien, hors charges fixes (loyer compris)${NNBSP}?`,
     typicalSpend: (range) => `Les étudiants d’ici dépensent en général environ ${range} par mois pour cela.`,
     estimates: (list, count) =>
       `${list.charAt(0).toUpperCase()}${list.slice(1)} ${byCount(count, { one: 'est une estimation', other: 'sont des estimations' })}.`,
@@ -129,7 +130,6 @@ export const setup: Messages['setup'] = {
   setupRow: { title: 'Configurer ton plan', summary: 'Ton plan n’est pas encore configuré' },
   editPlan: {
     summary: 'Revenus, charges fixes et enveloppes',
-    heading: 'Plan',
     body:
       'Modifie tes enveloppes, ajoute des frais ponctuels comme les frais de semestre et les sources de revenus, ' +
       'les charges fixes et les enveloppes que la configuration a sautées, ou reprends tout le plan.',
@@ -165,7 +165,7 @@ export const setup: Messages['setup'] = {
       unavailable: 'Le chat est injoignable pour l’instant. Réessaie plus tard, ou remplis les étapes toi-même.',
       offline: 'Tu es hors ligne. Le chat a besoin d’une connexion.',
       timeout: 'Le chat a mis trop de temps à répondre. Réessaie.',
-      signedOut: 'Reconnecte-toi dans Ton compte pour utiliser le chat.',
+      signedOut: 'Reconnecte-toi dans Réglages → Ton compte pour utiliser le chat.',
       needsCode: 'Saisis le code de ton appli d’authentification dans Réglages → Ton compte pour utiliser le chat.',
       failed: 'Quelque chose s’est mal passé avec cette réponse. Réessaie.',
     },

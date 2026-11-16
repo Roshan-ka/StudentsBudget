@@ -98,7 +98,7 @@ test('saves a plan that is over what is available, with no income math in the wa
   await expect(budgetField(page)).toHaveValue('');
   await expect(
     page.getByText(
-      'An everyday budget is optional. Without one, the suggestions share out what is left after rent and fixed costs: €500.',
+      'An everyday budget is optional. Without one, the suggestions share out what is left after your fixed costs (rent included): €500.',
       { exact: true },
     ),
   ).toBeVisible();
@@ -264,7 +264,7 @@ test('the first setup asks only the basic questions, with the budget at the top 
   await page.locator('summary').filter({ hasText: 'Savings, BAföG or a scholarship?' }).click();
   await expect(
     page.getByText(
-      "Living off savings? Add what you use each month under Other income and switch off Add it automatically, so money already in your account isn't counted twice.",
+      'Living off savings? Add what you use each month under Other income and switch off Add it automatically, so money already in your account isn’t counted twice.',
       { exact: true },
     ),
   ).toBeVisible();
@@ -306,7 +306,7 @@ test('the first setup asks only the basic questions, with the budget at the top 
   // Nothing was typed, so there is nothing left to share out.
   await expect(
     page.getByText(
-      'An everyday budget is optional. Without one, the suggestions share out what is left after rent and fixed costs: €0.',
+      'An everyday budget is optional. Without one, the suggestions share out what is left after your fixed costs (rent included): €0.',
       { exact: true },
     ),
   ).toBeVisible();
@@ -494,10 +494,11 @@ test('explains what is missing before moving on and keeps what was typed', async
   await mockFrankfurter(page);
   await page.goto('/setup');
   await expect(page.getByRole('heading', { level: 3, name: 'Accounts' })).toBeVisible();
-  // Setup starts with two accounts: both go.
-  for (let i = 0; i < 2; i += 1) await page.getByRole('button', { name: 'Remove account 1' }).click();
+  // Setup starts with two accounts: both go, each named after its account.
+  await page.getByRole('button', { name: 'Remove: Local bank', exact: true }).click();
+  await page.getByRole('button', { name: 'Remove: Cash', exact: true }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await expect(inlineAlert(page)).toHaveText('Add at least one account');
+  await expect(inlineAlert(page)).toHaveText('Add at least one account.');
   await page.getByRole('button', { name: 'Add account' }).click();
   await page.getByRole('group', { name: 'Account 1' }).getByLabel('Name').fill('Wallet');
   await expect(inlineAlert(page)).toHaveCount(0);
@@ -699,7 +700,7 @@ test('in Edit plan the suggested amounts fill only the envelopes that are not se
   await expect(box(page, 'Travel')).not.toHaveAccessibleDescription(/Suggested/);
 
   const use = page.getByRole('button', { name: 'Use the suggested amounts', exact: true });
-  await expect(page.getByText("It fills only the envelopes you haven't set.", { exact: true })).toBeVisible();
+  await expect(page.getByText('It fills only the envelopes you haven’t set.', { exact: true })).toBeVisible();
   await use.click();
   const expected: Record<string, string> = {
     'Food & groceries': '220',
@@ -790,7 +791,7 @@ test('rent and income can be added on their day, from any account', async ({ pag
   // Parents pay into the Indian account: setup has no rate, so it asks for the rupee amount.
   const parents = page.getByRole('group', { name: 'Parents schedule', exact: true });
   await expect(parents.getByRole('checkbox', { name: 'Add it automatically', exact: true })).toBeChecked();
-  await expect(parents.getByText("It's added on its day — don't log it by hand.", { exact: true })).toBeVisible();
+  await expect(parents.getByText('It’s added on its day — don’t log it by hand.', { exact: true })).toBeVisible();
   await parents.getByLabel('Account', { exact: true }).selectOption({ label: 'Home bank (INR)' });
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(inlineAlert(page)).toHaveText('Enter the amount in INR for Parents.');
@@ -805,7 +806,7 @@ test('rent and income can be added on their day, from any account', async ({ pag
   const job = page.getByRole('group', { name: 'Job schedule', exact: true });
   await job.getByLabel('Repeats', { exact: true }).selectOption({ label: 'Weekly on' });
   await job.getByLabel('Day', { exact: true }).selectOption({ label: 'Friday' });
-  await expect(job.getByText("That's €92.31 each week.", { exact: true })).toBeVisible();
+  await expect(job.getByText('That’s €92.31 each week.', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
   await page.getByRole('button', { name: 'Next', exact: true }).click();
 
@@ -814,7 +815,7 @@ test('rent and income can be added on their day, from any account', async ({ pag
   const rent = page.getByRole('group', { name: 'Rent schedule', exact: true });
   await expect(rent.getByLabel('Account', { exact: true }).locator('option:checked')).toHaveText('Local bank (EUR)');
   await rent.getByLabel('Day', { exact: true }).selectOption('31');
-  await expect(rent.getByText("In a shorter month it's added on the last day.", { exact: true })).toBeVisible();
+  await expect(rent.getByText('In a shorter month it’s added on the last day.', { exact: true })).toBeVisible();
   // A cost without an amount asks nothing.
   await expect(page.getByRole('group', { name: 'Phone & internet schedule', exact: true })).toHaveCount(0);
   expect(await overflow(page)).toBeLessThanOrEqual(0);

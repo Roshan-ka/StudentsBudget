@@ -100,9 +100,9 @@ test('rent is added on its day, a changed day posts once, and a deleted one stay
   await openSettings(page);
   const fixed = list(page, 'Fixed costs');
   await expect(fixed.getByText('€400.00 · Monthly on day 1 · Local bank', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
-  const form = page.getByRole('form', { name: 'Change Rent' });
-  await expect(form.getByText("It's added on its day — don't log it by hand.", { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit: Rent', exact: true }).click();
+  const form = page.getByRole('form', { name: 'Edit: Rent' });
+  await expect(form.getByText('It’s added on its day — don’t log it by hand.', { exact: true })).toBeVisible();
   // A new frequency says when it starts; going back to monthly takes the note away again.
   const frequencyNote = form.getByText('A new frequency starts with the next period.', { exact: true });
   await expect(frequencyNote).toHaveCount(0);
@@ -158,13 +158,13 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
 
   // The editor says it too while the line has not started, and for a line being added.
   await openSettings(page);
-  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
-  const form = page.getByRole('form', { name: 'Change Rent' });
+  await page.getByRole('button', { name: 'Edit: Rent', exact: true }).click();
+  const form = page.getByRole('form', { name: 'Edit: Rent' });
   await expect(form.getByText(`First added on ${formatDate('2026-12-01')}.`, { exact: true })).toBeVisible();
   // The keyboard keeps its place: a form opens on its first field, and closing it returns to what opened it.
   await expect(form.locator(':focus')).toHaveCount(1);
   await form.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Edit Rent', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Edit: Rent', exact: true })).toBeFocused();
   await page.getByRole('button', { name: 'Add a fixed cost or income', exact: true }).click();
   const added = page.getByRole('form', { name: 'New fixed cost or income' });
   await expect(added.getByText(`First added on ${formatDate('2026-12-01')}.`, { exact: true })).toBeVisible();
@@ -176,20 +176,20 @@ test('setup and the editor say when the first automatic entry comes', async ({ p
   await openOn(page, on(2026, 12, 2));
   await expect.poll(() => posted(page, 'rent'), POSTING).toEqual([['2026-12-01', 40000]]);
   await openSettings(page);
-  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
-  await expect(page.getByRole('form', { name: 'Change Rent' }).getByText("It's added on its day — don't log it by hand.")).toBeVisible();
-  await expect(page.getByRole('form', { name: 'Change Rent' }).getByText(/^First added on/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit: Rent', exact: true }).click();
+  await expect(page.getByRole('form', { name: 'Edit: Rent' }).getByText('It’s added on its day — don’t log it by hand.')).toBeVisible();
+  await expect(page.getByRole('form', { name: 'Edit: Rent' }).getByText(/^First added on/)).toHaveCount(0);
 
   // Switched off and on again with day 15, the new schedule would be due on 15 December, but December already holds
   // the rent posted on the 1st and the poster skips a period like that: the first entry is 15 January.
-  const started = page.getByRole('form', { name: 'Change Rent' });
+  const started = page.getByRole('form', { name: 'Edit: Rent' });
   await started.getByRole('checkbox', { name: 'Add it automatically', exact: true }).uncheck();
   await started.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(
     list(page, 'Fixed costs').getByText('€400.00 a month · Not added automatically', { exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
-  const again = page.getByRole('form', { name: 'Change Rent' });
+  await page.getByRole('button', { name: 'Edit: Rent', exact: true }).click();
+  const again = page.getByRole('form', { name: 'Edit: Rent' });
   await again.getByRole('checkbox', { name: 'Add it automatically', exact: true }).check();
   await again.getByLabel('Day', { exact: true }).selectOption('15');
   await expect(again.getByText(`First added on ${formatDate('2027-01-15')}.`, { exact: true })).toBeVisible();
@@ -204,8 +204,8 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
 
   // Rent and the job income from now on, from Local bank on the 1st.
   for (const name of ['Rent', 'Job']) {
-    await page.getByRole('button', { name: `Edit ${name}`, exact: true }).click();
-    const form = page.getByRole('form', { name: `Change ${name}` });
+    await page.getByRole('button', { name: `Edit: ${name}`, exact: true }).click();
+    const form = page.getByRole('form', { name: `Edit: ${name}` });
     await form.getByRole('checkbox', { name: 'Add it automatically', exact: true }).check();
     await form.getByLabel('Account', { exact: true }).selectOption({ label: 'Local bank (EUR)' });
     await expect(form.getByLabel('Amount in EUR', { exact: true })).toHaveValue('400');
@@ -214,7 +214,7 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
   await expect(page.getByText('€400.00 · Monthly on day 1 · Local bank', { exact: true })).toHaveCount(2);
 
   // Paused before the 1st: the job income still comes, the rent does not.
-  await page.getByRole('button', { name: 'Pause Rent', exact: true }).click();
+  await page.getByRole('button', { name: 'Pause: Rent', exact: true }).click();
   await expect(
     page.getByText('€400.00 · Monthly on day 1 · Local bank · Paused · not in your plan for now', { exact: true }),
   ).toBeVisible();
@@ -223,8 +223,8 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
   expect(await posted(page, 'rent')).toEqual([]);
 
   // Resumed on 2 November: November stays skipped, December comes.
-  await page.getByRole('button', { name: 'Resume Rent', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Pause Rent', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Resume: Rent', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Pause: Rent', exact: true })).toBeVisible();
   await openOn(page, on(2026, 12, 1));
   await expect.poll(() => posted(page, 'income-job'), POSTING).toEqual([
     ['2026-11-01', 40000],
@@ -247,20 +247,20 @@ test('in Settings a line can be added automatically, paused, resumed, added and 
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   // Delete asks first; Cancel keeps the line.
-  await page.getByRole('button', { name: 'Delete Gym & sports', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete: Gym & sports', exact: true }).click();
   const confirm = page.getByRole('group', { name: 'Delete Gym & sports?', exact: true });
   // The question takes the focus, so a screen reader says it first; Cancel gives it back to Delete.
   await expect(confirm.getByText('Delete Gym & sports? Entries already added stay.', { exact: true })).toBeFocused();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
   await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(confirm).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Delete Gym & sports', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Delete: Gym & sports', exact: true })).toBeFocused();
   expect(await line(page, 'gym')).toBeDefined();
-  await page.getByRole('button', { name: 'Delete Gym & sports', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete: Gym & sports', exact: true }).click();
   await confirm.getByRole('button', { name: 'Delete', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Edit Gym & sports', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Edit: Gym & sports', exact: true })).toHaveCount(0);
   // The line is gone, and the focus is on its neighbour's Edit.
-  await expect(page.locator(':focus')).toHaveAccessibleName(/^Edit /);
+  await expect(page.locator(':focus')).toHaveAccessibleName(/^Edit: /);
   await expect(page.getByText('Your plan is', { exact: false })).toHaveCount(0);
   expect(await line(page, 'gym')).toBeUndefined();
 });
@@ -275,8 +275,8 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   await clearStore(page, 'fxRates');
   await openSettings(page);
 
-  await page.getByRole('button', { name: 'Edit Parents', exact: true }).click();
-  const form = page.getByRole('form', { name: 'Change Parents' });
+  await page.getByRole('button', { name: 'Edit: Parents', exact: true }).click();
+  const form = page.getByRole('form', { name: 'Edit: Parents' });
   await form.getByRole('checkbox', { name: 'Add it automatically', exact: true }).check();
   await form.getByLabel('Account', { exact: true }).selectOption({ label: 'Home bank (INR)' });
   await form.getByLabel('Amount in INR', { exact: true }).fill('50000');
@@ -287,7 +287,7 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
   // An account a line is added to cannot be deleted, though it has no entries yet. Accounts have their own page.
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: /^Accounts and transfers/ }).click();
-  await page.getByRole('button', { name: 'Delete Home bank', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete: Home bank', exact: true }).click();
   await page.getByRole('group', { name: 'Delete Home bank?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(
     page.getByText(
@@ -299,8 +299,8 @@ test('a line on a foreign account waits for a rate, then catches up', async ({ p
 
   // 1 November without a rate: the euro rent from Local bank comes, the INR income waits with its watermark.
   await openSettings(page);
-  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
-  const rent = page.getByRole('form', { name: 'Change Rent' });
+  await page.getByRole('button', { name: 'Edit: Rent', exact: true }).click();
+  const rent = page.getByRole('form', { name: 'Edit: Rent' });
   await rent.getByRole('checkbox', { name: 'Add it automatically', exact: true }).check();
   await rent.getByLabel('Account', { exact: true }).selectOption({ label: 'Local bank (EUR)' });
   await rent.getByRole('button', { name: 'Save', exact: true }).click();
@@ -347,8 +347,8 @@ test('the repeat fields show their whole text at 375 px', async ({ page }) => {
   await page.clock.setFixedTime(on(2026, 10, 16));
   await seedSetup(page, {}, { schedules: true });
   await openSettings(page);
-  await page.getByRole('button', { name: 'Edit Rent', exact: true }).click();
-  const form = page.getByRole('form', { name: 'Change Rent' });
+  await page.getByRole('button', { name: 'Edit: Rent', exact: true }).click();
+  const form = page.getByRole('form', { name: 'Edit: Rent' });
   const repeats = form.getByLabel('Repeats', { exact: true });
   const day = form.getByLabel('Day', { exact: true });
 

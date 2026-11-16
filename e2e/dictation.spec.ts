@@ -69,7 +69,7 @@ test('a blocked microphone says how to allow it, and offline says it needs a con
 
   await context.setOffline(true);
   await mic(page).click();
-  await expect(inlineAlert(page)).toHaveText("You're offline. Speaking an entry needs a connection.");
+  await expect(inlineAlert(page)).toHaveText('You’re offline. Speaking an entry needs a connection.');
   await context.setOffline(false);
 });
 

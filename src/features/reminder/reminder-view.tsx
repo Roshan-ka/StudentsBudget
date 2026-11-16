@@ -130,7 +130,7 @@ export function ReminderView() {
 
   const toAccount = (
     <Link href="/settings/account" className={linkClass}>
-      {text.toAccount}
+      {t.common.toAccount}
     </Link>
   );
 
@@ -149,7 +149,7 @@ export function ReminderView() {
   } else if (auth.status === 'second-step') {
     body = (
       <div className="flex flex-col gap-3">
-        <p className="text-sm">{text.needsCode}</p>
+        <p className="text-sm">{t.common.needsCode}</p>
         {toAccount}
       </div>
     );

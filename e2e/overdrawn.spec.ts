@@ -71,7 +71,7 @@ test('setup: a waiting Overdrawn tick stays with its row when a row above is rem
   await expect(cashBox).toBeChecked();
 
   // Removing Local bank above it: Cash becomes row 1 and keeps its tick; Wallet, now row 2, never had one.
-  await page.getByRole('button', { name: 'Remove account 1' }).click();
+  await page.getByRole('button', { name: 'Remove: Local bank' }).click();
   const cash = page.getByRole('group', { name: 'Account 1' });
   const wallet = page.getByRole('group', { name: 'Account 2' });
   await expect(cash.getByLabel('Name', { exact: true })).toHaveValue('Cash');
@@ -199,7 +199,7 @@ test('Settings: an account can start overdrawn, with the box or a typed minus, a
   await expect(row('Overdraft').getByText('-€250.00')).toBeVisible();
 
   // The form opens with the minus sign and the box ticked; clearing the box makes the balance positive.
-  await page.getByRole('button', { name: 'Edit Overdraft', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit: Overdraft', exact: true }).click();
   await expect(opening).toHaveValue('-250');
   await expect(box).toBeChecked();
   await box.uncheck();
@@ -260,7 +260,7 @@ test('Settings: two accounts, the default mark and the Overdrawn box fit a phone
     await page.getByLabel('Opening balance').fill(opening);
     if (overdrawn) await page.getByRole('checkbox', { name: OVERDRAWN }).check();
     await page.getByRole('button', { name: 'Save account' }).click();
-    await expect(page.getByRole('button', { name: `Edit ${name}`, exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: `Edit: ${name}`, exact: true })).toBeVisible();
   }
 
   // Both rows with their buttons, and the default mark in the meta line of the first.

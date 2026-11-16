@@ -117,8 +117,8 @@ test('imports a Sparkasse statement into the default account, lists what it left
   // Rent, the cash withdrawal (a transfer to Cash) and the payment to Revolut, which has no account here.
   await expect(card.getByText('3 entries added, 1 of them a transfer.', { exact: true })).toBeVisible();
   // All three came before the accounts were added today: their starts move, so today's balances stay.
-  await expect(card.getByText(/^The starting balance of Local bank moved by/)).toBeVisible();
-  await expect(card.getByText(/^The starting balance of Cash moved by/)).toBeVisible();
+  await expect(card.getByText(/^The opening balance of Local bank moved by/)).toBeVisible();
+  await expect(card.getByText(/^The opening balance of Cash moved by/)).toBeVisible();
   await expect(card.getByRole('heading', { level: 5, name: 'Left out (3)', exact: true })).toBeVisible();
   await expect(card.getByText('Still pending at the bank', { exact: true })).toBeVisible();
   await expect(card.getByText('From before your plan started', { exact: true })).toBeVisible();
@@ -173,7 +173,7 @@ test('lists Revolut rows in another currency, moves inside Revolut and pending o
   // Lieferando, and the cash withdrawal as a transfer to Cash.
   await expect(card.getByText('2 entries added, 1 of them a transfer.', { exact: true })).toBeVisible();
   const group = (reason: string) => card.getByText(reason, { exact: true }).locator('xpath=..');
-  await expect(group("Not in the account's currency")).toContainText('Chai Point');
+  await expect(group('Not in the account’s currency')).toContainText('Chai Point');
   await expect(group('A move inside the bank')).toContainText('Exchanged to INR');
   await expect(group('Still pending at the bank')).toContainText('Amazon');
   // The top-ups: no other euro bank account in the app for the money to come from.
@@ -205,7 +205,7 @@ test('a CSV it doesn’t know is matched by hand, imported, and opens matched th
   await expect(card.getByRole('status')).toHaveText('Your file: 3 rows, 01.11.2026 to 02.11.2026');
   await card.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(card.getByText('2 entries added.', { exact: true })).toBeVisible();
-  await expect(card.getByText('Could not be read', { exact: true })).toBeVisible();
+  await expect(card.getByText('Couldn’t be read', { exact: true })).toBeVisible();
   expect((await importedEntries(page)).map((entry) => [entry.type, entry.amountMinor, entry.note]).sort()).toEqual([
     ['expense', 1230, 'Edeka Center'],
     ['income', 45000, 'Lohn Oktober'],

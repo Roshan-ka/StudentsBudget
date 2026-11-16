@@ -152,7 +152,7 @@ function ReminderLink() {
 }
 
 /**
- * The pages of Settings, as one list under the language picker (pain points, chunk 3): each opens its own page, so
+ * The pages of Settings, as one list (pain points, chunk 3): each opens its own page, so
  * Settings itself stays short. The summaries read the phone's data, so they appear once it has been read.
  */
 export function SettingsLinks() {

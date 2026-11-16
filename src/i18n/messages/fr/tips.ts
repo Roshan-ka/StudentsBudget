@@ -12,14 +12,15 @@ export const tips: Messages['tips'] = {
   tipsIntro: 'Des façons locales de payer moins quand on est étudiant. Chaque conseil indique sa source.',
   tipsFor: 'Afficher les conseils pour',
   discountsIntro:
-    'Réductions étudiantes à Regensburg. Chacune indique où elle est mentionnée. Dis à l’app si une réduction ' +
-    `marche encore${NNBSP}: tes réponses sont enregistrées sur ce téléphone. Celles que tu confirmes remontent${NNBSP}; ` +
-    'celles que tu marques comme expirées, ou qui n’ont pas été confirmées depuis 8 semaines, descendent.',
+    `Réductions étudiantes à Regensburg. Chacune indique sa source. Dis à l’app si une réduction marche encore${NNBSP}: ` +
+    'tes votes sont enregistrés sur ce téléphone, et dans ton compte une fois le téléphone associé. Celles que tu ' +
+    `confirmes remontent${NNBSP}; celles que tu marques comme expirées, ou qui n’ont pas été confirmées depuis 8 ` +
+    'semaines, descendent.',
   discountsFor: 'Afficher les réductions pour',
   loadFailed: 'Impossible de charger les réductions. Réessaie plus tard.',
   votes: { works: 'Marche encore', outdated: 'Ne marche plus' },
   voteGroup: (place) => `${place}${NNBSP}: ça marche encore${NNBSP}?`,
-  markedOutdated: (date) => `Tu as indiqué le ${date} que ça ne marche plus`,
+  markedOutdated: (date) => `Tu as indiqué le ${date} que ça ne marche plus.`,
   mayBeOutdated: 'Peut-être obsolète',
   lastConfirmed: (date) => `Confirmé pour la dernière fois le ${date}`,
   /** Ce que les autres étudiants ont confirmé ce semestre (P2.6), visible une fois connecté. */
@@ -31,13 +32,13 @@ export const tips: Messages['tips'] = {
       other: `${count} personnes disent que ça ne marche plus`,
     }),
   othersSignIn: 'Connecte-toi pour voir ce que les autres étudiants ont confirmé.',
-  saved: 'Enregistré sur ce téléphone.',
-  saveFailed: 'Impossible d’enregistrer ta réponse. Réessaie.',
+  saved: 'Enregistré sur ce téléphone, et dans ton compte une fois le téléphone associé.',
+  saveFailed: 'Impossible d’enregistrer ton vote. Réessaie.',
   heard: {
     works: (place) => `${place}${NNBSP}: enregistré comme marchant encore.`,
     outdated: (place) => `${place}${NNBSP}: enregistré comme ne marchant plus.`,
     moves: (saved, direction) => `${saved} ${direction === 'up' ? 'Elle remonte' : 'Elle descend'} dans la liste.`,
-    failed: (place) => `${place}${NNBSP}: impossible d’enregistrer ta réponse. Réessaie.`,
+    failed: (place) => `${place}${NNBSP}: impossible d’enregistrer ton vote. Réessaie.`,
   },
   /** Le fil d’astuces : des astuces pour économiser, publiées par des étudiants. */
   checklist: {
@@ -154,7 +155,6 @@ export const tips: Messages['tips'] = {
       'Des astuces pour économiser, publiées par des étudiants, avec leurs propres mots. L’app ne les vérifie ' +
       `pas${NNBSP}: les votes montrent ce qui a marché.`,
     signedOut: 'Connecte-toi pour lire et publier les astuces des étudiants.',
-    toAccount: `Aller à «${NNBSP}Ton compte${NNBSP}»`,
     off:
       'Les publications des étudiants demandent un compte, et les comptes ne sont pas configurés dans cette ' +
       'version de l’app.',
@@ -196,7 +196,12 @@ export const tips: Messages['tips'] = {
     keep: 'La garder',
     deleted: 'Publication supprimée.',
     deleteFailed: 'La publication n’a pas pu être supprimée. Réessaie.',
-    vote: { group: 'Ton vote sur cette publication', up: 'Vote positif', worked: 'Ça a marché', outdated: 'Dépassé' },
+    vote: {
+      group: (post) => `Ton vote sur ${post}`,
+      up: 'Vote positif',
+      worked: 'Ça a marché',
+      outdated: 'Dépassé',
+    },
     report: 'Signaler',
     which: (author, date) => (author === null ? `une publication du ${date}` : `la publication de ${author}, ${date}`),
     whichMine: (date) => `ta publication, ${date}`,
@@ -210,7 +215,7 @@ export const tips: Messages['tips'] = {
     voteFailed: 'Ton vote n’a pas pu être enregistré. Réessaie.',
     reportFailed: 'Le signalement n’a pas pu être envoyé. Réessaie.',
     moderation: {
-      summary: 'Astuces et réductions signalées',
+      summary: 'Publications, commentaires et réductions signalés',
       intro:
         'Les publications, les commentaires et les réductions que des étudiants ont signalés, le signalement le ' +
         `plus récent d’abord. Masquer les retire de toutes les listes${NNBSP}; Garder les montre à nouveau et remet ` +
@@ -218,8 +223,8 @@ export const tips: Messages['tips'] = {
       signedOut: 'Connecte-toi avec le compte de modération pour modérer.',
       notModerator: 'Cette page est pour la modération de l’app.',
       needsCode:
-        'Modérer demande une session qui a donné le code de l’appli d’authentification. Active la validation en ' +
-        `deux étapes dans «${NNBSP}Ton compte${NNBSP}», puis reconnecte-toi avec le code.`,
+        `Pour modérer, connecte-toi avec le code de ton appli d’authentification${NNBSP}: active la validation en deux ` +
+        'étapes dans Réglages → Ton compte → Connexion et sécurité, puis reconnecte-toi.',
       loading: 'Chargement des publications signalées…',
       loadFailed: 'Les publications signalées n’ont pas pu être chargées.',
       tryAgain: 'Réessayer',

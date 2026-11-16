@@ -143,7 +143,7 @@
       "path": "valid/08-recurring-due-and-paused.json",
       "description": "Three occurrences due on the generation date; one paused.",
       "checks": [
-        "On the demo date, restore then open Entries: Parents EUR 1,200 income, Job EUR 50 income, Rent EUR 450 expense appear with Recurring tags; no Phone entry.",
+        "On the demo date, restore then open Entries: Parents EUR 1,200 income, Job EUR 50 income, Rent EUR 450 expense appear with Automatic tags; no Phone entry.",
         "After posting: bank EUR 1,800; cash EUR 100; combined EUR 1,900. Envelope money stays EUR 500.",
         "Reload twice: exactly three entries remain. Settings lets you pause, resume and edit schedules; resuming starts from the next day, without backfilling the pause."
       ],
@@ -450,7 +450,7 @@
     },
     {
       "path": "invalid/wrong-app.json",
-      "error": "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup."
+      "error": "This isn’t a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup."
     },
     {
       "path": "invalid/newer-version.json",
@@ -550,15 +550,15 @@
     },
     {
       "path": "invalid/missing-entry-account.json",
-      "error": "This backup file is damaged: an entry uses an account that isn't in the file. Choose another backup, or export a new one."
+      "error": "This backup file is damaged: an entry uses an account that isn’t in the file. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/missing-entry-category.json",
-      "error": "This backup file is damaged: an entry uses a category that isn't in the file. Choose another backup, or export a new one."
+      "error": "This backup file is damaged: an entry uses a category that isn’t in the file. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/unknown-plan-category.json",
-      "error": "This backup file is damaged: the plan or the guesses use an unknown category. Choose another backup, or export a new one."
+      "error": "This backup file is damaged: the plan uses an unknown category. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/negative-envelope.json",
@@ -570,7 +570,7 @@
     },
     {
       "path": "invalid/missing-transfer-target.json",
-      "error": "This backup file is damaged: a transfer goes to an account that isn't in the file. Choose another backup, or export a new one."
+      "error": "This backup file is damaged: a transfer goes to an account that isn’t in the file. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/transfer-without-target-field.json",
@@ -638,11 +638,11 @@
     },
     {
       "path": "invalid/week-start-not-monday.json",
-      "error": "This backup file is damaged: a saved week doesn't run from Monday to Sunday. Choose another backup, or export a new one."
+      "error": "This backup file is damaged: a saved week doesn’t run from Monday to Sunday. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/week-end-not-sunday.json",
-      "error": "This backup file is damaged: a saved week doesn't run from Monday to Sunday. Choose another backup, or export a new one."
+      "error": "This backup file is damaged: a saved week doesn’t run from Monday to Sunday. Choose another backup, or export a new one."
     },
     {
       "path": "invalid/negative-week-amount.json",
@@ -674,7 +674,7 @@
     },
     {
       "path": "invalid/malformed-json.json",
-      "error": "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup."
+      "error": "This isn’t a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup."
     }
   ]
 }

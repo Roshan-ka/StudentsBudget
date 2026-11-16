@@ -181,7 +181,7 @@ function EmailCodeStep({
     setNotice(null);
     await runOnce(async () => {
       const problem = await sendEmailCode(kind, email, lang);
-      if (problem === null) setNotice(text.resent);
+      if (problem === null) setNotice(t.common.codeResent);
       else setError(problem);
     });
   }
@@ -214,7 +214,7 @@ function EmailCodeStep({
       </form>
       {/* Always rendered, so a screen reader is already listening when the text appears. */}
       <p aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
-        {notice ?? (resent && !acted ? text.resent : null)}
+        {notice ?? (resent && !acted ? t.common.codeResent : null)}
       </p>
       <Button type="button" variant="link" className="self-start px-0" onClick={onBack}>
         {text.back}

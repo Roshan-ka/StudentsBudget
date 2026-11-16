@@ -6,8 +6,8 @@ export const profile: Messages['profile'] = {
   heading: 'Profil',
   summaryNone: 'Noch nicht ausgefüllt',
   intro:
-    'Dein Profil liegt auf diesem Handy. Es kommt in jedes Backup, das du exportierst, und in dein Konto, wenn du ' +
-    'dorthin speicherst.',
+    'Dein Profil liegt auf diesem Handy. Es kommt in jedes Backup, das du exportierst, und in dein Konto, sobald ' +
+    'dieses Handy verknüpft ist.',
   name: 'Dein Name',
   nameHint: 'Freiwillig. Die Startseite begrüßt dich mit diesem Namen.',
   university: 'Hochschule',

@@ -65,7 +65,7 @@ export function draftOf(name: PostingName): PostingNameDraft {
   return { username: name.username, label: name.label ?? 'student', batch: name.batch === null ? '' : String(name.batch) };
 }
 
-/** How others see the name: "@roshan · Student · Batch '27". */
+/** How others see the name: "@roshan · Student · Class of ’27". */
 export function postingNameText(name: PostingName, text: Messages['auth']['postingName']): string {
   const parts = [`@${name.username}`];
   if (name.label !== null) parts.push(text.labels[name.label]);

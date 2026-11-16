@@ -7,8 +7,8 @@ export const profile: Messages['profile'] = {
   heading: 'Perfil',
   summaryNone: 'Aún sin rellenar',
   intro:
-    'Tu perfil se guarda en este móvil y va en cualquier copia de seguridad que exportes, y en tu cuenta cuando ' +
-    'guardas en ella.',
+    'Tu perfil se guarda en este móvil y va en cualquier copia de seguridad que exportes, y en tu cuenta en cuanto ' +
+    'este móvil esté vinculado.',
   name: 'Tu nombre',
   nameHint: 'Opcional. Inicio te saluda con este nombre.',
   university: 'Universidad',

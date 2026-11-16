@@ -49,7 +49,7 @@ export const sync: Messages['sync'] = {
     checking: 'Dieses Handy wird mit deinem Konto verknüpft …',
     linking: 'Dieses Handy wird verknüpft …',
     uploaded: 'Dein Konto enthält jetzt die Daten dieses Handys.',
-    loaded: (contents) => `Aus deinem Konto geladen: ${contents}.`,
+    loaded: (contents) => `Aus deinem StudentsBudget-Konto geladen: ${contents}.`,
     question: (phone, account) =>
       `Dieses Handy und dein Konto enthalten beide Daten. Dieses Handy: ${phone}. Dein Konto: ${account}. ` +
       'Welche Daten sollen beide behalten?',

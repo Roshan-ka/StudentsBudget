@@ -5,12 +5,13 @@ export const sync = {
   /** What stopped or troubled the last sync, as `syncState` keeps it (a code), in words. */
   problems: {
     updateNeeded: 'This app needs an update to sync.',
-    signedOut: 'Your sign-in has run out. Sign out and in again; your changes wait on this phone.',
-    failed: "Couldn't sync just now. Your changes wait on this phone; try again.",
+    /** As `auth.errors.sessionEnded` says it, with what happens to the changes. */
+    signedOut: 'This sign-in has ended. Sign out, then sign in again; your changes wait on this phone.',
+    failed: 'Couldn’t sync just now. Your changes wait on this phone; try again.',
     heldBack: (count: number) =>
       count === 1
-        ? '1 change can’t be synced: this app refuses it. It stays on this phone.'
-        : `${count} changes can’t be synced: this app refuses them. They stay on this phone.`,
+        ? '1 change can’t be synced: this version of the app can’t send it. It stays on this phone.'
+        : `${count} changes can’t be synced: this version of the app can’t send them. They stay on this phone.`,
   },
   /** The status line under Sync now. */
   status: {
@@ -54,31 +55,32 @@ export const sync = {
     heading: 'Link this phone',
     checking: 'Linking this phone to your account…',
     linking: 'Linking this phone…',
-    uploaded: "Your account now holds this phone's data.",
-    /** "Loaded from your account: 2 accounts, 3 entries and your plan." */
-    loaded: (contents: string) => `Loaded from your account: ${contents}.`,
+    uploaded: 'Your account now holds this phone’s data.',
+    /** "Loaded from your StudentsBudget account: 2 accounts, 3 entries and your plan." */
+    loaded: (contents: string) => `Loaded from your StudentsBudget account: ${contents}.`,
     question: (phone: string, account: string) =>
-      `This phone and your account both hold data. This phone: ${phone}. Your account: ${account}. Which should both keep?`,
+      `This phone and your account both hold data. This phone: ${phone}. Your account: ${account}. Which data should ` +
+      'both keep?',
     /** `stale` is what only the account has: "12 entries and 3 other items". */
     staleWarning: (stale: string) =>
-      `Keeping this phone's data deletes what only your account has (${stale}) from your account, and from your ` +
+      `Keeping this phone’s data deletes what only your account has (${stale}) from your account, and from your ` +
       'other phones when they next sync.',
     replaceWarning:
-      "Using your account's data replaces everything on this phone. Want a copy first? Export a backup under " +
+      'Using your account’s data replaces everything on this phone. Want a copy first? Export a backup under ' +
       'Settings → Backup and data.',
-    keepPhone: "Keep this phone's data",
-    useAccount: "Use my account's data",
+    keepPhone: 'Keep this phone’s data',
+    useAccount: 'Use my account’s data',
     otherAccount:
-      "This phone holds another account's data, so it stays apart from this one. To sync it, sign out and sign in " +
+      'This phone holds another account’s data, so it stays apart from this one. To sync it, sign out and sign in ' +
       'with that account. To use this account here instead, delete everything on this phone (Settings → Backup and data); ' +
       'changes not synced yet are lost.',
     tryAgain: 'Try again',
     problems: {
       unfinished:
-        "Your account's last save didn't finish, and this phone has no data to put in its place, so it isn't linked yet.",
-      unreadable: "Your account holds data this app can't read, so this phone isn't linked. An app update may help.",
-      failed: "Couldn't link this phone to your account. Check your connection and try again.",
-      offline: "You're offline. Linking this phone needs a connection.",
+        'Your account’s last save didn’t finish, and this phone has no data to put in its place, so it isn’t linked yet.',
+      unreadable: 'Your account holds data this app can’t read, so this phone isn’t linked. An app update may help.',
+      failed: 'Couldn’t link this phone to your account. Check your connection and try again.',
+      offline: 'You’re offline. Linking this phone needs a connection.',
     },
   },
 };

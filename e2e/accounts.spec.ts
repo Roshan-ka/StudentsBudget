@@ -144,7 +144,7 @@ test('Settings marks one default account, keeps it through an edit, and falls ba
   await addAccount(page, { name: 'Home bank', currency: 'INR', opening: '50000' });
   await addAccount(page, { name: 'Wallet', currency: 'EUR', opening: '', kind: 'cash' });
   const row = (name: string) =>
-    page.getByRole('listitem').filter({ has: page.getByRole('button', { name: `Edit ${name}`, exact: true }) });
+    page.getByRole('listitem').filter({ has: page.getByRole('button', { name: `Edit: ${name}`, exact: true }) });
   const marker = page.getByText('Default for new entries', { exact: true });
 
   // Nobody chose one: it is the first euro bank account, and only one row says so.
@@ -158,7 +158,7 @@ test('Settings marks one default account, keeps it through an edit, and falls ba
   await expect(row('Bank').getByRole('button', { name: 'Make default: Bank', exact: true })).toBeVisible();
   await expect(marker).toHaveCount(1);
   // The tapped button is gone, so focus moves to that row's Edit button, and a polite line announces the change.
-  await expect(page.getByRole('button', { name: 'Edit Wallet', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Edit: Wallet', exact: true })).toBeFocused();
   await expect(page.getByText('Wallet is now the default for new entries.', { exact: true })).toHaveCount(1);
   await page.getByRole('button', { name: 'Make default: Home bank', exact: true }).click();
   await expect(row('Home bank').getByText('Default for new entries', { exact: true })).toBeVisible();
@@ -168,24 +168,24 @@ test('Settings marks one default account, keeps it through an edit, and falls ba
   ]);
 
   // Editing the default account does not clear the mark.
-  await page.getByRole('button', { name: 'Edit Home bank', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit: Home bank', exact: true }).click();
   await page.getByLabel('Name', { exact: true }).fill('Rupee bank');
   await page.getByRole('button', { name: 'Save account' }).click();
   await expect(row('Rupee bank').getByText('Default for new entries', { exact: true })).toBeVisible();
 
   // Deleting it asks first, and the question takes the focus; Cancel gives it back to Delete.
-  await page.getByRole('button', { name: 'Delete Rupee bank', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete: Rupee bank', exact: true }).click();
   const question = page.getByRole('group', { name: 'Delete Rupee bank?', exact: true });
   await expect(question.getByText('Delete Rupee bank?', { exact: true })).toBeFocused();
   await question.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Delete Rupee bank', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Delete: Rupee bank', exact: true })).toBeFocused();
 
   // Deleting it leaves no mark behind: the first euro bank account is the default again. The focus moves to the next
   // account's Edit.
-  await page.getByRole('button', { name: 'Delete Rupee bank', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete: Rupee bank', exact: true }).click();
   await question.getByRole('button', { name: 'Delete', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Edit Rupee bank', exact: true })).toHaveCount(0);
-  await expect(page.locator(':focus')).toHaveAccessibleName(/^Edit /);
+  await expect(page.getByRole('button', { name: 'Edit: Rupee bank', exact: true })).toHaveCount(0);
+  await expect(page.locator(':focus')).toHaveAccessibleName(/^Edit: /);
   await expect(row('Bank').getByText('Default for new entries', { exact: true })).toBeVisible();
   await expect(marker).toHaveCount(1);
   expect((await readStore<Account>(page, 'accounts')).some((a) => a.isDefault)).toBe(false);
@@ -233,14 +233,14 @@ test('an account with entries cannot be deleted, an empty one can', async ({ pag
   await expect(page.getByRole('status')).toHaveText('Transfer saved.');
 
   // Delete asks first (accessibility, chunk 4).
-  await page.getByRole('button', { name: 'Delete Bank', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete: Bank', exact: true }).click();
   await page.getByRole('group', { name: 'Delete Bank?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(inlineAlert(page)).toHaveText('This account has entries. Delete them first.');
   await expect(page.getByText('Bank', { exact: true })).toBeVisible();
 
   // Create and delete a third account that never received an entry.
   await addAccount(page, { name: 'Spare', currency: 'EUR', opening: '' });
-  await page.getByRole('button', { name: 'Delete Spare', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete: Spare', exact: true }).click();
   await page.getByRole('group', { name: 'Delete Spare?', exact: true }).getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.getByText('Spare', { exact: true })).toHaveCount(0);
 });

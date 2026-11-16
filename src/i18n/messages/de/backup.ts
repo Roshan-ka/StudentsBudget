@@ -30,7 +30,7 @@ export const backup: Messages['backup'] = {
     replace: 'Alle Daten ersetzen',
     cancel: 'Abbrechen',
     readFailed: 'Die Datei konnte nicht gelesen werden.',
-    failed: 'Das Backup konnte nicht wiederhergestellt werden. Die Daten auf diesem Gerät sind unverändert.',
+    failed: 'Das Backup konnte nicht wiederhergestellt werden. Die Daten auf diesem Handy sind unverändert.',
     setupHeading: 'Hast du ein Backup? Stell es wieder her',
     /** Setup's quiet button that opens the file field (13-11-2026). */
     setupButton: 'Backup wiederherstellen',
@@ -38,12 +38,13 @@ export const backup: Messages['backup'] = {
   delete: {
     heading: 'Alles löschen',
     intro:
-      'Entfernt deinen Plan, deine Konten und Einträge, gespeicherte Wochen und Abzeichen, Antworten zu Rabatten, dein ' +
-      'Profil und die Wechselkurse von diesem Handy. Ein mit deinem Konto verknüpftes Handy wird getrennt: Dein Konto ' +
-      'behält seine Kopie, und du bleibst angemeldet. Noch nicht synchronisierte Änderungen gehen verloren.',
+      'Entfernt deinen Plan, deine Konten und Einträge, gespeicherte Wochen und Abzeichen, Stimmen zu Rabatten, ' +
+      'Haken der Checkliste, dein Profil und die Wechselkurse von diesem Handy. Ein mit deinem StudentsBudget-Konto ' +
+      'verknüpftes Handy wird getrennt: Dieses Konto behält seine Kopie, und du bleibst angemeldet. Noch nicht ' +
+      'synchronisierte Änderungen gehen verloren.',
     warning:
       'Das lässt sich auf diesem Handy nicht rückgängig machen. Um deine Daten später zurückzubekommen, exportier ' +
-      'vorher ein Backup oder speichere in dein Konto.',
+      'vorher ein Backup oder synchronisiere sie mit deinem Konto.',
     word: 'LÖSCHEN',
     typeToConfirm: (word) => `Gib zur Bestätigung ${word} ein`,
     button: 'Alles löschen',
@@ -60,7 +61,7 @@ export const backup: Messages['backup'] = {
     entryAccount: 'ein Eintrag nutzt ein Konto, das nicht in der Datei steht',
     transferAccount: 'eine Umbuchung geht an ein Konto, das nicht in der Datei steht',
     entryCategory: 'ein Eintrag nutzt eine Kategorie, die nicht in der Datei steht',
-    planCategory: 'der Plan oder die Schätzungen nutzen eine unbekannte Kategorie',
+    planCategory: 'der Plan nutzt eine unbekannte Kategorie',
     duplicateId: 'zwei Zeilen haben dieselbe ID',
     weekShape: 'eine gespeicherte Woche läuft nicht von Montag bis Sonntag',
     zeroAmount: 'ein Betrag ist null oder negativ',

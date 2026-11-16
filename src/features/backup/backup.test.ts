@@ -9,7 +9,7 @@ const NOW = new Date('2026-10-16T10:00:00.000Z');
 const DEMO = readFileSync(new URL('../../../fixtures/studentsbudget-demo-2026-10.json', import.meta.url), 'utf8');
 
 const NOT_A_BACKUP =
-  "This isn't a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.";
+  'This isn’t a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.';
 const NEWER =
   'This backup is from a newer version of the app. Reload the app while online to update it, then try again.';
 const INCOMPLETE = 'This backup file is incomplete. Choose another backup, or export a new one.';
@@ -635,13 +635,13 @@ describe('parseBackup checks what the rows say about each other', () => {
     it('refuses an entry that uses an account that is not in the file', () => {
       const result = parseChanged((data) => (data.entries[0].accountId = 'ghost'));
 
-      expect(result).toEqual(damaged("an entry uses an account that isn't in the file"));
+      expect(result).toEqual(damaged('an entry uses an account that isn’t in the file'));
     });
 
     it('refuses a transfer that goes to an account that is not in the file', () => {
       const result = parseChanged((data) => (transferRow(data).toAccountId = 'ghost'));
 
-      expect(result).toEqual(damaged("a transfer goes to an account that isn't in the file"));
+      expect(result).toEqual(damaged('a transfer goes to an account that isn’t in the file'));
     });
 
     // The app waits for an account to be picked (Settings asks, the poster skips the line), as after its account was
@@ -667,7 +667,7 @@ describe('parseBackup checks what the rows say about each other', () => {
     it("refuses an entry in a category that is neither built in nor in the file's categories", () => {
       const result = parseChanged((data) => (expenseRow(data).categoryId = 'ghost'));
 
-      expect(result).toEqual(damaged("an entry uses a category that isn't in the file"));
+      expect(result).toEqual(damaged('an entry uses a category that isn’t in the file'));
     });
 
     it('passes an entry in a built-in category the file does not list', () => {
@@ -691,7 +691,7 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['an envelope', (data: BackupData) => (data.plan!.envelopes[0].categoryId = 'ghost')],
       ['a guess', (data: BackupData) => (data.guesses[0].categoryId = 'ghost')],
     ])('refuses %s in an unknown category', (_name, change) => {
-      expect(parseChanged(change)).toEqual(damaged('the plan or the guesses use an unknown category'));
+      expect(parseChanged(change)).toEqual(damaged('the plan uses an unknown category'));
     });
 
     it('passes a plan and guesses in built-in categories when the file lists no categories at all', () => {
@@ -750,7 +750,7 @@ describe('parseBackup checks what the rows say about each other', () => {
   });
 
   describe('saved weeks that are not a Monday-Sunday week', () => {
-    const OUT_OF_SHAPE = damaged("a saved week doesn't run from Monday to Sunday");
+    const OUT_OF_SHAPE = damaged('a saved week doesn’t run from Monday to Sunday');
 
     it.each([
       // Tuesday 6 to Monday 12 October: six days on, but not from a Monday.
@@ -903,7 +903,7 @@ describe('parseBackup checks what the rows say about each other', () => {
       data.entries[0].accountId = 'ghost';
     });
 
-    expect(result).toEqual(damaged("an entry uses an account that isn't in the file"));
+    expect(result).toEqual(damaged('an entry uses an account that isn’t in the file'));
   });
 
   it('keeps the shape message for a file of the wrong shape: that is incomplete, not damaged', () => {

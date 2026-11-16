@@ -32,7 +32,7 @@ export const backup: Messages['backup'] = {
     replace: 'Remplacer toutes les données',
     cancel: 'Annuler',
     readFailed: 'Impossible de lire ce fichier.',
-    failed: 'Impossible de restaurer la sauvegarde. Les données de cet appareil n’ont pas changé.',
+    failed: 'Impossible de restaurer la sauvegarde. Les données de ce téléphone n’ont pas changé.',
     setupHeading: `Tu as une sauvegarde${NNBSP}? Restaure-la`,
     /** Setup's quiet button that opens the file field (13-11-2026). */
     setupButton: 'Restaurer une sauvegarde',
@@ -41,11 +41,12 @@ export const backup: Messages['backup'] = {
     heading: 'Tout supprimer',
     intro:
       'Retire de ce téléphone ton plan, tes comptes, tes saisies, les semaines enregistrées et les badges, tes ' +
-      `réponses sur les réductions, ton profil et les taux de change. Un téléphone associé à ton compte est dissocié${NNBSP}: ` +
-      'ton compte garde sa copie, et ta session reste ouverte. Les modifications pas encore synchronisées sont perdues.',
+      'votes sur les réductions, les coches de la liste, ton profil et les taux de change. Un téléphone associé à ton ' +
+      `compte StudentsBudget est dissocié${NNBSP}: ce compte garde sa copie, et ta session reste ouverte. Les ` +
+      'modifications pas encore synchronisées sont perdues.',
     warning:
       'Impossible d’annuler sur ce téléphone. Pour récupérer tes données plus tard, exporte d’abord une sauvegarde ' +
-      'ou enregistre dans ton compte.',
+      'ou synchronise-les avec ton compte.',
     word: 'SUPPRIMER',
     typeToConfirm: (word) => `Saisis ${word} pour confirmer`,
     button: 'Tout supprimer',
@@ -62,7 +63,7 @@ export const backup: Messages['backup'] = {
     entryAccount: 'une saisie utilise un compte qui n’est pas dans le fichier',
     transferAccount: 'un virement va vers un compte qui n’est pas dans le fichier',
     entryCategory: 'une saisie utilise une catégorie qui n’est pas dans le fichier',
-    planCategory: 'le plan ou les estimations utilisent une catégorie inconnue',
+    planCategory: 'le plan utilise une catégorie inconnue',
     duplicateId: 'deux lignes ont le même id',
     weekShape: 'une semaine enregistrée ne va pas du lundi au dimanche',
     zeroAmount: 'un montant est nul ou négatif',

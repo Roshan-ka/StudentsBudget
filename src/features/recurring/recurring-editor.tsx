@@ -105,7 +105,7 @@ function LineForm({
     if (auto) {
       // Without an account nothing can be added automatically, and a schedule the line has must not be dropped.
       if (accounts.length === 0) return setError(text.noAccountBelow);
-      if (!account) return setError(text.pickAccountError);
+      if (!account) return setError(text.pickAccount);
       if (eachMinor === null) return setError(t.common.amountField.positive);
       const monthlyMinor = account.currency === 'EUR' ? 0 : parseAmount(monthly);
       if (monthlyMinor === null) return setError(text.monthlyError);

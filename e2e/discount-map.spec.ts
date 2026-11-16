@@ -96,7 +96,7 @@ test('without WebGL 2 the map says the list has every discount', async ({ page }
   });
   await openDiscounts(page);
   await switchTo(page, 'Map');
-  await expect(page.getByText("The map can't show on this phone. The list has every discount.", { exact: true })).toBeVisible();
+  await expect(page.getByText('The map can’t show on this phone. The list has every discount.', { exact: true })).toBeVisible();
 });
 
 test.describe('pins', () => {
@@ -266,7 +266,7 @@ test.describe('Show me', () => {
       await skipWithoutWebgl(page, testInfo);
       const map = await openMap(page);
       await map.getByRole('button', { name: 'Show me', exact: true }).click();
-      await expect(map.getByRole('button', { name: "You're here", exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await expect(map.getByRole('button', { name: 'You’re here', exact: true })).toHaveAttribute('aria-pressed', 'true');
       await expect(map.locator('[data-location-dot]')).toBeVisible();
       // Centred on the old town, a few streets around: Westbad, 3 km west, is off the screen.
       await expect(map.getByRole('button', { name: /^Westbad: / })).toHaveCount(0);
@@ -294,7 +294,7 @@ test.describe('Show me', () => {
       await skipWithoutWebgl(page, testInfo);
       const map = await openMap(page);
       await map.getByRole('button', { name: 'Show me', exact: true }).click();
-      await expect(page.getByText("You're outside Regensburg, so the map stays on the city.", { exact: true })).toBeVisible();
+      await expect(page.getByText('You’re outside Regensburg, so the map stays on the city.', { exact: true })).toBeVisible();
       await expect(map.getByRole('button', { name: 'Show me', exact: true })).toHaveAttribute('aria-pressed', 'false');
       await expect(map.locator('[data-location-dot]')).toHaveCount(0);
       await expect.poll(() => held(map)).toBe(DISCOUNTS.length);
@@ -315,10 +315,10 @@ test.describe('Show me', () => {
     const showMe = map.getByRole('button', { name: 'Show me', exact: true });
     await showMe.click();
     await expect(
-      page.getByText("Location is turned off for this app. You can allow it in your browser's settings.", { exact: true }),
+      page.getByText('Location is turned off for this app. You can allow it in your browser’s settings.', { exact: true }),
     ).toBeVisible();
     await showMe.click();
-    await expect(page.getByText("Your location couldn't be found just now. Try again in a moment.", { exact: true })).toBeVisible();
+    await expect(page.getByText('Your location couldn’t be found just now. Try again in a moment.', { exact: true })).toBeVisible();
     await expect(showMe).toHaveAttribute('aria-pressed', 'false');
     await expect(map.locator('[data-location-dot]')).toHaveCount(0);
   });

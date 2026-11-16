@@ -66,15 +66,15 @@ test('sign-up asks for a username, checks it, and sends it with the label and ba
   await create.click();
   await expect(alert(page)).toHaveText('Use only letters a–z, digits and _ in the username.');
   await username(page).fill('roshan');
-  await page.getByRole('textbox', { name: 'Batch (optional)', exact: true }).fill('27');
+  await page.getByRole('textbox', { name: 'Year you finish (optional)', exact: true }).fill('27');
   await create.click();
-  await expect(alert(page)).toHaveText('Enter the batch as a year, like 2027.');
+  await expect(alert(page)).toHaveText('Enter a year from 2000 to 2100, like 2027.');
   expect(signUps(calls)).toHaveLength(0);
 
   // A name someone has is said before the account exists. The field keeps what is typed in lower case.
   await username(page).fill('Dana');
   await expect(username(page)).toHaveValue('dana');
-  await page.getByRole('textbox', { name: 'Batch (optional)', exact: true }).fill('2027');
+  await page.getByRole('textbox', { name: 'Year you finish (optional)', exact: true }).fill('2027');
   await create.click();
   await expect(alert(page)).toHaveText('That username is taken. Pick another.');
   expect(signUps(calls)).toHaveLength(0);
@@ -99,7 +99,7 @@ test('a username that cannot be checked stops the sign-up', async ({ page }) => 
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await username(page).fill('roshan');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
-  await expect(alert(page)).toHaveText("The username couldn't be checked. Check your connection and try again.");
+  await expect(alert(page)).toHaveText('The username couldn’t be checked. Check your connection and try again.');
   expect(signUps(calls)).toHaveLength(0);
 });
 
@@ -113,7 +113,7 @@ test('Your account shows the name others see, and changes it', async ({ page }) 
   await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await signIn(page);
 
-  await expect(card(page)).toContainText("@roshan · Student · Batch '27");
+  await expect(card(page)).toContainText('@roshan · Student · Class of ’27');
   await card(page).getByRole('button', { name: 'Change', exact: true }).click();
   await expect(username(page)).toHaveValue('roshan');
 
@@ -123,11 +123,11 @@ test('Your account shows the name others see, and changes it', async ({ page }) 
   await expect(card(page).getByRole('alert')).toHaveText('That username is taken. Pick another.');
 
   await username(page).fill('roshan_k');
-  await card(page).getByRole('combobox', { name: 'You are', exact: true }).selectOption({ label: 'Alumni' });
-  await card(page).getByRole('textbox', { name: 'Batch (optional)', exact: true }).fill('');
+  await card(page).getByRole('combobox', { name: 'You are', exact: true }).selectOption({ label: 'Alum' });
+  await card(page).getByRole('textbox', { name: 'Year you finish (optional)', exact: true }).fill('');
   await card(page).getByRole('button', { name: 'Save name', exact: true }).click();
   await expect(card(page).getByRole('status')).toHaveText('Name saved.');
-  await expect(card(page)).toContainText('@roshan_k · Alumni');
+  await expect(card(page)).toContainText('@roshan_k · Alum');
   await expect(card(page).getByRole('button', { name: 'Change', exact: true })).toBeFocused();
   expect(profiles.get(e2eUserIdOf(EMAIL))).toEqual({ username: 'roshan_k', label: 'alumni', batch: null });
 });
@@ -160,6 +160,6 @@ test.describe('in German', () => {
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Anmelden', exact: true }).click();
 
-    await expect(card(page, 'Dein Name bei Beiträgen')).toContainText('@roshan · Mit Abschluss · Jahrgang 2026');
+    await expect(card(page, 'Dein Name bei Beiträgen')).toContainText('@roshan · Mit Abschluss · Abschluss 2026');
   });
 });

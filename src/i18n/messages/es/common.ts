@@ -39,7 +39,14 @@ export const common: Messages['common'] = {
     plan: 'tu plan',
   },
   estimate: 'Estimación',
-  /** Notas únicas sobre los datos (`PrivacyNote`), una vez por móvil, antes de que una función envíe datos. */
+  /** El enlace a la configuración en una página que necesita un plan (check-in, gráficos, insignias, Preguntar…). */
+  toSetup: 'Configurar tu plan',
+  /** El enlace a Ajustes → Tu cuenta, bajo una línea que dice por qué una función la necesita. */
+  toAccount: 'Ir a «Tu cuenta»',
+  /** Una función que va por la cuenta, mientras esta sesión aún debe su código (Preguntar, el recordatorio). */
+  needsCode: 'Tu cuenta tiene verificación en dos pasos: introduce primero el código de tu app de autenticación.',
+  /** Tras «Enviar un código nuevo» en el paso de un código recibido por correo. */
+  codeResent: 'Un código nuevo va de camino. Usa el más reciente.',
   legal: {
     back: 'Volver',
     onlyDeEn: 'Esta página solo está en alemán e inglés, así que se muestra en inglés.',
@@ -49,6 +56,7 @@ export const common: Messages['common'] = {
     privacySummary: 'Qué guarda y envía la app, y tus derechos',
     impressumSummary: 'Quién gestiona StudentsBudget',
   },
+  /** Notas únicas sobre los datos (`PrivacyNote`), una vez por móvil, antes de que una función envíe datos. */
   privacy: {
     label: 'Sobre tus datos',
     more: 'Más en la política de privacidad',
@@ -56,10 +64,10 @@ export const common: Messages['common'] = {
     cancel: 'Cancelar',
     account:
       'Tu cuenta la guarda Supabase, en Fráncfort (UE): tu correo electrónico, tu contraseña (guardada solo como ' +
-      'hash), el idioma de tu móvil, tu nombre de usuario, si estudias o ya terminaste y tu promoción, y una copia ' +
-      'de los datos que sincronizas. Otros estudiantes solo ven tu nombre de usuario, si estudias o ya terminaste y ' +
-      'tu promoción, junto a tus publicaciones. Si la cuenta necesita un código, para confirmarla o para una nueva ' +
-      'contraseña, llega por correo. Puedes eliminar la cuenta cuando quieras en Ajustes → Tu cuenta.',
+      'hash), el idioma de tu móvil, tu nombre de usuario, si estudias o ya terminaste y tu año de fin de estudios, ' +
+      'y una copia de los datos que sincronizas. Otros estudiantes solo ven tu nombre de usuario, si estudias o ya ' +
+      'terminaste y ese año, junto a tus publicaciones. Si la cuenta necesita un código, para confirmarla o para ' +
+      'una nueva contraseña, llega por correo. Puedes eliminar la cuenta cuando quieras en Ajustes → Tu cuenta.',
     passkey:
       'El gestor de contraseñas de tu móvil guarda la llave de acceso y puede sincronizarla con tus otros ' +
       'dispositivos (el llavero de iCloud o el Gestor de contraseñas de Google, por ejemplo). Tu cuenta guarda ' +
@@ -73,8 +81,8 @@ export const common: Messages['common'] = {
       'estudiantes ven para este semestre. Nadie ve quién votó.',
     post:
       'Cualquier estudiante con cuenta puede leer lo que publicas aquí, un truco, un comentario o un descuento, con ' +
-      'tu nombre de usuario, si estudias o ya terminaste y tu promoción, y denunciarlo; los trucos y los descuentos ' +
-      'también se pueden votar. Puedes borrarlo cuando quieras.',
+      'tu nombre de usuario, si estudias o ya terminaste y tu año de fin de estudios, y denunciarlo; los trucos y los ' +
+      'descuentos también se pueden votar. Puedes borrarlo cuando quieras.',
     hackVotes:
       'Tus votos cuentan en los totales que todos los estudiantes ven en la publicación; nadie ve quién votó. Una ' +
       'denuncia oculta la publicación para ti al momento, y para todos cuando suficientes estudiantes la han ' +

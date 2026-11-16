@@ -178,7 +178,7 @@ export function ImportStatement() {
         <div className="flex flex-col gap-2 text-sm">
           <p>{text.noPlan}</p>
           <Link href="/setup" className="font-semibold text-primary underline underline-offset-4">
-            {text.toSetup}
+            {t.common.toSetup}
           </Link>
         </div>
       ) : step.kind === 'done' ? (
