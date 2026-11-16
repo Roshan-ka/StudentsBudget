@@ -45,7 +45,7 @@ function leftText(minor: Minor): string {
 }
 
 /** One rate per currency, a manual rate over an ECB one, as the app's `loadRates`. */
-function ratesOf(data: BackupData): RateMap {
+export function ratesOf(data: BackupData): RateMap {
   const rates: RateMap = {};
   for (const rate of data.fxRates) if (rate.source === 'ecb') rates[rate.currency] = rate;
   for (const rate of data.fxRates) if (rate.source === 'manual') rates[rate.currency] = rate;

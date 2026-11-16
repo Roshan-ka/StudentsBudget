@@ -12,6 +12,7 @@ describe('node mcp/server.ts', () => {
     try {
       const { tools } = await client.listTools();
       expect(tools.map((t) => t.name).sort()).toEqual([
+        'add_expense',
         'budget_overview',
         'find_checklist',
         'find_discounts',

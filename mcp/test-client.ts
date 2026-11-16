@@ -5,10 +5,14 @@ import type { ReadAccount } from './account.ts';
 import { createServer } from './create-server.ts';
 
 /** A real MCP client talking to the server over the SDK's in-memory transport: the same protocol as stdio. */
-export async function connect(today: IsoDate = '2026-10-28', account?: ReadAccount): Promise<Client> {
+export async function connect(today: IsoDate = '2026-10-28', account?: ReadAccount, now?: Date): Promise<Client> {
   const client = new Client({ name: 'test', version: '0.0.0' });
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  const server = createServer({ today: () => today, ...(account === undefined ? {} : { account }) });
+  const server = createServer({
+    today: () => today,
+    ...(account === undefined ? {} : { account }),
+    ...(now === undefined ? {} : { now: () => now }),
+  });
   await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
   return client;
 }
