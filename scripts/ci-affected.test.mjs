@@ -678,6 +678,14 @@ describe('forScope', () => {
   });
 });
 
+describe('a pull request’s automatic run', () => {
+  it('keeps a draft’s run, which runs nothing, out of the ready run’s group, so it can never stop the quick check', () => {
+    const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+    expect(workflow).toMatch(/^ {2}group: ci-.*\$\{\{ github\.event\.pull_request\.draft && '-draft' \|\| '' \}\}$/m);
+    expect(workflow).toMatch(/^ {2}cancel-in-progress: true$/m);
+  });
+});
+
 describe('a quick run’s verdict', () => {
   it('posts quick-check, and passes with e2e, its report and the offline check skipped', () => {
     expect(statusContext({ scope: 'quick' })).toBe('quick-check');
