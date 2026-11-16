@@ -193,13 +193,17 @@ test("the bubble stays on the discount map, below the map's box", async ({ page 
   await view.getByRole('button', { name: 'Map', exact: true }).click();
   await expect(view.getByRole('button', { name: 'Map', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(bubble(page)).toBeVisible(); // proof: bubble-on-map
-  // Below the map's box (16-11-2026), so it never covers the map's card or its controls.
+  // Below the map's box (16-11-2026), so it never covers the map's card or its controls. On a short screen the box keeps
+  // its least height (18 rem) and the page scrolls: at its end, where the card is reached, the box ends above the bubble.
   const map = page.getByRole('region', { name: 'Map of the discounts in Regensburg', exact: true });
   if ((await map.count()) > 0) {
     await expect(map).toHaveAttribute('data-map-ready', '', { timeout: 15_000 });
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(() => page.evaluate(() => Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight)).toBe(true);
     const mapBox = await map.boundingBox();
     const bubbleBox = await bubble(page).boundingBox();
-    expect(mapBox !== null && bubbleBox !== null && bubbleBox.y >= mapBox.y + mapBox.height).toBe(true);
+    const mapBottom = mapBox === null ? Number.POSITIVE_INFINITY : mapBox.y + mapBox.height;
+    expect(bubbleBox?.y ?? 0, `the bubble's top against the map's bottom (${mapBottom})`).toBeGreaterThanOrEqual(mapBottom);
   }
 });
 
