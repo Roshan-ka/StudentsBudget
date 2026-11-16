@@ -4,6 +4,12 @@
 // slower server. What it must never press and what the console may say come from the app's adapter.
 
 const ROLES = ['link', 'button', 'tab', 'checkbox', 'switch', 'textbox', 'combobox'];
+/**
+ * How long `controls` waits to look at one control. A control there at the count can be gone a moment later (the last
+ * step's click is still changing the page), and a locator waits for its element with no limit of its own: one such
+ * look held a nightly walk for its whole 13 minutes (15-11-2026). A control still there answers at once.
+ */
+const LOOK_MS = 1_000;
 const WORDS = ['coffee', 'rent', 'Mensa', 'books', 'bus', 'gym', 'phone', 'shoes', 'gift', 'snacks'];
 
 /** A seeded random number generator (mulberry32): the same seed gives the same walk on the same pages. */
@@ -75,7 +81,7 @@ export async function controls(page) {
             disabled: el.disabled === true || el.getAttribute('aria-disabled') === 'true',
             options: el.tagName === 'SELECT' ? el.options.length : undefined,
           };
-        })
+        }, undefined, { timeout: LOOK_MS })
         .catch(() => null);
       if (!facts || facts.disabled) continue;
       const key = `${role}|${facts.name}`;
