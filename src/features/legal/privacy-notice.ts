@@ -68,7 +68,8 @@ export function privacySections(o: Operator): LegalSection[] {
     },
     // The phone's own storage: Dexie's tables (src/db/db.ts), the choices and note flags in localStorage
     // (src/lib/phone-pref.ts, PRIVACY_NOTES), the two marks in sessionStorage (recovery.ts, signed-out.ts) and the
-    // service worker's caches (public/sw.js). What the account adds on the phone is in its own section (chunk 3).
+    // service worker's caches (public/sw.js). What the account adds on the phone is in its own section (chunk 3). The
+    // receipt scan reads its photo on the phone (src/features/receipts/scan-receipt.tsx), with files from /ocr/.
     {
       id: 'on-your-phone',
       when: 'always',
@@ -87,6 +88,10 @@ export function privacySections(o: Operator): LegalSection[] {
           {
             kind: 'p',
             text: 'Dazu kommen kleine Einstellungen im Speicher des Browsers (localStorage und sessionStorage): deine Sprache, das Aussehen, welche Ansicht du zuletzt gewählt hast und welche Hinweise du schon gesehen hast. Damit die App auch ohne Netz läuft, legt sie außerdem eine Kopie ihrer eigenen Dateien im Browser ab (Service Worker). Cookies setzt sie keine.',
+          },
+          {
+            kind: 'p',
+            text: 'Einen Kassenbon, den du unter Einträge scannst, liest die App ebenfalls auf deinem Handy: Das Foto wird weder gespeichert noch verschickt, und die Dateien, die es lesen, lädt die App von ihrer eigenen Adresse.',
           },
           {
             kind: 'p',
@@ -109,6 +114,10 @@ export function privacySections(o: Operator): LegalSection[] {
           {
             kind: 'p',
             text: 'Next to that, small settings sit in the browser’s storage (localStorage and sessionStorage): your language, the theme, the views you last picked and which notes you have seen. So that the app works without a connection, it also keeps a copy of its own files in the browser (a service worker). It sets no cookies.',
+          },
+          {
+            kind: 'p',
+            text: 'A receipt you scan on Entries is read on your phone too: the photo is neither kept nor sent, and the files that read it come from the app’s own address.',
           },
           {
             kind: 'p',

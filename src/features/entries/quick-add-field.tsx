@@ -9,18 +9,18 @@ import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { deleteEntry, saveEntry } from '@/db/repo';
 import type { Account } from '@/db/types';
-import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
 import { aiInBuild, aiOnHere } from '@/features/ai/switch';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
-import { formatDate, todayIso } from '@/lib/dates';
+import { todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { aiQuickAddProvider, type AiQuickAddHint } from './ai-quick-add';
 import { buildEntry } from './build-entry';
+import { savedWhat } from './saved-line';
 import { FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_CATEGORIES } from './categories';
 import {
   accountFor,
@@ -287,16 +287,18 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
       }
       await saveEntry(result.entry);
 
-      // The account and the day only when they aren't the ones a line goes to anyway, the default and today.
-      const usual = defaultAccount(sortAccounts(accounts));
-      const parts = [
-        formatMoney(result.entry.amountMinor, account.currency, { locale }),
-        result.entry.note,
-        categoryNameIn(t, categoryId),
-        account.id === usual?.id ? '' : account.name,
-        result.entry.date === todayIso(now) ? '' : formatDate(result.entry.date),
-      ];
-      setSaved({ id: result.entry.id, message: words.saved(parts.filter((part) => part !== '').join(' · ')) });
+      const what = savedWhat(
+        {
+          amount: formatMoney(result.entry.amountMinor, account.currency, { locale }),
+          note: result.entry.note,
+          category: categoryNameIn(t, categoryId),
+          accountId: account.id,
+          date: result.entry.date,
+        },
+        accounts,
+        todayIso(now),
+      );
+      setSaved({ id: result.entry.id, message: words.saved(what) });
       setText('');
       setChoice(null);
       setPending(null);

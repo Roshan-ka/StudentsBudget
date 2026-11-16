@@ -80,6 +80,26 @@ export const entries: Messages['entries'] = {
       failed: 'Das ließ sich nicht verstehen. Versuch es noch einmal oder tipp es ein.',
     },
   },
+  scan: {
+    button: 'Kassenbon scannen',
+    firstScan: (size) =>
+      `Beim ersten Scan lädt die App einmalig ihr Lesemodul herunter, etwa ${size} MB. Danach klappt das Scannen auch offline.`,
+    continue: 'Weiter',
+    cancel: 'Abbrechen',
+    reading: 'Der Kassenbon wird gelesen …',
+    progress: 'Lesefortschritt',
+    onPhone: 'Gelesen auf diesem Handy. Das Foto wird weder verschickt noch gespeichert.',
+    photo: 'Foto des Kassenbons',
+    checkHeading: 'Kassenbon prüfen',
+    checkHint: 'Ändere, was falsch gelesen wurde, und speichere dann.',
+    failedHeading: 'Dieser Kassenbon ließ sich nicht lesen',
+    failedHint:
+      'Verblasste oder zerknitterte Kassenbons sind schwer zu lesen. Tipp ein, was draufsteht, oder versuch es mit einem anderen Foto.',
+    offline: 'Du bist offline. Für den ersten Scan braucht die App eine Verbindung, um ihr Lesemodul herunterzuladen.',
+    tryAgain: 'Anderes Foto versuchen',
+    pickCategory: 'Wähle eine Kategorie.',
+    discard: 'Verwerfen',
+  },
   errors: {
     enterAmount: 'Gib einen Betrag ein.',
     noRate: (currency) => `Für ${currency} gibt es noch keinen Wechselkurs. Leg einen unter Einstellungen → Konten und Umbuchungen fest.`,

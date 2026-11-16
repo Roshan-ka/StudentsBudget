@@ -41,6 +41,7 @@ import { tips } from './tips';
  * - sign in / out: anmelden / abmelden; two-step sign-in: zweistufige Anmeldung; passkey: Passkey;
  *   authenticator app: Authenticator-App
  * - sync: synchronisieren (the Sync heading: Synchronisierung; the button: Jetzt synchronisieren); link: verknüpfen
+ * - receipt: Kassenbon; scan: scannen; the receipt reader (the files the first scan downloads): Lesemodul
  */
 export const de: Messages = {
   shell,

@@ -81,6 +81,27 @@ export const entries: Messages['entries'] = {
       failed: 'Impossible de comprendre. Réessaie, ou tape-le.',
     },
   },
+  scan: {
+    button: 'Scanner un ticket',
+    // Une espace insécable entre le nombre et l’unité.
+    firstScan: (size) =>
+      `Ton premier scan télécharge une seule fois le lecteur de tickets, environ ${size} Mo. Ensuite, le scan fonctionne hors ligne.`,
+    continue: 'Continuer',
+    cancel: 'Annuler',
+    reading: 'Lecture du ticket…',
+    progress: 'Progression de la lecture',
+    onPhone: 'Lu sur ce téléphone. La photo n’est ni envoyée ni conservée.',
+    photo: 'Photo du ticket',
+    checkHeading: 'Vérifie le ticket',
+    checkHint: 'Corrige ce qui a été mal lu, puis enregistre.',
+    failedHeading: 'Impossible de lire ce ticket',
+    failedHint:
+      'Les tickets pâlis ou froissés sont difficiles à lire. Saisis ce qui y est écrit, ou essaie une autre photo.',
+    offline: 'Tu es hors ligne. Le premier scan a besoin d’une connexion pour télécharger le lecteur de tickets.',
+    tryAgain: 'Essayer une autre photo',
+    pickCategory: 'Choisis une catégorie.',
+    discard: 'Abandonner',
+  },
   errors: {
     enterAmount: 'Saisis un montant.',
     noRate: (currency) => `Pas encore de taux de change pour ${currency}. Indiques-en un dans Réglages → Comptes et virements.`,
