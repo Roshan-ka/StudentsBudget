@@ -283,8 +283,6 @@ export const tips: Messages['tips'] = {
     line: (title, saving, per) => `Prueba esto: ${title} · ahorra unos ${saving} por ${per}`,
     estimate: (line) => `${line} (estimación)`,
     details: (title) => `Detalles: ${title}`,
-    sources: 'De dónde salen estas cifras',
-    sourceOf: (amount) => `De dónde salen ${amount}`,
     relatedTip: 'Consejo relacionado',
   },
 };

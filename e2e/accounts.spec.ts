@@ -309,7 +309,9 @@ test('the Settings list is a card per page, apart, each with its tinted tile', a
   await expect(profile).toBeVisible();
   const list = page.getByRole('main').getByRole('list').filter({ has: profile });
   await expect(list).toHaveCSS('row-gap', '12px'); // proof: settings-cards-apart
-  await expect(profile).toHaveCSS('border-top-width', '1.5px');
+  // The 1.5 px outline rounds to whole device pixels (1px on desktop, 1.333px on the iPhone): check it's there.
+  await expect(profile).not.toHaveCSS('border-top-width', '0px');
+  await expect(profile).toHaveCSS('border-top-style', 'solid');
   // The tile is the card's first decoration; the chevron comes last.
   const tile = profile.locator('span[aria-hidden="true"]').first();
   await expect(tile).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)'); // proof: settings-tile-tint

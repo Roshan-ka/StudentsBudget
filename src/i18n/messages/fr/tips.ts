@@ -290,8 +290,6 @@ export const tips: Messages['tips'] = {
     line: (title, saving, per) => `Essaie ça${NNBSP}: ${title} · économise environ ${saving} par ${per}`,
     estimate: (line) => `${line} (estimation)`,
     details: (title) => `Détails${NNBSP}: ${title}`,
-    sources: 'D’où viennent ces chiffres',
-    sourceOf: (amount) => `D’où viennent ${amount}`,
     relatedTip: 'Conseil lié',
   },
 };

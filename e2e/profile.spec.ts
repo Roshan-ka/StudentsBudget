@@ -78,7 +78,11 @@ test('Profile has its own page in Settings, prefills the semester and keeps what
   await expect(startField(page)).toHaveValue(formatDate('2026-10-01'));
   await expect(endField(page)).toHaveValue(formatDate('2027-03-31'));
   await expect(profileSection(page).getByText('26 weeks', { exact: false })).toBeVisible();
-  await expect(profileSection(page).getByText('Source', { exact: true })).toBeVisible();
+  // As on Tips: one small line, the host as its link, and the checked date.
+  await expect(
+    profileSection(page).getByText(`Source: uni-regensburg.de · checked ${formatDate('2026-10-20')}`, { exact: true }),
+  ).toBeVisible();
+  await expect(profileSection(page).locator('details')).toHaveCount(0);
 
   // OTH splits the year in mid-March.
   await universityField(page).selectOption({ label: 'OTH Regensburg' });
@@ -224,7 +228,9 @@ test('the one-off costs step offers the next semester fee with its sourced amoun
   await expect(offer).toHaveCount(0);
   await expect(amount).toBeFocused();
   await expect(row.getByText(parts, { exact: true })).toBeVisible();
-  await expect(row.getByText('Source: RVV semester ticket', { exact: true })).toBeVisible();
+  await expect(
+    row.getByText(`Source for RVV semester ticket: stwno.de · checked ${formatDate('2026-10-20')}`, { exact: true }),
+  ).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   // Another amount is the person's choice; the source no longer belongs to it.

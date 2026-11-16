@@ -28,8 +28,8 @@ export const common: Messages['common'] = {
     overdrawn: 'En descubierto (bajo cero)',
   },
   source: {
-    label: 'Fuente',
-    of: (what) => `Fuente: ${what}`,
+    for: (what) => `Fuente de ${what}:`,
+    listed: (what) => `${what}:`,
     checked: (date) => `comprobado el ${date}`,
   },
   accountOption: (name, currency) => `${name} (${currency})`,

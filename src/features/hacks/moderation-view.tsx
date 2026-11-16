@@ -6,7 +6,7 @@ import { ExternalLinkButton, LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { useAuth } from '@/features/account/use-auth';
-import { hostOf } from '@/features/setup/steps/range-source';
+import { hostOf } from '@/features/tips/source-line';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import { formatDate, todayIso } from '@/lib/dates';

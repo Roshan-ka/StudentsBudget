@@ -55,6 +55,8 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'setup.chat.line',
     // "Westbad: …": a map pin's place, then its offer, as in English.
     'tips.discountMap.pin',
+    // "Essen gehen: stwno.de · …": a listed source's item, then its link, as in English.
+    'common.source.listed',
   ]),
   es: new Set([
     'tips.hacks.moderation.states.visible',
@@ -76,6 +78,7 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'auth.signedIn.as.after',
     'setup.chat.line',
     'tips.discountMap.pin',
+    'common.source.listed',
   ]),
   fr: new Set([
     'ask.sources',
@@ -89,7 +92,6 @@ const SAME_AS_ENGLISH: Partial<Record<Language, ReadonlySet<string>>> = {
     'checkIn.week.over.before',
     'common.dateField.label',
     'common.dateField.letters.month',
-    'common.source.label',
     'categories.income-bafoeg',
     'categories.income-parents',
     'shell.headings.badges',

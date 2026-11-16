@@ -304,8 +304,6 @@ export const tips = {
     line: (title: string, saving: string, per: string) => `Try this: ${title} · save about ${saving} per ${per}`,
     estimate: (line: string) => `${line} (estimate)`,
     details: (title: string) => `${title} details`,
-    sources: 'Where these numbers come from',
-    sourceOf: (amount: string) => `Where ${amount} comes from`,
     relatedTip: 'Related tip',
   },
 };
