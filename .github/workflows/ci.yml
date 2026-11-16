@@ -269,6 +269,10 @@ jobs:
     # The stack's start, the db checks, then the journeys' production build and run.
     timeout-minutes: 40
     steps:
+      # The local stack binds 54320-54329 (API, database, Studio, Mailpit, analytics, pooler), inside Linux's ephemeral
+      # port range: an outgoing connection from a later step could take one first and stop the stack's start ("address
+      # already in use" on Mailpit's 54324, 13-11 and 14-11-2026). Reserved first, so the kernel never hands them out.
+      - run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.changes.outputs.sha }}
@@ -375,6 +379,10 @@ jobs:
       PLAYWRIGHT: ${{ needs.changes.outputs.playwright }}
       PROJECTS: ${{ needs.changes.outputs.projects }}
     steps:
+      # The local stack binds 54320-54329 (API, database, Studio, Mailpit, analytics, pooler), inside Linux's ephemeral
+      # port range: an outgoing connection from a later step could take one first and stop the stack's start ("address
+      # already in use" on Mailpit's 54324, 13-11 and 14-11-2026). Reserved first, so the kernel never hands them out.
+      - run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.changes.outputs.sha }}
@@ -426,6 +434,10 @@ jobs:
     # migration's: about 7 a shard take some 5 minutes.
     timeout-minutes: 45
     steps:
+      # The local stack binds 54320-54329 (API, database, Studio, Mailpit, analytics, pooler), inside Linux's ephemeral
+      # port range: an outgoing connection from a later step could take one first and stop the stack's start ("address
+      # already in use" on Mailpit's 54324, 13-11 and 14-11-2026). Reserved first, so the kernel never hands them out.
+      - run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.changes.outputs.sha }}
@@ -435,11 +447,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install chromium
-      # The stack starts before the mocked proofs: red-green.mjs gives each run a free port from the system, which can
-      # be one of the stack's fixed ports (54321-54327); a server left on 54324 kept the stack from starting on the first
-      # night (run 43578581580). Its variables join the job's environment only after the mocked proofs.
-      - if: needs.changes.outputs.prove_real != ''
-        run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
       - if: needs.changes.outputs.prove_mocked != ''
         env:
           SPECS: ${{ needs.changes.outputs.prove_mocked }}
@@ -447,6 +454,8 @@ jobs:
         run: |
           # shellcheck disable=SC2086
           node testkit/red-green.mjs --mutations e2e/mutations --project desktop-chrome --shard "$SHARD" $SPECS
+      - if: needs.changes.outputs.prove_real != ''
+        run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
       - if: needs.changes.outputs.prove_real != ''
         run: |
           node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
@@ -483,6 +492,10 @@ jobs:
     env:
       PLAYWRIGHT: ${{ needs.changes.outputs.playwright }}
     steps:
+      # The local stack binds 54320-54329 (API, database, Studio, Mailpit, analytics, pooler), inside Linux's ephemeral
+      # port range: an outgoing connection from a later step could take one first and stop the stack's start ("address
+      # already in use" on Mailpit's 54324, 13-11 and 14-11-2026). Reserved first, so the kernel never hands them out.
+      - run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.changes.outputs.sha }}

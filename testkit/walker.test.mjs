@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fieldValue, logText, mayUse, pick, readLog, seededRandom, walk, watch } from './walker.mjs';
+import { controls, fieldValue, logText, mayUse, pick, readLog, seededRandom, walk, watch } from './walker.mjs';
 
 describe('seededRandom', () => {
   it('gives the same numbers for the same seed, and others for another', () => {
@@ -128,5 +128,27 @@ describe('a step that hangs', () => {
     const page = { url: () => 'http://localhost:3210/plan', goBack: async () => {}, reload: async () => {}, getByRole: () => ({ all: async () => [] }) };
     const log = await walk(page, { seed: 2, steps: 3 });
     expect(log.every((step) => Number.isInteger(step.ms) && step.ms >= 0)).toBe(true);
+  });
+});
+
+describe('controls', () => {
+  it('skips a control that went between the count and its look, instead of waiting for it', async () => {
+    const looks = [];
+    const control = (facts, gone = false) => ({
+      isVisible: async () => true,
+      evaluate: (_fn, _arg, options) => {
+        looks.push(options?.timeout);
+        if (!gone) return Promise.resolve(facts);
+        // A locator whose element went waits for it until its timeout, and without one for ever.
+        return options?.timeout ? Promise.reject(new Error(`timeout ${options.timeout}ms`)) : new Promise(() => {});
+      },
+    });
+    const page = {
+      getByRole: (role) => ({ all: async () => (role === 'link' ? [control({ name: 'Home' }), control({ name: 'Plan' }, true)] : []) }),
+    };
+    expect(await controls(page)).toEqual([{ role: 'link', nth: 0, name: 'Home' }]);
+    expect(looks).toHaveLength(2);
+    for (const timeout of looks) expect(timeout).toBeGreaterThan(0);
+    for (const timeout of looks) expect(timeout).toBeLessThanOrEqual(2_000);
   });
 });

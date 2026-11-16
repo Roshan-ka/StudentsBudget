@@ -25,6 +25,10 @@ jobs:
     outputs:
       playwright: ${{ steps.playwright.outputs.version }}
     steps:
+      # The local stack binds 54320-54329 (API, database, Studio, Mailpit, analytics, pooler), inside Linux's ephemeral
+      # port range: an outgoing connection from a later step could take one first and stop the stack's start ("address
+      # already in use" on Mailpit's 54324, 13-11 and 14-11-2026). Reserved first, so the kernel never hands them out.
+      - run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: playwright
         run: |
