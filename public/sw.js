@@ -12,6 +12,12 @@ const CACHE = PREFIX + (new URL(self.location.href).searchParams.get('v') || 'un
 // the set keeps the map offline; a new set replaces it. Saved as they are viewed, never on install (a few MB).
 const MAP_SET = new URL(self.location.href).searchParams.get('map');
 const MAP_CACHE = MAP_SET ? PREFIX + 'map-' + MAP_SET : CACHE;
+// The receipt scan's reading files (docs/superpowers/plans/2026-11-13-receipt-scan.md): Tesseract's script, its
+// worker and WebAssembly, and the German and English language data, all under /ocr/. Like the map's, they live in a
+// cache of their own, named by their set (/sw.js?ocr=<set>), so a scan works offline after the first one, across
+// deploys that keep the set. Saved as they are fetched, never on install (several MB).
+const OCR_SET = new URL(self.location.href).searchParams.get('ocr');
+const OCR_CACHE = OCR_SET ? PREFIX + 'ocr-' + OCR_SET : CACHE;
 
 // How long a page waits for the network before the cached copy is shown instead.
 const NAVIGATION_TIMEOUT_MS = 4000;
@@ -64,7 +70,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const names = await caches.keys();
-      const older = names.filter((name) => name.startsWith(PREFIX) && name !== CACHE && name !== MAP_CACHE);
+      const kept = [CACHE, MAP_CACHE, OCR_CACHE];
+      const older = names.filter((name) => name.startsWith(PREFIX) && !kept.includes(name));
       await Promise.all(older.map((name) => caches.delete(name)));
       await self.clients.claim();
     })(),
@@ -85,6 +92,9 @@ self.addEventListener('fetch', (event) => {
   } else if (url.pathname.startsWith('/maps/')) {
     // Each path names its set or its version, so a cached copy is never stale.
     event.respondWith(cacheFirst(event, false, MAP_CACHE));
+  } else if (url.pathname.startsWith('/ocr/')) {
+    // The same: each path names its set.
+    event.respondWith(cacheFirst(event, false, OCR_CACHE));
   } else if (FILES.includes(url.pathname)) {
     event.respondWith(cacheFirst(event, true));
   }

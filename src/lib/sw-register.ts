@@ -1,8 +1,9 @@
 /**
- * Registers the service worker that lets the installed app open offline, as `/sw.js?v=<version>&map=<set>`.
- * The version is the commit the build is made from: a new build is a new script URL, which is what makes the
- * browser install a new worker (the file itself is the same bytes) with a cache of its own. The map set names the
- * discount map's cache, which outlives builds that keep the set.
+ * Registers the service worker that lets the installed app open offline, as
+ * `/sw.js?v=<version>&map=<set>&ocr=<set>`. The version is the commit the build is made from: a new build is a new
+ * script URL, which is what makes the browser install a new worker (the file itself is the same bytes) with a cache
+ * of its own. The map set names the discount map's cache, and the OCR set the receipt scan's reading files' cache;
+ * each outlives builds that keep its set.
  * Skips in development (a dev server must never get one) and in browsers without service workers, and then
  * does not touch `navigator`. Resolves 'failed', after logging, when the registration throws.
  */
@@ -11,11 +12,12 @@ export async function registerServiceWorker(env: {
   supported: boolean;
   version: string;
   mapSet: string;
+  ocrSet: string;
 }): Promise<'registered' | 'skipped' | 'failed'> {
   if (!env.production || !env.supported) return 'skipped';
   try {
     await navigator.serviceWorker.register(
-      `/sw.js?v=${encodeURIComponent(env.version)}&map=${encodeURIComponent(env.mapSet)}`,
+      `/sw.js?v=${encodeURIComponent(env.version)}&map=${encodeURIComponent(env.mapSet)}&ocr=${encodeURIComponent(env.ocrSet)}`,
     );
     return 'registered';
   } catch (error) {

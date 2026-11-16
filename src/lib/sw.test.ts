@@ -100,16 +100,20 @@ type Network = (input: string | { url: string }) => Promise<Response>;
  * `respondWith` works only while the event is being dispatched, and `waitUntil` only while it is being
  * dispatched or while a promise passed to `respondWith` or `waitUntil` is still pending.
  */
-function loadWorker(network: Network, windows: FakeWindow[] = []) {
+function loadWorker(
+  network: Network,
+  windows: FakeWindow[] = [],
+  { search = '?v=build-a', keys = [CACHE_NAME, 'studentsbudget-build-old', 'someone-elses-cache'] } = {},
+) {
   const handlers = new Map<string, ((event: FakeEvent) => void)[]>();
   const cache = new FakeCache();
   const caches = {
-    open: async () => cache,
-    keys: async () => [CACHE_NAME, 'studentsbudget-build-old', 'someone-elses-cache'],
+    open: vi.fn<(name: string) => Promise<FakeCache>>(async () => cache),
+    keys: async () => keys,
     delete: vi.fn(async () => true),
   };
   const self = {
-    location: new URL(`${ORIGIN}/sw.js?v=build-a`),
+    location: new URL(`${ORIGIN}/sw.js${search}`),
     addEventListener: (type: string, handler: (event: FakeEvent) => void) => {
       handlers.set(type, [...(handlers.get(type) ?? []), handler]);
     },
@@ -348,6 +352,38 @@ describe('install and activate', () => {
     await Promise.all(activate.lifetime);
     expect(worker.caches.delete).toHaveBeenCalledExactlyOnceWith('studentsbudget-build-old');
     expect(worker.self.clients.claim).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the map’s and the receipt scan’s caches of their sets, and drops an older reading set', async () => {
+    const worker = loadWorker(offline, [], {
+      search: '?v=build-a&map=m1&ocr=tesseract-7',
+      keys: [CACHE_NAME, 'studentsbudget-build-old', 'studentsbudget-map-m1', 'studentsbudget-ocr-tesseract-7', 'studentsbudget-ocr-tesseract-6'],
+    });
+
+    const activate = worker.dispatch('activate');
+    await Promise.all(activate.lifetime);
+    expect(worker.caches.delete.mock.calls.map((call: unknown[]) => call[0]).sort()).toEqual([
+      'studentsbudget-build-old',
+      'studentsbudget-ocr-tesseract-6',
+    ]);
+  });
+});
+
+describe('the receipt scan’s reading files', () => {
+  it('serves /ocr/ from its own cache first, saving a file after the first online fetch', async () => {
+    const worker = loadWorker(() => Promise.resolve(basic('wasm')), [], { search: '?v=build-a&map=m1&ocr=tesseract-7' });
+
+    const first = worker.get('/ocr/tesseract-7/tesseract-core-lstm.wasm.js', 'no-cors');
+    await vi.advanceTimersByTimeAsync(0);
+    await Promise.all(first.lifetime);
+    expect(await textOf(first.response)).toBe('wasm');
+    expect(worker.caches.open).toHaveBeenCalledWith('studentsbudget-ocr-tesseract-7');
+    expect(worker.cache.puts).toEqual([`${ORIGIN}/ocr/tesseract-7/tesseract-core-lstm.wasm.js`]);
+
+    const second = worker.get('/ocr/tesseract-7/tesseract-core-lstm.wasm.js', 'no-cors');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await textOf(second.response)).toBe('wasm');
+    expect(worker.fetchStub).toHaveBeenCalledOnce();
   });
 });
 
