@@ -19,14 +19,15 @@ describe('the security headers (legal pages, chunk 4)', () => {
   it('allows only the app itself, Supabase and Frankfurter on the live site, and never eval', () => {
     const policy = directives(LIVE);
     expect(policy.get('default-src')).toEqual(["'self'"]);
-    expect(policy.get('script-src')).toEqual(["'self'", "'unsafe-inline'"]);
+    // WebAssembly only (the receipt scan's Tesseract), never JavaScript's eval.
+    expect(policy.get('script-src')).toEqual(["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"]);
     expect(policy.get('connect-src')).toEqual(["'self'", 'https://abcdefghijklmnop.supabase.co', 'https://api.frankfurter.dev']);
     expect(policy.get('worker-src')).toEqual(["'self'", 'blob:']);
     expect(policy.get('frame-ancestors')).toEqual(["'none'"]);
     expect(policy.get('object-src')).toEqual(["'none'"]);
     expect(policy.has('frame-src')).toBe(false);
     expect(policy.has('upgrade-insecure-requests')).toBe(true);
-    expect(contentSecurityPolicy(LIVE)).not.toContain('unsafe-eval');
+    expect(contentSecurityPolicy(LIVE)).not.toContain("'unsafe-eval'");
     expect(contentSecurityPolicy(LIVE)).not.toContain('vercel.live');
   });
 
@@ -50,7 +51,13 @@ describe('the security headers (legal pages, chunk 4)', () => {
 
   it('adds eval, the websocket and Speed Insights’ debug script for `next dev` only, and no upgrade off Vercel', () => {
     const dev = directives({ supabaseUrl: undefined, dev: true, vercelEnv: undefined });
-    expect(dev.get('script-src')).toEqual(["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://va.vercel-scripts.com']);
+    expect(dev.get('script-src')).toEqual([
+      "'self'",
+      "'unsafe-inline'",
+      "'wasm-unsafe-eval'",
+      "'unsafe-eval'",
+      'https://va.vercel-scripts.com',
+    ]);
     expect(dev.get('connect-src')).toContain('ws:');
     expect(dev.has('upgrade-insecure-requests')).toBe(false);
     // The e2e build: a production build on localhost.
