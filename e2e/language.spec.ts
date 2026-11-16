@@ -8,7 +8,7 @@ test.use({ viewport: { width: 375, height: 812 } });
 
 /** The picker, named in the language the page is in. A role, not a label: a hidden page keeps its labels. */
 const picker = (page: Page) => page.getByRole('combobox', { name: /^(Language|Sprache)$/ });
-/** The header's globe on the start pages and setup (13-11-2026): a button that opens the languages as a menu. */
+/** The header's globe, on every page since 16-11-2026: a button that opens the languages as a menu. */
 const globe = (page: Page) => page.getByRole('button', { name: /^(Language|Sprache)$/ });
 
 const nav = (page: Page, name: string) => page.getByRole('navigation', { name, exact: true });
@@ -38,6 +38,22 @@ test('Settings switches the app to German and back, and the choice survives a re
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('heading', { level: 2, name: 'Settings', exact: true })).toBeVisible();
   await expect(nav(page, 'Main').getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
+});
+
+test('the globe sits in the header of every page, and switches the language there', async ({ page }) => {
+  await seedSetup(page);
+  for (const path of ['/', '/entries', '/settings']) {
+    await page.goto(path);
+    await expect(globe(page), path).toBeVisible(); // proof: globe-on-every-page
+  }
+  // Settings keeps its own field beside it.
+  await expect(picker(page)).toBeVisible();
+
+  await page.goto('/');
+  await globe(page).click();
+  await page.getByRole('menuitemradio', { name: 'Deutsch', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(globe(page)).toHaveAccessibleName('Sprache');
 });
 
 test('setup offers the language in the header’s globe, each in its own words', async ({ page }) => {

@@ -267,3 +267,9 @@
   --cat-income-other: #008300;
   --cat-everything-else: #7d7d7d;
 }
+
+/* While Ask's bubble shows (AskBubble sets the attribute), the discount map's box ends this much higher, so the bubble
+   sits below the map instead of over its card and controls (16-11-2026). */
+html[data-ask-bubble] {
+  --ask-bubble-space: 2rem;
+}
