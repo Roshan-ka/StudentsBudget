@@ -47,7 +47,6 @@ export const tips = {
     groups: { 'first-weeks': 'First weeks', money: 'Money to claim' },
     who: { everyone: 'Everyone', 'from-abroad': 'From outside the EU', bafoeg: 'On BAföG', 'under-25': 'Under 25' },
     progress: (done: number, total: number) => `${done} of ${total} done`,
-    mark: 'Done',
     doneOn: (date: string) => `Done on ${date}`,
     /** The checkbox's name: its visible word, then the item. */
     markNamed: (title: string) => `Done: ${title}`,

@@ -46,7 +46,6 @@ export const tips: Messages['tips'] = {
     groups: { 'first-weeks': 'Primeras semanas', money: 'Dinero que puedes pedir' },
     who: { everyone: 'Todos', 'from-abroad': 'De fuera de la UE', bafoeg: 'Con BAföG', 'under-25': 'Menores de 25' },
     progress: (done: number, total: number) => `Hecho: ${done} de ${total}`,
-    mark: 'Hecho',
     doneOn: (date: string) => `Hecho el ${date}`,
     markNamed: (title: string) => `Hecho: ${title}`,
     seeTip: 'Ver el consejo',

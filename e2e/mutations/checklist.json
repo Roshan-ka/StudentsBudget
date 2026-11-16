@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "a group's bar never counts its ticks",
+      "file": "src/features/checklist/checklist-view.tsx",
+      "find": "const done = items.filter((item) => tickOf(item.id) !== undefined).length;",
+      "replace": "const done = 0;",
+      "expect": {
+        "e2e/checklist.spec.ts": [
+          "group-bar-count"
+        ]
+      }
+    },
+    {
+      "name": "an item's source line leaves out its checked date",
+      "file": "src/features/checklist/checklist-view.tsx",
+      "find": "after={t.common.source.checked(formatDate(words.checked))}",
+      "replace": "after=\"\"",
+      "expect": {
+        "e2e/checklist.spec.ts": [
+          "checklist-source-line"
+        ]
+      }
+    }
+  ]
+}
