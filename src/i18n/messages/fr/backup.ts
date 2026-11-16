@@ -4,14 +4,15 @@ import { NNBSP } from './count';
 // La sauvegarde en français : Réglages → Sauvegarde (exporter, restaurer, tout supprimer), la restauration sur /setup
 // et les vérifications de backup.ts.
 export const backup: Messages['backup'] = {
-  heading: 'Sauvegarde',
   summary: 'Exporter, restaurer ou supprimer les données de ce téléphone',
-  intro:
-    'Tout ce que tu saisis reste sur ce téléphone, sauf si tu l’associes à ton compte. Un fichier de sauvegarde est ' +
-    'une copie que tu gardes toi-même, alors exportes-en une de temps en temps et garde-la en lieu sûr.',
+  intro: 'Tes données restent sur ce téléphone, sauf si tu associes un compte.',
+  more: `Pourquoi garder une sauvegarde${NNBSP}?`,
+  moreText:
+    'Un fichier de sauvegarde est une copie que tu gardes toi-même, alors exportes-en une de temps en temps et ' +
+    'garde-la en lieu sûr.',
   export: {
     heading: 'Exporter une sauvegarde',
-    hint: 'Enregistre tout dans un seul fichier. Sur un iPhone, choisis Enregistrer dans Fichiers dans le menu de partage.',
+    hint: 'Un seul fichier avec tout. Sur un iPhone, choisis Enregistrer dans Fichiers.',
     button: 'Exporter la sauvegarde',
     shareTitle: 'Sauvegarde StudentsBudget',
     shared: 'Sauvegarde partagée.',
@@ -22,6 +23,8 @@ export const backup: Messages['backup'] = {
   },
   restore: {
     heading: 'Restaurer une sauvegarde',
+    intro: 'Remplace les données de ce téléphone par celles du fichier.',
+    choose: 'Choisir un fichier de sauvegarde',
     file: 'Fichier à restaurer',
     reading: 'Lecture…',
     confirmGroup: 'Confirmer la restauration',
@@ -39,11 +42,10 @@ export const backup: Messages['backup'] = {
   },
   delete: {
     heading: 'Tout supprimer',
-    intro:
-      'Retire de ce téléphone ton plan, tes comptes, tes saisies, les semaines enregistrées et les badges, tes ' +
-      'votes sur les réductions, les coches de la liste, ton profil et les taux de change. Un téléphone associé à ton ' +
-      `compte StudentsBudget est dissocié${NNBSP}: ce compte garde sa copie, et ta session reste ouverte. Les ` +
-      'modifications pas encore synchronisées sont perdues.',
+    intro: 'Retire de ce téléphone ton plan, tes comptes, tes saisies et toutes tes autres données.',
+    linked:
+      `Un téléphone associé à ton compte StudentsBudget est dissocié${NNBSP}: ce compte garde sa copie, et ta ` +
+      'session reste ouverte. Les modifications pas encore synchronisées sont perdues.',
     warning:
       'Impossible d’annuler sur ce téléphone. Pour récupérer tes données plus tard, exporte d’abord une sauvegarde ' +
       'ou synchronise-les avec ton compte.',

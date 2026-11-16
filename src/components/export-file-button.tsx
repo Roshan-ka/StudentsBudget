@@ -1,5 +1,6 @@
 'use client';
 
+import { DownloadIcon } from 'lucide-react';
 import { useState, useSyncExternalStore } from 'react';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
@@ -57,17 +58,22 @@ function sharesFilesLike({ extension, type }: ExportFileType): boolean {
   }
 }
 
-/** The export button, with Download beside it where Export shares, and its status line. */
+/**
+ * The export button, with Download beside it where Export shares, and its status line. `primary` makes Export its page's
+ * main action, filled and with a Download icon (the backup's card, Roshan's mockups, 16-11-2026); otherwise it is outlined.
+ */
 export function ExportFileButton({
   build,
   fileType,
   ready,
   text,
+  primary = false,
 }: {
   build: () => File;
   fileType: ExportFileType;
   ready: boolean;
   text: ExportFileText;
+  primary?: boolean;
 }) {
   const [sharing, setSharing] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -141,7 +147,13 @@ export function ExportFileButton({
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" className="px-4" onClick={onExport} disabled={!ready || sharing}>
+        <Button
+          variant={primary ? 'default' : 'outline'}
+          className="px-4"
+          onClick={onExport}
+          disabled={!ready || sharing}
+        >
+          {primary && <DownloadIcon aria-hidden="true" />}
           {text.button}
         </Button>
         {offersDownload && downloadButton}

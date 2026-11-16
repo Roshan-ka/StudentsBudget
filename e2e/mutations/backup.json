@@ -1,0 +1,38 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the backup cards' titles are plain text, not headings",
+      "file": "src/features/backup/backup-panel.tsx",
+      "find": "<h3 id={headingId} className=\"text-lg leading-tight font-bold\">{title}</h3>",
+      "replace": "<p id={headingId} className=\"text-lg leading-tight font-bold\">{title}</p>",
+      "expect": {
+        "e2e/backup.spec.ts": [
+          "three-cards"
+        ]
+      }
+    },
+    {
+      "name": "the reason for a backup shows unfolded under the heading",
+      "file": "src/features/backup/backup-panel.tsx",
+      "find": "<StepMore summary={t.backup.more}>\n        <p>{t.backup.moreText}</p>\n      </StepMore>",
+      "replace": "<p>{t.backup.moreText}</p>",
+      "expect": {
+        "e2e/backup.spec.ts": [
+          "reason-folded"
+        ]
+      }
+    },
+    {
+      "name": "Choose a backup file opens no file field",
+      "file": "src/features/backup/restore-from-backup.tsx",
+      "find": "onClick={() => fileRef.current?.click()}",
+      "replace": "onClick={() => undefined}",
+      "expect": {
+        "e2e/backup.spec.ts": [
+          "choose-opens-field"
+        ]
+      }
+    }
+  ]
+}

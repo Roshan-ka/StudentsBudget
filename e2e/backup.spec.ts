@@ -114,7 +114,7 @@ async function openSettings(page: Page) {
   // Ready means React is listening, so a file chosen after it cannot reach the server-rendered input; Export is
   // enabled once the page's live query has answered.
   await openApp(page, '/settings/backup');
-  await expect(page.getByRole('heading', { level: 3, name: 'Backup' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Backup and data', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export backup', exact: true })).toBeEnabled();
 }
 
@@ -581,6 +581,48 @@ test.describe('choosing a file to restore, on every screen size', () => {
     const restoreTop = (await restore.boundingBox())?.y ?? 0;
     const wizardTop = (await headings.first().boundingBox())?.y ?? Number.POSITIVE_INFINITY;
     expect(restoreTop).toBeGreaterThan(wizardTop);
+  });
+});
+
+// The page in cards (Roshan's mockups, 16-11-2026): a line under the heading, the reason folded, then a card each.
+test.describe('the page in cards, on every screen size', () => {
+  test('a line under the heading, the reason folded, then three cards that each do their part inside', async ({ page }) => {
+    await openSettings(page);
+    const titles = ['Export a backup', 'Restore a backup', 'Delete everything'];
+    await expect(page.getByRole('main').getByRole('heading', { level: 3 })).toHaveText(titles); // proof: three-cards
+    await expect(
+      page.getByText('Your data stays on this phone unless you link an account.', { exact: true }),
+    ).toBeVisible();
+    const why = page.getByText(
+      'A backup file is a copy you keep yourself, so export one now and then and keep it somewhere safe.',
+      { exact: true },
+    );
+    await expect(why).toBeHidden(); // proof: reason-folded
+    await page.locator('summary').filter({ hasText: 'Why keep a backup?' }).click();
+    await expect(why).toBeVisible();
+
+    // Restore: no browser picker on the page. The card's button opens the hidden field, and the question shows in the card.
+    const restore = page.getByRole('region', { name: 'Restore a backup', exact: true });
+    page.once('filechooser', (chooser) => {
+      void chooser.setFiles(jsonFile('good.json', GOOD_BACKUP));
+    });
+    await restore.getByRole('button', { name: 'Choose a backup file', exact: true }).click();
+    const question = restore.getByRole('group', { name: 'Confirm restore' }).getByText('Replace all data with good.json?');
+    await expect(question).toBeVisible(); // proof: choose-opens-field
+    await restore.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(confirmation(page)).toHaveCount(0);
+
+    // Delete everything: its typed word, and what the card's short line leaves out, inside the card.
+    const wipe = page.getByRole('region', { name: 'Delete everything', exact: true });
+    await wipe.getByRole('button', { name: 'Delete everything', exact: true }).click();
+    await expect(wipe.getByLabel('Type DELETE to confirm')).toBeVisible();
+    await expect(
+      wipe.getByText(
+        'A phone linked to your StudentsBudget account is unlinked: that account keeps its copy, and you stay signed in. ' +
+          'Changes not synced yet are lost.',
+        { exact: true },
+      ),
+    ).toBeVisible();
   });
 });
 

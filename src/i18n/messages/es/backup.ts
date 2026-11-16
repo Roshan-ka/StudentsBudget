@@ -3,14 +3,15 @@ import type { Messages } from '../en';
 // La copia de seguridad en español: Ajustes → Copia de seguridad (exportar, restaurar, borrarlo todo), la
 // restauración en /setup y las comprobaciones de backup.ts.
 export const backup: Messages['backup'] = {
-  heading: 'Copia de seguridad',
   summary: 'Exportar, restaurar o borrar los datos de este móvil',
-  intro:
-    'Todo lo que escribes se queda en este móvil, salvo que lo vincules a tu cuenta. Un archivo de copia de ' +
-    'seguridad es una copia que guardas tú, así que exporta una de vez en cuando y guárdala en un lugar seguro.',
+  intro: 'Tus datos se quedan en este móvil, salvo que vincules una cuenta.',
+  more: '¿Por qué guardar una copia?',
+  moreText:
+    'Un archivo de copia de seguridad es una copia que guardas tú, así que exporta una de vez en cuando y guárdala ' +
+    'en un lugar seguro.',
   export: {
     heading: 'Exportar una copia de seguridad',
-    hint: 'Guarda todo en un archivo. En un iPhone, elige Guardar en Archivos en el menú de compartir.',
+    hint: 'Un archivo con todo. En un iPhone, elige Guardar en Archivos.',
     button: 'Exportar copia',
     shareTitle: 'Copia de seguridad de StudentsBudget',
     shared: 'Copia compartida.',
@@ -21,6 +22,8 @@ export const backup: Messages['backup'] = {
   },
   restore: {
     heading: 'Restaurar una copia de seguridad',
+    intro: 'Sustituye los datos de este móvil por los del archivo.',
+    choose: 'Elegir un archivo de copia',
     file: 'Archivo para restaurar',
     reading: 'Leyendo…',
     confirmGroup: 'Confirmar la restauración',
@@ -38,10 +41,10 @@ export const backup: Messages['backup'] = {
   },
   delete: {
     heading: 'Borrarlo todo',
-    intro:
-      'Quita de este móvil tu plan, cuentas, registros, semanas guardadas e insignias, votos sobre descuentos, ' +
-      'marcas de la lista, perfil y tipos de cambio. Un móvil vinculado a tu cuenta de StudentsBudget se desvincula: ' +
-      'esa cuenta conserva su copia y sigues con la sesión iniciada. Los cambios aún no sincronizados se pierden.',
+    intro: 'Quita de este móvil tu plan, cuentas, registros y todos tus demás datos.',
+    linked:
+      'Un móvil vinculado a tu cuenta de StudentsBudget se desvincula: esa cuenta conserva su copia y sigues con la ' +
+      'sesión iniciada. Los cambios aún no sincronizados se pierden.',
     warning:
       'Esto no se puede deshacer en este móvil. Para recuperar tus datos más tarde, exporta antes una copia de ' +
       'seguridad o sincronízalos con tu cuenta.',
