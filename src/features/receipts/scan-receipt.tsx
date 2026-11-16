@@ -19,7 +19,6 @@ import { sortAccounts } from '@/features/accounts/balances';
 import type { EntryField } from '@/features/accounts/transfer';
 import { categoryTint } from '@/features/charts/colors';
 import { buildEntry } from '@/features/entries/build-entry';
-import { ImportLink } from '@/features/entries/import-link';
 import { savedWhat } from '@/features/entries/saved-line';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
@@ -70,8 +69,8 @@ function Photo({ src, alt, large = false }: { src: string; alt: string; large?: 
 
 /**
  * Scan a receipt (receipt scan, chunk 4, docs/superpowers/plans/2026-11-13-receipt-scan.md; the look is Roshan's
- * approved mockups, round 2, 16-11-2026). Two outline buttons above quick add, "Import a bank statement" and "Scan a
- * receipt", whose card takes their place while a scan goes on:
+ * approved mockups, round 2, 16-11-2026). An outline button under quick add's field, in its card (group 2 mockups,
+ * 16-11-2026), whose card takes its place while a scan goes on:
  * - the first time on a phone, a note on the reading files' download, whose Continue opens the picker from its tap;
  * - the photo, read by `engine` with its progress and Cancel;
  * - the check card, filled from `readReceipt`, or empty with "Couldn't read this receipt" and "Try another photo";
@@ -305,13 +304,10 @@ export function ScanReceipt({ engine = receiptEngine }: { engine?: ReceiptEngine
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
 
       {phase.kind === 'idle' && (
-        <div className="grid grid-cols-2 gap-2">
-          <ImportLink />
-          <Button ref={focus.refFor('scan')} type="button" variant="outline" className="h-full" onClick={onScan}>
-            <CameraIcon aria-hidden="true" className="size-[18px]" />
-            {words.button}
-          </Button>
-        </div>
+        <Button ref={focus.refFor('scan')} type="button" variant="outline" className="w-full" onClick={onScan}>
+          <CameraIcon aria-hidden="true" className="size-[18px]" />
+          {words.button}
+        </Button>
       )}
 
       {phase.kind === 'note' && (

@@ -1,24 +1,22 @@
 'use client';
 
-import { FileUpIcon } from 'lucide-react';
-import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
+import { ImportIcon } from 'lucide-react';
+import { LinkButton } from '@/components/link-button';
 import { useT } from '@/i18n/use-t';
-import { cn } from '@/lib/utils';
 
 /**
  * The way from the entries to the bank statement import (CSV import, docs/superpowers/plans/2026-11-09-csv-import-export.md,
  * chunk 9), for a student who imports instead of typing. Named like the import's own card, so the words match where it
- * leads. Not on Home, which every spec goes through. It sits above quick add: under it, the link moved up into a category
- * chip's place when the chips closed, under a double tap's second tap. An outline button since the receipt scan, beside
- * "Scan a receipt" (Roshan, mockups round 2, 16-11-2026: features as buttons, not text links).
+ * leads. Not on Home, which every spec goes through. An outline button at the foot of Entries, after the list (Roshan's
+ * group 2 mockups, 16-11-2026). It used to sit above quick add because, under it, the button moved up into a category
+ * chip's place when the chips closed, under a double tap's second tap; quick add now keeps its height for a moment after
+ * a pick (`KEEP_SPACE_MS` in quick-add-field.tsx), so nothing under it moves while a second tap can land.
  */
 export function ImportLink() {
   const { t } = useT();
   return (
-    <Link href="/settings/import" className={cn(buttonVariants({ variant: 'outline' }), 'h-full')}>
-      <FileUpIcon aria-hidden="true" className="size-[18px]" />
+    <LinkButton href="/settings/import" icon={ImportIcon}>
       {t.importExport.import.heading}
-    </Link>
+    </LinkButton>
   );
 }
