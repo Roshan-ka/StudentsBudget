@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import type { BackupData } from '@/db/bulk';
-import { BACKUP_VERSION, backupFileName, backupSummary, parseBackup, serializeBackup } from './backup';
+import { MESSAGES } from '@/i18n/messages';
+import { BACKUP_VERSION, backupFileName, backupSummary, MAX_BACKUP_BYTES, parseBackup, serializeBackup } from './backup';
 
 const NOW = new Date('2026-10-16T10:00:00.000Z');
 
@@ -973,3 +974,17 @@ describe('backupSummary', () => {
     expect(backupSummary(none, exportedAt)).toBe('Saved 02.03.2026, 09:05 · 0 accounts · 0 entries');
   });
 });
+
+describe('the backup size cap (16-11-2026)', () => {
+  it('is 20 MB, and every language’s message names that figure', () => {
+    expect(MAX_BACKUP_BYTES).toBe(20 * 1024 * 1024);
+    for (const [lang, messages] of Object.entries(MESSAGES)) {
+      expect(messages.backup.restore.tooLarge, lang).toMatch(/20\s?M[Bo]/);
+    }
+  });
+
+  it('leaves room for years of real use: the demo backup is far below it', () => {
+    expect(new TextEncoder().encode(DEMO).length).toBeLessThan(MAX_BACKUP_BYTES / 100);
+  });
+});
+

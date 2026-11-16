@@ -32,6 +32,7 @@ export const backup: Messages['backup'] = {
     replace: 'Alle Daten ersetzen',
     cancel: 'Abbrechen',
     readFailed: 'Die Datei konnte nicht gelesen werden.',
+    tooLarge: 'Die Datei ist größer als 20 MB und damit zu groß für ein Backup von StudentsBudget. Wähl eine, die die App exportiert hat.',
     failed: 'Das Backup konnte nicht wiederhergestellt werden. Die Daten auf diesem Handy sind unverändert.',
     setupHeading: 'Hast du ein Backup? Stell es wieder her',
     /** Setup's quiet button that opens the file field (13-11-2026). */

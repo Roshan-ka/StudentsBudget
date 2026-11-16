@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Category, DiscountVote, Entry, Plan, PlanMonth, Profile, Rate, WeekResult } from '../src/db/types';
-import { BACKUP_VERSION } from '../src/features/backup/backup';
+import { BACKUP_VERSION, MAX_BACKUP_BYTES } from '../src/features/backup/backup';
 import { formatDate } from '../src/lib/dates';
 import { openApp } from './helpers/app';
 import { seedSetup } from './helpers/seed-setup';
@@ -17,6 +17,7 @@ const NOT_A_BACKUP =
   'This isn’t a StudentsBudget backup file. Choose one the app exported: its name starts with studentsbudget-backup.';
 const NEWER =
   'This backup is from a newer version of the app. Reload the app while online to update it, then try again.';
+const TOO_LARGE = 'That file is over 20 MB, too large to be a StudentsBudget backup. Choose one the app exported.';
 const DAMAGED =
   'This backup file is damaged: an entry uses an account that isn’t in the file. Choose another backup, or export a new one.';
 
@@ -404,6 +405,22 @@ test.describe('on a desktop browser', () => {
     await backupFileInput(page).setInputFiles(jsonFile('empty.json', EMPTY_BACKUP));
     await expect(page.getByText('Replace all data with empty.json?')).toBeVisible();
     await expect(inlineAlert(page)).toHaveCount(0);
+    expect(await everything(page)).toEqual(before);
+  });
+
+  test('refuses a file over 20 MB by its size, before reading it, and changes nothing', async ({ page }) => {
+    await seedSetup(page);
+    await openSettings(page);
+    const before = await everything(page);
+
+    // One byte over the cap. Read as text it would only be "not a backup": the size message shows it was never read.
+    await backupFileInput(page).setInputFiles({
+      name: 'studentsbudget-backup-huge.json',
+      mimeType: 'application/json',
+      buffer: Buffer.alloc(MAX_BACKUP_BYTES + 1, ' '),
+    });
+    await expect(inlineAlert(page)).toHaveText(TOO_LARGE); // proof: too-large-by-size
+    await expect(page.getByRole('button', { name: 'Replace all data' })).toHaveCount(0);
     expect(await everything(page)).toEqual(before);
   });
 

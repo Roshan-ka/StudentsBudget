@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { replaceAll, type BackupData } from '@/db/bulk';
 import { db } from '@/db/db';
 import { useT } from '@/i18n/use-t';
-import { backupSummary, parseBackup } from './backup';
+import { backupSummary, MAX_BACKUP_BYTES, parseBackup } from './backup';
 
 type Chosen = { fileName: string; data: BackupData; exportedAt: string };
 
@@ -62,6 +62,8 @@ export function RestoreFromBackup({ compact = false }: { compact?: boolean }) {
     // An earlier question or error belongs to an earlier file.
     setChosen(null);
     setError(null);
+    // Refused by its size before anything is read into memory.
+    if (file.size > MAX_BACKUP_BYTES) return setError(text.tooLarge);
     setReading(true);
 
     let fileText: string;

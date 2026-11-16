@@ -212,6 +212,13 @@ function withBuiltInCategories(categories: Category[]): Category[] {
 }
 
 /** The text of a backup file: the data, wrapped in the app name, the file version and the time it was made. */
+/**
+ * The largest file a restore reads (Roshan, 16-11-2026: 20 MB). A busy year of entries comes to about 1.2 MB, so a
+ * real backup stays far below it; a bigger file is refused by its size before it is read into memory, where a phone
+ * might stall on it. The restore texts name the figure in every language (tested).
+ */
+export const MAX_BACKUP_BYTES = 20 * 1024 * 1024;
+
 export function serializeBackup(d: BackupData, now: Date): string {
   return JSON.stringify({ app: APP, version: BACKUP_VERSION, exportedAt: now.toISOString(), data: d }, null, 2);
 }

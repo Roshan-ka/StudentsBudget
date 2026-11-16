@@ -37,6 +37,8 @@ export const backup = {
     replace: 'Replace all data',
     cancel: 'Cancel',
     readFailed: 'Couldn’t read that file.',
+    /** A file over `MAX_BACKUP_BYTES`, refused before it is read. */
+    tooLarge: 'That file is over 20 MB, too large to be a StudentsBudget backup. Choose one the app exported.',
     failed: 'Couldn’t restore the backup. The data on this phone is unchanged.',
     setupHeading: 'Have a backup? Restore it',
     /** Setup's quiet button that opens the file field (13-11-2026). */
