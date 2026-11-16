@@ -22,6 +22,8 @@ const eslintConfig = defineConfig([
     "blob-report/**",
     // The discount map's shipped files: MapLibre's built modules, copied from node_modules, and the tile set.
     "public/maps/**",
+    // The receipt scan's reading files: Tesseract.js's built modules and WebAssembly, copied from node_modules.
+    "public/ocr/**",
   ]),
   {
     rules: {

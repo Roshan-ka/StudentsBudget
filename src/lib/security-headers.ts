@@ -32,7 +32,9 @@ export function originOf(url: string | undefined): string | null {
  * The Content-Security-Policy. Scripts and styles need 'unsafe-inline': Next 16 with Cache Components can't use nonces
  * without making every page dynamic, which would lose the offline precache, and its flight data, the language and
  * theme head scripts, the charts' styles and MapLibre's are inline. MapLibre decodes images and may start its worker
- * through blob: URLs. Everything else the app loads is its own, so it allows only its own origin, Supabase's and
+ * through blob: URLs. The receipt scan reads a photo with Tesseract's WebAssembly, which needs 'wasm-unsafe-eval' (it
+ * compiles WebAssembly only, never JavaScript: no eval, no new Function). Everything else the app loads is its own,
+ * so it allows only its own origin, Supabase's and
  * Frankfurter's. On Vercel's previews, the Vercel Toolbar's hosts (Vercel's docs, "Using a Content Security Policy",
  * read on 12-11-2026).
  */
@@ -46,6 +48,7 @@ export function contentSecurityPolicy(env: HeaderEnv): string {
       [
         "'self'",
         "'unsafe-inline'",
+        "'wasm-unsafe-eval'",
         ...(env.dev ? ["'unsafe-eval'", SPEED_INSIGHTS_DEBUG] : []),
         ...(preview ? ['https://vercel.live'] : []),
       ],
