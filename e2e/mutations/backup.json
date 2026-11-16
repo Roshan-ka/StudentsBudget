@@ -33,6 +33,17 @@
           "choose-opens-field"
         ]
       }
+    },
+    {
+      "name": "a file over 20 MB is read like any other",
+      "file": "src/features/backup/restore-from-backup.tsx",
+      "find": "if (file.size > MAX_BACKUP_BYTES) return setError(text.tooLarge);",
+      "replace": "if (file.size > MAX_BACKUP_BYTES * 1000) return setError(text.tooLarge);",
+      "expect": {
+        "e2e/backup.spec.ts": [
+          "too-large-by-size"
+        ]
+      }
     }
   ]
 }

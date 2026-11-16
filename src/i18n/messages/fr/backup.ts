@@ -35,6 +35,7 @@ export const backup: Messages['backup'] = {
     replace: 'Remplacer toutes les données',
     cancel: 'Annuler',
     readFailed: 'Impossible de lire ce fichier.',
+    tooLarge: 'Ce fichier dépasse 20 Mo, trop pour une sauvegarde StudentsBudget. Choisis-en un exporté par l’app.',
     failed: 'Impossible de restaurer la sauvegarde. Les données de ce téléphone n’ont pas changé.',
     setupHeading: `Tu as une sauvegarde${NNBSP}? Restaure-la`,
     /** Setup's quiet button that opens the file field (13-11-2026). */
