@@ -301,6 +301,22 @@ test('before a plan is saved, Settings leads back to setup: from a page of it, a
   await expect(page.getByRole('heading', { level: 3, name: 'Accounts', exact: true })).toBeVisible();
 });
 
+test('the Settings list is a card per page, apart, each with its tinted tile', async ({ page }) => {
+  // Roshan's group 2 mockups (16-11-2026): each row its own card as on Home, a gap between them, and a tile in the
+  // page's colour (Profile in Food's).
+  await openApp(page, '/settings');
+  const profile = page.getByRole('link', { name: /^Profile/ });
+  await expect(profile).toBeVisible();
+  const list = page.getByRole('main').getByRole('list').filter({ has: profile });
+  await expect(list).toHaveCSS('row-gap', '12px'); // proof: settings-cards-apart
+  await expect(profile).toHaveCSS('border-top-width', '1.5px');
+  // The tile is the card's first decoration; the chevron comes last.
+  const tile = profile.locator('span[aria-hidden="true"]').first();
+  await expect(tile).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)'); // proof: settings-tile-tint
+  await expect(page.getByRole('link', { name: /^Appearance/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Backup and data/ })).toBeVisible();
+});
+
 test('accounts made in Settings before setup are kept, and setup adds none of its own', async ({ page }) => {
   await mockFrankfurter(page);
   await openSettings(page);

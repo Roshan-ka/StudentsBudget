@@ -22,6 +22,28 @@
           "currency-tag"
         ]
       }
+    },
+    {
+      "name": "the Settings list's cards touch, as one block",
+      "file": "src/features/settings/settings-links.tsx",
+      "find": "<ul className=\"flex flex-col gap-3\">",
+      "replace": "<ul className=\"flex flex-col\">",
+      "expect": {
+        "e2e/accounts.spec.ts": [
+          "settings-cards-apart"
+        ]
+      }
+    },
+    {
+      "name": "the Settings list's Profile tile loses its tint",
+      "file": "src/features/settings/settings-links.tsx",
+      "find": "tint={categoryTint('food')}",
+      "replace": "tint=\"transparent\"",
+      "expect": {
+        "e2e/accounts.spec.ts": [
+          "settings-tile-tint"
+        ]
+      }
     }
   ]
 }
