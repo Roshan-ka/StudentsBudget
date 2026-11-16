@@ -51,7 +51,11 @@ function anyTryThis(page: Page) {
  */
 async function expectSource(details: Locator, lead: string, about: string, source: string, host: string, url: string) {
   await expect(details.locator('details')).toHaveCount(0);
-  const line = details.getByText(`${lead} ${host} · checked ${formatDate('2026-10-20')}`, { exact: true });
+  // By its link's name too: the linked tip's own source line can read the same (same host, same checked date).
+  const named = details.getByRole('link', { name: `${host}, ${about}`, exact: true });
+  const line = details
+    .getByText(`${lead} ${host} · checked ${formatDate('2026-10-20')}`, { exact: true })
+    .filter({ has: named });
   await expect(line).toBeVisible();
   const link = line.getByRole('link', { name: `${host}, ${about}`, exact: true });
   await expect(link).toHaveText(host);
