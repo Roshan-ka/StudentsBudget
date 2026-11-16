@@ -5,7 +5,6 @@ import { FileUpIcon, UploadIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { replaceAll, type BackupData } from '@/db/bulk';
 import { db } from '@/db/db';
@@ -106,7 +105,8 @@ export function RestoreFromBackup({ compact = false }: { compact?: boolean }) {
         <Label htmlFor={inputId} className="sr-only">
           {text.file}
         </Label>
-        <Input
+        {/* A plain input: the styled Input's w-full and padding outlast sr-only, and the field stuck out 32 px. */}
+        <input
           ref={fileRef}
           id={inputId}
           type="file"
