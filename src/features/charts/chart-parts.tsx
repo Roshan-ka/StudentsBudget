@@ -324,7 +324,8 @@ export function ChartStyleSwitch<T extends ChartStyle>({
       className="flex shrink-0 gap-0.5 rounded-lg border-[1.5px] border-outline bg-muted p-0.5"
     >
       {options.map((option) => {
-        const Icon = CHART_STYLE_ICONS[option.value];
+        // Widened to the plain icon type: indexed by the generic `T`, TypeScript can't see its props.
+        const Icon: LucideIcon = CHART_STYLE_ICONS[option.value];
         return (
           <button
             key={option.value}
