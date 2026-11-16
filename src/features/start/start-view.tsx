@@ -29,7 +29,7 @@ const FEATURES = [
  * The start page (06-11-2026; redesigned 13-11-2026 from Roshan's round 3 mockups): what the app is, what it does,
  * then create an account, sign in, or go on without one. It is for a phone with no plan and nobody signed in; anyone
  * else goes on to Home, which sends a phone without a plan where it belongs (firstRunPath). The language is the globe
- * in the header (`StartLanguageMenu`).
+ * in the header (`HeaderLanguageMenu`).
  */
 export function StartView() {
   const router = useRouter();

@@ -1,0 +1,16 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the header's globe is gone",
+      "file": "src/components/language-menu.tsx",
+      "find": "  return <LanguageMenu />;",
+      "replace": "  return null;",
+      "expect": {
+        "e2e/language.spec.ts": [
+          "globe-on-every-page"
+        ]
+      }
+    }
+  ]
+}

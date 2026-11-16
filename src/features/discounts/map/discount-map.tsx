@@ -289,15 +289,6 @@ export function DiscountMap({
     if (map !== null) placeOnMap(map);
   });
 
-  // While the map fills the screen, Ask's bubble keeps off it: its controls and its card sit at the bottom (AskBubble).
-  // A hidden page's effects clean up, so the bubble comes back on the other pages.
-  useEffect(() => {
-    const root = document.documentElement;
-    root.dataset.mapOpen = '';
-    return () => {
-      delete root.dataset.mapOpen;
-    };
-  }, []);
 
   useEffect(() => {
     if (!drawable) return;
@@ -425,13 +416,14 @@ export function DiscountMap({
     return () => observer.disconnect();
   }, [state, hasCard, hasShowMe]);
 
-  // The box reaches down to the navigation from where it starts on the page, whatever stands above it.
+  // The box reaches down to the navigation from where it starts on the page, whatever stands above it, and ends above
+  // Ask's bubble while that shows (`--ask-bubble-space`, globals.css), so the bubble never covers the card or a control.
   useEffect(() => {
     const element = box.current;
     if (element === null) return;
     const fill = () => {
       const top = element.getBoundingClientRect().top + window.scrollY;
-      element.style.height = `max(18rem, calc(100svh - ${top}px - 5rem - env(safe-area-inset-bottom) - 2rem))`;
+      element.style.height = `max(18rem, calc(100svh - ${top}px - 5rem - env(safe-area-inset-bottom) - 2rem - var(--ask-bubble-space, 0rem)))`;
     };
     fill();
     const observer = new ResizeObserver(fill);

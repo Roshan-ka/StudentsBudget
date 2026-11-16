@@ -2,7 +2,6 @@
 
 import { Menu } from '@base-ui/react/menu';
 import { CheckIcon, GlobeIcon } from 'lucide-react';
-import { usePathname } from 'next/navigation';
 import { cardVariants } from '@/components/ui/card';
 import { LANGUAGES, OFFERED, SELECTABLE, type Language } from '@/i18n/languages';
 import { setLanguage } from '@/i18n/store';
@@ -10,9 +9,9 @@ import { useT } from '@/i18n/use-t';
 import { cn } from '@/lib/utils';
 
 /**
- * The language as a globe button that opens a small menu (the start page, 13-11-2026): each language in its own name,
- * the chosen one checked. The same choice as `LanguagePicker`, which stays the select in Settings and setup. Nothing
- * while there is only one language to pick.
+ * The language as a globe button that opens a small menu (the start page, 13-11-2026; every page since 16-11-2026):
+ * each language in its own name, the chosen one checked. The same choice as `LanguagePicker`, which stays the select in
+ * Settings. Nothing while there is only one language to pick.
  */
 export function LanguageMenu() {
   const { t, lang } = useT();
@@ -63,14 +62,10 @@ export function LanguageMenu() {
   );
 }
 
-/** Where the header shows the globe: the start pages (the first screen, its sign-in and new-account forms) and setup. */
-const START_PATHS = ['/start', '/start/sign-in', '/start/new-account', '/setup'];
-
 /**
- * The globe at the end of the header, on the start pages and setup only (setup since 13-11-2026): anywhere else the
- * language lives in Settings.
+ * The globe at the end of the header, on every page (Roshan, 16-11-2026; before, the start pages and setup only).
+ * Settings keeps its language field as well.
  */
-export function StartLanguageMenu() {
-  const pathname = usePathname();
-  return START_PATHS.includes(pathname) ? <LanguageMenu /> : null;
+export function HeaderLanguageMenu() {
+  return <LanguageMenu />;
 }

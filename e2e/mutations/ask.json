@@ -13,17 +13,6 @@
       }
     },
     {
-      "name": "the map no longer tells the bubble it is open",
-      "file": "src/features/discounts/map/discount-map.tsx",
-      "find": "    root.dataset.mapOpen = '';\n",
-      "replace": "",
-      "expect": {
-        "e2e/ask.spec.ts": [
-          "bubble-off-map"
-        ]
-      }
-    },
-    {
       "name": "closing the sheet leaves the focus where it falls",
       "file": "src/features/ask/ask-bubble.tsx",
       "find": "          ref={popup}\n",
@@ -42,6 +31,26 @@
       "expect": {
         "e2e/ask.spec.ts": [
           "conversation-kept"
+        ]
+      }
+    },
+    {
+      "name": "the bubble hides while the discount map shows",
+      "edits": [
+        {
+          "file": "src/features/ask/ask-bubble.tsx",
+          "find": "focus-visible:ring-ring\"",
+          "replace": "focus-visible:ring-ring [[data-map-open]_&]:hidden\""
+        },
+        {
+          "file": "src/features/discounts/map/discount-map.tsx",
+          "find": "  // The box reaches down to the navigation from where it starts on the page",
+          "replace": "  useEffect(() => {\n    document.documentElement.dataset.mapOpen = '';\n    return () => {\n      delete document.documentElement.dataset.mapOpen;\n    };\n  }, []);\n\n  // The box reaches down to the navigation from where it starts on the page"
+        }
+      ],
+      "expect": {
+        "e2e/ask.spec.ts": [
+          "bubble-on-map"
         ]
       }
     }

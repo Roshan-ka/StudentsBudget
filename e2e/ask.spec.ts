@@ -179,7 +179,7 @@ test("the bubble shows on the navigation's pages and the check-in, never in setu
   await expect(bubble(page)).toHaveCount(0); // proof: no-bubble-in-setup
 });
 
-test('the bubble keeps off the discount map, and comes back with the list', async ({ page }) => {
+test("the bubble stays on the discount map, below the map's box", async ({ page }) => {
   await acceptPrivacyNotes(page);
   await seedSetup(page);
   await openApp(page, '/tips');
@@ -191,9 +191,16 @@ test('the bubble keeps off the discount map, and comes back with the list', asyn
   const view = page.getByRole('group', { name: 'Show discounts as', exact: true });
   // The map view mounts its map with or without WebGL 2 (without it, it says so in its place).
   await view.getByRole('button', { name: 'Map', exact: true }).click();
-  await expect(bubble(page)).toBeHidden(); // proof: bubble-off-map
-  await view.getByRole('button', { name: 'List', exact: true }).click();
-  await expect(bubble(page)).toBeVisible();
+  await expect(view.getByRole('button', { name: 'Map', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(bubble(page)).toBeVisible(); // proof: bubble-on-map
+  // Below the map's box (16-11-2026), so it never covers the map's card or its controls.
+  const map = page.getByRole('region', { name: 'Map of the discounts in Regensburg', exact: true });
+  if ((await map.count()) > 0) {
+    await expect(map).toHaveAttribute('data-map-ready', '', { timeout: 15_000 });
+    const mapBox = await map.boundingBox();
+    const bubbleBox = await bubble(page).boundingBox();
+    expect(mapBox !== null && bubbleBox !== null && bubbleBox.y >= mapBox.y + mapBox.height).toBe(true);
+  }
 });
 
 test('Escape closes the sheet and hands the focus back to the bubble', async ({ page }) => {

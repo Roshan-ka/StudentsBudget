@@ -21,7 +21,7 @@ import { AskView } from './ask-view';
  * The sheet stays mounted while closed (`keepMounted`), so a conversation is still there when it opens again, in memory
  * only, as before. It is open on the page it was opened on: a link in it (to Your account, say) leads away, and the
  * sheet is closed there. While the bubble shows, `<html>` carries `data-ask-bubble`, so a page's end scrolls clear of
- * it; it hides while the discount map fills the screen (`data-map-open`, set by `DiscountMap`).
+ * it, and the discount map's box ends above it (`--ask-bubble-space`, globals.css).
  */
 export function AskBubble() {
   const { t } = useT();
@@ -47,7 +47,7 @@ export function AskBubble() {
     <Dialog.Root open={openOn === pathname} onOpenChange={(open) => setOpenOn(open ? pathname : null)}>
       <Dialog.Trigger
         aria-label={t.ask.link}
-        className="fixed end-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex size-14 items-center justify-center rounded-full border-[1.5px] border-outline bg-primary text-primary-foreground shadow-offset outline-none focus-visible:ring-3 focus-visible:ring-ring [[data-map-open]_&]:hidden"
+        className="fixed end-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex size-14 items-center justify-center rounded-full border-[1.5px] border-outline bg-primary text-primary-foreground shadow-offset outline-none focus-visible:ring-3 focus-visible:ring-ring"
       >
         <MessageCircleQuestionIcon aria-hidden="true" className="size-6" />
       </Dialog.Trigger>
