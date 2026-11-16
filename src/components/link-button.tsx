@@ -49,7 +49,7 @@ export function ExternalLinkButton({
 /**
  * A fold-out's summary in the button look, without the browser's marker. Its chevron points along the reading direction
  * and turns down once its own `<details>` opens: the selector names the summary's parent, so a fold-out inside an open
- * one (a source inside setup's "Where this comes from") keeps its chevron until it opens itself.
+ * one keeps its chevron until it opens itself.
  */
 export function FoldSummary({ className, children, ...props }: ComponentProps<'summary'>) {
   return (

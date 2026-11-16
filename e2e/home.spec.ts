@@ -540,7 +540,9 @@ test('opened in the first week of the month, the suggested budget changes only t
   // Health and study materials both had spending in October; Gifts did not.
   await expect(panel.getByText('Your spending in October', { exact: true })).toHaveCount(2);
   await expect(panel.getByText('Nothing to go on yet', { exact: true })).toHaveCount(4);
-  await expect(panel.locator('summary', { hasText: 'Source' })).toHaveCount(6);
+  // Each source is Tips' one small line: the host as its link, then the checked date, with no fold-out to open.
+  await expect(panel.getByText(/^Source: (Estimate · )?\S+ · checked \d{2}\.\d{2}\.\d{4}$/)).toHaveCount(6);
+  await expect(panel.getByRole('link', { name: 'studierendenwerke.de, Food & groceries', exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   // Edit one amount: food from €195 to €175 leaves €20, and €10 more than what is available is €10 over.

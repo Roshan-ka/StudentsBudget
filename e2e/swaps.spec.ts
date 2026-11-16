@@ -44,19 +44,19 @@ function anyTryThis(page: Page) {
   return page.getByRole('button', { name: /^Try this:/ });
 }
 
-/** One collapsed source block of an opened swap, found by the words on its closed line, and opened. */
-async function openSource(details: Locator, label: string): Promise<Locator> {
-  const block = details.locator('details').filter({ has: details.page().getByText(label, { exact: true }) });
-  await block.getByText(label, { exact: true }).click();
-  return block;
-}
-
-/** The block's source text and checked date, and its link: opens in a new tab and says where it goes. */
-async function expectSource(block: Locator, source: string, host: string, url: string) {
-  await expect(block.getByText(source, { exact: true })).toBeVisible();
-  await expect(block.getByText(`checked ${formatDate('2026-10-20')}`, { exact: true })).toBeVisible();
-  const link = block.getByRole('link', { name: host, exact: true });
+/**
+ * One source line of an opened swap, as on Tips (Roshan, 16-11-2026): what it covers ("Source for €3.80:", or just
+ * "Source:" for one source), the host as its link and the checked date, with no fold-out. The link opens in a new tab,
+ * carries the source's own words as its title, and is named by its host first, then what it is about.
+ */
+async function expectSource(details: Locator, lead: string, about: string, source: string, host: string, url: string) {
+  await expect(details.locator('details')).toHaveCount(0);
+  const line = details.getByText(`${lead} ${host} · checked ${formatDate('2026-10-20')}`, { exact: true });
+  await expect(line).toBeVisible();
+  const link = line.getByRole('link', { name: `${host}, ${about}`, exact: true });
+  await expect(link).toHaveText(host);
   await expect(link).toHaveAttribute('href', url);
+  await expect(link).toHaveAttribute('title', source);
   await expect(link).toHaveAttribute('target', '_blank');
   await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
 }
@@ -107,9 +107,11 @@ test('an eating-out envelope that runs over shows a sourced swap on Home and in 
   await expect(details.getByText(tip.body, { exact: true })).toBeVisible();
 
   // Each amount has its own source, its own link and its own checked date.
-  await expectSource(await openSource(details, 'Where €14.50 comes from'), mensa.source, 'numbeo.com', mensa.url);
+  await expectSource(details, 'Source for €14.50:', '€14.50', mensa.source, 'numbeo.com', mensa.url);
   await expectSource(
-    await openSource(details, 'Where €3.80 comes from'),
+    details,
+    'Source for €3.80:',
+    '€3.80',
     required(mensa.toSource, 'toSource'),
     'stwno.de',
     required(mensa.toUrl, 'toUrl'),
@@ -184,9 +186,11 @@ test('an envelope planned at €0 that has spending gets its swap, and an estima
   // The assumption is in the body, before any source is opened.
   await expect(details.getByText(/^Estimate:/)).toBeVisible();
 
-  await expectSource(await openSource(details, 'Where €34 comes from'), swap.source, 'bahn.de', swap.url);
+  await expectSource(details, 'Source for €34:', '€34', swap.source, 'bahn.de', swap.url);
   await expectSource(
-    await openSource(details, 'Where €22 comes from'),
+    details,
+    'Source for €22:',
+    '€22',
     required(swap.toSource, 'toSource'),
     'rvv.de',
     required(swap.toUrl, 'toUrl'),
@@ -194,7 +198,7 @@ test('an envelope planned at €0 that has spending gets its swap, and an estima
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
-test('a swap whose two amounts sit on one page shows a single source block', async ({ page }) => {
+test('a swap whose two amounts sit on one page shows a single source line', async ({ page }) => {
   await seedSetup(page);
   await quickAdd(page, 'film 20', 'Going out');
 
@@ -207,9 +211,11 @@ test('a swap whose two amounts sit on one page shows a single source block', asy
   await line.click();
   const details = row.getByRole('group', { name: `${swap.title} details`, exact: true });
   await expect(details.getByText(swap.body, { exact: true })).toBeVisible();
-  await expect(details.getByText(/^Where €\d.* comes from$/)).toHaveCount(0);
+  await expect(details.getByText(/^Source for €/)).toHaveCount(0);
   await expectSource(
-    await openSource(details, 'Where these numbers come from'),
+    details,
+    'Source:',
+    swap.title,
     swap.source,
     'kinos-im-andreasstadel.de',
     swap.url,

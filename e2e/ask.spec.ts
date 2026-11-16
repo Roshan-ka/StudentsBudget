@@ -101,12 +101,16 @@ test("Home's bubble opens Ask; the first question waits for the note, then the a
   await expect(page.getByText(TEXT.left(5), { exact: true })).toBeVisible();
   await expect(page.getByText(TEXT.estimate)).toHaveCount(0);
 
-  // The source comes from the app's own data, not the model; an id the app doesn't know shows nothing.
-  const source = page.getByText(EN.common.source.of(TIP.title), { exact: true });
+  // The source comes from the app's own data, not the model; an id the app doesn't know shows nothing. It is one small
+  // line, as on Tips: what it covers, the host as its link, and the checked date.
+  const host = new URL(TIP.url).hostname.replace(/^www\./, '');
+  const source = page.getByText(
+    `${EN.common.source.for(TIP.title)} ${host} · ${EN.common.source.checked(formatDate(TIP.checked))}`,
+    { exact: true },
+  );
   await expect(source).toHaveCount(1);
-  await source.click();
-  await expect(page.getByText(EN.common.source.checked(formatDate(TIP.checked)), { exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: new URL(TIP.url).hostname.replace(/^www\./, ''), exact: true })).toBeVisible();
+  await expect(source).toBeVisible();
+  await expect(source.getByRole('link', { name: `${host}, ${TIP.title}`, exact: true })).toHaveAttribute('href', TIP.url);
 
   // What went: the snapshot of this phone's plan, and the question alone.
   expect(calls).toHaveLength(1);

@@ -60,11 +60,15 @@ async function expectSuggested(page: Page, suggested: Record<string, number>) {
   }
 }
 
-/** Opens what the page keeps collapsed under the everyday budget, down to the longest source text (food). */
+/** The one date every Regensburg range was checked on, as the app writes it. */
+const RANGES_CHECKED = formatDate('2026-10-16');
+
+/** Opens what the page keeps collapsed under the everyday budget: the six sources, each one line, food first. */
 async function openBudgetSources(page: Page) {
   await page.getByText('Where this comes from', { exact: true }).click();
-  await page.getByText('Source: Food & groceries', { exact: true }).click();
-  await expect(page.getByText('DSW 22nd Sozialerhebung 2021, national mean €194').first()).toBeVisible();
+  await expect(
+    page.getByText(`Food & groceries: studierendenwerke.de · checked ${RANGES_CHECKED}`, { exact: true }),
+  ).toBeVisible();
 }
 
 /** What a €600 budget suggests for each of the six envelopes while none is set. */
@@ -335,16 +339,18 @@ test('the sources under the budget list the six ranges, and Eating out says it i
 
   await expect(page.locator('details[open]')).toHaveCount(0);
   await page.getByText('Where this comes from', { exact: true }).click();
-  await expect(page.locator('details[open]')).toHaveCount(1);
-  await expect(page.getByText(/^Source: /)).toHaveCount(6);
+  const list = page.locator('details[open]');
+  await expect(list).toHaveCount(1);
+  // One line each, the category first, then the host and the checked date: no fold-out inside the fold-out.
+  await expect(list.locator('details')).toHaveCount(0);
+  await expect(list.getByText(new RegExp(` · checked ${RANGES_CHECKED.replaceAll('.', '\\.')}$`))).toHaveCount(6);
   for (const name of ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other']) {
-    await expect(page.getByText(`Source: ${name}`, { exact: true })).toBeVisible();
+    await expect(list.getByText(new RegExp(`^${name}: `))).toBeVisible();
   }
 
-  const eatingOut = page.getByText('Source: Eating out', { exact: true });
-  await eatingOut.click();
-  await expect(eatingOut.locator('xpath=..').getByText('Estimate', { exact: true })).toBeVisible();
-  await expect(eatingOut.locator('xpath=..').getByRole('link', { name: 'stwno.de' })).toHaveAttribute(
+  const eatingOut = list.getByText(`Eating out: Estimate · stwno.de · checked ${RANGES_CHECKED}`, { exact: true });
+  await expect(eatingOut).toBeVisible();
+  await expect(eatingOut.getByRole('link', { name: 'stwno.de, Eating out', exact: true })).toHaveAttribute(
     'href',
     'https://stwno.de/de/gastronomie/speiseplan/uni-regensburg/mensa-ur',
   );
@@ -370,7 +376,7 @@ test('text that is not an amount in the everyday budget is named, and fixing it 
   expect(plan.spendingBudgetMinor).toBe(60000);
 });
 
-test('the rent range shows where it comes from, collapsed until asked for', async ({ page }) => {
+test('the rent range shows where it comes from in one small line, with no fold-out', async ({ page }) => {
   await mockFrankfurter(page);
   await page.goto('/setup');
   for (const step of ['Income', 'Fixed costs']) {
@@ -380,13 +386,14 @@ test('the rent range shows where it comes from, collapsed until asked for', asyn
   await expect(box(page, 'Rent per month')).toBeVisible();
 
   await expect(page.getByText('Rooms here: €215–561', { exact: true })).toBeVisible();
-  await expect(page.getByText('Source', { exact: true })).toHaveCount(1);
-  await expect(page.locator('details[open]')).toHaveCount(0);
-
-  await page.getByText('Source', { exact: true }).click();
-  await expect(page.getByText('Universität Regensburg: cheapest Studierendenwerk room')).toBeVisible();
-  await expect(page.getByText(`checked ${formatDate('2026-10-16')}`, { exact: true })).toBeVisible();
-  const link = page.getByRole('link', { name: 'uni-regensburg.de' });
+  // As on Tips (Roshan, 16-11-2026): "Source: <host> · checked <date>", with nothing to open first.
+  const line = page.getByText(`Source: uni-regensburg.de · checked ${RANGES_CHECKED}`, { exact: true });
+  await expect(line).toBeVisible(); // proof: rent-source-line
+  const rent = page.getByRole('listitem').filter({ has: box(page, 'Rent per month') });
+  await expect(rent.locator('details')).toHaveCount(0); // proof: rent-source-no-fold
+  const link = line.getByRole('link', { name: 'uni-regensburg.de', exact: true });
+  // The source's own words stay with the link, for hover and screen readers.
+  await expect(link).toHaveAttribute('title', /^Universität Regensburg: cheapest Studierendenwerk room/);
   await expect(link).toHaveAttribute(
     'href',
     'https://www.uni-regensburg.de/studieren/rund-ums-studium/wohnen-in-regensburg',
@@ -399,30 +406,25 @@ test('the rent range shows where it comes from, collapsed until asked for', asyn
 test('every envelope range shows its source, and an estimate says so', async ({ page }) => {
   await fillSetup(page);
 
-  await expect(page.getByText('Source', { exact: true })).toHaveCount(6);
+  // One small line under each envelope, as on Tips; the six under the everyday budget stay folded in "Where this
+  // comes from" until it opens, so these are the envelopes' own.
   await expect(page.locator('details[open]')).toHaveCount(0);
+  await expect(page.getByText(/^Source: /)).toHaveCount(6);
 
-  // The sources under the everyday budget are details of their own ("Source: Food & groceries" and so on, inside
-  // "Where this comes from"); these are the six that say just "Source", one under each envelope.
-  const sources = page.locator('details').filter({ has: page.getByText('Source', { exact: true }) });
-  await expect(sources).toHaveCount(6);
-
-  // Food has the longest source text; it has to wrap on a phone.
-  const food = sources.nth(0);
-  await food.getByText('Source', { exact: true }).click();
-  await expect(food.getByText('DSW 22nd Sozialerhebung 2021, national mean €194')).toBeVisible();
-  await expect(food.getByText(`checked ${formatDate('2026-10-16')}`, { exact: true })).toBeVisible();
-  await expect(food.getByRole('link', { name: 'studierendenwerke.de' })).toHaveAttribute('target', '_blank');
+  // Each link is named by its host, then its envelope, so lines with the same host stay apart (food, shopping and
+  // other share the DSW survey's).
+  const foodLink = page.getByRole('link', { name: 'studierendenwerke.de, Food & groceries', exact: true });
+  await expect(page.locator('p', { has: foodLink })).toHaveText(
+    `Source: studierendenwerke.de · checked ${RANGES_CHECKED}`,
+  );
+  await expect(foodLink).toHaveAttribute('target', '_blank');
+  await expect(foodLink).toHaveAttribute('title', /^DSW 22nd Sozialerhebung 2021, national mean €194/);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  // Eating out is an estimate: its source says so and links to a price it was built from, without a cache-buster.
-  const eatingOut = sources.nth(1);
-  await eatingOut.getByText('Source', { exact: true }).click();
-  await expect(eatingOut.getByText('Estimate', { exact: true })).toBeVisible();
-  await expect(eatingOut.getByRole('link', { name: 'stwno.de' })).toHaveAttribute(
-    'href',
-    'https://stwno.de/de/gastronomie/speiseplan/uni-regensburg/mensa-ur',
-  );
+  // Eating out is an estimate: its line says so and links to a price it was built from, without a cache-buster.
+  const eatingOut = page.getByRole('link', { name: 'stwno.de, Eating out', exact: true });
+  await expect(page.locator('p', { has: eatingOut })).toHaveText(`Source: Estimate · stwno.de · checked ${RANGES_CHECKED}`);
+  await expect(eatingOut).toHaveAttribute('href', 'https://stwno.de/de/gastronomie/speiseplan/uni-regensburg/mensa-ur');
 });
 
 test('saves and lands on home', async ({ page }) => {
@@ -762,10 +764,9 @@ test('the wizard fits a phone without sideways scrolling', async ({ page }) => {
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByRole('heading', { level: 3, name: step })).toBeVisible();
   }
-  // Rent with its source opened and its "Add it automatically" choices: the widest the step gets.
+  // Rent with its source line and its "Add it automatically" choices: the widest the step gets.
   await box(page, 'Rent per month').fill('400');
-  await page.getByText('Source', { exact: true }).click();
-  await expect(page.getByText('Universität Regensburg: cheapest Studierendenwerk room')).toBeVisible();
+  await expect(page.getByText(`Source: uni-regensburg.de · checked ${RANGES_CHECKED}`, { exact: true })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Rent schedule', exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 

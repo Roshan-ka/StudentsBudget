@@ -119,14 +119,15 @@ export function EnvelopesStep({
           />
         </div>
         <details className="text-xs text-muted-foreground">
-          {/* The same outlined button as a source line (16-11-2026: buttons, never text links). */}
+          {/* An outlined fold-out button (16-11-2026: buttons, never text links): a list of six sources, each one
+              Tips' small source line with its category first. */}
           <FoldSummary>{text.whereFrom}</FoldSummary>
           <div className="mt-2 flex flex-col gap-2">
             {RANGES.map((range) => (
               <RangeSource
                 key={range.categoryId}
                 range={rangeIn(range, lang)}
-                label={t.common.source.of(categoryNameIn(t, range.categoryId))}
+                listed={categoryNameIn(t, range.categoryId)}
               />
             ))}
           </div>

@@ -8,7 +8,7 @@ import { monthLabel, type SemesterFeeOffer } from './profile';
 
 /**
  * Where the offered semester fee's numbers come from: each sourced part of the amount, and the re-registration month
- * it is due in, each with its source collapsed. Without a stated fee it says the amount is the person's to fill in.
+ * it is due in, each with its source in one line. Without a stated fee it says the amount is the person's to fill in.
  * A part's label and source are sourced content, in the phone's language where translated (`feePartIn`).
  */
 export function SemesterFeeSource({ offer }: { offer: SemesterFeeOffer }) {
@@ -28,10 +28,10 @@ export function SemesterFeeSource({ offer }: { offer: SemesterFeeOffer }) {
     <div className="flex flex-col gap-2 text-sm text-muted-foreground">
       <p className="break-words">{amount}</p>
       {parts.map((part) => (
-        <RangeSource key={part.label} range={part} label={t.common.source.of(part.label)} />
+        <RangeSource key={part.label} range={part} covers={part.label} />
       ))}
       <p>{due}</p>
-      {reRegistration && <RangeSource range={reRegistration} label={t.common.source.of(text.reRegistration)} />}
+      {reRegistration && <RangeSource range={reRegistration} covers={text.reRegistration} />}
     </div>
   );
 }

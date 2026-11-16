@@ -19,7 +19,10 @@ import { packId } from '../../../supabase/functions/_shared/ai/pack';
 // is translated. So a source's words, its link and its checked date never come from the model. The ids are the pack's
 // own (`packId`), and sources.test.ts holds that every item of the pack is found here.
 
-/** One sourced figure: what it covers, where it comes from, when that was checked, and the language of its words. */
+/**
+ * One sourced figure: what it covers (a name, or a swap's amount), where it comes from, when that was checked, and the
+ * language of its words.
+ */
 export type AskSourcePart = {
   label: string;
   source: string;
@@ -60,9 +63,9 @@ function allSources(t: Messages, lang: Language, locale: string): Map<string, As
       swap.toSource === undefined || swap.toUrl === undefined
         ? [{ label: swap.title, ...swap }]
         : [
-            { label: t.tips.swap.sourceOf(amountText(swap.fromMinor, locale)), ...swap },
+            { label: amountText(swap.fromMinor, locale), ...swap },
             {
-              label: t.tips.swap.sourceOf(amountText(swap.toMinor, locale)),
+              label: amountText(swap.toMinor, locale),
               source: swap.toSource,
               url: swap.toUrl,
               checked: swap.checked,
