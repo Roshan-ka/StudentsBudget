@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the policy leaves out WebAssembly, so the engine can't compile",
+      "file": "src/lib/security-headers.ts",
+      "find": "        \"'unsafe-inline'\",\n        \"'wasm-unsafe-eval'\",\n",
+      "replace": "        \"'unsafe-inline'\",\n",
+      "expect": {
+        "e2e/receipt-engine.spec.ts": [
+          "real-engine-reads"
+        ]
+      }
+    },
+    {
+      "name": "the engine asks for a core build the set doesn't ship",
+      "file": "src/features/receipts/ocr.ts",
+      "find": "simd ? 'tesseract-core-simd-lstm.wasm.js' : 'tesseract-core-lstm.wasm.js'",
+      "replace": "simd ? 'tesseract-core-relaxedsimd-lstm.wasm.js' : 'tesseract-core-relaxedsimd-lstm.wasm.js'",
+      "expect": {
+        "e2e/receipt-engine.spec.ts": [
+          "real-engine-reads"
+        ]
+      }
+    }
+  ]
+}
