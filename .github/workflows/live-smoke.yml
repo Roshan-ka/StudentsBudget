@@ -72,3 +72,7 @@ jobs:
           E2E_LIVE_PASSWORD: ${{ secrets.E2E_LIVE_PASSWORD }}
           E2E_LIVE_TOTP_SECRET: ${{ secrets.E2E_LIVE_TOTP_SECRET }}
         run: npx playwright test -c e2e-live/playwright.config.ts --grep @smoke
+      # The config's teardown removes the page snapshots a failure leaves (error-context.md). This removes the whole
+      # folder too, also when the run was cut short before its teardown, so nothing of the page stays on the runner.
+      - if: always()
+        run: rm -rf test-results/live

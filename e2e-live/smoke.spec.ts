@@ -27,6 +27,13 @@ test('the live site signs in with the authenticator code, shows the account sync
   // Linking is done once Sync shows (an empty account on a fresh browser links at once); only then sign out.
   await expect(page.getByRole('region', { name: 'Sync', exact: true }).getByRole('button', { name: 'Sync now', exact: true })).toBeVisible();
 
+  // The leak check: a check on a locator that fails while signed in, so Playwright puts a snapshot of the page, with the
+  // account's address, in error-context.md, as a real failure here would. The run goes on (a soft check); the teardown
+  // must remove the file. The locator matches nothing, so the failure itself prints no text of the page.
+  if (process.env.E2E_LEAK_CHECK) {
+    await expect.soft(page.getByTestId('leak-check-nothing-here'), 'leak check: failing on purpose, signed in').toBeVisible({ timeout: 1_000 });
+  }
+
   // Confirms "Sign out of this phone?" and waits for the start page.
   await signOut(page);
 

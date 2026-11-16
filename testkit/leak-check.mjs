@@ -81,5 +81,26 @@ export function filesUnder(dir) {
     .map((entry) => path.join(entry.parentPath, entry.name));
 }
 
-/** The files among `files` that are recordings: a trace, a screenshot or a video. A run with real credentials keeps none. */
-export const recordings = (files) => files.filter((file) => /\.(zip|png|jpe?g|webm|mp4)$/i.test(file) || /(^|[\\/])trace/i.test(path.basename(file)));
+/**
+ * Playwright's `error-context.md`, which it writes for a failed test. When the failure is a check on a locator, it holds
+ * a snapshot of the whole page (Playwright 1.64; PLAYWRIGHT_NO_COPY_PROMPT only stops the fixture's own snapshot, not
+ * that one), so it holds whatever the page showed: an address, a filled-in field.
+ */
+const isErrorContext = (file) => path.basename(file) === 'error-context.md';
+
+/**
+ * The files among `files` that are recordings: a trace, a screenshot, a video, or an `error-context.md` (a snapshot of
+ * the page). A run with real credentials keeps none.
+ */
+export const recordings = (files) =>
+  files.filter((file) => /\.(zip|png|jpe?g|webm|mp4)$/i.test(file) || /(^|[\\/])trace/i.test(path.basename(file)) || isErrorContext(file));
+
+/**
+ * Removes every `error-context.md` under a folder, and returns their paths. For a config that types real credentials:
+ * its global teardown calls it, since no setting keeps Playwright from writing the page into one.
+ */
+export function removeErrorContexts(dir) {
+  const found = filesUnder(dir).filter(isErrorContext);
+  for (const file of found) fs.rmSync(file, { force: true });
+  return found;
+}

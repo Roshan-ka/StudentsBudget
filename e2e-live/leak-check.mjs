@@ -2,11 +2,13 @@
 // npm run test:leak-check: the live smoke's leak check (A9; testkit/README.md, "Leak check"), on the local stack.
 //
 // Runs the live config (e2e-live/playwright.config.ts) with E2E_LEAK_CHECK: a throwaway account with two-step sign-in
-// and a password chosen here, the app built against the stack, and a test that signs in with the code, signs out and
-// then fails on purpose (retried once on CI, as the live run is). Then it searches everything the run printed and every
-// file it left in test-results/live for the password, the email, the authenticator key and every code the key gave
-// meanwhile. Exit 0: the run failed where it should and nothing leaked. 1: a leak, a recording, or a run that never
-// reached its end (so it proved nothing). Needs the stack's variables (node scripts/supabase-test-env.mjs).
+// and a password chosen here, the app built against the stack, and a test that signs in with the code, fails a check on
+// purpose while signed in (so Playwright writes the page into error-context.md), signs out and then fails on purpose
+// (retried once on CI, as the live run is). Then it searches everything the run printed and every file it left in
+// test-results/live for the password, the email, the authenticator key and every code the key gave meanwhile. Exit 0:
+// the run failed where it should and nothing leaked. 1: a leak, a recording (error-context.md among them: the config's
+// teardown removes them), or a run that never reached both failures (so it proved nothing). Needs the stack's variables
+// (node scripts/supabase-test-env.mjs).
 
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -19,6 +21,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const OUT = path.join(ROOT, '.leak-check');
 const RESULTS = path.join(ROOT, 'test-results', 'live');
 const DELIBERATE = 'leak check: failing on purpose, after signing out';
+const SIGNED_IN = 'leak check: failing on purpose, signed in';
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.rmSync(RESULTS, { recursive: true, force: true });
@@ -52,6 +55,9 @@ const texts = [{ where: 'the run’s output', text: output }, ...files.map((file
 const leaks = findLeaks(texts, secrets);
 const recorded = recordings(files).map((file) => path.relative(ROOT, file).replace(/\\/g, '/'));
 const reachedEnd = run.status !== 0 && output.includes(DELIBERATE);
+// The signed-in failure is what makes Playwright write the page into error-context.md: without it, a clean result
+// would say nothing about the teardown that removes those files.
+const failedSignedIn = output.includes(SIGNED_IN);
 
 // The run's output, safe to print: every secret in it replaced by its name.
 process.stdout.write(`${redact(output, secrets)}\n`);
@@ -60,10 +66,11 @@ const problems = [];
 if (run.error) problems.push(`the run didn't start: ${run.error.message}`);
 if (!account.secret) problems.push('no account was made (leak-check.setup.ts), so nothing was typed: the run proves nothing');
 else if (!reachedEnd) problems.push(`the run didn't fail on purpose at its end ("${DELIBERATE}"), so not every secret was typed: it proves nothing`);
+else if (!failedSignedIn) problems.push(`the run didn't fail a check while signed in ("${SIGNED_IN}"), so Playwright wrote no page into error-context.md: it proves nothing about removing them`);
 for (const { where, line, name } of leaks) problems.push(`the ${name} is in ${where}, line ${line}`);
 for (const file of recorded) problems.push(`a recording was kept: ${file}`);
 if (problems.length) {
   for (const problem of problems) console.log(`✗ ${problem}`);
   process.exit(1);
 }
-console.log(`✓ the run signed in with the code, signed out and failed on purpose; ${texts.length} texts (its output and ${files.length} files) hold none of the password, the email, the key or ${codes.length} codes, and nothing was recorded`);
+console.log(`✓ the run signed in with the code, failed a check while signed in, signed out and failed on purpose; ${texts.length} texts (its output and ${files.length} files) hold none of the password, the email, the key or ${codes.length} codes, and nothing was recorded or left in error-context.md`);

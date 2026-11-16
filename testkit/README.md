@@ -201,7 +201,7 @@ reporter: [['list'], ['../testkit/result-kinds-reporter.mjs', { title, allowList
 Before a config that types real credentials (a smoke on a live site) runs for real, run it once with throwaway ones, failing on purpose at its very end, and search everything it printed and every file it kept. Nothing may hold a secret. Logging masks (GitHub's included) aren't relied on.
 
 ```js
-import { codesBetween, filesUnder, findLeaks, recordings, redact } from '../testkit/leak-check.mjs';
+import { codesBetween, filesUnder, findLeaks, recordings, redact, removeErrorContexts } from '../testkit/leak-check.mjs';
 
 const secrets = [{ name: 'password', value: password }, ...codesBetween(key, started, ended).map((value) => ({ name: 'code', value, digits: true }))];
 const leaks = findLeaks([{ where: 'output', text: output }, ...files.map((f) => ({ where: f, text: read(f) }))], secrets);
@@ -210,6 +210,8 @@ const leaks = findLeaks([{ where: 'output', text: output }, ...files.map((f) => 
 - **The codes are computed here** (`totp`, RFC 6238, SHA-1, 30 s): every code the key gave while the run lasted, one window either side. The app's adapter should hold the kit's codes to its own in a test.
 - **A code counts only on its own:** no digit right before or after it, so a timestamp holding the six digits isn't a find.
 - **A line starting with `::add-mask::` doesn't count:** the runner takes it and never shows it.
-- **`recordings(files)`** names traces, screenshots and videos: a run with real credentials keeps none.
+- **`recordings(files)`** names traces, screenshots, videos and Playwright's `error-context.md`: a run with real credentials keeps none.
+- **`error-context.md` needs removing, not a setting.** Playwright writes it for a failed test, and a failed check on a locator puts a snapshot of the whole page in it (Playwright 1.64). `PLAYWRIGHT_NO_COPY_PROMPT` stops only the fixture's own snapshot. So the config's global teardown calls **`removeErrorContexts(outputDir)`**, and the workflow deletes the output folder in an `always()` step as well.
 - **`redact(text, secrets)`** gives the output safe to print, each secret replaced by its name.
 - **The run must reach its end,** where it fails on purpose after every secret was typed. A run that failed earlier proves nothing, and the app's driver must say so instead of passing.
+- **The run must also fail a locator check while the page shows a secret** (a soft check on a locator that matches nothing, so the failure prints no page text). That is what makes Playwright write the page into `error-context.md`. Without it, a clean result says nothing about the teardown.
