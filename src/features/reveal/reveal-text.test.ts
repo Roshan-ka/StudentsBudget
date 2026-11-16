@@ -35,7 +35,8 @@ describe('recapResult', () => {
 describe('in another language', () => {
   it("writes the month and the amount the language's way", () => {
     expect(recapMonthLabel('2026-10', 'de')).toBe('Oktober 2026');
-    expect(recapResult(27400, 'de')).toContain('274 €');
+    // Intl puts a no-break space between the number and the €.
+    expect(recapResult(27400, 'de')).toMatch(/^274\s€ übrig → Rücklagen$/);
     expect(formatDay('2026-10-16', 'de-DE')).toBe('16. Okt.');
   });
 });
