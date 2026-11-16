@@ -110,11 +110,10 @@ test('signed in, a student’s discount shows marked, with who added it and when
   const tailor = item(page, TAILOR.place);
   await expect(tailor.getByText('Added by a student', { exact: true })).toBeVisible();
   await expect(tailor.getByText(TAILOR.offer, { exact: true })).toBeVisible();
-  const source = tailor.locator('summary');
-  await expect(source).toHaveAccessibleName(`Source: ${TAILOR.place}`);
-  await source.click();
+  // One small source line, as the app's own discounts have (Roshan, 16-11-2026): the host, then who added it and when.
+  const added = formatDate(todayIso(new Date(TAILOR.created_at)));
   await expect(
-    tailor.getByText(`Added by @bea · Graduate · Class of ’25 on ${formatDate(todayIso(new Date(TAILOR.created_at)))}, not checked by the app`, {
+    tailor.getByText(`Source: example.de · Added by @bea · Graduate · Class of ’25 on ${added}, not checked by the app`, {
       exact: true,
     }),
   ).toBeVisible();

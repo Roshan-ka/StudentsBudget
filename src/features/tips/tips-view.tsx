@@ -6,19 +6,19 @@ import { useChoicePref } from '@/lib/phone-pref';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TIPS, type Tip } from '@/data/tips';
+import { TIPS } from '@/data/tips';
 import { categoryTint } from '@/features/charts/colors';
 import { ChecklistView } from '@/features/checklist/checklist-view';
 import { DiscountsView } from '@/features/discounts/discounts-view';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { HacksView } from '@/features/hacks/hacks-view';
-import { hostOf } from '@/features/setup/steps/range-source';
 import { categoryNameIn } from '@/i18n/category-name';
-import { tipIn, type InLanguage } from '@/i18n/city';
+import { tipIn } from '@/i18n/city';
 import { useT } from '@/i18n/use-t';
 import { formatDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import { CategoryChip } from './category-chip';
+import { SourceLine } from './source-line';
 import { sortTips, tipChipIds, tipTag } from './tips';
 
 const SORTED = sortTips(TIPS);
@@ -173,38 +173,16 @@ function TipList({
                 </h3>
                 <p className="text-sm text-muted-foreground">{words.body}</p>
               </div>
-              <TipSource words={words} />
+              <SourceLine
+                url={words.url}
+                source={words.source}
+                sourceLang={words.textLang}
+                after={t.common.source.checked(formatDate(words.checked))}
+              />
             </li>
           );
         })}
       </ul>
     </div>
-  );
-}
-
-/**
- * Where a tip comes from, as one small muted line (group 2 redesign, Roshan, 16-11-2026: an exception to the buttons
- * rule, kept small): "Source: mensa.de · checked 04.11.2026". The host is the link, opened in a new tab; the source's own
- * words (city content, translated with the tip) are its title, so they stay there on hover and for a screen reader.
- */
-function TipSource({ words }: { words: InLanguage<Tip> }) {
-  const { t } = useT();
-  const estimate = words.source === 'Estimate';
-  return (
-    <p className="text-xs break-words text-muted-foreground">
-      {t.tips.sourceLead}{' '}
-      <a
-        href={words.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={estimate ? t.common.estimate : words.source}
-        lang={estimate ? undefined : words.textLang}
-        className="break-all underline underline-offset-2"
-      >
-        {hostOf(words.url)}
-      </a>
-      {' · '}
-      {t.common.source.checked(formatDate(words.checked))}
-    </p>
   );
 }

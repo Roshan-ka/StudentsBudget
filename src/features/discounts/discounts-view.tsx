@@ -1,6 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -13,8 +14,8 @@ import { categoryTint } from '@/features/charts/colors';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { semesterOn } from '@/features/profile/profile';
-import { RangeSource } from '@/features/setup/steps/range-source';
 import { CategoryChip } from '@/features/tips/category-chip';
+import { SourceLine } from '@/features/tips/source-line';
 import { categoryNameIn } from '@/i18n/category-name';
 import { discountIn } from '@/i18n/city';
 import type { Messages } from '@/i18n/messages';
@@ -37,8 +38,6 @@ import { spotKey, type MapItem } from './map/pins';
 import { StudentDiscountActions, StudentDiscountSource } from './student-discount-actions';
 import { readStudentDiscounts, type StudentDiscount } from './student-discounts';
 
-const VOTES: readonly DiscountVote['vote'][] = ['works', 'outdated'];
-
 /** How the discounts show (the discount map): a list, or pins on the map. Remembered per phone. */
 const MODES = ['list', 'map'] as const;
 type Mode = (typeof MODES)[number];
@@ -56,7 +55,7 @@ function announcement(d: Discount, vote: DiscountVote['vote'], move: 'up' | 'dow
 }
 
 /**
- * The Regensburg student discounts, freshest first. "Still works" and "Doesn’t work any more" are saved on this
+ * The Regensburg student discounts, freshest first. "Still works" (a thumbs-up) and "Outdated" are saved on this
  * phone, dated today; tapping again replaces the vote. The list comes from `source` (bundled now, a server
  * later; keep the same one for the view's lifetime), the votes from the database, and the chosen category is kept
  * only while the page stays mounted. Signed in, other students' totals for this semester join in (P2.6,
@@ -458,22 +457,41 @@ export function DiscountsView({
                     <p className="text-muted-foreground">{text.notWorking(others.outdated)}</p>
                   )}
                 </div>
-                {own !== null && <RangeSource range={own} about={d.place} />}
+                {own !== null && (
+                  <SourceLine
+                    url={own.url}
+                    source={own.source}
+                    sourceLang={own.textLang}
+                    after={t.common.source.checked(formatDate(own.checked))}
+                  />
+                )}
                 {student !== undefined && <StudentDiscountSource item={student} t={t} />}
-                <div role="group" aria-label={text.voteGroup(d.place)} className="mt-1 flex flex-wrap gap-2">
-                  {VOTES.map((option) => (
-                    <Button
-                      key={option}
-                      type="button"
-                      variant="chip"
-                      aria-pressed={vote?.vote === option}
-                      aria-describedby={placeId}
-                      data-vote={option}
-                      onClick={() => tap(d, option)}
-                    >
-                      {text.votes[option]}
-                    </Button>
-                  ))}
+                {/* Side by side (Roshan, 16-11-2026): "Still works" as an icon-only upvote, 44 px, named by its word;
+                    "Outdated" with its thumbs-down and the word. Both keep aria-pressed. */}
+                <div role="group" aria-label={text.voteGroup(d.place)} className="mt-1 flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="chip"
+                    className="size-11 p-0"
+                    aria-label={text.votes.works}
+                    aria-pressed={vote?.vote === 'works'}
+                    aria-describedby={placeId}
+                    data-vote="works"
+                    onClick={() => tap(d, 'works')}
+                  >
+                    <ThumbsUpIcon aria-hidden="true" className="size-5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="chip"
+                    aria-pressed={vote?.vote === 'outdated'}
+                    aria-describedby={placeId}
+                    data-vote="outdated"
+                    onClick={() => tap(d, 'outdated')}
+                  >
+                    <ThumbsDownIcon aria-hidden="true" />
+                    {text.votes.outdated}
+                  </Button>
                 </div>
                 {pendingVote?.discountId === d.id && (
                   <PrivacyNote

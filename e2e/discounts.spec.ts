@@ -46,10 +46,15 @@ function item(page: Page, d: Discount) {
     .filter({ has: page.getByRole('heading', { level: 3, name: d.place, exact: true }) });
 }
 
-function voteButton(page: Page, d: Discount, name: 'Still works' | 'Doesn’t work any more') {
+function voteButton(page: Page, d: Discount, name: 'Still works' | 'Outdated') {
   return item(page, d)
     .getByRole('group', { name: `${d.place}: does it still work?`, exact: true })
     .getByRole('button', { name, exact: true });
+}
+
+/** "mensa.de": the source link's words. */
+function hostOf(url: string) {
+  return new URL(url).hostname.replace(/^www\./, '');
 }
 
 function chips(page: Page) {
@@ -92,16 +97,10 @@ test('the Tips tab switches to a sourced discount list and back', async ({ page 
     await expect(first.getByText(text, { exact: true })).toBeVisible();
   }
   await expect(voteButton(page, FIRST, 'Still works')).toHaveAttribute('aria-pressed', 'false');
-  await expect(voteButton(page, FIRST, 'Doesn’t work any more')).toHaveAttribute('aria-pressed', 'false');
+  await expect(voteButton(page, FIRST, 'Outdated')).toHaveAttribute('aria-pressed', 'false');
 
-  // Where it comes from, collapsed until asked for.
-  await expect(first.locator('details[open]')).toHaveCount(0);
-  // It says whose source it is, as every discount has one (accessibility, chunk 8).
-  await expect(first.locator('summary')).toHaveAccessibleName(`Source: ${FIRST.place}`);
-  await first.getByText('Source', { exact: true }).click();
-  await expect(first.getByText(FIRST.source, { exact: true })).toBeVisible();
-  await expect(first.getByText(`checked ${formatDate(FIRST.checked)}`, { exact: true })).toBeVisible();
-  const link = first.getByRole('link', { name: new URL(FIRST.url).hostname.replace(/^www\./, ''), exact: true });
+  // Where it comes from, in one small line, as on Tips: the host is the link.
+  const link = first.getByRole('link', { name: hostOf(FIRST.url), exact: true });
   await expect(link).toHaveAttribute('href', FIRST.url);
   await expect(link).toHaveAttribute('target', '_blank');
   await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
@@ -110,6 +109,33 @@ test('the Tips tab switches to a sourced discount list and back', async ({ page 
   await switcher(page).getByRole('tab', { name: 'Tips', exact: true }).click();
   await expect(page.getByRole('list', { name: 'Tips', exact: true }).getByRole('listitem')).toHaveCount(TIPS.length);
   await expect(discountList(page)).toHaveCount(0);
+});
+
+test('a discount says where it comes from in one line, and votes with a thumbs-up and an Outdated button', async ({ page }) => {
+  await openDiscounts(page, NOV_24);
+  const first = item(page, FIRST);
+
+  // One small line, as on Tips (Roshan, 16-11-2026): no fold-out to open first.
+  const line = first.getByText(`Source: ${hostOf(FIRST.url)} · checked ${formatDate(FIRST.checked)}`, { exact: true });
+  await expect(line).toBeVisible(); // proof: discount-source-line
+  await expect(first.locator('details')).toHaveCount(0);
+  // The source's own words stay with the link, for hover and screen readers.
+  await expect(line.getByRole('link', { name: hostOf(FIRST.url), exact: true })).toHaveAttribute('title', FIRST.source);
+
+  // "Still works" is a thumbs-up alone, named by its word, at least 44 px wide.
+  const up = voteButton(page, FIRST, 'Still works');
+  await expect(up.locator('svg')).toHaveCount(1); // proof: upvote-icon
+  await expect(up).toHaveText(''); // proof: upvote-icon-only
+  await expect(up).toHaveCSS('width', '44px'); // proof: upvote-size
+  // "Outdated" shows its thumbs-down and its word.
+  const down = voteButton(page, FIRST, 'Outdated');
+  await expect(down).toHaveText('Outdated');
+  await expect(down.locator('svg')).toHaveCount(1); // proof: outdated-icon
+  // Side by side, on one row.
+  const [upBox, downBox] = [await up.boundingBox(), await down.boundingBox()];
+  expect(upBox && downBox && Math.abs(upBox.y + upBox.height / 2 - (downBox.y + downBox.height / 2))).toBeLessThan(2);
+  expect(upBox && downBox && downBox.x > upBox.x).toBe(true);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
 test('a category chip shows only its discounts, and All shows every one again', async ({ page }) => {
@@ -126,7 +152,7 @@ test('a category chip shows only its discounts, and All shows every one again', 
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
-test('a confirmed discount moves up with today\'s date, one marked as not working sinks, and both survive a reload', async ({
+test('a confirmed discount moves up with today\'s date, one marked as outdated sinks, and both survive a reload', async ({
   page,
 }) => {
   await openDiscounts(page, NOV_24);
@@ -140,13 +166,13 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await expect(voteButton(page, LAST, 'Still works')).toBeFocused();
   await expect(announced(page)).toHaveText(`${LAST.place}: saved as still working. It moves up the list.`);
 
-  await voteButton(page, FIRST, 'Doesn’t work any more').click();
-  await expect(voteButton(page, FIRST, 'Doesn’t work any more')).toHaveAttribute('aria-pressed', 'true');
+  await voteButton(page, FIRST, 'Outdated').click();
+  await expect(voteButton(page, FIRST, 'Outdated')).toHaveAttribute('aria-pressed', 'true');
   await expect(places(page)).toHaveText([LAST.place, ...middle, FIRST.place]);
-  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-24')}.`, { exact: true })).toBeVisible();
+  await expect(item(page, FIRST).getByText(`You marked this as outdated on ${formatDate('2026-11-24')}.`, { exact: true })).toBeVisible();
   await expect(item(page, FIRST).getByText('Saved on this phone, and in your account once the phone is linked.', { exact: true })).toBeVisible();
-  await expect(voteButton(page, FIRST, 'Doesn’t work any more')).toBeFocused();
-  await expect(announced(page)).toHaveText(`${FIRST.place}: saved as not working. It moves down the list.`);
+  await expect(voteButton(page, FIRST, 'Outdated')).toBeFocused();
+  await expect(announced(page)).toHaveText(`${FIRST.place}: saved as outdated. It moves down the list.`);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   const expected: DiscountVote[] = [
@@ -160,8 +186,8 @@ test('a confirmed discount moves up with today\'s date, one marked as not workin
   await expect(places(page)).toHaveText([LAST.place, ...middle, FIRST.place]);
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'true');
   await expect(item(page, LAST).getByText(`Last confirmed ${formatDate('2026-11-24')}`, { exact: true })).toBeVisible();
-  await expect(voteButton(page, FIRST, 'Doesn’t work any more')).toHaveAttribute('aria-pressed', 'true');
-  await expect(item(page, FIRST).getByText(`You marked this as not working on ${formatDate('2026-11-24')}.`, { exact: true })).toBeVisible();
+  await expect(voteButton(page, FIRST, 'Outdated')).toHaveAttribute('aria-pressed', 'true');
+  await expect(item(page, FIRST).getByText(`You marked this as outdated on ${formatDate('2026-11-24')}.`, { exact: true })).toBeVisible();
   await expect(item(page, FIRST).getByText(/^Last confirmed/)).toHaveCount(0);
   // What was said about the votes before the reload is gone.
   await expect(discountList(page).getByText('Saved on this phone, and in your account once the phone is linked.', { exact: true })).toHaveCount(0);
@@ -188,11 +214,11 @@ test('after eight weeks without a confirmation every discount may be outdated, a
   await expect(places(page).first()).toHaveText(LAST.place);
 
   // Changing your mind replaces the vote: it sinks below the ones that may be outdated.
-  await voteButton(page, LAST, 'Doesn’t work any more').click();
-  await expect(voteButton(page, LAST, 'Doesn’t work any more')).toHaveAttribute('aria-pressed', 'true');
+  await voteButton(page, LAST, 'Outdated').click();
+  await expect(voteButton(page, LAST, 'Outdated')).toHaveAttribute('aria-pressed', 'true');
   await expect(voteButton(page, LAST, 'Still works')).toHaveAttribute('aria-pressed', 'false');
   await expect(places(page).last()).toHaveText(LAST.place);
-  await expect(item(page, LAST).getByText(`You marked this as not working on ${formatDate('2027-01-05')}.`, { exact: true })).toBeVisible();
+  await expect(item(page, LAST).getByText(`You marked this as outdated on ${formatDate('2027-01-05')}.`, { exact: true })).toBeVisible();
   await expect.poll(() => votes(page)).toEqual([{ discountId: LAST.id, vote: 'outdated', on: '2027-01-05' }]);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
@@ -212,8 +238,8 @@ test.describe('on a phone set to German', () => {
     const westbad = list.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 3, name: 'Westbad', exact: true }) });
     await expect(westbad.getByText('4,60 € statt 7,20 € für 3 Stunden; 6,50 € statt 10 € für den ganzen Tag', { exact: true })).toBeVisible();
     await expect(list.getByRole('heading', { level: 3, name: 'Hallenbad Sportpark Ost', exact: true })).toBeVisible();
-    await westbad.getByText('Quelle', { exact: true }).click();
-    await expect(westbad.getByText(/Preise Westbad/)).toBeVisible();
+    // The source's own words, translated, are the source link's title.
+    await expect(westbad.getByRole('link').and(westbad.getByTitle(/Preise Westbad/))).toBeVisible();
     await expect(list.locator('[lang="en"]')).toHaveCount(0);
     expect(await overflow(page)).toBeLessThanOrEqual(0);
   });

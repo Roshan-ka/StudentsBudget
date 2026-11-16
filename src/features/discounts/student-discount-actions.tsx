@@ -2,13 +2,13 @@
 
 import { LanguagesIcon } from 'lucide-react';
 import { useState } from 'react';
-import { ExternalLinkButton, FoldSummary, linkButtonClass } from '@/components/link-button';
+import { linkButtonClass } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { translateUrl } from '@/features/hacks/feed';
 import { postingNameText } from '@/features/hacks/posting-name';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
-import { hostOf } from '@/features/setup/steps/range-source';
+import { SourceLine } from '@/features/tips/source-line';
 import type { Language } from '@/i18n/languages';
 import type { Messages } from '@/i18n/messages';
 import { formatDate } from '@/lib/dates';
@@ -17,24 +17,13 @@ import { getSupabase } from '@/lib/supabase/client';
 import { deleteStudentDiscount, reportStudentDiscount, type StudentDiscount } from './student-discounts';
 
 /**
- * Where a student's discount comes from, collapsed as any source is (`RangeSource`, in the same outlined button): who
- * added it and when, that the app never checked it, and the page the student gave. It shows no "checked" date, since
- * nobody checked it.
+ * Where a student's discount comes from, as the app's own say it (`SourceLine`): "Source: <host> · Added by @x on
+ * 04.11.2026, not checked by the app". It shows no "checked" date, since nobody checked it, and has no source words.
  */
 export function StudentDiscountSource({ item, t }: { item: StudentDiscount; t: Messages }) {
   const { discount, info } = item;
   const name = info.author === null ? t.tips.hacks.noName : postingNameText(info.author, t.auth.postingName);
-  return (
-    <details className="text-xs text-muted-foreground">
-      <FoldSummary aria-label={t.common.source.of(discount.place)}>{t.common.source.label}</FoldSummary>
-      <div className="mt-2 flex flex-col gap-1">
-        <p className="break-words">{t.tips.studentDiscounts.source(name, formatDate(discount.checked))}</p>
-        <ExternalLinkButton href={discount.url} className="mt-1 break-all">
-          {hostOf(discount.url)}
-        </ExternalLinkButton>
-      </div>
-    </details>
-  );
+  return <SourceLine url={discount.url} after={t.tips.studentDiscounts.source(name, formatDate(discount.checked))} />;
 }
 
 /**

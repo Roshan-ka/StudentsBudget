@@ -15,12 +15,12 @@ export const tips: Messages['tips'] = {
   discountsIntro:
     'Descuentos para estudiantes en Regensburg. Cada uno indica su fuente. Dile a la app si uno sigue ' +
     'funcionando: tus votos se guardan en este móvil, y en tu cuenta en cuanto el móvil esté vinculado. Los que ' +
-    'confirmas suben; los que marcas como que ya no funcionan, o que llevan 8 semanas sin confirmar, bajan.',
+    'confirmas suben; los que marcas como desactualizados, o que llevan 8 semanas sin confirmar, bajan.',
   discountsFor: 'Mostrar descuentos de',
   loadFailed: 'No se han podido cargar los descuentos. Inténtalo más tarde.',
-  votes: { works: 'Sigue funcionando', outdated: 'Ya no funciona' },
+  votes: { works: 'Sigue funcionando', outdated: 'Desactualizado' },
   voteGroup: (place) => `${place}: ¿sigue funcionando?`,
-  markedOutdated: (date) => `Lo marcaste como que ya no funciona el ${date}.`,
+  markedOutdated: (date) => `Lo marcaste como desactualizado el ${date}.`,
   mayBeOutdated: 'Puede estar desactualizado',
   lastConfirmed: (date) => `Confirmado por última vez el ${date}`,
   /** Lo que otros estudiantes han confirmado este semestre (P2.6), visible con la sesión iniciada. */
@@ -33,7 +33,7 @@ export const tips: Messages['tips'] = {
   saveFailed: 'No se ha podido guardar tu voto. Inténtalo de nuevo.',
   heard: {
     works: (place) => `${place}: guardado como que sigue funcionando.`,
-    outdated: (place) => `${place}: guardado como que ya no funciona.`,
+    outdated: (place) => `${place}: guardado como desactualizado.`,
     moves: (saved, direction) => `${saved} ${direction === 'up' ? 'Sube' : 'Baja'} en la lista.`,
     failed: (place) => `${place}: no se ha podido guardar tu voto. Inténtalo de nuevo.`,
   },

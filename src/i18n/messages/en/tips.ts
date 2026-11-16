@@ -14,12 +14,13 @@ export const tips = {
   discountsIntro:
     'Student discounts in Regensburg. Each one names its source. Tell the app whether one still works: your votes ' +
     'are saved on this phone, and in your account once the phone is linked. Ones you confirm move up; ones you mark ' +
-    'as not working, or that haven’t been confirmed for 8 weeks, move down.',
+    'as outdated, or that haven’t been confirmed for 8 weeks, move down.',
   discountsFor: 'Show discounts for',
   loadFailed: 'The discounts couldn’t be loaded. Try again later.',
-  votes: { works: 'Still works', outdated: 'Doesn’t work any more' },
+  /** "Still works" names the icon-only thumbs-up; "Outdated" shows beside its thumbs-down. */
+  votes: { works: 'Still works', outdated: 'Outdated' },
   voteGroup: (place: string) => `${place}: does it still work?`,
-  markedOutdated: (date: string) => `You marked this as not working on ${date}.`,
+  markedOutdated: (date: string) => `You marked this as outdated on ${date}.`,
   mayBeOutdated: 'May be outdated',
   lastConfirmed: (date: string) => `Last confirmed ${date}`,
   /** Other students' totals this semester (P2.6), shown while signed in. */
@@ -32,7 +33,7 @@ export const tips = {
   /** What a screen reader hears after a vote. */
   heard: {
     works: (place: string) => `${place}: saved as still working.`,
-    outdated: (place: string) => `${place}: saved as not working.`,
+    outdated: (place: string) => `${place}: saved as outdated.`,
     moves: (saved: string, direction: 'up' | 'down') => `${saved} It moves ${direction} the list.`,
     failed: (place: string) => `${place}: couldn’t save your vote. Try again.`,
   },
