@@ -10,12 +10,12 @@ import { DEFAULT_SETUP, readStore } from './helpers/setup';
 // are planned at €0 and unused.
 
 function section(page: Page, name: string) {
-  // By exact name: "This week" is also part of the name of the headline card on a home page the router keeps hidden.
+  // By exact name: "This week" is also part of "Envelopes this week".
   return page.getByRole('region', { name, exact: true });
 }
 
-/** Waits for one envelope's row on the check-in to show exactly this week line. */
-async function expectWeekLine(page: Page, name: string, line: string, region = 'This week against your plan') {
+/** Waits for one envelope's card on the check-in to show exactly this week line. */
+async function expectWeekLine(page: Page, name: string, line: string, region = 'Envelopes this week') {
   const row = section(page, region).getByRole('listitem').filter({ hasText: name });
   await expect(row.getByText(line, { exact: true })).toBeVisible();
 }
@@ -66,18 +66,57 @@ test('shows each envelope against this week and what was logged', async ({ page 
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
   await expect(page.getByText('Mon 12 – Sun 18 Oct', { exact: true })).toBeVisible();
 
-  // Only the two envelopes with a plan this week get a row.
-  await expect(section(page, 'This week against your plan').getByRole('listitem')).toHaveCount(2);
-  await expectWeekLine(page, 'Food & groceries', '€103 planned · €0 spent · €103 under');
-  await expectWeekLine(page, 'Eating out', '€41 planned · €6 spent · €35 under');
+  // Only the two envelopes with a plan this week get a card.
+  await expect(section(page, 'Envelopes this week').getByRole('listitem')).toHaveCount(2);
+  await expectWeekLine(page, 'Food & groceries', '€0 of €103 · €103 under');
+  await expectWeekLine(page, 'Eating out', '€6 of €41 · €35 under');
   // The week in one number, the same as Home's "This week": €434 / 3 = €144.67, less the €6.
-  await expect(page.getByText('In total: €139 to spend this week', { exact: true })).toBeVisible();
+  await expect(page.getByText('€139 safe to spend', { exact: true })).toBeVisible();
 
   const entries = section(page, 'This week').getByRole('listitem');
   await expect(entries).toHaveCount(1);
   await expect(entries.getByText('döner', { exact: true })).toBeVisible();
   await expect(entries.getByText('Eating out · Fri 16', { exact: true })).toBeVisible();
   await expect(entries.getByText('€6.00', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
+// The new look (Roshan's mockups, 16-11-2026): the week's days over the heading, the week in one number in the accent
+// card, each envelope as its own card with its bar, as on Home, and the ways to add what was forgotten in one card.
+test('the week card leads, and each envelope is its own card with a bar for its week', async ({ page }) => {
+  await seedSetup(page);
+  await quickAdd(page, 'döner 6');
+  await page.getByRole('button', { name: 'Eating out' }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
+
+  await openApp(page, '/check-in');
+  const heading = page.getByRole('heading', { level: 2, name: 'Weekly check-in' });
+  const days = page.getByText('Mon 12 – Sun 18 Oct', { exact: true });
+  await expect(heading).toBeVisible();
+  await expect(days).toBeVisible();
+  // Over the heading on the screen, while the heading comes first in the page.
+  const daysBox = await days.boundingBox();
+  const headingBox = await heading.boundingBox();
+  expect(daysBox?.y ?? Infinity).toBeLessThan(headingBox?.y ?? -Infinity);
+
+  // The week had €144.67 when it began, and €6 of it is gone: 4%.
+  await expect(page.getByText('€139 safe to spend', { exact: true })).toBeVisible();
+  await expect(page.getByText('€6 spent so far', { exact: true })).toBeVisible();
+  const weekBar = page.getByRole('progressbar', { name: 'Spent this week', exact: true });
+  await expect(weekBar).toHaveAttribute('aria-valuenow', '4'); // proof: week-bar
+
+  // €6 of eating out's €41.33 is 15%; nothing of food's week is gone.
+  const envelopes = section(page, 'Envelopes this week');
+  const eatingOut = envelopes.getByRole('progressbar', { name: 'Eating out this week', exact: true });
+  await expect(eatingOut).toHaveAttribute('aria-valuetext', '€6 of €41 · €35 under');
+  await expect(eatingOut).toHaveAttribute('aria-valuenow', '15'); // proof: envelope-bar
+  const food = envelopes.getByRole('progressbar', { name: 'Food & groceries this week', exact: true });
+  await expect(food).toHaveAttribute('aria-valuenow', '0');
+
+  // The quick add and the way to an earlier day sit together in one card.
+  const add = section(page, 'Forgot something? Add it here');
+  await expect(add.getByRole('textbox', { name: 'Quick add' })).toBeVisible();
+  await expect(add.getByRole('link', { name: 'Add something from an earlier day' })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
@@ -179,14 +218,14 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await seedSetup(page, {}, { open: false });
   await openCheckInOnSunday(page);
   await expect(page.getByText('Mon 12 – Sun 18 Oct', { exact: true })).toBeVisible();
-  await expectWeekLine(page, 'Eating out', '€41 planned · €0 spent · €41 under');
+  await expectWeekLine(page, 'Eating out', '€0 of €41 · €41 under');
   await expect(section(page, 'This week').getByText('Nothing logged this week yet.', { exact: true })).toBeVisible();
 
   // Quick add dates the entry today, and spending exactly the week's share (€103.33) reads "on plan".
   await quickAdd(page, 'rewe 103,33');
   await page.getByRole('button', { name: 'Food & groceries' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €103.33 · rewe · Food & groceries');
-  await expectWeekLine(page, 'Food & groceries', '€103 planned · €103 spent · on plan');
+  await expectWeekLine(page, 'Food & groceries', '€103 of €103 · on plan');
 
   // The date field behind the link covers Saturday's purchase; €50 against eating out's €41 reads calmly.
   await page.getByRole('link', { name: 'Add something from an earlier day' }).click();
@@ -200,10 +239,15 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await expect(page).toHaveURL('/check-in');
 
   await openApp(page, '/check-in');
-  await expectWeekLine(page, 'Eating out', '€41 planned · €50 spent · €9 over');
-  await expectWeekLine(page, 'Food & groceries', '€103 planned · €103 spent · on plan');
-  // €144.67 less €153.33 spent: the week as a whole is €8.66 over.
-  await expect(page.getByText('In total: €9 over this week', { exact: true })).toBeVisible();
+  await expectWeekLine(page, 'Eating out', '€50 of €41 · €9 over');
+  await expectWeekLine(page, 'Food & groceries', '€103 of €103 · on plan');
+  // €144.67 less €153.33 spent: the week as a whole is €8.66 over, and its card says so calmly, its bar full.
+  await expect(page.getByText('€9 over this week', { exact: true })).toBeVisible();
+  await expect(page.getByText('€153 spent so far', { exact: true })).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Spent this week', exact: true })).toHaveAttribute(
+    'aria-valuenow',
+    '100',
+  );
 
   // Newest day first: today's rewe, then Saturday's purchase, which has no note and so shows its category.
   const entries = section(page, 'This week').getByRole('listitem');
@@ -224,12 +268,12 @@ test('a Sunday that starts the month also reviews the days of its week in the pr
 
   await openApp(page, '/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
-  // The previous month's days come first, then the Sunday. The quick add comes once, right after this week against
-  // the plan and before its list (pain points, chunk 8).
+  // The previous month's days come first, then the Sunday. The quick add comes once, right after this week's envelopes
+  // and before its list (pain points, chunk 8). The week card has no heading of its own.
   await expect(page.getByRole('heading', { level: 3 })).toHaveText([
-    'Earlier this week against your plan',
+    'Envelopes earlier this week',
     'Earlier this week',
-    'This week against your plan',
+    'Envelopes this week',
     'Forgot something? Add it here',
     'This week',
   ]);
@@ -237,9 +281,9 @@ test('a Sunday that starts the month also reviews the days of its week in the pr
   await expect(page.getByText('Sun 1 Nov', { exact: true })).toBeVisible();
 
   // October's last week has what is left of its whole budget, as nothing was spent before Mon 26.
-  const earlierPlan = 'Earlier this week against your plan';
-  await expectWeekLine(page, 'Food & groceries', '€310 planned · €0 spent · €310 under', earlierPlan);
-  await expectWeekLine(page, 'Eating out', '€124 planned · €20 spent · €104 under', earlierPlan);
+  const earlierPlan = 'Envelopes earlier this week';
+  await expectWeekLine(page, 'Food & groceries', '€0 of €310 · €310 under', earlierPlan);
+  await expectWeekLine(page, 'Eating out', '€20 of €124 · €104 under', earlierPlan);
   const earlier = section(page, 'Earlier this week').getByRole('listitem');
   await expect(earlier).toHaveCount(1);
   await expect(earlier).toContainText('Eating out');
@@ -248,8 +292,8 @@ test('a Sunday that starts the month also reviews the days of its week in the pr
 
   // November has six weeks left on its first Sunday, whose week began on Mon 26 Oct, and none of the entries:
   // food 31000 / 6 = 5167 and eating out 12400 / 6 = 2067.
-  await expectWeekLine(page, 'Food & groceries', '€52 planned · €0 spent · €52 under');
-  await expectWeekLine(page, 'Eating out', '€21 planned · €0 spent · €21 under');
+  await expectWeekLine(page, 'Food & groceries', '€0 of €52 · €52 under');
+  await expectWeekLine(page, 'Eating out', '€0 of €21 · €21 under');
   await expect(section(page, 'This week').getByText('Nothing logged this week yet.', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
@@ -269,9 +313,9 @@ test("a plan set up late in the month reviews the previous month's tail, the day
   await expect(page.getByText('Mon 26 – Sat 31 Oct', { exact: true })).toBeVisible();
 
   // October's whole budget is still there for its last week, against both: the €20 from Monday and the €10 from the 29th.
-  const earlierPlan = 'Earlier this week against your plan';
-  await expectWeekLine(page, 'Food & groceries', '€310 planned · €0 spent · €310 under', earlierPlan);
-  await expectWeekLine(page, 'Eating out', '€124 planned · €30 spent · €94 under', earlierPlan);
+  const earlierPlan = 'Envelopes earlier this week';
+  await expectWeekLine(page, 'Food & groceries', '€0 of €310 · €310 under', earlierPlan);
+  await expectWeekLine(page, 'Eating out', '€30 of €124 · €94 under', earlierPlan);
 
   // Newest day first, both listed like any other entry.
   const earlier = section(page, 'Earlier this week').getByRole('listitem');
@@ -292,7 +336,7 @@ test('a plan set up on that Sunday has no earlier month to review', async ({ pag
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
   await expect(page.getByText('Sun 1 Nov', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 3 })).toHaveText([
-    'This week against your plan',
+    'Envelopes this week',
     'Forgot something? Add it here',
     'This week',
   ]);
@@ -308,7 +352,7 @@ test('an expense dated before the plan started is listed and counted like any ot
 
   await openApp(page, '/check-in');
   // Three weeks left on Sun 18: 12400 / 3, less the week's €25.
-  await expectWeekLine(page, 'Eating out', '€41 planned · €25 spent · €16 under');
+  await expectWeekLine(page, 'Eating out', '€25 of €41 · €16 under');
   const entries = section(page, 'This week').getByRole('listitem');
   await expect(entries).toHaveCount(2);
   await expect(entries.nth(0)).toContainText('Sat 17');
@@ -353,11 +397,11 @@ test('in a later week, an envelope that is used up is listed as used up and the 
   await openApp(page, '/check-in');
   await expect(page.getByRole('heading', { level: 2, name: 'Weekly check-in' })).toBeVisible();
   await expect(page.getByText('Mon 19 – Sun 25 Oct', { exact: true })).toBeVisible();
-  await expect(page.getByText('In total: €36 over this week', { exact: true })).toBeVisible();
+  await expect(page.getByText('€36 over this week', { exact: true })).toBeVisible();
   // Eating out is used up and has no share, but it is still listed. Food has half of its €310.
-  await expect(section(page, 'This week against your plan').getByRole('listitem')).toHaveCount(2);
+  await expect(section(page, 'Envelopes this week').getByRole('listitem')).toHaveCount(2);
   await expectWeekLine(page, 'Eating out', 'Nothing left this month · €0 spent');
-  await expectWeekLine(page, 'Food & groceries', '€155 planned · €0 spent · €155 under');
+  await expectWeekLine(page, 'Food & groceries', '€0 of €155 · €155 under');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   // €6 more on eating out comes off the week, and the line says it plainly. Home and the total follow together.
@@ -365,7 +409,7 @@ test('in a later week, an envelope that is used up is listed as used up and the 
   await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
   await expectWeekLine(page, 'Eating out', 'Nothing left this month · €6 spent · €6 over');
-  await expect(page.getByText('In total: €42 over this week', { exact: true })).toBeVisible();
+  await expect(page.getByText('€42 over this week', { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   await openApp(page, '/');

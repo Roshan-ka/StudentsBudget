@@ -9,19 +9,28 @@ export const checkIn: Messages['checkIn'] = {
     other: 'Tu revisión semanal es el domingo.',
   },
   thisWeek: {
-    against: 'Esta semana frente a tu plan',
+    envelopes: 'Sobres de esta semana',
+    bar: (category) => `${category} esta semana`,
     logged: 'Esta semana',
     empty: 'Esta semana aún no hay nada registrado.',
   },
   // Los días de esta semana que aún caen en el mes anterior.
   earlierThisWeek: {
-    against: 'Principio de la semana frente a tu plan',
+    envelopes: 'Sobres del principio de la semana',
+    bar: (category) => `${category} al principio de la semana`,
     logged: 'Principio de la semana',
     empty: 'Al principio de la semana no hay nada registrado.',
   },
+  // La tarjeta de la semana: «139 € para gastar» o «9 € de más esta semana».
+  week: {
+    safe: { before: '', after: ' para gastar' },
+    over: { before: '', after: ' de más esta semana' },
+    spent: (amount) => `${amount} gastados hasta ahora`,
+    bar: 'Gastado esta semana',
+  },
   noEnvelopes: 'Ningún sobre tiene importe en tu plan.',
   line: {
-    planned: (planned, spent, verdict) => `${planned} previstos · ${spent} gastados · ${verdict}`,
+    of: (spent, planned, verdict) => `${spent} de ${planned} · ${verdict}`,
     onPlan: 'según el plan',
     under: (amount) => `${amount} por debajo`,
     over: (amount) => `${amount} de más`,

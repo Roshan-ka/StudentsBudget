@@ -43,7 +43,7 @@ for (const name of readdirSync(root).filter((name) => name.endsWith('.json'))) {
       }
       await nav.getByRole('link', { name: 'Home', exact: true }).click();
       await page.getByRole('link', { name: /Weekly check-in/ }).click();
-      await expect(page.getByRole('heading', { name: 'This week against your plan', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Envelopes this week', exact: true })).toBeVisible();
       await nav.getByRole('link', { name: 'Home', exact: true }).click();
       // Home links to the month-by-month recaps once a month is over: only the year of history has one.
       const recaps = page.getByRole('link', { name: /^See how .* went$/ });

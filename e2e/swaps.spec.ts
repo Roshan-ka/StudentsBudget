@@ -34,9 +34,9 @@ function homeRow(page: Page, name: string) {
   return envelopes(page).getByRole('listitem').filter({ hasText: name });
 }
 
-/** By exact name: "This week" is also part of the name of the headline card on a home page the router keeps hidden. */
+/** The check-in's envelope cards for this week, by exact name. */
 function weekAgainstPlan(page: Page) {
-  return page.getByRole('region', { name: 'This week against your plan', exact: true });
+  return page.getByRole('region', { name: 'Envelopes this week', exact: true });
 }
 
 /** Any "Try this" line that is visible: a page the router has left stays mounted, but hidden. */
@@ -119,7 +119,7 @@ test('an eating-out envelope that runs over shows a sourced swap on Home and in 
   // The check-in judges the row by this week's share: €150 against €41.
   await openCheckInFromHome(page);
   const checkInRow = weekAgainstPlan(page).getByRole('listitem').filter({ hasText: 'Eating out' });
-  await expect(checkInRow.getByText('€41 planned · €150 spent · €109 over', { exact: true })).toBeVisible();
+  await expect(checkInRow.getByText('€150 of €41 · €109 over', { exact: true })).toBeVisible();
   const checkInLine = checkInRow.getByRole('button', { name: MENSA_LINE, exact: true });
   await expect(checkInLine).toBeVisible();
   await expect(anyTryThis(page)).toHaveCount(1);
@@ -148,7 +148,7 @@ test('nothing shows while every envelope is on track, or when the envelope over 
     weekAgainstPlan(page)
       .getByRole('listitem')
       .filter({ hasText: 'Food & groceries' })
-      .getByText('€103 planned · €350 spent · €247 over', { exact: true }),
+      .getByText('€350 of €103 · €247 over', { exact: true }),
   ).toBeVisible();
   await expect(anyTryThis(page)).toHaveCount(0);
 });

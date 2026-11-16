@@ -10,19 +10,28 @@ export const checkIn: Messages['checkIn'] = {
     other: 'Ton bilan hebdomadaire a lieu le dimanche.',
   },
   thisWeek: {
-    against: 'Cette semaine par rapport à ton plan',
+    envelopes: 'Enveloppes de la semaine',
+    bar: (category) => `${category} cette semaine`,
     logged: 'Cette semaine',
     empty: 'Rien de saisi cette semaine pour l’instant.',
   },
   // Les jours de cette semaine qui tombent encore dans le mois précédent.
   earlierThisWeek: {
-    against: 'Début de semaine par rapport à ton plan',
+    envelopes: 'Enveloppes du début de semaine',
+    bar: (category) => `${category} en début de semaine`,
     logged: 'Début de semaine',
     empty: 'Rien de saisi en début de semaine.',
   },
+  // La carte de la semaine : « 139 € à dépenser » ou « 9 € de trop cette semaine ».
+  week: {
+    safe: { before: '', after: ' à dépenser' },
+    over: { before: '', after: ' de trop cette semaine' },
+    spent: (amount) => `${amount} dépensés jusqu’ici`,
+    bar: 'Dépensé cette semaine',
+  },
   noEnvelopes: 'Aucune enveloppe n’a de montant dans ton plan.',
   line: {
-    planned: (planned, spent, verdict) => `${planned} prévus · ${spent} dépensés · ${verdict}`,
+    of: (spent, planned, verdict) => `${spent} sur ${planned} · ${verdict}`,
     onPlan: 'conforme au plan',
     under: (amount) => `${amount} en dessous`,
     over: (amount) => `${amount} de trop`,

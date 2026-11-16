@@ -2,30 +2,46 @@
 
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { BellIcon, CalendarPlusIcon, ClipboardListIcon, PlusIcon } from 'lucide-react';
+import {
+  BellIcon,
+  CalendarDaysIcon,
+  CalendarPlusIcon,
+  ClipboardListIcon,
+  NotebookPenIcon,
+  PlaneIcon,
+  PlusIcon,
+  ReceiptTextIcon,
+  type LucideIcon,
+} from 'lucide-react';
 import { useId, type ReactNode } from 'react';
 import { LinkButton, linkButtonClass } from '@/components/link-button';
+import { PageHeading } from '@/components/page-heading';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import type { Account, Entry, Plan, PlanMonth } from '@/db/types';
 import { setAway, weekAwaitingRecord } from '@/features/badges/week-results';
+import { categoryTint } from '@/features/charts/colors';
 import { entryTitle } from '@/features/entries/entry-title';
 import { QuickAddField } from '@/features/entries/quick-add-field';
+import { EnvelopeCard } from '@/features/home/envelope-card';
+import { percentUsed } from '@/features/home/percent-used';
+import { RowTile } from '@/features/home/row-card';
 import { remindersInBuild } from '@/features/reminder/reminder';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
 import { SwapLine } from '@/features/swaps/swap-line';
 import { categoryNameIn } from '@/i18n/category-name';
 import { dateFormat } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
-import { weekToSpend } from '@/lib/budget';
+import { weekToSpend, type WeekToSpend } from '@/lib/budget';
 import { monthOf, previousMonthTail, weekOf, type IsoDate } from '@/lib/dates';
 import { planForMonth } from '@/lib/plan-history';
-import { formatMoney } from '@/lib/money';
+import { formatMoney, type Minor } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { cn } from '@/lib/utils';
+import { formatWeekAmount } from '@/lib/week-amount';
 import { weekLabel } from '@/lib/week-label';
 import { calendarFileOf } from './calendar-file';
-import { weekLine, weekTotalLine } from './week-line';
+import { weekLine } from './week-line';
 import { weekRows } from './week-rows';
 import { weekSwaps } from './week-swaps';
 
@@ -70,6 +86,83 @@ function EntryItem({ entry, accounts }: { entry: Entry; accounts: Account[] }) {
   );
 }
 
+/** A week's days as a small muted line with a calendar icon, as Home's date line over the greeting (16-11-2026). */
+function DateLine({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+      <CalendarDaysIcon aria-hidden="true" className="size-4 shrink-0" />
+      {children}
+    </p>
+  );
+}
+
+/** A check-in card's heading: its tile and its words on one line, as Home's cards have them (16-11-2026). */
+function CardHeading({
+  id,
+  icon,
+  tint,
+  children,
+}: {
+  id: string;
+  icon: LucideIcon;
+  tint: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <RowTile icon={icon} tint={tint} />
+      <h3 id={id} className="min-w-0 text-lg leading-tight font-extrabold break-words">
+        {children}
+      </h3>
+    </div>
+  );
+}
+
+/**
+ * The week in one number, in the yellow accent card (Roshan's mockups, 16-11-2026): what is safe to spend this week,
+ * the number Home shows as "This week", a bar of how much of the week's money has gone, and what was spent so far.
+ * Over, it says so in the same colours with the bar full, as Home's card does. `totalMinor` is `weekToSpend`'s total
+ * and `spentMinor` what its envelopes spent this week, so the week had the two together when it began.
+ */
+function WeekCard({ totalMinor, spentMinor }: { totalMinor: Minor; spentMinor: Minor }) {
+  const { t, locale } = useT();
+  const text = t.checkIn.week;
+  const total = formatWeekAmount(totalMinor, locale);
+  const spent = text.spent(formatWeekAmount(spentMinor, locale).text);
+  const words = total.over ? text.over : text.safe;
+  const percent = total.over ? 100 : percentUsed(totalMinor + spentMinor, spentMinor);
+
+  return (
+    <div className={cn(cardVariants({ variant: 'accent' }), 'gap-2')}>
+      <p className="text-sm font-semibold">{t.checkIn.thisWeek.logged}</p>
+      {/* One line of text, however it wraps, so "€139 safe to spend" and "€9 over this week" each read as one. The
+          amount sits where the language puts it. */}
+      <p className="min-w-0 tabular-nums break-words">
+        {words.before && <span className="text-xl font-semibold">{words.before}</span>}
+        <span className="font-heading text-5xl leading-none font-extrabold tracking-tight">{total.text}</span>
+        <span className="text-xl font-semibold">{words.after}</span>
+      </p>
+      {/* The bar stops at full, so what was spent is in its value text, and in the line under it. Its colours are
+          those of Home's ring, on the same card. */}
+      <div
+        role="progressbar"
+        aria-label={text.bar}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-valuetext={spent}
+        className="h-2.5 overflow-hidden rounded-full bg-track"
+      >
+        <div className="h-full rounded-full bg-primary motion-safe:animate-bar-fill" style={{ width: `${percent}%` }} />
+      </div>
+      {/* A screen reader gets it from the bar's value text instead. */}
+      <p aria-hidden="true" className="text-sm font-semibold tabular-nums">
+        {spent}
+      </p>
+    </div>
+  );
+}
+
 /**
  * What the two sections of one part of the week are called: `this` week, or `earlier` (the days of the week that
  * fall in the previous month, on the Sunday the new month starts).
@@ -77,88 +170,93 @@ function EntryItem({ entry, accounts }: { entry: Entry; accounts: Account[] }) {
 type Part = 'this' | 'earlier';
 
 /**
- * One part of a week, as `weekToSpend` cuts it at the month's edge: its range, each envelope against the
- * part's share of the plan, and what was logged in it. `day` is any day of the part, which also picks the
- * month whose budget it is measured against. `withTotal` adds the week's total, the number Home shows as "This
- * week", to the part that is today's.
+ * One part of a week, as `weekToSpend` cut it at the month's edge (`week`): each envelope against the part's share of
+ * the plan, as Home's envelope cards, and what was logged in it. `day` is any day of the part, which also picks the
+ * month whose budget it is measured against. The earlier part says which days it covers; this week's are the page's
+ * date line.
  */
 function WeekPart({
   children,
   plan,
+  week,
   entries,
   accounts,
   day,
   part,
-  withTotal,
 }: {
   plan: Plan;
+  week: WeekToSpend;
   entries: Entry[];
   accounts: Account[];
   day: IsoDate;
   part: Part;
-  withTotal: boolean;
-  /** Shown between the week against the plan and what was logged in it (the check-in's add card). */
+  /** Shown between the envelopes and what was logged (the check-in's add card). */
   children?: ReactNode;
 }) {
-  const planId = useId();
-  const weekId = useId();
+  const envelopesId = useId();
+  const loggedId = useId();
   const { t, lang, locale } = useT();
   const titles = part === 'this' ? t.checkIn.thisWeek : t.checkIn.earlierThisWeek;
-  const week = weekToSpend(plan, entries, day);
   // Every envelope with a monthly amount is listed, even one that is used up and so has no share of the week; an
   // envelope at €0 and a category with no envelope only when something was spent on it this week.
   const rows = weekRows(plan, week.envelopes);
   // A swap is judged by the check-in's own measure: only a row over this week's share of the plan ("€12 over") gets
   // one. The month's early warning is Home's.
   const suggestions = weekSwaps(rows, day);
-  const thisWeek = entriesOfWeek(entries, week.weekStart, week.weekEnd);
+  const logged = entriesOfWeek(entries, week.weekStart, week.weekEnd);
 
   return (
-    <div className="flex flex-col gap-6">
-      <p className="text-sm text-muted-foreground">{weekLabel(week.weekStart, week.weekEnd, locale)}</p>
-
-      <section aria-labelledby={planId} className={cardVariants()}>
-        <h3 id={planId} className="text-xl leading-tight font-extrabold">
-          {titles.against}
-        </h3>
+    <>
+      {/* A heading, then one tinted card per envelope, as Home's envelopes (16-11-2026). */}
+      <section aria-labelledby={envelopesId} className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h3 id={envelopesId} className="text-[22px] leading-tight font-extrabold break-words">
+            {titles.envelopes}
+          </h3>
+          {part === 'earlier' && <DateLine>{weekLabel(week.weekStart, week.weekEnd, locale)}</DateLine>}
+        </div>
         {rows.length === 0 ? (
           <p className="text-muted-foreground">{t.checkIn.noEnvelopes}</p>
         ) : (
-          <>
-            {withTotal && <p className="font-medium tabular-nums">{weekTotalLine(week.totalMinor, lang)}</p>}
-            <ul aria-labelledby={planId} className="flex flex-col gap-3">
-              {rows.map((row) => {
-                const suggestion = suggestions.get(row.categoryId);
-                return (
-                  <li key={row.categoryId} className="flex flex-col gap-0.5">
-                    <p className="font-medium break-words">{categoryNameIn(t, row.categoryId)}</p>
-                    <p className="text-sm tabular-nums">{weekLine(row, row.usedUp, lang)}</p>
-                    {suggestion !== undefined && <SwapLine suggestion={suggestion} />}
-                  </li>
-                );
-              })}
-            </ul>
-          </>
+          <ul aria-labelledby={envelopesId} className="flex flex-col gap-3">
+            {rows.map((row) => {
+              const name = categoryNameIn(t, row.categoryId);
+              const suggestion = suggestions.get(row.categoryId);
+              return (
+                <EnvelopeCard
+                  key={row.categoryId}
+                  categoryId={row.categoryId}
+                  name={name}
+                  // An envelope with nothing left of its month has no share to fill: nothing of it is left, so full.
+                  percent={row.usedUp ? 100 : percentUsed(row.weekShareMinor, row.spentThisWeekMinor)}
+                  barLabel={titles.bar(name)}
+                  line={weekLine(row, row.usedUp, lang)}
+                >
+                  {suggestion !== undefined && <SwapLine suggestion={suggestion} />}
+                </EnvelopeCard>
+              );
+            })}
+          </ul>
         )}
       </section>
 
       {children}
 
-      <section aria-labelledby={weekId} className={cn(cardVariants(), 'gap-2')}>
-        <h3 id={weekId} className="text-xl leading-tight font-extrabold">
+      <section aria-labelledby={loggedId} className={cardVariants()}>
+        <CardHeading id={loggedId} icon={ReceiptTextIcon} tint={categoryTint('rent')}>
           {titles.logged}
-        </h3>
-        {thisWeek.length === 0 ? (
+        </CardHeading>
+        {logged.length === 0 ? (
           <p className="text-muted-foreground">{titles.empty}</p>
         ) : (
-          <ul aria-labelledby={weekId} className="flex flex-col divide-y">
-            {thisWeek.map((entry) => (
+          <ul aria-labelledby={loggedId} className="flex flex-col divide-y">
+            {logged.map((entry) => (
               <EntryItem key={entry.id} entry={entry} accounts={accounts} />
             ))}
           </ul>
         )}
       </section>
-    </div>
+    </>
   );
 }
 
@@ -209,7 +307,7 @@ function AwaySwitch({ day, label, hintId }: { day: IsoDate; label: string; hintI
 /**
  * "I was away this week", and on the Monday and the Tuesday also "I was away last week", for the week that waits to
  * be recorded until the Wednesday: someone who was away all week often opens the app only after it. One hint
- * describes both.
+ * describes both. Its own card, with a tile (16-11-2026).
  */
 function AwayToggle({ plan, today }: { plan: Plan; today: IsoDate }) {
   const hintId = useId();
@@ -218,12 +316,44 @@ function AwayToggle({ plan, today }: { plan: Plan; today: IsoDate }) {
   const lastWeek = weekAwaitingRecord(plan, today);
 
   return (
-    <div className="flex flex-col gap-1">
-      {lastWeek !== null && <AwaySwitch day={lastWeek.start} label={text.lastWeek} hintId={hintId} />}
-      <AwaySwitch day={today} label={text.thisWeek} hintId={hintId} />
-      <p id={hintId} className="text-sm text-muted-foreground">
-        {text.hint}
-      </p>
+    <div className={cn(cardVariants(), 'flex-row items-start gap-3')}>
+      <RowTile icon={PlaneIcon} tint={categoryTint('travel')} />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        {lastWeek !== null && <AwaySwitch day={lastWeek.start} label={text.lastWeek} hintId={hintId} />}
+        <AwaySwitch day={today} label={text.thisWeek} hintId={hintId} />
+        <p id={hintId} className="text-sm text-muted-foreground">
+          {text.hint}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** The ways to be reminded of the check-in, in one card with a tile (16-11-2026). */
+function ReminderCard() {
+  const { t, lang } = useT();
+
+  return (
+    <div className={cn(cardVariants(), 'flex-row items-start gap-3')}>
+      <RowTile icon={BellIcon} tint="var(--accent)" />
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        {/* A plain link, not <Link>: this is a file, and the browser or the phone's calendar app takes it from here. In
+            the button look, as every way on (16-11-2026: buttons, never text links). */}
+        <a href={calendarFileOf(lang)} className={linkButtonClass()}>
+          <CalendarPlusIcon aria-hidden="true" />
+          {t.checkIn.reminder}
+        </a>
+        {/* The other way to be reminded (weekly reminder, chunk 4): the two point to each other, so nobody gets both.
+            The sentence, then its button. */}
+        {remindersInBuild() && (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm">{t.checkIn.reminderOr}</p>
+            <LinkButton href="/settings/reminder" icon={BellIcon}>
+              {t.checkIn.reminderOrLink}
+            </LinkButton>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -234,42 +364,50 @@ function CheckIn({
   entries,
   accounts,
   today,
+  week,
 }: {
   plan: Plan;
   planMonths: PlanMonth[];
   entries: Entry[];
   accounts: Account[];
   today: IsoDate;
+  /** This week's part, `weekToSpend` on today. */
+  week: WeekToSpend;
 }) {
   const addId = useId();
-  const { t, lang } = useT();
+  const { t } = useT();
   // On the Sunday a month starts mid-week, the week's days in the previous month would otherwise never be
   // reviewed. They come first, measured against that month's budget, with its last day standing in for today.
   // A month before the setup month has no budget, so its tail is left out (the tail is a month's last days, so ending
   // before the setup day means it is in an earlier month).
   const tail = previousMonthTail(today);
   const earlierDay = tail !== null && tail.end >= plan.createdOn ? tail.end : null;
+  // Last month's days against the plan last month had (plan history).
+  const earlierPlan = earlierDay === null ? null : planForMonth(plan, planMonths, monthOf(earlierDay), today);
+  // What the week's envelopes spent, the rows weekToSpend's total is worked out from.
+  const spentMinor = week.envelopes.reduce((sum, envelope) => sum + envelope.spentThisWeekMinor, 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      {earlierDay !== null && (
+    <>
+      {/* The key number first, on the tail's Sunday too; with no envelope to measure there is none. */}
+      {weekRows(plan, week.envelopes).length > 0 && <WeekCard totalMinor={week.totalMinor} spentMinor={spentMinor} />}
+      {earlierDay !== null && earlierPlan !== null && (
         <WeekPart
-          // Last month's days against the plan last month had (plan history).
-          plan={planForMonth(plan, planMonths, monthOf(earlierDay), today)}
+          plan={earlierPlan}
+          week={weekToSpend(earlierPlan, entries, earlierDay)}
           entries={entries}
           accounts={accounts}
           day={earlierDay}
           part="earlier"
-          withTotal={false}
         />
       )}
-      {/* What was forgotten is added right under the week against the plan, before the list of what was logged
-          (pain points, chunk 8). */}
-      <WeekPart plan={plan} entries={entries} accounts={accounts} day={today} part="this" withTotal>
+      {/* What was forgotten is added right under the week's envelopes, before the list of what was logged (pain
+          points, chunk 8). */}
+      <WeekPart plan={plan} week={week} entries={entries} accounts={accounts} day={today} part="this">
         <section aria-labelledby={addId} className={cardVariants()}>
-          <h3 id={addId} className="text-xl leading-tight font-extrabold">
+          <CardHeading id={addId} icon={NotebookPenIcon} tint={categoryTint('food')}>
             {t.checkIn.add.heading}
-          </h3>
+          </CardHeading>
           <QuickAddField />
           {/* Saving brings the person back here, to the check-in they were in. */}
           <LinkButton href="/entries/new?from=check-in" icon={PlusIcon}>
@@ -278,33 +416,18 @@ function CheckIn({
         </section>
       </WeekPart>
       <AwayToggle plan={plan} today={today} />
-
-      {/* A plain link, not <Link>: this is a file, and the browser or the phone's calendar app takes it from here. In
-          the button look, as every way on (16-11-2026: buttons, never text links). */}
-      <a href={calendarFileOf(lang)} className={linkButtonClass()}>
-        <CalendarPlusIcon aria-hidden="true" />
-        {t.checkIn.reminder}
-      </a>
-      {/* The other way to be reminded (weekly reminder, chunk 4): the two point to each other, so nobody gets both. The
-          sentence, then its button. */}
-      {remindersInBuild() && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm">{t.checkIn.reminderOr}</p>
-          <LinkButton href="/settings/reminder" icon={BellIcon}>
-            {t.checkIn.reminderOrLink}
-          </LinkButton>
-        </div>
-      )}
-    </div>
+      <ReminderCard />
+    </>
   );
 }
 
 /**
- * The Sunday look back: this week against the plan, what was logged, and a quick way to add what was
- * forgotten. It reads the whole database and updates by itself when an entry is saved.
+ * The Sunday look back: the week in one number, each envelope against this week, a quick way to add what was
+ * forgotten, and what was logged. It reads the whole database and updates by itself when an entry is saved. It holds
+ * the page's heading, so the week's days can sit over it.
  */
 export function CheckInView() {
-  const { t } = useT();
+  const { t, locale } = useT();
   // The date is null until the browser runs this (never the date of the prerender).
   const today = useToday();
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
@@ -312,18 +435,37 @@ export function CheckInView() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const planMonths = useLiveQuery(() => db.planMonths.toArray(), []);
 
-  if (today === null || plan === 'loading' || entries === undefined || accounts === undefined || planMonths === undefined) {
-    return null;
+  let dates: string | null = null;
+  let content: ReactNode = null;
+  if (today !== null && plan !== 'loading' && entries !== undefined && accounts !== undefined && planMonths !== undefined) {
+    if (plan === null) {
+      content = (
+        <div className="flex flex-col gap-3">
+          <p className="text-muted-foreground">{t.checkIn.noPlan}</p>
+          <LinkButton href="/setup" icon={ClipboardListIcon}>
+            {t.common.toSetup}
+          </LinkButton>
+        </div>
+      );
+    } else {
+      const week = weekToSpend(plan, entries, today);
+      dates = weekLabel(week.weekStart, week.weekEnd, locale);
+      content = (
+        <CheckIn plan={plan} planMonths={planMonths} entries={entries} accounts={accounts} today={today} week={week} />
+      );
+    }
   }
-  if (plan === null) {
-    return (
-      <div className="flex flex-col gap-3">
-        <p className="text-muted-foreground">{t.checkIn.noPlan}</p>
-        <LinkButton href="/setup" icon={ClipboardListIcon}>
-          {t.common.toSetup}
-        </LinkButton>
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* The week's days over the heading, as Home's date line is over the greeting (16-11-2026). The heading stays
+          first in the page and always there, so the focus a page change moves to it stays put while the data loads,
+          and the days are read right after it. */}
+      <div className="flex flex-col-reverse gap-1">
+        <PageHeading id="checkIn" />
+        {dates !== null && <DateLine>{dates}</DateLine>}
       </div>
-    );
-  }
-  return <CheckIn plan={plan} planMonths={planMonths} entries={entries} accounts={accounts} today={today} />;
+      {content}
+    </div>
+  );
 }
