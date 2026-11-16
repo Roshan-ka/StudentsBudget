@@ -4,7 +4,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ArchiveIcon,
   BellIcon,
-  ChevronRightIcon,
   ClipboardListIcon,
   CloudIcon,
   FileSpreadsheetIcon,
@@ -18,48 +17,46 @@ import {
   UserIcon,
   type LucideIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
-import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
 import { useSyncStatus } from '@/features/account/sync-status';
 import { useAuth } from '@/features/account/use-auth';
+import { categoryTint } from '@/features/charts/colors';
 import { amIModerator } from '@/features/hacks/moderation';
+import { RowCardLink } from '@/features/home/row-card';
 import { reminderSummary, remindersInBuild, usePhoneReminder } from '@/features/reminder/reminder';
 import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
 import { useThemeChoice } from '@/theme/store';
 import { accountsSummary, profileSummary } from './summaries';
 
-/** One row of the list: an icon, the page's name, what is set there, and a chevron. The whole row is the link. */
+/** The tile of the legal pages: no category of their own, so the neutral muted fill. */
+const NEUTRAL_TINT = 'var(--muted)';
+
+/**
+ * One row of the list as its own card, as on Home (Roshan's group 2 mockups, 16-11-2026): a tinted tile, the page's
+ * name, what is set there, and a chevron. The whole card is the link.
+ */
 function SettingsLink({
   href,
-  icon: Icon,
+  icon,
+  tint,
   title,
   summary,
 }: {
   href: string;
   icon: LucideIcon;
+  tint: string;
   title: string;
   summary: ReactNode;
 }) {
   return (
     <li>
-      <Link href={href} className="flex min-h-14 items-center gap-3 px-4 py-3">
-        <span
-          aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full border-[1.5px] border-outline"
-        >
-          <Icon className="size-4" />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="font-semibold">{title}</span>
-          <span className="text-sm text-muted-foreground">{summary}</span>
-        </span>
-        <ChevronRightIcon aria-hidden="true" className="size-4 shrink-0 rtl:rotate-180" />
-      </Link>
+      <RowCardLink href={href} icon={icon} tint={tint}>
+        <span className="font-semibold">{title}</span>
+        <span className="text-sm text-muted-foreground">{summary}</span>
+      </RowCardLink>
     </li>
   );
 }
@@ -87,6 +84,7 @@ function AccountLink() {
     <SettingsLink
       href="/settings/account"
       icon={CloudIcon}
+      tint={categoryTint('eating-out')}
       title={text.heading}
       summary={
         <>
@@ -127,6 +125,7 @@ function ModerationLink() {
     <SettingsLink
       href="/settings/moderation"
       icon={ShieldCheckIcon}
+      tint={categoryTint('other')}
       title={t.shell.headings.moderation}
       summary={t.tips.hacks.moderation.summary}
     />
@@ -145,6 +144,7 @@ function ReminderLink() {
     <SettingsLink
       href="/settings/reminder"
       icon={BellIcon}
+      tint={categoryTint('transport')}
       title={t.shell.headings.reminder}
       summary={reminderSummary(reminder, t.reminder)}
     />
@@ -170,12 +170,13 @@ export function SettingsLinks() {
   );
 
   return (
-    <ul className={cn(cardVariants(), 'gap-0 divide-y-[1.5px] divide-border p-0')}>
+    <ul className="flex flex-col gap-3">
       {/* Before a plan is saved the bottom nav doesn't show, so this is the way back to setup. */}
       {plan === null && (
         <SettingsLink
           href="/setup"
           icon={ClipboardListIcon}
+          tint="var(--accent)"
           title={t.setup.setupRow.title}
           summary={t.setup.setupRow.summary}
         />
@@ -183,6 +184,7 @@ export function SettingsLinks() {
       <SettingsLink
         href="/settings/accounts"
         icon={LandmarkIcon}
+        tint={categoryTint('rent')}
         title={t.shell.headings.accounts}
         summary={accounts ?? ' '}
       />
@@ -190,6 +192,7 @@ export function SettingsLinks() {
         <SettingsLink
           href="/settings/plan"
           icon={ListChecksIcon}
+          tint="var(--accent)"
           title={t.shell.headings.plan}
           summary={t.setup.editPlan.summary}
         />
@@ -197,12 +200,14 @@ export function SettingsLinks() {
       <SettingsLink
         href="/settings/profile"
         icon={UserIcon}
+        tint={categoryTint('food')}
         title={t.shell.headings.profile}
         summary={profileSummary(profile, t)}
       />
       <SettingsLink
         href="/settings/appearance"
         icon={THEME_ICONS[choice]}
+        tint={categoryTint('going-out')}
         title={t.shell.headings.appearance}
         summary={t.theme.choices[choice]}
       />
@@ -212,20 +217,29 @@ export function SettingsLinks() {
       <SettingsLink
         href="/settings/import"
         icon={FileSpreadsheetIcon}
+        tint={categoryTint('shopping')}
         title={t.shell.headings.importExport}
         summary={t.importExport.summary}
       />
-      <SettingsLink href="/settings/backup" icon={ArchiveIcon} title={t.shell.headings.backup} summary={t.backup.summary} />
+      <SettingsLink
+        href="/settings/backup"
+        icon={ArchiveIcon}
+        tint={categoryTint('one-off')}
+        title={t.shell.headings.backup}
+        summary={t.backup.summary}
+      />
       {/* The legal pages (legal pages, chunk 1): last, as on most apps. */}
       <SettingsLink
         href="/privacy"
         icon={ShieldCheckIcon}
+        tint={NEUTRAL_TINT}
         title={t.shell.headings.privacy}
         summary={t.common.legal.privacySummary}
       />
       <SettingsLink
         href="/impressum"
         icon={InfoIcon}
+        tint={NEUTRAL_TINT}
         title={t.shell.headings.impressum}
         summary={t.common.legal.impressumSummary}
       />
