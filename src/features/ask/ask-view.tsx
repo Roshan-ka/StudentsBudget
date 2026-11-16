@@ -46,7 +46,7 @@ function Answer({ reply }: { reply: AskReply }) {
           <p className="text-sm font-semibold">{text.sources}</p>
           {sources.flatMap((source) =>
             source.parts.map((part, i) => (
-              <RangeSource key={`${source.id}-${i}`} range={part} label={t.common.source.of(part.label)} />
+              <RangeSource key={`${source.id}-${i}`} range={part} covers={part.label} />
             )),
           )}
         </div>

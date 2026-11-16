@@ -10,17 +10,21 @@ import { formatWeekAmount } from '@/lib/week-amount';
 export const formatDay = (date: IsoDate, locale = 'en-IE'): string =>
   dateFormat(locale, { day: 'numeric', month: 'short' }).format(parseISO(date));
 
+/** A finished month's name and year, in `lang`: "October 2026", "Oktober 2026". The heading of its recap. */
+export function recapMonthLabel(month: IsoMonth, lang: Language = 'en'): string {
+  return dateFormat(LANGUAGES[lang].locale, { month: 'long', year: 'numeric' }).format(parseISO(`${month}-01`));
+}
+
 /**
- * One finished month of the recap, in `lang`: "October 2026: €15 left over → savings", or "October 2026: €12 over
- * plan". Calm either way. The month the plan was set up in counts whole, its plan and its spending, so its line is
- * like any other month's.
+ * How a finished month went, in `lang`: "€15 left over → savings", or "€12 over plan". Calm either way. The month the
+ * plan was set up in counts whole, its plan and its spending, so its line is like any other month's. It is the recap's
+ * big line, under the month's name (the new look, 16-11-2026; before, one line: "October 2026: €15 left over →
+ * savings").
  */
-export function recapLine(month: IsoMonth, leftoverMinor: Minor, lang: Language = 'en'): string {
+export function recapResult(leftoverMinor: Minor, lang: Language = 'en'): string {
   const text = MESSAGES[lang].reveal.recap;
-  const { locale } = LANGUAGES[lang];
-  const name = dateFormat(locale, { month: 'long', year: 'numeric' }).format(parseISO(`${month}-01`));
-  const amount = formatWeekAmount(leftoverMinor, locale).text;
-  if (leftoverMinor > 0) return text.savings(name, amount);
-  if (leftoverMinor < 0) return text.over(name, amount);
-  return text.onPlan(name);
+  const amount = formatWeekAmount(leftoverMinor, LANGUAGES[lang].locale).text;
+  if (leftoverMinor > 0) return text.savings(amount);
+  if (leftoverMinor < 0) return text.over(amount);
+  return text.onPlan;
 }

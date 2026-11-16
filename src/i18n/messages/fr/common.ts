@@ -29,8 +29,8 @@ export const common: Messages['common'] = {
     overdrawn: 'À découvert (sous zéro)',
   },
   source: {
-    label: 'Source',
-    of: (what) => `Source${NNBSP}: ${what}`,
+    for: (what) => `Source pour ${what}${NNBSP}:`,
+    listed: (what) => `${what}${NNBSP}:`,
     checked: (date) => `vérifié le ${date}`,
   },
   accountOption: (name, currency) => `${name} (${currency})`,

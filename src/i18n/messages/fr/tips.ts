@@ -50,7 +50,6 @@ export const tips: Messages['tips'] = {
     groups: { 'first-weeks': 'Premières semaines', money: 'Argent à demander' },
     who: { everyone: 'Tout le monde', 'from-abroad': 'Hors de l’UE', bafoeg: 'Avec le BAföG', 'under-25': 'Moins de 25 ans' },
     progress: (done: number, total: number) => `Fait${NNBSP}: ${done} sur ${total}`,
-    mark: 'Fait',
     doneOn: (date: string) => `Fait le ${date}`,
     markNamed: (title: string) => `Fait${NNBSP}: ${title}`,
     seeTip: 'Voir le conseil',
@@ -290,8 +289,6 @@ export const tips: Messages['tips'] = {
     line: (title, saving, per) => `Essaie ça${NNBSP}: ${title} · économise environ ${saving} par ${per}`,
     estimate: (line) => `${line} (estimation)`,
     details: (title) => `Détails${NNBSP}: ${title}`,
-    sources: 'D’où viennent ces chiffres',
-    sourceOf: (amount) => `D’où viennent ${amount}`,
     relatedTip: 'Conseil lié',
   },
 };

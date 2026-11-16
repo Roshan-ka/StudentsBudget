@@ -15,6 +15,7 @@ Each plan is in `docs/superpowers/plans/`, with an As built section that says wh
 | P2.2, sync, cut down to linking and Sync now | `2026-10-26-p2-2-live-sync.md` | done | Roshan's two-device check on the live site |
 | The local StudentsBudget MCP server | `2026-10-28-mcp-server.md` | done | |
 | MCP server: add an expense | `2026-11-16-mcp-add-expense.md` | chunk 1 built | a real try from Claude Code; an undo tool if wanted |
+| A remote, read-only MCP server for students (OAuth, an Edge Function) | `2026-11-16-remote-mcp-parked.md` | parked | starts after the legal pages and the email sender are live |
 | P2.3a, optional two-step sign-in | `2026-10-28-p2-3a-two-step-sign-in.md` | done | |
 | P2.3b, passkeys | `2026-10-29-p2-3b-passkeys-and-recovery-codes.md` | done | recovery codes parked |
 | Language switch, plan 1 (English and German) | `2026-11-02-language-switch.md` | done | native-speaker reads |

@@ -27,8 +27,8 @@ export const common: Messages['common'] = {
     overdrawn: 'Überzogen (unter null)',
   },
   source: {
-    label: 'Quelle',
-    of: (what) => `Quelle: ${what}`,
+    for: (what) => `Quelle für ${what}:`,
+    listed: (what) => `${what}:`,
     checked: (date) => `geprüft am ${date}`,
   },
   accountOption: (name, currency) => `${name} (${currency})`,

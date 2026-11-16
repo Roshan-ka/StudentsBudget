@@ -32,9 +32,10 @@ export const common = {
   },
   /** A city range's source, folded under its line. The source text itself is city content and stays English. */
   source: {
-    label: 'Source',
-    /** A source line that says what it covers: "Source: Eating out". */
-    of: (what: string) => `Source: ${what}`,
+    /** A source line's lead when it says what it covers: "Source for Eating out:", before the link. */
+    for: (what: string) => `Source for ${what}:`,
+    /** A source line's lead in a list of sources, the item first: "Eating out:", before the link. */
+    listed: (what: string) => `${what}:`,
     checked: (date: string) => `checked ${date}`,
   },
   /** An account in a picker: "Wise (INR)". */

@@ -229,6 +229,15 @@ describe.each(Object.entries(THEMES))('the %s theme', (theme, tokens) => {
       expect(value, `--primary on the track over --${surface}: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
     }
   });
+
+  // A checklist group's accent card (group 3 redesign, 16-11-2026): a primary bar on the track, which lies over the
+  // accent.
+  it('keeps the primary bar at 3:1 on its track over the accent, with a margin for rounding', () => {
+    const share = TRACK_SHARES[theme as keyof typeof TRACK_SHARES];
+    const track = over(linear(tokens.get('foreground') ?? ''), share, linear(tokens.get('accent') ?? ''));
+    const value = ratio(luminance(tokens.get('primary') ?? ''), track);
+    expect(value, `the primary bar on its track over the accent: ${value.toFixed(2)}:1`).toBeGreaterThanOrEqual(3.05);
+  });
 });
 
 /**

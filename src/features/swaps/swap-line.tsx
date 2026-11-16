@@ -7,28 +7,26 @@ import type { Swap } from '@/data/swaps';
 import { TIPS } from '@/data/tips';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import { swapIn, tipIn, type InLanguage } from '@/i18n/city';
-import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { cn } from '@/lib/utils';
 import { amountText, swapLineParts, type Suggestion } from './suggest';
 
 /**
- * One source block per amount: a swap whose cheaper amount sits on another page says where each one comes from. Both
- * carry the swap's `textLang`, so a source is marked English only while the swap is.
+ * One source line per amount: a swap whose cheaper amount sits on another page says which amount each line covers
+ * ("Source for €3.80: …"); one source for both is a plain source line. Both carry the swap's `textLang`, so a source
+ * is marked English only while the swap is.
  */
 function sourceBlocks(
   swap: InLanguage<Swap>,
-  t: Messages,
   locale: string,
-): { label: string; range: Pick<InLanguage<Swap>, 'source' | 'url' | 'checked' | 'textLang'> }[] {
-  const text = t.tips.swap;
+): { covers?: string; range: Pick<InLanguage<Swap>, 'source' | 'url' | 'checked' | 'textLang'> }[] {
   if (swap.toSource === undefined || swap.toUrl === undefined) {
-    return [{ label: text.sources, range: swap }];
+    return [{ range: swap }];
   }
   return [
-    { label: text.sourceOf(amountText(swap.fromMinor, locale)), range: swap },
+    { covers: amountText(swap.fromMinor, locale), range: swap },
     {
-      label: text.sourceOf(amountText(swap.toMinor, locale)),
+      covers: amountText(swap.toMinor, locale),
       range: { source: swap.toSource, url: swap.toUrl, checked: swap.checked, textLang: swap.textLang },
     },
   ];
@@ -80,8 +78,8 @@ export function SwapLine({ suggestion }: { suggestion: Suggestion }) {
           className="flex flex-col gap-3 rounded-md border-[1.5px] border-outline bg-card px-3 py-3 text-sm"
         >
           <p lang={swap.textLang}>{swap.body}</p>
-          {sourceBlocks(swap, t, locale).map(({ label, range }) => (
-            <RangeSource key={label} range={range} label={label} />
+          {sourceBlocks(swap, locale).map(({ covers, range }) => (
+            <RangeSource key={covers ?? range.url} range={range} covers={covers} about={covers ?? swap.title} />
           ))}
           {tip !== undefined && (
             <div className="flex flex-col gap-1 border-t pt-3">

@@ -47,7 +47,6 @@ export const tips = {
     groups: { 'first-weeks': 'First weeks', money: 'Money to claim' },
     who: { everyone: 'Everyone', 'from-abroad': 'From outside the EU', bafoeg: 'On BAföG', 'under-25': 'Under 25' },
     progress: (done: number, total: number) => `${done} of ${total} done`,
-    mark: 'Done',
     doneOn: (date: string) => `Done on ${date}`,
     /** The checkbox's name: its visible word, then the item. */
     markNamed: (title: string) => `Done: ${title}`,
@@ -304,8 +303,6 @@ export const tips = {
     line: (title: string, saving: string, per: string) => `Try this: ${title} · save about ${saving} per ${per}`,
     estimate: (line: string) => `${line} (estimate)`,
     details: (title: string) => `${title} details`,
-    sources: 'Where these numbers come from',
-    sourceOf: (amount: string) => `Where ${amount} comes from`,
     relatedTip: 'Related tip',
   },
 };

@@ -72,6 +72,30 @@ test('the checklist lists every item in its two groups, and a tick stays after a
   await expect.poll(() => readStore<ChecklistTick>(page, 'checklistTicks')).toEqual([]);
 });
 
+test('each group opens with a bar of its own count, and an item names its source in one line', async ({ page }) => {
+  // The group 3 look (16-11-2026): the group's accent card with its bar, then each item as a card with SourceLine.
+  const firstWeeks = CHECKLIST.filter((item) => item.group === 'first-weeks').length;
+  const money = CHECKLIST.filter((item) => item.group === 'money').length;
+  if (FIRST.group !== 'first-weeks') throw new Error('the first checklist item is no longer in First weeks');
+  const bar = (name: string) => panel(page).getByRole('progressbar', { name, exact: true });
+  await seedSetup(page);
+  await openChecklist(page);
+  await expect(bar('First weeks')).toHaveAttribute('aria-valuetext', `0 of ${firstWeeks} done`);
+
+  await tick(page, FIRST.title).check();
+  await expect(bar('First weeks')).toHaveAttribute('aria-valuetext', `1 of ${firstWeeks} done`); // proof: group-bar-count
+  await expect(bar('Money to claim')).toHaveAttribute('aria-valuetext', `0 of ${money} done`);
+
+  const item = panel(page)
+    .getByRole('listitem')
+    .filter({ has: page.getByRole('heading', { level: 4, name: FIRST.title, exact: true }) });
+  const host = new URL(FIRST.url).hostname.replace(/^www\./, '');
+  const line = item.getByText(`Source: ${host} · checked ${formatDate(FIRST.checked)}`, { exact: true });
+  await expect(line).toBeVisible(); // proof: checklist-source-line
+  await expect(item.locator('details')).toHaveCount(0);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
 test('"See the tip" opens the Tips tab on that tip, with its heading focused', async ({ page }) => {
   if (WITH_TIP === undefined) throw new Error('no checklist item links to a tip');
   const tip = TIPS.find((t) => t.id === WITH_TIP.tipId);

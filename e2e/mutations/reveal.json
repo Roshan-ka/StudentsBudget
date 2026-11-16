@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "A month's recap swaps what was spent and what was planned",
+      "file": "src/features/reveal/reveal-view.tsx",
+      "find": "t.reveal.spentOf(spent, planned)",
+      "replace": "t.reveal.spentOf(planned, spent)",
+      "expect": {
+        "e2e/reveal.spec.ts": [
+          "recap-spent-of"
+        ]
+      }
+    },
+    {
+      "name": "An envelope's card in the recap swaps its spending and its plan",
+      "file": "src/features/reveal/reveal-view.tsx",
+      "find": "t.charts.ofPlanned(spent, planned)",
+      "replace": "t.charts.ofPlanned(planned, spent)",
+      "expect": {
+        "e2e/reveal.spec.ts": [
+          "recap-envelope-line"
+        ]
+      }
+    }
+  ]
+}
