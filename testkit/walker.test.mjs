@@ -111,3 +111,22 @@ describe('walk', () => {
     expect(log.filter((step) => step.action === 'goto').every((step) => step.url === '/plan')).toBe(true);
   });
 });
+
+describe('a step that hangs', () => {
+  it('ends the walk, logged as hung with its time, and the watcher reports it', async () => {
+    // A page whose controls never come: reading them hangs.
+    const page = { url: () => 'http://localhost:3210/plan', on: () => {}, getByRole: () => ({ all: () => new Promise(() => {}) }) };
+    const watcher = watch(page, {});
+    const log = await walk(page, { seed: 1, steps: 10, stepLimit: 50, afterStep: watcher.check });
+    expect(log).toHaveLength(1);
+    expect(log[0]).toMatchObject({ n: 0, action: 'look', hung: true, missed: true, url: '/plan' });
+    expect(log[0].ms).toBeGreaterThanOrEqual(45);
+    expect(watcher.problems).toEqual(['step 0 (look on /plan) didn\'t finish in 0 s']);
+  });
+
+  it('logs how long each step took', async () => {
+    const page = { url: () => 'http://localhost:3210/plan', goBack: async () => {}, reload: async () => {}, getByRole: () => ({ all: async () => [] }) };
+    const log = await walk(page, { seed: 2, steps: 3 });
+    expect(log.every((step) => Number.isInteger(step.ms) && step.ms >= 0)).toBe(true);
+  });
+});

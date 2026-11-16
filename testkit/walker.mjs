@@ -116,46 +116,75 @@ async function perform(page, step) {
   }
 }
 
+const HUNG = Symbol('hung');
+
+/** The work's result, or HUNG when it takes longer than `limit` ms. */
+async function withinLimit(work, limit) {
+  let timer;
+  const late = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(HUNG), limit);
+  });
+  // Work that fails after the limit has passed fails unseen: the walk has ended by then.
+  work.catch(() => {});
+  try {
+    return await Promise.race([work, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * A seeded walk until `until` (a time) or `steps` steps: each step a control picked at random among those `mayUse`
  * allows, now and then back or a reload. A step that leaves the app (back past its first page, to about:blank) is
  * followed by a step back to the page the walk started on (`goto`), logged like any other so a replay does the same.
- * `afterStep(step)` runs after each (a watcher's check, say). Returns the log: every step as it was done,
- * `missed: true` where its control was gone by then.
+ * `afterStep(step)` runs after each (a watcher's check, say). Returns the log: every step as it was done, with how
+ * long it took (`ms`), and `missed: true` where its control was gone by then. A step that takes longer than
+ * `stepLimit` (reading the page's controls, or acting on one) ends the walk: it is logged with `hung: true` (as
+ * `look` when the page's controls never came), and `watch` reports it.
  * @param {any} page a Playwright page
- * @param {{ seed: number, until?: number, steps?: number, neverClick?: (string | RegExp)[], afterStep?: (step: any) => Promise<void> }} options
+ * @param {{ seed: number, until?: number, steps?: number, stepLimit?: number, neverClick?: (string | RegExp)[], afterStep?: (step: any) => Promise<void> }} options
  */
-export async function walk(page, { seed, until, steps = Infinity, neverClick = [], afterStep = async () => {} }) {
+export async function walk(page, { seed, until, steps = Infinity, stepLimit = 90_000, neverClick = [], afterStep = async () => {} }) {
   const random = seededRandom(seed);
   const start = page.url();
   const origin = new URL(start).origin;
   const log = [];
-  const done = async (n, step, ok) => {
-    const entry = { n, ...step, url: new URL(page.url()).pathname, ...(ok ? {} : { missed: true }) };
+  const done = async (n, step, ok, ms) => {
+    const entry = { n, ...step, url: new URL(page.url()).pathname, ms, ...(ok ? {} : { missed: true }) };
     log.push(entry);
     await afterStep(entry);
   };
   for (let n = 0; n < steps && (until === undefined || Date.now() < until); n += 1) {
-    const roll = random();
+    const began = Date.now();
     let step;
-    if (roll < 0.04) step = { action: 'back' };
-    else if (roll < 0.06) step = { action: 'reload' };
-    else {
-      const usable = (await controls(page)).filter((c) => mayUse(c, { neverClick, origin }));
-      if (usable.length === 0) step = { action: 'back' };
+    const work = (async () => {
+      const roll = random();
+      if (roll < 0.04) step = { action: 'back' };
+      else if (roll < 0.06) step = { action: 'reload' };
       else {
-        const control = pick(random, usable);
-        const { role, name, nth } = control;
-        if (role === 'textbox') step = { action: 'fill', role, name, nth, value: fieldValue(random) };
-        else if (role === 'combobox' && control.options) step = { action: 'select', role, name, nth, value: Math.floor(random() * control.options) };
-        else step = { action: 'click', role, name, nth };
+        const usable = (await controls(page)).filter((c) => mayUse(c, { neverClick, origin }));
+        if (usable.length === 0) step = { action: 'back' };
+        else {
+          const control = pick(random, usable);
+          const { role, name, nth } = control;
+          if (role === 'textbox') step = { action: 'fill', role, name, nth, value: fieldValue(random) };
+          else if (role === 'combobox' && control.options) step = { action: 'select', role, name, nth, value: Math.floor(random() * control.options) };
+          else step = { action: 'click', role, name, nth };
+        }
       }
+      return perform(page, step);
+    })();
+    const ok = await withinLimit(work, stepLimit);
+    if (ok === HUNG) {
+      await done(n, { ...(step ?? { action: 'look' }), hung: true }, false, Date.now() - began);
+      break;
     }
-    await done(n, step, await perform(page, step));
+    await done(n, step, ok, Date.now() - began);
     if (originOf(page) !== origin && n + 1 < steps) {
       n += 1;
       const home = { action: 'goto', to: start };
-      await done(n, home, await perform(page, home));
+      const homeBegan = Date.now();
+      await done(n, home, await perform(page, home), Date.now() - homeBegan);
     }
   }
   return log;
@@ -213,6 +242,7 @@ export function watch(page, { consoleAllow = [], forbidden = [] } = {}) {
     problems,
     async check(step) {
       at = `after step ${step.n} (${step.action}${step.name ? ` "${step.name}"` : ''} on ${step.url})`;
+      if (step.hung) problems.push(`step ${step.n} (${step.action}${step.name ? ` "${step.name}"` : ''} on ${step.url}) didn't finish in ${Math.round(step.ms / 1000)} s`);
       for (const { what, locator } of forbidden) {
         if (await locator.isVisible().catch(() => false)) problems.push(`${at}: ${what} is shown`);
       }

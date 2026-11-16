@@ -21,7 +21,9 @@ const WALKERS = { outsider: BASE_MINUTES / 2, student: BASE_MINUTES, moderator: 
 
 for (const [who, minutes] of Object.entries(WALKERS)) {
   test(`the random clicker as ${who}`, { tag: '@monkey' }, async ({ page, makeUser, moderator }, testInfo) => {
-    test.setTimeout(minutes * 60_000 + 3 * 60_000);
+    // The walk, plus the sign-in (up to 90 s), one step that hangs (walk's 90 s limit) and the log: the moderator's walk
+    // ran past 3 minutes of slack on the second night (run 43699699544), with no log to say where.
+    test.setTimeout(minutes * 60_000 + 5 * 60_000);
     // No AI calls and no exchange-rate server: the walk is about the app, and the network guard allows neither.
     await aiSwitchedOff(page);
     await mockFrankfurter(page);
@@ -43,14 +45,22 @@ for (const [who, minutes] of Object.entries(WALKERS)) {
     const forbidden = who === 'moderator' ? [] : [{ what: 'the moderation queue', locator: page.getByRole('list', { name: 'Reported posts', exact: true }) }];
     const watcher = watch(page, { consoleAllow: CONSOLE_ALLOW, forbidden });
     const seed = Number(process.env.MONKEY_SEED ?? Date.now() % 2 ** 31);
-    const log = REPLAY
-      ? await replay(page, readLog(fs.readFileSync(REPLAY, 'utf8')), { afterStep: watcher.check })
-      : await walk(page, { seed, until: Date.now() + minutes * 60_000, neverClick: NEVER_CLICK, afterStep: watcher.check });
-
+    // Each step goes to the log as it is done, so a walk cut off by the test's timeout still leaves its steps.
     fs.mkdirSync(LOG_DIR, { recursive: true });
     const file = path.join(LOG_DIR, `${who}-${testInfo.project.name}-${REPLAY ? 'replay' : seed}.jsonl`);
-    fs.writeFileSync(file, logText(log));
-    await testInfo.attach('steps', { path: file, contentType: 'text/plain' });
+    fs.writeFileSync(file, '');
+    const afterStep = async (step: object) => {
+      fs.appendFileSync(file, logText([step]));
+      await watcher.check(step);
+    };
+    let log: object[];
+    try {
+      log = REPLAY
+        ? await replay(page, readLog(fs.readFileSync(REPLAY, 'utf8')), { afterStep })
+        : await walk(page, { seed, until: Date.now() + minutes * 60_000, neverClick: NEVER_CLICK, afterStep });
+    } finally {
+      await testInfo.attach('steps', { path: file, contentType: 'text/plain' });
+    }
     const again = `npm run test:monkey -- --replay ${path.relative(process.cwd(), file).replace(/\\/g, '/')}`;
     expect(watcher.problems, `the walk as ${who}, seed ${seed}, ${log.length} steps; walk it again: ${again}`).toEqual([]);
   });

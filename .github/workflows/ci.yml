@@ -435,6 +435,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install chromium
+      # The stack starts before the mocked proofs: red-green.mjs gives each run a free port from the system, which can
+      # be one of the stack's fixed ports (54321-54327); a server left on 54324 kept the stack from starting on the first
+      # night (run 43578581580). Its variables join the job's environment only after the mocked proofs.
+      - if: needs.changes.outputs.prove_real != ''
+        run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
       - if: needs.changes.outputs.prove_mocked != ''
         env:
           SPECS: ${{ needs.changes.outputs.prove_mocked }}
@@ -442,8 +447,6 @@ jobs:
         run: |
           # shellcheck disable=SC2086
           node testkit/red-green.mjs --mutations e2e/mutations --project desktop-chrome --shard "$SHARD" $SPECS
-      - if: needs.changes.outputs.prove_real != ''
-        run: npm run supabase:start -- --exclude studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,supavisor,postgres-meta
       - if: needs.changes.outputs.prove_real != ''
         run: |
           node scripts/supabase-test-env.mjs >> "$GITHUB_ENV"
