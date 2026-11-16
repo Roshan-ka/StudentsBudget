@@ -409,10 +409,9 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
 - A project `.npmrc` with `save-exact=true` (never the global npm config); versions listed in this file.
 - Never run `npm audit fix --force`: it has downgraded `shadcn` 4.21.5 to 1.0.0 twice (11-11 and 12-11-2026) and rewritten the lockfile without fixing anything.
 - **Security bumps** go through the heavy lane as lockfile-only changes that take nothing newer than two weeks: `npm install <pkg>@<version> --save-exact --package-lock-only --before=<date>` for a direct dependency, `npm update <pkg> --package-lock-only --before=<date>` for one inside a parent's range. Then `npm audit --package-lock-only`, and a check that no version went down.
-- **The audit on 13-11-2026:** the five high findings went with shadcn 4.23.0 (its zod 3 copies, `systeminformation`), `body-parser` 2.4.0 and `fast-uri` 3.1.9. Left, all in dev tools (12 moderate, 2 low):
+- **The audit on 13-11-2026:** the five high findings went with shadcn 4.23.0 (its zod 3 copies, `systeminformation`), `body-parser` 2.4.0 and `fast-uri` 3.1.9. On 16-11-2026 `hono` 4.13.16 and `@hono/node-server` 2.1.6 (under the MCP server's `@modelcontextprotocol/sdk`) took two moderate findings with them, by `npm update hono @hono/node-server` as above. Left, all in dev tools (10 moderate, 2 low):
   - `minimatch` < 11.0.1 under `typescript-eslint` ≤ 8.72.2 (ESLint's parser) and under shadcn's `ts-morph`: they wait for releases on minimatch 11.0.1+ that are two weeks old;
-  - `deepmerge` under shadcn's registry (low): its only "fix" is shadcn 1.0.0, never;
-  - `hono` ≤ 4.13.15 and `@hono/node-server` ≤ 2.1.5 under the MCP server's `@modelcontextprotocol/sdk`: the fixes (hono 4.13.16 of 01-11, node-server 2.1.6 of 02-11) are two weeks old from 15-11 and 16-11-2026, then an `npm update hono @hono/node-server` as above.
+  - `deepmerge` under shadcn's registry (low): its only "fix" is shadcn 1.0.0, never.
 - `.gitattributes` with `* text=auto eol=lf`.
 - Conventional Commits, ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - One branch and one Draft PR per day, from `main`. Nothing is pushed to `main` after the initial commit, and Roshan merges.
