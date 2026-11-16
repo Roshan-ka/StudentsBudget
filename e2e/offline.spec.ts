@@ -1,6 +1,8 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { MESSAGES } from '../src/i18n/messages';
 import { chooseLanguage } from './helpers/languages';
+import { OCR_SET } from '../src/features/receipts/ocr-set';
+import { drawnReceipt, receiptNoteSeen, scanPhoto } from './helpers/receipt';
 import { completeSetup } from './helpers/setup';
 
 // Run by playwright.offline.config.ts against a production build: the service worker only exists there.
@@ -207,3 +209,37 @@ test('the discount map opens offline after one online visit, from a cache of its
   await page.reload();
   await expect(map).toHaveAttribute('data-map-ready', '', { timeout: 20_000 });
 });
+
+test('a receipt is read offline after one online scan, from a cache of its own', async ({ page, context }) => {
+  // Two real readings: the first loads the engine (about 8.4 MB) through the worker and reads, the second reads from
+  // the worker's cache alone. The CI runner's time is to be measured in the first run, and this limit set to it.
+  test.setTimeout(120_000);
+  await receiptNoteSeen(page);
+  await completeSetup(page);
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  // Loaded again under the worker, so the engine's files go through it.
+  await page.goto('/entries');
+  const card = page.getByRole('region', { name: 'Check the receipt', exact: true });
+  const amount = card.getByRole('textbox', { name: 'Amount', exact: true });
+
+  await scanPhoto(page, await drawnReceipt(page));
+  await expect(amount).toHaveValue('12.34', { timeout: 60_000 });
+  await card.getByRole('button', { name: 'Discard', exact: true }).click();
+
+  // The worker kept the engine apart from the build's cache: the module, the worker script, a core and both languages.
+  const kept = await page.evaluate(async (name) => {
+    if (!(await caches.keys()).includes(name)) return null;
+    return (await (await caches.open(name)).keys()).map((request) => new URL(request.url).pathname);
+  }, `studentsbudget-ocr-${OCR_SET.id}`);
+  expect(kept).not.toBeNull();
+  for (const file of ['tesseract.esm.min.js', 'worker.min.js', 'lang/deu.traineddata.gz', 'lang/eng.traineddata.gz']) {
+    expect(kept, file).toContain(`/ocr/${OCR_SET.id}/${file}`);
+  }
+  expect(kept?.some((path) => /\/tesseract-core-(simd-)?lstm\.wasm\.js$/.test(path))).toBe(true);
+
+  await context.setOffline(true);
+  await page.reload();
+  await scanPhoto(page, await drawnReceipt(page));
+  await expect(amount).toHaveValue('12.34', { timeout: 60_000 });
+});
+
