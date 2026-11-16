@@ -52,7 +52,8 @@ function anyTryThis(page: Page) {
 async function expectSource(details: Locator, lead: string, about: string, source: string, host: string, url: string) {
   await expect(details.locator('details')).toHaveCount(0);
   // By its link's name too: the linked tip's own source line can read the same (same host, same checked date).
-  const named = details.getByRole('link', { name: `${host}, ${about}`, exact: true });
+  // A filter's `has` is looked up inside each match, so it starts from the page, not from `details`.
+  const named = details.page().getByRole('link', { name: `${host}, ${about}`, exact: true });
   const line = details
     .getByText(`${lead} ${host} · checked ${formatDate('2026-10-20')}`, { exact: true })
     .filter({ has: named });
