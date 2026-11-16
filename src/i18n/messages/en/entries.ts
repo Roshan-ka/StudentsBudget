@@ -84,6 +84,31 @@ export const entries = {
       failed: "Couldn't hear that. Try again, or type it.",
     },
   },
+  /** The receipt scan (docs/superpowers/plans/2026-11-13-receipt-scan.md): read on the phone, checked, then saved. */
+  scan: {
+    /** The button beside "Import a bank statement", and the card's heading while a photo is read. */
+    button: 'Scan a receipt',
+    /** Once per phone, before the first scan. `size` is the download in MB, written in the language ("10"). */
+    firstScan: (size: string) =>
+      `Your first scan downloads the receipt reader once, about ${size} MB. After that, scanning works offline.`,
+    continue: 'Continue',
+    cancel: 'Cancel',
+    reading: 'Reading the receipt…',
+    /** The progress bar's name. */
+    progress: 'Reading progress',
+    onPhone: "Read on this phone. The photo isn't sent or kept.",
+    /** The thumbnail's text. */
+    photo: 'Photo of the receipt',
+    checkHeading: 'Check the receipt',
+    checkHint: 'Change anything that was read wrong, then save.',
+    failedHeading: "Couldn't read this receipt",
+    failedHint: 'Faded or crumpled receipts are hard to read. Type in what it says, or try another photo.',
+    /** Under the hint when reading failed while the phone was offline: the first scan's download needs a connection. */
+    offline: "You're offline. The first scan needs a connection to download the receipt reader.",
+    tryAgain: 'Try another photo',
+    pickCategory: 'Pick a category.',
+    discard: 'Discard',
+  },
   /** buildEntry's answers to an expense or income it can't save. */
   errors: {
     enterAmount: 'Enter an amount.',
