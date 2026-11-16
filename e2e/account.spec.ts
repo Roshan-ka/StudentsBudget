@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Plan } from '../src/db/types';
+import { MESSAGES } from '../src/i18n/messages';
 import { mockAiFunction } from './helpers/ai';
 import { waitForApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
@@ -207,10 +208,8 @@ test('signed in, AI features holds this phone’s switch: on until turned off, a
   await signIn(page, EMAIL, PASSWORD);
   await expect(signedInLine(page, EMAIL)).toBeVisible();
   await expect(use).toBeChecked();
-  await expect(use).toHaveAccessibleDescription(
-    'They send what you write to Groq, an AI service in the USA, within a daily allowance for your account. Off, ' +
-      'nothing goes to Groq, and quick add reads your lines on this phone.',
-  );
+  // The dictionary's own words, so a wording change doesn't break the check.
+  await expect(use).toHaveAccessibleDescription(MESSAGES.en.auth.ai.hint);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
   await use.uncheck();
