@@ -29,6 +29,7 @@ import { focusOnMount, useFocusAfter } from '@/lib/focus';
 import { formatMoney, parseAmount } from '@/lib/money';
 import { readPref, writePref } from '@/lib/phone-pref';
 import { cn } from '@/lib/utils';
+import { receiptEngine } from './engine';
 import { readReceipt } from './read-receipt';
 import { chipIds, draftOf, type ReceiptEngine, type ScanDraft } from './scan';
 
@@ -78,7 +79,7 @@ function Photo({ src, alt, large = false }: { src: string; alt: string; large?: 
  * The photo stays in the page's memory as a `blob:` URL, revoked once its card goes. Leaving the page stops a scan in
  * flight; a card being checked stays.
  */
-export function ScanReceipt({ engine }: { engine: ReceiptEngine }) {
+export function ScanReceipt({ engine = receiptEngine }: { engine?: ReceiptEngine }) {
   const id = useId();
   const { t, lang, locale } = useT();
   const words = t.entries.scan;
@@ -300,15 +301,8 @@ export function ScanReceipt({ engine }: { engine: ReceiptEngine }) {
 
   return (
     <div className="flex flex-col gap-2" style={keepHeight === null ? undefined : { minHeight: keepHeight }}>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden="true"
-        onChange={onFile}
-      />
+      {/* Out of sight and out of the tab order: the buttons open it. */}
+      <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
 
       {phase.kind === 'idle' && (
         <div className="grid grid-cols-2 gap-2">
@@ -323,7 +317,7 @@ export function ScanReceipt({ engine }: { engine: ReceiptEngine }) {
       {phase.kind === 'note' && (
         <div role="group" aria-label={words.button} className={cn(cardVariants(), 'gap-2 text-sm')}>
           <p ref={focusOnMount} tabIndex={-1} className="outline-none">
-            {words.firstScan(new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(engine.downloadMb))}
+            {words.firstScan(new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(engine.downloadMb))}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button

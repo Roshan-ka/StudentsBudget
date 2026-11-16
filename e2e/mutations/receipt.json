@@ -1,0 +1,104 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the first scan opens the picker without the note on the download",
+      "file": "src/features/receipts/scan-receipt.tsx",
+      "find": "    if (readPref(NOTE_KEY) === null) {",
+      "replace": "    if (false) {",
+      "expect": {
+        "e2e/receipt.spec.ts": [
+          "first-scan-note"
+        ]
+      }
+    },
+    {
+      "name": "the check card opens without taking the focus",
+      "file": "src/features/receipts/scan-receipt.tsx",
+      "find": "ref={focusOnMount} tabIndex={-1} className={headingClass}>\n                {phase.found",
+      "replace": "tabIndex={-1} className={headingClass}>\n                {phase.found",
+      "expect": {
+        "e2e/receipt.spec.ts": [
+          "check-heading-focused"
+        ]
+      }
+    },
+    {
+      "name": "the read category shows as a chip like the others",
+      "file": "src/features/receipts/scan-receipt.tsx",
+      "find": "aria-pressed={pressed}",
+      "replace": "aria-pressed={false}",
+      "expect": {
+        "e2e/receipt.spec.ts": [
+          "read-category-pressed"
+        ]
+      }
+    },
+    {
+      "name": "Save says nothing of what it saved",
+      "file": "src/features/receipts/scan-receipt.tsx",
+      "find": "      setSaved({ id: result.entry.id, message: t.entries.quickAdd.saved(what) });\n",
+      "replace": "",
+      "expect": {
+        "e2e/receipt.spec.ts": [
+          "saved-line"
+        ]
+      }
+    },
+    {
+      "name": "after Save the focus falls where it may",
+      "file": "src/features/receipts/scan-receipt.tsx",
+      "find": "      setMoreOpen(false);\n      focus.mark('scan');\n      setPhase({ kind: 'idle' });\n",
+      "replace": "      setMoreOpen(false);\n      setPhase({ kind: 'idle' });\n",
+      "expect": {
+        "e2e/receipt.spec.ts": [
+          "focus-back-after-save"
+        ]
+      }
+    },
+    {
+      "name": "Undo takes the line away but keeps the entry",
+      "file": "src/features/receipts/scan-receipt.tsx",
+      "find": "await deleteEntry(saved.id);",
+      "replace": "void saved.id;",
+      "expect": {
+        "e2e/receipt.spec.ts": [
+          "undo-removes"
+        ]
+      }
+    },
+    {
+      "name": "a receipt with no total reads as checked",
+      "file": "src/features/receipts/scan-receipt.tsx",
+      "find": "{phase.found ? words.checkHeading : words.failedHeading}",
+      "replace": "{words.checkHeading}",
+      "expect": {
+        "e2e/receipt.spec.ts": [
+          "couldnt-read"
+        ]
+      }
+    },
+    {
+      "name": "the bar stays empty while the engine reads",
+      "file": "src/features/receipts/scan-receipt.tsx",
+      "find": "aria-valuenow={percent}",
+      "replace": "aria-valuenow={0}",
+      "expect": {
+        "e2e/receipt.spec.ts": [
+          "progress-bar"
+        ]
+      }
+    },
+    {
+      "name": "Cancel and Discard leave the focus where it falls",
+      "file": "src/features/receipts/scan-receipt.tsx",
+      "find": "    setMoreOpen(false);\n    focus.mark('scan');\n    setPhase({ kind: 'idle' });\n  }\n",
+      "replace": "    setMoreOpen(false);\n    setPhase({ kind: 'idle' });\n  }\n",
+      "expect": {
+        "e2e/receipt.spec.ts": [
+          "cancel-focus"
+        ]
+      }
+    }
+  ]
+}
