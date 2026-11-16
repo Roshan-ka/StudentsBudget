@@ -147,6 +147,22 @@ describe('the live smoke (e2e-live/, .github/workflows/live-smoke.yml)', () => {
     expect(config.match(/name: '[\w-]+'/g)).toEqual(["name: 'desktop-chrome'"]);
   });
 
+  it('removes the page snapshots a failure leaves (error-context.md), in the teardown and in the workflow', () => {
+    // No setting keeps a failed check on a locator from writing the page into error-context.md (Playwright 1.64).
+    expect(config).toContain("globalTeardown: './global-teardown.ts',");
+    expect(read('e2e-live/global-teardown.ts')).toContain('removeErrorContexts(');
+    const smoke = block(workflow, '  smoke').join('\n');
+    const removal = smoke.search(/- if: always\(\)\n\s+run: rm -rf test-results\/live$/m);
+    expect(removal, 'an always() step removing test-results/live').toBeGreaterThan(smoke.indexOf('npx playwright test -c e2e-live/'));
+  });
+
+  it('gives a retry time to wait for a code it has not typed yet', () => {
+    // A code is typed once only: a retry can wait up to 30 s for the next window (e2e-live/account.ts). The config's own
+    // timeout, at its top level (the web server's is deeper in).
+    const timeout = Number(/^ {2}timeout: ([\d_]+),/m.exec(config)?.[1].replace(/_/g, ''));
+    expect(timeout).toBeGreaterThanOrEqual(90_000);
+  });
+
   it('starts on a schedule or by hand only, one run at a time, and uploads nothing', () => {
     expect(keysOf(block(workflow, 'on'))).toEqual(['schedule', 'workflow_dispatch']);
     expect(block(workflow, 'concurrency').map((line) => line.trim())).toEqual(['group: live-smoke', 'cancel-in-progress: false', '']);

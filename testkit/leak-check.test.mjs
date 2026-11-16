@@ -1,5 +1,8 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { base32Bytes, codesBetween, findLeaks, recordings, redact, totp } from './leak-check.mjs';
+import { base32Bytes, codesBetween, filesUnder, findLeaks, recordings, redact, removeErrorContexts, totp } from './leak-check.mjs';
 
 describe('totp', () => {
   // RFC 6238, appendix B: the SHA-1 key "12345678901234567890" (base32 GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ), 8 digits there;
@@ -52,8 +55,26 @@ describe('findLeaks', () => {
 });
 
 describe('recordings', () => {
-  it('names traces, screenshots and videos, and nothing else', () => {
-    const files = ['r/a/trace.zip', 'r/a/test-failed-1.png', 'r/a/video.webm', 'r/a/error-context.md', 'r/.totp-step', 'r/.last-run.json'];
-    expect(recordings(files)).toEqual(['r/a/trace.zip', 'r/a/test-failed-1.png', 'r/a/video.webm']);
+  it('names traces, screenshots, videos and error-context.md (a snapshot of the page), and nothing else', () => {
+    const files = ['r/a/trace.zip', 'r/a/test-failed-1.png', 'r/a/video.webm', 'r/a/error-context.md', 'r/a/notes.md', 'r/.totp-step', 'r/.last-run.json'];
+    expect(recordings(files)).toEqual(['r/a/trace.zip', 'r/a/test-failed-1.png', 'r/a/video.webm', 'r/a/error-context.md']);
+  });
+});
+
+describe('removeErrorContexts', () => {
+  it('removes every error-context.md under the folder, and leaves the other files', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'leak-check-'));
+    try {
+      for (const file of ['a/error-context.md', 'a-retry1/error-context.md', 'a/notes.md', '.totp-step']) {
+        fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+        fs.writeFileSync(path.join(dir, file), 'x');
+      }
+      const removed = removeErrorContexts(dir).map((file) => path.relative(dir, file).replace(/\\/g, '/'));
+      expect(removed.sort()).toEqual(['a-retry1/error-context.md', 'a/error-context.md']);
+      expect(filesUnder(dir).map((file) => path.relative(dir, file).replace(/\\/g, '/')).sort()).toEqual(['.totp-step', 'a/notes.md']);
+      expect(removeErrorContexts(path.join(dir, 'missing'))).toEqual([]);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
