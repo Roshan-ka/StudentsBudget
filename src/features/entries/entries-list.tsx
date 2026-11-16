@@ -2,18 +2,19 @@
 
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowLeftRightIcon, ChevronLeftIcon, ChevronRightIcon, XIcon } from 'lucide-react';
+import { ArrowLeftRightIcon, ChevronLeftIcon, ChevronRightIcon, ReceiptTextIcon, XIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState, type Ref } from 'react';
-import { LinkButton, linkButtonClass } from '@/components/link-button';
-import { Button } from '@/components/ui/button';
+import { LinkButton } from '@/components/link-button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { CATEGORIES } from '@/data/categories';
 import { db } from '@/db/db';
 import { deleteEntry, entriesInRange } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
 import { categoryTint } from '@/features/charts/colors';
+import { ROW_CARD, RowTile } from '@/features/home/row-card';
 import { categoryNameIn } from '@/i18n/category-name';
 import { dateFormat, dayLabel } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
@@ -31,6 +32,9 @@ const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 
 /** The focus key of the list itself, for the last entry of a month that is deleted. */
 const LIST_KEY = 'entries-list';
+
+/** Previous and Next: an outlined square of 44 px around its chevron. */
+const MONTH_BUTTON = cn(buttonVariants({ variant: 'outline' }), 'size-11 shrink-0 px-0');
 
 /** "Oct 2026". */
 function labelOf(month: IsoMonth, locale: string): string {
@@ -74,24 +78,29 @@ function EntryRow({
   const currency = accounts.find((a) => a.id === entry.accountId)?.currency ?? 'EUR';
 
   const { title, label } = entryTitle(entry, t);
-  // A transfer has no category: a neutral tile with arrows both ways.
+  // A transfer has no category: a neutral card with arrows both ways.
   const Icon = entry.type === 'transfer' ? ArrowLeftRightIcon : (CATEGORY_ICONS[entry.categoryId] ?? OTHER_ICON);
+  // "Category · Account" under the title; the category is left out where the title already is it ("Rent", not
+  // "Rent" over "Rent"). Each part is its own span, so a part can be found on its own.
   const details = [
     label,
-    entry.type === 'transfer' ? `${accountName(entry.accountId)} → ${accountName(entry.toAccountId)}` : null,
+    entry.type === 'transfer'
+      ? `${accountName(entry.accountId)} → ${accountName(entry.toAccountId)}`
+      : accountName(entry.accountId),
   ].filter((part) => part !== null);
 
   return (
+    // Each entry its own small card in its category's tint (tokens.test.ts holds the text on every tint to 4.5:1).
     <button
       ref={buttonRef}
       type="button"
       onClick={onOpen}
-      className="flex min-h-14 w-full items-center gap-3 py-2.5 text-start"
+      className="flex min-h-14 w-full items-center gap-3 rounded-lg border-[1.5px] border-outline bg-muted p-3 text-start shadow-offset"
+      style={entry.type === 'transfer' ? undefined : { backgroundColor: categoryTint(entry.categoryId) }}
     >
       <span
         aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-muted"
-        style={entry.type === 'transfer' ? undefined : { backgroundColor: categoryTint(entry.categoryId) }}
+        className="flex size-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card/80"
       >
         <Icon className="size-5" />
       </span>
@@ -100,7 +109,14 @@ function EntryRow({
           <span className="font-semibold break-words">{title}</span>
           {isRecurring(entry) && <RecurringTag className="ms-2 align-middle" />}
         </span>
-        {details.length > 0 && <span className="block text-sm text-muted-foreground">{details.join(' · ')}</span>}
+        <span className="block text-sm break-words text-muted-foreground">
+          {details.map((part, index) => (
+            <span key={index}>
+              {index > 0 && ' · '}
+              <span>{part}</span>
+            </span>
+          ))}
+        </span>
       </span>
       <span className="shrink-0 font-semibold tabular-nums">
         {entry.type === 'income' ? '+' : ''}
@@ -135,7 +151,7 @@ function EditPanel({ entry, onClose, onDeleted }: { entry: Entry; onClose: () =>
   }
 
   return (
-    <section aria-label={text.heading} className={cn(cardVariants(), 'my-2 gap-4')}>
+    <section aria-label={text.heading} className={cn(cardVariants(), 'gap-4')}>
       {/* Inside a day's group, whose date is the h3. */}
       <h4 ref={headingRef} tabIndex={-1} className="text-xl leading-tight font-extrabold outline-none">
         {text.heading}
@@ -224,9 +240,6 @@ export function EntriesList() {
   const entries = loaded.entries.filter((e) => category === null || (e.type !== 'transfer' && e.categoryId === category));
   // Clear goes back to the current month with no category, so it is only worth showing when that is a change.
   const filtered = category !== null || loaded.month !== loaded.thisMonth;
-  const summary = [category === null ? null : categoryNameIn(t, category), labelOf(loaded.month, locale)].filter(
-    (p) => p !== null,
-  );
 
   // A deleted entry hands the focus to the one after it, else the one before, else the list itself.
   const neighbour = (id: string): string => {
@@ -241,45 +254,45 @@ export function EntriesList() {
       aria-label={text.label}
       className="flex flex-col gap-3 outline-none"
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm text-muted-foreground">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span>{summary.join(' · ')}</span>
-          {filtered && (
-            <>
-              <span aria-hidden="true">{' · '}</span>
-              <LinkButton href="/entries" icon={XIcon}>
-                {text.clear}
-              </LinkButton>
-            </>
-          )}
-        </p>
-        {/* Two outlined buttons (16-11-2026: buttons, never text links), one under the other where they don't fit
-            side by side (large text). The chevrons are decoration: a screen reader says only "Previous" and "Next". */}
-        <nav aria-label={text.monthNav} className="flex flex-wrap items-center gap-2">
-          <LinkButton
-            href={listHref(shiftMonth(loaded.month, -1), category)}
-            icon={ChevronLeftIcon}
-            iconClassName="rtl:rotate-180"
-          >
-            {text.previous}
+      {/* The month in the middle, between two outlined arrow buttons (Roshan's group 2 mockups, 16-11-2026). Their
+          words are there for a screen reader only: it says "Previous" and "Next", the chevrons are decoration. */}
+      <nav aria-label={text.monthNav} className="flex items-center justify-between gap-2">
+        <Link href={listHref(shiftMonth(loaded.month, -1), category)} className={MONTH_BUTTON}>
+          <ChevronLeftIcon aria-hidden="true" className="rtl:rotate-180" />
+          <span className="sr-only">{text.previous}</span>
+        </Link>
+        <p className="min-w-0 text-center font-heading text-lg font-bold break-words">{labelOf(loaded.month, locale)}</p>
+        <Link href={listHref(shiftMonth(loaded.month, 1), category)} className={MONTH_BUTTON}>
+          <ChevronRightIcon aria-hidden="true" className="rtl:rotate-180" />
+          <span className="sr-only">{text.next}</span>
+        </Link>
+      </nav>
+      {/* The category kept, and Clear, once the list is anything but this month in full. */}
+      {filtered && (
+        <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          {category !== null && <span>{categoryNameIn(t, category)}</span>}
+          <LinkButton href="/entries" icon={XIcon}>
+            {text.clear}
           </LinkButton>
-          <Link href={listHref(shiftMonth(loaded.month, 1), category)} className={linkButtonClass()}>
-            {text.next}
-            <ChevronRightIcon aria-hidden="true" className="rtl:rotate-180" />
-          </Link>
-        </nav>
-      </div>
+        </p>
+      )}
 
       {entries.length === 0 ? (
-        <p className="text-muted-foreground">{text.nothingYet}</p>
+        <div className={cn(cardVariants(), ROW_CARD)}>
+          <RowTile icon={ReceiptTextIcon} tint="var(--muted)" />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <p className="font-semibold">{text.nothingYet}</p>
+            <p className="text-sm text-muted-foreground">{text.nothingYetHint}</p>
+          </div>
+        </div>
       ) : (
         groupByDate(entries).map((group) => (
           <div key={group.date} className="flex flex-col gap-1.5">
             <h3 className="font-sans text-sm font-semibold tracking-normal text-muted-foreground">
               {dayLabel(group.date, locale)}
             </h3>
-            {/* One card per day; the rows inside it are divided by hairlines. */}
-            <ul className={cn(cardVariants(), 'gap-0 divide-y py-0')}>
+            {/* Each entry is its own small card (EntryRow), under its day's heading. */}
+            <ul className="flex flex-col gap-2">
               {group.entries.map((entry) => (
                 <li key={entry.id}>
                   {editingId === entry.id ? (

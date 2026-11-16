@@ -15,6 +15,8 @@ export const entries = {
     previous: 'Previous',
     next: 'Next',
     nothingYet: 'Nothing logged here yet.',
+    /** Under it, on the empty month's card. */
+    nothingYetHint: 'Log with quick add above.',
   },
   edit: {
     heading: 'Edit entry',

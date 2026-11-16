@@ -72,6 +72,13 @@ async function aiReady(): Promise<boolean> {
 /** How long the "Saved …" line, with its Undo, stays up. */
 const SAVED_LINE_MS = 10_000;
 
+/**
+ * How long quick add keeps its height after an amount or a category is picked. The buttons go and whatever is under
+ * quick add (the receipt scan's button, the list, the import button at the page's foot) would move up under the
+ * finger, so a double tap's second tap could open it; this way it lands where the buttons were. As the receipt scan's.
+ */
+const KEEP_SPACE_MS = 600;
+
 /** The flexible categories added after the original six: they sit behind the More chip. */
 const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !CORE_FLEXIBLE_CATEGORIES.some((g) => g.id === c.id));
 
@@ -233,6 +240,16 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
   }, [saved, holding]);
   // The field, which takes the focus back after a chip is picked or a save is undone.
   const fieldRef = useRef<HTMLInputElement>(null);
+
+  // The height kept for a moment after a pick (`KEEP_SPACE_MS`), taken from the tap, before the buttons go.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [keepHeight, setKeepHeight] = useState<number | null>(null);
+  useEffect(() => {
+    if (keepHeight === null) return;
+    const timer = setTimeout(() => setKeepHeight(null), KEEP_SPACE_MS);
+    return () => clearTimeout(timer);
+  }, [keepHeight]);
+  const keepSpace = () => setKeepHeight(rootRef.current?.offsetHeight ?? null);
 
   // The router keeps a page it has left mounted but hidden and runs its effect cleanups, so this clears the
   // line when the person leaves. Back on the page, an Undo that deletes an entry edited since would be a trap.
@@ -441,7 +458,11 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div
+      ref={rootRef}
+      className="flex flex-col gap-3"
+      style={keepHeight === null ? undefined : { minHeight: keepHeight }}
+    >
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-1.5">
         <Label htmlFor={`${id}-text`}>{words.label}</Label>
         <div className="flex gap-2">
@@ -529,6 +550,7 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
           choice={choice}
           busy={busy}
           onPick={(amountMinor) => {
+            keepSpace();
             fieldRef.current?.focus();
             void runOnce(() => saveOrAsk(chosenAmount(choice, amountMinor)));
           }}
@@ -539,6 +561,7 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
         <CategoryChips
           busy={busy}
           onPick={(categoryId) => {
+            keepSpace();
             fieldRef.current?.focus();
             void runOnce(() => save(pending, categoryId));
           }}

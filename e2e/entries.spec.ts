@@ -13,6 +13,18 @@ function entriesList(page: Page) {
   return page.getByRole('region', { name: 'Entries' });
 }
 
+/** The month switcher: the month in the middle, between Previous and Next. */
+function monthNav(page: Page) {
+  return page.getByRole('navigation', { name: 'Month', exact: true });
+}
+
+/** The line under the month with the kept category and Clear, shown once the list isn't this month in full. */
+function filterLine(page: Page) {
+  return entriesList(page)
+    .locator('p')
+    .filter({ has: page.getByRole('link', { name: 'Clear', exact: true }) });
+}
+
 /**
  * Opens /entries and waits until the list has read the database. It loads the page rather than tapping
  * the nav link: the dev server's "Cache disabled" badge sits over the middle of the bar on a phone.
@@ -129,8 +141,9 @@ test('a double tap on a category chip saves the entry once', async ({ page }) =>
 
   await expect(page.getByRole('status')).toHaveText('Saved €3.00 · bus · Transport');
   // The second tap lands where the chip was: nothing that moved up into its place opens (the import link once did, on
-  // the iPhone).
+  // the iPhone). Quick add keeps its height for a moment, so neither the import nor the receipt scan under it opens.
   await expect(page).toHaveURL(/\/entries$/);
+  await expect(page.getByRole('group', { name: 'Scan a receipt', exact: true })).toHaveCount(0);
   await expect(entriesList(page).getByText('€3.00')).toHaveCount(1);
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(1);
 });
@@ -543,7 +556,8 @@ test('the list groups by day, newest first, and filters by category and month', 
   await expect(list.getByText('Aldi')).toHaveCount(0);
 
   await page.goto('/entries?category=food&month=2026-10');
-  await expect(page.getByText('Food & groceries · Oct 2026 · Clear')).toBeVisible();
+  await expect(monthNav(page).getByText('Oct 2026', { exact: true })).toBeVisible();
+  await expect(filterLine(page).getByText('Food & groceries', { exact: true })).toBeVisible();
   await expect(list.getByText('Rewe')).toBeVisible();
   await expect(list.getByText('döner')).toHaveCount(0);
 
@@ -552,12 +566,14 @@ test('the list groups by day, newest first, and filters by category and month', 
   await expect(list.getByText('döner')).toBeVisible();
 
   await page.goto('/entries?month=2026-08');
-  await expect(page.getByText('Aug 2026 · Clear')).toBeVisible();
+  await expect(monthNav(page).getByText('Aug 2026', { exact: true })).toBeVisible();
+  await expect(filterLine(page)).toHaveText('Clear');
   await expect(list.getByText('Aldi')).toBeVisible();
   await expect(list.getByText('Rewe')).toHaveCount(0);
 
   await page.goto('/entries?month=2026-11');
-  await expect(page.getByText('Nov 2026 · Clear')).toBeVisible();
+  await expect(monthNav(page).getByText('Nov 2026', { exact: true })).toBeVisible();
+  await expect(filterLine(page)).toHaveText('Clear');
   await expect(list.getByText('Nothing logged here yet.')).toBeVisible();
 });
 
@@ -610,11 +626,13 @@ test('the month links keep the category and roll over the year', async ({ page }
   await setupAndOpenEntries(page);
 
   await page.goto('/entries?category=food&month=2026-12');
-  await expect(page.getByText('Food & groceries · Dec 2026 · Clear')).toBeVisible();
+  await expect(monthNav(page).getByText('Dec 2026', { exact: true })).toBeVisible();
+  await expect(filterLine(page).getByText('Food & groceries', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Next', exact: true }).click();
   await expect(page).toHaveURL(/month=2027-01/);
   await expect(page).toHaveURL(/category=food/);
-  await expect(page.getByText('Food & groceries · Jan 2027 · Clear')).toBeVisible();
+  await expect(monthNav(page).getByText('Jan 2027', { exact: true })).toBeVisible();
+  await expect(filterLine(page).getByText('Food & groceries', { exact: true })).toBeVisible();
 
   // Wait for each page before the next tap, or both taps hit the link of the page that was showing.
   await page.getByRole('link', { name: 'Previous', exact: true }).click();
@@ -891,4 +909,35 @@ test('the list leads to the bank statement import', async ({ page }) => {
   await page.getByRole('link', { name: 'Import a bank statement', exact: true }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Import and export', exact: true })).toBeVisible();
   await expect(page).toHaveURL('/settings/import');
+});
+
+test('each entry is its own card with its category and account; an empty month points to quick add; the import is at the foot', async ({
+  page,
+}) => {
+  await setupAndOpenEntries(page);
+  const list = entriesList(page);
+
+  // An empty month: one card that says where to log.
+  await expect(list.getByText('Nothing logged here yet.', { exact: true })).toBeVisible();
+  await expect(list.getByText('Log with quick add above.', { exact: true })).toBeVisible(); // proof: empty-hint
+
+  // The receipt scan under quick add; Previous and Next keep their names around the month.
+  await expect(page.getByRole('button', { name: 'Scan a receipt', exact: true })).toBeVisible();
+  await expect(monthNav(page).getByRole('link', { name: 'Previous', exact: true })).toBeVisible();
+  await expect(monthNav(page).getByText('Oct 2026', { exact: true })).toBeVisible();
+  await expect(monthNav(page).getByRole('link', { name: 'Next', exact: true })).toBeVisible();
+
+  await quickAdd(page, 'döner 6');
+  await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Eating out', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
+
+  // "Category · Account" under the title: quick add saved to Local bank, the first euro bank account.
+  const card = list.getByRole('button', { name: /döner/ });
+  await expect(card.getByText('Eating out', { exact: true })).toBeVisible();
+  await expect(card.getByText('Local bank', { exact: true })).toBeVisible(); // proof: entry-account
+  await expect(list.getByText('Nothing logged here yet.', { exact: true })).toHaveCount(0);
+
+  // The bank statement import comes after the list, at the page's foot.
+  await expect(list.locator('xpath=following::a[normalize-space()="Import a bank statement"]')).toBeVisible();
+  expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
 });

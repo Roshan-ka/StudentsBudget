@@ -16,6 +16,7 @@ export const entries: Messages['entries'] = {
     previous: 'Précédent',
     next: 'Suivant',
     nothingYet: 'Rien de saisi ici pour l’instant.',
+    nothingYetHint: 'Utilise l’ajout rapide ci-dessus.',
   },
   edit: {
     heading: 'Modifier la saisie',

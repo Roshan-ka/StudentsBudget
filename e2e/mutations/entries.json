@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "an empty month no longer says where to log",
+      "file": "src/features/entries/entries-list.tsx",
+      "find": "{text.nothingYetHint}",
+      "replace": "{null}",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "empty-hint"
+        ]
+      }
+    },
+    {
+      "name": "an entry card drops its account",
+      "file": "src/features/entries/entries-list.tsx",
+      "find": "      : accountName(entry.accountId),\n",
+      "replace": "      : null,\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "entry-account"
+        ]
+      }
+    }
+  ]
+}

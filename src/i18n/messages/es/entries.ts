@@ -15,6 +15,7 @@ export const entries: Messages['entries'] = {
     previous: 'Anterior',
     next: 'Siguiente',
     nothingYet: 'Aquí aún no hay nada registrado.',
+    nothingYetHint: 'Añade algo arriba con Añadir rápido.',
   },
   edit: {
     heading: 'Editar registro',
