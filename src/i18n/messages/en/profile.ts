@@ -7,12 +7,16 @@ export const profile = {
   intro:
     'Your profile is stored on this phone and goes into any backup you export, and into your account once this ' +
     'phone is linked.',
+  /** The first card's heading, over the name and the university (group 4 redesign). */
+  you: 'You',
   name: 'Your name',
   nameHint: 'Optional. Home greets you by this name.',
   university: 'University',
   notSet: 'Not set',
   /** The university choice that is neither UR nor OTH (the data and the MCP server call it "Other"). */
   otherUniversity: 'Other',
+  /** The semester card's heading, over its dates. */
+  semesterHeading: 'Your semester',
   semesterStart: 'Semester start',
   semesterEnd: 'Semester end',
   weeks: (weeks: number) => `Your semester: ${weeks} ${weeks === 1 ? 'week' : 'weeks'}.`,

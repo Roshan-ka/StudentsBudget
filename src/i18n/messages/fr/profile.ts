@@ -9,11 +9,13 @@ export const profile: Messages['profile'] = {
   intro:
     'Ton profil est enregistré sur ce téléphone et figure dans chaque sauvegarde que tu exportes, ainsi que dans ton ' +
     'compte une fois ce téléphone associé.',
+  you: 'Toi',
   name: 'Ton prénom',
   nameHint: 'Facultatif. L’accueil te salue avec ce prénom.',
   university: 'Université',
   notSet: 'Non renseigné',
   otherUniversity: 'Autre',
+  semesterHeading: 'Ton semestre',
   semesterStart: 'Début du semestre',
   semesterEnd: 'Fin du semestre',
   weeks: (weeks) =>

@@ -1,0 +1,16 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the semester fee's card is left out of Profile",
+      "file": "src/features/profile/profile-section.tsx",
+      "find": "{feeOffer && <SemesterFeeCard offer={feeOffer} />}",
+      "replace": "{false && <SemesterFeeCard offer={feeOffer} />}",
+      "expect": {
+        "e2e/profile.spec.ts": [
+          "fee-card"
+        ]
+      }
+    }
+  ]
+}

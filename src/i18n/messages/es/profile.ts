@@ -9,11 +9,13 @@ export const profile: Messages['profile'] = {
   intro:
     'Tu perfil se guarda en este móvil y va en cualquier copia de seguridad que exportes, y en tu cuenta en cuanto ' +
     'este móvil esté vinculado.',
+  you: 'Tú',
   name: 'Tu nombre',
   nameHint: 'Opcional. Inicio te saluda con este nombre.',
   university: 'Universidad',
   notSet: 'Sin indicar',
   otherUniversity: 'Otra',
+  semesterHeading: 'Tu semestre',
   semesterStart: 'Inicio del semestre',
   semesterEnd: 'Fin del semestre',
   weeks: (weeks) => byCount(weeks, { one: `Tu semestre: ${weeks} semana.`, other: `Tu semestre: ${weeks} semanas.` }),

@@ -1,0 +1,16 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the chosen theme's card shows no check icon",
+      "file": "src/components/theme-picker.tsx",
+      "find": "{chosen && <CircleCheckIcon aria-hidden=\"true\" className=\"size-6 shrink-0\" />}",
+      "replace": "{false && <CircleCheckIcon aria-hidden=\"true\" className=\"size-6 shrink-0\" />}",
+      "expect": {
+        "e2e/theme.spec.ts": [
+          "chosen-check"
+        ]
+      }
+    }
+  ]
+}
