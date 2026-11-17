@@ -920,21 +920,60 @@ type SignOutStep =
   | { at: 'leaving' };
 
 /**
- * Who is signed in, and the way out. Signing out (06-11-2026) syncs first, then clears this phone and opens the start
- * page; signing in again brings the data back. Changes the last sync couldn't send are said first, with the choice to
- * stay. `passwordChanged`: a "Forgot password" reset was just finished, which the status line says for a while.
+ * Who is signed in, in the yellow accent card (group 4 redesign, 17-11-2026), with linking and Sync inside it
+ * (`children`). `passwordChanged`: a "Forgot password" reset was just finished, which the status line says for a
+ * while.
  */
-function SignedInPanel({
+function SignedInCard({
   email,
   passwordChanged,
-  onWipeFailed,
+  children,
 }: {
   email: string;
   passwordChanged: boolean;
-  /** The phone couldn't be cleared after signing out; this panel is gone by then. */
-  onWipeFailed: () => void;
+  children?: ReactNode;
 }) {
   const id = useId();
+  const { t } = useT();
+  const text = t.auth.signedIn;
+
+  // A timer, not a cleanup: React's development double run calls cleanups right after the first mount, which would
+  // take the line away before anyone saw it.
+  useEffect(() => {
+    if (!passwordChanged) return;
+    const timer = setTimeout(forgetPasswordChanged, PASSWORD_CHANGED_MS);
+    return () => clearTimeout(timer);
+  }, [passwordChanged]);
+
+  return (
+    <section aria-labelledby={`${id}-heading`} className={cn(cardVariants({ variant: 'accent' }), 'gap-2')}>
+      <h3 id={`${id}-heading`} className="font-sans text-sm font-semibold tracking-normal">
+        {text.heading}
+      </h3>
+      <p className="font-semibold break-words">
+        {text.as.before}
+        {email}
+        {text.as.after}
+      </p>
+      {children}
+      <p role="status" className="text-sm">
+        {passwordChanged ? text.passwordChanged : null}
+      </p>
+    </section>
+  );
+}
+
+/**
+ * The way out, under the account's cards as an outlined button (group 4 redesign). Signing out (06-11-2026) syncs
+ * first, then clears this phone and opens the start page; signing in again brings the data back. Changes the last sync
+ * couldn't send are said first, with the choice to stay.
+ */
+function SignOutSection({
+  onWipeFailed,
+}: {
+  /** The phone couldn't be cleared after signing out; the signed-in page is gone by then. */
+  onWipeFailed: () => void;
+}) {
   const { t, lang } = useT();
   const text = t.auth.signedIn;
   const [step, setStep] = useState<SignOutStep>({ at: 'idle' });
@@ -964,14 +1003,6 @@ function SignedInPanel({
     if (step.at === 'unsynced' || step.at === 'leaving') pauseAutoSync();
     else resumeAutoSync();
   }, [step.at]);
-
-  // A timer, not a cleanup: React's development double run calls cleanups right after the first mount, which would
-  // take the line away before anyone saw it.
-  useEffect(() => {
-    if (!passwordChanged) return;
-    const timer = setTimeout(forgetPasswordChanged, PASSWORD_CHANGED_MS);
-    return () => clearTimeout(timer);
-  }, [passwordChanged]);
 
   /** The last sync, then what it left behind: nothing signs out, anything asks first. */
   async function syncThenSignOut() {
@@ -1029,16 +1060,8 @@ function SignedInPanel({
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
-      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
-        {text.heading}
-      </h3>
-      <p className="break-words">
-        {text.as.before}
-        <span className="font-medium">{email}</span>
-        {text.as.after}
-      </p>
-      <p className="text-muted-foreground">{text.keeps}</p>
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-muted-foreground">{text.keeps}</p>
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -1077,18 +1100,19 @@ function SignedInPanel({
         <Button
           type="button"
           variant="outline"
-          className="self-start px-4"
+          className="w-full"
           disabled={busy}
           onClick={() => setStep({ at: 'asking' })}
         >
+          <LogOutIcon aria-hidden="true" className="rtl:rotate-180" />
           {text.signOut}
         </Button>
       )}
       {/* The last sync can take up to 8 seconds (syncBeforeSignOut): said, so the disabled button doesn't look stuck. */}
       <p role="status" className="text-sm text-muted-foreground">
-        {busy ? text.syncing : passwordChanged ? text.passwordChanged : null}
+        {busy ? text.syncing : null}
       </p>
-    </section>
+    </div>
   );
 }
 
@@ -1114,18 +1138,17 @@ export function AccountView() {
       if (recovery === 'pending') return <NewPasswordForm email={auth.email} />;
       return (
         <>
-          <SignedInPanel
-            email={auth.email}
-            passwordChanged={recovery === 'changed'}
-            onWipeFailed={() => setWipeFailed(true)}
-          />
-          {/* One per account: a choice made for one account is never carried out for the next one to sign in. */}
-          <AccountLink key={auth.userId} />
+          <SignedInCard email={auth.email} passwordChanged={recovery === 'changed'}>
+            {/* One per account: a choice made for one account is never carried out for the next one to sign in. */}
+            <AccountLink key={auth.userId} look="inline" />
+          </SignedInCard>
           <PostingNameCard userId={auth.userId} />
           {/* This phone's switch for the AI features, in a build that has them. */}
           <AiSwitchCard />
           {/* Last: syncing is what the page is for; passkeys and two-step sign-in are set once. */}
           <SignInSecurity />
+          {/* The way out under the account's cards, as an outlined button (group 4 redesign). */}
+          <SignOutSection onWipeFailed={() => setWipeFailed(true)} />
           {/* At the very end: deleting the account is the rarest step, and the one that can't be undone. */}
           <DeleteAccountCard email={auth.email} />
         </>

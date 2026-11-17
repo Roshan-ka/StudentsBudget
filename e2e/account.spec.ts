@@ -63,6 +63,18 @@ async function overflow(page: Page) {
   return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
 
+/** The colour a CSS value comes to on this page, as the browser writes a background (`rgb(…)`). */
+async function colourOf(page: Page, value: string) {
+  return page.evaluate((css) => {
+    const probe = document.createElement('div');
+    probe.style.backgroundColor = css;
+    document.body.append(probe);
+    const colour = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return colour;
+  }, value);
+}
+
 async function signIn(page: Page, email: string, password: string) {
   await emailField(page).fill(email);
   await passwordField(page).fill(password);
@@ -227,4 +239,24 @@ test('signed in, AI features holds this phone’s switch: on until turned off, a
 
   // The page itself never asks the AI.
   expect(ai).toEqual([]);
+});
+
+test('signed in, the yellow card holds who is signed in and Sync, and Sign out follows the cards', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await signIn(page, EMAIL, PASSWORD);
+
+  // The group 4 look (Roshan's mockups, 17-11-2026): the account's own card is the accent card, with Sync inside it.
+  const card = page.getByRole('region', { name: 'Signed in', exact: true });
+  await expect(card.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
+  const accent = await colourOf(page, 'var(--accent)');
+  await expect(card).toHaveCSS('background-color', accent); // proof: account-accent
+  await expect(card.getByRole('region', { name: 'Sync', exact: true }).getByRole('button', { name: 'Sync now', exact: true })).toBeVisible(); // proof: sync-in-accent
+
+  // Each section a card with its tile, keeping its name; Sign out an outlined button of its own, outside the card.
+  await expect(page.getByRole('region', { name: 'Your name on posts', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Sign-in and security', exact: true })).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Sign out', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
 });

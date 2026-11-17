@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the account's card is a plain card, not the yellow accent",
+      "file": "src/features/account/account-view.tsx",
+      "find": "cardVariants({ variant: 'accent' })",
+      "replace": "cardVariants()",
+      "expect": {
+        "e2e/account.spec.ts": [
+          "account-accent"
+        ]
+      }
+    },
+    {
+      "name": "Sync sits under the account's card instead of inside it",
+      "file": "src/features/account/account-view.tsx",
+      "find": "<AccountLink key={auth.userId} look=\"inline\" />\n          </SignedInCard>",
+      "replace": "</SignedInCard>\n          <AccountLink key={auth.userId} />",
+      "expect": {
+        "e2e/account.spec.ts": [
+          "sync-in-accent"
+        ]
+      }
+    }
+  ]
+}

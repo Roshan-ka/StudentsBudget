@@ -1,7 +1,10 @@
 'use client';
 
+import { SparklesIcon } from 'lucide-react';
 import { useId } from 'react';
 import { cardVariants } from '@/components/ui/card';
+import { CardHeading } from '@/features/account/card-heading';
+import { categoryTint } from '@/features/charts/colors';
 import { useT } from '@/i18n/use-t';
 import { aiInBuild, useAiSwitch } from './switch';
 
@@ -17,9 +20,9 @@ export function AiSwitchCard() {
   if (!aiInBuild()) return null;
   return (
     <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
-      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
+      <CardHeading id={`${id}-heading`} icon={SparklesIcon} tint={categoryTint('other')} level={3}>
         {text.heading}
-      </h3>
+      </CardHeading>
       <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
         <input
           type="checkbox"

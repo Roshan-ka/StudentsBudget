@@ -1,8 +1,11 @@
 'use client';
 
+import { AtSignIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
+import { CardHeading } from '@/features/account/card-heading';
+import { categoryTint } from '@/features/charts/colors';
 import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
 import {
@@ -105,9 +108,9 @@ export function PostingNameCard({ userId }: { userId: string }) {
 
   return (
     <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
-      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
+      <CardHeading id={`${id}-heading`} icon={AtSignIcon} tint={categoryTint('going-out')} level={3}>
         {text.heading}
-      </h3>
+      </CardHeading>
       <p className="text-sm text-muted-foreground">{text.intro}</p>
 
       {name === 'loading' && <p className="text-sm text-muted-foreground">{text.loading}</p>}

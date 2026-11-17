@@ -108,8 +108,12 @@ export async function syncAfterSetup(): Promise<void> {
   }
 }
 
-/** Settings → Your account → Sync: the status, and Sync now. Nothing while this phone isn't linked. */
-export function SyncSection() {
+/**
+ * Settings → Your account → Sync: the status, and Sync now. Nothing while this phone isn't linked. `inline` (group 4
+ * redesign, 17-11-2026): inside Your account's yellow card, with no card of its own and its heading for screen readers
+ * only, so the section keeps its name.
+ */
+export function SyncSection({ look = 'card' }: { look?: 'card' | 'inline' } = {}) {
   const id = useId();
   const { t, lang } = useT();
   const status = useSyncStatus();
@@ -154,12 +158,18 @@ export function SyncSection() {
 
   if (status === null) return null;
   return (
-    <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
-      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
-        {t.sync.section.heading}
-      </h3>
+    <section aria-labelledby={`${id}-heading`} className={look === 'inline' ? 'flex flex-col gap-3' : cardVariants()}>
+      {look === 'inline' ? (
+        <h4 id={`${id}-heading`} className="sr-only">
+          {t.sync.section.heading}
+        </h4>
+      ) : (
+        <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
+          {t.sync.section.heading}
+        </h3>
+      )}
       {/* Not a live region: "Synced 2 min ago" moves on every half minute, and would be read out each time. */}
-      <p className="text-muted-foreground">{note ?? status}</p>
+      <p className={look === 'inline' ? 'font-medium' : 'text-muted-foreground'}>{note ?? status}</p>
       <p className="text-sm text-muted-foreground">{t.sync.section.automatic}</p>
       <Button type="button" variant="outline" className="self-start px-4" disabled={busy} onClick={() => void sync()}>
         <RefreshCwIcon aria-hidden="true" className={busy ? 'motion-safe:animate-spin' : undefined} />
