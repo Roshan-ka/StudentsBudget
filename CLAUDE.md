@@ -19,7 +19,7 @@ Each plan is in `docs/superpowers/plans/`, with an As built section that says wh
 | P2.3a, optional two-step sign-in | `2026-10-28-p2-3a-two-step-sign-in.md` | done | |
 | P2.3b, passkeys | `2026-10-29-p2-3b-passkeys-and-recovery-codes.md` | done | recovery codes parked |
 | Language switch, plan 1 (English and German) | `2026-11-02-language-switch.md` | done | native-speaker reads |
-| Redesign: a warm, outlined look in light and dark, and dates by region | `2026-11-04-redesign.md` | done; more pages follow from mockups | the phone try |
+| Redesign: a warm, outlined look in light and dark, and dates by region | `2026-11-04-redesign.md` | done; every page in the new look since 17-11-2026 (groups 1–4, from mockups) | the phone try; the legal pages wait for `src/data/legal.ts` |
 | Pain points: a calmer Home, Settings in pages, charts that always show | `2026-11-05-pain-points.md` | done | |
 | Hacks feed: usernames, students' posts, votes, reports and a moderator | `2026-11-05-hacks-feed.md` | done | |
 | Accessibility pass (WCAG 2.2 AA) | `2026-11-05-accessibility.md` | done | |
