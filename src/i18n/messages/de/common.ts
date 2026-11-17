@@ -26,6 +26,7 @@ export const common: Messages['common'] = {
     positive: 'Gib einen Betrag über 0 ein, etwa 250 oder 12,50.',
     number: 'Gib eine Zahl ein, etwa 250 oder 12,50.',
     overdrawn: 'Überzogen (unter null)',
+    overdrawnFold: 'Überzogen?',
   },
   source: {
     for: (what) => `Quelle für ${what}:`,

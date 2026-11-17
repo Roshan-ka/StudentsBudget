@@ -1,0 +1,16 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "setup's Overdrawn box is always open again",
+      "file": "src/features/setup/steps/amount-field.tsx",
+      "find": "open={foldOpen} onToggle",
+      "replace": "open onToggle",
+      "expect": {
+        "e2e/overdrawn.spec.ts": [
+          "overdrawn-folded"
+        ]
+      }
+    }
+  ]
+}

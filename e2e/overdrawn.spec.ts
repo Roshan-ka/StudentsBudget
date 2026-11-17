@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Account } from '../src/db/types';
 import { openApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
@@ -13,6 +13,15 @@ test.beforeEach(async ({ page }) => {
 });
 
 const OVERDRAWN = 'Overdrawn (below zero)';
+/** The fold the box sits in on setup's Accounts step (Roshan, 17-11-2026). */
+const OVERDRAWN_FOLD = 'Overdrawn?';
+
+/** A setup account row's Overdrawn box, its fold opened first when it is closed. */
+async function overdrawnBox(row: Locator) {
+  const box = row.getByRole('checkbox', { name: OVERDRAWN });
+  if (!(await box.isVisible())) await row.getByText(OVERDRAWN_FOLD, { exact: true }).click();
+  return box;
+}
 
 // Next adds its own role="alert" route announcer outside <main>; the messages under test are inside it.
 function inlineAlert(page: Page) {
@@ -43,18 +52,20 @@ test('setup: the Accounts step with an overdrawn balance, a long name and an err
 
   await local.getByLabel('Name', { exact: true }).fill('Overdraft at the Sparkasse');
   await local.getByLabel('Opening balance').fill('250');
-  await local.getByRole('checkbox', { name: OVERDRAWN }).check();
+  // Folded under "Overdrawn?" until opened: a new student rarely needs it on day one.
+  await expect(local.getByRole('checkbox', { name: OVERDRAWN })).toBeHidden(); // proof: overdrawn-folded
+  await (await overdrawnBox(local)).check();
   await expect(local.getByLabel('Opening balance')).toHaveValue('-250');
   await page.getByRole('button', { name: 'Add account' }).click();
   await expect(page.getByRole('group', { name: 'Account 3' })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  // The error under the field, with the box below it.
+  // The error under the field, with the Overdrawn fold below it.
   const cash = page.getByRole('group', { name: 'Account 2' });
   await cash.getByLabel('Opening balance').fill('abc');
   await cash.getByLabel('Opening balance').blur();
   await expect(cash.getByText('Enter a number, like 250 or 12.50.')).toBeVisible();
-  await expect(cash.getByRole('checkbox', { name: OVERDRAWN })).toBeVisible();
+  await expect(cash.getByText(OVERDRAWN_FOLD, { exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
@@ -66,7 +77,7 @@ test('setup: a waiting Overdrawn tick stays with its row when a row above is rem
   await page.getByRole('group', { name: 'Account 3' }).getByLabel('Name', { exact: true }).fill('Wallet');
 
   // Cash (row 2): ticked on an empty field, so the box waits for an amount.
-  const cashBox = page.getByRole('group', { name: 'Account 2' }).getByRole('checkbox', { name: OVERDRAWN });
+  const cashBox = await overdrawnBox(page.getByRole('group', { name: 'Account 2' }));
   await cashBox.check();
   await expect(cashBox).toBeChecked();
 
@@ -77,7 +88,7 @@ test('setup: a waiting Overdrawn tick stays with its row when a row above is rem
   await expect(cash.getByLabel('Name', { exact: true })).toHaveValue('Cash');
   await expect(cash.getByRole('checkbox', { name: OVERDRAWN })).toBeChecked();
   await expect(wallet.getByLabel('Name', { exact: true })).toHaveValue('Wallet');
-  await expect(wallet.getByRole('checkbox', { name: OVERDRAWN })).not.toBeChecked();
+  await expect(await overdrawnBox(wallet)).not.toBeChecked();
 
   // What is typed next goes to the row that was ticked, with its minus sign, and not to Wallet.
   await cash.getByLabel('Opening balance').fill('30');
@@ -110,11 +121,11 @@ test('setup: the Overdrawn box makes an opening balance negative, ticked after t
 
     // The amount first, then the box: the field gets its minus sign.
     await local.getByLabel('Opening balance').fill('250');
-    await local.getByRole('checkbox', { name: OVERDRAWN }).check();
+    await (await overdrawnBox(local)).check();
     await expect(local.getByLabel('Opening balance')).toHaveValue('-250');
 
     // The box first, on an empty field: the first thing typed takes the sign. Clearing the box takes it off again.
-    const cashBox = cash.getByRole('checkbox', { name: OVERDRAWN });
+    const cashBox = await overdrawnBox(cash);
     await cashBox.check();
     await expect(cashBox).toBeChecked();
     await cash.getByLabel('Opening balance').fill('50');
