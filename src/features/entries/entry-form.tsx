@@ -5,9 +5,10 @@ import { useId, useRef, useState, type FormEvent } from 'react';
 import { DateField } from '@/components/date-field';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '@/components/ui/native-select';
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { db } from '@/db/db';
 import { loadRates } from '@/db/rates';
@@ -16,6 +17,7 @@ import type { Entry } from '@/db/types';
 import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
 import type { EntryField } from '@/features/accounts/transfer';
 import { TransferForm } from '@/features/accounts/transfer-form';
+import { CategoryRadioChip } from '@/features/tips/category-chip';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import type { IsoDate } from '@/lib/dates';
@@ -32,6 +34,13 @@ type EntryType = Entry['type'];
 type FormError = { text: string; field: EntryField | 'date' | null };
 
 const TABS: readonly EntryType[] = ['expense', 'income', 'transfer'];
+
+/**
+ * A type tab in the chip's look: the outlined pill on the card colour, filled with the text colour while chosen, as a
+ * pressed chip is. `cn` drops the tab's own colours these replace; the hover fill only reaches a tab not chosen.
+ */
+const CHIP_TAB =
+  'flex-none rounded-full border-outline bg-card px-4 text-foreground not-data-active:hover:bg-muted data-active:border-foreground data-active:bg-foreground data-active:text-background data-active:hover:text-background group-data-[variant=default]/tabs-list:data-active:border-foreground group-data-[variant=default]/tabs-list:data-active:shadow-none dark:text-foreground dark:data-active:border-foreground dark:data-active:bg-foreground dark:data-active:text-background dark:data-active:hover:text-background';
 
 /** The expense categories in the list's three groups, in category order within each. */
 const EXPENSE_GROUPS = (['flexible', 'fixed', 'oneoff'] as const).map((kind) => ({
@@ -152,15 +161,29 @@ function MoneyEntryForm({
   const invalid = (field: FormError['field']) => (error !== null && error.field === field) || undefined;
   const errorFor = (field: FormError['field']) => invalid(field) && errorId;
 
+  // Each category is a chip in its tint (group 4 redesign, 17-11-2026), one radio group by `name`.
+  const categoryChip = (c: { id: string }) => (
+    <CategoryRadioChip
+      key={c.id}
+      name={`${id}-category`}
+      categoryId={c.id}
+      label={categoryNameIn(t, c.id)}
+      checked={c.id === category.id}
+      onChoose={() => setCategoryChoice(c.id)}
+    />
+  );
+
+  // The look (group 4 redesign, 17-11-2026, Roshan's mockup): the amount in the accent card, the categories as chips in
+  // a card, the account and the date in one card, then the note and Save.
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <div className="grid gap-1.5">
+      <Card variant="accent" className="gap-1.5">
         <Label htmlFor={`${id}-amount`}>{text.amount}</Label>
         <div className="flex items-center gap-2">
           <Input
             ref={amountRef}
             id={`${id}-amount`}
-            className="flex-1"
+            className="flex-1 font-heading text-2xl font-extrabold md:text-2xl"
             inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
@@ -172,56 +195,57 @@ function MoneyEntryForm({
             {account.currency}
           </span>
         </div>
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-account`}>{text.account}</Label>
-        <NativeSelect
-          id={`${id}-account`}
-          className="w-full"
-          aria-invalid={invalid('account')}
-          aria-describedby={describedBy(errorFor('account'))}
-          value={account.id}
-          onChange={(event) => setAccountChoice(event.target.value)}
-        >
-          {accounts.map((a) => (
-            <NativeSelectOption key={a.id} value={a.id}>
-              {t.common.accountOption(a.name, a.currency)}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-category`}>{text.category}</Label>
-        <NativeSelect
-          id={`${id}-category`}
-          className="w-full"
-          value={category.id}
-          onChange={(event) => setCategoryChoice(event.target.value)}
-        >
-          {type === 'income'
-            ? categories.map((c) => (
-                <NativeSelectOption key={c.id} value={c.id}>
-                  {categoryNameIn(t, c.id)}
-                </NativeSelectOption>
-              ))
-            : EXPENSE_GROUPS.map((group) => (
-                <NativeSelectOptGroup key={group.kind} label={text.groups[group.kind]}>
-                  {group.categories.map((c) => (
-                    <NativeSelectOption key={c.id} value={c.id}>
-                      {categoryNameIn(t, c.id)}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelectOptGroup>
-              ))}
-        </NativeSelect>
-      </div>
-      <DateField
-        pastFirst
-        value={date}
-        onChange={setDateChoice}
-        invalid={invalid('date')}
-        describedBy={describedBy(errorFor('date'))}
-      />
+      </Card>
+      <Card className="gap-2">
+        <p id={`${id}-category-label`} className="text-sm leading-snug font-semibold">
+          {text.category}
+        </p>
+        <div role="radiogroup" aria-labelledby={`${id}-category-label`} className="flex flex-col gap-3">
+          {type === 'income' ? (
+            <div className="flex flex-wrap gap-2">{categories.map(categoryChip)}</div>
+          ) : (
+            EXPENSE_GROUPS.map((group) => (
+              <div
+                key={group.kind}
+                role="group"
+                aria-labelledby={`${id}-group-${group.kind}`}
+                className="flex flex-col gap-2"
+              >
+                <p id={`${id}-group-${group.kind}`} className="text-sm text-muted-foreground">
+                  {text.groups[group.kind]}
+                </p>
+                <div className="flex flex-wrap gap-2">{group.categories.map(categoryChip)}</div>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
+      <Card className="gap-4">
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${id}-account`}>{text.account}</Label>
+          <NativeSelect
+            id={`${id}-account`}
+            className="w-full"
+            aria-invalid={invalid('account')}
+            aria-describedby={describedBy(errorFor('account'))}
+            value={account.id}
+            onChange={(event) => setAccountChoice(event.target.value)}
+          >
+            {accounts.map((a) => (
+              <NativeSelectOption key={a.id} value={a.id}>
+                {t.common.accountOption(a.name, a.currency)}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+        <DateField
+          pastFirst
+          value={date}
+          onChange={setDateChoice}
+          invalid={invalid('date')}
+          describedBy={describedBy(errorFor('date'))}
+        />
+      </Card>
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-note`}>{text.note}</Label>
         <Input
@@ -270,9 +294,13 @@ export function EntryForm({ entry, onSaved }: { entry?: Entry; onSaved?: (saved:
         if (next) setTab(next);
       }}
     >
-      <TabsList aria-label={t.entries.form.typeLabel} className="w-full">
+      {/* The type as chips (group 4 redesign, 17-11-2026): still tabs, which the form below follows, without the track. */}
+      <TabsList
+        aria-label={t.entries.form.typeLabel}
+        className="w-full flex-wrap justify-start gap-2 rounded-none border-0 bg-transparent p-0"
+      >
         {TABS.map((type) => (
-          <TabsTrigger key={type} value={type}>
+          <TabsTrigger key={type} value={type} className={CHIP_TAB}>
             {tabLabel(type)}
           </TabsTrigger>
         ))}
