@@ -33,6 +33,17 @@
           "empty-card-title"
         ]
       }
+    },
+    {
+      "name": "the plot keeps a fixed band for the key again",
+      "file": "src/features/charts/bars.tsx",
+      "find": "  const plotHeight = rows.length * ROW_HEIGHT + 2 * MARGIN_Y;\n",
+      "replace": "  const plotHeight = rows.length * ROW_HEIGHT + 2 * MARGIN_Y + (withPlanned ? 28 : 0);\n",
+      "expect": {
+        "e2e/charts.spec.ts": [
+          "bars-key-own-space"
+        ]
+      }
     }
   ]
 }

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { memo, type PointerEvent } from 'react';
 import { Bar, BarChart, Rectangle, XAxis, YAxis, type BarShapeProps } from 'recharts';
-import { ChartContainer, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
+import { ChartContainer } from '@/components/ui/chart';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { amountText, ChartFrame, useChartConfig, type ChartRow, type OnHover } from './chart-parts';
@@ -94,7 +94,6 @@ export function openableBar(
 }
 
 const ROW_HEIGHT = 44;
-const LEGEND_HEIGHT = 28;
 const NAME_WIDTH = 96;
 /** At least this wide; wider when a row like "€2,400 of €400" would not fit on one line (about 8 px a character, plus the tick gap). */
 const MIN_VALUE_WIDTH = 96;
@@ -103,6 +102,28 @@ const TICK_GAP = 16;
 const MARGIN_Y = 4;
 
 type Router = ReturnType<typeof useRouter>;
+
+/**
+ * The bullet chart's key above the plot, the amount first and then "Planned", as in the table and the tooltip (review
+ * U7, 17-11-2026). Our own lines in the page's flow: a longer word or a bigger text size wraps and moves the plot down,
+ * where Recharts' legend had a fixed 28 px band and ran into the first row. Inside the chart's box, for its colours.
+ */
+function BarsKey({ seriesKey }: { seriesKey: 'spent' | 'income' }) {
+  const { t } = useT();
+  return (
+    <div data-slot="chart-key" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pb-3">
+      {([seriesKey, 'planned'] as const).map((key) => (
+        <div key={key} className="flex items-center gap-1.5">
+          <div
+            className="size-3 shrink-0 rounded-[2px] border-[1.5px] border-outline"
+            style={{ backgroundColor: `var(--color-${key})` }}
+          />
+          {t.charts.series[key]}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * The horizontal bars themselves. Memoised on purpose: recharts rebuilds every bar each time it renders, and a
@@ -128,11 +149,16 @@ const RowsChart = memo(function RowsChart({
   const byId = new Map(rows.map((row) => [row.id, row]));
   const max = Math.max(1, ...rows.flatMap((row) => [row.amountMinor, row.plannedMinor ?? 0]));
   const valueWidth = Math.max(MIN_VALUE_WIDTH, CHARACTER_WIDTH * Math.max(...rows.map((row) => text(row).length)) + TICK_GAP);
-  // The plot is exactly `rows.length * ROW_HEIGHT` high, so every row gets a band of ROW_HEIGHT.
-  const height = rows.length * ROW_HEIGHT + 2 * MARGIN_Y + (withPlanned ? LEGEND_HEIGHT : 0);
+  // The plot is exactly `rows.length * ROW_HEIGHT` high, so every row gets a band of ROW_HEIGHT; the key sits above it.
+  const plotHeight = rows.length * ROW_HEIGHT + 2 * MARGIN_Y;
 
   return (
-    <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
+    <ChartContainer
+      config={config}
+      className="aspect-auto w-full flex-col"
+      legend={withPlanned ? <BarsKey seriesKey={seriesKey} /> : undefined}
+      plotHeight={plotHeight}
+    >
       <BarChart
         accessibilityLayer={false}
         layout="vertical"
@@ -165,9 +191,6 @@ const RowsChart = memo(function RowsChart({
             return row ? text(row) : '';
           }}
         />
-        {withPlanned && (
-          <ChartLegend verticalAlign="top" height={LEGEND_HEIGHT} content={<ChartLegendContent nameKey="value" />} />
-        )}
         {withPlanned && (
           <Bar
             yAxisId="names"
