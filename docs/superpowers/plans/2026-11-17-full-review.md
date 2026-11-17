@@ -250,3 +250,27 @@ Next tier: B5–B7; one dead-code chunk (D1–D5, D7: ~1 h, nothing users see); 
 - B1, B2, B3: unit tests in `src/features/account/`; B1 also an e2e case in `start.spec.ts` (sign-out with the wipe failing, then sign-in).
 - UI chunks: the axe spec and the 375 px language tour (`languages: all`) in one CI run.
 - P1, P2: a guest walk again on a Vercel preview, in English and German.
+
+---
+
+## As built (17-11-2026)
+
+Every chunk of the shortlist and the next tier is merged, except the setup chat's removal: Roshan parked the chat instead (kept, off in every build, untested).
+
+| Chunk | Findings | Where |
+|---|---|---|
+| 1 Sign-out safety | B1, B3 | #293 (`91d1fac`); B1's e2e case #296 (`095b5f4`) |
+| 2 Quick add | P2, P3 | #293 (`be29ad1`) |
+| 3 First month's income | P1 | #293 (`3b137f8`); the poster and the backup check took the plan's first period in #298 (`3fa58f5`) |
+| 4 Small text fixes | B8, U6, U4, U3 wording, the minus sign | #293 (`ef1c9ae`); every count through `plural()`, #296 (`d47c5e7`) |
+| 5 Dead ends | U2, U3 buttons, B10 | #293 (`bd047ac`) |
+| 6 Start-up order | B2, B4 | #293 (`c8903b9`) |
+| 7 Guest polish | P4, P5, P6 | #293 (`408df02`) |
+| 8, 9 Remove the setup chat | F1 | parked instead, #293 (`e923341`) |
+| 10 Shared cards | U1, U5 | #298 (`5addce7`, `0575cc3`); U5's Try again #293 (`e79e9c6`) |
+| Next tier | B5–B7, U7, D6 | #294 (`9fce079`, `094a043`, `b9bc26c`); U7's minus sign #293 (`ef1c9ae`), its plurals #296, its pill rule #297 (`4fcd29d`), and its legend band (the bars' own key), the last open item, in the PR after #299 |
+| Dead code and docs | D0–D5, D7 | #293 (`c41ddc2`); D0 #294 (`bc35d4f`); a type D5 left behind #299 (`0a9fbf4`) |
+| Features | F2; F3 frozen; F4 | #293 (`adba59a`); #299 (`f0594c8`, `6359386`) |
+| P7 notes | Overdrawn fold, BAföG field, no jump while typing | #297 (`bcf8d12`, `a69d7fd`, `48c110b`); savings history and future months kept (Roshan) |
+
+Still owed from Verification: the guest walk on the live site in English and German (P1, P2), and one CI run with the axe spec and `languages: all` for the UI chunks.
