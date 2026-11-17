@@ -30,7 +30,7 @@ const EN = MESSAGES.en;
 const TEXT = EN.reminder;
 
 async function signIn(page: Page, words = EN.auth) {
-  await page.goto('/settings/account');
+  await openApp(page, '/settings/account');
   await page.getByRole('textbox', { name: words.signIn.email, exact: true }).fill(EMAIL);
   // A password input has no textbox role, so it is found by its label.
   await page.getByLabel(words.signIn.password, { exact: true }).fill(PASSWORD);
@@ -43,7 +43,7 @@ async function signIn(page: Page, words = EN.auth) {
  */
 async function skipUnlessReminders(page: Page, t = EN) {
   await skipUnlessAccountsShow(page);
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
   await expect(page.getByRole('heading', { level: 2, name: t.shell.headings.reminder, exact: true })).toBeVisible();
   const off = (await page.getByText(t.reminder.unavailable, { exact: true }).count()) > 0;
   test.skip(off, 'The reused dev server has no NEXT_PUBLIC_VAPID_PUBLIC_KEY: stop it, or run with E2E_PORT=3001.');
@@ -128,7 +128,7 @@ test('a new day and time are saved, and turning it off deletes the row and the s
   await skipUnlessReminders(page);
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
 
   await button(page, TEXT.turnOn).click();
   await expect(status(page)).toHaveText(TEXT.status.on('Sundays', '18:00'));
@@ -164,7 +164,7 @@ test('a refused prompt saves nothing, and the page says how to allow notificatio
   await skipUnlessReminders(page);
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
 
   await button(page, TEXT.turnOn).click();
   await expect(status(page)).toHaveText(TEXT.denied);
@@ -180,7 +180,7 @@ test('a browser without push gets the calendar instead, and nothing to turn on',
   await skipUnlessReminders(page);
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
 
   await expect(page.getByText(TEXT.noPush, { exact: true })).toBeVisible();
   await expect(button(page, TEXT.turnOn)).toHaveCount(0);
@@ -197,7 +197,7 @@ test('an account with two-step sign-in gives its code first', async ({ page }) =
   await signIn(page);
   // The account page now asks for the code; the reminder waits for it.
   await expect(page.getByRole('textbox', { name: '6-digit code', exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
 
   await expect(page.getByText(EN.common.needsCode, { exact: true })).toBeVisible();
   await expect(button(page, TEXT.turnOn)).toHaveCount(0);
@@ -208,14 +208,14 @@ async function turnOnSignedIn(page: Page) {
   await skipUnlessReminders(page);
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
   await button(page, TEXT.turnOn).click();
   await expect(status(page)).toHaveText(TEXT.status.on('Sundays', '18:00'));
 }
 
 /** Signs out on Your account: the question, then the start page (the phone is cleared, its choices stay). */
 async function signOutHere(page: Page) {
-  await page.goto('/settings/account');
+  await openApp(page, '/settings/account');
   await signOut(page);
 }
 
@@ -302,7 +302,7 @@ test.describe('on an iPhone, in a Safari tab', () => {
     await skipUnlessReminders(page);
     await signIn(page);
     await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-    await page.goto('/settings/reminder');
+    await openApp(page, '/settings/reminder');
 
     await expect(page.getByText(TEXT.installFirst, { exact: true })).toBeVisible();
     await expect(button(page, TEXT.turnOn)).toHaveCount(0);
@@ -322,7 +322,7 @@ test.describe('in German', () => {
     await skipUnlessReminders(page, de);
     await signIn(page, de.auth);
     await expect(page.getByText(`Angemeldet als ${EMAIL}.`, { exact: true })).toBeVisible();
-    await page.goto('/settings/reminder');
+    await openApp(page, '/settings/reminder');
 
     await expect(page.getByRole('heading', { level: 2, name: de.shell.headings.reminder, exact: true })).toBeVisible();
     await page.getByRole('button', { name: de.reminder.turnOn, exact: true }).click();
