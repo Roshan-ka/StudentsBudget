@@ -236,6 +236,8 @@ describe('replaceAll', () => {
     };
     file.version = 3;
     delete file.data.checklistTicks;
+    // Version 5 and older still carry Guess vs. reality's guesses (review F4).
+    file.data.guesses = [];
     const parsed = parseBackup(JSON.stringify(file));
     if (!parsed.ok) throw new Error(parsed.error);
 
@@ -254,6 +256,7 @@ describe('replaceAll', () => {
     };
     file.version = 2;
     for (const key of ['weekResults', 'discountVotes', 'profile', 'checklistTicks']) delete file.data[key];
+    file.data.guesses = [];
     const parsed = parseBackup(JSON.stringify(file));
     if (!parsed.ok) throw new Error(parsed.error);
 
@@ -431,6 +434,7 @@ describe('restoring and the saved weeks', () => {
     const file = JSON.parse(serializeBackup(await exportAll(), NOW)) as { version: number; data: Record<string, unknown> };
     file.version = 2;
     for (const key of ['weekResults', 'discountVotes', 'profile', 'checklistTicks']) delete file.data[key];
+    file.data.guesses = [];
     const parsed = parseBackup(JSON.stringify(file));
     if (!parsed.ok) throw new Error(parsed.error);
     // Another device's data, saved weeks included, which the restore replaces.
