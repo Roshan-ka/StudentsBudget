@@ -13,6 +13,7 @@ import { supabaseStore } from '@/sync/store';
 import { contentsText } from '@/sync/summary';
 import { staleSummary } from '@/sync/upload';
 import { wantsCodeBeforeLinking } from './code-check';
+import { settleWipeOnSignIn } from './pending-wipe';
 import { SyncSection } from './sync-status';
 
 // Linking (P2.2 chunk 7), which replaces P2.1's Save and Load: on the account page, signed in, the phone links to the
@@ -89,6 +90,9 @@ export function AccountLink({ onLinked, look = 'card' }: { onLinked?: () => void
       try {
         const userId = await sessionUserId();
         if (userId === undefined) return;
+        // A wipe a sign-out still owes goes first when the phone holds another account's data (review B1).
+        await settleWipeOnSignIn(userId);
+        if (!current) return;
         const store = supabaseStore(supabase);
         // A session that can't be checked stops the link (the catch below says so), rather than link to what may only
         // be an account hiding its rows.

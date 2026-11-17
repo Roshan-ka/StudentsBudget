@@ -123,6 +123,7 @@ export const auth: Messages['auth'] = {
     cancel: 'Abbrechen',
     unsynced: (count) =>
       count === 1 ? '1 Änderung ist noch nicht in deinem Konto.' : `${count} Änderungen sind noch nicht in deinem Konto.`,
+    unsyncedUnknown: 'Manche Änderungen sind vielleicht noch nicht in deinem Konto.',
     unsyncedOffline:
       'Du bist offline. Bleib angemeldet und synchronisiere später, oder melde dich ab und verliere diese Änderungen.',
     unsyncedFailed:

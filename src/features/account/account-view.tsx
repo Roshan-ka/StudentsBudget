@@ -9,7 +9,6 @@ import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StatusLine } from '@/components/status-line';
-import { db } from '@/db/db';
 import { AiSwitchCard } from '@/features/ai/ai-switch-card';
 import {
   checkDraft,
@@ -52,6 +51,7 @@ import { PasskeySignIn } from './passkeys';
 import { finishRecovery, forgetPasswordChanged, useRecovery } from './recovery';
 import { SignInSecurity } from './security';
 import { syncBeforeSignOut } from './sync-status';
+import { unsentChanges } from './unsent';
 import { useAuth } from './use-auth';
 
 /** Which email a code comes from (P2.4): the sign-up's, or "Forgot password"'s. */
@@ -916,7 +916,7 @@ type SignOutStep =
   | { at: 'idle' }
   | { at: 'asking' }
   | { at: 'syncing' }
-  | { at: 'unsynced'; count: number; offline: boolean }
+  | { at: 'unsynced'; count: number | null; offline: boolean }
   | { at: 'leaving' };
 
 /**
@@ -1009,8 +1009,9 @@ function SignOutSection({
     setError(null);
     setStep({ at: 'syncing' });
     await syncBeforeSignOut();
-    const count = await db.outbox.count().catch(() => 0);
-    if (count > 0) {
+    // An outbox that can't be counted asks too (null): it may hold changes (review B3).
+    const count = await unsentChanges();
+    if (count !== 0) {
       setStep({ at: 'unsynced', count, offline: !navigator.onLine });
       return;
     }
@@ -1084,7 +1085,7 @@ function SignOutSection({
       ) : step.at === 'unsynced' ? (
         <>
           <p ref={warningRef} tabIndex={-1} className="font-medium outline-none">
-            {text.unsynced(step.count)}
+            {step.count === null ? text.unsyncedUnknown : text.unsynced(step.count)}
           </p>
           <p className="text-sm text-muted-foreground">{step.offline ? text.unsyncedOffline : text.unsyncedFailed}</p>
           <div className="flex flex-col gap-3">

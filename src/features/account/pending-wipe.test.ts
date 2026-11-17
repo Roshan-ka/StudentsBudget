@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as bulk from '@/db/bulk';
 import { db } from '@/db/db';
-import { finishPendingWipe, wipeAfterSignOut, wipePending, WIPE_PENDING_KEY } from './pending-wipe';
+import { finishPendingWipe, settleWipeOnSignIn, wipeAfterSignOut, wipePending, WIPE_PENDING_KEY } from './pending-wipe';
 
 /** localStorage as a map: the unit tests run in Node, which has none. */
 function memoryStorage(): Storage {
@@ -68,5 +68,59 @@ describe('finishPendingWipe', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(await finishPendingWipe()).toBe('failed');
     expect(wipePending()).toBe(true);
+  });
+});
+
+describe('settleWipeOnSignIn (review B1, 17-11-2026)', () => {
+  async function linkTo(userId: string | null) {
+    await db.syncState.put({ id: 'current', userId, cursor: 0, lastSyncedAt: null, problem: null });
+  }
+
+  it('does nothing when no wipe is owed', async () => {
+    await linkTo('user-a');
+    expect(await settleWipeOnSignIn('user-b')).toBe('none');
+    expect(await db.accounts.get('local')).toEqual(ACCOUNT);
+  });
+
+  it('clears the last account’s data before another account signs in', async () => {
+    await linkTo('user-a');
+    localStorage.setItem(WIPE_PENDING_KEY, 'pending');
+    expect(await settleWipeOnSignIn('user-b')).toBe('done');
+    expect(await db.accounts.get('local')).toBeUndefined();
+    expect((await db.syncState.get('current'))?.userId ?? null).toBeNull();
+    expect(wipePending()).toBe(false);
+  });
+
+  it('keeps the data when the same account signs in again', async () => {
+    await linkTo('user-a');
+    localStorage.setItem(WIPE_PENDING_KEY, 'pending');
+    expect(await settleWipeOnSignIn('user-a')).toBe('kept');
+    expect(await db.accounts.get('local')).toEqual(ACCOUNT);
+    expect(wipePending()).toBe(false);
+  });
+
+  it('keeps the data on a phone with no link: linking asks what to keep', async () => {
+    await linkTo(null);
+    localStorage.setItem(WIPE_PENDING_KEY, 'pending');
+    expect(await settleWipeOnSignIn('user-b')).toBe('kept');
+    expect(await db.accounts.get('local')).toEqual(ACCOUNT);
+  });
+
+  it('keeps the wipe owed when it fails, so linking still refuses', async () => {
+    await linkTo('user-a');
+    localStorage.setItem(WIPE_PENDING_KEY, 'pending');
+    vi.spyOn(bulk, 'deleteEverything').mockRejectedValueOnce(new Error('blocked'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await settleWipeOnSignIn('user-b')).toBe('failed');
+    expect(wipePending()).toBe(true);
+  });
+
+  it('shares one check between the session listener and linking, so the wipe runs once', async () => {
+    await linkTo('user-a');
+    localStorage.setItem(WIPE_PENDING_KEY, 'pending');
+    const wipe = vi.spyOn(bulk, 'deleteEverything');
+    const [first, second] = await Promise.all([settleWipeOnSignIn('user-b'), settleWipeOnSignIn('user-b')]);
+    expect([first, second]).toEqual(['done', 'done']);
+    expect(wipe).toHaveBeenCalledTimes(1);
   });
 });

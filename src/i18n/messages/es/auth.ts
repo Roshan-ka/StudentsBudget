@@ -128,6 +128,7 @@ export const auth: Messages['auth'] = {
         one: `${count} cambio todavía no está en tu cuenta.`,
         other: `${count} cambios todavía no están en tu cuenta.`,
       }),
+    unsyncedUnknown: 'Puede que algunos cambios todavía no estén en tu cuenta.',
     unsyncedOffline:
       'No tienes conexión. Mantén la sesión iniciada y sincroniza más tarde, o cierra sesión y pierde estos cambios.',
     unsyncedFailed:
