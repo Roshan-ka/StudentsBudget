@@ -428,3 +428,16 @@ export function suggestCategory(note: string, history: Entry[]): string | null {
   }
   return null;
 }
+
+/**
+ * The field's text after a keystroke while quick add asks about the line in it, with the chips or the two amounts
+ * (review P3, 17-11-2026). A letter typed straight after the whole line starts the next line instead of joining it, so
+ * "döner 6,50" and then "Bücher" never read as "döner 6,50Bücher". Anything else stays as typed: a space continues the
+ * note ("döner 6 mit Tom"), a digit or a mark fixes the amount ("döner 6" to "döner 6,50"), and an edit inside the line
+ * is an edit.
+ */
+export function lineAfterQuestion(asked: string, next: string): string {
+  if (asked.trim() === '' || next.length <= asked.length || !next.startsWith(asked)) return next;
+  const added = next.slice(asked.length);
+  return /^\p{L}/u.test(added) ? added : next;
+}

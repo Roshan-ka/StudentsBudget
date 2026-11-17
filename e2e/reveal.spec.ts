@@ -9,12 +9,14 @@ import { readStore } from './helpers/setup';
 /** Noon on a day, local time, as the clock the page should show. */
 const noon = (iso: string) => new Date(`${iso}T12:00:00`);
 
-/** Moves the browser's date to `date`, then logs one expense through quick add, so the entry is dated that day. */
-async function logOn(page: Page, date: string, text: string, category: string, saved: string) {
+/**
+ * Moves the browser's date to `date`, then logs one expense through quick add, so the entry is dated that day. The
+ * lines are on quick add's word list ("döner", "rewe"), so each saves under its category without asking.
+ */
+async function logOn(page: Page, date: string, text: string, saved: string) {
   await page.clock.setFixedTime(noon(date));
   await page.getByRole('textbox', { name: 'Quick add' }).fill(text);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await page.getByRole('button', { name: category }).click();
   // Waiting for the line also waits for the entry to be in the database.
   await expect(page.getByRole('status')).toHaveText(saved);
 }
@@ -59,8 +61,8 @@ test('while the setup month runs, home has no recap line and the page says when 
 
 test('once October is over, home leads to its recap, and the envelopes can be changed from there', async ({ page }) => {
   await seedSetup(page);
-  await logOn(page, '2026-10-20', 'döner 60', 'Eating out', 'Saved €60.00 · döner · Eating out');
-  await logOn(page, '2026-10-25', 'rewe 100', 'Food & groceries', 'Saved €100.00 · rewe · Food & groceries');
+  await logOn(page, '2026-10-20', 'döner 60', 'Saved €60.00 · döner · Eating out');
+  await logOn(page, '2026-10-25', 'rewe 100', 'Saved €100.00 · rewe · Food & groceries');
   // The clock really moved: both entries carry the day they were logged on.
   const dates = (await readStore<Entry>(page, 'entries')).map((entry) => entry.date).sort();
   expect(dates).toEqual(['2026-10-20', '2026-10-25']);
@@ -88,7 +90,7 @@ test('once October is over, home leads to its recap, and the envelopes can be ch
 
 test('a finished month that went over its plan reads calmly', async ({ page }) => {
   await seedSetup(page);
-  await logOn(page, '2026-10-20', 'döner 500', 'Eating out', 'Saved €500.00 · döner · Eating out');
+  await logOn(page, '2026-10-20', 'döner 500', 'Saved €500.00 · döner · Eating out');
 
   // 2 Nov: October is over. Planned 43400, spent 50000: €66 over.
   await page.clock.setFixedTime(noon('2026-11-02'));
@@ -101,7 +103,7 @@ test('a finished month that went over its plan reads calmly', async ({ page }) =
 
 test('a finished month shows what was spent of its plan, and a card per envelope', async ({ page }) => {
   await seedSetup(page);
-  await logOn(page, '2026-10-20', 'döner 60', 'Eating out', 'Saved €60.00 · döner · Eating out');
+  await logOn(page, '2026-10-20', 'döner 60', 'Saved €60.00 · döner · Eating out');
 
   // 2 Nov: October is over. Planned 31000 + 12400, spent 6000 on eating out.
   await page.clock.setFixedTime(noon('2026-11-02'));

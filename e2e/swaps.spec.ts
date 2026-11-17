@@ -75,6 +75,13 @@ async function quickAdd(page: Page, text: string, category: string) {
   await expect(page.getByRole('status')).toContainText(`· ${category}`);
 }
 
+/** A line on quick add's word list ("döner", "Rewe"): it saves under its category without asking. */
+async function quickAddKnown(page: Page, text: string, category: string) {
+  await page.getByRole('textbox', { name: 'Quick add' }).fill(text);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(`· ${category}`);
+}
+
 async function overflow(page: Page) {
   return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 }
@@ -87,7 +94,7 @@ async function openCheckInFromHome(page: Page) {
 
 test('an eating-out envelope that runs over shows a sourced swap on Home and in the check-in', async ({ page }) => {
   await seedSetup(page);
-  await quickAdd(page, 'döner 150', 'Eating out');
+  await quickAddKnown(page, 'döner 150', 'Eating out');
 
   const mensa = swapById('mensa-instead-of-restaurant');
   const row = homeRow(page, 'Eating out');
@@ -139,12 +146,12 @@ test('an eating-out envelope that runs over shows a sourced swap on Home and in 
 
 test('nothing shows while every envelope is on track, or when the envelope over has no swap', async ({ page }) => {
   await seedSetup(page);
-  await quickAdd(page, 'döner 6', 'Eating out');
+  await quickAddKnown(page, 'döner 6', 'Eating out');
   await expect(homeRow(page, 'Eating out').getByText('€118 left of €124 this month', { exact: true })).toBeVisible();
   await expect(anyTryThis(page)).toHaveCount(0);
 
   // Food has no swap: over plan, it still gets no line.
-  await quickAdd(page, 'Rewe 350', 'Food & groceries');
+  await quickAddKnown(page, 'Rewe 350', 'Food & groceries');
   await expect(
     homeRow(page, 'Food & groceries').getByText('€40 over the €310 planned this month', { exact: true }),
   ).toBeVisible();
@@ -163,7 +170,7 @@ test('nothing shows while every envelope is on track, or when the envelope over 
 test('past 90% of the plan early in the month counts, and the last 7 days of the month do not', async ({ page }) => {
   await seedSetup(page);
   // €115 of the €124 is 93%.
-  await quickAdd(page, 'döner 115', 'Eating out');
+  await quickAddKnown(page, 'döner 115', 'Eating out');
   const row = homeRow(page, 'Eating out');
   await expect(row.getByText('€9 left of €124 this month', { exact: true })).toBeVisible();
   await expect(row.getByRole('button', { name: MENSA_LINE, exact: true })).toBeVisible();

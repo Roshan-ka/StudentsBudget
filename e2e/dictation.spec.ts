@@ -24,23 +24,23 @@ test('the first tap says where speech goes; Continue listens and adds the line, 
   await fakeSpeech(page);
   await seedSetup(page);
 
-  await willHear(page, 'coffee 3');
+  await willHear(page, 'lunch 3');
   await mic(page).click();
   const note = page.getByRole('group', { name: 'Speak an entry', exact: true });
   await expect(note).toContainText('StudentsBudget only gets the text.');
   await note.getByRole('button', { name: 'Continue', exact: true }).click();
 
-  // Nothing tells the category yet, so it asks, as for a typed line.
-  await expect(page.getByRole('textbox', { name: 'Quick add' })).toHaveValue('coffee 3');
+  // "lunch" is on no word list and has no history yet, so it asks, as for a typed line.
+  await expect(page.getByRole('textbox', { name: 'Quick add' })).toHaveValue('lunch 3');
   const chips = page.getByRole('group', { name: 'Category', exact: true });
   await chips.getByRole('button', { name: 'Eating out', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Saved €3.00 · coffee · Eating out');
+  await expect(page.getByRole('status')).toHaveText('Saved €3.00 · lunch · Eating out');
 
   // Remembered on this phone: no note after a reload, and a known line saves straight away.
   await page.reload();
-  await willHear(page, 'coffee 6');
+  await willHear(page, 'lunch 6');
   await mic(page).click();
-  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · coffee · Eating out');
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · lunch · Eating out');
   await expect(page.getByRole('group', { name: 'Speak an entry', exact: true })).toHaveCount(0);
 });
 
@@ -90,7 +90,7 @@ test('it listens in the language the phone shows', async ({ page }) => {
   await seedSetup(page);
   await chooseLanguage(page, 'de');
 
-  await willHear(page, 'Kaffee 4');
+  await willHear(page, 'Bücher 4');
   await mic(page, 'Eintrag sprechen').click();
   await expect(page.getByRole('group', { name: 'Kategorie', exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as SpeechWindow).speechLangs)).toEqual(['de-DE']);

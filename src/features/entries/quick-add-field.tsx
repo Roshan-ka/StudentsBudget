@@ -20,6 +20,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { aiQuickAddProvider, type AiQuickAddHint } from './ai-quick-add';
 import { buildEntry } from './build-entry';
+import { lineAfterQuestion } from './quick-add';
 import { savedWhat } from './saved-line';
 import { FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_CATEGORIES } from './categories';
 import {
@@ -472,7 +473,9 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
             className="min-w-0 flex-1"
             value={text}
             onChange={(event) => {
-              setText(event.target.value);
+              // While the line is asked about, a letter typed after it starts the next line (review P3).
+              const asking = pending !== null || choice !== null;
+              setText(asking ? lineAfterQuestion(text, event.target.value) : event.target.value);
               // The amount buttons and the chips belong to the line that was typed; a changed line has to be added again.
               // So does a read in flight and the note waiting for it.
               setChoice(null);

@@ -44,6 +44,28 @@
           "category-chip-icon"
         ]
       }
+    },
+    {
+      "name": "quick add forgets its food and drink words",
+      "file": "src/features/entries/category-words.ts",
+      "find": "  return suggestCategory(note, history) ?? wordCategory(note);\n",
+      "replace": "  return suggestCategory(note, history);\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "word-list-category"
+        ]
+      }
+    },
+    {
+      "name": "a letter typed after an asked line joins it",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "lineAfterQuestion(text, event.target.value)",
+      "replace": "event.target.value",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "next-line-after-question"
+        ]
+      }
     }
   ]
 }

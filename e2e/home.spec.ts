@@ -90,9 +90,8 @@ test('leads with what is left to spend this month, and under it what is safe thi
   await expect(card.getByText('€434', { exact: true })).toBeVisible();
   await expect(card.getByText('This week: €145 safe to spend', { exact: true })).toBeVisible();
 
-  // The first "döner" has no learned category, so quick add asks.
+  // "döner" is on quick add's word list, so it saves under Eating out by itself.
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
   await expect(card.getByText('€428', { exact: true })).toBeVisible();
   await expect(card.getByText('This week: €139 safe to spend', { exact: true })).toBeVisible();
@@ -128,8 +127,7 @@ test('two numbers side by side before "euros" ask which amount, and one tap save
   await quickAdd(page, 'coffee seven forty euros.');
   await amounts.getByRole('button', { name: '€7.40', exact: true }).click();
   await expect(amounts).toHaveCount(0);
-  // "coffee" has no learned category yet, so the chips follow, as for any line.
-  await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Eating out', exact: true }).click();
+  // "coffee" is on quick add's word list, so the tap saves it under Eating out.
   await expect(page.getByRole('status')).toHaveText('Saved €7.40 · coffee · Eating out');
   const entries = await readStore<Entry>(page, 'entries');
   expect(entries).toHaveLength(1);
@@ -150,7 +148,6 @@ test('the envelopes show what is left of the month and how much of it is used', 
   await expect(list.getByRole('listitem')).toHaveCount(2);
 
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(eatingOut.getByText('€118 left of €124 this month', { exact: true })).toBeVisible();
   const bar = eatingOut.getByRole('progressbar', { name: 'Eating out this month' });
   await expect(bar).toHaveAttribute('aria-valuetext', '€118 left of €124 this month');
@@ -174,14 +171,12 @@ test('an amount under 50 cents keeps its cents instead of reading as €0', asyn
 
   // €309.60 of food's €310 leaves €0.40.
   await quickAdd(page, 'Rewe 309,60');
-  await page.getByRole('button', { name: 'Food & groceries' }).click();
   await expect(row('Food & groceries').getByText('€0.40 left of €310 this month', { exact: true })).toBeVisible();
   await expect(card.getByText('€124.40', { exact: true })).toHaveCount(0);
   await expect(card.getByText('€124', { exact: true })).toBeVisible();
 
   // Eating out used up exactly: a plain €0, and the whole month is down to the €0.40 in food.
   await quickAdd(page, 'döner 124');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(row('Eating out').getByText('€0 left of €124 this month', { exact: true })).toBeVisible();
   await expect(card.getByText('€0.40', { exact: true })).toBeVisible();
 
@@ -242,7 +237,6 @@ test('coming back from another page shows what was added there', async ({ page }
   await page.getByRole('link', { name: 'Entries' }).dispatchEvent('click');
   await expect(page.getByRole('heading', { level: 2, name: 'Entries' })).toBeVisible();
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
 
   await page.getByRole('link', { name: 'Home' }).dispatchEvent('click');
@@ -253,7 +247,6 @@ test('coming back from another page shows what was added there', async ({ page }
 test('the Saved line is gone when the person comes back to the page', async ({ page }) => {
   await seedSetup(page);
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
 
@@ -273,7 +266,6 @@ test('the Saved line goes away on its own after ten seconds', async ({ page }) =
   await page.clock.install({ time: new Date(2026, 9, 16, 12, 0, 0) });
   await seedSetup(page);
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
 
   await page.clock.fastForward(5_000);
@@ -292,7 +284,6 @@ test('shows the total across all accounts, in euros', async ({ page }) => {
   await expect(page.getByText('rate missing')).toHaveCount(0);
 
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByText('Across all accounts: €1,570', { exact: true })).toBeVisible();
 });
 

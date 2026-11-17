@@ -81,19 +81,20 @@ test('quick add asks for the category once, then saves by itself, and Undo remov
   const status = page.getByRole('status');
   const list = entriesList(page);
 
-  await quickAdd(page, 'döner 6');
+  // "lunch" is on no word list (review P2), so the first line asks.
+  await quickAdd(page, 'lunch 6');
   // The question's chips take the focus, and after a pick it is back in the field (accessibility, chunk 5).
   await expect(page.getByRole('group', { name: 'Category' }).getByRole('button').first()).toBeFocused();
   await page.getByRole('button', { name: 'Eating out' }).click();
-  await expect(status).toHaveText('Saved €6.00 · döner · Eating out');
+  await expect(status).toHaveText('Saved €6.00 · lunch · Eating out');
   await expect(page.getByRole('textbox', { name: 'Quick add' })).toBeFocused();
-  await expect(list.getByText('döner')).toBeVisible();
+  await expect(list.getByText('lunch')).toBeVisible();
   await expect(list.getByText('€6.00')).toBeVisible();
   await expect(page.getByLabel('Quick add')).toHaveValue('');
 
   // The category was learned from the first entry: no chips this time.
-  await quickAdd(page, 'döner 4');
-  await expect(status).toHaveText('Saved €4.00 · döner · Eating out');
+  await quickAdd(page, 'lunch 4');
+  await expect(status).toHaveText('Saved €4.00 · lunch · Eating out');
   await expect(page.getByRole('group', { name: 'Category' })).toHaveCount(0);
   await expect(list.getByText('€4.00')).toBeVisible();
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(2);
@@ -104,7 +105,28 @@ test('quick add asks for the category once, then saves by itself, and Undo remov
   await expect(status).toHaveText('');
   await expect(page.getByRole('textbox', { name: 'Quick add' })).toBeFocused();
   const entries = await readStore<Entry>(page, 'entries');
-  expect(entries.map((e) => [e.amountMinor, e.note])).toEqual([[600, 'döner']]);
+  expect(entries.map((e) => [e.amountMinor, e.note])).toEqual([[600, 'lunch']]);
+});
+
+test('the hint’s own example saves under Eating out on a phone with no history', async ({ page }) => {
+  await setupAndOpenEntries(page);
+
+  // Review P2 (17-11-2026): "döner" is on quick add's food and drink words, so a first line needs no question.
+  await quickAdd(page, 'döner 6');
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out'); // proof: word-list-category
+  await expect(page.getByRole('group', { name: 'Category' })).toHaveCount(0);
+});
+
+test('a letter typed after a line quick add asks about starts the next line', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const field = page.getByRole('textbox', { name: 'Quick add' });
+
+  await quickAdd(page, 'poster 6,50');
+  await expect(page.getByRole('group', { name: 'Category' })).toBeVisible();
+  // Review P3: typing on at the end of the asked line starts afresh, never "poster 6,50Bücher 12".
+  await field.press('End');
+  await field.pressSequentially('Bücher 12');
+  await expect(field).toHaveValue('Bücher 12'); // proof: next-line-after-question
 });
 
 test('a double tap on Add saves the entry once and leaves the Saved line alone', async ({ page }) => {
@@ -112,9 +134,8 @@ test('a double tap on Add saves the entry once and leaves the Saved line alone',
   const status = page.getByRole('status');
   const list = entriesList(page);
 
-  // Learn the category, so the second line saves by itself.
+  // "döner" is on the word list, so both lines save by themselves.
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(status).toHaveText('Saved €6.00 · döner · Eating out');
 
   await page.getByRole('textbox', { name: 'Quick add' }).fill('döner 4');
@@ -155,7 +176,6 @@ test('quick add saves to the default bank account, not to cash, dated today, wit
   await setupAndOpenEntries(page);
 
   await quickAdd(page, 'Rewe 12,50');
-  await page.getByRole('button', { name: 'Food & groceries' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €12.50 · Rewe · Food & groceries');
 
   // No account is marked as the default, so it is the first euro bank account: Local bank, which setup made first.
@@ -213,7 +233,6 @@ test('making Cash the default account in Settings moves quick add, the entry for
   // Quick add.
   await openEntries(page);
   await quickAdd(page, 'Rewe 12,50');
-  await page.getByRole('button', { name: 'Food & groceries' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €12.50 · Rewe · Food & groceries');
   const [entry] = await readStore<Entry>(page, 'entries');
   expect(entry).toMatchObject({ type: 'expense', accountId: cash?.id, amountMinor: 1250 });
@@ -283,7 +302,6 @@ test('tapping an entry edits it in place: same entry, new amount', async ({ page
   await setupAndOpenEntries(page);
   const list = entriesList(page);
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(list.getByText('€6.00')).toBeVisible();
   const [before] = await readStore<Entry>(page, 'entries');
 
@@ -311,7 +329,6 @@ test('delete asks first: Cancel keeps the entry, Yes removes it', async ({ page 
   await setupAndOpenEntries(page);
   const list = entriesList(page);
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(list.getByText('€6.00')).toBeVisible();
 
   await list.getByRole('button', { name: /döner/ }).click();
@@ -628,8 +645,6 @@ test('the list groups by day, newest first, and filters by category and month', 
 test('the entries pages fit a phone without sideways scrolling', async ({ page }) => {
   await setupAndOpenEntries(page);
   await quickAdd(page, 'a long note about a very expensive kebab dinner with friends 12');
-  await expect(page.getByRole('group', { name: 'Category' })).toBeVisible();
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toContainText('Saved €12.00');
   await entriesList(page).getByRole('button', { name: /kebab/ }).click();
   await expect(page.getByRole('region', { name: 'Edit entry' })).toBeVisible();
@@ -976,7 +991,6 @@ test('each entry is its own card with its category and account; an empty month p
   await expect(monthNav(page).getByRole('link', { name: 'Next', exact: true })).toBeVisible();
 
   await quickAdd(page, 'döner 6');
-  await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Eating out', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
 
   // "Category · Account" under the title: quick add saved to Local bank, the first euro bank account.

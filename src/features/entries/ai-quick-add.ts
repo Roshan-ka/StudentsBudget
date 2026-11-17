@@ -6,7 +6,8 @@ import { categoryNameIn } from '@/i18n/category-name';
 import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import { EXPENSE_CATEGORIES } from './categories';
-import { readQuickAdd, suggestCategory } from './quick-add';
+import { guessCategory } from './category-words';
+import { readQuickAdd } from './quick-add';
 import {
   euroAccountId,
   localQuickAddProvider,
@@ -84,7 +85,7 @@ export function readingFrom(
 ): QuickAddReading | null {
   if (answer.amount === null) return null;
   const note = answer.note.trim();
-  const categoryId = answer.categoryId ?? suggestCategory(note === '' ? text : note, ctx.history);
+  const categoryId = answer.categoryId ?? guessCategory(note === '' ? text : note, ctx.history);
   const named = answer.accountRef === null ? undefined : accountIds.get(answer.accountRef);
   const accountId = named ?? (readQuickAdd(text)?.euro === true ? euroAccountId(ctx.accounts) : undefined);
   const account = accountId === undefined ? {} : { accountId };
