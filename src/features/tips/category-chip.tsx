@@ -63,7 +63,8 @@ export function CategoryRadioChip({
     <label
       // Chosen, the fill (the text colour) shows: a tint set here would cover it.
       style={checked ? undefined : { backgroundColor: categoryTint(categoryId) }}
-      className="relative inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border-[1.5px] border-outline px-4 py-2 text-center text-sm font-semibold text-balance text-foreground has-checked:border-foreground has-checked:bg-foreground has-checked:text-background has-checked:ring-2 has-checked:ring-foreground has-checked:ring-offset-1 has-checked:ring-offset-background has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+      // Never wider than its row: at 200 % text a long name wraps inside the chip (reflow.spec).
+      className="relative inline-flex max-w-full min-h-11 items-center justify-center gap-1.5 rounded-full border-[1.5px] border-outline px-4 py-2 text-center text-sm font-semibold text-balance text-foreground has-checked:border-foreground has-checked:bg-foreground has-checked:text-background has-checked:ring-2 has-checked:ring-foreground has-checked:ring-offset-1 has-checked:ring-offset-background has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
     >
       <input
         type="radio"
@@ -74,7 +75,7 @@ export function CategoryRadioChip({
         className="absolute inset-0 m-0 size-full cursor-pointer appearance-none rounded-full opacity-0"
       />
       <Icon aria-hidden="true" />
-      {label}
+      <span className="min-w-0 [overflow-wrap:anywhere]">{label}</span>
     </label>
   );
 }
