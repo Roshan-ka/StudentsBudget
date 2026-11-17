@@ -52,6 +52,23 @@ test('Settings lists the page, which says there is nothing to export before any 
   await expect(page.getByRole('button', { name: 'Export entries', exact: true })).toHaveCount(0);
 });
 
+test('the bank import and the export are cards, each with its tinted tile', async ({ page }) => {
+  // Roshan's group 4 mockups (17-11-2026): a bank on a blue tile, a spreadsheet on a green one.
+  await seedSetup(page);
+  await openApp(page, '/settings/import');
+  const importCard = page.getByRole('region', { name: 'Import a bank statement', exact: true });
+  const exportCard = page.getByRole('region', { name: 'Export to a spreadsheet', exact: true });
+  await expect(importCard.getByLabel('Statement file (CSV)', { exact: true })).toBeVisible();
+  // The 1.5 px outline rounds to whole device pixels: check it's there.
+  await expect(importCard).toHaveCSS('border-top-style', 'solid');
+  await expect(exportCard).toHaveCSS('border-top-style', 'solid');
+  // Each tile is its card's first decoration.
+  const importTile = importCard.locator('span[aria-hidden="true"]').first();
+  const exportTile = exportCard.locator('span[aria-hidden="true"]').first();
+  await expect(importTile).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)'); // proof: import-tile-tint
+  await expect(exportTile).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)'); // proof: export-tile-tint
+});
+
 test('exports every entry as a CSV file in the region’s format: a BOM, `;`, a decimal comma and the day first', async ({ page }) => {
   await withoutShareSheet(page);
   await seedSetup(page);

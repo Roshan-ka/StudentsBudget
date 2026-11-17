@@ -128,6 +128,9 @@ export const setup: Messages['setup'] = {
       'Cambia tus sobres, añade gastos puntuales como la cuota semestral y las fuentes de ingresos, los gastos ' +
       'fijos y los sobres que la configuración se saltó, o repasa todo el plan otra vez.',
     link: 'Editar plan',
+    eachMonth: 'Cada mes',
+    comesIn: (amount: string) => `${amount} de ingresos`,
+    fixedOut: (amount: string) => `${amount} de gastos fijos`,
   },
   /** El chat de configuración (fase de IA, chunk 12): en el primer paso de una configuración nueva, con sesión, con IA. */
   chat: {

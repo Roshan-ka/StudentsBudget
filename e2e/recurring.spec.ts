@@ -75,6 +75,27 @@ const list = (page: Page, name: 'Income' | 'Fixed costs') => page.getByRole('lis
 // Each test sets up, then reloads on several days: well over the default 30 s on a busy machine.
 test.beforeEach(() => test.setTimeout(90_000));
 
+test('the Plan page leads with the month in the accent card, and each line is a card in its category’s tint', async ({
+  page,
+}) => {
+  // Roshan's group 4 mockups (17-11-2026): what comes in and the fixed costs each month, with Edit plan in the card.
+  await page.clock.setFixedTime(on(2026, 10, 16));
+  await seedSetup(page);
+  await openSettings(page);
+  const summary = page.getByRole('region', { name: 'Plan', exact: true });
+  // The fixture: €500 from parents and €400 from the job; €400 rent.
+  await expect(summary).toContainText('€900 in · €400 fixed'); // proof: plan-month-summary
+  await expect(summary.getByRole('link', { name: 'Edit plan', exact: true })).toBeVisible();
+  const rent = list(page, 'Fixed costs')
+    .getByRole('listitem')
+    .filter({ has: page.getByRole('button', { name: 'Edit: Rent', exact: true }) });
+  await expect(rent).toContainText('€400.00 a month · Not added automatically');
+  // The 1.5 px outline rounds to whole device pixels (1px on desktop, 1.333px on the iPhone): check it's there.
+  await expect(rent).not.toHaveCSS('border-top-width', '0px');
+  await expect(rent).toHaveCSS('border-top-style', 'solid');
+  await expect(rent).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)'); // proof: plan-line-tint
+});
+
 test('rent is added on its day, a changed day posts once, and a deleted one stays deleted', async ({ page }) => {
   await page.clock.setFixedTime(on(2026, 10, 16));
   await seedSetup(page, {}, { schedules: true });

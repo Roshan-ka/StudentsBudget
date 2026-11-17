@@ -37,4 +37,5 @@ export const reminder: Messages['reminder'] = {
   everyDay: ['Le lundi', 'Le mardi', 'Le mercredi', 'Le jeudi', 'Le vendredi', 'Le samedi', 'Le dimanche'],
   summaryOff: 'Désactivé',
   summaryOn: (day: string, time: string) => `${day} à ${time}`,
+  stateOn: 'Activé',
 };
