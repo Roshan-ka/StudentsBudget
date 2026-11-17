@@ -55,6 +55,17 @@
           "outdated-icon"
         ]
       }
+    },
+    {
+      "name": "a discount says its checked date twice again",
+      "file": "src/features/discounts/discounts-view.tsx",
+      "find": "{(own === null || f.lastConfirmed !== own.checked) && (",
+      "replace": "{true && (",
+      "expect": {
+        "e2e/discounts.spec.ts": [
+          "no-repeated-date"
+        ]
+      }
     }
   ]
 }

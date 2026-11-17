@@ -93,9 +93,11 @@ test('the Tips tab switches to a sourced discount list and back', async ({ page 
   await expect(discountList(page).getByText('May be outdated', { exact: true })).toHaveCount(0);
 
   const first = item(page, FIRST);
-  for (const text of [FIRST.offer, FIRST.conditions, FIRST.address, `Last confirmed ${formatDate(FIRST.checked)}`]) {
+  for (const text of [FIRST.offer, FIRST.conditions, FIRST.address]) {
     await expect(first.getByText(text, { exact: true })).toBeVisible();
   }
+  // Never confirmed since it was checked: the source line's date says it, not a second "Last confirmed" (review P6).
+  await expect(first.getByText(/^Last confirmed/)).toHaveCount(0); // proof: no-repeated-date
   await expect(voteButton(page, FIRST, 'Still works')).toHaveAttribute('aria-pressed', 'false');
   await expect(voteButton(page, FIRST, 'Outdated')).toHaveAttribute('aria-pressed', 'false');
 

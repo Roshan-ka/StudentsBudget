@@ -12,10 +12,12 @@ export const tips: Messages['tips'] = {
   tipsIntro: 'Formas locales de pagar menos como estudiante. Cada consejo dice de dónde sale.',
   tipsFor: 'Mostrar consejos de',
   sourceLead: 'Fuente:',
-  discountsIntro:
-    'Descuentos para estudiantes en Regensburg. Cada uno indica su fuente. Dile a la app si uno sigue ' +
-    'funcionando: tus votos se guardan en este móvil, y en tu cuenta en cuanto el móvil esté vinculado. Los que ' +
-    'confirmas suben; los que marcas como desactualizados, o que llevan 8 semanas sin confirmar, bajan.',
+  discountsIntro: 'Descuentos para estudiantes en Regensburg, cada uno con su fuente.',
+  votesHow: 'Cómo funcionan los votos',
+  votesBody:
+    'Dile a la app si un descuento sigue funcionando: tus votos se guardan en este móvil, y en tu cuenta en cuanto ' +
+    'el móvil esté vinculado. Los que confirmas suben; los que marcas como desactualizados, o que llevan 8 semanas ' +
+    'sin confirmar, bajan.',
   discountsFor: 'Mostrar descuentos de',
   loadFailed: 'No se han podido cargar los descuentos. Inténtalo más tarde.',
   votes: { works: 'Sigue funcionando', outdated: 'Desactualizado' },

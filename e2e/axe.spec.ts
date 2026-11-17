@@ -1,9 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { PRIVACY_NOTES, type PrivacyNoteId } from '../src/features/privacy/notes';
 import { MESSAGES } from '../src/i18n/messages';
 import { THEME_STORAGE_KEY, type Theme } from '../src/theme/themes';
+import { openApp } from './helpers/app';
 import { heading, PAGES } from './helpers/pages';
+import { acceptPrivacyNotes } from './helpers/privacy';
+import { seedSetup } from './helpers/seed-setup';
 import { completeSetup } from './helpers/setup';
+import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow } from './helpers/supabase';
 
 // Accessibility, chunk 9 (docs/superpowers/plans/2026-11-05-accessibility.md): axe-core checks every page, setup
 // included, in light and in dark, against the WCAG 2.0–2.2 A and AA rules it can judge on its own (contrast, names,
@@ -12,6 +17,8 @@ import { completeSetup } from './helpers/setup';
 const t = MESSAGES.en;
 const RULES = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const BLOCKING = new Set(['serious', 'critical']);
+const ASK_EMAIL = 'roshan@example.com';
+const ASK_PASSWORD = 'correct horse';
 
 /** The page's serious and critical findings, one line each: the rule, what it asks, and up to three elements. */
 async function findings(page: Page): Promise<string[]> {
@@ -74,9 +81,23 @@ for (const theme of ['light', 'dark'] as const satisfies readonly Theme[]) {
       await page.waitForLoadState('networkidle');
       expect.soft(await findings(page), path).toEqual([]);
     }
+  });
 
-    // Ask's sheet, opened from the chat bubble (13-11-2026): a guest's, which says how to sign in.
-    await page.goto('/');
+  // Ask's sheet, opened from the chat bubble (13-11-2026), which shows only while someone is signed in (review P5).
+  test(`Ask's sheet passes axe's WCAG AA checks in ${theme}`, async ({ page }) => {
+    await mockSupabaseData(page);
+    await skipUnlessAccountsShow(page);
+    await useTheme(page, theme);
+    await acceptPrivacyNotes(page, Object.keys(PRIVACY_NOTES) as PrivacyNoteId[]);
+    await mockSupabaseAuth(page, { [ASK_EMAIL]: ASK_PASSWORD });
+    await seedSetup(page);
+    await openApp(page, '/settings/account');
+    await page.getByRole('textbox', { name: t.auth.signIn.email, exact: true }).fill(ASK_EMAIL);
+    await page.getByLabel(t.auth.signIn.password, { exact: true }).fill(ASK_PASSWORD);
+    await page.getByRole('button', { name: t.auth.signIn.signIn, exact: true }).click();
+    await expect(page.getByText(`Signed in as ${ASK_EMAIL}.`, { exact: true })).toBeVisible();
+
+    await openApp(page, '/');
     await page.getByRole('button', { name: t.ask.link, exact: true }).click();
     const sheet = page.getByRole('dialog', { name: t.shell.headings.ask, exact: true });
     await expect(sheet).toBeVisible();

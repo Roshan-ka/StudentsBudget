@@ -53,6 +53,17 @@
           "bubble-on-map"
         ]
       }
+    },
+    {
+      "name": "the bubble shows for a guest again",
+      "file": "src/features/ask/ask-bubble.tsx",
+      "find": "  const account = auth.status === 'signed-in' || auth.status === 'second-step';\n",
+      "replace": "  const account = true;\n",
+      "expect": {
+        "e2e/ask.spec.ts": [
+          "no-bubble-for-guest"
+        ]
+      }
     }
   ]
 }

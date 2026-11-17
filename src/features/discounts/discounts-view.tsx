@@ -1,8 +1,9 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
+import { LogInIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { FoldSummary, LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import type { Discount } from '@/data/discounts';
@@ -349,8 +350,20 @@ export function DiscountsView({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* One line, and how votes work folded under it, so the first discount shows on a phone (review P6). */}
       <p className="text-sm text-muted-foreground">{text.discountsIntro}</p>
-      {auth.status === 'signed-out' && <p className="text-sm text-muted-foreground">{text.othersSignIn}</p>}
+      <details className="text-sm">
+        <FoldSummary>{text.votesHow}</FoldSummary>
+        <p className="pt-2 pb-1 text-muted-foreground">{text.votesBody}</p>
+      </details>
+      {auth.status === 'signed-out' && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">{text.othersSignIn}</p>
+          <LinkButton href="/settings/account" icon={LogInIcon}>
+            {t.common.toAccount}
+          </LinkButton>
+        </div>
+      )}
       {userId !== null &&
         (adding ? (
           <DiscountForm userId={userId} onAdded={onAdded} onCancel={closeForm} />
@@ -447,7 +460,10 @@ export function DiscountsView({
                   ) : (
                     <>
                       {f.mayBeOutdated && <p className="font-medium">{text.mayBeOutdated}</p>}
-                      <p className="text-muted-foreground">{text.lastConfirmed(formatDate(f.lastConfirmed))}</p>
+                      {/* The source line already says the checked date: the same date twice says nothing (P6). */}
+                      {(own === null || f.lastConfirmed !== own.checked) && (
+                        <p className="text-muted-foreground">{text.lastConfirmed(formatDate(f.lastConfirmed))}</p>
+                      )}
                     </>
                   )}
                   {others !== undefined && others.works > 0 && (

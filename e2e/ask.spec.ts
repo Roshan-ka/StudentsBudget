@@ -13,7 +13,7 @@ import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow } from './he
 
 // Ask (the AI phase, chunk 10, docs/superpowers/plans/2026-11-09-ai-phase-1.md): questions about the student's own
 // budget, answered by the `ai` function (mocked: `mockAiFunction`) from the plan, the recent entries and the city data.
-// A guest is told to sign in and sends nothing; the first question waits for the `ai` note; an answer shows with its
+// A guest sees no bubble (review P5) and sends nothing; the first question waits for the `ai` note; an answer shows with its
 // sources from the app's own data; a later question carries the answers before it; Start over ends the conversation.
 // Since 13-11-2026 Ask is a sheet that a chat bubble opens (`AskBubble`), on the navigation's pages and the check-in,
 // not a page of its own: it hands the focus back when it closes, keeps its conversation, and keeps off the map.
@@ -65,16 +65,24 @@ async function ask(page: Page, question: string) {
   await askButton(page).click();
 }
 
-test('a guest is told to sign in, and nothing is sent', async ({ page }) => {
+test('a guest sees no bubble, and nothing is sent', async ({ page }) => {
   await acceptPrivacyNotes(page);
   const calls = await mockAiFunction(page, { answers: { ask: FIRST } });
   await seedSetup(page);
-  await openAsk(page);
-  await expect(page.getByText(TEXT.signedOut, { exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: EN.common.toAccount, exact: true })).toBeVisible();
-  await expect(questionField(page)).toHaveCount(0);
+  await openApp(page, '/');
+  await expect(page.getByRole('textbox', { name: 'Quick add', exact: true })).toBeVisible();
+  // Review P5 (17-11-2026): a floating sign-in prompt over every page helped no guest.
+  await expect(bubble(page)).toHaveCount(0); // proof: no-bubble-for-guest
   expect(calls).toEqual([]);
 });
+
+/** A signed-in student on Home: the bubble shows only while someone is signed in. */
+async function signedInWithPlan(page: Page) {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await seedSetup(page);
+  await signIn(page);
+}
 
 test("Home's bubble opens Ask; the first question waits for the note, then the answer shows with its sources", async ({ page }) => {
   await skipUnlessAccountsShow(page);
@@ -172,7 +180,7 @@ test('the daily limit says so; with the AI switched off on this phone nothing is
 
 test("the bubble shows on the navigation's pages and the check-in, never in setup", async ({ page }) => {
   await acceptPrivacyNotes(page);
-  await seedSetup(page);
+  await signedInWithPlan(page);
   for (const path of ['/', '/entries', '/charts', '/tips', '/settings', '/settings/profile', '/check-in']) {
     await openApp(page, path);
     await expect(bubble(page), path).toBeVisible();
@@ -185,7 +193,7 @@ test("the bubble shows on the navigation's pages and the check-in, never in setu
 
 test("the bubble stays on the discount map, below the map's box", async ({ page }) => {
   await acceptPrivacyNotes(page);
-  await seedSetup(page);
+  await signedInWithPlan(page);
   await openApp(page, '/tips');
   await page
     .getByRole('tablist', { name: 'Tips, discounts, hacks or checklist', exact: true })
@@ -213,7 +221,7 @@ test("the bubble stays on the discount map, below the map's box", async ({ page 
 
 test('Escape closes the sheet and hands the focus back to the bubble', async ({ page }) => {
   await acceptPrivacyNotes(page);
-  await seedSetup(page);
+  await signedInWithPlan(page);
   await openAsk(page);
   await page.keyboard.press('Escape');
   await expect(sheet(page)).toBeHidden();
