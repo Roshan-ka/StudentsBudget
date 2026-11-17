@@ -1,0 +1,16 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "a sign-in by another account drops the owed wipe again, and its phone keeps the last account's data",
+      "file": "src/features/account/pending-wipe.ts",
+      "find": "  if (!linkedTo || linkedTo === userId) {\n",
+      "replace": "  if (!linkedTo || linkedTo === userId || userId !== '') {\n",
+      "expect": {
+        "e2e/start.spec.ts": [
+          "wipe-before-other-account"
+        ]
+      }
+    }
+  ]
+}
