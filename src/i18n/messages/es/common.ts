@@ -26,6 +26,7 @@ export const common: Messages['common'] = {
     positive: 'Escribe un importe mayor que 0, como 250 o 12,50.',
     number: 'Escribe un número, como 250 o 12,50.',
     overdrawn: 'En descubierto (bajo cero)',
+    overdrawnFold: '¿En descubierto?',
   },
   source: {
     for: (what) => `Fuente de ${what}:`,

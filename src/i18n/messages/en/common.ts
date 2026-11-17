@@ -31,6 +31,8 @@ export const common = {
     positive: 'Enter an amount above 0, like 250 or 12.50.',
     number: 'Enter a number, like 250 or 12.50.',
     overdrawn: 'Overdrawn (below zero)',
+    /** The fold the Overdrawn box sits in, on setup's Accounts step (17-11-2026). */
+    overdrawnFold: 'Overdrawn?',
   },
   /** A city range's source, folded under its line. The source text itself is city content and stays English. */
   source: {

@@ -27,6 +27,7 @@ export const common: Messages['common'] = {
     positive: 'Saisis un montant supérieur à 0, comme 250 ou 12,50.',
     number: 'Saisis un nombre, comme 250 ou 12,50.',
     overdrawn: 'À découvert (sous zéro)',
+    overdrawnFold: `À découvert${NNBSP}?`,
   },
   source: {
     for: (what) => `Source pour ${what}${NNBSP}:`,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState, type ReactNode, type Ref } from 'react';
+import { FoldSummary } from '@/components/link-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -50,7 +51,8 @@ function toText(value: Minor | undefined, blank: Blank, locale: string): string 
  *
  * With `signed` the amount may be below zero, as an account's opening balance is: an "Overdrawn (below zero)"
  * checkbox sits under the field, its hint and its error, and puts a minus sign in the text; a typed "-250" is
- * accepted too.
+ * accepted too. The box is folded under "Overdrawn?" (Roshan, 17-11-2026: a new student rarely needs it on day one),
+ * and the fold opens by itself while the balance is below zero or the tick waits for an amount, so a tick never hides.
  *
  * `layout="row"` (a setup step's category card, 13-11-2026): the label at the start and a compact field at the end,
  * the field under the label where the line is too narrow (large text), and the hint under both, across the width. The
@@ -100,6 +102,10 @@ export function AmountField({
   // it, and a tick only waits while the field is empty: with an amount in it, it would put a minus on someone else's.
   if (fromValue && waiting) setWaiting(false);
   const pending = waiting && shown.trim() === '';
+  const overdrawn = isOverdrawn(shown, pending);
+  // The Overdrawn fold: open while the balance is below zero, and otherwise as the person left it.
+  const [foldOpen, setFoldOpen] = useState(overdrawn);
+  if (overdrawn && !foldOpen) setFoldOpen(true);
   const showError = touched && value !== undefined && Number.isNaN(value);
   const invalid = showError || problemId !== null;
   const describedBy = describedByIds(`${id}-unit`, hint ? `${id}-hint` : null, showError && `${id}-error`, problemId);
@@ -183,19 +189,22 @@ export function AmountField({
         </p>
       )}
       {signed && (
-        <label className="flex min-h-11 items-center gap-3 text-sm">
-          <input
-            type="checkbox"
-            className="size-5 accent-primary"
-            checked={isOverdrawn(shown, pending)}
-            onChange={(event) => {
-              const ticked = tickOverdrawn(shown, event.target.checked);
-              setWaiting(ticked.waiting);
-              edit(ticked.text);
-            }}
-          />
-          {t.common.amountField.overdrawn}
-        </label>
+        <details className="text-sm" open={foldOpen} onToggle={(event) => setFoldOpen(event.currentTarget.open)}>
+          <FoldSummary>{t.common.amountField.overdrawnFold}</FoldSummary>
+          <label className="flex min-h-11 items-center gap-3 pt-1">
+            <input
+              type="checkbox"
+              className="size-5 accent-primary"
+              checked={overdrawn}
+              onChange={(event) => {
+                const ticked = tickOverdrawn(shown, event.target.checked);
+                setWaiting(ticked.waiting);
+                edit(ticked.text);
+              }}
+            />
+            {t.common.amountField.overdrawn}
+          </label>
+        </details>
       )}
     </div>
   );

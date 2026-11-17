@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { useAuth } from '@/features/account/use-auth';
 import { categoryTint } from '@/features/charts/colors';
-import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { hostOf } from '@/features/tips/source-line';
+import { CategoryPill } from '@/features/tips/category-pill';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import { formatDate, todayIso } from '@/lib/dates';
@@ -207,7 +207,6 @@ export function ModerationView() {
         {Array.isArray(answer) && answer.length > 0 && (
           <ul aria-label={text.queue} className="flex flex-col gap-3">
             {answer.map((item) => {
-              const Icon = CATEGORY_ICONS[item.categoryId] ?? OTHER_ICON;
               return (
                 // On its category's tint, with the category's tag, as the post is in the feed (group 4 redesign).
                 <li
@@ -216,10 +215,7 @@ export function ModerationView() {
                   style={{ backgroundColor: categoryTint(item.categoryId) }}
                 >
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline bg-card px-2.5 py-0.5 text-xs font-semibold">
-                      <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-                      {categoryNameIn(t, item.categoryId)}
-                    </span>
+                    <CategoryPill categoryId={item.categoryId}>{categoryNameIn(t, item.categoryId)}</CategoryPill>
                     <span className="text-xs text-muted-foreground">
                       {t.tips.hacks.cities[item.city]} · {formatDate(todayIso(new Date(item.createdAt)))}
                     </span>

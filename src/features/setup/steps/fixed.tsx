@@ -22,6 +22,7 @@ import { AmountField } from './amount-field';
 import { CategoryCard } from './category-card';
 import { RangeSource } from './range-source';
 import { StepMore } from './step-more';
+import { WhenSettled } from './when-settled';
 
 const rentRange = CITIES.regensburg.ranges.find((r) => r.categoryId === 'rent');
 
@@ -63,18 +64,20 @@ export function FixedStep({
           }
         >
           {rentRange && <RangeSource range={rangeIn(rentRange, lang)} />}
-          {draft.rentSchedule && draft.rentMinor > 0 && (
-            <DraftScheduleFields
-              name={categoryNameIn(t, 'rent')}
-              categoryId="rent"
-              type="expense"
-              monthlyMinor={draft.rentMinor}
-              schedule={draft.rentSchedule}
-              accounts={accounts}
-              today={today}
-              onChange={(schedule) => update((d) => ({ ...d, rentSchedule: schedule }))}
-            />
-          )}
+          <WhenSettled show={draft.rentSchedule !== undefined && draft.rentMinor > 0}>
+            {draft.rentSchedule && (
+              <DraftScheduleFields
+                name={categoryNameIn(t, 'rent')}
+                categoryId="rent"
+                type="expense"
+                monthlyMinor={draft.rentMinor}
+                schedule={draft.rentSchedule}
+                accounts={accounts}
+                today={today}
+                onChange={(schedule) => update((d) => ({ ...d, rentSchedule: schedule }))}
+              />
+            )}
+          </WhenSettled>
         </CategoryCard>
         {askedCategories(FIXED_CATEGORIES, SETUP_FIXED_IDS, edit, draft.fixed).map((c) => {
           const line = draft.fixed.find((l) => l.categoryId === c.id);
@@ -92,20 +95,22 @@ export function FixedStep({
                 />
               }
             >
-              {line?.schedule && line.monthlyMinor > 0 && (
-                <DraftScheduleFields
-                  name={name}
-                  categoryId={c.id}
-                  type="expense"
-                  monthlyMinor={line.monthlyMinor}
-                  schedule={line.schedule}
-                  accounts={accounts}
-                  today={today}
-                  onChange={(schedule) =>
-                    update((d) => ({ ...d, fixed: setLineSchedule(d.fixed, c.id, schedule) }))
-                  }
-                />
-              )}
+              <WhenSettled show={line?.schedule !== undefined && (line?.monthlyMinor ?? 0) > 0}>
+                {line?.schedule && (
+                  <DraftScheduleFields
+                    name={name}
+                    categoryId={c.id}
+                    type="expense"
+                    monthlyMinor={line.monthlyMinor}
+                    schedule={line.schedule}
+                    accounts={accounts}
+                    today={today}
+                    onChange={(schedule) =>
+                      update((d) => ({ ...d, fixed: setLineSchedule(d.fixed, c.id, schedule) }))
+                    }
+                  />
+                )}
+              </WhenSettled>
             </CategoryCard>
           );
         })}

@@ -19,10 +19,10 @@ import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { useAuth } from '@/features/account/use-auth';
 import { categoryTint } from '@/features/charts/colors';
-import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { CategoryChip } from '@/features/tips/category-chip';
+import { CategoryPill } from '@/features/tips/category-pill';
 import { categoryNameIn } from '@/i18n/category-name';
 import type { Language } from '@/i18n/languages';
 import type { Messages } from '@/i18n/messages';
@@ -320,7 +320,6 @@ function HackCard({
   onCommentCount: (count: number) => void;
 }) {
   const text = t.tips.hacks;
-  const Icon = CATEGORY_ICONS[post.categoryId] ?? OTHER_ICON;
   // A post in another language than the phone's has Translate (chunk 8); its first use waits for its note.
   const translation = post.lang === lang ? null : translateUrl(post.body, lang);
   // Report, Delete and Translate say which post, for a screen reader that lists them (accessibility, chunk 8).
@@ -450,10 +449,7 @@ function HackCard({
     <li className={cn(cardVariants(), 'gap-2')} style={{ backgroundColor: categoryTint(post.categoryId) }}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {/* The category's icon and name on the card colour; its name is the text. */}
-        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline bg-card px-2.5 py-0.5 text-xs font-semibold">
-          <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-          {categoryNameIn(t, post.categoryId)}
-        </span>
+        <CategoryPill categoryId={post.categoryId}>{categoryNameIn(t, post.categoryId)}</CategoryPill>
         {/* Who and when on the tag's line: the name, "Your post" on one's own, the place and the day. */}
         <span className="text-xs break-words text-muted-foreground">
           <span className="font-semibold text-foreground">{author}</span>

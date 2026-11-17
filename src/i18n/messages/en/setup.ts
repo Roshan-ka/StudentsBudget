@@ -60,9 +60,9 @@ export const setup = {
       automatic: 'Add it automatically',
       after: ', so money already in your account isn’t counted twice.',
     },
-    later: 'Get BAföG or a scholarship? Add it later in Settings → Plan → Edit plan.',
+    later: 'Get a scholarship? Add it later in Settings → Plan → Edit plan.',
     /** The disclosure under the income cards that holds `savings` and, on a new setup, `later` (13-11-2026). */
-    more: 'Savings, BAföG or a scholarship?',
+    more: 'Savings or a scholarship?',
     /** The same in Edit plan, which asks BAföG and scholarships itself: it holds `savings` only. */
     moreEdit: 'Living off savings?',
   },

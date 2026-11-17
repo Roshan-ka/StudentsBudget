@@ -10,7 +10,6 @@ import { TIPS } from '@/data/tips';
 import { categoryTint } from '@/features/charts/colors';
 import { ChecklistView } from '@/features/checklist/checklist-view';
 import { DiscountsView } from '@/features/discounts/discounts-view';
-import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { HacksView } from '@/features/hacks/hacks-view';
 import { categoryNameIn } from '@/i18n/category-name';
 import { tipIn } from '@/i18n/city';
@@ -18,6 +17,7 @@ import { useT } from '@/i18n/use-t';
 import { formatDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import { CategoryChip } from './category-chip';
+import { CategoryPill } from './category-pill';
 import { SourceLine } from './source-line';
 import { sortTips, tipChipIds, tipTag } from './tips';
 
@@ -146,7 +146,6 @@ function TipList({
       <ul aria-label={text.tips} className="flex flex-col gap-3">
         {shown.map((tip) => {
           const words = tipIn(tip, lang);
-          const Icon = CATEGORY_ICONS[tip.categoryId] ?? OTHER_ICON;
           return (
             // Each card on its category's tint (group 2 redesign); its text keeps 4.5:1 there (`tokens.test.ts`).
             <li
@@ -154,14 +153,8 @@ function TipList({
               className={cn(cardVariants(), 'gap-2')}
               style={{ backgroundColor: categoryTint(tip.categoryId) }}
             >
-              {/* The category's tint and icon; its name is the text, in the foreground colour (4.5:1 on every tint). */}
-              <span
-                className="inline-flex w-fit items-center gap-1.5 rounded-full border-[1.5px] border-outline px-2.5 py-0.5 text-xs font-semibold"
-                style={{ backgroundColor: categoryTint(tip.categoryId) }}
-              >
-                <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-                {tipTag(tip, lang)}
-              </span>
+              {/* The category's icon and name on the card colour (review U7, 17-11-2026). */}
+              <CategoryPill categoryId={tip.categoryId}>{tipTag(tip, lang)}</CategoryPill>
               <div lang={words.textLang} className="flex flex-col gap-1">
                 <h3
                   id={tipHeadingId(tip.id)}

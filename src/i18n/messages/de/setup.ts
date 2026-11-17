@@ -54,8 +54,8 @@ export const setup: Messages['setup'] = {
       automatic: 'Automatisch hinzufügen',
       after: ' aus, damit Geld, das schon auf deinem Konto ist, nicht doppelt zählt.',
     },
-    later: 'Bekommst du BAföG oder ein Stipendium? Trag es später unter Einstellungen → Plan → Plan bearbeiten ein.',
-    more: 'Ersparnisse, BAföG oder ein Stipendium?',
+    later: 'Bekommst du ein Stipendium? Trag es später unter Einstellungen → Plan → Plan bearbeiten ein.',
+    more: 'Ersparnisse oder ein Stipendium?',
     moreEdit: 'Lebst du von Ersparnissen?',
   },
   fixed: {

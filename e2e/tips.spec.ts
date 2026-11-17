@@ -100,6 +100,10 @@ test('a tip says where it comes from in one small line, with no fold-out', async
   await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   // The source's own words stay with the link, for hover and screen readers.
   await expect(link).toHaveAttribute('title', tip.source);
+  // Its category tag sits on the card colour, as on every list, so it shows on the card's tint (review U7, 17-11-2026).
+  const name = NAMES.get(tip.categoryId) ?? tip.categoryId;
+  const tag = item.getByText(tip.source === 'Estimate' ? `${name} · Estimate` : name, { exact: true });
+  await expect(tag).toHaveClass(/\bbg-card\b/); // proof: tag-on-card
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 

@@ -51,8 +51,8 @@ export const setup: Messages['setup'] = {
       automatic: 'Añadir automáticamente',
       after: ', para que el dinero que ya está en tu cuenta no cuente dos veces.',
     },
-    later: '¿Recibes BAföG o una beca? Añádelo más tarde en Ajustes → Plan → Editar plan.',
-    more: '¿Ahorros, BAföG o una beca?',
+    later: '¿Recibes una beca? Añádela más tarde en Ajustes → Plan → Editar plan.',
+    more: '¿Ahorros o una beca?',
     moreEdit: '¿Vives de tus ahorros?',
   },
   fixed: {

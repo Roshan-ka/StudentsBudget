@@ -55,8 +55,8 @@ export const setup: Messages['setup'] = {
       automatic: 'Ajouter automatiquement',
       after: ', pour que l’argent déjà sur ton compte ne compte pas deux fois.',
     },
-    later: `Tu touches le BAföG ou une bourse${NNBSP}? Ajoute-le plus tard dans Réglages → Plan → Modifier le plan.`,
-    more: `Économies, BAföG ou bourse${NNBSP}?`,
+    later: `Tu touches une bourse${NNBSP}? Ajoute-la plus tard dans Réglages → Plan → Modifier le plan.`,
+    more: `Économies ou bourse${NNBSP}?`,
     moreEdit: `Tu vis de tes économies${NNBSP}?`,
   },
   fixed: {

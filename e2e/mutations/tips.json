@@ -33,6 +33,17 @@
           "chip-ring"
         ]
       }
+    },
+    {
+      "name": "category tags take no card colour, and vanish on their tinted cards again",
+      "file": "src/features/tips/category-pill.tsx",
+      "find": "border-outline bg-card px-2.5",
+      "replace": "border-outline px-2.5",
+      "expect": {
+        "e2e/tips.spec.ts": [
+          "tag-on-card"
+        ]
+      }
     }
   ]
 }
