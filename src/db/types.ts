@@ -119,9 +119,6 @@ export type PlanMonth = {
   spendingBudgetMinor?: Minor;
 };
 
-/** Saved once in setup, never edited afterwards. */
-export type Guess = { categoryId: string; monthlyMinor: Minor; guessedOn: IsoDate };
-
 export type Rate = {
   currency: CurrencyCode;
   perEur: number;

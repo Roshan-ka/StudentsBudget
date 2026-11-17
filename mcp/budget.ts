@@ -106,7 +106,6 @@ const NO_PHONE: BackupData = {
   categories: [],
   entries: [],
   plan: null,
-  guesses: [],
   fxRates: [],
   weekResults: [],
   discountVotes: [],

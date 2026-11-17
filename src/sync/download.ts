@@ -37,7 +37,6 @@ export async function planDownload(store: UserDataStore, phone: BackupData): Pro
       categories: CATEGORIES.map((c) => ({ ...c })),
       entries: rows.entries.map(ROW_CHECKS.entries),
       plan: plans[0] ?? null,
-      guesses: rows.guesses.map(ROW_CHECKS.guesses),
       fxRates: [...phone.fxRates.filter((rate) => rate.source === 'ecb'), ...rows.manual_rates.map(ROW_CHECKS.manual_rates)],
       weekResults: rows.week_results.map(ROW_CHECKS.week_results),
       discountVotes: rows.discount_votes.map(ROW_CHECKS.discount_votes),

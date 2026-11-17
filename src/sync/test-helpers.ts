@@ -42,7 +42,6 @@ export function snapshot(overrides: Partial<BackupData> = {}): BackupData {
       envelopes: [{ categoryId: 'food', monthlyMinor: 20_000 }],
       createdOn: '2026-10-16',
     },
-    guesses: [{ categoryId: 'food', monthlyMinor: 20_000, guessedOn: '2026-10-16' }],
     fxRates: [ECB, MANUAL],
     weekResults: [
       {

@@ -111,6 +111,11 @@ export const planMonthRow = z.object({
   spendingBudgetMinor: minor.optional(),
 });
 
+/**
+ * A guess of Guess vs. reality, gone since 05-11-2026 (its table since review F4, 17-11-2026): only a backup file of
+ * version 5 or older still carries them. They are checked as before, so a damaged old file is still refused, and then
+ * left out.
+ */
 export const guessRow = z.object({ categoryId: id, monthlyMinor: minor, guessedOn: isoDate });
 
 export const rateRow = z.object({

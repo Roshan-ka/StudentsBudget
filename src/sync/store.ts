@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { SERVER_TABLES, type ServerRow, type ServerTable } from './tables';
+import { RETIRED_TABLES, SERVER_TABLES, type ServerRow, type ServerTable } from './tables';
 
 /** A row as it comes back from the account: its id, and data that still has to be checked. */
 export type StoredRow = { id: string; data: unknown };
@@ -68,14 +68,20 @@ const fullRows = z.array(z.object({ id: z.string(), data: z.unknown() }));
 // PostgREST sends a bigint as a JSON number.
 const revRows = z.array(z.object({ id: z.string(), data: z.unknown(), rev: z.number() }));
 // sync_pull's rows (supabase/migrations/20261026132206_sync.sql). PostgREST sends a bigint as a JSON number.
-const pulledRows = z.array(
-  z.object({ tbl: z.enum(SERVER_TABLES), id: z.string(), data: z.unknown(), rev: z.number() }).transform((row) => ({
-    table: row.tbl,
-    id: row.id,
-    data: row.data ?? null,
-    rev: row.rev,
-  })),
-);
+// A retired table's rows (`RETIRED_TABLES`) are read and left out: the account may send them until its migration drops
+// the table, and a later page carries the pull past them.
+const pulledRows = z
+  .array(z.object({ tbl: z.enum([...SERVER_TABLES, ...RETIRED_TABLES]), id: z.string(), data: z.unknown(), rev: z.number() }))
+  .transform((rows) =>
+    rows.flatMap((row) =>
+      row.tbl === 'guesses' ? [] : [{ table: row.tbl, id: row.id, data: row.data ?? null, rev: row.rev }],
+    ),
+  );
+
+/** `sync_pull`'s answer as rows, a retired table's left out. Throws when the answer isn't rows. */
+export function pulledRowsOf(answer: unknown): PulledRow[] {
+  return pulledRows.parse(answer);
+}
 
 function batches<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -157,7 +163,7 @@ export function supabaseStore(client: SupabaseClient): UserDataStore {
     async pull(since, limit) {
       const answer = await client.rpc('sync_pull', { p_since: since, p_limit: limit });
       check('sync_pull', answer);
-      return pulledRows.parse(answer.data);
+      return pulledRowsOf(answer.data);
     },
     async accountExists(userId) {
       const answer = await client.rpc('linked_account_exists', { p_user_id: userId });

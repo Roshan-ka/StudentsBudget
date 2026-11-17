@@ -67,7 +67,6 @@ function sample(): BackupData {
       envelopes: [{ categoryId: 'food', monthlyMinor: 31_000 }],
       createdOn: '2026-10-16',
     },
-    guesses: [{ categoryId: 'food', monthlyMinor: 20_000, guessedOn: '2026-10-16' }],
     fxRates: [
       { currency: 'INR', perEur: 95, rateDate: '2026-10-16', fetchedOn: '2026-10-16', source: 'ecb' },
       { currency: 'INR', perEur: 97.5, rateDate: '2026-10-16', fetchedOn: '2026-10-16', source: 'manual' },
@@ -146,11 +145,15 @@ function noVersion3Data(): Pick<BackupData, NewerKey> {
   return { weekResults: [], discountVotes: [], profile: null, ...noVersion4Data() };
 }
 
-/** The file of an older version: the data without the keys that version did not know. */
-function olderFileOf(data: BackupData, version: 1 | 2 | 3 | 4): string {
+/** Guess vs. reality's guesses, as a file of version 5 or older still holds them (review F4). */
+const OLD_GUESSES = [{ categoryId: 'food', monthlyMinor: 20_000, guessedOn: '2026-10-16' }];
+
+/** The file of an older version: the data without the keys that version did not know, and with its guesses. */
+function olderFileOf(data: BackupData, version: 1 | 2 | 3 | 4 | 5, guesses: unknown[] = structuredClone(OLD_GUESSES)): string {
   return fileOf((file) => {
     file.version = version;
-    for (const key of VERSION_5_KEYS) delete file.data[key];
+    file.data.guesses = guesses;
+    if (version < 5) for (const key of VERSION_5_KEYS) delete file.data[key];
     if (version < 4) for (const key of VERSION_4_KEYS) delete file.data[key];
     if (version < 3) for (const key of VERSION_3_KEYS) delete file.data[key];
   }, data);
@@ -211,7 +214,9 @@ describe('serializeBackup and parseBackup', () => {
     const file: unknown = JSON.parse(serializeBackup(sample(), NOW));
 
     expect(file).toEqual({ app: 'studentsbudget', version: BACKUP_VERSION, exportedAt: NOW.toISOString(), data: sample() });
-    expect(BACKUP_VERSION).toBe(5);
+    expect(BACKUP_VERSION).toBe(6);
+    // Version 6 writes no guesses (review F4).
+    expect(file).not.toHaveProperty('data.guesses');
   });
 
   it('round-trips every table, the ECB and the manual rate included', () => {
@@ -408,7 +413,7 @@ describe('serializeBackup and parseBackup', () => {
   });
 
   it('round-trips a backup without a plan', () => {
-    const data = { ...sample(), plan: null, entries: [], guesses: [] };
+    const data = { ...sample(), plan: null, entries: [] };
 
     expect(parseBackup(serializeBackup(data, NOW))).toEqual({ ok: true, data, exportedAt: NOW.toISOString() });
   });
@@ -429,8 +434,8 @@ describe('serializeBackup and parseBackup', () => {
   });
 
   it('rejects a newer version, whatever else the file holds', () => {
-    expect(parseBackup(fileOf((file) => (file.version = 6)))).toEqual({ ok: false, error: NEWER });
-    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 6, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
+    expect(parseBackup(fileOf((file) => (file.version = 7)))).toEqual({ ok: false, error: NEWER });
+    const shapeUnknown = JSON.stringify({ app: 'studentsbudget', version: 7, exportedAt: NOW.toISOString(), data: { tomorrow: true } });
     expect(parseBackup(shapeUnknown)).toEqual({ ok: false, error: NEWER });
   });
 
@@ -445,7 +450,7 @@ describe('serializeBackup and parseBackup', () => {
     expect(parseBackup(fileOf(change))).toEqual({ ok: false, error: INCOMPLETE });
   });
 
-  it.each(['accounts', 'categories', 'entries', 'plan', 'guesses', 'fxRates'])('says it is incomplete without data.%s', (key) => {
+  it.each(['accounts', 'categories', 'entries', 'plan', 'fxRates'])('says it is incomplete without data.%s', (key) => {
     expect(parseBackup(fileOf((file) => delete file.data[key]))).toEqual({ ok: false, error: INCOMPLETE });
   });
 
@@ -690,12 +695,11 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['an income line', (data: BackupData) => (data.plan!.incomes[0].categoryId = 'ghost')],
       ['a fixed line', (data: BackupData) => (data.plan!.fixed[0].categoryId = 'ghost')],
       ['an envelope', (data: BackupData) => (data.plan!.envelopes[0].categoryId = 'ghost')],
-      ['a guess', (data: BackupData) => (data.guesses[0].categoryId = 'ghost')],
     ])('refuses %s in an unknown category', (_name, change) => {
       expect(parseChanged(change)).toEqual(damaged('the plan uses an unknown category'));
     });
 
-    it('passes a plan and guesses in built-in categories when the file lists no categories at all', () => {
+    it('passes a plan in built-in categories when the file lists no categories at all', () => {
       expect(parseChanged((data) => (data.categories = [])).ok).toBe(true);
     });
   });
@@ -706,7 +710,6 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['two categories', (data: BackupData) => (data.categories = [...data.categories, { ...data.categories[0] }])],
       ['two entries', (data: BackupData) => (data.entries[1].id = data.entries[0].id)],
       ['two one-offs', (data: BackupData) => data.plan!.oneOffs.push({ ...data.plan!.oneOffs[0] })],
-      ['two guesses for one category', (data: BackupData) => data.guesses.push({ ...data.guesses[0], monthlyMinor: 1 })],
       ['two rates of one currency and source', (data: BackupData) => data.fxRates.push({ ...data.fxRates[0], perEur: 96 })],
       ['two week results of one week', (data: BackupData) => data.weekResults.push({ ...data.weekResults[0], spentMinor: 1 })],
       ['two week results that start on one day', (data: BackupData) => (data.weekResults[1].weekStart = data.weekResults[0].weekStart)],
@@ -814,7 +817,6 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['a fixed line', (data: BackupData) => (data.plan!.fixed[0].monthlyMinor = -1)],
       ['an envelope', (data: BackupData) => (data.plan!.envelopes[0].monthlyMinor = -1)],
       ['the everyday budget', (data: BackupData) => (data.plan!.spendingBudgetMinor = -1)],
-      ['a guess', (data: BackupData) => (data.guesses[0].monthlyMinor = -1)],
       ['a planned week amount', (data: BackupData) => (data.weekResults[0].plannedMinor = -1)],
       ['a spent week amount', (data: BackupData) => (data.weekResults[0].spentMinor = -1)],
       ['a food week amount', (data: BackupData) => (data.weekResults[1].foodSpentMinor = -1)],
@@ -823,12 +825,11 @@ describe('parseBackup checks what the rows say about each other', () => {
       expect(parseChanged(change)).toEqual(damaged('an amount is negative'));
     });
 
-    it('passes zero envelopes, zero guesses, zero rent, zero income and a zero EUR value', () => {
+    it('passes zero envelopes, zero rent, zero income and a zero EUR value', () => {
       const result = parseChanged((data) => {
         data.plan!.envelopes = data.plan!.envelopes.map((line) => ({ ...line, monthlyMinor: 0 }));
         data.plan!.fixed = data.plan!.fixed.map((line) => ({ ...line, monthlyMinor: 0 }));
         data.plan!.incomes = data.plan!.incomes.map((line) => ({ ...line, monthlyMinor: 0 }));
-        data.guesses = data.guesses.map((guess) => ({ ...guess, monthlyMinor: 0 }));
         data.entries[0].eurMinor = 0;
       });
 
@@ -908,7 +909,44 @@ describe('parseBackup checks what the rows say about each other', () => {
   });
 
   it('keeps the shape message for a file of the wrong shape: that is incomplete, not damaged', () => {
-    expect(parseBackup(fileOf((file) => delete file.data.guesses))).toEqual({ ok: false, error: INCOMPLETE });
+    expect(parseBackup(fileOf((file) => delete file.data.fxRates))).toEqual({ ok: false, error: INCOMPLETE });
+  });
+});
+
+describe('the guesses of a file of version 5 or older (review F4, 17-11-2026)', () => {
+  /** A version 5 file of `sample()`, with `OLD_GUESSES` changed by `change`. */
+  function version5(change: (guesses: { categoryId: string; monthlyMinor: number }[]) => void = () => {}) {
+    const guesses = structuredClone(OLD_GUESSES);
+    change(guesses);
+    return parseBackup(olderFileOf(sample(), 5, guesses));
+  }
+
+  it('reads the file, checks its guesses and leaves them out', () => {
+    expect(version5()).toEqual({ ok: true, data: sample(), exportedAt: NOW.toISOString() });
+  });
+
+  it('says a version 5 file without its guesses is incomplete, as before', () => {
+    expect(parseBackup(fileOf((file) => (file.version = 5)))).toEqual({ ok: false, error: INCOMPLETE });
+  });
+
+  it('refuses a guess in an unknown category', () => {
+    expect(version5((guesses) => (guesses[0].categoryId = 'ghost'))).toEqual(damaged('the plan uses an unknown category'));
+  });
+
+  it('refuses two guesses for one category', () => {
+    expect(version5((guesses) => guesses.push({ ...guesses[0], monthlyMinor: 1 }))).toEqual(
+      damaged('two rows share the same id'),
+    );
+  });
+
+  it('refuses a guess below zero, and passes one of zero', () => {
+    expect(version5((guesses) => (guesses[0].monthlyMinor = -1))).toEqual(damaged('an amount is negative'));
+    expect(version5((guesses) => (guesses[0].monthlyMinor = 0)).ok).toBe(true);
+  });
+
+  it('leaves out guesses a version 6 file should not have', () => {
+    const result = parseBackup(fileOf((file) => (file.data.guesses = structuredClone(OLD_GUESSES))));
+    expect(result).toEqual({ ok: true, data: sample(), exportedAt: NOW.toISOString() });
   });
 });
 

@@ -33,7 +33,7 @@ describe('uploadable demo scenarios', () => {
     const { data } = valid(name);
     await replaceAll(data);
     const result = await exportAll();
-    for (const table of ['accounts', 'categories', 'entries', 'guesses', 'fxRates'] as const) {
+    for (const table of ['accounts', 'categories', 'entries', 'fxRates'] as const) {
       expect(result[table]).toHaveLength(data[table].length);
       expect(result[table]).toEqual(expect.arrayContaining<unknown>(data[table]));
     }

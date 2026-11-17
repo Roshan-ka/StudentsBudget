@@ -78,7 +78,6 @@ function backup(overrides: Partial<BackupData> = {}): BackupData {
     categories: CATEGORIES,
     entries: [expense('new', 'b1')],
     plan: PLAN,
-    guesses: [{ categoryId: 'food', monthlyMinor: 20_000, guessedOn: '2026-10-16' }],
     fxRates: [ECB, MANUAL],
     weekResults: [week('2026-10-12'), week('2026-10-19', { paused: true, handLoggedCount: 0 })],
     discountVotes: [vote('cinema-student'), vote('mensa-card', { vote: 'outdated' })],
@@ -94,7 +93,6 @@ async function fillWithOldData() {
   await db.categories.bulkAdd([{ id: 'old-category', name: 'Old', kind: 'flexible', order: 0 }]);
   await db.entries.bulkAdd([expense('old', 'a1')]);
   await db.plan.put({ ...PLAN, createdOn: '2026-09-01' });
-  await db.guesses.bulkAdd([{ categoryId: 'transport', monthlyMinor: 1000, guessedOn: '2026-09-01' }]);
   await db.fxRates.bulkAdd([{ ...ECB, perEur: 90 }]);
   await db.weekResults.bulkAdd([week('2026-09-07'), week('2026-09-14')]);
   await db.discountVotes.bulkAdd([vote('old-discount')]);
@@ -108,7 +106,6 @@ async function everyRow() {
     categories: await db.categories.toArray(),
     entries: await db.entries.toArray(),
     plan: await db.plan.toArray(),
-    guesses: await db.guesses.toArray(),
     fxRates: await db.fxRates.toArray(),
     weekResults: await db.weekResults.toArray(),
     discountVotes: await db.discountVotes.toArray(),
@@ -119,7 +116,7 @@ async function everyRow() {
 
 /** IndexedDB sorts rows by primary key, so the tables are compared without regard to row order. */
 function expectSameData(actual: BackupData, expected: BackupData) {
-  for (const table of ['accounts', 'categories', 'entries', 'guesses', 'fxRates', 'weekResults', 'discountVotes', 'checklistTicks'] as const) {
+  for (const table of ['accounts', 'categories', 'entries', 'fxRates', 'weekResults', 'discountVotes', 'checklistTicks'] as const) {
     expect(actual[table]).toHaveLength(expected[table].length);
     expect(actual[table]).toEqual(expect.arrayContaining<unknown>(expected[table]));
   }
@@ -138,7 +135,6 @@ describe('exportAll', () => {
     await db.categories.bulkAdd(CATEGORIES);
     await db.entries.bulkAdd([expense('e1')]);
     await db.plan.put(PLAN);
-    await db.guesses.bulkAdd([{ categoryId: 'food', monthlyMinor: 20_000, guessedOn: '2026-10-16' }]);
     await db.fxRates.bulkAdd([ECB, MANUAL]);
     await db.weekResults.bulkAdd([week('2026-10-12'), week('2026-10-19')]);
     await db.discountVotes.bulkAdd([vote('cinema-student')]);
@@ -151,7 +147,6 @@ describe('exportAll', () => {
     expect(data.categories).toHaveLength(26);
     expect(data.entries.map((e) => e.id)).toEqual(['e1']);
     expect(data.plan).toEqual(PLAN);
-    expect(data.guesses).toHaveLength(1);
     expect(data.fxRates.map((r) => r.source).sort()).toEqual(['ecb', 'manual']);
     expect(data.weekResults.map((w) => w.weekStart).sort()).toEqual(['2026-10-12', '2026-10-19']);
     expect(data.discountVotes).toEqual([vote('cinema-student')]);
@@ -223,7 +218,6 @@ describe('replaceAll', () => {
     expect(rows.entries.map((e) => e.id)).toEqual(['new']);
     expect(await db.entries.get('old')).toBeUndefined();
     expect(rows.plan).toEqual([PLAN]);
-    expect(rows.guesses.map((g) => g.categoryId)).toEqual(['food']);
     expect(rows.fxRates.map((r) => `${r.source}:${r.perEur}`).sort()).toEqual(['ecb:95', 'manual:97']);
     expect(rows.weekResults.map((w) => w.weekStart).sort()).toEqual(['2026-10-12', '2026-10-19']);
     expect(await db.weekResults.get('2026-09-07')).toBeUndefined();
@@ -466,7 +460,6 @@ describe('deleteEverything', () => {
     expect(rows.accounts).toEqual([]);
     expect(rows.entries).toEqual([]);
     expect(rows.plan).toEqual([]);
-    expect(rows.guesses).toEqual([]);
     expect(rows.fxRates).toEqual([]);
     expect(rows.weekResults).toEqual([]);
     expect(rows.discountVotes).toEqual([]);
