@@ -298,13 +298,21 @@ export function selectAffected({ changed, repo, map, full = false }) {
  * besides English (e2e/language-tour.spec.ts); the language switch runs either way.
  * `mutations`: red before green for the saved mutations a change reaches (`changed`), or every one (`all`, the nightly).
  * `monkey`: the random clicker per role (`yes`, the nightly). Neither runs in a quick run.
+ * `specs`: e2e spec files by name (`reflow.spec.ts account.spec.ts`, spaces or commas between), for a run that runs only
+ * those, on the chosen browsers and languages, and nothing else but, with `mutations: all`, their saved mutations (handPicked; Roshan, 17-11-2026: "only run the failing
+ * test instead of complete run"). Empty for every other run.
  * Throws on a value the inputs don't offer. `auto` lists the options that were left on auto.
  */
-export function runOptions({ scope = 'changed', browsers = 'auto', languages = 'auto', mutations = 'changed', monkey = 'no' }) {
+export function runOptions({ scope = 'changed', browsers = 'auto', languages = 'auto', mutations = 'changed', monkey = 'no', specs = '' }) {
   for (const [name, value] of Object.entries({ scope, browsers, languages, mutations, monkey })) {
     if (!CHOICES[name].includes(value)) {
       throw new RangeError(`${name} must be one of ${CHOICES[name].join(', ')}, not "${value}".`);
     }
+  }
+  const picked = specs.split(/[\s,]+/).filter(Boolean);
+  // Each name goes into the e2e job's command line: only a plain spec file name, never a path, a pattern or a flag.
+  for (const spec of picked) {
+    if (!SPEC_NAME.test(spec)) throw new RangeError(`specs takes spec file names like reflow.spec.ts, not "${spec}".`);
   }
   const full = scope === 'full';
   const chosenBrowsers = browsers === 'auto' ? (full ? 'all' : 'chromium') : browsers;
@@ -317,26 +325,32 @@ export function runOptions({ scope = 'changed', browsers = 'auto', languages = '
     projectArgs: chosenBrowsers === 'chromium' ? `--project=${CHROMIUM_PROJECT}` : '',
     allMutations: mutations === 'all',
     monkey: monkey === 'yes',
+    specs: [...new Set(picked)],
     auto: Object.entries({ browsers, languages })
       .filter(([, value]) => value === 'auto')
       .map(([name]) => name),
   };
 }
 
+/** A spec file name the specs input takes: e2e/<name>, lower-case words and dashes. */
+const SPEC_NAME = /^[a-z0-9][a-z0-9-]*\.spec\.ts$/;
+
 /**
  * The commit status a run posts. `full-gate`, the check merging waits for, only for a full run on every browser and
  * language; a full run narrowed by an option posts `partial-check`, so it can never stand in for the full test. A
- * changed run posts `quick-check`.
+ * changed run posts `quick-check`. A run of hand-picked specs posts `spec-check`: it stands in for neither.
  */
 export function statusContext(inputs) {
   const options = runOptions(inputs);
+  if (options.specs.length) return 'spec-check';
   if (!options.full) return 'quick-check';
   return options.browsers === 'all' && options.languages === 'all' ? 'full-gate' : 'partial-check';
 }
 
 /** The status's description: the tested commit, short, and the options the run used. */
 export function statusDescription(sha, options) {
-  return `${sha.slice(0, 7)} · ${options.scope} · browsers ${options.browsers} · languages ${options.languages}`;
+  const head = `${sha.slice(0, 7)} · ${options.scope} · browsers ${options.browsers} · languages ${options.languages}`;
+  return options.specs.length ? `${head} · specs ${options.specs.join(', ')}` : head;
 }
 
 /** The jobs after `changes`, as ci.yml names them. The quarantine job never counts: it doesn't block. */
@@ -465,6 +479,33 @@ export function forScope(selection, options) {
   };
 }
 
+const HAND_PICKED = 'picked by hand (specs)';
+
+/**
+ * A run of hand-picked specs: those e2e specs alone, with no checks, offline check, stack, repeat, red before green or
+ * random clicker. `mutations`, the count of their saved mutations when the run asks for them (`mutations: all`), adds
+ * red before green for those specs alone. Throws on a spec the branch doesn't have, so a typo never passes as a green run
+ * of nothing.
+ */
+export function handPicked(specs, repo, mutations = 0) {
+  const missing = specs.filter((spec) => !Object.hasOwn(repo, `e2e/${spec}`));
+  if (missing.length) throw new RangeError(`No such spec on this branch: ${missing.join(', ')}.`);
+  return {
+    run: false,
+    e2e: [...specs],
+    offline: false,
+    db: false,
+    real: false,
+    roles: false,
+    live: false,
+    repeat: NO_SPECS,
+    prove: mutations > 0 ? { mocked: specs.map((spec) => `e2e/${spec}`), real: [] } : NO_SPECS,
+    proveShards: proveShards(mutations),
+    monkey: false,
+    why: Object.fromEntries(specs.map((spec) => [spec, [HAND_PICKED]])),
+  };
+}
+
 /** The specs as Playwright file arguments: each a regex over the path, anchored so `account` never runs `accounts`. */
 export function e2eArgs(specs) {
   return specs.map((spec) => `e2e/${spec.replaceAll('.', '\\.')}$`).join(' ');
@@ -500,7 +541,7 @@ function reasonsText(reasons) {
 export function summary({ run, e2e, offline, db, real, roles, live = false, repeat = NO_SPECS, prove = NO_SPECS, why }, options = runOptions({})) {
   const chosen = (name) => `${name} **${options[name]}**${options.auto.includes(name) ? ' (auto)' : ''}`;
   const head = `### Affected tests\n\nScope **${options.scope}** · ${chosen('browsers')} · ${chosen('languages')}\n\n`;
-  if (!run) return `${head}No checks run: ${why.skip[0]}.\n`;
+  if (!run && !Array.isArray(e2e)) return `${head}No checks run: ${why.skip[0]}.\n`;
   const rows = [];
   if (e2e === 'all') rows.push(['every e2e spec', why.all]);
   else if (e2e === 'none') rows.push(['no e2e spec', why.quick ?? ['no changed file reaches a page or a spec']]);
@@ -540,6 +581,7 @@ function inputsFromEnv() {
     languages: process.env.CI_LANGUAGES || undefined,
     mutations: process.env.CI_MUTATIONS || undefined,
     monkey: process.env.CI_MONKEY || undefined,
+    specs: process.env.CI_SPECS || undefined,
   };
 }
 
@@ -554,6 +596,21 @@ async function main() {
   const options = runOptions(inputsFromEnv());
   // What the checked-out branch changes since it left main (three dots: newer commits on main don't count). CI checks
   // out the whole history (fetch-depth: 0), so origin/main is there.
+  const repo = readRepo(root);
+  // Hand-picked specs run alone: what the branch changes doesn't matter.
+  const { parseMutations } = await import('../testkit/judge.mjs');
+  const mutationFiles = Object.keys(repo)
+    .filter((file) => file.startsWith(`${MUTATIONS_DIR}/`) && file.endsWith('.json'))
+    .map((file) => ({ path: file, mutations: parseMutations(JSON.parse(readFileSync(path.join(root, file), 'utf8'))).mutations }));
+  if (options.specs.length) {
+    const wanted = options.specs.map((spec) => `e2e/${spec}`);
+    const selection = handPicked(options.specs, repo, options.allMutations ? mutationsFor(mutationFiles, wanted) : 0);
+    const output = githubOutput(selection, options);
+    const table = summary(selection, options);
+    process.stdout.write(`${output}\n${table}`);
+    report(output, table);
+    return;
+  }
   const changed = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', 'origin/main...HEAD'], {
     cwd: root,
     encoding: 'utf8',
@@ -561,13 +618,8 @@ async function main() {
     .split('\0')
     .filter(Boolean);
   const map = JSON.parse(readFileSync(path.join(root, MAP_FILE), 'utf8'));
-  const repo = readRepo(root);
   // The saved mutations, for which specs to prove again (loaded here only: the gate job checks out scripts/ alone).
   const { specsToProve } = await import('../testkit/changed-proofs.mjs');
-  const { parseMutations } = await import('../testkit/judge.mjs');
-  const mutationFiles = Object.keys(repo)
-    .filter((file) => file.startsWith(`${MUTATIONS_DIR}/`) && file.endsWith('.json'))
-    .map((file) => ({ path: file, mutations: parseMutations(JSON.parse(readFileSync(path.join(root, file), 'utf8'))).mutations }));
   // The nightly proves every saved mutation; a run started by hand, those a change reaches.
   const prove = options.allMutations ? allProvedSpecs(mutationFiles) : specsToProve({ changed, mutationFiles });
   const picked = withProofs(selectAffected({ changed, repo, map, full: options.full }), {

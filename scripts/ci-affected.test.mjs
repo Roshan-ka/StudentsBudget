@@ -5,6 +5,7 @@ import {
   e2eArgs,
   forScope,
   githubOutput,
+  handPicked,
   importsOf,
   readRepo,
   requiredJobs,
@@ -390,6 +391,7 @@ describe('runOptions', () => {
       projectArgs: '--project=desktop-chrome',
       allMutations: false,
       monkey: false,
+      specs: [],
       auto: ['browsers', 'languages'],
     });
   });
@@ -426,6 +428,48 @@ describe('runOptions', () => {
     expect(() => runOptions({ scope: 'everything' })).toThrow(/scope/);
     expect(() => runOptions({ browsers: 'webkit' })).toThrow(/browsers/);
     expect(() => runOptions({ languages: 'de' })).toThrow(/languages/);
+  });
+});
+
+describe('hand-picked specs', () => {
+  it('reads spec file names, split by spaces or commas, once each', () => {
+    expect(runOptions({ specs: ' reflow.spec.ts, account.spec.ts reflow.spec.ts ' }).specs).toEqual(['reflow.spec.ts', 'account.spec.ts']);
+    expect(runOptions({}).specs).toEqual([]);
+  });
+
+  it('refuses anything but a plain spec file name: a path, a pattern or a flag', () => {
+    for (const bad of ['../x.spec.ts', 'e2e/reflow.spec.ts', 'reflow', '--grep=x', 'reflow.spec.ts;rm']) {
+      expect(() => runOptions({ specs: bad }), bad).toThrow(/specs/);
+    }
+  });
+
+  it('runs those specs alone: no checks, offline check, stack, repeat, red before green or clicker', () => {
+    const picked = handPicked(['reflow.spec.ts'], { 'e2e/reflow.spec.ts': '' });
+    expect(picked).toMatchObject({ run: false, e2e: ['reflow.spec.ts'], offline: false, db: false, real: false, roles: false, monkey: false });
+    expect(requiredJobs(picked)).toEqual(['e2e', 'e2e-report']);
+    const output = githubOutput(picked, runOptions({ specs: 'reflow.spec.ts', browsers: 'all' }));
+    expect(output).toContain('e2e=e2e/reflow\\.spec\\.ts$\n');
+    expect(output).toContain('projects=\n');
+    expect(summary(picked)).toContain('| `reflow.spec.ts` | picked by hand (specs) |');
+  });
+
+  it('proves only their saved mutations, and only when the run asks for them', () => {
+    const repo = { 'e2e/profile.spec.ts': '' };
+    expect(handPicked(['profile.spec.ts'], repo)).toMatchObject({ prove: { mocked: [], real: [] }, proveShards: [] });
+    const proving = handPicked(['profile.spec.ts'], repo, 3);
+    expect(proving).toMatchObject({ prove: { mocked: ['e2e/profile.spec.ts'], real: [] }, proveShards: ['1/1'] });
+    expect(requiredJobs(proving)).toEqual(['e2e', 'e2e-report', 'red-green']);
+  });
+
+  it('refuses a spec the branch does not have, so a typo never passes as a run of nothing', () => {
+    expect(() => handPicked(['nope.spec.ts'], {})).toThrow(/nope\.spec\.ts/);
+  });
+
+  it('posts spec-check, naming the specs, so it stands in for neither the quick check nor the full gate', () => {
+    expect(statusContext({ scope: 'full', browsers: 'all', languages: 'all', specs: 'reflow.spec.ts' })).toBe('spec-check');
+    expect(statusDescription('0123456789abcdef', runOptions({ specs: 'reflow.spec.ts account.spec.ts' }))).toBe(
+      '0123456 · changed · browsers chromium · languages default · specs reflow.spec.ts, account.spec.ts',
+    );
   });
 });
 
