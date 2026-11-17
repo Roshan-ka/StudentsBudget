@@ -8,7 +8,6 @@ import * as RechartsPrimitive from "recharts"
 const THEMES = { light: "", dark: ".dark" } as const
 
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const
-type TooltipNameType = number | string
 
 export type ChartConfig = Record<
   string,
