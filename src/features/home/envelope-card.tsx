@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { categoryBarFill, categoryTint } from '@/features/charts/colors';
+import { RowTile, tintCardClass } from './row-card';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 
 /**
@@ -34,16 +35,8 @@ export function EnvelopeCard({
   const Icon = CATEGORY_ICONS[categoryId] ?? OTHER_ICON;
 
   return (
-    <li
-      className="flex gap-3 rounded-lg border-[1.5px] border-outline p-3.5 shadow-offset"
-      style={{ backgroundColor: categoryTint(categoryId) }}
-    >
-      <span
-        aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card/80"
-      >
-        <Icon className="size-5" />
-      </span>
+    <li className={tintCardClass('flex-row')} style={{ backgroundColor: categoryTint(categoryId) }}>
+      <RowTile icon={Icon} tint="var(--card)" />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <p className="min-w-0 font-semibold break-words">{name}</p>
         {/* The bar stops at full, so the real numbers are in its value text, and in the line under it. */}

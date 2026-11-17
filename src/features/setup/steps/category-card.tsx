@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { categoryTint } from '@/features/charts/colors';
+import { RowTile, tintCardClass } from '@/features/home/row-card';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 
 /**
@@ -20,17 +21,9 @@ export function CategoryCard({
 }) {
   const Icon = CATEGORY_ICONS[categoryId] ?? OTHER_ICON;
   return (
-    <li
-      className="flex flex-col gap-2 rounded-lg border-[1.5px] border-outline p-3 text-card-foreground shadow-offset"
-      style={{ backgroundColor: categoryTint(categoryId) }}
-    >
+    <li className={tintCardClass('gap-2')} style={{ backgroundColor: categoryTint(categoryId) }}>
       <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card/80"
-        >
-          <Icon className="size-[18px]" />
-        </span>
+        <RowTile icon={Icon} tint="var(--card)" />
         <div className="min-w-0 flex-1">{field}</div>
       </div>
       {children}

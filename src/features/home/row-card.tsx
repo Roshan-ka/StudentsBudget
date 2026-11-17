@@ -8,6 +8,16 @@ import { cn } from '@/lib/utils';
 export const ROW_CARD = 'min-h-14 flex-row items-center gap-3 px-4 py-3';
 
 /**
+ * A list item's card in its category's tint, for any element (review U1, Roshan's approval of the mockups,
+ * 17-11-2026): Home's envelopes, the entries, the recaps' envelopes, Settings' fixed costs and income, setup's
+ * categories and the start page's features share its one padding, with a `RowTile` on the card colour
+ * (`tint="var(--card)"`). The tint itself goes in `style` (`categoryTint`).
+ */
+export function tintCardClass(className?: string): string {
+  return cn(cardVariants({ variant: 'tint' }), 'gap-3 p-3.5', className);
+}
+
+/**
  * A Home card's icon on its tint (Roshan, from the mockups, 13-11-2026: "divide the check-in, badges and all accounts").
  * Decoration only, as the words beside it say what the card is; unless `label` names what the tile alone shows (an
  * account's kind on Settings → Accounts and transfers), which a screen reader then reads as an image.

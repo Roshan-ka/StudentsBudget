@@ -20,6 +20,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { db } from '@/db/db';
 import { useAuth } from '@/features/account/use-auth';
 import { categoryTint } from '@/features/charts/colors';
+import { RowTile, tintCardClass } from '@/features/home/row-card';
 import { LegalLinks } from '@/features/legal/legal-page';
 import { useT } from '@/i18n/use-t';
 import { forgetSignedOut, useJustSignedOut } from './signed-out';
@@ -90,15 +91,10 @@ export function StartView() {
         {FEATURES.map(({ id, icon: Icon, tint }) => (
           <li
             key={id}
-            className="flex min-h-14 items-center gap-3 rounded-lg border-[1.5px] border-outline px-3 py-2 text-card-foreground shadow-offset"
+            className={tintCardClass('min-h-14 flex-row items-center')}
             style={{ backgroundColor: categoryTint(tint) }}
           >
-            <span
-              aria-hidden="true"
-              className="flex size-9 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card/80"
-            >
-              <Icon className="size-[18px]" />
-            </span>
+            <RowTile icon={Icon} tint="var(--card)" />
             <span className="font-semibold">{text.features[id]}</span>
           </li>
         ))}

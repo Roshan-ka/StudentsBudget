@@ -11,6 +11,17 @@
           "wipe-before-other-account"
         ]
       }
+    },
+    {
+      "name": "the start page's feature cards go back to their own 36 px tile",
+      "file": "src/features/start/start-view.tsx",
+      "find": "            <RowTile icon={Icon} tint=\"var(--card)\" />\n",
+      "replace": "            <span aria-hidden=\"true\" className=\"flex size-9 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card/80\">\n              <Icon className=\"size-[18px]\" />\n            </span>\n",
+      "expect": {
+        "e2e/start.spec.ts": [
+          "shared-tint-tile"
+        ]
+      }
     }
   ]
 }
