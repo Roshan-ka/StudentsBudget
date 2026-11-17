@@ -4,6 +4,7 @@ import { parseISO } from 'date-fns';
 import { CalculatorIcon, ChevronDownIcon, PencilIcon } from 'lucide-react';
 import { useId, useState } from 'react';
 import { LinkButton, linkButtonClass } from '@/components/link-button';
+import { noticeClass } from '@/components/notice';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { CITIES } from '@/data/cities';
@@ -72,7 +73,7 @@ function availableLine(availableMinor: Minor, budgetMinor: Minor, t: Messages, l
 function LiveTotal({ text }: { text: string }) {
   const settled = useSettled(text);
   return (
-    <p aria-live="polite" className="rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
+    <p aria-live="polite" className={noticeClass('muted', 'text-sm font-medium tabular-nums')}>
       {settled}
     </p>
   );

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ExternalLinkButton, LinkButton, linkButtonClass } from '@/components/link-button';
+import { noticeClass } from '@/components/notice';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { useAuth } from '@/features/account/use-auth';
@@ -495,7 +496,7 @@ function HackCard({
           />
         )}
         {askingReport && (
-          <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+          <div className={noticeClass('muted', 'flex flex-col gap-3')}>
             <p className="text-sm">{text.reportQuestion}</p>
             <div className="flex flex-wrap gap-2">
               <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => tap({ kind: 'report' })}>
@@ -528,7 +529,7 @@ function HackCard({
           />
         )}
         {asking && (
-          <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+          <div className={noticeClass('muted', 'flex flex-col gap-3')}>
             <p className="text-sm">{text.deleteQuestion}</p>
             <div className="flex flex-wrap gap-2">
               <Button type="button" className="px-4" autoFocus disabled={busy} onClick={() => void confirmDelete()}>

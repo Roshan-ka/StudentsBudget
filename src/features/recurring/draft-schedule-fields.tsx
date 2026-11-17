@@ -68,7 +68,7 @@ export function DraftScheduleFields({
     problems !== null && monthlyMinor > 0 && !(Number.isSafeInteger(schedule.foreignMinor) && schedule.foreignMinor > 0);
 
   return (
-    <div role="group" aria-label={text.schedule(name)} className="flex flex-col gap-3 rounded-lg border p-3">
+    <div role="group" aria-label={text.schedule(name)} className="flex flex-col gap-3 rounded-lg border-[1.5px] border-outline p-3">
       {accounts.length === 0 ? (
         <p className="text-sm text-muted-foreground">{text.noAccountSettings}</p>
       ) : (

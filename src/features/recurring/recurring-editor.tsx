@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useState, type FormEvent, type ReactNode, type Ref } from 'react';
+import { noticeClass } from '@/components/notice';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -485,7 +486,7 @@ export function RecurringEditor() {
         {text.heading}
       </h3>
       <p className="text-muted-foreground">{text.intro}</p>
-      {overBy && <p className="rounded-lg bg-muted px-4 py-3 text-sm font-medium">{overBy}</p>}
+      {overBy && <p className={noticeClass('muted', 'text-sm font-medium')}>{overBy}</p>}
       <LineList title={text.income} empty={text.noIncome} lines={plan.incomes} render={render} />
       <LineList title={text.fixedCosts} empty={text.noFixedCosts} lines={plan.fixed} render={render} />
       {error && (

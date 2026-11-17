@@ -2,6 +2,7 @@
 
 import { ChevronLeftIcon, InfoIcon, ShieldCheckIcon } from 'lucide-react';
 import { LinkButton } from '@/components/link-button';
+import { noticeClass } from '@/components/notice';
 import { PageHeading } from '@/components/page-heading';
 import { legalFilledIn, OPERATOR } from '@/data/legal';
 import { aiInBuild, aiSetupChatInBuild } from '@/features/ai/switch';
@@ -96,7 +97,7 @@ export function LegalPage({ page }: { page: keyof typeof PAGES }) {
       {legal.fallback && <p className="text-sm text-muted-foreground">{t.common.legal.onlyDeEn}</p>}
       <div lang={legal.lang} className="flex flex-col gap-6">
         {!legalFilledIn() && (
-          <p className="rounded-lg bg-accent px-4 py-3 text-sm font-medium">{LEGAL_WORDS[legal.lang].draft}</p>
+          <p className={noticeClass('accent', 'text-sm font-medium')}>{LEGAL_WORDS[legal.lang].draft}</p>
         )}
         {shown.map((section) => {
           const text = section[legal.lang];

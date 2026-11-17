@@ -2,6 +2,7 @@
 
 import { SmartphoneIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { noticeClass } from '@/components/notice';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { categoryTint } from '@/features/charts/colors';
 import { useT } from '@/i18n/use-t';
@@ -317,7 +318,7 @@ export function TwoStepSection() {
       )}
 
       {view.kind === 'confirm-off' && (
-        <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+        <div className={noticeClass('muted', 'flex flex-col gap-3')}>
           <p id={`${id}-question`} className="text-sm">
             {text.confirmOff}
           </p>
