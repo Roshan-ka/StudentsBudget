@@ -1,9 +1,9 @@
 'use client';
 
 import { parseISO } from 'date-fns';
-import { CalculatorIcon, ChevronDownIcon } from 'lucide-react';
+import { CalculatorIcon, ChevronDownIcon, PencilIcon } from 'lucide-react';
 import { useId, useState } from 'react';
-import { linkButtonClass } from '@/components/link-button';
+import { LinkButton, linkButtonClass } from '@/components/link-button';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { CITIES } from '@/data/cities';
@@ -181,6 +181,12 @@ export function SuggestedBudget({ plan, entries, today }: { plan: Plan; entries:
           {text.heading}
         </h2>
         <p className="text-sm text-muted-foreground">{availableLine(availableMinor, budgetMinor, t, lang)}</p>
+        {/* Nothing to share out: the line names Edit plan, and the button opens it (review U3). */}
+        {availableMinor <= 0 && (
+          <LinkButton href="/setup?edit=1" icon={PencilIcon}>
+            {t.setup.editPlan.link}
+          </LinkButton>
+        )}
       </div>
 
       {/* Each category in setup's card (13-11-2026): its tint and tile, the amount at the end, its basis and source. */}

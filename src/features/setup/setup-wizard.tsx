@@ -1,7 +1,9 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import { LandmarkIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
@@ -218,7 +220,12 @@ function Wizard({
         <div className={cn('flex flex-col gap-4', chatting && 'hidden')}>
           {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
           {step === 'income' && !edit && accountsExist && (
-            <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
+              <LinkButton href="/settings/accounts" icon={LandmarkIcon}>
+                {t.shell.headings.accounts}
+              </LinkButton>
+            </div>
           )}
           {step === 'income' && (
             <IncomeStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />

@@ -134,6 +134,7 @@ export const setup: Messages['setup'] = {
       'Modifie tes enveloppes, ajoute des frais ponctuels comme les frais de semestre et les sources de revenus, ' +
       'les charges fixes et les enveloppes que la configuration a sautées, ou reprends tout le plan.',
     link: 'Modifier le plan',
+    noPlan: 'Configure d’abord ton plan, puis modifie-le ici.',
     eachMonth: 'Chaque mois',
     comesIn: (amount: string) => `${amount} de revenus`,
     fixedOut: (amount: string) => `${amount} de charges fixes`,

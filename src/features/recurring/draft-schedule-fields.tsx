@@ -1,6 +1,8 @@
 'use client';
 
+import { ListChecksIcon } from 'lucide-react';
 import { useId } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { draftAccountOf, isRepaired, type AccountOption, type DraftSchedule } from '@/features/setup/draft';
@@ -77,7 +79,15 @@ export function DraftScheduleFields({
           {schedule.on && (
             <>
               <p className="text-sm text-muted-foreground">{text.autoHint}</p>
-              {schedule.saved?.paused && <p className="text-sm text-muted-foreground">{text.pausedForNow}</p>}
+              {schedule.saved?.paused && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">{text.pausedForNow}</p>
+                  {/* The page the sentence names (review U3). */}
+                  <LinkButton href="/settings/plan" icon={ListChecksIcon}>
+                    {t.shell.headings.plan}
+                  </LinkButton>
+                </div>
+              )}
               <RepeatFields timing={schedule} onChange={(timing) => onChange({ ...schedule, ...timing })} />
               {expectsFirst && (
                 <p className="min-h-5 text-sm text-muted-foreground">

@@ -153,7 +153,10 @@ export function AmountField({
       {row ? (
         <>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <Label htmlFor={id} className="min-w-0 flex-1 basis-20 text-base leading-snug break-words">
+            {/* A block, not the Label's flex: as flex, its text can't shrink below its longest word, and
+                "Deutschlandticket" ran under the field at 375 px (review B10). Long words break, hyphenated by the
+                page's language. */}
+            <Label htmlFor={id} className="block min-w-0 flex-1 basis-20 text-base leading-snug break-words hyphens-auto">
               {label}
             </Label>
             {field}

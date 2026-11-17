@@ -2,7 +2,9 @@
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, useRef, useState, type FormEvent } from 'react';
+import { LandmarkIcon } from 'lucide-react';
 import { DateField } from '@/components/date-field';
+import { LinkButton } from '@/components/link-button';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -89,7 +91,15 @@ function MoneyEntryForm({
 
   if (accounts === undefined || today === null) return null;
   if (accounts.length === 0) {
-    return <p className="text-muted-foreground">{t.entries.noAccount}</p>;
+    // The sentence names the page, and the button goes there (review U3).
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-muted-foreground">{t.entries.noAccount}</p>
+        <LinkButton href="/settings/accounts" icon={LandmarkIcon}>
+          {t.shell.headings.accounts}
+        </LinkButton>
+      </div>
+    );
   }
 
   // Read while rendering, after the accounts have loaded, so never during the prerender or hydration.

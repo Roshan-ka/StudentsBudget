@@ -22,6 +22,17 @@
           "rent-source-no-fold"
         ]
       }
+    },
+    {
+      "name": "a category card's label goes back to the Label's flex, and a long word runs under the field",
+      "file": "src/features/setup/steps/amount-field.tsx",
+      "find": "className=\"block min-w-0 flex-1 basis-20",
+      "replace": "className=\"min-w-0 flex-1 basis-20",
+      "expect": {
+        "e2e/setup.spec.ts": [
+          "long-label-wraps"
+        ]
+      }
     }
   ]
 }

@@ -769,6 +769,10 @@ test('the wizard fits a phone without sideways scrolling', async ({ page }) => {
   await expect(page.getByText(`Source: uni-regensburg.de · checked ${RANGES_CHECKED}`, { exact: true })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Rent schedule', exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);
+  // Review B10: the longest category name wraps inside its label, never under the field beside it.
+  const ticket = page.locator('label').filter({ hasText: /^Deutschlandticket \/ semester ticket$/ });
+  await expect(ticket).toHaveCSS('display', 'block'); // proof: long-label-wraps
+  expect(await ticket.evaluate((label) => label.scrollWidth - label.clientWidth)).toBeLessThanOrEqual(0);
 
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(page.getByRole('heading', { level: 3, name: 'Envelopes' })).toBeVisible();
