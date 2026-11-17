@@ -35,4 +35,6 @@ export const reminder = {
   everyDay: ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'],
   summaryOff: 'Off',
   summaryOn: (day: string, time: string) => `${day} at ${time}`,
+  /** The pill on the page's accent card while the reminder is on (`summaryOff` while it is off). */
+  stateOn: 'On',
 };

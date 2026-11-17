@@ -13,6 +13,8 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { db } from '@/db/db';
 import type { Account } from '@/db/types';
 import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
+import { KIND_TILE } from '@/features/accounts/kind-tile';
+import { RowTile } from '@/features/home/row-card';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { formatDate } from '@/lib/dates';
@@ -172,9 +174,13 @@ export function ImportStatement() {
 
   return (
     <section aria-labelledby={headingId} className={cardVariants()}>
-      <h3 id={headingId} className="text-lg leading-tight font-bold">
-        {text.heading}
-      </h3>
+      {/* The bank's tile, as on Settings → Accounts and transfers (group 4 redesign, Roshan's mockups, 17-11-2026). */}
+      <div className="flex items-center gap-3">
+        <RowTile icon={KIND_TILE.bank.icon} tint={KIND_TILE.bank.tint} />
+        <h3 id={headingId} className="min-w-0 text-lg leading-tight font-bold break-words">
+          {text.heading}
+        </h3>
+      </div>
       {plan === null ? (
         <div className="flex flex-col gap-2 text-sm">
           <p>{text.noPlan}</p>

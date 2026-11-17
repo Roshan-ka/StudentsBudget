@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarCheckIcon, CloudIcon } from 'lucide-react';
+import { BellIcon, CalendarCheckIcon, CloudIcon } from 'lucide-react';
 import { useId, useState, useSyncExternalStore } from 'react';
 import { LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { cardVariants } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { useAuth } from '@/features/account/use-auth';
+import { RowTile } from '@/features/home/row-card';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { useT } from '@/i18n/use-t';
@@ -248,7 +249,25 @@ export function ReminderView() {
 
   return (
     <div className="flex flex-col gap-5">
-      <p>{text.intro}</p>
+      {remindersInBuild() ? (
+        // The phone's reminder as it stands, in the accent card with a bell (group 4 redesign, Roshan's mockups,
+        // 17-11-2026): the day and time it keeps, whether it's on, and what it is. The day and time stay picked while
+        // it is off, for next time.
+        <div className={cn(cardVariants({ variant: 'accent' }), 'gap-2')}>
+          <div className="flex items-center gap-3">
+            <RowTile icon={BellIcon} tint="var(--card)" />
+            <p className="min-w-0 flex-1 font-semibold break-words">
+              {text.summaryOn(text.everyDay[stored.weekday - 1], stored.time)}
+            </p>
+            <p className="shrink-0 rounded-full bg-foreground/10 px-3 py-1 text-[13px] font-semibold">
+              {stored.on ? text.stateOn : text.summaryOff}
+            </p>
+          </div>
+          <p className="text-sm">{text.intro}</p>
+        </div>
+      ) : (
+        <p>{text.intro}</p>
+      )}
       {body}
       <p role="status" className="text-sm">
         {status}

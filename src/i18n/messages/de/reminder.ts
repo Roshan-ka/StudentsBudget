@@ -36,4 +36,5 @@ export const reminder: Messages['reminder'] = {
   everyDay: ['Montags', 'Dienstags', 'Mittwochs', 'Donnerstags', 'Freitags', 'Samstags', 'Sonntags'],
   summaryOff: 'Aus',
   summaryOn: (day: string, time: string) => `${day} um ${time}`,
+  stateOn: 'An',
 };

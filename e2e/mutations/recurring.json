@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the Plan page's accent card leaves out what comes in each month",
+      "file": "src/features/setup/edit-plan-section.tsx",
+      "find": "...(incomeMinor > 0 ? [text.comesIn(money(incomeMinor))] : []),",
+      "replace": "...(incomeMinor > 0 ? [] : []),",
+      "expect": {
+        "e2e/recurring.spec.ts": [
+          "plan-month-summary"
+        ]
+      }
+    },
+    {
+      "name": "a fixed cost's card on the Plan page loses its category's tint",
+      "file": "src/features/recurring/recurring-editor.tsx",
+      "find": "style={{ backgroundColor: categoryTint(line.categoryId) }}",
+      "replace": "style={{}}",
+      "expect": {
+        "e2e/recurring.spec.ts": [
+          "plan-line-tint"
+        ]
+      }
+    }
+  ]
+}

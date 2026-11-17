@@ -1,0 +1,16 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the reminder's accent card says it is off while it is on",
+      "file": "src/features/reminder/reminder-view.tsx",
+      "find": "{stored.on ? text.stateOn : text.summaryOff}",
+      "replace": "{text.summaryOff}",
+      "expect": {
+        "e2e/reminder.spec.ts": [
+          "reminder-state-on"
+        ]
+      }
+    }
+  ]
+}

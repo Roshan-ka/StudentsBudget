@@ -1,10 +1,13 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
+import { FileSpreadsheetIcon } from 'lucide-react';
 import { useId } from 'react';
 import { ExportFileButton, type ExportFileType } from '@/components/export-file-button';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
+import { categoryTint } from '@/features/charts/colors';
+import { RowTile } from '@/features/home/row-card';
 import { useT } from '@/i18n/use-t';
 import { entriesCsv, entriesFileName } from './entries-csv';
 
@@ -23,9 +26,13 @@ export function ExportEntries() {
 
   return (
     <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
-      <h3 id={`${id}-heading`} className="text-lg leading-tight font-bold">
-        {text.heading}
-      </h3>
+      {/* A spreadsheet on a green tile (group 4 redesign, Roshan's mockups, 17-11-2026). */}
+      <div className="flex items-center gap-3">
+        <RowTile icon={FileSpreadsheetIcon} tint={categoryTint('eating-out')} />
+        <h3 id={`${id}-heading`} className="min-w-0 text-lg leading-tight font-bold break-words">
+          {text.heading}
+        </h3>
+      </div>
       <p className="text-sm text-muted-foreground">{text.hint}</p>
       {snapshot !== undefined && snapshot.entries.length === 0 ? (
         <p className="text-sm">{text.empty}</p>

@@ -149,6 +149,10 @@ export const setup = {
       'Change your envelopes, add one-off costs such as the semester fee, or add the income and fixed costs setup ' +
       'skipped.',
     link: 'Edit plan',
+    /** The accent card on /settings/plan (group 4 redesign): what comes in and what goes on fixed costs each month. */
+    eachMonth: 'Each month',
+    comesIn: (amount: string) => `${amount} in`,
+    fixedOut: (amount: string) => `${amount} fixed`,
   },
   /** The setup chat (the AI phase, chunk 12): on a new setup's first step, signed in, in a build with the AI. */
   chat: {

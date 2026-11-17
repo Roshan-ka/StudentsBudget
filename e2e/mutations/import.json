@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the bank import's tile loses its tint",
+      "file": "src/features/import/import-statement.tsx",
+      "find": "<RowTile icon={KIND_TILE.bank.icon} tint={KIND_TILE.bank.tint} />",
+      "replace": "<RowTile icon={KIND_TILE.bank.icon} tint=\"transparent\" />",
+      "expect": {
+        "e2e/import.spec.ts": [
+          "import-tile-tint"
+        ]
+      }
+    },
+    {
+      "name": "the export's tile loses its tint",
+      "file": "src/features/export/export-entries.tsx",
+      "find": "tint={categoryTint('eating-out')}",
+      "replace": "tint=\"transparent\"",
+      "expect": {
+        "e2e/import.spec.ts": [
+          "export-tile-tint"
+        ]
+      }
+    }
+  ]
+}

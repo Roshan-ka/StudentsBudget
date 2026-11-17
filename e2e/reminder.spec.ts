@@ -129,8 +129,13 @@ test('a new day and time are saved, and turning it off deletes the row and the s
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
   await page.goto('/settings/reminder');
 
+  // The accent card (group 4 redesign): the day and time the phone keeps, and whether it's on.
+  const state = page.getByRole('main').getByText(TEXT.summaryOn('Sundays', '18:00'), { exact: true });
+  await expect(state).toBeVisible();
+  await expect(page.getByRole('main').getByText(TEXT.summaryOff, { exact: true })).toBeVisible();
   await button(page, TEXT.turnOn).click();
   await expect(status(page)).toHaveText(TEXT.status.on('Sundays', '18:00'));
+  await expect(page.getByRole('main').getByText(TEXT.stateOn, { exact: true })).toBeVisible(); // proof: reminder-state-on
   // Nothing changed yet: nothing to save.
   await expect(button(page, TEXT.save)).toBeDisabled();
 

@@ -134,6 +134,9 @@ export const setup: Messages['setup'] = {
       'Modifie tes enveloppes, ajoute des frais ponctuels comme les frais de semestre et les sources de revenus, ' +
       'les charges fixes et les enveloppes que la configuration a sautées, ou reprends tout le plan.',
     link: 'Modifier le plan',
+    eachMonth: 'Chaque mois',
+    comesIn: (amount: string) => `${amount} de revenus`,
+    fixedOut: (amount: string) => `${amount} de charges fixes`,
   },
   /** Le chat de configuration (phase IA, chunk 12) : à la première étape d’une nouvelle configuration, connecté, avec l’IA. */
   chat: {

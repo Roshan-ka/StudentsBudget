@@ -10,12 +10,15 @@ import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from '@/compon
 import { db } from '@/db/db';
 import type { Account, Category, Plan, PlanLine } from '@/db/types';
 import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
+import { categoryTint } from '@/features/charts/colors';
 import { INCOME_CATEGORIES } from '@/features/entries/categories';
+import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import { monthOf, todayIso, type IsoDate } from '@/lib/dates';
 import { amountInputText, formatMoney, parseAmount } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
+import { cn } from '@/lib/utils';
 import {
   addableCategories,
   applyLineChange,
@@ -138,7 +141,7 @@ function LineForm({
       aria-label={name ? text.change(name) : text.newLine}
       onSubmit={onSubmit}
       noValidate
-      className="flex flex-col gap-4 rounded-lg border p-4"
+      className={cn(cardVariants(), 'gap-4')}
     >
       {!line && (
         <div className="grid gap-1.5">
@@ -287,57 +290,72 @@ function LineRow({
   const [confirming, setConfirming] = useState(false);
   const focus = useFocusAfter();
 
+  const Icon = CATEGORY_ICONS[line.categoryId] ?? OTHER_ICON;
+
+  // Its own card in its category's tint, with the icon on a card-coloured tile, as an envelope on Home (group 4
+  // redesign, Roshan's mockups, 17-11-2026).
   return (
-    <li className="flex flex-col gap-2 border-b py-3 last:border-b-0">
-      <div>
-        <p className="font-medium">{name}</p>
-        <p className="text-sm text-muted-foreground">{describeLine(line, accounts, lang)}</p>
-      </div>
-      {confirming ? (
-        <div role="group" aria-label={text.deleteQuestion(name)} className="flex flex-col gap-2">
-          <QuestionText text={text.deleteNote(name)} />
+    <li
+      className="flex gap-3 rounded-lg border-[1.5px] border-outline p-3.5 shadow-offset"
+      style={{ backgroundColor: categoryTint(line.categoryId) }}
+    >
+      <span
+        aria-hidden="true"
+        className="flex size-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card"
+      >
+        <Icon className="size-5" />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div>
+          <p className="font-semibold break-words">{name}</p>
+          <p className="text-sm break-words text-muted-foreground">{describeLine(line, accounts, lang)}</p>
+        </div>
+        {confirming ? (
+          <div role="group" aria-label={text.deleteQuestion(name)} className="flex flex-col gap-2">
+            <QuestionText text={text.deleteNote(name)} />
+            <div className="flex flex-wrap gap-2">
+              <Button variant="destructive" className="px-4" onClick={onDelete}>
+                {text.delete}
+              </Button>
+              <Button
+                variant="outline"
+                className="px-4"
+                onClick={() => {
+                  focus.mark('delete');
+                  setConfirming(false);
+                }}
+              >
+                {text.cancel}
+              </Button>
+            </div>
+          </div>
+        ) : (
           <div className="flex flex-wrap gap-2">
-            <Button variant="destructive" className="px-4" onClick={onDelete}>
+            <Button ref={editRef} variant="outline" className="px-4" aria-label={text.editLine(name)} onClick={onEdit}>
+              {text.edit}
+            </Button>
+            {s && (
+              <Button
+                variant="outline"
+                className="px-4"
+                aria-label={s.paused ? text.resumeLine(name) : text.pauseLine(name)}
+                onClick={() => void change((plan) => setLinePaused(plan, line.categoryId, !s.paused, todayIso()))}
+              >
+                {s.paused ? text.resume : text.pause}
+              </Button>
+            )}
+            <Button
+              ref={focus.refFor('delete')}
+              variant="ghost"
+              className="px-4"
+              aria-label={text.deleteLine(name)}
+              onClick={() => setConfirming(true)}
+            >
               {text.delete}
             </Button>
-            <Button
-              variant="outline"
-              className="px-4"
-              onClick={() => {
-                focus.mark('delete');
-                setConfirming(false);
-              }}
-            >
-              {text.cancel}
-            </Button>
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          <Button ref={editRef} variant="outline" className="px-4" aria-label={text.editLine(name)} onClick={onEdit}>
-            {text.edit}
-          </Button>
-          {s && (
-            <Button
-              variant="outline"
-              className="px-4"
-              aria-label={s.paused ? text.resumeLine(name) : text.pauseLine(name)}
-              onClick={() => void change((plan) => setLinePaused(plan, line.categoryId, !s.paused, todayIso()))}
-            >
-              {s.paused ? text.resume : text.pause}
-            </Button>
-          )}
-          <Button
-            ref={focus.refFor('delete')}
-            variant="ghost"
-            className="px-4"
-            aria-label={text.deleteLine(name)}
-            onClick={() => setConfirming(true)}
-          >
-            {text.delete}
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
     </li>
   );
 }
@@ -366,14 +384,16 @@ function LineList({
 }) {
   const id = useId();
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <h4 id={id} className="font-semibold">
         {title}
       </h4>
       {lines.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty}</p>
       ) : (
-        <ul aria-labelledby={id}>{lines.map(render)}</ul>
+        <ul aria-labelledby={id} className="flex flex-col gap-3">
+          {lines.map(render)}
+        </ul>
       )}
     </div>
   );
@@ -424,7 +444,7 @@ export function RecurringEditor() {
 
   const render = (line: PlanLine) =>
     open === line.categoryId ? (
-      <li key={line.categoryId} className="py-3">
+      <li key={line.categoryId}>
         <LineForm
           line={line}
           addable={addable}
@@ -454,7 +474,8 @@ export function RecurringEditor() {
     );
 
   return (
-    <section aria-labelledby="recurring-heading" className={cardVariants()}>
+    // A plain section, as Envelopes on Home: each line is a card of its own.
+    <section aria-labelledby="recurring-heading" className="flex flex-col gap-3">
       <h3
         ref={focus.refFor(HEADING_KEY)}
         id="recurring-heading"
