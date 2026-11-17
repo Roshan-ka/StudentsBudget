@@ -3,6 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FileUpIcon, UploadIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
+import { noticeClass } from '@/components/notice';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -129,7 +130,7 @@ export function RestoreFromBackup({ compact = false }: { compact?: boolean }) {
         {reading && <StatusLine className="text-sm text-muted-foreground">{text.reading}</StatusLine>}
       </div>
       {chosen && (
-        <div role="group" aria-label={text.confirmGroup} className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+        <div role="group" aria-label={text.confirmGroup} className={noticeClass('muted', 'flex flex-col gap-3')}>
           <div className="flex flex-col gap-1">
             <p ref={questionRef} tabIndex={-1} className="text-sm outline-none">
               {text.question.before}

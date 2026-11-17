@@ -15,7 +15,7 @@ import {
   setupSystem,
 } from '../../../../supabase/functions/_shared/ai/setup';
 
-// The setup chat on the server (the AI phase, chunk 11): the call to Claude Haiku 5.5 and the patch held to what could
+// The setup chat on the server (the AI phase, chunk 11): the call to the model and the patch held to what could
 // be true.
 
 const REQUEST: SetupRequest = {
@@ -136,7 +136,7 @@ describe('the setup chat through the function', () => {
     const calls: ModelCall[] = [];
     const message: ModelMessage = {
       model: 'openai/gpt-oss-120b',
-      stop_reason: 'end_turn',
+      stop: 'finished',
       content: [{ type: 'text', text: JSON.stringify(answer) }],
       usage: { input_tokens: 4000, output_tokens: 500 },
     };

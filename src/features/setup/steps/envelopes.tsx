@@ -2,6 +2,7 @@
 
 import { useId } from 'react';
 import { FoldSummary } from '@/components/link-button';
+import { noticeClass } from '@/components/notice';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { SETUP_ENVELOPE_IDS } from '@/data/categories';
@@ -196,7 +197,7 @@ export function EnvelopesStep({
       {/* The live region stays mounted, so the first total after a budget is typed is announced too. */}
       <div aria-live="polite">
         {(line !== null || edit) && (
-          <div className="flex flex-col gap-1 rounded-lg bg-muted px-4 py-3 text-sm font-medium tabular-nums">
+          <div className={noticeClass('muted', 'flex flex-col gap-1 text-sm font-medium tabular-nums')}>
             {line !== null && <p>{line}</p>}
             {footer !== null && <p className="font-normal text-muted-foreground">{footer}</p>}
           </div>

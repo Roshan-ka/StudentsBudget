@@ -146,7 +146,7 @@ export function Donut({
               {/* Wraps rather than cuts off a long name ("Persönliche Pflege und Hygiene"). */}
               <span className="min-w-0 flex-1 py-1 break-words">{row.shortLabel}</span>
               <span className="font-medium tabular-nums">{amountText(row.amountMinor, locale)}</span>
-              <span className="w-10 text-end text-sm text-muted-foreground tabular-nums">
+              <span className="min-w-10 text-end text-sm text-muted-foreground tabular-nums">
                 {percentText(row.amountMinor, total, locale)}
               </span>
             </>

@@ -3,6 +3,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { KeyRoundIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { noticeClass } from '@/components/notice';
 import { Button } from '@/components/ui/button';
 import { noteSeen } from '@/features/privacy/notes';
 import { categoryTint } from '@/features/charts/colors';
@@ -279,7 +280,7 @@ export function PasskeysSection() {
       {Array.isArray(passkeys) && passkeys.length > 0 && (
         <ul className="flex flex-col gap-2">
           {passkeys.map((passkey) => (
-            <li key={passkey.id} className="flex flex-col gap-3 rounded-lg border px-4 py-3">
+            <li key={passkey.id} className="flex flex-col gap-3 rounded-lg border-[1.5px] border-outline px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="break-words font-medium">{nameOf(passkey, t)}</p>
@@ -306,7 +307,7 @@ export function PasskeysSection() {
                 )}
               </div>
               {removing?.id === passkey.id && (
-                <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+                <div className={noticeClass('muted', 'flex flex-col gap-3')}>
                   <p id={`${id}-question`} className="text-sm">
                     {text.removeQuestion}
                   </p>

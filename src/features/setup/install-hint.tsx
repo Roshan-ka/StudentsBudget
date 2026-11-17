@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { noticeClass } from '@/components/notice';
 import { useT } from '@/i18n/use-t';
 import { shouldShowInstallHint } from './draft';
 
@@ -32,5 +33,5 @@ export function InstallHint() {
   const { t } = useT();
 
   if (!show) return null;
-  return <p className="rounded-lg bg-muted px-4 py-3 text-sm">{t.setup.installHint}</p>;
+  return <p className={noticeClass('muted', 'text-sm')}>{t.setup.installHint}</p>;
 }

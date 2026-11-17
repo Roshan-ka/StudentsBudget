@@ -132,7 +132,7 @@ export function scrubRequest(request: AiRequest): AiRequest {
 function usageOf(message: ModelMessage): Partial<AiLog> {
   return {
     model: message.model,
-    stop: message.stop_reason,
+    stop: message.stop,
     inputTokens: message.usage.input_tokens,
     outputTokens: message.usage.output_tokens,
     cacheReadTokens: message.usage.cache_read_input_tokens ?? 0,

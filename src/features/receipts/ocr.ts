@@ -82,6 +82,41 @@ export async function prepareImage(photo: Blob): Promise<Blob> {
   }
 }
 
+/** What a Tesseract worker has that the scan needs to end it. */
+type Ending = { terminate: () => Promise<unknown> };
+
+/**
+ * The worker `creating` makes, or the signal's reason as soon as `signal` aborts (review B7, 17-11-2026): Cancel
+ * while the engine starts ends the scan at once, and the worker, when it comes, is ended unused, so a quick second
+ * scan never runs two on the phone.
+ */
+export function workerUnlessAborted<W extends Ending>(creating: Promise<W>, signal?: AbortSignal): Promise<W> {
+  if (signal === undefined) return creating;
+  const endLater = () => void creating.then((worker) => worker.terminate()).catch(() => undefined);
+  if (signal.aborted) {
+    endLater();
+    return Promise.reject(signal.reason);
+  }
+  return new Promise<W>((resolve, reject) => {
+    const onAbort = () => {
+      reject(signal.reason);
+      endLater();
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    creating.then(
+      (worker) => {
+        signal.removeEventListener('abort', onAbort);
+        // Aborted already: onAbort has rejected and ends this worker.
+        if (!signal.aborted) resolve(worker);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
+}
+
 /**
  * The text of a receipt photo, read on the phone. One worker per scan, ended after it or on abort, so a scan holds the
  * phone's memory only while it runs. Throws the signal's reason when aborted.
@@ -95,7 +130,7 @@ export async function readImageText(
   const image = await prepareImage(photo);
   signal?.throwIfAborted();
   const paths = ocrPaths(hasSimd());
-  const worker = await Tesseract.createWorker(['deu', 'eng'], Tesseract.OEM.LSTM_ONLY, {
+  const creating = Tesseract.createWorker(['deu', 'eng'], Tesseract.OEM.LSTM_ONLY, {
     workerPath: paths.workerPath,
     corePath: paths.corePath,
     langPath: paths.langPath,
@@ -105,6 +140,7 @@ export async function readImageText(
     logger: (message) =>
       onProgress?.({ stage: message.status === 'recognizing text' ? 'reading' : 'loading', progress: message.progress }),
   });
+  const worker = await workerUnlessAborted(creating, signal);
   try {
     signal?.throwIfAborted();
     const reading = worker.recognize(image);

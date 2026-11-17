@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
+import { noticeClass } from '@/components/notice';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import type { Language } from '@/i18n/languages';
@@ -185,7 +186,7 @@ export function AccountLink({ onLinked, look = 'card' }: { onLinked?: () => void
         <Heading id={`${id}-heading`} className={headingClass}>
           {text.heading}
         </Heading>
-        <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+        <div className={noticeClass('muted', 'flex flex-col gap-3')}>
           <p ref={questionRef} tabIndex={-1} className="text-sm outline-none">
             {text.question(contentsText(view.plan.phone, lang), contentsText(view.plan.account, lang))}
           </p>

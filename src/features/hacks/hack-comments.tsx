@@ -3,6 +3,7 @@
 import { FlagIcon, LanguagesIcon, MessageCircleIcon, Trash2Icon } from 'lucide-react';
 import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { linkButtonClass } from '@/components/link-button';
+import { noticeClass } from '@/components/notice';
 import { StatusLine } from '@/components/status-line';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -353,7 +354,7 @@ function CommentItem({
         />
       )}
       {asking !== null && !reportNote && (
-        <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+        <div className={noticeClass('muted', 'flex flex-col gap-3')}>
           <p className="text-sm">{asking === 'delete' ? text.deleteQuestion : text.reportQuestion}</p>
           <div className="flex flex-wrap gap-2">
             <Button

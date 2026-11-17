@@ -3,6 +3,7 @@
 import { AtSignIcon, ChevronLeftIcon, KeyRoundIcon, LockIcon, LogInIcon, LogOutIcon, UserPlusIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { LinkButton } from '@/components/link-button';
+import { noticeClass } from '@/components/notice';
 import { PasswordInput } from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -687,7 +688,7 @@ export function SignInForm({
       <p className="text-muted-foreground">
         {page ? (creating ? words.createLine : words.signInLine) : text.optional}
       </p>
-      {showIosHint && <p className="rounded-lg bg-muted px-4 py-3 text-sm">{text.iosHint}</p>}
+      {showIosHint && <p className={noticeClass('muted', 'text-sm')}>{text.iosHint}</p>}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
         {creating ? (
@@ -1160,10 +1161,10 @@ export function AccountView() {
       return (
         <>
           {accountDeleted && (
-            <StatusLine className="rounded-lg bg-muted px-4 py-3 text-sm">{t.auth.deleteAccount.done}</StatusLine>
+            <StatusLine className={noticeClass('muted', 'text-sm')}>{t.auth.deleteAccount.done}</StatusLine>
           )}
           {(wipeFailed || wipeOwed) && (
-            <p role="alert" className="rounded-lg bg-muted px-4 py-3 text-sm">
+            <p role="alert" className={noticeClass('muted', 'text-sm')}>
               {t.auth.signedIn.wipeFailed}
             </p>
           )}

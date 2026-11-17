@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { LinkButton } from '@/components/link-button';
+import { noticeClass } from '@/components/notice';
 import { PageHeading } from '@/components/page-heading';
 import { StatusLine } from '@/components/status-line';
 import { buttonVariants } from '@/components/ui/button';
@@ -69,7 +70,7 @@ export function StartView() {
   return (
     <div className="flex flex-col gap-6">
       {signedOut && (
-        <StatusLine className="rounded-lg bg-accent px-4 py-3 text-sm font-medium">{text.signedOut}</StatusLine>
+        <StatusLine className={noticeClass('accent', 'text-sm font-medium')}>{text.signedOut}</StatusLine>
       )}
       {/* "Welcome" names the page in the title and takes the focus after a page change; the headline says the rest. */}
       <PageHeading id="start" visuallyHidden />

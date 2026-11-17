@@ -35,8 +35,12 @@ export async function bringBackUsedAccounts(store: UserDataStore): Promise<numbe
     }
   }
   if (back.length === 0) return 0;
-  // The delete goes first: the pull's writer leaves alone a row still waiting in the outbox.
-  await db.outbox.bulkDelete(back.map(({ row }): [ServerTable, string] => ['accounts', row.id]));
-  await applyFromAccount(back);
+  // The delete leaves the outbox first, in the writer's own transaction (review B5): the writer leaves alone a row
+  // still waiting there, and a failure keeps both, so the phone never holds entries on an account row it lacks.
+  await applyFromAccount(
+    back,
+    undefined,
+    back.map(({ row }): [ServerTable, string] => ['accounts', row.id]),
+  );
   return back.length;
 }

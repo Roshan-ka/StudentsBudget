@@ -10,6 +10,7 @@ import {
   type ModelCall,
   type ModelClient,
   type ModelMessage,
+  type StopReason,
 } from '../../../../supabase/functions/_shared/ai/model';
 
 // What the `ai` function does with one request (the AI phase, chunk 3), with the allowance, the model and the log
@@ -29,10 +30,10 @@ const REQUEST: QuickAddRequest = {
 
 const ANSWER: QuickAddAnswer = { amount: 12, otherAmount: null, note: 'pizza with Tom', categoryId: 'eating-out', accountRef: 'a1', date: null };
 
-function message(answer: unknown = ANSWER, stop = 'end_turn'): ModelMessage {
+function message(answer: unknown = ANSWER, stop: StopReason = 'finished'): ModelMessage {
   return {
     model: 'openai/gpt-oss-20b',
-    stop_reason: stop,
+    stop,
     content: [{ type: 'text', text: JSON.stringify(answer) }],
     usage: { input_tokens: 420, output_tokens: 38, cache_read_input_tokens: 300, reasoning_tokens: 20 },
   };
@@ -182,7 +183,7 @@ describe('handleAi: the model', () => {
         model: 'openai/gpt-oss-20b',
         ms: 250,
         problem: null,
-        stop: 'end_turn',
+        stop: 'finished',
         inputTokens: 420,
         outputTokens: 38,
         cacheReadTokens: 300,
@@ -200,8 +201,8 @@ describe('handleAi: the model', () => {
 
   it('answers refused, failed or unavailable as the model went, with the use taken', async () => {
     const cases: [() => Promise<ModelMessage>, number, string][] = [
-      [async () => message(ANSWER, 'refusal'), 422, 'refused'],
-      [async () => message(ANSWER, 'max_tokens'), 502, 'failed'],
+      [async () => message(ANSWER, 'refused'), 422, 'refused'],
+      [async () => message(ANSWER, 'length'), 502, 'failed'],
       [async () => message({ ...ANSWER, categoryId: 'casino' }), 502, 'failed'],
       [async () => Promise.reject(new ModelUnavailable('overloaded')), 503, 'unavailable'],
       // The provider's rate limit: busy, as when everyone's allowance is taken (the Groq switch, chunk 2).

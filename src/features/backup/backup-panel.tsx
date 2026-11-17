@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { DownloadIcon, Trash2Icon, UploadIcon, type LucideIcon } from 'lucide-react';
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 import { ExportFileButton, type ExportFileType } from '@/components/export-file-button';
+import { noticeClass } from '@/components/notice';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -149,7 +150,7 @@ function DeleteEverything() {
           ref={focusFirstControl}
           onSubmit={(event) => void onDelete(event)}
           noValidate
-          className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3"
+          className={noticeClass('muted', 'flex flex-col gap-3')}
         >
           {/* What the card's short line leaves out, read before the word is typed. */}
           <p className="text-sm">{text.linked}</p>

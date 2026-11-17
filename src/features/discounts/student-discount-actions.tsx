@@ -3,6 +3,7 @@
 import { LanguagesIcon } from 'lucide-react';
 import { useState } from 'react';
 import { linkButtonClass } from '@/components/link-button';
+import { noticeClass } from '@/components/notice';
 import { Button } from '@/components/ui/button';
 import { translateUrl } from '@/features/hacks/feed';
 import { postingNameText } from '@/features/hacks/posting-name';
@@ -139,7 +140,7 @@ export function StudentDiscountActions({
         />
       )}
       {asking && !reportNote && (
-        <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
+        <div className={noticeClass('muted', 'flex flex-col gap-3')}>
           <p className="text-sm">{info.mine ? text.deleteQuestion : text.reportQuestion}</p>
           <div className="flex flex-wrap gap-2">
             <Button

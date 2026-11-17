@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { quickAddAnswer, type QuickAddAnswer, type QuickAddRequest } from '@/features/ai/contract';
 import { allowedOrigins } from '../../../../supabase/functions/_shared/ai/cors';
 import { handleAi } from '../../../../supabase/functions/_shared/ai/handle';
-import type { ModelCall, ModelMessage } from '../../../../supabase/functions/_shared/ai/model';
+import type { ModelCall, ModelMessage, StopReason } from '../../../../supabase/functions/_shared/ai/model';
 import {
   finishQuickAdd,
   QUICK_ADD_RULES,
@@ -10,7 +10,7 @@ import {
   quickAddMessage,
 } from '../../../../supabase/functions/_shared/ai/quick-add';
 
-// Quick add on the server (the AI phase, chunk 4): the call to Claude Haiku 5.5 and what the app gets back.
+// Quick add on the server (the AI phase, chunk 4): the call to the model and what the app gets back.
 
 const REQUEST: QuickAddRequest = {
   feature: 'quick-add',
@@ -144,22 +144,22 @@ describe('quick add through the function', () => {
     return { status: response.status, body: await response.json(), calls };
   }
 
-  const message = (answer: unknown, stop: string): ModelMessage => ({
+  const message = (answer: unknown, stop: StopReason): ModelMessage => ({
     model: 'openai/gpt-oss-20b',
-    stop_reason: stop,
+    stop,
     content: [{ type: 'text', text: JSON.stringify(answer) }],
     usage: { input_tokens: 500, output_tokens: 40 },
   });
 
   it('sends the line scrubbed and answers with the checked reading', async () => {
-    const { status, body, calls } = await ask(message({ ...ANSWER, categoryId: 'casino' }, 'end_turn'));
+    const { status, body, calls } = await ask(message({ ...ANSWER, categoryId: 'casino' }, 'finished'));
     expect(status).toBe(200);
     expect(body).toEqual({ ok: true, answer: { ...ANSWER, categoryId: null }, left: 49 });
     expect(calls[0].messages[0].content).toContain('<line>12 pizza</line>');
   });
 
   it('answers refused when Haiku declines, and failed when it is cut off', async () => {
-    expect(await ask(message(ANSWER, 'refusal'))).toMatchObject({ status: 422, body: { ok: false, problem: 'refused' } });
-    expect(await ask(message(ANSWER, 'max_tokens'))).toMatchObject({ status: 502, body: { ok: false, problem: 'failed' } });
+    expect(await ask(message(ANSWER, 'refused'))).toMatchObject({ status: 422, body: { ok: false, problem: 'refused' } });
+    expect(await ask(message(ANSWER, 'length'))).toMatchObject({ status: 502, body: { ok: false, problem: 'failed' } });
   });
 });

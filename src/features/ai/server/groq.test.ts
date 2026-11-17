@@ -123,7 +123,7 @@ describe('the request', () => {
 describe('the reply', () => {
   it('reads a finished answer, with the tokens spent', async () => {
     const message = await run(QUICK, fakeApi([reply(completion(JSON.stringify(ANSWER)))]));
-    expect(message.stop_reason).toBe('end_turn');
+    expect(message.stop).toBe('finished');
     expect(message.usage).toEqual({
       input_tokens: 900,
       output_tokens: 120,
@@ -133,13 +133,14 @@ describe('the reply', () => {
     expect(readStructured(message, quickAddAnswer)).toEqual({ ok: true, value: ANSWER });
   });
 
-  it('says how it stopped in the words readStructured reads', () => {
-    expect(stopReasonOf('stop', null)).toBe('end_turn');
-    expect(stopReasonOf('length', null)).toBe('max_tokens');
-    expect(stopReasonOf('content_filter', null)).toBe('refusal');
-    expect(stopReasonOf('tool_calls', null)).toBe('tool_use');
+  it('says how it stopped in the function’s own words (review D6)', () => {
+    expect(stopReasonOf('stop', null)).toBe('finished');
+    expect(stopReasonOf('length', null)).toBe('length');
+    expect(stopReasonOf('content_filter', null)).toBe('refused');
+    expect(stopReasonOf('tool_calls', null)).toBe('other');
+    expect(stopReasonOf('something_new', null)).toBe('other');
     expect(stopReasonOf(null, null)).toBeNull();
-    expect(stopReasonOf('stop', 'I can’t help with that.')).toBe('refusal');
+    expect(stopReasonOf('stop', 'I can’t help with that.')).toBe('refused');
   });
 
   it('turns a cut-off answer into failed, a refusal into refused, and no text into failed', () => {
