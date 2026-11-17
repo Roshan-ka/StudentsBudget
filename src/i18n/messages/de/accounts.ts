@@ -1,10 +1,11 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Konten auf Deutsch: Einstellungen → Konten, Geld zwischen Konten verschieben (auch die Fehler aus transfer.ts) und
 // die Wechselkurse.
 export const accounts: Messages['accounts'] = {
   heading: 'Konten',
-  summary: (count: number, total: string) => `${count} ${count === 1 ? 'Konto' : 'Konten'} · ${total}`,
+  summary: (count: number, total: string) => `${byCount(count, { one: `${count} Konto`, other: `${count} Konten` })} · ${total}`,
   summaryNone: 'Noch keine Konten',
   add: 'Konto hinzufügen',
   none: 'Noch keine Konten. Leg dein Bankkonto, dein Portemonnaie oder dein Konto zu Hause an.',

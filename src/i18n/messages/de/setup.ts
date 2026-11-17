@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Einrichtung und Plan bearbeiten auf Deutsch: der Assistent, seine Schritte, die Prüfungen und Zeilen aus draft.ts,
 // der Hinweis zum Installieren. "Automatisch hinzufügen" muss so heißen wie der Schalter in recurring (Chunk 12).
@@ -100,7 +101,7 @@ export const setup: Messages['setup'] = {
       'Wie viel willst du im Monat für den Alltag ausgeben, abgesehen von deinen Fixkosten (Miete inklusive)?',
     typicalSpend: (range) => `Studierende hier geben dafür meist etwa ${range} im Monat aus.`,
     estimates: (list, count) =>
-      `${list.charAt(0).toUpperCase()}${list.slice(1)} ${count === 1 ? 'ist eine Schätzung' : 'sind Schätzungen'}.`,
+      `${list.charAt(0).toUpperCase()}${list.slice(1)} ${byCount(count, { one: 'ist eine Schätzung', other: 'sind Schätzungen' })}.`,
     whereFrom: 'Woher das kommt',
     askEdit: 'Wie viel willst du dir für jeden dieser Bereiche im Monat erlauben, in Euro? Du kannst das jederzeit ändern.',
     askNew:

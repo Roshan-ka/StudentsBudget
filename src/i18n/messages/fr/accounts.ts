@@ -1,11 +1,11 @@
 import type { Messages } from '../en';
-import { NNBSP } from './count';
+import { NNBSP, byCount } from './count';
 
 // Les comptes en français : Réglages → Comptes, transférer de l'argent entre comptes (aussi les erreurs de
 // transfer.ts) et les taux de change.
 export const accounts: Messages['accounts'] = {
   heading: 'Comptes',
-  summary: (count: number, total: string) => `${count} ${count === 1 ? 'compte' : 'comptes'} · ${total}`,
+  summary: (count: number, total: string) => `${byCount(count, { one: `${count} compte`, other: `${count} comptes` })} · ${total}`,
   summaryNone: 'Pas encore de compte',
   add: 'Ajouter un compte',
   none: 'Pas encore de comptes. Ajoute ton compte bancaire, ton porte-monnaie ou ton compte du pays.',

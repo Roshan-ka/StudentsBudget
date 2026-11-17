@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Home auf Deutsch: die Begrüßung, was diesen Monat bleibt, die Umschläge, der Budgetvorschlag und die Konten.
 
@@ -9,7 +10,7 @@ export const home: Messages['home'] = {
   greeting: (name) => `Hallo ${name}`,
   acrossAccounts: (total) => `Auf allen Konten: ${total}`,
   missingRates: (currencies, count) =>
-    count === 1 ? `Wechselkurs für ${currencies} fehlt` : `Wechselkurse für ${currencies} fehlen`,
+    byCount(count, { one: `Wechselkurs für ${currencies} fehlt`, other: `Wechselkurse für ${currencies} fehlen` }),
   leftThisMonth: {
     heading: 'Budget diesen Monat',
     overThisMonth: { before: '', after: ' zu viel diesen Monat' },

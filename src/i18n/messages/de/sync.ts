@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Sync und Verknüpfen auf Deutsch: die gespeicherten Problem-Codes (src/sync/problem.ts), die Statuszeile unter
 // "Jetzt synchronisieren", was ein Screenreader danach hört, und das Verknüpfen dieses Handys auf der Kontoseite.
@@ -15,16 +16,16 @@ export const sync: Messages['sync'] = {
   status: {
     offline: 'Offline. Was du jetzt änderst, wartet auf diesem Handy.',
     offlineWaiting: (count) =>
-      `Offline: ${count} ${count === 1 ? 'Änderung wartet' : 'Änderungen warten'} auf diesem Handy.`,
+      `Offline: ${byCount(count, { one: `${count} Änderung wartet`, other: `${count} Änderungen warten` })} auf diesem Handy.`,
     notYet: 'Noch nicht synchronisiert',
     synced: (when) => `Synchronisiert ${when}`,
     line: (state, waiting) =>
       waiting === 0
         ? `${state}.`
-        : `${state}. ${waiting} ${waiting === 1 ? 'Änderung wartet' : 'Änderungen warten'}.`,
+        : `${state}. ${byCount(waiting, { one: `${waiting} Änderung wartet`, other: `${waiting} Änderungen warten` })}.`,
     justNow: 'gerade eben',
     // Ausgeschrieben, weil die Zeile mit einem Punkt endet ("vor 2 Min.." wäre doppelt).
-    minutesAgo: (minutes) => `vor ${minutes} ${minutes === 1 ? 'Minute' : 'Minuten'}`,
+    minutesAgo: (minutes) => `vor ${byCount(minutes, { one: `${minutes} Minute`, other: `${minutes} Minuten` })}`,
     at: (dateTime) => `am ${dateTime}`,
     before: 'vor einiger Zeit',
     otherAccount: 'Dieses Handy ist mit einem anderen Konto verknüpft.',
@@ -36,8 +37,8 @@ export const sync: Messages['sync'] = {
     problem: (problem) => `Nicht synchronisiert: ${problem}`,
   },
   stale: {
-    entries: (count) => `${count} ${count === 1 ? 'Eintrag' : 'Einträge'}`,
-    others: (count) => `${count} ${count === 1 ? 'weiterer Posten' : 'weitere Posten'}`,
+    entries: (count) => byCount(count, { one: `${count} Eintrag`, other: `${count} Einträge` }),
+    others: (count) => byCount(count, { one: `${count} weiterer Posten`, other: `${count} weitere Posten` }),
   },
   section: {
     heading: 'Synchronisierung',

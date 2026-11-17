@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Anmeldung und Sicherheit auf Deutsch: auth-errors.ts und credentials.ts, das Anmeldeformular, der Code-Schritt, die
 // Ansicht nach dem Anmelden (account-view.tsx), Anmeldung und Sicherheit, zweistufige Anmeldung und Passkeys.
@@ -122,7 +123,7 @@ export const auth: Messages['auth'] = {
     confirm: 'Von diesem Handy abmelden?',
     cancel: 'Abbrechen',
     unsynced: (count) =>
-      count === 1 ? '1 Änderung ist noch nicht in deinem Konto.' : `${count} Änderungen sind noch nicht in deinem Konto.`,
+      byCount(count, { one: '1 Änderung ist noch nicht in deinem Konto.', other: `${count} Änderungen sind noch nicht in deinem Konto.` }),
     unsyncedUnknown: 'Manche Änderungen sind vielleicht noch nicht in deinem Konto.',
     unsyncedOffline:
       'Du bist offline. Bleib angemeldet und synchronisiere später, oder melde dich ab und verliere diese Änderungen.',
@@ -252,7 +253,7 @@ export const auth: Messages['auth'] = {
   },
   passkeys: {
     heading: 'Passkeys',
-    count: (count) => (count === 0 ? 'Noch keine' : count === 1 ? '1 Passkey' : `${count} Passkeys`),
+    count: (count) => (count === 0 ? 'Noch keine' : byCount(count, { one: '1 Passkey', other: `${count} Passkeys` })),
     intro:
       'Melde dich mit Face ID, einem Fingerabdruck oder der PIN deines Handys an statt mit deinem Passwort. Der ' +
       'Passkey bleibt bei dir, auf deinem Handy oder in deinem Passwortmanager; dein Konto behält seinen öffentlichen ' +

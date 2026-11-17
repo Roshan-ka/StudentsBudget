@@ -1,10 +1,12 @@
 // Accounts in English: Settings → Accounts, moving money between them (transfer.ts's errors too) and the exchange
 // rates. A transfer's amount, note, date check and Save changes are the entry form's (`entries.form`).
 
+import { byCount } from './count';
+
 export const accounts = {
   heading: 'Accounts',
   /** The Accounts row on the Settings list: how many, and their total in euros. */
-  summary: (count: number, total: string) => `${count} ${count === 1 ? 'account' : 'accounts'} · ${total}`,
+  summary: (count: number, total: string) => `${byCount(count, { one: `${count} account`, other: `${count} accounts` })} · ${total}`,
   summaryNone: 'No accounts yet',
   add: 'Add account',
   none: 'No accounts yet. Add your bank account, your wallet or your account back home.',

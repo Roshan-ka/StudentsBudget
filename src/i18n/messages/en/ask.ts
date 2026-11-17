@@ -1,5 +1,7 @@
 // Ask in English (the AI phase, chunk 10, docs/superpowers/plans/2026-11-09-ai-phase-1.md): questions about the
 // student's own budget, answered from their plan, their entries and the app's sourced Regensburg data.
+import { byCount } from './count';
+
 export const ask = {
   intro:
     'Ask about your own budget: what is left, where your money goes, or how to spend less in Regensburg. The answers ' +
@@ -11,7 +13,7 @@ export const ask = {
   /** The student's question in the conversation, for screen readers and the eye. */
   asked: 'You asked',
   answer: 'Answer',
-  left: (count: number) => `${count} ${count === 1 ? 'question' : 'questions'} left today.`,
+  left: (count: number) => `${byCount(count, { one: `${count} question`, other: `${count} questions` })} left today.`,
   full: 'That’s six questions in this conversation. Start over to ask more.',
   startOver: 'Start over',
   /** Under an answer with an amount nothing the model was given backs (`unbacked`). */

@@ -1,6 +1,8 @@
 // Badges in English: their names and progress lines (badges.ts), the badges page and the card on Home.
 
-const weeks = (count: number) => `${count} ${count === 1 ? 'week' : 'weeks'}`;
+import { byCount } from './count';
+
+const weeks = (count: number) => byCount(count, { one: `${count} week`, other: `${count} weeks` });
 
 export const badges = {
   names: {
