@@ -449,10 +449,9 @@ test('saves and lands on home', async ({ page }) => {
   });
   // The helper adds rent and income by hand unless a test asks for schedules.
   expect([...plan.incomes, ...plan.fixed].some((line) => line.schedule)).toBe(false);
-  // A new setup asks no one-off costs, and writes no guesses (Guess vs. reality is gone).
+  // A new setup asks no one-off costs.
   expect(plan.oneOffs).toEqual([]);
   expect(plan.envelopes.find((e) => e.categoryId === 'eating-out')?.monthlyMinor).toBe(12400);
-  expect(await readStore(page, 'guesses')).toEqual([]);
 
   const accounts = await readStore<Account>(page, 'accounts');
   expect(accounts.map((a) => [a.name, a.currency, a.openingMinor]).sort()).toEqual([

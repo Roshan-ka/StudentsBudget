@@ -6,7 +6,6 @@ import type {
   ChecklistTick,
   DiscountVote,
   Entry,
-  Guess,
   OutboxEntry,
   Plan,
   PlanMonth,
@@ -21,7 +20,6 @@ export type StudentsBudgetDb = Dexie & {
   categories: Table<Category, string>;
   entries: Table<Entry, string>;
   plan: Table<Plan, Plan['id']>;
-  guesses: Table<Guess, string>;
   /** At most one ECB and one manual rate per currency, side by side. */
   fxRates: Table<Rate, [Rate['currency'], Rate['source']]>;
   /** One row per finished week, keyed by the Monday it started on. */
@@ -88,6 +86,17 @@ db.version(5).stores({
 db.version(6).stores({
   planMonths: 'month',
 });
+
+// Guess vs. reality's guesses, which nothing read or wrote since 05-11-2026, go (review F4, 17-11-2026), with any
+// change to one still waiting in the outbox: the account's table goes too, so it would have nowhere to be sent.
+db.version(7)
+  .stores({ guesses: null })
+  .upgrade((tx) =>
+    tx
+      .table('outbox')
+      .filter((entry: { table: string }) => entry.table === 'guesses')
+      .delete(),
+  );
 
 /** Asks the browser not to evict the data. Resolves false when unsupported, denied or failing; never throws. */
 export async function requestPersistence(): Promise<boolean> {

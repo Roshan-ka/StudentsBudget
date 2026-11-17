@@ -20,7 +20,6 @@ describe('planDownload', () => {
       accounts: [],
       entries: [],
       plan: null,
-      guesses: [],
       fxRates: [ecbOnB],
       weekResults: [],
       discountVotes: [],
@@ -36,7 +35,6 @@ describe('planDownload', () => {
     expect(sortById(result.data.accounts)).toEqual(sortById(phoneA.accounts));
     expect(sortById(result.data.entries)).toEqual(sortById(phoneA.entries));
     expect(result.data.plan).toEqual(phoneA.plan);
-    expect(result.data.guesses).toEqual(phoneA.guesses);
     expect(result.data.weekResults).toEqual(phoneA.weekResults);
     expect(result.data.discountVotes).toEqual(phoneA.discountVotes);
     expect(result.data.profile).toEqual(phoneA.profile);

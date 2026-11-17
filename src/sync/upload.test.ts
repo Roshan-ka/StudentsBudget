@@ -13,7 +13,6 @@ describe('serverRowsOf', () => {
     expect(rows.entries.map((r) => r.id)).toEqual(['e1', 'e2', 'rec:s1:2026-10-01']);
     expect(rows.entries[0].data).toBe(d.entries[0]);
     expect(rows.plans).toEqual([{ id: 'current', data: d.plan }]);
-    expect(rows.guesses.map((r) => r.id)).toEqual(['food']);
     expect(rows.week_results.map((r) => r.id)).toEqual(['2026-10-12']);
     expect(rows.discount_votes.map((r) => r.id)).toEqual(['cinema-student']);
     expect(rows.profiles).toEqual([{ id: 'current', data: d.profile }]);
@@ -88,7 +87,7 @@ describe('planUpload and applyUpload', () => {
 
   it('counts what an empty phone would delete from an account saved elsewhere', async () => {
     const { store } = fakeStore({ entries: { x1: {}, x2: {}, x3: {} }, accounts: { a: {} }, plans: { current: {} } });
-    const empty = snapshot({ accounts: [], entries: [], plan: null, guesses: [], fxRates: [], weekResults: [] });
+    const empty = snapshot({ accounts: [], entries: [], plan: null, fxRates: [], weekResults: [] });
     const plan = await planUpload(store, { ...empty, discountVotes: [], profile: null, checklistTicks: [] });
     expect(staleSummary(plan)).toBe('3 entries and 2 other items');
   });
@@ -103,12 +102,12 @@ describe('planUpload and applyUpload', () => {
     const failing: UserDataStore = {
       ...store,
       async upsert(table, rows) {
-        if (table === 'guesses') throw new StoreError('guesses', 500, 'XX000', 'boom');
+        if (table === 'manual_rates') throw new StoreError('manual_rates', 500, 'XX000', 'boom');
         return store.upsert(table, rows);
       },
     };
     const plan = await planUpload(failing, snapshot());
-    await expect(applyUpload(failing, plan)).rejects.toThrow('guesses: boom');
+    await expect(applyUpload(failing, plan)).rejects.toThrow('manual_rates: boom');
     expect(tables.entries.size).toBe(3);
     expect(tables.profiles.size).toBe(0);
     // So another phone's load reads this as an unfinished save, not as a phone without a plan.

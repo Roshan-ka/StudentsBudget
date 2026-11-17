@@ -17,7 +17,7 @@ import { describedBy as describedByIds } from '@/lib/described-by';
 import { amountInputText, parseAmount, type Minor } from '@/lib/money';
 import { cn } from '@/lib/utils';
 
-/** What an empty field means: 0 (income, costs, envelopes), or no answer yet (guesses). */
+/** What an empty field means: 0 (income, costs, envelopes), or no answer yet. */
 type Blank = 'zero' | 'unset';
 
 /** What the text may be: 0 or more, above 0, or below 0 too (an opening balance). */

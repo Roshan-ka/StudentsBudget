@@ -33,7 +33,7 @@ describe('schema upgrade', () => {
 
     expect(await db.categories.count()).toBe(26);
     expect(await db.fxRates.count()).toBe(0);
-    expect(db.verno).toBe(6);
+    expect(db.verno).toBe(7);
     // The version-1 table is gone from the real database, not only from the schema.
     expect(db.backendDB().objectStoreNames.contains('rates')).toBe(false);
     // A database two versions behind gets the version-3 tables too, empty.
@@ -90,12 +90,13 @@ describe('schema upgrade', () => {
 
     await db.open();
 
-    expect(db.verno).toBe(6);
+    expect(db.verno).toBe(7);
     expect(await db.accounts.toArray()).toEqual([account]);
     expect(await db.categories.count()).toBe(26);
     expect(await db.entries.toArray()).toEqual([entry]);
     expect(await db.plan.toArray()).toEqual([plan]);
-    expect(await db.guesses.toArray()).toEqual([guess]);
+    // Version 7 drops Guess vs. reality's table (review F4): its rows go with it.
+    expect(db.backendDB().objectStoreNames.contains('guesses')).toBe(false);
     expect(await db.fxRates.toArray()).toEqual(expect.arrayContaining<unknown>([ecb, manual]));
     expect(await db.fxRates.count()).toBe(2);
     // The indexes of the old tables came across with their rows.
@@ -151,7 +152,7 @@ describe('schema upgrade', () => {
 
     await db.open();
 
-    expect(db.verno).toBe(6);
+    expect(db.verno).toBe(7);
     expect(await db.categories.count()).toBe(26);
     expect(await db.discountVotes.toArray()).toEqual([vote]);
     expect(await db.table('outbox').toArray()).toEqual([queued]);
@@ -173,5 +174,40 @@ describe('schema upgrade', () => {
     const october = { month: '2026-10', incomes: [], fixed: [], oneOffs: [], envelopes: [] };
     await db.planMonths.add(october);
     await expect(db.planMonths.add({ ...october, envelopes: [{ categoryId: 'food', monthlyMinor: 1 }] })).rejects.toThrow();
+  });
+
+  it('upgrades a version-6 database to version 7: the guesses go, with their waiting outbox entries (review F4)', async () => {
+    // A browser that ran version 6, declared as it shipped.
+    await db.delete();
+    const v6 = new Dexie('studentsbudget');
+    v6.version(1).stores({
+      accounts: 'id',
+      categories: 'id, kind',
+      entries: 'id, date, accountId, categoryId, type',
+      plan: 'id',
+      guesses: 'categoryId',
+      rates: 'currency',
+    });
+    v6.version(2).stores({ rates: null, fxRates: '[currency+source], currency' });
+    v6.version(3).stores({ weekResults: 'weekStart', discountVotes: 'discountId', profile: 'id' });
+    v6.version(4).stores({ outbox: '[table+id]', syncState: 'id' });
+    v6.version(5).stores({ checklistTicks: 'itemId' });
+    v6.version(6).stores({ planMonths: 'month' });
+    await v6.open();
+    const guessQueued = { table: 'guesses', id: 'food', seq: 1 };
+    const voteQueued = { table: 'discount_votes', id: 'cinema-student', seq: 2 };
+    await v6.table('categories').bulkAdd(CATEGORIES);
+    await v6.table('guesses').add({ categoryId: 'food', monthlyMinor: 20_000, guessedOn: '2026-10-16' });
+    await v6.table('outbox').bulkAdd([guessQueued, voteQueued]);
+    expect(v6.verno).toBe(6);
+    v6.close();
+
+    await db.open();
+
+    expect(db.verno).toBe(7);
+    expect(db.backendDB().objectStoreNames.contains('guesses')).toBe(false);
+    // The guess's change had nowhere left to go; every other change still waits.
+    expect(await db.table('outbox').toArray()).toEqual([voteQueued]);
+    expect(await db.categories.count()).toBe(26);
   });
 });

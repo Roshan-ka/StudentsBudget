@@ -8,7 +8,6 @@ export const SERVER_TABLES = [
   'accounts',
   'entries',
   'plans',
-  'guesses',
   'manual_rates',
   'week_results',
   'discount_votes',
@@ -19,6 +18,13 @@ export const SERVER_TABLES = [
 
 export type ServerTable = (typeof SERVER_TABLES)[number];
 
+/**
+ * Tables the account had and this app no longer keeps (review F4, 17-11-2026: Guess vs. reality's `guesses`). Until
+ * the account's own migration drops one, `sync_pull` may still send its rows: they are read and left out, so a pull
+ * goes on past them.
+ */
+export const RETIRED_TABLES = ['guesses'] as const;
+
 /** One row as the account keeps it: the Dexie row's key, and the row itself as JSON. */
 export type ServerRow = { id: string; data: object };
 
@@ -28,7 +34,6 @@ export function byTable<T>(make: (table: ServerTable) => T): Record<ServerTable,
     accounts: make('accounts'),
     entries: make('entries'),
     plans: make('plans'),
-    guesses: make('guesses'),
     manual_rates: make('manual_rates'),
     week_results: make('week_results'),
     discount_votes: make('discount_votes'),
@@ -48,7 +53,6 @@ export function serverRowsOf(d: BackupData): Record<ServerTable, ServerRow[]> {
     accounts: d.accounts.map((a) => ({ id: a.id, data: a })),
     entries: d.entries.map((e) => ({ id: e.id, data: e })),
     plans: d.plan ? [{ id: d.plan.id, data: d.plan }] : [],
-    guesses: d.guesses.map((g) => ({ id: g.categoryId, data: g })),
     manual_rates: d.fxRates.filter((r) => r.source === 'manual').map((r) => ({ id: r.currency, data: r })),
     week_results: d.weekResults.map((w) => ({ id: w.weekStart, data: w })),
     discount_votes: d.discountVotes.map((v) => ({ id: v.discountId, data: v })),
@@ -72,7 +76,6 @@ const DEXIE_SYNC: Readonly<Record<string, DexieSync>> = {
   accounts: { server: 'accounts', idOf: stringKey },
   entries: { server: 'entries', idOf: stringKey },
   plan: { server: 'plans', idOf: stringKey },
-  guesses: { server: 'guesses', idOf: stringKey },
   fxRates: {
     server: 'manual_rates',
     idOf: (key) => (Array.isArray(key) && key[1] === 'manual' && typeof key[0] === 'string' ? key[0] : null),

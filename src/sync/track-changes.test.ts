@@ -87,7 +87,6 @@ describe('while the phone is not linked', () => {
     await db.plan.put(PLAN);
     await saveEntry(expense('e1'));
     await deleteEntry('e1');
-    await db.guesses.bulkAdd([{ categoryId: 'food', monthlyMinor: 20000, guessedOn: '2026-10-16' }]);
     await setManualRate('INR', 97, '2026-10-16');
     await db.profile.put({
       id: 'current',
@@ -155,15 +154,6 @@ describe('while the phone is linked', () => {
     await forget();
     expect(await postDueRecurring('2026-11-01')).toEqual({ posted: 1 });
     expect(await recorded()).toEqual(['entries:rec:rent-s:2026-11-01', 'plans:current']);
-  });
-
-  // Nothing writes guesses since Guess vs. reality went, but older ones still sync.
-  it('records guesses, by category', async () => {
-    await db.guesses.bulkAdd([
-      { categoryId: 'food', monthlyMinor: 20000, guessedOn: '2026-10-16' },
-      { categoryId: 'transport', monthlyMinor: 5000, guessedOn: '2026-10-16' },
-    ]);
-    expect(await recorded()).toEqual(['guesses:food', 'guesses:transport']);
   });
 
   it('records a manual rate set and cleared, by currency, but never ECB rates or the built-in categories', async () => {
@@ -280,7 +270,6 @@ describe('while the phone is linked', () => {
       categories: CATEGORIES,
       entries: [expense('e2'), expense('e3')],
       plan: null,
-      guesses: [],
       fxRates: [],
       weekResults: [],
       discountVotes: [],

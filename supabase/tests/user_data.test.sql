@@ -12,7 +12,7 @@ select plan(12);
 -- The tables, and the user ids the tests use.
 create temporary table user_tables (name text primary key) on commit drop;
 insert into user_tables
-values ('accounts'), ('entries'), ('plans'), ('guesses'), ('manual_rates'), ('week_results'), ('discount_votes'),
+values ('accounts'), ('entries'), ('plans'), ('manual_rates'), ('week_results'), ('discount_votes'),
   ('profiles'), ('checklist_ticks'), ('plan_months');
 grant select on user_tables to authenticated, anon;
 
@@ -38,19 +38,19 @@ end;
 $$;
 grant execute on function pg_temp.act_as(text) to authenticated, anon;
 
--- 1. Exactly the ten tables (checklist_ticks since 20261110122750_checklist_ticks.sql, plan_months since
--- 20261110134042_plan_months.sql), plus the hacks feed's (public_profiles.test.sql, hacks.test.sql), its comments
+-- 1. Exactly the nine tables (checklist_ticks since 20261110122750_checklist_ticks.sql, plan_months since
+-- 20261110134042_plan_months.sql, guesses gone since 20261117150000_drop_guesses.sql), plus the hacks feed's (public_profiles.test.sql, hacks.test.sql), its comments
 -- (hack_comments.test.sql) and the discounts students add (community_discounts.test.sql), each with row-level security
 -- on.
 select tables_are(
   'public',
   array[
-    'accounts', 'entries', 'plans', 'guesses', 'manual_rates', 'week_results', 'discount_votes', 'profiles',
+    'accounts', 'entries', 'plans', 'manual_rates', 'week_results', 'discount_votes', 'profiles',
     'checklist_ticks', 'plan_months',
     'public_profiles', 'hacks', 'hack_votes', 'hack_reports', 'hack_comments', 'hack_comment_reports',
     'community_discounts', 'community_discount_reports', 'push_subscriptions'
   ],
-  'public holds exactly the ten user-data tables, the hacks feed''s six, the students'' discounts and the reminders'
+  'public holds exactly the nine user-data tables, the hacks feed''s six, the students'' discounts and the reminders'
 );
 
 select is_empty(

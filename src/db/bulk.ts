@@ -6,7 +6,6 @@ import type {
   ChecklistTick,
   DiscountVote,
   Entry,
-  Guess,
   Plan,
   PlanMonth,
   Profile,
@@ -20,7 +19,6 @@ export type BackupData = {
   categories: Category[];
   entries: Entry[];
   plan: Plan | null;
-  guesses: Guess[];
   fxRates: Rate[];
   weekResults: WeekResult[];
   discountVotes: DiscountVote[];
@@ -37,7 +35,6 @@ function allTables() {
     db.categories,
     db.entries,
     db.plan,
-    db.guesses,
     db.fxRates,
     db.weekResults,
     db.discountVotes,
@@ -54,7 +51,6 @@ export async function exportAll(): Promise<BackupData> {
     categories: await db.categories.toArray(),
     entries: await db.entries.toArray(),
     plan: (await db.plan.get('current')) ?? null,
-    guesses: await db.guesses.toArray(),
     fxRates: await db.fxRates.toArray(),
     weekResults: await db.weekResults.toArray(),
     discountVotes: await db.discountVotes.toArray(),
@@ -75,7 +71,6 @@ export async function replaceAll(d: BackupData): Promise<void> {
     await db.categories.bulkAdd(d.categories);
     await db.entries.bulkAdd(d.entries);
     if (d.plan) await db.plan.add(d.plan);
-    await db.guesses.bulkAdd(d.guesses);
     await db.fxRates.bulkAdd(d.fxRates);
     await db.weekResults.bulkAdd(d.weekResults);
     await db.discountVotes.bulkAdd(d.discountVotes);

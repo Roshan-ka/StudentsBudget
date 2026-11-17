@@ -33,13 +33,17 @@ type Problem = keyof Messages['backup']['problems'];
  * newer instead of dropping the ticks.
  * Version 5 adds `planMonths` (plan history); a file without it reads with no history, so its past months are measured
  * against the current plan, as before.
+ * Version 6 leaves out `guesses` (review F4, 17-11-2026): Guess vs. reality went on 05-11-2026, and its table with it. A
+ * file of version 5 or older must still have them, checked as before, and they are then left out; an older app refuses
+ * a version 6 file as newer instead of missing them.
  * The plan's `spendingBudgetMinor` is optional, so it did not need a version: a file without it reads as a plan with
  * no budget, and an older app that reads one with it ignores it. An account's `isDefault` and an entry's `imported` mark
  * (CSV import) are optional for the same reason.
  */
-export const BACKUP_VERSION = 5;
+export const BACKUP_VERSION = 6;
 
-const READABLE_VERSIONS = [1, 2, 3, 4, BACKUP_VERSION] as const;
+/** The versions that still carry Guess vs. reality's guesses. */
+const WITH_GUESSES = [1, 2, 3, 4, 5] as const;
 
 const APP = 'studentsbudget';
 
@@ -49,7 +53,6 @@ const backupData = z.object({
   categories: z.array(categoryRow),
   entries: z.array(entryRow),
   plan: planRow.nullable(),
-  guesses: z.array(guessRow),
   fxRates: z.array(rateRow),
   // Version 3. The defaults let a version 1 or 2 file, which has none of these keys, read as "nothing saved yet".
   weekResults: z.array(weekResultRow).default([]),
@@ -61,12 +64,31 @@ const backupData = z.object({
   planMonths: z.array(planMonthRow).default([]),
 });
 
-const backupFile = z.object({
-  app: z.literal(APP),
-  version: z.literal(READABLE_VERSIONS),
-  exportedAt: z.iso.datetime(),
-  data: backupData,
-});
+const backupFile = z.union([
+  z.object({
+    app: z.literal(APP),
+    version: z.literal(BACKUP_VERSION),
+    exportedAt: z.iso.datetime(),
+    data: backupData,
+  }),
+  // Version 5 and older: the guesses too, required as they always were.
+  z.object({
+    app: z.literal(APP),
+    version: z.literal(WITH_GUESSES),
+    exportedAt: z.iso.datetime(),
+    data: backupData.extend({ guesses: z.array(guessRow) }),
+  }),
+]);
+
+/** A guess as an older file holds it. */
+type OldGuess = z.infer<typeof guessRow>;
+
+/** A file's data without an older file's guesses. */
+function withoutGuesses(d: BackupData & { guesses?: OldGuess[] }): BackupData {
+  const copy = { ...d };
+  delete copy.guesses;
+  return copy;
+}
 
 // z.object drops the keys it does not know, and parseBackup hands its output on as a BackupData, which only
 // checks one direction: a field added to a type but not to the schema would be exported and then vanish on
@@ -128,7 +150,7 @@ function isPossibleSchedule(schedule: Schedule, planCreatedOn: IsoDate): boolean
  * that is not a Monday–Sunday week, an amount that cannot happen. Null when nothing is wrong. `openingMinor` is
  * free: an account can be overdrawn.
  */
-function findProblem(d: BackupData): Problem | null {
+function findProblem(d: BackupData, guesses: readonly OldGuess[] = []): Problem | null {
   const accountIds = new Set(d.accounts.map((a) => a.id));
   // A built-in category does not have to be in the file: parseBackup adds the ones that are missing.
   const categoryIds = new Set([...BUILT_IN_CATEGORY_IDS, ...d.categories.map((c) => c.id)]);
@@ -144,7 +166,7 @@ function findProblem(d: BackupData): Problem | null {
   if (d.entries.some((e) => e.type !== 'transfer' && !categoryIds.has(e.categoryId))) {
     return 'entryCategory';
   }
-  if ([...planLines, ...d.guesses].some((line) => !categoryIds.has(line.categoryId))) {
+  if ([...planLines, ...guesses].some((line) => !categoryIds.has(line.categoryId))) {
     return 'planCategory';
   }
 
@@ -155,7 +177,7 @@ function findProblem(d: BackupData): Problem | null {
     d.entries.map((e) => e.id),
     (d.plan?.oneOffs ?? []).map((o) => o.id),
     schedules.map((s) => s.id),
-    d.guesses.map((g) => g.categoryId),
+    guesses.map((g) => g.categoryId),
     d.fxRates.map((r) => `${r.currency}+${r.source}`),
     d.weekResults.map((w) => w.weekStart),
     d.discountVotes.map((v) => v.discountId),
@@ -181,7 +203,7 @@ function findProblem(d: BackupData): Problem | null {
   const budget = d.plan?.spendingBudgetMinor ?? 0;
   if (
     d.entries.some((e) => e.eurMinor < 0) ||
-    [...planLines, ...d.guesses].some((line) => line.monthlyMinor < 0) ||
+    [...planLines, ...guesses].some((line) => line.monthlyMinor < 0) ||
     budget < 0
   ) {
     return 'negativeAmount';
@@ -251,8 +273,11 @@ export function parseBackup(
   }
   const parsed = backupFile.safeParse(raw);
   if (!parsed.success) return { ok: false, error: text.file.incomplete };
-  const data = parsed.data.data;
-  const problem = findProblem(data);
+  const fileData = parsed.data.data;
+  // An older file's guesses are checked with the rest, then left out: nothing keeps them any more.
+  const guesses: OldGuess[] = 'guesses' in fileData ? fileData.guesses : [];
+  const data = withoutGuesses(fileData);
+  const problem = findProblem(data, guesses);
   if (problem) return { ok: false, error: text.file.damaged(text.problems[problem]) };
   return {
     ok: true,
