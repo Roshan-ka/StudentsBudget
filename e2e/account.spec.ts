@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import type { Plan } from '../src/db/types';
 import { MESSAGES } from '../src/i18n/messages';
 import { mockAiFunction } from './helpers/ai';
-import { waitForApp } from './helpers/app';
+import { openApp, waitForApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import { seedSetup } from './helpers/seed-setup';
 import { readStore } from './helpers/setup';
@@ -86,7 +86,7 @@ test('Settings lists Your account; signing in and out there keeps the plan on th
   const calls = await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
   await seedSetup(page);
 
-  await page.goto('/settings');
+  await openApp(page, '/settings');
   // A row of the Settings list, with where the account stands as its line.
   const row = page.getByRole('link', { name: /^Your account/ });
   await expect(row).toContainText('everything stays on this phone');
