@@ -19,7 +19,8 @@ export const tips: Messages['tips'] = {
     `compte une fois le téléphone associé. Celles que tu confirmes remontent${NNBSP}; celles que tu marques comme ` +
     'obsolètes, ou qui n’ont pas été confirmées depuis 8 semaines, descendent.',
   discountsFor: 'Afficher les réductions pour',
-  loadFailed: 'Impossible de charger les réductions. Réessaie plus tard.',
+  loadFailed: 'Impossible de charger les réductions.',
+  tryAgain: 'Réessayer',
   votes: { works: 'Marche encore', outdated: 'Obsolète' },
   voteGroup: (place) => `${place}${NNBSP}: ça marche encore${NNBSP}?`,
   markedOutdated: (date) => `Tu as marqué ça comme obsolète le ${date}.`,
@@ -257,7 +258,7 @@ export const tips: Messages['tips'] = {
       toggle: (count) => (count === 0 ? 'Commentaires' : `Commentaires (${count})`),
       list: 'Commentaires',
       loading: 'Chargement des commentaires…',
-      loadFailed: 'Les commentaires n’ont pas pu être chargés. Réessaie plus tard.',
+      loadFailed: 'Les commentaires n’ont pas pu être chargés.',
       none: 'Pas encore de commentaire.',
       body: 'Ton commentaire',
       bodyHint: 'De 3 à 300 caractères. Tous les étudiants qui ont un compte peuvent le lire.',

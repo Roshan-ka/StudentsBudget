@@ -114,6 +114,8 @@ export function DiscountsView({
   const items = useRef(new Map<string, HTMLLIElement>());
   /** A discount just voted on: it moves in the list, and focus goes with it. */
   const follow = useRef<string | null>(null);
+  // Try again after the list couldn't load (review U5): a new read of the source.
+  const [listAttempt, setListAttempt] = useState(0);
 
   useEffect(() => {
     let current = true;
@@ -131,7 +133,7 @@ export function DiscountsView({
     return () => {
       current = false;
     };
-  }, [source]);
+  }, [source, listAttempt]);
 
   // Other students' totals, read once per visit while signed in. Without them (signed out, offline, refused) the list
   // goes by this phone's votes alone.
@@ -179,7 +181,16 @@ export function DiscountsView({
   }, [votes]);
 
   if (failed && discounts === null) {
-    return <p className="text-sm text-muted-foreground">{text.loadFailed}</p>;
+    return (
+      <div className="flex flex-col gap-2">
+        <p role="alert" className="text-sm">
+          {text.loadFailed}
+        </p>
+        <Button type="button" variant="outline" className="self-start px-4" onClick={() => setListAttempt((n) => n + 1)}>
+          {text.tryAgain}
+        </Button>
+      </div>
+    );
   }
   if (today === null || discounts === null || votes === undefined) return null;
 

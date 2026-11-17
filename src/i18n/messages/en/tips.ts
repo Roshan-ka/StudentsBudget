@@ -19,7 +19,9 @@ export const tips = {
     'phone is linked. Ones you confirm move up; ones you mark as outdated, or that haven’t been confirmed for 8 ' +
     'weeks, move down.',
   discountsFor: 'Show discounts for',
-  loadFailed: 'The discounts couldn’t be loaded. Try again later.',
+  loadFailed: 'The discounts couldn’t be loaded.',
+  /** After a list that couldn’t load: the discounts, or a post’s comments (review U5). */
+  tryAgain: 'Try again',
   /** "Still works" names the icon-only thumbs-up; "Outdated" shows beside its thumbs-down. */
   votes: { works: 'Still works', outdated: 'Outdated' },
   voteGroup: (place: string) => `${place}: does it still work?`,
@@ -271,7 +273,7 @@ export const tips = {
       toggle: (count: number) => (count === 0 ? 'Comments' : `Comments (${count})`),
       list: 'Comments',
       loading: 'Loading the comments…',
-      loadFailed: 'The comments couldn’t be loaded. Try again later.',
+      loadFailed: 'The comments couldn’t be loaded.',
       none: 'No comments yet.',
       body: 'Your comment',
       bodyHint: '3 to 300 characters. Every student with an account can read it.',
