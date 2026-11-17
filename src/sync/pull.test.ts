@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
 import type { Plan } from '@/db/types';
@@ -160,10 +160,6 @@ describe('an account still in use', () => {
 });
 
 describe('applyFromAccount with outbox keys to drop (review B5, 17-11-2026)', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   const back = () => [checkRow({ table: 'accounts', id: 'local', data: LOCAL, rev: 0 })];
 
   it('drops the outbox entry and writes the row together', async () => {
@@ -175,8 +171,10 @@ describe('applyFromAccount with outbox keys to drop (review B5, 17-11-2026)', ()
 
   it('keeps the outbox entry when the write fails, so nothing is half done', async () => {
     await db.outbox.put({ table: 'accounts', id: 'local', seq: 1 });
-    vi.spyOn(db.accounts, 'put').mockRejectedValueOnce(new Error('quota exceeded'));
-    await expect(applyFromAccount(back(), undefined, [['accounts', 'local']])).rejects.toThrow('quota');
+    // A row the database itself refuses (no key): the write fails inside the transaction, as a full disk would.
+    const [good] = back();
+    const keyless = { ...good, value: { ...LOCAL, id: undefined } } as unknown as typeof good;
+    await expect(applyFromAccount([keyless], undefined, [['accounts', 'local']])).rejects.toThrow();
     expect(await queued()).toEqual(['accounts:local']);
     expect(await db.accounts.get('local')).toBeUndefined();
   });
