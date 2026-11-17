@@ -12,5 +12,6 @@
   { "file": "e2e/profile.spec.ts", "reason": "The backup download runs on desktop-chrome", "kind": "by-design" },
   { "file": "e2e/receipt-engine.spec.ts", "reason": "One real-engine run is enough: the iPhone is checked by hand", "kind": "by-design" },
   { "file": "e2e/reminder.spec.ts", "reason": "The reused dev server has no NEXT_PUBLIC_VAPID_PUBLIC_KEY", "kind": "environment" },
+  { "file": "e2e/setup-chat.spec.ts", "reason": "Parked: the setup chat is not maintained", "kind": "by-design" },
   { "file": "e2e-real/passkeys.spec.ts", "reason": "VIRTUAL_ONLY", "message": "needs a virtual authenticator, which only Chromium has", "kind": "by-design", "count": 2 }
 ]
