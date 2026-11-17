@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Account, Entry, Rate } from '../src/db/types';
 import { formatDate } from '../src/lib/dates';
+import { openApp } from './helpers/app';
 import { seedSetup } from './helpers/seed-setup';
 import { FRANKFURTER, readStore } from './helpers/setup';
 
@@ -353,7 +354,7 @@ test('the entry form saves an expense in a foreign currency, converted at save t
 
   await page.getByLabel('Amount', { exact: true }).fill('950');
   await page.getByLabel('Account', { exact: true }).selectOption({ label: 'Home bank (INR)' });
-  await page.getByLabel('Category', { exact: true }).selectOption({ label: 'Transport' });
+  await page.getByRole('radiogroup', { name: 'Category', exact: true }).getByRole('radio', { name: 'Transport', exact: true }).check();
   await page.getByLabel('Note', { exact: true }).fill('Bus pass');
   await page.getByRole('button', { name: 'Save expense' }).click();
 
@@ -381,19 +382,66 @@ test('the entry form without an amount says so', async ({ page }) => {
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
 });
 
+test('the entry form in the new look: type chips, the amount in the accent card, categories as chips, and the last one kept', async ({
+  page,
+}) => {
+  await setupAndOpenEntries(page);
+  await page.getByRole('link', { name: 'Add entry' }).click();
+  const amount = page.getByRole('textbox', { name: 'Amount', exact: true });
+  await expect(amount).toBeVisible();
+
+  // The type is a row of chips that are still tabs.
+  await expect(page.getByRole('tablist', { name: 'Entry type', exact: true }).getByRole('tab')).toHaveText([
+    'Expense',
+    'Income',
+    'Transfer',
+  ]);
+
+  // The amount sits in the yellow accent card.
+  const amountCard = page.locator('[data-slot="card"]').filter({ has: page.getByRole('textbox', { name: 'Amount', exact: true }) });
+  await expect(amountCard).toHaveClass(/\bbg-accent\b/); // proof: amount-accent
+
+  // The categories are chips in their groups, each with its icon, and one is chosen.
+  const categories = page.getByRole('radiogroup', { name: 'Category', exact: true });
+  await expect(
+    categories.getByRole('group', { name: 'Fixed costs', exact: true }).getByRole('radio', { name: 'Rent', exact: true }),
+  ).toBeVisible();
+  const transport = categories.getByRole('radio', { name: 'Transport', exact: true });
+  const transportChip = categories.locator('label').filter({ has: page.getByRole('radio', { name: 'Transport', exact: true }) });
+  await expect(transportChip.locator('svg')).toHaveCount(1); // proof: category-chip-icon
+  await transport.check();
+  await expect(transport).toBeChecked();
+  await expect(categories.getByRole('radio', { checked: true })).toHaveCount(1);
+
+  // The account and the date share one card.
+  const accountAndDate = page
+    .locator('[data-slot="card"]')
+    .filter({ has: page.getByRole('combobox', { name: 'Account', exact: true }) })
+    .filter({ has: page.getByRole('textbox', { name: 'Date', exact: true }) });
+  await expect(accountAndDate).toHaveCount(1);
+
+  // Saving remembers the chip for the next expense on this phone. A full load, so the form starts afresh rather than
+  // as the hidden page it stayed mounted as.
+  await amount.fill('4');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+  await expect(page).toHaveURL('/entries?month=2026-10');
+  await openApp(page, '/entries/new');
+  await expect(categories.getByRole('radio', { name: 'Transport', exact: true })).toBeChecked();
+});
+
 test('the entry form takes income, and a transfer through the transfer form', async ({ page }) => {
   await setupAndOpenEntries(page);
   await page.getByRole('link', { name: 'Add entry' }).click();
   await expect(page.getByLabel('Amount', { exact: true })).toBeVisible();
 
   // Expense offers every category except income; Income offers only income categories.
-  const rent = page.getByLabel('Category', { exact: true }).getByRole('option', { name: 'Rent', exact: true });
+  const rent = page.getByRole('radiogroup', { name: 'Category', exact: true }).getByRole('radio', { name: 'Rent', exact: true });
   await expect(rent).toHaveCount(1);
   await page.getByRole('tab', { name: 'Income' }).click();
   await expect(rent).toHaveCount(0);
   await page.getByLabel('Amount', { exact: true }).fill('400');
   await page.getByLabel('Account', { exact: true }).selectOption({ label: 'Local bank (EUR)' });
-  await page.getByLabel('Category', { exact: true }).selectOption({ label: 'Job' });
+  await page.getByRole('radiogroup', { name: 'Category', exact: true }).getByRole('radio', { name: 'Job', exact: true }).check();
   await page.getByRole('button', { name: 'Save income' }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
   await expect(entriesList(page).getByText('+€400.00')).toBeVisible();
@@ -527,7 +575,7 @@ test('editing an INR entry keeps its EUR value, though the rate has moved since'
 
   await entriesList(page).getByRole('button', { name: /Groceries/ }).click();
   const panel = page.getByRole('region', { name: 'Edit entry' });
-  await panel.getByLabel('Category', { exact: true }).selectOption({ label: 'Shopping' });
+  await panel.getByRole('radiogroup', { name: 'Category', exact: true }).getByRole('radio', { name: 'Shopping', exact: true }).check();
   await panel.getByRole('button', { name: 'Save changes' }).click();
   await expect(panel).toHaveCount(0);
 

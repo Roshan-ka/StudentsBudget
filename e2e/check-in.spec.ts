@@ -37,7 +37,7 @@ async function addExpenseFromCheckIn(page: Page, expense: { amount: string; cate
   await page.getByRole('link', { name: 'Add something from an earlier day' }).click();
   await expect(page).toHaveURL('/entries/new?from=check-in');
   await page.getByLabel('Amount', { exact: true }).fill(expense.amount);
-  await page.getByLabel('Category', { exact: true }).selectOption({ label: expense.category });
+  await page.getByRole('radiogroup', { name: 'Category', exact: true }).getByRole('radio', { name: expense.category, exact: true }).check();
   await page.getByLabel('Date', { exact: true }).fill(formatDate(expense.date));
   await page.getByRole('button', { name: 'Save expense' }).click();
   // Back to the check-in, where the person was.
@@ -231,7 +231,7 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
   await page.getByRole('link', { name: 'Add something from an earlier day' }).click();
   await expect(page).toHaveURL('/entries/new?from=check-in');
   await page.getByLabel('Amount', { exact: true }).fill('50');
-  await page.getByLabel('Category', { exact: true }).selectOption({ label: 'Eating out' });
+  await page.getByRole('radiogroup', { name: 'Category', exact: true }).getByRole('radio', { name: 'Eating out', exact: true }).check();
   // Saturday is one tap away: Yesterday, shown as DD.MM.YYYY in the field.
   await page.getByRole('button', { name: 'Yesterday', exact: true }).click();
   await expect(page.getByLabel('Date', { exact: true })).toHaveValue(formatDate('2026-10-17'));
