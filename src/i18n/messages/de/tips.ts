@@ -152,6 +152,7 @@ export const tips: Messages['tips'] = {
     tryAgain: 'Noch einmal versuchen',
     lastLoaded: (when) => `Stand vom letzten Laden, ${when}.`,
     empty: 'Noch keine Beiträge.',
+    emptyHint: 'Der erste Spartipp hier kann deiner sein.',
     postsFor: 'Beiträge zeigen für',
     posts: 'Beiträge',
     cities: { regensburg: 'Regensburg', anywhere: 'Überall' },

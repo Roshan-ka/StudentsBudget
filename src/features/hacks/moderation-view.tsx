@@ -1,14 +1,15 @@
 'use client';
 
-import { CheckIcon, CloudIcon, EyeOffIcon } from 'lucide-react';
+import { CheckIcon, CloudIcon, EyeOffIcon, ShieldCheckIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ExternalLinkButton, LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import { useAuth } from '@/features/account/use-auth';
 import { categoryTint } from '@/features/charts/colors';
-import { hostOf } from '@/features/tips/source-line';
+import { EmptyCard } from '@/features/home/row-card';
 import { CategoryPill } from '@/features/tips/category-pill';
+import { hostOf } from '@/features/tips/source-line';
 import { categoryNameIn } from '@/i18n/category-name';
 import { useT } from '@/i18n/use-t';
 import { formatDate, todayIso } from '@/lib/dates';
@@ -203,7 +204,7 @@ export function ModerationView() {
             </Button>
           </div>
         )}
-        {Array.isArray(answer) && answer.length === 0 && <p className="text-sm text-muted-foreground">{text.empty}</p>}
+        {Array.isArray(answer) && answer.length === 0 && <EmptyCard icon={ShieldCheckIcon} title={text.empty} />}
         {Array.isArray(answer) && answer.length > 0 && (
           <ul aria-label={text.queue} className="flex flex-col gap-3">
             {answer.map((item) => {

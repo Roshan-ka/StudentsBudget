@@ -5,6 +5,7 @@ export const reveal: Messages['reveal'] = {
   link: (month) => `Vois comment s’est passé ${month}`,
   intro: 'Comment chaque mois écoulé s’est passé par rapport à tes enveloppes.',
   notYet: (month) => `Ton premier bilan arrive une fois ${month} terminé.`,
+  notYetTitle: 'Pas encore de bilan',
   recap: {
     savings: (amount) => `${amount} restants → épargne`,
     over: (amount) => `${amount} au-delà du plan`,

@@ -6,7 +6,7 @@ import type { CurrencyCode } from '@/lib/money';
 import type { IsoDate } from '@/lib/dates';
 import { applyLineChange } from './lines';
 import { postDueRecurring } from './post-due';
-import { firstAddedOn, newSchedule, recurringEntryId } from './schedule';
+import { firstAddedOn, newSchedule, newScheduleWithThisPeriod, recurringEntryId } from './schedule';
 import { updatePlan } from './update-plan';
 
 const CREATED_AT = '2026-10-16T10:00:00.000Z';
@@ -511,8 +511,9 @@ describe('postDueRecurring', () => {
     expect(await scheduleOf('rent')).toMatchObject({ postedThrough: '2026-10-16', paused: true });
   });
 
-  it('never posts an occurrence dated before the plan was created', async () => {
-    // A damaged or hand-edited file: the schedule claims to start long before the plan existed.
+  it('never posts an occurrence dated before the month the plan was created in', async () => {
+    // A damaged or hand-edited file: the schedule claims to start long before the plan existed. October, the month
+    // the plan was made in, counts whole, its 10th included; September and before never.
     await db.plan.put(
       plan({
         createdOn: '2026-10-16',
@@ -520,13 +521,33 @@ describe('postDueRecurring', () => {
           {
             categoryId: 'rent',
             monthlyMinor: 40000,
-            schedule: schedule({ day: 20, startOn: '2020-01-01', postedThrough: '2019-12-31' }),
+            schedule: schedule({ day: 10, startOn: '2020-01-01', postedThrough: '2019-12-31' }),
           },
         ],
       }),
     );
     expect(await postDueRecurring('2026-11-20')).toEqual({ posted: 2 });
-    expect((await entries()).map((e) => e.date)).toEqual(['2026-10-20', '2026-11-20']);
+    expect((await entries()).map((e) => e.date)).toEqual(['2026-10-10', '2026-11-10']);
+  });
+
+  it('posts "Add this month too" at once, dated before the setup day (review P1, 17-11-2026)', async () => {
+    // Set up on 17 November with Parents monthly on the 1st: the schedule starts on 1 November, before the plan's day.
+    const parents = newScheduleWithThisPeriod(
+      { frequency: 'monthly', day: 1, accountId: 'local', amountMinor: 50000 },
+      '2026-11-17',
+      'parents-s',
+    );
+    expect(parents).toMatchObject({ startOn: '2026-11-01', postedThrough: '2026-10-31' });
+    await db.plan.put(
+      plan({
+        createdOn: '2026-11-17',
+        incomes: [{ categoryId: 'income-parents', monthlyMinor: 50000, schedule: parents }],
+        fixed: [],
+      }),
+    );
+    expect(await postDueRecurring('2026-11-17')).toEqual({ posted: 1 });
+    expect((await entries()).map((e) => [e.date, e.type, e.amountMinor])).toEqual([['2026-11-01', 'income', 50000]]);
+    expect(await scheduleOf('income-parents')).toMatchObject({ postedThrough: '2026-11-30' });
   });
 
   it('leaves a schedule it cannot read alone', async () => {

@@ -176,6 +176,8 @@ export const tips = {
     tryAgain: 'Try again',
     lastLoaded: (when: string) => `Shown as last loaded, ${when}.`,
     empty: 'No posts yet.',
+    /** Under `empty`, in the empty card (review U5). */
+    emptyHint: 'The first money-saving hack here could be yours.',
     postsFor: 'Show posts for',
     posts: 'Posts',
     cities: { regensburg: 'Regensburg', anywhere: 'Anywhere' },

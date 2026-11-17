@@ -12,6 +12,7 @@ import { db } from '@/db/db';
 import type { Account, Category, Plan, PlanLine } from '@/db/types';
 import { defaultAccount, sortAccounts } from '@/features/accounts/balances';
 import { categoryTint } from '@/features/charts/colors';
+import { RowTile, tintCardClass } from '@/features/home/row-card';
 import { INCOME_CATEGORIES } from '@/features/entries/categories';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
 import { categoryNameIn } from '@/i18n/category-name';
@@ -297,15 +298,10 @@ function LineRow({
   // redesign, Roshan's mockups, 17-11-2026).
   return (
     <li
-      className="flex gap-3 rounded-lg border-[1.5px] border-outline p-3.5 shadow-offset"
+      className={tintCardClass('flex-row')}
       style={{ backgroundColor: categoryTint(line.categoryId) }}
     >
-      <span
-        aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card"
-      >
-        <Icon className="size-5" />
-      </span>
+      <RowTile icon={Icon} tint="var(--card)" />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div>
           <p className="font-semibold break-words">{name}</p>

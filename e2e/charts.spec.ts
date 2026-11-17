@@ -685,6 +685,8 @@ test('the bottom navigation has Charts between Entries and Tips and opens it', a
 
 test('without a plan the page points to setup instead of showing charts', async ({ page }) => {
   await page.goto('/charts');
+  // One empty card, as every page with nothing to show has (review U5): its line, its sentence, its button.
+  await expect(page.getByText('No plan yet', { exact: true })).toBeVisible(); // proof: empty-card-title
   await expect(page.getByText('Set up your plan to see where the money goes.')).toBeVisible();
   await page.getByRole('link', { name: 'Set up your plan', exact: true }).click();
   await expect(page).toHaveURL('/setup');

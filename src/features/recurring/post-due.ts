@@ -54,8 +54,11 @@ async function postLine(
   const account = ctx.accounts.get(s.accountId);
   if (!account) return { line, posted: 0 };
 
-  // Never before the plan existed, whatever a damaged or hand-edited schedule says.
-  const periods = duePeriods({ ...s, startOn: laterOf(s.startOn, ctx.createdOn) }, ctx.today);
+  // Never before the period the plan was set up in, whatever a damaged or hand-edited schedule says. That period counts
+  // whole, as the budget does: "Add this month too" (review P1) dates an income set up on the 17th on the 1st, before
+  // the plan's own day, and a floor at `createdOn` itself kept it from ever posting.
+  const floor = periodOf(s, ctx.createdOn).start;
+  const periods = duePeriods({ ...s, startOn: laterOf(s.startOn, floor) }, ctx.today);
   // Every period handled, oldest first, and the entries to add for them (none for a period already posted), each with
   // the ids its period's entry may already have.
   const handled: IsoDate[] = [];

@@ -14,7 +14,7 @@ import { db } from '@/db/db';
 import { deleteEntry, entriesInRange } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
 import { categoryTint } from '@/features/charts/colors';
-import { ROW_CARD, RowTile } from '@/features/home/row-card';
+import { EmptyCard, RowTile, tintCardClass } from '@/features/home/row-card';
 import { categoryNameIn } from '@/i18n/category-name';
 import { dateFormat, dayLabel } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
@@ -95,15 +95,10 @@ function EntryRow({
       ref={buttonRef}
       type="button"
       onClick={onOpen}
-      className="flex min-h-14 w-full items-center gap-3 rounded-lg border-[1.5px] border-outline bg-muted p-3 text-start shadow-offset"
+      className={tintCardClass(cn('min-h-14 w-full flex-row items-center text-start', entry.type === 'transfer' && 'bg-muted'))}
       style={entry.type === 'transfer' ? undefined : { backgroundColor: categoryTint(entry.categoryId) }}
     >
-      <span
-        aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card/80"
-      >
-        <Icon className="size-5" />
-      </span>
+      <RowTile icon={Icon} tint="var(--card)" />
       <span className="min-w-0 flex-1">
         <span className="block">
           <span className="font-semibold break-words">{title}</span>
@@ -278,13 +273,9 @@ export function EntriesList() {
       )}
 
       {entries.length === 0 ? (
-        <div className={cn(cardVariants(), ROW_CARD)}>
-          <RowTile icon={ReceiptTextIcon} tint="var(--muted)" />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <p className="font-semibold">{text.nothingYet}</p>
-            <p className="text-sm text-muted-foreground">{text.nothingYetHint}</p>
-          </div>
-        </div>
+        <EmptyCard icon={ReceiptTextIcon} title={text.nothingYet}>
+          {text.nothingYetHint}
+        </EmptyCard>
       ) : (
         groupByDate(entries).map((group) => (
           <div key={group.date} className="flex flex-col gap-1.5">

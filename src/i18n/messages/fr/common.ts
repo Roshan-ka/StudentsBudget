@@ -43,6 +43,7 @@ export const common: Messages['common'] = {
   estimate: 'Estimation',
   /** Le lien vers la configuration sur une page qui a besoin d’un plan (check-in, graphiques, badges, Demander…). */
   toSetup: 'Configurer ton plan',
+  noPlanYet: 'Pas encore de plan',
   /** Le lien vers Réglages → Ton compte, sous une ligne qui dit pourquoi une fonction en a besoin. */
   toAccount: `Aller à «${NNBSP}Ton compte${NNBSP}»`,
   /** Une fonction qui passe par le compte, tant que cette connexion doit encore son code (Demander, le rappel). */

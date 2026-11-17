@@ -8,7 +8,7 @@ import { LinkButton } from '@/components/link-button';
 import { cardVariants } from '@/components/ui/card';
 import { categoryTint } from '@/features/charts/colors';
 import { CATEGORY_ICONS, OTHER_ICON } from '@/features/entries/category-icons';
-import { RowCardLink } from '@/features/home/row-card';
+import { EmptyCard, RowCardLink, RowTile, tintCardClass } from '@/features/home/row-card';
 import { db } from '@/db/db';
 import type { Entry, Plan, PlanMonth } from '@/db/types';
 import { categoryNameIn } from '@/i18n/category-name';
@@ -58,15 +58,10 @@ function RecapEnvelope({ row }: { row: RecapRow }) {
 
   return (
     <li
-      className="flex min-h-14 items-center gap-3 rounded-lg border-[1.5px] border-outline p-3.5 shadow-offset"
+      className={tintCardClass('min-h-14 flex-row items-center')}
       style={{ backgroundColor: categoryTint(row.categoryId) }}
     >
-      <span
-        aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-md border-[1.5px] border-outline bg-card"
-      >
-        <Icon className="size-5" />
-      </span>
+      <RowTile icon={Icon} tint="var(--card)" />
       <p className="min-w-0 flex-1 font-semibold break-words">{categoryNameIn(t, row.categoryId)}</p>
       <p className="shrink-0 text-sm text-muted-foreground tabular-nums">{t.charts.ofPlanned(spent, planned)}</p>
     </li>
@@ -123,7 +118,11 @@ function Recaps({
   const { t, locale } = useT();
   const months = completedMonths(plan.createdOn, today);
   if (months.length === 0) {
-    return <p className="text-muted-foreground">{t.reveal.notYet(monthName(monthOf(plan.createdOn), locale))}</p>;
+    return (
+      <EmptyCard icon={CalendarRangeIcon} title={t.reveal.notYetTitle}>
+        {t.reveal.notYet(monthName(monthOf(plan.createdOn), locale))}
+      </EmptyCard>
+    );
   }
 
   return (
@@ -152,12 +151,17 @@ export function RevealView() {
   if (today === null || plan === 'loading' || entries === undefined || planMonths === undefined) return null;
   if (plan === null) {
     return (
-      <div className="flex flex-col gap-3">
-        <p className="text-muted-foreground">{t.reveal.noPlan}</p>
-        <LinkButton href="/setup" icon={ClipboardListIcon}>
-          {t.common.toSetup}
-        </LinkButton>
-      </div>
+      <EmptyCard
+        icon={CalendarRangeIcon}
+        title={t.common.noPlanYet}
+        action={
+          <LinkButton href="/setup" icon={ClipboardListIcon}>
+            {t.common.toSetup}
+          </LinkButton>
+        }
+      >
+        {t.reveal.noPlan}
+      </EmptyCard>
     );
   }
   return <Recaps plan={plan} planMonths={planMonths} entries={entries} today={today} />;

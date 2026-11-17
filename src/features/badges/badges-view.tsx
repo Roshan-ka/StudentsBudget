@@ -8,7 +8,7 @@ import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
 import { categoryTint } from '@/features/charts/colors';
 import { percentUsed } from '@/features/home/percent-used';
-import { RowTile } from '@/features/home/row-card';
+import { EmptyCard, RowTile } from '@/features/home/row-card';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { formatDate } from '@/lib/dates';
@@ -94,12 +94,17 @@ export function BadgesView() {
   if (profile === 'loading') return null;
   if (plan === null) {
     return (
-      <div className="flex flex-col gap-3">
-        <p className="text-muted-foreground">{t.badges.noPlan}</p>
-        <LinkButton href="/setup" icon={ClipboardListIcon}>
-          {t.common.toSetup}
-        </LinkButton>
-      </div>
+      <EmptyCard
+        icon={AwardIcon}
+        title={t.common.noPlanYet}
+        action={
+          <LinkButton href="/setup" icon={ClipboardListIcon}>
+            {t.common.toSetup}
+          </LinkButton>
+        }
+      >
+        {t.badges.noPlan}
+      </EmptyCard>
     );
   }
 

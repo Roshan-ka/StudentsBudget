@@ -871,7 +871,7 @@ describe('parseBackup checks what the rows say about each other', () => {
       ['a monthly day of 32', (data: BackupData) => (rentSchedule(data).day = 32)],
       ['a weekly day of 0', (data: BackupData) => (incomeSchedule(data).day = 0)],
       ['a weekly day of 8', (data: BackupData) => (incomeSchedule(data).day = 8)],
-      ['a start before the plan was created', (data: BackupData) => (rentSchedule(data).startOn = '2026-09-30')],
+      ['a start before the month the plan was created in', (data: BackupData) => (rentSchedule(data).startOn = '2026-09-30')],
       ['a watermark two days before the start', (data: BackupData) => (rentSchedule(data).postedThrough = '2026-09-29')],
       ['a watermark long before the start', (data: BackupData) => (incomeSchedule(data).postedThrough = '1999-01-01')],
     ])('refuses %s', (_name, change) => {
@@ -885,6 +885,24 @@ describe('parseBackup checks what the rows say about each other', () => {
       expect(rentSchedule(data)).toMatchObject({ frequency: 'monthly', day: 31, startOn: '2026-10-01', postedThrough: '2026-09-30' });
       expect(incomeSchedule(data)).toMatchObject({ frequency: 'weekly', day: 7 });
       expect(parseBackup(serializeBackup(data, NOW)).ok).toBe(true);
+    });
+
+    it('passes "Add this month too": a start earlier in the period the plan was made in (review P1, 17-11-2026)', () => {
+      // Set up on Saturday 17 October: the monthly line starts on the 1st, the weekly one on Monday the 12th.
+      const result = parseChanged((data) => {
+        if (data.plan) data.plan.createdOn = '2026-10-17';
+        Object.assign(rentSchedule(data), { startOn: '2026-10-01', postedThrough: '2026-09-30' });
+        Object.assign(incomeSchedule(data), { startOn: '2026-10-12', postedThrough: '2026-10-11' });
+      }, sampleV2);
+
+      expect(result.ok).toBe(true);
+      // The day before that period still is not.
+      expect(
+        parseChanged((data) => {
+          if (data.plan) data.plan.createdOn = '2026-10-17';
+          Object.assign(incomeSchedule(data), { startOn: '2026-10-11', postedThrough: '2026-10-10' });
+        }, sampleV2),
+      ).toEqual(IMPOSSIBLE);
     });
 
     it('passes day 1 of both kinds, and a watermark that has moved on', () => {

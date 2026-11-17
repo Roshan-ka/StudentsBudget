@@ -84,6 +84,9 @@ test('a first visit offers an account or the guest way, and each leads on', asyn
     'Know your weekly budget',
     'Local tips with sources',
   ]);
+  // Each feature in the one tinted card the lists share, with its 40 px tile on the card colour (review U1).
+  const planTile = page.getByRole('main').getByRole('listitem').filter({ hasText: 'Plan your month' }).locator('[aria-hidden="true"]').first();
+  await expect(planTile).toHaveCSS('width', '40px'); // proof: shared-tint-tile
   await expect(page.getByRole('link', { name: 'Create an account', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'I have an account', exact: true })).toBeVisible();
 

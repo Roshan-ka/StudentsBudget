@@ -54,6 +54,8 @@ export const common = {
   estimate: 'Estimate',
   /** The link to setup on a page that needs a plan (the check-in, charts, badges, the recaps, Ask, the import). */
   toSetup: 'Set up your plan',
+  /** The empty card's line on a page that needs a plan (review U5). */
+  noPlanYet: 'No plan yet',
   /** The link to Settings → Your account under a line that says why a feature needs it (Ask, the hacks, the reminder). */
   toAccount: 'Go to Your account',
   /** A feature that works through the account, while this sign-in still owes its code (Ask, the reminder). */

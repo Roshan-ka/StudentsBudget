@@ -42,6 +42,7 @@ export const common: Messages['common'] = {
   estimate: 'Schätzung',
   /** Der Link zur Einrichtung auf einer Seite, die einen Plan braucht (Check-in, Diagramme, Abzeichen, Fragen …). */
   toSetup: 'Plan einrichten',
+  noPlanYet: 'Noch kein Plan',
   /** Der Link zu Einstellungen → Dein Konto unter einer Zeile, die sagt, warum eine Funktion es braucht. */
   toAccount: 'Zu „Dein Konto“',
   /** Eine Funktion, die über das Konto läuft, solange diese Anmeldung noch ihren Code schuldet (Fragen, Erinnerung). */
