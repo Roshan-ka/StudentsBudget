@@ -32,7 +32,7 @@ describe('readStructured', () => {
     expect(readStructured(message([]), quickAddAnswer)).toEqual({ ok: false, problem: 'failed' });
   });
 
-  it('is no answer when the model stopped to call a tool, which no feature asks for', () => {
-    expect(readStructured(message([text(ANSWER)], 'tool_use'), quickAddAnswer)).toEqual({ ok: false, problem: 'failed' });
+  it('is no answer when the model stopped for any other reason, such as a tool call no feature asks for', () => {
+    expect(readStructured(message([text(ANSWER)], 'other'), quickAddAnswer)).toEqual({ ok: false, problem: 'failed' });
   });
 });
