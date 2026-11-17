@@ -230,7 +230,9 @@ describe('counts (review U7, 17-11-2026)', () => {
       for (const file of readdirSync(new URL(`./${lang.name}/`, root)).filter((name) => name.endsWith('.ts'))) {
         const lines = readFileSync(new URL(`./${lang.name}/${file}`, root), 'utf8').split(/\r?\n/);
         lines.forEach((line, i) => {
-          if (/\b\w+ === 1 \?/.test(line) && !/^\s*period: /.test(line)) found.push(`${lang.name}/${file}:${i + 1}`);
+          // Code only: a comment may name the pattern it forbids (count.ts does).
+          const code = !/^\s*(\/\/|\*|\/\*)/.test(line);
+          if (code && /\b\w+ === 1 \?/.test(line) && !/^\s*period: /.test(line)) found.push(`${lang.name}/${file}:${i + 1}`);
         });
       }
     }
