@@ -36,6 +36,36 @@ export function RowTile({ icon: Icon, tint, label }: { icon: LucideIcon; tint: s
   );
 }
 
+/**
+ * A page with nothing to show yet, as one card (review U5, Roshan's approval of the mockups, 17-11-2026): a muted
+ * tile, a short bold line (`title`), a sentence (`children`) and, where there is a way on, its button (`action`).
+ * Entries' empty month had it first. A list inside a card that is empty keeps its plain line.
+ */
+export function EmptyCard({
+  icon,
+  title,
+  children,
+  action,
+}: {
+  icon: LucideIcon;
+  title: ReactNode;
+  children?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className={cardVariants()}>
+      <div className="flex items-center gap-3">
+        <RowTile icon={icon} tint="var(--muted)" />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <p className="font-semibold break-words">{title}</p>
+          {children !== undefined && <p className="text-sm break-words text-muted-foreground">{children}</p>}
+        </div>
+      </div>
+      {action}
+    </div>
+  );
+}
+
 /** One of Home's cards that leads somewhere (the check-in, a month's recap): its tile, its words and a chevron. */
 export function RowCardLink({
   href,

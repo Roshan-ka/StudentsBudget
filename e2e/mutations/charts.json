@@ -22,6 +22,17 @@
           "style-icons"
         ]
       }
+    },
+    {
+      "name": "Charts without a plan loses the empty card's line",
+      "file": "src/features/charts/charts-view.tsx",
+      "find": "        title={t.common.noPlanYet}\n",
+      "replace": "        title={null}\n",
+      "expect": {
+        "e2e/charts.spec.ts": [
+          "empty-card-title"
+        ]
+      }
     }
   ]
 }

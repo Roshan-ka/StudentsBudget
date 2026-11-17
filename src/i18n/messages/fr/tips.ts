@@ -165,6 +165,7 @@ export const tips: Messages['tips'] = {
     tryAgain: 'Réessayer',
     lastLoaded: (when) => `Affiché tel que chargé la dernière fois, ${when}.`,
     empty: 'Pas encore de publication.',
+    emptyHint: 'La première astuce pour économiser ici peut être la tienne.',
     postsFor: 'Afficher les publications pour',
     posts: 'Publications',
     cities: { regensburg: 'Regensburg', anywhere: 'Partout' },

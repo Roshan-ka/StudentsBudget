@@ -25,7 +25,7 @@ import { entryTitle } from '@/features/entries/entry-title';
 import { QuickAddField } from '@/features/entries/quick-add-field';
 import { EnvelopeCard } from '@/features/home/envelope-card';
 import { percentUsed } from '@/features/home/percent-used';
-import { RowTile } from '@/features/home/row-card';
+import { EmptyCard, RowTile } from '@/features/home/row-card';
 import { remindersInBuild } from '@/features/reminder/reminder';
 import { RecurringTag, isRecurring } from '@/features/entries/recurring-tag';
 import { SwapLine } from '@/features/swaps/swap-line';
@@ -440,12 +440,17 @@ export function CheckInView() {
   if (today !== null && plan !== 'loading' && entries !== undefined && accounts !== undefined && planMonths !== undefined) {
     if (plan === null) {
       content = (
-        <div className="flex flex-col gap-3">
-          <p className="text-muted-foreground">{t.checkIn.noPlan}</p>
-          <LinkButton href="/setup" icon={ClipboardListIcon}>
-            {t.common.toSetup}
-          </LinkButton>
-        </div>
+        <EmptyCard
+          icon={CalendarDaysIcon}
+          title={t.common.noPlanYet}
+          action={
+            <LinkButton href="/setup" icon={ClipboardListIcon}>
+              {t.common.toSetup}
+            </LinkButton>
+          }
+        >
+          {t.checkIn.noPlan}
+        </EmptyCard>
       );
     } else {
       const week = weekToSpend(plan, entries, today);

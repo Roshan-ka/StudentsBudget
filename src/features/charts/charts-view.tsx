@@ -1,13 +1,14 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronLeftIcon, ChevronRightIcon, ClipboardListIcon } from 'lucide-react';
+import { ChartPieIcon, ChevronLeftIcon, ChevronRightIcon, ClipboardListIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useChoicePref } from '@/lib/phone-pref';
 import { LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import type { Entry, Plan, PlanMonth } from '@/db/types';
+import { EmptyCard } from '@/features/home/row-card';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
 import { monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
@@ -172,12 +173,17 @@ export function ChartsView() {
   if (today === null || plan === 'loading' || entries === undefined || planMonths === undefined) return null;
   if (plan === null) {
     return (
-      <div className="flex flex-col gap-3">
-        <p className="text-muted-foreground">{t.charts.noPlan}</p>
-        <LinkButton href="/setup" icon={ClipboardListIcon}>
-          {t.common.toSetup}
-        </LinkButton>
-      </div>
+      <EmptyCard
+        icon={ChartPieIcon}
+        title={t.common.noPlanYet}
+        action={
+          <LinkButton href="/setup" icon={ClipboardListIcon}>
+            {t.common.toSetup}
+          </LinkButton>
+        }
+      >
+        {t.charts.noPlan}
+      </EmptyCard>
     );
   }
   return <Charts plan={plan} planMonths={planMonths} entries={entries} today={today} />;

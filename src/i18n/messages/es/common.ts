@@ -42,6 +42,7 @@ export const common: Messages['common'] = {
   estimate: 'Estimación',
   /** El enlace a la configuración en una página que necesita un plan (check-in, gráficos, insignias, Preguntar…). */
   toSetup: 'Configurar tu plan',
+  noPlanYet: 'Todavía no hay plan',
   /** El enlace a Ajustes → Tu cuenta, bajo una línea que dice por qué una función la necesita. */
   toAccount: 'Ir a «Tu cuenta»',
   /** Una función que va por la cuenta, mientras esta sesión aún debe su código (Preguntar, el recordatorio). */

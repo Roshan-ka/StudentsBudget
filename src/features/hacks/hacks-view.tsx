@@ -8,6 +8,7 @@ import {
   FlagIcon,
   HistoryIcon,
   LanguagesIcon,
+  LightbulbIcon,
   PlusIcon,
   Trash2Icon,
   type LucideIcon,
@@ -20,6 +21,7 @@ import { cardVariants } from '@/components/ui/card';
 import { useAuth } from '@/features/account/use-auth';
 import { categoryTint } from '@/features/charts/colors';
 import { noteSeen } from '@/features/privacy/notes';
+import { EmptyCard } from '@/features/home/row-card';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { CategoryChip } from '@/features/tips/category-chip';
 import { CategoryPill } from '@/features/tips/category-pill';
@@ -258,7 +260,11 @@ export function HacksView() {
       {mine !== null && !mine.fresh && (
         <p className="text-sm text-muted-foreground">{text.lastLoaded(formatDateTime(mine.loadedAt))}</p>
       )}
-      {posts !== null && posts.length === 0 && <p className="text-sm text-muted-foreground">{text.empty}</p>}
+      {posts !== null && posts.length === 0 && (
+        <EmptyCard icon={LightbulbIcon} title={text.empty}>
+          {text.emptyHint}
+        </EmptyCard>
+      )}
       {chips.length > 1 && (
         <div role="group" aria-label={text.postsFor} className="flex flex-wrap gap-2">
           {chip(null, t.tips.all)}

@@ -14,7 +14,7 @@ import { db } from '@/db/db';
 import { deleteEntry, entriesInRange } from '@/db/repo';
 import type { Account, Entry } from '@/db/types';
 import { categoryTint } from '@/features/charts/colors';
-import { ROW_CARD, RowTile, tintCardClass } from '@/features/home/row-card';
+import { EmptyCard, RowTile, tintCardClass } from '@/features/home/row-card';
 import { categoryNameIn } from '@/i18n/category-name';
 import { dateFormat, dayLabel } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
@@ -273,13 +273,9 @@ export function EntriesList() {
       )}
 
       {entries.length === 0 ? (
-        <div className={cn(cardVariants(), ROW_CARD)}>
-          <RowTile icon={ReceiptTextIcon} tint="var(--muted)" />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <p className="font-semibold">{text.nothingYet}</p>
-            <p className="text-sm text-muted-foreground">{text.nothingYetHint}</p>
-          </div>
-        </div>
+        <EmptyCard icon={ReceiptTextIcon} title={text.nothingYet}>
+          {text.nothingYetHint}
+        </EmptyCard>
       ) : (
         groupByDate(entries).map((group) => (
           <div key={group.date} className="flex flex-col gap-1.5">
