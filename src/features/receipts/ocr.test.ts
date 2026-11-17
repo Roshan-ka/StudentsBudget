@@ -39,8 +39,8 @@ describe('the core build a browser runs', () => {
 
 describe('workerUnlessAborted (review B7, 17-11-2026)', () => {
   function starting() {
-    let ready: (worker: { terminate: () => Promise<void> }) => void = () => {};
     const worker = { terminate: vi.fn(async () => {}) };
+    let ready: (value: typeof worker) => void = () => {};
     const creating = new Promise<typeof worker>((resolve) => {
       ready = resolve;
     });
