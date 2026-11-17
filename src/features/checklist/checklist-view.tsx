@@ -8,6 +8,7 @@ import { cardVariants } from '@/components/ui/card';
 import { CHECKLIST, CHECKLIST_GROUPS, type ChecklistItem } from '@/data/checklist';
 import { db } from '@/db/db';
 import type { ChecklistTick } from '@/db/types';
+import { PILL_CLASS } from '@/features/tips/category-pill';
 import { SourceLine } from '@/features/tips/source-line';
 import { checklistIn } from '@/i18n/city';
 import { useT } from '@/i18n/use-t';
@@ -120,15 +121,11 @@ export function ChecklistView({ onSeeTip }: { onSeeTip: (tipId: string) => void 
                       <h4 lang={words.textLang} className="font-sans text-base leading-snug font-bold tracking-normal">
                         {words.title}
                       </h4>
-                      {/* Who it is for and, once ticked, when it was done. Its timing is in its own words, under it. */}
-                      <p className="text-sm text-muted-foreground">
-                        <span>{text.who[item.who]}</span>
-                        {tick !== undefined && (
-                          <>
-                            {' · '}
-                            <span>{text.doneOn(formatDate(tick.on))}</span>
-                          </>
-                        )}
+                      {/* Who it is for, as a pill like the other lists' tags (review U7), and once ticked, when it was
+                          done. Its timing is in its own words, under it. */}
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                        <span className={cn(PILL_CLASS, 'text-foreground')}>{text.who[item.who]}</span>
+                        {tick !== undefined && <span>{text.doneOn(formatDate(tick.on))}</span>}
                       </p>
                       <p lang={words.textLang} className="text-sm text-muted-foreground">
                         {words.body}
