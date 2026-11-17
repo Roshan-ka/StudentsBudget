@@ -10,6 +10,7 @@ import { refreshRates } from '@/db/rates';
 import { SetupAccountLink } from '@/features/account/setup-account-link';
 import { syncAfterSetup } from '@/features/account/sync-status';
 import { useAuth } from '@/features/account/use-auth';
+import { postDueRecurring } from '@/features/recurring/post-due';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
 import { aiSetupChatInBuild, useAiSwitch } from '@/features/ai/switch';
@@ -154,6 +155,13 @@ function Wizard({
     if (saved === 'already-set-up') {
       router.replace('/');
       return;
+    }
+    // "Add this month too" (review P1): an income whose day this period has passed is added now, before Home opens,
+    // so the first month's charts start with it. Posting is idempotent; a failure leaves it to the next start.
+    try {
+      await postDueRecurring(todayIso());
+    } catch (error) {
+      console.error('StudentsBudget: could not add the income that is due', error);
     }
     if (!edit) {
       // The accounts only exist now, so this is the first moment the INR rate can be fetched. Not awaited:

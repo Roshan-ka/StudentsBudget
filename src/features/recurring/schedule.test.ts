@@ -11,7 +11,9 @@ import {
   isUsableSchedule,
   monthlyEquivalent,
   newSchedule,
+  newScheduleWithThisPeriod,
   occurrenceIn,
+  passedThisPeriod,
   perOccurrence,
   periodOf,
   resumeSchedule,
@@ -176,6 +178,32 @@ describe('newSchedule', () => {
     expect(s).toMatchObject({ startOn: '2026-10-17', postedThrough: '2026-10-16', accountId: 'a1' });
     expect(s.id).toEqual(expect.any(String));
     expect(s.paused).toBeUndefined();
+  });
+});
+
+describe('"Add this month too" (review P1, 17-11-2026)', () => {
+  const fields = { frequency: 'monthly' as const, day: 1, accountId: 'a1', amountMinor: 90000 };
+
+  it('finds this period’s occurrence once it is today or behind', () => {
+    expect(passedThisPeriod({ frequency: 'monthly', day: 1 }, '2026-11-17')).toBe('2026-11-01');
+    expect(passedThisPeriod({ frequency: 'monthly', day: 17 }, '2026-11-17')).toBe('2026-11-17');
+    expect(passedThisPeriod({ frequency: 'monthly', day: 20 }, '2026-11-17')).toBeNull();
+    // Tuesday 17 November: Monday's is behind, Friday's still ahead.
+    expect(passedThisPeriod({ frequency: 'weekly', day: 1 }, '2026-11-17')).toBe('2026-11-16');
+    expect(passedThisPeriod({ frequency: 'weekly', day: 5 }, '2026-11-17')).toBeNull();
+  });
+
+  it('starts on it, so the poster adds this month’s at once and then goes on monthly', () => {
+    const s = newScheduleWithThisPeriod(fields, '2026-11-17');
+    expect(s).toMatchObject({ startOn: '2026-11-01', postedThrough: '2026-10-31' });
+    expect(duePeriods(s, '2026-11-17')).toEqual(['2026-11-01']);
+    expect(duePeriods({ ...s, postedThrough: '2026-11-30' }, '2026-12-01')).toEqual(['2026-12-01']);
+  });
+
+  it('is newSchedule when this period’s day is still ahead', () => {
+    const s = newScheduleWithThisPeriod({ ...fields, day: 20 }, '2026-11-17');
+    expect(s).toMatchObject({ startOn: '2026-11-18', postedThrough: '2026-11-17' });
+    expect(duePeriods(s, '2026-11-17')).toEqual([]);
   });
 });
 

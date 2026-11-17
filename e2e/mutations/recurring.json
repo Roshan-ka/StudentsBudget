@@ -22,6 +22,17 @@
           "plan-line-tint"
         ]
       }
+    },
+    {
+      "name": "a new income starts tomorrow again, without this month's",
+      "file": "src/features/setup/draft.ts",
+      "find": "income && draft.thisPeriodToo !== false ?",
+      "replace": "income && draft.thisPeriodToo === true ?",
+      "expect": {
+        "e2e/recurring.spec.ts": [
+          "income-this-month-too"
+        ]
+      }
     }
   ]
 }
