@@ -39,9 +39,11 @@ async function sessionUserId(): Promise<string | undefined> {
 
 /**
  * Settings → Your account, signed in: links this phone to the account, then shows the Sync section. `onLinked` runs
- * once the phone is linked (the start page goes on from there to Home, or to setup for an empty account).
+ * once the phone is linked (the start page goes on from there to Home, or to setup for an empty account). `inline`
+ * (group 4 redesign, 17-11-2026): inside Your account's yellow card, so its sections take no card of their own and
+ * their headings sit one level down.
  */
-export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
+export function AccountLink({ onLinked, look = 'card' }: { onLinked?: () => void; look?: 'card' | 'inline' } = {}) {
   const id = useId();
   const { t, lang } = useT();
   const text = t.sync.link;
@@ -60,6 +62,11 @@ export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
   // signed in since in another tab (review, 09-11-2026).
   const viewUser = useRef<string | null>(null);
   const noteRef = useRef<HTMLParagraphElement>(null);
+
+  const inline = look === 'inline';
+  const sectionClass = inline ? 'flex flex-col gap-3' : cardVariants();
+  const Heading = inline ? 'h4' : 'h3';
+  const headingClass = inline ? 'text-lg leading-tight font-extrabold' : 'text-xl leading-tight font-extrabold';
 
   useEffect(() => {
     if (view.kind === 'choose') questionRef.current?.focus();
@@ -161,7 +168,7 @@ export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
             {noteText(view.note, t, lang)}
           </p>
         )}
-        <SyncSection />
+        <SyncSection look={look} />
       </>
     );
   }
@@ -170,10 +177,10 @@ export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
     const stale = staleSummary(view.plan.upload, lang);
     const warnings = [stale !== null ? text.staleWarning(stale) : null, text.replaceWarning];
     return (
-      <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
-        <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
+      <section aria-labelledby={`${id}-heading`} className={sectionClass}>
+        <Heading id={`${id}-heading`} className={headingClass}>
           {text.heading}
-        </h3>
+        </Heading>
         <div className="flex flex-col gap-3 rounded-lg bg-muted px-4 py-3">
           <p ref={questionRef} tabIndex={-1} className="text-sm outline-none">
             {text.question(contentsText(view.plan.phone, lang), contentsText(view.plan.account, lang))}
@@ -210,10 +217,10 @@ export function AccountLink({ onLinked }: { onLinked?: () => void } = {}) {
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className={cardVariants()}>
-      <h3 id={`${id}-heading`} className="text-xl leading-tight font-extrabold">
+    <section aria-labelledby={`${id}-heading`} className={sectionClass}>
+      <Heading id={`${id}-heading`} className={headingClass}>
         {text.heading}
-      </h3>
+      </Heading>
       {view.kind === 'other-account' ? (
         <p role="alert" className="text-sm">
           {text.otherAccount}

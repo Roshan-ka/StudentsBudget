@@ -1,38 +1,47 @@
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cardVariants } from '@/components/ui/card';
+import { RowTile } from '@/features/home/row-card';
 import { cn } from '@/lib/utils';
 
 /** The look of a card in Sign-in and security (password, passkeys, two-step sign-in, deleting the account). */
 export const SECURITY_CARD = cardVariants();
 
 /**
- * A card's heading in Sign-in and security: its icon, its name, and a short status at the end ("On", "1 passkey"),
- * in the app's colour when `active`. The status sits outside the heading, so the card's name (its region's name)
- * stays the same.
+ * A card's heading on Your account: its tinted tile, its name, and a short status at the end ("On", "1 passkey"), in
+ * the app's colour when `active` (group 4 redesign, 17-11-2026: each section a card with a tinted tile, as Home's
+ * cards have them). The status sits outside the heading, so the card's name (its region's name) stays the same.
  */
 export function CardHeading({
   id,
   icon,
+  tint,
   status,
   active = false,
   level = 4,
   children,
 }: {
   id: string;
-  icon: ReactNode;
+  icon: LucideIcon;
+  /** The tile's fill: a category's tint (`categoryTint`), or `var(--muted)` for the neutral one. */
+  tint: string;
   status?: string;
   active?: boolean;
-  /** 4 inside Sign-in and security; 3 for a card that sits beside it (Delete my account). */
+  /** 4 inside Sign-in and security; 3 for a card of its own on the page (Your name on posts, Delete my account). */
   level?: 3 | 4;
   children: ReactNode;
 }) {
   const Heading = level === 3 ? 'h3' : 'h4';
   return (
-    <div className="flex items-center gap-2">
-      <span aria-hidden="true" className="text-primary [&_svg]:size-5">
-        {icon}
-      </span>
-      <Heading id={id} className="font-semibold">
+    <div className="flex items-center gap-3">
+      <RowTile icon={icon} tint={tint} />
+      <Heading
+        id={id}
+        className={cn(
+          'min-w-0 leading-tight break-words',
+          level === 3 ? 'text-lg font-extrabold' : 'font-semibold',
+        )}
+      >
         {children}
       </Heading>
       {status !== undefined && (

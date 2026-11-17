@@ -122,6 +122,38 @@ test('the moderator with the code hides and keeps reported posts', async ({ page
   ]);
 });
 
+/** The colour a CSS value comes to on this page, as the browser writes a background (`rgb(…)`). */
+async function colourOf(page: Page, value: string) {
+  return page.evaluate((css) => {
+    const probe = document.createElement('div');
+    probe.style.backgroundColor = css;
+    document.body.append(probe);
+    const colour = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return colour;
+  }, value);
+}
+
+test('a reported post is a card on its category’s tint, with Hide and Keep outlined side by side', async ({ page }) => {
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseData(page, { moderator: true, twoStep: true, queue: [reported('p1', 'Cheap phones at our shop!', 2, false)] });
+  const factors: AuthFactors = new Map([
+    [EMAIL, [{ id: 'factor-moderator', friendly_name: 'Moderator phone', factor_type: 'totp', status: 'verified' } as const]],
+  ]);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD }, { factors });
+  await signIn(page, true);
+  await page.goto('/settings/moderation');
+
+  // The group 4 look (Roshan's mockups, 17-11-2026): the post on its category's tint with the category's tag, as in
+  // the feed; its section keeps its name.
+  const post = page.getByRole('region', { name: 'Posts', exact: true }).getByRole('listitem').filter({ hasText: 'Cheap phones' });
+  await expect(post.getByText('Shopping', { exact: true })).toBeVisible();
+  const plainCard = await colourOf(page, 'var(--card)');
+  await expect(post).not.toHaveCSS('background-color', plainCard); // proof: post-tint
+  await expect(post.getByRole('button', { name: 'Hide', exact: true })).toBeVisible();
+  await expect(post.getByRole('button', { name: 'Keep', exact: true })).toBeVisible();
+});
+
 function reportedComment(id: string, body: string, reports: number, hiddenByReports: boolean): CommentQueueRow {
   return {
     id,

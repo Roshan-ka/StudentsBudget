@@ -3,6 +3,7 @@
 import { SmartphoneIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { categoryTint } from '@/features/charts/colors';
 import { useT } from '@/i18n/use-t';
 import { getSupabase } from '@/lib/supabase/client';
 import { authErrorMessage } from './auth-errors';
@@ -224,7 +225,13 @@ export function TwoStepSection() {
         : undefined;
   return (
     <section aria-labelledby={`${id}-heading`} className={SECURITY_CARD}>
-      <CardHeading id={`${id}-heading`} icon={<SmartphoneIcon />} status={badge} active={isOn}>
+      <CardHeading
+        id={`${id}-heading`}
+        icon={SmartphoneIcon}
+        tint={categoryTint('eating-out')}
+        status={badge}
+        active={isOn}
+      >
         {text.heading}
       </CardHeading>
 

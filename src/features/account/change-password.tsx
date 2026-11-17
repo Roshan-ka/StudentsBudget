@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { categoryTint } from '@/features/charts/colors';
 import { useT } from '@/i18n/use-t';
 import { checkingSupabase, getSupabase } from '@/lib/supabase/client';
 import { authErrorMessage } from './auth-errors';
@@ -117,7 +118,7 @@ export function PasswordSection() {
 
   return (
     <section aria-labelledby={`${id}-heading`} className={SECURITY_CARD}>
-      <CardHeading id={`${id}-heading`} icon={<LockKeyholeIcon />}>
+      <CardHeading id={`${id}-heading`} icon={LockKeyholeIcon} tint={categoryTint('one-off')}>
         {text.heading}
       </CardHeading>
       <p className="text-sm text-muted-foreground">{text.intro}</p>

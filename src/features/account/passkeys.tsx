@@ -5,6 +5,7 @@ import { KeyRoundIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import { noteSeen } from '@/features/privacy/notes';
+import { categoryTint } from '@/features/charts/colors';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import type { Messages } from '@/i18n/messages';
 import { useT } from '@/i18n/use-t';
@@ -250,7 +251,12 @@ export function PasskeysSection() {
   const count = Array.isArray(passkeys) ? passkeys.length : null;
   return (
     <section aria-labelledby={`${id}-heading`} className={SECURITY_CARD}>
-      <CardHeading id={`${id}-heading`} icon={<KeyRoundIcon />} status={count === null ? undefined : text.count(count)}>
+      <CardHeading
+        id={`${id}-heading`}
+        icon={KeyRoundIcon}
+        tint={categoryTint('insurance')}
+        status={count === null ? undefined : text.count(count)}
+      >
         {text.heading}
       </CardHeading>
       <p className="text-sm text-muted-foreground">{text.intro}</p>

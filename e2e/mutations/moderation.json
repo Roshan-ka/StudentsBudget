@@ -1,0 +1,16 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the reported post loses its category's tint",
+      "file": "src/features/hacks/moderation-view.tsx",
+      "find": "style={{ backgroundColor: categoryTint(item.categoryId) }}",
+      "replace": "style={undefined}",
+      "expect": {
+        "e2e/moderation.spec.ts": [
+          "post-tint"
+        ]
+      }
+    }
+  ]
+}

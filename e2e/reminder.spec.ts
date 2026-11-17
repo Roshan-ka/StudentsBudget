@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { PRIVACY_NOTES } from '../src/features/privacy/notes';
 import { REMINDER_PREF } from '../src/features/reminder/reminder';
 import { MESSAGES } from '../src/i18n/messages';
+import { openApp } from './helpers/app';
 import { acceptPrivacyNotes } from './helpers/privacy';
 import { E2E_PUSH_ENDPOINT, pushRecord, stubPush } from './helpers/push';
 import {
@@ -29,7 +30,7 @@ const EN = MESSAGES.en;
 const TEXT = EN.reminder;
 
 async function signIn(page: Page, words = EN.auth) {
-  await page.goto('/settings/account');
+  await openApp(page, '/settings/account');
   await page.getByRole('textbox', { name: words.signIn.email, exact: true }).fill(EMAIL);
   // A password input has no textbox role, so it is found by its label.
   await page.getByLabel(words.signIn.password, { exact: true }).fill(PASSWORD);
@@ -42,7 +43,7 @@ async function signIn(page: Page, words = EN.auth) {
  */
 async function skipUnlessReminders(page: Page, t = EN) {
   await skipUnlessAccountsShow(page);
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
   await expect(page.getByRole('heading', { level: 2, name: t.shell.headings.reminder, exact: true })).toBeVisible();
   const off = (await page.getByText(t.reminder.unavailable, { exact: true }).count()) > 0;
   test.skip(off, 'The reused dev server has no NEXT_PUBLIC_VAPID_PUBLIC_KEY: stop it, or run with E2E_PORT=3001.');
@@ -65,7 +66,7 @@ test('signed out, the page says to sign in, and Settings says it is off', async 
   // The calendar is the other way, for every phone.
   await expect(page.getByRole('link', { name: TEXT.toCheckIn, exact: true })).toHaveAttribute('href', '/check-in');
 
-  await page.goto('/settings');
+  await openApp(page, '/settings');
   await expect(reminderRow(page)).toContainText(TEXT.summaryOff);
 });
 
@@ -80,7 +81,7 @@ test('turning it on asks once about the data, then the browser, and saves the da
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
 
-  await page.goto('/settings');
+  await openApp(page, '/settings');
   await reminderRow(page).click();
   await expect(page.getByLabel(TEXT.day, { exact: true })).toHaveValue('7');
   await expect(page.getByLabel(TEXT.time, { exact: true })).toHaveValue('18:00');
@@ -114,7 +115,7 @@ test('turning it on asks once about the data, then the browser, and saves the da
   ]);
   expect(await page.evaluate((key) => localStorage.getItem(key), PRIVACY_NOTES.reminder)).toBe('seen');
 
-  await page.goto('/settings');
+  await openApp(page, '/settings');
   await expect(reminderRow(page)).toContainText('Sundays at 18:00');
 });
 
@@ -127,7 +128,7 @@ test('a new day and time are saved, and turning it off deletes the row and the s
   await skipUnlessReminders(page);
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
 
   // The accent card (group 4 redesign): the day and time the phone keeps, and whether it's on.
   const state = page.getByRole('main').getByText(TEXT.summaryOn('Sundays', '18:00'), { exact: true });
@@ -155,7 +156,7 @@ test('a new day and time are saved, and turning it off deletes the row and the s
   // The day and time stay picked for next time.
   await expect(page.getByLabel(TEXT.day, { exact: true })).toHaveValue('3');
 
-  await page.goto('/settings');
+  await openApp(page, '/settings');
   await expect(reminderRow(page)).toContainText(TEXT.summaryOff);
 });
 
@@ -168,7 +169,7 @@ test('a refused prompt saves nothing, and the page says how to allow notificatio
   await skipUnlessReminders(page);
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
 
   await button(page, TEXT.turnOn).click();
   await expect(status(page)).toHaveText(TEXT.denied);
@@ -184,7 +185,7 @@ test('a browser without push gets the calendar instead, and nothing to turn on',
   await skipUnlessReminders(page);
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
 
   await expect(page.getByText(TEXT.noPush, { exact: true })).toBeVisible();
   await expect(button(page, TEXT.turnOn)).toHaveCount(0);
@@ -201,7 +202,7 @@ test('an account with two-step sign-in gives its code first', async ({ page }) =
   await signIn(page);
   // The account page now asks for the code; the reminder waits for it.
   await expect(page.getByRole('textbox', { name: '6-digit code', exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
 
   await expect(page.getByText(EN.common.needsCode, { exact: true })).toBeVisible();
   await expect(button(page, TEXT.turnOn)).toHaveCount(0);
@@ -212,14 +213,14 @@ async function turnOnSignedIn(page: Page) {
   await skipUnlessReminders(page);
   await signIn(page);
   await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-  await page.goto('/settings/reminder');
+  await openApp(page, '/settings/reminder');
   await button(page, TEXT.turnOn).click();
   await expect(status(page)).toHaveText(TEXT.status.on('Sundays', '18:00'));
 }
 
 /** Signs out on Your account: the question, then the start page (the phone is cleared, its choices stay). */
 async function signOutHere(page: Page) {
-  await page.goto('/settings/account');
+  await openApp(page, '/settings/account');
   await signOut(page);
 }
 
@@ -236,7 +237,7 @@ test('the reminder follows the phone’s language and time zone without a tap', 
   expect(row()).toMatchObject({ p_time_zone: 'Europe/Berlin', p_lang: 'en' });
 
   // A language picked from the header's globe: the reminder comes in it from then on, with the day and time as they were.
-  await page.goto('/settings');
+  await openApp(page, '/settings');
   await page.getByRole('button', { name: 'Language', exact: true }).click();
   await page.getByRole('menuitemradio', { name: 'Deutsch', exact: true }).click();
   await expect.poll(() => row()?.p_lang).toBe('de');
@@ -266,7 +267,7 @@ test('signing out deletes this phone’s row and turns its reminder off', async 
   await signOutHere(page);
   expect(reminders.size).toBe(0);
   expect((await pushRecord(page)).unsubscribed).toBe(1);
-  await page.goto('/settings');
+  await openApp(page, '/settings');
   await expect(reminderRow(page)).toContainText(TEXT.summaryOff);
 });
 
@@ -289,7 +290,7 @@ test('signed out while the row can’t be deleted, the phone still drops the sub
   await signOutHere(page);
   await expect.poll(async () => (await pushRecord(page)).unsubscribed).toBe(1);
   expect(reminders.size).toBe(1);
-  await page.goto('/settings');
+  await openApp(page, '/settings');
   await expect(reminderRow(page)).toContainText(TEXT.summaryOff);
 });
 
@@ -306,7 +307,7 @@ test.describe('on an iPhone, in a Safari tab', () => {
     await skipUnlessReminders(page);
     await signIn(page);
     await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
-    await page.goto('/settings/reminder');
+    await openApp(page, '/settings/reminder');
 
     await expect(page.getByText(TEXT.installFirst, { exact: true })).toBeVisible();
     await expect(button(page, TEXT.turnOn)).toHaveCount(0);
@@ -326,14 +327,14 @@ test.describe('in German', () => {
     await skipUnlessReminders(page, de);
     await signIn(page, de.auth);
     await expect(page.getByText(`Angemeldet als ${EMAIL}.`, { exact: true })).toBeVisible();
-    await page.goto('/settings/reminder');
+    await openApp(page, '/settings/reminder');
 
     await expect(page.getByRole('heading', { level: 2, name: de.shell.headings.reminder, exact: true })).toBeVisible();
     await page.getByRole('button', { name: de.reminder.turnOn, exact: true }).click();
     await expect(status(page)).toHaveText('Die Erinnerung ist an: sonntags um 18:00.');
     expect(reminders.get(E2E_PUSH_ENDPOINT)?.p_lang).toBe('de');
 
-    await page.goto('/settings');
+    await openApp(page, '/settings');
     await expect(reminderRow(page, de.shell.headings.reminder)).toContainText('Sonntags um 18:00');
   });
 });
