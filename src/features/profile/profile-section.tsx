@@ -1,7 +1,8 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { CalendarDaysIcon, UserIcon, type LucideIcon } from 'lucide-react';
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { DateField } from '@/components/date-field';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
@@ -10,24 +11,31 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { db } from '@/db/db';
 import type { Profile } from '@/db/types';
+import { categoryTint } from '@/features/charts/colors';
+import { RowTile } from '@/features/home/row-card';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { RangeSource } from '@/features/setup/steps/range-source';
 import type { Messages } from '@/i18n/messages';
 import { periodIn } from '@/i18n/city';
 import { useT } from '@/i18n/use-t';
-import type { IsoDate } from '@/lib/dates';
+import { formatDate, type IsoDate } from '@/lib/dates';
+import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
+import { cn } from '@/lib/utils';
 import {
   UNIVERSITIES,
   periodLabel,
   profileProblems,
+  semesterFeeOffer,
   semesterOn,
   semesterWeeksOf,
   termName,
   toProfile,
   type ProfileDraft,
   type ProfileProblem,
+  type SemesterFeeOffer,
 } from './profile';
+import { SemesterFeeSource } from './semester-fee-source';
 
 const BLANK: ProfileDraft = { name: '', university: '', semesterStart: '', semesterEnd: '' };
 
@@ -49,6 +57,56 @@ function PeriodSource({ draft, today }: { draft: ProfileDraft; today: IsoDate })
       </p>
       <RangeSource range={periodIn(period, lang)} />
     </div>
+  );
+}
+
+/** A card's title row: its tinted tile, its heading and, under it, an optional line (group 4 redesign, 17-11-2026). */
+function CardTitle({
+  id,
+  icon,
+  tint,
+  line,
+  children,
+}: {
+  id: string;
+  icon: LucideIcon;
+  tint: string;
+  line?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <RowTile icon={icon} tint={tint} />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <h3 id={id} className="text-lg leading-tight font-bold break-words">
+          {children}
+        </h3>
+        {line !== undefined && <p className="text-sm text-muted-foreground">{line}</p>}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The next semester fee of the semester in the form, on the yellow accent card: its amount where a page states it, and
+ * where each part comes from, as the one-off costs step shows it (`SemesterFeeSource`).
+ */
+function SemesterFeeCard({ offer }: { offer: SemesterFeeOffer }) {
+  const id = useId();
+  const { t, locale } = useT();
+  const { amountMinor } = offer.row;
+  return (
+    <section aria-labelledby={id} className={cardVariants({ variant: 'accent' })}>
+      <h3 id={id} className="text-lg leading-tight font-extrabold break-words">
+        {t.profile.semesterFee}
+      </h3>
+      {amountMinor > 0 && (
+        <p className="font-heading text-2xl leading-tight font-extrabold">
+          {formatMoney(amountMinor, 'EUR', { whole: amountMinor % 100 === 0, locale })}
+        </p>
+      )}
+      <SemesterFeeSource offer={offer} />
+    </section>
   );
 }
 
@@ -133,87 +191,90 @@ function ProfileForm({
   const startInvalid = problems.some((p) => p.field === 'semesterStart');
   const endInvalid = problems.some((p) => p.field === 'semesterEnd');
   const hasDates = draft.semesterStart !== '' || draft.semesterEnd !== '';
+  // Under the semester's heading, once the form holds a semester it would save.
+  const range = weeks === null ? undefined : `${formatDate(draft.semesterStart)} – ${formatDate(draft.semesterEnd)}`;
+  // The semester in the form, as the one-off costs step reads the saved one; a planned fee doesn't hide it here, since
+  // the card says what the fee is, not what to add. Null while the form holds no semester it would save.
+  const feeOffer = semesterFeeOffer({ ...draft, id: 'current', updatedAt: '' }, today, [], lang);
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-name`}>{text.name}</Label>
-        <Input
-          id={`${id}-name`}
-          value={draft.name}
-          maxLength={40}
-          autoComplete="given-name"
-          autoCapitalize="words"
-          autoCorrect="off"
-          spellCheck={false}
-          aria-describedby={`${id}-name-hint`}
-          onChange={(event) => change({ name: event.target.value })}
-        />
-        <p id={`${id}-name-hint`} className="text-sm text-muted-foreground">
-          {text.nameHint}
-        </p>
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-university`}>{text.university}</Label>
-        <NativeSelect
-          id={`${id}-university`}
-          className="w-full"
-          value={draft.university}
-          onChange={(event) => chooseUniversity(event.target.value)}
-        >
-          <NativeSelectOption value="">{text.notSet}</NativeSelectOption>
-          {UNIVERSITIES.map((u) => (
-            <NativeSelectOption key={u.id} value={u.id}>
-              {universityName(u, t)}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </div>
-      <DateField
-        chips={false}
-        label={text.semesterStart}
-        value={draft.semesterStart}
-        invalid={startInvalid}
-        describedBy={startInvalid ? problemsId : undefined}
-        onNotADate={startNotADate}
-        onChange={(semesterStart) => change({ semesterStart })}
-      />
-      <DateField
-        chips={false}
-        label={text.semesterEnd}
-        value={draft.semesterEnd}
-        min={draft.semesterStart || undefined}
-        invalid={endInvalid}
-        describedBy={endInvalid ? problemsId : undefined}
-        onNotADate={endNotADate}
-        onChange={(semesterEnd) => change({ semesterEnd })}
-      />
-      {problems.length > 0 && (
-        <div id={problemsId} role="alert" className="text-sm text-destructive">
-          {problems.map((problem) => (
-            <p key={problem.message}>{problem.message}</p>
-          ))}
+      <section aria-labelledby={`${id}-you`} className={cn(cardVariants(), 'gap-4')}>
+        <CardTitle id={`${id}-you`} icon={UserIcon} tint={categoryTint('food')}>
+          {text.you}
+        </CardTitle>
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${id}-name`}>{text.name}</Label>
+          <Input
+            id={`${id}-name`}
+            value={draft.name}
+            maxLength={40}
+            autoComplete="given-name"
+            autoCapitalize="words"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-describedby={`${id}-name-hint`}
+            onChange={(event) => change({ name: event.target.value })}
+          />
+          <p id={`${id}-name-hint`} className="text-sm text-muted-foreground">
+            {text.nameHint}
+          </p>
         </div>
-      )}
-      <PeriodSource draft={draft} today={today} />
-      {weeks !== null && (
-        <p className="text-sm text-muted-foreground">{text.weeks(weeks)}</p>
-      )}
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        <Button ref={saveRef} type="submit" className="px-4" aria-disabled={saving || undefined}>
-          {text.save}
-        </Button>
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${id}-university`}>{text.university}</Label>
+          <NativeSelect
+            id={`${id}-university`}
+            className="w-full"
+            value={draft.university}
+            onChange={(event) => chooseUniversity(event.target.value)}
+          >
+            <NativeSelectOption value="">{text.notSet}</NativeSelectOption>
+            {UNIVERSITIES.map((u) => (
+              <NativeSelectOption key={u.id} value={u.id}>
+                {universityName(u, t)}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+      </section>
+      <section aria-labelledby={`${id}-semester`} className={cn(cardVariants(), 'gap-4')}>
+        <CardTitle id={`${id}-semester`} icon={CalendarDaysIcon} tint={categoryTint('eating-out')} line={range}>
+          {text.semesterHeading}
+        </CardTitle>
+        <DateField
+          chips={false}
+          label={text.semesterStart}
+          value={draft.semesterStart}
+          invalid={startInvalid}
+          describedBy={startInvalid ? problemsId : undefined}
+          onNotADate={startNotADate}
+          onChange={(semesterStart) => change({ semesterStart })}
+        />
+        <DateField
+          chips={false}
+          label={text.semesterEnd}
+          value={draft.semesterEnd}
+          min={draft.semesterStart || undefined}
+          invalid={endInvalid}
+          describedBy={endInvalid ? problemsId : undefined}
+          onNotADate={endNotADate}
+          onChange={(semesterEnd) => change({ semesterEnd })}
+        />
+        {problems.length > 0 && (
+          <div id={problemsId} role="alert" className="text-sm text-destructive">
+            {problems.map((problem) => (
+              <p key={problem.message}>{problem.message}</p>
+            ))}
+          </div>
+        )}
+        <PeriodSource draft={draft} today={today} />
+        {weeks !== null && <p className="text-sm text-muted-foreground">{text.weeks(weeks)}</p>}
         {/* A date picker has no reliable way to empty a field, and both dates are optional. */}
         {hasDates && (
           <Button
             type="button"
-            variant="ghost"
-            className="px-4"
+            variant="outline"
+            className="self-start px-4"
             onClick={() => {
               change({ semesterStart: '', semesterEnd: '' });
               saveRef.current?.focus();
@@ -222,7 +283,16 @@ function ProfileForm({
             {text.clearDates}
           </Button>
         )}
-      </div>
+      </section>
+      {feeOffer && <SemesterFeeCard offer={feeOffer} />}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <Button ref={saveRef} type="submit" size="lg" className="w-full" aria-disabled={saving || undefined}>
+        {text.save}
+      </Button>
     </form>
   );
 }
@@ -261,7 +331,8 @@ export function ProfileSection() {
 
   return (
     // Named by its page's heading (/settings/profile), which has the id.
-    <section aria-labelledby="profile-heading" className={cardVariants()}>
+    // The intro, then a card each: you, your semester and its fee (group 4 redesign, Roshan's mockups, 17-11-2026).
+    <section aria-labelledby="profile-heading" className="flex flex-col gap-4">
       <p className="text-muted-foreground">{text.intro}</p>
       {saved !== 'loading' && today !== null && formKey > 0 && (
         <ProfileForm

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { MESSAGES } from '../src/i18n/messages';
 import { THEME_COLORS } from '../src/theme/themes';
 import { horizontalOverflow } from './helpers/layout';
@@ -40,6 +40,30 @@ test('a new phone is light; Dark stays after a reload, and Light comes back', as
   await choice(page, t.theme.choices.light).check();
   await expect(html(page)).not.toHaveClass(DARK);
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', THEME_COLORS.light);
+});
+
+// Three cards (group 4 redesign, Roshan's mockups, 17-11-2026), each with its tile: the chosen one has a heavier outline
+// and a check icon, so it never says so by colour alone.
+test('the choices are cards, and the chosen one has a heavier outline and a check', async ({ page }) => {
+  await seedSetup(page);
+  await openAppearance(page);
+  const card = (name: string) => page.locator('label').filter({ has: choice(page, name) });
+  const borderWidth = (label: Locator) => label.evaluate((el) => parseFloat(getComputedStyle(el).borderTopWidth));
+  const light = card(t.theme.choices.light);
+  const dark = card(t.theme.choices.dark);
+
+  // The chosen card has its tile's icon and the check; the others only their tile's.
+  await expect(light.locator('svg')).toHaveCount(2); // proof: chosen-check
+  await expect(dark.locator('svg')).toHaveCount(1);
+  await expect(light).toHaveCSS('border-top-style', 'solid');
+  expect(await borderWidth(light)).toBeGreaterThan(await borderWidth(dark));
+
+  // A tap anywhere on a card chooses it.
+  await dark.click();
+  await expect(choice(page, t.theme.choices.dark)).toBeChecked();
+  await expect(dark.locator('svg')).toHaveCount(2);
+  await expect(light.locator('svg')).toHaveCount(1);
+  expect(await borderWidth(dark)).toBeGreaterThan(await borderWidth(light));
 });
 
 test('Same as phone follows the phone, also while the app is open', async ({ page }) => {

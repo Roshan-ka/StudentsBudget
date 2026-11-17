@@ -1,18 +1,26 @@
 'use client';
 
-import { MoonIcon, SmartphoneIcon, SunIcon, type LucideIcon } from 'lucide-react';
+import { CircleCheckIcon, MoonIcon, SmartphoneIcon, SunIcon, type LucideIcon } from 'lucide-react';
 import { cardVariants } from '@/components/ui/card';
+import { categoryTint } from '@/features/charts/colors';
+import { RowTile } from '@/features/home/row-card';
 import { useT } from '@/i18n/use-t';
 import { cn } from '@/lib/utils';
 import { setThemeChoice, useThemeChoice } from '@/theme/store';
 import { THEME_CHOICES, type ThemeChoice } from '@/theme/themes';
 
-const ICONS: Record<ThemeChoice, LucideIcon> = { light: SunIcon, dark: MoonIcon, system: SmartphoneIcon };
+/** Each choice's tile: the sun on yellow, the moon on blue, the phone on green (Roshan's mockups, 17-11-2026). */
+const TILES: Record<ThemeChoice, { icon: LucideIcon; tint: string }> = {
+  light: { icon: SunIcon, tint: categoryTint('insurance') },
+  dark: { icon: MoonIcon, tint: categoryTint('rent') },
+  system: { icon: SmartphoneIcon, tint: categoryTint('eating-out') },
+};
 
 /**
- * Settings → Appearance (redesign, chunk 9), right under Language: Light, Dark or Same as phone, as native radio
- * buttons in rows a thumb can hit. Rows, not three segments side by side, so "Comme le téléphone" fits at 375 px.
- * The chosen row is the yellow accent; the radio itself says which one is chosen, not the colour alone.
+ * Settings → Appearance (redesign, chunk 9; group 4 redesign, 17-11-2026): Light, Dark or Same as phone, a card each
+ * with its tinted tile, one under the other so "Comme le téléphone" fits at 375 px. Still a native radio group: each
+ * card is the label of a radio that covers it, unseen, so a tap anywhere on the card chooses it and the radio keeps its
+ * name and state. The chosen card says so twice, never by colour alone: a heavier outline and a check icon.
  */
 export function AppearanceSection() {
   const { t } = useT();
@@ -20,17 +28,19 @@ export function AppearanceSection() {
 
   return (
     // Named by its page's heading (/settings/appearance), which has the id.
-    <section aria-labelledby="appearance-heading" className={cardVariants()}>
-      <div role="radiogroup" aria-labelledby="appearance-heading" className="flex flex-col gap-2">
+    <section aria-labelledby="appearance-heading" className="flex flex-col gap-3">
+      <div role="radiogroup" aria-labelledby="appearance-heading" className="flex flex-col gap-3">
         {THEME_CHOICES.map((option) => {
-          const Icon = ICONS[option];
+          const tile = TILES[option];
           const chosen = option === choice;
           return (
             <label
               key={option}
               className={cn(
-                'flex min-h-13 cursor-pointer items-center gap-3 rounded-md border-[1.5px] border-outline px-3.5 py-2 font-semibold',
-                chosen ? 'bg-accent text-accent-foreground shadow-offset' : 'bg-card',
+                cardVariants(),
+                'relative min-h-14 cursor-pointer flex-row items-center gap-3 px-4 py-3 font-semibold',
+                'has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring',
+                chosen ? 'border-[3px]' : 'border-[1.5px]',
               )}
             >
               <input
@@ -39,10 +49,11 @@ export function AppearanceSection() {
                 value={option}
                 checked={chosen}
                 onChange={() => setThemeChoice(option)}
-                className="size-5 shrink-0 accent-primary"
+                className="absolute inset-0 m-0 size-full cursor-pointer appearance-none rounded-lg opacity-0"
               />
-              <Icon aria-hidden="true" className="size-5 shrink-0" />
-              {t.theme.choices[option]}
+              <RowTile icon={tile.icon} tint={tile.tint} />
+              <span className="min-w-0 flex-1 break-words">{t.theme.choices[option]}</span>
+              {chosen && <CircleCheckIcon aria-hidden="true" className="size-6 shrink-0" />}
             </label>
           );
         })}

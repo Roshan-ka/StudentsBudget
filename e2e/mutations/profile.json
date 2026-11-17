@@ -1,0 +1,16 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the semester fee's card is left out of Profile",
+      "file": "src/features/profile/profile-section.tsx",
+      "find": "  const { amountMinor } = offer.row;\n",
+      "replace": "  const { amountMinor } = offer.row;\n  if (offer) return null;\n",
+      "expect": {
+        "e2e/profile.spec.ts": [
+          "fee-card"
+        ]
+      }
+    }
+  ]
+}

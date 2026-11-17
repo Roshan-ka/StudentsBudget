@@ -114,6 +114,31 @@ test('Profile has its own page in Settings, prefills the semester and keeps what
   await expect(endField(page)).toHaveValue(formatDate('2027-02-05'));
 });
 
+// The page in cards (group 4 redesign, Roshan's mockups, 17-11-2026): you, your semester under its dates, and the next
+// semester fee on the yellow card with where its parts come from.
+test('the page in cards: you, your semester with its dates, and the next fee with its sources', async ({ page }) => {
+  await seedSetup(page);
+  await openSettings(page);
+  const headings = profileSection(page).getByRole('heading', { level: 3 });
+  // No semester in the form yet, so no fee.
+  await expect(headings).toHaveText(['You', 'Your semester']);
+
+  await universityField(page).selectOption({ label: 'Universität Regensburg' });
+  await expect(headings).toHaveText(['You', 'Your semester', 'Semester fee']); // proof: fee-card
+  const semester = profileSection(page).getByRole('region', { name: 'Your semester', exact: true });
+  await expect(
+    semester.getByText(`${formatDate('2026-10-01')} – ${formatDate('2027-03-31')}`, { exact: true }),
+  ).toBeVisible();
+  // Summer 2027 at UR, as the one-off costs step offers it: €87 + €128.
+  const fee = profileSection(page).getByRole('region', { name: 'Semester fee', exact: true });
+  await expect(fee.getByText('€215', { exact: true })).toBeVisible();
+  await expect(
+    fee.getByText(`Source for RVV semester ticket: stwno.de · checked ${formatDate('2026-10-20')}`, { exact: true }),
+  ).toBeVisible();
+  await expect(fee.getByText('Due in March 2027, the month before the semester starts.', { exact: true })).toBeVisible();
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
 test('mistyping both semester dates never saves over the ones that were there', async ({ page }) => {
   await seedSetup(page);
   await openSettings(page);

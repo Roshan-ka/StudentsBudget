@@ -8,11 +8,13 @@ export const profile: Messages['profile'] = {
   intro:
     'Dein Profil liegt auf diesem Handy. Es kommt in jedes Backup, das du exportierst, und in dein Konto, sobald ' +
     'dieses Handy verknüpft ist.',
+  you: 'Du',
   name: 'Dein Name',
   nameHint: 'Freiwillig. Die Startseite begrüßt dich mit diesem Namen.',
   university: 'Hochschule',
   notSet: 'Nicht angegeben',
   otherUniversity: 'Andere',
+  semesterHeading: 'Dein Semester',
   semesterStart: 'Semesterbeginn',
   semesterEnd: 'Semesterende',
   weeks: (weeks) => `Dein Semester: ${weeks} ${weeks === 1 ? 'Woche' : 'Wochen'}.`,
