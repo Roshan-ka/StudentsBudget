@@ -9,8 +9,8 @@ import {
   hasSemesterYear,
   monthLabel,
   periodLabel,
+  nextFee,
   profileProblems,
-  semesterFeeDue,
   semesterFeeOffer,
   semesterOn,
   semesterWeeksOf,
@@ -213,6 +213,9 @@ describe('toProfile', () => {
     });
   });
 });
+
+/** The month the next semester fee is due, or null (review D4: only the tests asked for it on its own). */
+const semesterFeeDue = (p: Profile | null | undefined, today: string) => nextFee(p, today)?.dueMonth ?? null;
 
 describe('semesterFeeDue', () => {
   const TODAY = '2026-10-20';

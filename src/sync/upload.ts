@@ -33,20 +33,6 @@ export const WRITE_ORDER: ServerTable[] = [...SERVER_TABLES.filter((table) => ta
 export const DELETE_ORDER: ServerTable[] = [...SERVER_TABLES].reverse();
 
 /**
- * Writes every row of the plan, then deletes the stale ones (as tombstones). Writing comes first: if a request fails halfway, the
- * account has rows to spare rather than rows missing, and saving again finishes the job. A later save that stops
- * halfway can leave the account with some new rows next to the old plan; saving again puts that right.
- */
-export async function applyUpload(store: UserDataStore, plan: UploadPlan): Promise<void> {
-  for (const table of WRITE_ORDER) {
-    if (plan.rows[table].length > 0) await store.upsert(table, plan.rows[table]);
-  }
-  for (const table of DELETE_ORDER) {
-    if (plan.stale[table].length > 0) await store.tombstone(table, plan.stale[table]);
-  }
-}
-
-/**
  * What saving would delete from the account, in words ("12 entries and 3 other items"), in `lang`, or null when
  * nothing. Only entries are named; the rest (accounts, weeks, votes and the like) are counted together.
  */

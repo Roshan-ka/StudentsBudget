@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '@/db/types';
-import { keywordsOf, lineAfterQuestion, parseQuickAdd, suggestCategory } from './quick-add';
+import { keywordsOf, lineAfterQuestion, readQuickAdd, suggestCategory } from './quick-add';
+
+/** The amount or choice `readQuickAdd` reads from a line, or null (review D4: only the tests read it on its own). */
+const parseQuickAdd = (text: string) => readQuickAdd(text)?.reading ?? null;
 
 describe('parseQuickAdd', () => {
   const cases: [string, number, string][] = [

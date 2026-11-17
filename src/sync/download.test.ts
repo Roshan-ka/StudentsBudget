@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from '@/data/categories';
 import { planDownload } from './download';
 import { contentsOf, contentsText } from './summary';
-import { ECB, MANUAL, expense, fakeStore, snapshot } from './test-helpers';
-import { applyUpload, planUpload } from './upload';
+import { applyUpload, ECB, expense, fakeStore, MANUAL, snapshot } from './test-helpers';
+import { planUpload } from './upload';
 
 /** The plan a save always writes, so a test's other rows read as a finished save. */
 const PLAN_ROW = { plans: { current: snapshot().plan } };

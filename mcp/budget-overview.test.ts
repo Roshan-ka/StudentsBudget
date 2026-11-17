@@ -5,8 +5,8 @@ import { sortAccounts } from '@/features/accounts/balances';
 import { parseBackup } from '@/features/backup/backup';
 import { planSummary, weekToSpend } from '@/lib/budget';
 import { StoreError, type UserDataStore } from '@/sync/store';
-import { fakeStore, snapshot } from '@/sync/test-helpers';
-import { applyUpload, planUpload } from '@/sync/upload';
+import { applyUpload, fakeStore, snapshot } from '@/sync/test-helpers';
+import { planUpload } from '@/sync/upload';
 import {
   AccountProblem,
   accountFromEnv,

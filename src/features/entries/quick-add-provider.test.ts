@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Account, Entry } from '@/db/types';
 import { guessCategory } from './category-words';
-import { parseQuickAdd, suggestCategory } from './quick-add';
+import { readQuickAdd, suggestCategory } from './quick-add';
 import {
   accountFor,
   checkReading,
@@ -123,6 +123,9 @@ const HISTORIES: [string, Entry[]][] = [
     ],
   ],
 ];
+
+/** The amount or choice `readQuickAdd` reads from a line, or null. */
+const parseQuickAdd = (text: string) => readQuickAdd(text)?.reading ?? null;
 
 /** What quick add reads, written out: `parseQuickAdd`, then `guessCategory` on the note (history, then the words). */
 function readBefore(text: string, history: Entry[]): QuickAddReading | null {

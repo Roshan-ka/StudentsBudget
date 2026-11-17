@@ -6,7 +6,6 @@ import {
   furthestOver,
   localSuggestions,
   swapLineParts,
-  swapLineText,
   type SuggestionRow,
 } from './suggest';
 
@@ -176,6 +175,12 @@ describe('localSuggestions', () => {
     expect(localSuggestions.suggest({ rows: [row('health', 1000, 5000)], today: '2026-10-10' })).toEqual([]);
   });
 });
+
+/** The line as one string: `swapLineParts` joined, as the page shows it (review D4: the app renders the parts). */
+const swapLineText = (suggestion: Parameters<typeof swapLineParts>[0], lang?: Parameters<typeof swapLineParts>[1]) =>
+  swapLineParts(suggestion, lang)
+    .map((part) => part.text)
+    .join('');
 
 describe('swapLineText', () => {
   const line = (fromMinor: number, toMinor: number, per: string, title = 'Do it') =>

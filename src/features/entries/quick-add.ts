@@ -353,11 +353,6 @@ export function readQuickAdd(text: string): QuickAddLine | null {
   return { reading, euro: marked.length > 0 };
 }
 
-/** The amount or choice `readQuickAdd` reads from a line, or null. See there for what a line may look like. */
-export function parseQuickAdd(text: string): QuickAddAmount | QuickAddChoice | null {
-  return readQuickAdd(text)?.reading ?? null;
-}
-
 /**
  * Words that carry no meaning of their own ("lunch at mensa", "kino mit anna"): they never choose a category. English
  * and German, since the notes are typed and dictated in both.
