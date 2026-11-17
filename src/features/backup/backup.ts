@@ -15,9 +15,10 @@ import {
   weekResultRow,
 } from '@/db/schemas';
 import type { Category, Plan, Schedule } from '@/db/types';
+import { periodOf } from '@/features/recurring/schedule';
 import type { Language } from '@/i18n/languages';
 import { MESSAGES, type Messages } from '@/i18n/messages';
-import { addDays, formatDateTime, todayIso, weekOf } from '@/lib/dates';
+import { addDays, formatDateTime, todayIso, weekOf, type IsoDate } from '@/lib/dates';
 
 export type { BackupData };
 
@@ -105,16 +106,18 @@ function hasDuplicates(keys: readonly string[]): boolean {
 
 /**
  * Whether a schedule is one the app could have made. A damaged one could post thousands of entries on the
- * next start (a watermark far behind its start) or on days that do not exist (day 40).
+ * next start (a watermark far behind its start) or on days that do not exist (day 40). It may start in the period the
+ * plan was made in, before the plan's own day: "Add this month too" (review P1) starts an income set up on the 17th on
+ * the 1st, as the poster allows (`postLine`).
  */
-function isPossibleSchedule(schedule: Schedule, planCreatedOn: string): boolean {
+function isPossibleSchedule(schedule: Schedule, planCreatedOn: IsoDate): boolean {
   const lastDay = schedule.frequency === 'monthly' ? 31 : 7;
   return (
     schedule.day >= 1 &&
     schedule.day <= lastDay &&
     schedule.amountMinor > 0 &&
     // ISO dates sort the way the days do, so plain comparison is enough.
-    schedule.startOn >= planCreatedOn &&
+    schedule.startOn >= periodOf(schedule, planCreatedOn).start &&
     schedule.postedThrough >= addDays(schedule.startOn, -1)
   );
 }
@@ -188,8 +191,8 @@ function findProblem(d: BackupData): Problem | null {
   if (weekAmounts.some((amount) => amount < 0)) return 'negativeAmount';
 
   // There are schedules only when there is a plan.
-  const createdOn = d.plan?.createdOn ?? '';
-  if (schedules.some((s) => !isPossibleSchedule(s, createdOn))) {
+  const createdOn = d.plan?.createdOn;
+  if (createdOn !== undefined && schedules.some((s) => !isPossibleSchedule(s, createdOn))) {
     return 'impossibleSchedule';
   }
   return null;
