@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LANGUAGE, LANGUAGES, OFFERED, type Language } from '../languages';
 import { MESSAGES, type Messages } from '.';
@@ -218,5 +219,32 @@ describe('the dictionaries', () => {
     for (const [path, text] of texts(MESSAGES.en, 'en')) {
       expect(text.includes("'"), `${path}: ${text}`).toBe(false);
     }
+  });
+});
+
+describe('counts (review U7, 17-11-2026)', () => {
+  it('go through each language’s byCount, never `n === 1 ?`, but for "This month", which is no plural', () => {
+    const root = new URL('./', import.meta.url);
+    const found: string[] = [];
+    for (const lang of readdirSync(root, { withFileTypes: true }).filter((entry) => entry.isDirectory())) {
+      for (const file of readdirSync(new URL(`./${lang.name}/`, root)).filter((name) => name.endsWith('.ts'))) {
+        const lines = readFileSync(new URL(`./${lang.name}/${file}`, root), 'utf8').split(/\r?\n/);
+        lines.forEach((line, i) => {
+          // Code only: a comment may name the pattern it forbids (count.ts does).
+          const code = !/^\s*(\/\/|\*|\/\*)/.test(line);
+          if (code && /\b\w+ === 1 \?/.test(line) && !/^\s*period: /.test(line)) found.push(`${lang.name}/${file}:${i + 1}`);
+        });
+      }
+    }
+    expect(found).toEqual([]);
+  });
+
+  it('read the plural forms each language has', () => {
+    expect(MESSAGES.en.common.counts.accounts(1)).toBe('1 account');
+    expect(MESSAGES.en.common.counts.accounts(0)).toBe('0 accounts');
+    expect(MESSAGES.de.common.counts.entries(1)).toBe('1 Eintrag');
+    expect(MESSAGES.de.common.counts.entries(2)).toBe('2 Einträge');
+    expect(MESSAGES.fr.accounts.summary(0, '0 €')).toBe('0 compte · 0 €');
+    expect(MESSAGES.es.accounts.summary(0, '0 €')).toBe('0 cuentas · 0 €');
   });
 });

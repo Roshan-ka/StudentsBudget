@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Text, die mehrere Bereiche teilen: das Datumsfeld, das Betragsfeld, die Quelle einer Spanne, Zählungen.
 export const common: Messages['common'] = {
@@ -33,8 +34,8 @@ export const common: Messages['common'] = {
   },
   accountOption: (name, currency) => `${name} (${currency})`,
   counts: {
-    accounts: (count) => `${count} ${count === 1 ? 'Konto' : 'Konten'}`,
-    entries: (count) => `${count} ${count === 1 ? 'Eintrag' : 'Einträge'}`,
+    accounts: (count) => byCount(count, { one: `${count} Konto`, other: `${count} Konten` }),
+    entries: (count) => byCount(count, { one: `${count} Eintrag`, other: `${count} Einträge` }),
     plan: 'dein Plan',
   },
   estimate: 'Schätzung',

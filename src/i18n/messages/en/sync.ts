@@ -1,6 +1,8 @@
 // Sync and linking in English: the stored problem codes (src/sync/problem.ts), the status line under Sync now, what a
 // screen reader hears after it, and linking this phone on the account page.
 
+import { byCount } from './count';
+
 export const sync = {
   /** What stopped or troubled the last sync, as `syncState` keeps it (a code), in words. */
   problems: {
@@ -17,12 +19,12 @@ export const sync = {
   status: {
     offline: 'Offline. Changes made now wait on this phone.',
     offlineWaiting: (count: number) =>
-      `Offline: ${count} ${count === 1 ? 'change waits' : 'changes wait'} on this phone.`,
+      `Offline: ${byCount(count, { one: `${count} change waits`, other: `${count} changes wait` })} on this phone.`,
     notYet: 'Not synced yet',
     synced: (when: string) => `Synced ${when}`,
     /** The line, from "Not synced yet" or "Synced 2 min ago" and the changes waiting. */
     line: (state: string, waiting: number) =>
-      waiting === 0 ? `${state}.` : `${state}. ${waiting} ${waiting === 1 ? 'change' : 'changes'} waiting.`,
+      waiting === 0 ? `${state}.` : `${state}. ${byCount(waiting, { one: `${waiting} change`, other: `${waiting} changes` })} waiting.`,
     justNow: 'just now',
     minutesAgo: (minutes: number) => `${minutes} min ago`,
     /** Anything an hour old or more: "on 29.10.2026, 09:30". */
@@ -40,8 +42,8 @@ export const sync = {
   },
   /** What saving this phone's data would delete from the account (staleSummary). */
   stale: {
-    entries: (count: number) => `${count} ${count === 1 ? 'entry' : 'entries'}`,
-    others: (count: number) => `${count} ${count === 1 ? 'other item' : 'other items'}`,
+    entries: (count: number) => byCount(count, { one: `${count} entry`, other: `${count} entries` }),
+    others: (count: number) => byCount(count, { one: `${count} other item`, other: `${count} other items` }),
   },
   /** Settings → Your account → Sync. */
   section: {

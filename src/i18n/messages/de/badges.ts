@@ -1,9 +1,10 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Abzeichen auf Deutsch: Namen und Fortschritt (badges.ts), die Abzeichen-Seite und die Karte auf der Startseite.
 // Die Namen nennen auch der Check-in (check-in.ts) und die Einleitung hier: Ändert sich einer, ändern sich alle.
 
-const weeks = (count: number) => `${count} ${count === 1 ? 'Woche' : 'Wochen'}`;
+const weeks = (count: number) => byCount(count, { one: `${count} Woche`, other: `${count} Wochen` });
 
 export const badges: Messages['badges'] = {
   names: {

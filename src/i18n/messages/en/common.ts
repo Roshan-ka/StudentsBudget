@@ -1,4 +1,6 @@
 // Text shared by several areas: the date field, the amount field and a city range's source.
+import { byCount } from './count';
+
 export const common = {
   dateField: {
     label: 'Date',
@@ -42,8 +44,8 @@ export const common = {
   accountOption: (name: string, currency: string) => `${name} (${currency})`,
   /** What a set of data holds: "3 accounts", "1 entry", "your plan" (backup and sync). */
   counts: {
-    accounts: (count: number) => `${count} ${count === 1 ? 'account' : 'accounts'}`,
-    entries: (count: number) => `${count} ${count === 1 ? 'entry' : 'entries'}`,
+    accounts: (count: number) => byCount(count, { one: `${count} account`, other: `${count} accounts` }),
+    entries: (count: number) => byCount(count, { one: `${count} entry`, other: `${count} entries` }),
     plan: 'your plan',
   },
   /** What a number no page states says instead of a source (the data's `source: 'Estimate'`). */

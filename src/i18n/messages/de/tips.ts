@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Der Tipps-Tab auf Deutsch: Tipps, Rabatte und die Worte der Spar-Zeile. Die Tipps, Rabatte und Spartipps selbst
 // sind Stadtinhalte; ihre deutschen Worte, auch das "per" der Spar-Zeile, stehen in src/i18n/city/de (Plan 2).
@@ -26,9 +27,9 @@ export const tips: Messages['tips'] = {
   mayBeOutdated: 'Vielleicht veraltet',
   lastConfirmed: (date) => `Zuletzt bestätigt am ${date}`,
   /** Was andere Studierende in diesem Semester bestätigt haben (P2.6), angemeldet zu sehen. */
-  confirmations: (count) => (count === 1 ? '1 Bestätigung in diesem Semester' : `${count} Bestätigungen in diesem Semester`),
+  confirmations: (count) => byCount(count, { one: '1 Bestätigung in diesem Semester', other: `${count} Bestätigungen in diesem Semester` }),
   notWorking: (count) =>
-    count === 1 ? '1 Person sagt, es gilt nicht mehr' : `${count} Personen sagen, es gilt nicht mehr`,
+    byCount(count, { one: '1 Person sagt, es gilt nicht mehr', other: `${count} Personen sagen, es gilt nicht mehr` }),
   othersSignIn: 'Melde dich an, um zu sehen, was andere Studierende bestätigt haben.',
   saved: 'Auf diesem Handy gespeichert und in deinem Konto, sobald das Handy verknüpft ist.',
   saveFailed: 'Deine Stimme ließ sich nicht speichern. Versuch es noch einmal.',
@@ -219,7 +220,7 @@ export const tips: Messages['tips'] = {
       empty: 'Keine gemeldeten Beiträge.',
       queue: 'Gemeldete Beiträge',
       reports: (count) =>
-        count === 1 ? '1 Meldung seit dem letzten Behalten' : `${count} Meldungen seit dem letzten Behalten`,
+        byCount(count, { one: '1 Meldung seit dem letzten Behalten', other: `${count} Meldungen seit dem letzten Behalten` }),
       states: { hand: 'Von dir versteckt', reports: 'Durch Meldungen versteckt', visible: 'Sichtbar' },
       hide: 'Verstecken',
       keep: 'Behalten',

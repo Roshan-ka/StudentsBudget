@@ -2,6 +2,8 @@
 // Edit plan from Settings and the setup chat.
 // A text that takes values is a function; one with a number picks its own plural, as each language's grammar needs.
 
+import { byCount } from './count';
+
 export const setup = {
   headingNew: 'Set up your plan',
   headingEdit: 'Edit plan',
@@ -113,7 +115,7 @@ export const setup = {
     typicalSpend: (range: string) => `Students here typically spend about ${range} a month on these.`,
     /** "Eating out, going out and transport are estimates."; `list` is joined the language's way. */
     estimates: (list: string, count: number) =>
-      `${list.charAt(0).toUpperCase()}${list.slice(1)} ${count === 1 ? 'is an estimate' : 'are estimates'}.`,
+      `${list.charAt(0).toUpperCase()}${list.slice(1)} ${byCount(count, { one: 'is an estimate', other: 'are estimates' })}.`,
     whereFrom: 'Where this comes from',
     askEdit:
       'How much do you want to allow yourself for each of these a month, in euros? You can change these any time.',

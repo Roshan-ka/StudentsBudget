@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Das Profil auf Deutsch: Einstellungen → Profil, die Prüfungen aus profile.ts und der Hinweis zum Semesterbeitrag.
 // "Semesterbeitrag" ist der Name der angebotenen einmaligen Kosten; eine so benannte Zeile zählt als Beitrag.
@@ -17,7 +18,7 @@ export const profile: Messages['profile'] = {
   semesterHeading: 'Dein Semester',
   semesterStart: 'Semesterbeginn',
   semesterEnd: 'Semesterende',
-  weeks: (weeks) => `Dein Semester: ${weeks} ${weeks === 1 ? 'Woche' : 'Wochen'}.`,
+  weeks: (weeks) => `Dein Semester: ${byCount(weeks, { one: `${weeks} Woche`, other: `${weeks} Wochen` })}.`,
   period: (term, university, period) =>
     `${term} an der ${university}: ${period}. Ändere die Daten, wenn deine anders sind.`,
   winter: 'Wintersemester',

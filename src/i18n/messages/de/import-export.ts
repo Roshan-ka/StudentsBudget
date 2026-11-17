@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Optionen → Import und Export auf Deutsch (CSV-Import und -Export, docs/superpowers/plans/2026-11-09-csv-import-export.md):
 // ein Kontoauszug hinein, die Einträge als Tabellendatei hinaus.
@@ -12,7 +13,7 @@ export const importExport: Messages['importExport'] = {
     file: 'Auszugsdatei (CSV)',
     noPlan: 'Richte zuerst deinen Plan ein: Der Import rechnet jede Zeile darauf an.',
     reading: 'Datei wird gelesen …',
-    recognised: (bank, rows, from, to) => `${bank}: ${rows} ${rows === 1 ? 'Zeile' : 'Zeilen'}, ${from} bis ${to}`,
+    recognised: (bank, rows, from, to) => `${bank}: ${byCount(rows, { one: `${rows} Zeile`, other: `${rows} Zeilen` })}, ${from} bis ${to}`,
     account: 'Importieren in',
     submit: 'Importieren',
     choose: 'Andere Datei wählen',
@@ -50,13 +51,13 @@ export const importExport: Messages['importExport'] = {
     unreadable: 'Mit diesen Spalten nicht lesbar',
     use: 'Diese Spalten verwenden',
     twice: 'Wähle für jedes davon eine andere Spalte.',
-    file: (rows, from, to) => `Deine Datei: ${rows} ${rows === 1 ? 'Zeile' : 'Zeilen'}, ${from} bis ${to}`,
+    file: (rows, from, to) => `Deine Datei: ${byCount(rows, { one: `${rows} Zeile`, other: `${rows} Zeilen` })}, ${from} bis ${to}`,
   },
   result: {
     heading: 'Import abgeschlossen',
     added: (entries, transfers) => {
-      const counted = `${entries} ${entries === 1 ? 'Eintrag' : 'Einträge'} hinzugefügt`;
-      return transfers === 0 ? `${counted}.` : `${counted}, davon ${transfers} ${transfers === 1 ? 'Umbuchung' : 'Umbuchungen'}.`;
+      const counted = `${byCount(entries, { one: `${entries} Eintrag`, other: `${entries} Einträge` })} hinzugefügt`;
+      return transfers === 0 ? `${counted}.` : `${counted}, davon ${byCount(transfers, { one: `${transfers} Umbuchung`, other: `${transfers} Umbuchungen` })}.`;
     },
     nothing: 'Nichts Neues: Jede Zeile war schon in der App oder wurde ausgelassen.',
     opening: (account, amount) =>
@@ -75,7 +76,7 @@ export const importExport: Messages['importExport'] = {
       duplicate: 'Schon in der App',
     },
     undo: 'Diesen Import rückgängig machen',
-    undone: (count) => `Import rückgängig gemacht: ${count} ${count === 1 ? 'Eintrag' : 'Einträge'} entfernt.`,
+    undone: (count) => `Import rückgängig gemacht: ${byCount(count, { one: `${count} Eintrag`, other: `${count} Einträge` })} entfernt.`,
     another: 'Weitere Datei importieren',
   },
   export: {

@@ -1,10 +1,11 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Las cuentas en español: Ajustes → Cuentas, mover dinero entre cuentas (también los errores de transfer.ts) y los
 // tipos de cambio.
 export const accounts: Messages['accounts'] = {
   heading: 'Cuentas',
-  summary: (count: number, total: string) => `${count} ${count === 1 ? 'cuenta' : 'cuentas'} · ${total}`,
+  summary: (count: number, total: string) => `${byCount(count, { one: `${count} cuenta`, other: `${count} cuentas` })} · ${total}`,
   summaryNone: 'Aún no hay cuentas',
   add: 'Añadir cuenta',
   none: 'Aún no hay cuentas. Añade tu cuenta del banco, tu cartera o tu cuenta de casa.',

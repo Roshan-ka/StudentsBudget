@@ -1,13 +1,15 @@
 // Home in English: the greeting, what is left to spend, the envelopes, the suggested budget and the accounts' total.
 // A text that takes values is a function; one with a number picks its own plural, as each language's grammar needs.
 
+import { byCount } from './count';
+
 const available = (amount: string) => `${amount} a month is available after your fixed costs and set-asides.`;
 
 export const home = {
   greeting: (name: string) => `Hi ${name}`,
   acrossAccounts: (total: string) => `Across all accounts: ${total}`,
   /** "INR rate missing", or "INR and USD rates missing". */
-  missingRates: (currencies: string, count: number) => `${currencies} ${count === 1 ? 'rate' : 'rates'} missing`,
+  missingRates: (currencies: string, count: number) => `${currencies} ${byCount(count, { one: 'rate', other: 'rates' })} missing`,
   leftThisMonth: {
     /** Not "Left to spend", which reads as an invitation to spend it (Roshan, 16-11-2026). */
     heading: 'This month’s budget',

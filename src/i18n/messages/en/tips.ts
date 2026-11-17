@@ -1,6 +1,8 @@
 // The Tips tab in English: the tips, the discounts and the swap line's words. The tips, discounts and swaps
 // themselves are city content (src/data), translated by item in src/i18n/city.
 
+import { byCount } from './count';
+
 export const tips = {
   tabsLabel: 'Tips, discounts, hacks or checklist',
   tips: 'Tips',
@@ -29,9 +31,9 @@ export const tips = {
   mayBeOutdated: 'May be outdated',
   lastConfirmed: (date: string) => `Last confirmed ${date}`,
   /** Other students' totals this semester (P2.6), shown while signed in. */
-  confirmations: (count: number) => (count === 1 ? '1 confirmation this semester' : `${count} confirmations this semester`),
+  confirmations: (count: number) => byCount(count, { one: '1 confirmation this semester', other: `${count} confirmations this semester` }),
   notWorking: (count: number) =>
-    count === 1 ? '1 student said it no longer works' : `${count} students said it no longer works`,
+    byCount(count, { one: '1 student said it no longer works', other: `${count} students said it no longer works` }),
   othersSignIn: 'Sign in to see what other students confirmed.',
   saved: 'Saved on this phone, and in your account once the phone is linked.',
   saveFailed: 'Couldn’t save your vote. Try again.',
@@ -246,7 +248,7 @@ export const tips = {
       tryAgain: 'Try again',
       empty: 'No reported posts.',
       queue: 'Reported posts',
-      reports: (count: number) => (count === 1 ? '1 report since last kept' : `${count} reports since last kept`),
+      reports: (count: number) => byCount(count, { one: '1 report since last kept', other: `${count} reports since last kept` }),
       states: { hand: 'Hidden by you', reports: 'Hidden by reports', visible: 'Visible' },
       hide: 'Hide',
       keep: 'Keep',

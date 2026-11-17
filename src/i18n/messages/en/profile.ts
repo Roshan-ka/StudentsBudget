@@ -1,5 +1,7 @@
 // The profile and its semesters in English: Settings → Profile, profile.ts's checks and labels, and the semester fee
 // offer's source note.
+import { byCount } from './count';
+
 export const profile = {
   heading: 'Profile',
   /** The Profile row on the Settings list, before anything is saved. */
@@ -19,7 +21,7 @@ export const profile = {
   semesterHeading: 'Your semester',
   semesterStart: 'Semester start',
   semesterEnd: 'Semester end',
-  weeks: (weeks: number) => `Your semester: ${weeks} ${weeks === 1 ? 'week' : 'weeks'}.`,
+  weeks: (weeks: number) => `Your semester: ${byCount(weeks, { one: `${weeks} week`, other: `${weeks} weeks` })}.`,
   /** "Winter semester at OTH Regensburg: 1 Oct – 14 Mar. Change the dates if yours differ." */
   period: (term: string, university: string, period: string) =>
     `${term} at ${university}: ${period}. Change the dates if yours differ.`,

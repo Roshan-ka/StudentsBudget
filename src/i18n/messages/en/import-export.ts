@@ -1,6 +1,8 @@
 // Settings → Import and export in English (CSV import and export, docs/superpowers/plans/2026-11-09-csv-import-export.md):
 // a bank statement in, the entries out as a spreadsheet file.
 
+import { byCount } from './count';
+
 export const importExport = {
   /** The row on the Settings list. */
   summary: 'Import a bank statement, or export your entries',
@@ -13,7 +15,7 @@ export const importExport = {
     noPlan: 'Set up your plan first: the import counts each row against it.',
     reading: 'Reading the file…',
     recognised: (bank: string, rows: number, from: string, to: string) =>
-      `${bank}: ${rows} ${rows === 1 ? 'row' : 'rows'}, ${from} to ${to}`,
+      `${bank}: ${byCount(rows, { one: `${rows} row`, other: `${rows} rows` })}, ${from} to ${to}`,
     account: 'Import into',
     submit: 'Import',
     choose: 'Choose another file',
@@ -52,14 +54,14 @@ export const importExport = {
     unreadable: 'Can’t be read with these columns',
     use: 'Use these columns',
     twice: 'Choose a different column for each of these.',
-    file: (rows: number, from: string, to: string) => `Your file: ${rows} ${rows === 1 ? 'row' : 'rows'}, ${from} to ${to}`,
+    file: (rows: number, from: string, to: string) => `Your file: ${byCount(rows, { one: `${rows} row`, other: `${rows} rows` })}, ${from} to ${to}`,
   },
   /** What an import did, shown in place of its form. */
   result: {
     heading: 'Import finished',
     added: (entries: number, transfers: number) => {
-      const counted = `${entries} ${entries === 1 ? 'entry' : 'entries'} added`;
-      return transfers === 0 ? `${counted}.` : `${counted}, ${transfers} of them ${transfers === 1 ? 'a transfer' : 'transfers'}.`;
+      const counted = `${byCount(entries, { one: `${entries} entry`, other: `${entries} entries` })} added`;
+      return transfers === 0 ? `${counted}.` : `${counted}, ${transfers} of them ${byCount(transfers, { one: 'a transfer', other: 'transfers' })}.`;
     },
     nothing: 'Nothing new: every row was already in the app, or was left out.',
     opening: (account: string, amount: string) =>
@@ -78,7 +80,7 @@ export const importExport = {
       duplicate: 'Already in the app',
     },
     undo: 'Undo this import',
-    undone: (count: number) => `Import undone: ${count} ${count === 1 ? 'entry' : 'entries'} removed.`,
+    undone: (count: number) => `Import undone: ${byCount(count, { one: `${count} entry`, other: `${count} entries` })} removed.`,
     another: 'Import another file',
   },
   export: {

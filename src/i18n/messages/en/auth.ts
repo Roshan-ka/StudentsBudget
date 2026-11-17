@@ -1,6 +1,8 @@
 // Signing in and security in English: auth-errors.ts and credentials.ts, the sign-in form, the code step and the
 // signed-in panel (account-view.tsx), Sign-in and security, two-step sign-in and passkeys.
 
+import { byCount } from './count';
+
 export const auth = {
   /** What auth-errors.ts says for an answer of the account server, by what it means (BY_CODE maps its codes). */
   errors: {
@@ -122,7 +124,7 @@ export const auth = {
     cancel: 'Cancel',
     /** The last sync left changes in the outbox. */
     unsynced: (count: number) =>
-      count === 1 ? '1 change isn’t in your account yet.' : `${count} changes aren’t in your account yet.`,
+      byCount(count, { one: '1 change isn’t in your account yet.', other: `${count} changes aren’t in your account yet.` }),
     /** The outbox couldn’t be counted (review B3): changes may still be waiting. */
     unsyncedUnknown: 'Some changes may not be in your account yet.',
     unsyncedOffline: 'You’re offline. Stay signed in and sync later, or sign out and lose these changes.',
@@ -252,7 +254,7 @@ export const auth = {
   passkeys: {
     heading: 'Passkeys',
     /** The card's status: how many the account has. */
-    count: (count: number) => (count === 0 ? 'None yet' : count === 1 ? '1 passkey' : `${count} passkeys`),
+    count: (count: number) => (count === 0 ? 'None yet' : byCount(count, { one: '1 passkey', other: `${count} passkeys` })),
     intro:
       'Sign in with Face ID, a fingerprint or your phone’s PIN instead of your password. The passkey stays with you, ' +
       'on your phone or in your password manager; your account keeps its public key, which can’t sign anyone in.',

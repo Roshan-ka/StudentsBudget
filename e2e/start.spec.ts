@@ -22,6 +22,8 @@ import {
 test.use({ viewport: { width: 375, height: 812 } });
 
 const EMAIL = 'roshan@example.com';
+/** WIPE_PENDING_KEY (src/features/account/pending-wipe.ts), written out: that module brings Dexie and React with it. */
+const WIPE_PENDING_KEY = 'studentsbudget-wipe-pending';
 const PASSWORD = 'correct horse';
 
 test.beforeEach(async ({ page }) => {
@@ -222,6 +224,57 @@ test('signing out clears the phone and opens the start page; signing in there br
   // A plan on the phone: the start page goes on to Home.
   await page.goto('/start');
   await waitForHome(page);
+});
+
+test('another account signing in after a sign-out whose wipe failed finds the phone cleared, never the last one’s data', async ({
+  page,
+}) => {
+  // Review B1 (17-11-2026): a sign-in used to drop the owed wipe, and the next account saw the last one's money data.
+  await skipUnlessAccountsShow(page);
+  await mockSupabaseAuth(page, { [EMAIL]: PASSWORD });
+  await mockSupabaseData(page);
+  await seedSetup(page);
+  await openApp(page, '/settings/account');
+  await expect(page.getByRole('textbox', { name: 'Email', exact: true })).toBeVisible();
+
+  // What a sign-out whose wipe failed leaves: nobody signed in, the data still here, the link to the account that
+  // signed out, and the wipe marked as owed. Written straight in, so no reload runs the start's own wipe.
+  await page.evaluate(
+    ({ key }) =>
+      new Promise<void>((resolve, reject) => {
+        localStorage.setItem(key, 'pending');
+        const open = indexedDB.open('studentsbudget');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          const transaction = db.transaction('syncState', 'readwrite');
+          transaction.objectStore('syncState').put({
+            id: 'current',
+            userId: 'the-account-that-signed-out',
+            cursor: 0,
+            lastSyncedAt: null,
+            problem: null,
+          });
+          // Closed, or the wipe's delete would wait for this connection.
+          transaction.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }),
+    { key: WIPE_PENDING_KEY },
+  );
+
+  await fillSignIn(page);
+  await expect(page.getByText(`Signed in as ${EMAIL}.`, { exact: true })).toBeVisible();
+  // The owed wipe is settled once its mark is gone.
+  await page.waitForFunction((key) => localStorage.getItem(key) !== 'pending', WIPE_PENDING_KEY);
+
+  // The phone was cleared before the new account linked: no plan, so Home sends this account to setup.
+  await openApp(page, '/');
+  await expect(page).toHaveURL('/setup'); // proof: wipe-before-other-account
+  expect(await readStore<Plan>(page, 'plan')).toEqual([]);
 });
 
 test('when the last sync can’t send everything, signing out asks first', async ({ page, context }) => {

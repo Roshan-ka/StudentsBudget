@@ -1,4 +1,5 @@
 import type { Messages } from '../en';
+import { byCount } from './count';
 
 // Fragen auf Deutsch (KI-Phase, Chunk 10, docs/superpowers/plans/2026-11-09-ai-phase-1.md): Fragen zum eigenen Budget,
 // beantwortet aus dem Plan, den Einträgen und den belegten Regensburg-Daten der App.
@@ -12,7 +13,7 @@ export const ask: Messages['ask'] = {
   thinking: 'Denkt nach …',
   asked: 'Deine Frage',
   answer: 'Antwort',
-  left: (count: number) => `Heute noch ${count} ${count === 1 ? 'Frage' : 'Fragen'}.`,
+  left: (count: number) => `Heute noch ${byCount(count, { one: `${count} Frage`, other: `${count} Fragen` })}.`,
   full: 'Das sind sechs Fragen in diesem Gespräch. Fang neu an, um mehr zu fragen.',
   startOver: 'Neu anfangen',
   estimate:
