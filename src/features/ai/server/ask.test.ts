@@ -191,7 +191,7 @@ describe('Ask through the function', () => {
     const calls: ModelCall[] = [];
     const message: ModelMessage = {
       model: 'openai/gpt-oss-120b',
-      stop_reason: 'end_turn',
+      stop: 'finished',
       content: [{ type: 'text', text: JSON.stringify(answer) }],
       usage: { input_tokens: 9000, output_tokens: 300, cache_read_input_tokens: 8000, reasoning_tokens: 120 },
     };

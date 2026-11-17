@@ -25,10 +25,17 @@ export type ModelCall = {
   timeoutMs: number;
 };
 
+/**
+ * How a reply stopped, in the function's own words (review D6, 17-11-2026: no longer Anthropic's `stop_reason`):
+ * `finished` with a whole answer, `length` cut off at the output limit, `refused` by the model or its filter, `other`
+ * for anything else. Only `finished` is an answer.
+ */
+export type StopReason = 'finished' | 'length' | 'refused' | 'other';
+
 /** The parts of the API's message the function reads. */
 export type ModelMessage = {
   model: string;
-  stop_reason: string | null;
+  stop: StopReason | null;
   /** The answer's text, as one `text` block (none when the reply had no text). */
   content: { type: string; text?: string }[];
   usage: {
@@ -77,12 +84,12 @@ export type Reading<T> = { ok: true; value: T } | { ok: false; problem: 'refused
 
 /**
  * The answer in a message: its text read as JSON and checked with the schema, bounds included (strict structured
- * outputs leave those to the reader, strict-schema.ts). A refusal, or any stop but the end of the turn (cut off at
+ * outputs leave those to the reader, strict-schema.ts). A refusal, or any stop but `finished` (cut off at
  * the output limit, say), is no answer.
  */
 export function readStructured<T>(message: ModelMessage, schema: z.ZodType<T>): Reading<T> {
-  if (message.stop_reason === 'refusal') return { ok: false, problem: 'refused' };
-  if (message.stop_reason !== 'end_turn') return { ok: false, problem: 'failed' };
+  if (message.stop === 'refused') return { ok: false, problem: 'refused' };
+  if (message.stop !== 'finished') return { ok: false, problem: 'failed' };
   const text = message.content
     .filter((block) => block.type === 'text')
     .map((block) => block.text ?? '')

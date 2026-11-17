@@ -12,6 +12,7 @@ import {
   type ModelCall,
   type ModelClient,
   type ModelMessage,
+  type StopReason,
 } from './model.ts';
 import { strictJsonSchema } from './strict-schema.ts';
 
@@ -97,22 +98,23 @@ const chatReply = z.object({
 });
 
 /**
- * How the reply stopped, in the words `readStructured` reads: a finished answer is `end_turn`, one cut off at the
- * output limit `max_tokens`, and a refusal or a filtered answer `refusal`. Anything else is no answer.
+ * How the reply stopped, as a `StopReason`: Groq's `stop` is `finished`, `length` is `length`, a refusal or a
+ * filtered answer is `refused`, and anything else (`tool_calls`, a reason Groq adds later) is `other`. None is null.
  */
-export function stopReasonOf(finish: string | null | undefined, refusal: string | null | undefined): string | null {
-  if (refusal) return 'refusal';
+export function stopReasonOf(finish: string | null | undefined, refusal: string | null | undefined): StopReason | null {
+  if (refusal) return 'refused';
   switch (finish) {
     case 'stop':
-      return 'end_turn';
+      return 'finished';
     case 'length':
-      return 'max_tokens';
+      return 'length';
     case 'content_filter':
-      return 'refusal';
-    case 'tool_calls':
-      return 'tool_use';
+      return 'refused';
+    case null:
+    case undefined:
+      return null;
     default:
-      return finish ?? null;
+      return 'other';
   }
 }
 
@@ -123,7 +125,7 @@ export function chatMessage(json: unknown): ModelMessage {
   const content = choice.message.content;
   return {
     model: reply.model,
-    stop_reason: stopReasonOf(choice.finish_reason, choice.message.refusal),
+    stop: stopReasonOf(choice.finish_reason, choice.message.refusal),
     content: content ? [{ type: 'text', text: content }] : [],
     usage: {
       input_tokens: reply.usage?.prompt_tokens ?? 0,
