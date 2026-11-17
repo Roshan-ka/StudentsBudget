@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Account, Entry } from '@/db/types';
-import { parseQuickAdd, suggestCategory } from './quick-add';
+import { guessCategory } from './category-words';
+import { readQuickAdd, suggestCategory } from './quick-add';
 import {
   accountFor,
   checkReading,
@@ -123,18 +124,21 @@ const HISTORIES: [string, Entry[]][] = [
   ],
 ];
 
-/** What quick add read before the provider: `parseQuickAdd`, then `suggestCategory` on the note. */
+/** The amount or choice `readQuickAdd` reads from a line, or null. */
+const parseQuickAdd = (text: string) => readQuickAdd(text)?.reading ?? null;
+
+/** What quick add reads, written out: `parseQuickAdd`, then `guessCategory` on the note (history, then the words). */
 function readBefore(text: string, history: Entry[]): QuickAddReading | null {
   const parsed = parseQuickAdd(text);
   if (parsed === null) return null;
-  const categoryId = suggestCategory(parsed.note, history);
+  const categoryId = guessCategory(parsed.note, history);
   return 'kind' in parsed
     ? { kind: 'choice', options: parsed.options, note: parsed.note, categoryId }
     : { kind: 'amount', amountMinor: parsed.amountMinor, note: parsed.note, categoryId };
 }
 
 describe('localQuickAddProvider', () => {
-  it.each(HISTORIES)('reads every parser line as parseQuickAdd plus suggestCategory did (%s)', async (_, history) => {
+  it.each(HISTORIES)('reads every parser line as parseQuickAdd plus guessCategory (%s)', async (_, history) => {
     const ctx = context(history);
     for (const text of LINES) {
       expect(await localQuickAddProvider.read(text, ctx), text).toStrictEqual(readBefore(text, history));
@@ -203,7 +207,7 @@ describe('a euro marker when the default account is not in euros', () => {
       kind: 'amount',
       amountMinor: 600,
       note: 'Döner',
-      categoryId: null,
+      categoryId: 'eating-out',
       accountId: 'local-bank',
     });
   });
@@ -217,13 +221,13 @@ describe('a euro marker when the default account is not in euros', () => {
       kind: 'amount',
       amountMinor: 600,
       note: 'döner',
-      categoryId: null,
+      categoryId: 'eating-out',
     });
     expect(await read('döner 6 €', [rupees, pounds])).toStrictEqual({
       kind: 'amount',
       amountMinor: 600,
       note: 'döner',
-      categoryId: null,
+      categoryId: 'eating-out',
     });
     // The default is in euros already: the field saves there, so the reading names nothing. Unmarked, the rule picks
     // the euro wallet over the first account in rupees.
@@ -246,7 +250,7 @@ describe('a euro marker when the default account is not in euros', () => {
       kind: 'choice',
       options: [740, 4000],
       note: 'coffee',
-      categoryId: null,
+      categoryId: 'eating-out',
       accountId: 'local-bank',
     });
     if (reading?.kind !== 'choice') throw new Error('expected a choice');
@@ -254,7 +258,7 @@ describe('a euro marker when the default account is not in euros', () => {
       kind: 'amount',
       amountMinor: 740,
       note: 'coffee',
-      categoryId: null,
+      categoryId: 'eating-out',
       accountId: 'local-bank',
     });
     // The field shows and saves in the currency of the account the reading names.
@@ -269,7 +273,7 @@ describe('a euro marker when the default account is not in euros', () => {
       kind: 'amount',
       amountMinor: 600,
       note: 'döner',
-      categoryId: null,
+      categoryId: 'eating-out',
     });
     const choice = await read('coffee 7 40 euros', [rupees, euroBank]);
     expect(checkReading(choice, { today: '2026-10-20', accounts: [rupees], history: [] })).not.toHaveProperty('accountId');

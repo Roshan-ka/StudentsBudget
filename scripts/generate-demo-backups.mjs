@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { CATEGORIES, GUESS_CATEGORY_IDS } from '../src/data/categories.ts';
+import { CATEGORIES } from '../src/data/categories.ts';
 
 // Run with Node 24: node scripts/generate-demo-backups.mjs [YYYY-MM-DD].
 const today = process.argv[2] ?? new Intl.DateTimeFormat('en-CA').format(new Date());
@@ -27,7 +27,7 @@ function base(createdOn = `${monthAt(-11)}-01`) {
       envelopes: flexible.map((c, i) => ({ categoryId: c.id, monthlyMinor: i === 0 ? 24000 : 3000 })),
       oneOffs: [{ id: 'semester', name: 'Next semester fee', amountMinor: 30000, createdMonth: month, dueMonth: monthAt(5) },
         { id: 'deposit', name: 'Past accommodation deposit', amountMinor: 50000, createdMonth: monthAt(-11), dueMonth: monthAt(-10) }],
-    }, guesses: GUESS_CATEGORY_IDS.map((categoryId) => ({ categoryId, monthlyMinor: 6000, guessedOn: createdOn })), fxRates: [],
+    }, guesses: [], fxRates: [], // No guesses since Guess vs. reality went (05-11-2026; review D3).
   } };
 }
 function entry(file, date, type, categoryId, amountMinor, note, accountId = 'bank', eurMinor = amountMinor) {

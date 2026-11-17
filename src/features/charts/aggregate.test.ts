@@ -7,15 +7,19 @@ import {
   categoryOverPeriod,
   defaultOverTimeCategory,
   hasEntriesIn,
-  incomeBySource,
   incomeBySourceOver,
   monthsOf,
   savingsByMonth,
-  spendingByCategory,
   spendingByCategoryOver,
   topWithBucket,
   type Period,
 } from './aggregate';
+
+// One month of the `…Over` views: what the charts show for a month. The app has no one-month wrappers of its own any
+// more (review D4, 17-11-2026), so the tests keep theirs.
+const spendingByCategory = (entries: Entry[], plan: Plan, month: string) =>
+  spendingByCategoryOver(entries, plan, { endMonth: month, months: 1 });
+const incomeBySource = (entries: Entry[], month: string) => incomeBySourceOver(entries, { endMonth: month, months: 1 });
 
 const plan: Plan = {
   id: 'current',

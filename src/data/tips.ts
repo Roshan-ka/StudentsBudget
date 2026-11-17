@@ -54,15 +54,6 @@ export const TIPS: Tip[] = [
     checked: CHECKED,
   },
   {
-    id: 'theatre-at-half-price',
-    title: 'See a play at half price',
-    body: 'Students under 30 pay half price at the Staatstheater; U30 shows are €10 for any seat. Buy at the box office to skip the €1.50 fee.',
-    categoryId: 'going-out',
-    source: 'Staatstheater Regensburg, visitor FAQ: 50% off the regular price until the 30th birthday; U30 shows €10 for any seat; €1.50 fee per ticket online or by phone, none at the box office',
-    url: 'https://www.staatstheater-regensburg.de/index/besuch.html',
-    checked: CHECKED,
-  },
-  {
     id: 'historisches-museum-free',
     title: 'Visit the Historisches Museum free',
     body: "Students under 30 get into the city's Historisches Museum for free (adults pay €5). Bring your student ID.",
@@ -78,15 +69,6 @@ export const TIPS: Tip[] = [
     categoryId: 'going-out',
     source: 'Haus der Bayerischen Geschichte, admission prices valid 8 Jul 2026 to 7 Aug 2027: adults €7, students under 30 free',
     url: 'https://www.hdbg.de/ihr-besuch/eintrittspreise.html',
-    checked: CHECKED,
-  },
-  {
-    id: 'cinema-student-price',
-    title: 'Reserve cinema tickets for free',
-    body: 'At Kinos im Andreasstadel students pay €8 instead of €9. Reserve for free rather than buying online, which adds 10%.',
-    categoryId: 'going-out',
-    source: 'Kinos im Andreasstadel, ticket prices: €9 regular, €8 reduced for students with proof; online advance sale adds 10%; reservations are free',
-    url: 'https://www.kinos-im-andreasstadel.de/Eintrittspreise/unterseite_7311',
     checked: CHECKED,
   },
   {

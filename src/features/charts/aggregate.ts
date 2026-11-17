@@ -136,16 +136,6 @@ export function hasEntriesIn(entries: Entry[], months: IsoMonth[]): boolean {
   return entries.some((e) => e.type !== 'transfer' && wanted.has(monthOf(e.date)));
 }
 
-/** `spendingByCategoryOver` for a single month; `spendingRowsOf` has the rules for spent and planned. */
-export function spendingByCategory(entries: Entry[], plan: Plan, month: IsoMonth): SpendingRow[] {
-  return spendingByCategoryOver(entries, plan, { endMonth: month, months: 1 });
-}
-
-/** The income of `month` per source (income category), largest first; ties go to the built-in category order. */
-export function incomeBySource(entries: Entry[], month: IsoMonth): { categoryId: string; amountMinor: Minor }[] {
-  return incomeBySourceOver(entries, { endMonth: month, months: 1 });
-}
-
 /** The income over the months of `p` per source (income category), largest first; ties go to the built-in order. */
 export function incomeBySourceOver(entries: Entry[], p: Period): { categoryId: string; amountMinor: Minor }[] {
   const months = new Set(monthsOf(p));

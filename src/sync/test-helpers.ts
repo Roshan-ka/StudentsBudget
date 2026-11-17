@@ -3,6 +3,7 @@ import type { BackupData } from '@/db/bulk';
 import type { Entry, Rate } from '@/db/types';
 import type { PulledRow, UserDataStore } from './store';
 import { byTable, SERVER_TABLES, type ServerTable } from './tables';
+import { DELETE_ORDER, WRITE_ORDER, type UploadPlan } from './upload';
 
 // Shared by the save and load tests: a phone with a bit of everything, and the account's tables in memory.
 
@@ -146,4 +147,17 @@ export function fakeStore(
     },
   };
   return { store, tables, calls };
+}
+
+/**
+ * Fills the account with a phone's upload plan: every row, then the stale ones as tombstones. The old whole-account
+ * save (P2.1) did this; linking replaced it, and the tests still use it to seed an account (review D4, 17-11-2026).
+ */
+export async function applyUpload(store: UserDataStore, plan: UploadPlan): Promise<void> {
+  for (const table of WRITE_ORDER) {
+    if (plan.rows[table].length > 0) await store.upsert(table, plan.rows[table]);
+  }
+  for (const table of DELETE_ORDER) {
+    if (plan.stale[table].length > 0) await store.tombstone(table, plan.stale[table]);
+  }
 }

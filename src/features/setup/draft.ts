@@ -2,7 +2,7 @@ import { CATEGORIES } from '@/data/categories';
 import type { CityRange } from '@/data/cities';
 import type { Account, Amount, Category, OneOff, Plan, PlanLine, Schedule } from '@/db/types';
 import { defaultAccount } from '@/features/accounts/balances';
-import { newSchedule, perOccurrence, restartSchedule } from '@/features/recurring/schedule';
+import { newSchedule, newScheduleWithThisPeriod, perOccurrence, restartSchedule } from '@/features/recurring/schedule';
 import { categoryNameIn } from '@/i18n/category-name';
 import { LANGUAGES, type Language } from '@/i18n/languages';
 import { MESSAGES, type Messages } from '@/i18n/messages';
@@ -26,6 +26,11 @@ export type DraftSchedule = {
   accountId: string;
   foreignMinor: Minor;
   saved?: Schedule;
+  /**
+   * "Add this month too" (review P1, 17-11-2026), for a new income line whose day this period has passed: unset or
+   * true adds this period's too, on Save; false starts tomorrow, as before. Fixed costs never ask.
+   */
+  thisPeriodToo?: boolean;
 };
 
 /** An income or fixed cost in the draft: the monthly euro figure, and how it is added. */
@@ -308,7 +313,7 @@ export function draftToRecords(
   );
   const options = accountOptions(d, stored);
 
-  const scheduleOf = (monthlyMinor: Minor, draft: DraftSchedule | undefined): Schedule | undefined => {
+  const scheduleOf = (monthlyMinor: Minor, draft: DraftSchedule | undefined, income = false): Schedule | undefined => {
     if (!draft?.on || !(monthlyMinor > 0)) return undefined;
     const account = draftAccountOf(draft, options);
     // Its account is gone and none was picked, or there is none to pick from (a preview without the stored
@@ -322,23 +327,25 @@ export function draftToRecords(
       accountId: idOfKey.get(account.id) ?? account.id,
       amountMinor,
     };
-    if (!draft.saved) return newSchedule(fields, today);
+    if (!draft.saved) {
+      return income && draft.thisPeriodToo !== false ? newScheduleWithThisPeriod(fields, today) : newSchedule(fields, today);
+    }
     // A line whose account was gone is added again from tomorrow, so the periods it missed are not back-posted.
     return isRepaired(draft, options)
       ? { ...restartSchedule(draft.saved, today), ...fields }
       : { ...draft.saved, ...fields };
   };
-  const toLine = (categoryId: string, monthlyMinor: Minor, draft: DraftSchedule | undefined): PlanLine => {
-    const schedule = scheduleOf(monthlyMinor, draft);
+  const toLine = (categoryId: string, monthlyMinor: Minor, draft: DraftSchedule | undefined, income = false): PlanLine => {
+    const schedule = scheduleOf(monthlyMinor, draft, income);
     return schedule ? { categoryId, monthlyMinor, schedule } : { categoryId, monthlyMinor };
   };
-  const toLines = (list: DraftLine[]): PlanLine[] =>
-    list.filter((l) => l.monthlyMinor > 0).map((l) => toLine(l.categoryId, l.monthlyMinor, l.schedule));
+  const toLines = (list: DraftLine[], income = false): PlanLine[] =>
+    list.filter((l) => l.monthlyMinor > 0).map((l) => toLine(l.categoryId, l.monthlyMinor, l.schedule, income));
 
   const plan: Plan = {
     id: 'current',
     cityId: 'regensburg',
-    incomes: toLines(d.incomes),
+    incomes: toLines(d.incomes, true),
     fixed: [toLine('rent', d.rentMinor, d.rentSchedule), ...toLines(d.fixed)],
     oneOffs,
     envelopes: d.envelopes.map((a) => ({ ...a })),

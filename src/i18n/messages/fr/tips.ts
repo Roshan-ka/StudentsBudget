@@ -12,13 +12,15 @@ export const tips: Messages['tips'] = {
   tipsIntro: 'Des façons locales de payer moins quand on est étudiant. Chaque conseil indique sa source.',
   tipsFor: 'Afficher les conseils pour',
   sourceLead: `Source${NNBSP}:`,
-  discountsIntro:
-    `Réductions étudiantes à Regensburg. Chacune indique sa source. Dis à l’app si une réduction marche encore${NNBSP}: ` +
-    'tes votes sont enregistrés sur ce téléphone, et dans ton compte une fois le téléphone associé. Celles que tu ' +
-    `confirmes remontent${NNBSP}; celles que tu marques comme obsolètes, ou qui n’ont pas été confirmées depuis 8 ` +
-    'semaines, descendent.',
+  discountsIntro: 'Réductions étudiantes à Regensburg, chacune avec sa source.',
+  votesHow: 'Comment fonctionnent les votes',
+  votesBody:
+    `Dis à l’app si une réduction marche encore${NNBSP}: tes votes sont enregistrés sur ce téléphone, et dans ton ` +
+    `compte une fois le téléphone associé. Celles que tu confirmes remontent${NNBSP}; celles que tu marques comme ` +
+    'obsolètes, ou qui n’ont pas été confirmées depuis 8 semaines, descendent.',
   discountsFor: 'Afficher les réductions pour',
-  loadFailed: 'Impossible de charger les réductions. Réessaie plus tard.',
+  loadFailed: 'Impossible de charger les réductions.',
+  tryAgain: 'Réessayer',
   votes: { works: 'Marche encore', outdated: 'Obsolète' },
   voteGroup: (place) => `${place}${NNBSP}: ça marche encore${NNBSP}?`,
   markedOutdated: (date) => `Tu as marqué ça comme obsolète le ${date}.`,
@@ -256,7 +258,7 @@ export const tips: Messages['tips'] = {
       toggle: (count) => (count === 0 ? 'Commentaires' : `Commentaires (${count})`),
       list: 'Commentaires',
       loading: 'Chargement des commentaires…',
-      loadFailed: 'Les commentaires n’ont pas pu être chargés. Réessaie plus tard.',
+      loadFailed: 'Les commentaires n’ont pas pu être chargés.',
       none: 'Pas encore de commentaire.',
       body: 'Ton commentaire',
       bodyHint: 'De 3 à 300 caractères. Tous les étudiants qui ont un compte peuvent le lire.',

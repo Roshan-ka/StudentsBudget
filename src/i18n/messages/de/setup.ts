@@ -132,6 +132,7 @@ export const setup: Messages['setup'] = {
       'Ändere deine Umschläge, ergänze einmalige Kosten wie den Semesterbeitrag und die Einnahmen, Fixkosten und ' +
       'Umschläge, die die Einrichtung übersprungen hat, oder geh den ganzen Plan noch einmal durch.',
     link: 'Plan bearbeiten',
+    noPlan: 'Richte zuerst deinen Plan ein, dann kannst du ihn hier ändern.',
     eachMonth: 'Jeden Monat',
     comesIn: (amount: string) => `${amount} Einnahmen`,
     fixedOut: (amount: string) => `${amount} Fixkosten`,

@@ -1,9 +1,11 @@
 'use client';
 
+import { ChevronRightIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { memo, type PointerEvent } from 'react';
 import { Pie, PieChart, Sector, type PieSectorShapeProps } from 'recharts';
+import { linkButtonClass } from '@/components/link-button';
 import { ChartContainer } from '@/components/ui/chart';
 import { numberFormat } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
@@ -132,7 +134,7 @@ export function Donut({
           </div>
         )}
       </ChartFrame>
-      <ul className="flex flex-col divide-y">
+      <ul className="flex flex-col gap-2">
         {rows.map((row) => {
           const content = (
             <>
@@ -152,10 +154,15 @@ export function Donut({
           return (
             <li key={row.id}>
               {row.href === null ? (
-                <div className="flex min-h-11 items-center gap-3">{content}</div>
-              ) : (
-                <Link href={row.href} className="flex min-h-11 items-center gap-3 hover:bg-muted/60">
+                // Lined up with the buttons around it: the same padding and an invisible edge.
+                <div className="flex min-h-11 items-center gap-3 border-[1.5px] border-transparent px-4 py-2 text-sm">
                   {content}
+                </div>
+              ) : (
+                // A way to the entries is a button, never a quiet text link (review U4; chart-parts' table rows alike).
+                <Link href={row.href} className={linkButtonClass('w-full justify-start gap-3 text-start font-normal')}>
+                  {content}
+                  <ChevronRightIcon aria-hidden="true" className="rtl:rotate-180" />
                 </Link>
               )}
             </li>

@@ -201,6 +201,29 @@ export function newSchedule(
 }
 
 /**
+ * This period's occurrence when it is today or already past, else null (review P1, 17-11-2026): an income set up on
+ * the 17th, monthly on the 1st, has this month's on the 1st behind it, which a schedule from tomorrow never posts.
+ */
+export function passedThisPeriod(timing: Timing, today: IsoDate): IsoDate | null {
+  const occurrence = occurrenceIn(timing, periodOf(timing, today).start);
+  return occurrence <= today ? occurrence : null;
+}
+
+/**
+ * `newSchedule`, with this period's occurrence too when it has passed ("Add this month too"): the schedule starts on
+ * that day, and the poster adds it at once, dated that day, then goes on as any schedule. Otherwise it is `newSchedule`.
+ */
+export function newScheduleWithThisPeriod(
+  fields: Pick<Schedule, 'frequency' | 'day' | 'accountId' | 'amountMinor'>,
+  today: IsoDate,
+  id: string = newId(),
+): Schedule {
+  const passed = passedThisPeriod(fields, today);
+  if (passed === null) return newSchedule(fields, today, id);
+  return { id, ...fields, startOn: passed, postedThrough: addDays(passed, -1) };
+}
+
+/**
  * Adds a schedule again from tomorrow: nothing up to today posts, and a later watermark stays. For a line whose
  * account was gone and has been picked again, so the periods it missed are not back-posted. A pause stays.
  */

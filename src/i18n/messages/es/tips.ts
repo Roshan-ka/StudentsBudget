@@ -12,12 +12,15 @@ export const tips: Messages['tips'] = {
   tipsIntro: 'Formas locales de pagar menos como estudiante. Cada consejo dice de dónde sale.',
   tipsFor: 'Mostrar consejos de',
   sourceLead: 'Fuente:',
-  discountsIntro:
-    'Descuentos para estudiantes en Regensburg. Cada uno indica su fuente. Dile a la app si uno sigue ' +
-    'funcionando: tus votos se guardan en este móvil, y en tu cuenta en cuanto el móvil esté vinculado. Los que ' +
-    'confirmas suben; los que marcas como desactualizados, o que llevan 8 semanas sin confirmar, bajan.',
+  discountsIntro: 'Descuentos para estudiantes en Regensburg, cada uno con su fuente.',
+  votesHow: 'Cómo funcionan los votos',
+  votesBody:
+    'Dile a la app si un descuento sigue funcionando: tus votos se guardan en este móvil, y en tu cuenta en cuanto ' +
+    'el móvil esté vinculado. Los que confirmas suben; los que marcas como desactualizados, o que llevan 8 semanas ' +
+    'sin confirmar, bajan.',
   discountsFor: 'Mostrar descuentos de',
-  loadFailed: 'No se han podido cargar los descuentos. Inténtalo más tarde.',
+  loadFailed: 'No se han podido cargar los descuentos.',
+  tryAgain: 'Intentar de nuevo',
   votes: { works: 'Sigue funcionando', outdated: 'Desactualizado' },
   voteGroup: (place) => `${place}: ¿sigue funcionando?`,
   markedOutdated: (date) => `Lo marcaste como desactualizado el ${date}.`,
@@ -249,7 +252,7 @@ export const tips: Messages['tips'] = {
       toggle: (count) => (count === 0 ? 'Comentarios' : `Comentarios (${count})`),
       list: 'Comentarios',
       loading: 'Cargando los comentarios…',
-      loadFailed: 'No se pudieron cargar los comentarios. Inténtalo más tarde.',
+      loadFailed: 'No se pudieron cargar los comentarios.',
       none: 'Todavía no hay comentarios.',
       body: 'Tu comentario',
       bodyHint: 'De 3 a 300 caracteres. Cualquier estudiante con cuenta puede leerlo.',

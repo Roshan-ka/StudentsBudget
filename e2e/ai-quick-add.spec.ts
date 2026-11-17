@@ -125,13 +125,13 @@ test('with today’s AI reads used up, the line is read on the phone and says so
   const ai = await mockAiFunction(page, { dailyLimit: true });
   await signedInHome(page);
 
-  await add(page, 'döner 6');
+  await add(page, 'lunch 6');
   await expect(
     page.getByText('Today’s AI reads are used up, so quick add reads your lines on this phone for now.', { exact: true }),
   ).toBeVisible();
-  // The local reader: nothing tells the category yet, so it asks.
+  // The local reader: "lunch" is on no word list and has no history, so it asks.
   await page.getByRole('group', { name: 'Category', exact: true }).getByRole('button', { name: 'Eating out', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · lunch · Eating out');
   expect(ai).toHaveLength(1);
 });
 
@@ -139,9 +139,9 @@ test('a guest sends nothing to the AI, and sees no note about it', async ({ page
   const ai = await mockAiFunction(page, { answers: { 'quick-add': readLine } });
   await seedSetup(page);
 
-  await add(page, 'döner 6');
+  await add(page, 'lunch 6');
   await page.getByRole('group', { name: 'Category', exact: true }).getByRole('button', { name: 'Eating out', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · lunch · Eating out');
   await expect(page.getByRole('group', { name: 'About your data', exact: true })).toHaveCount(0);
   expect(ai).toEqual([]);
 });
@@ -151,9 +151,9 @@ test('signed in with the switch off, nothing goes to the AI', async ({ page }) =
   const ai = await mockAiFunction(page, { answers: { 'quick-add': readLine } });
   await signedInHome(page);
 
-  await add(page, 'döner 6');
+  await add(page, 'lunch 6');
   await page.getByRole('group', { name: 'Category', exact: true }).getByRole('button', { name: 'Eating out', exact: true }).click();
-  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
+  await expect(page.getByRole('status')).toHaveText('Saved €6.00 · lunch · Eating out');
   await expect(page.getByRole('group', { name: 'About your data', exact: true })).toHaveCount(0);
   expect(ai).toEqual([]);
 });

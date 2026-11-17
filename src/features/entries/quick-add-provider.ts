@@ -4,7 +4,8 @@ import { isIsoDate } from '@/features/recurring/schedule';
 import type { IsoDate } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 import { EXPENSE_CATEGORIES } from './categories';
-import { readQuickAdd, suggestCategory } from './quick-add';
+import { guessCategory } from './category-words';
+import { readQuickAdd } from './quick-add';
 
 /** What a provider reads a line against: today, the accounts, and every expense so far (`history`). */
 export type QuickAddContext = { today: IsoDate; accounts: Account[]; history: Entry[] };
@@ -46,7 +47,7 @@ export function euroAccountId(accounts: Account[]): string | undefined {
 }
 
 /**
- * `readQuickAdd` for the amount and `suggestCategory` for the category, once per line. A line with a euro sign, "eur"
+ * `readQuickAdd` for the amount and `guessCategory` for the category, once per line. A line with a euro sign, "eur"
  * or "euro" next to the amount names a euro account when the default account is not in euros.
  */
 export const localQuickAddProvider: QuickAddProvider = {
@@ -54,7 +55,7 @@ export const localQuickAddProvider: QuickAddProvider = {
     const line = readQuickAdd(text);
     if (line === null) return null;
     const { reading: parsed, euro } = line;
-    const categoryId = suggestCategory(parsed.note, ctx.history);
+    const categoryId = guessCategory(parsed.note, ctx.history);
     const accountId = euro ? euroAccountId(ctx.accounts) : undefined;
     const account = accountId === undefined ? {} : { accountId };
     return 'kind' in parsed

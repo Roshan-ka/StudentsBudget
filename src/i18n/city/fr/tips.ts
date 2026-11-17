@@ -23,11 +23,6 @@ export const tips: Record<string, TipWords> = {
     body: `Tu paies par carte ou avec ton téléphone${NNBSP}? Pose aussi ta carte étudiante sur le terminal de la caisse, sinon tu paies le prix fort.`,
     source: `${STWNO}, page de la Mensa Uni Regensburg${NNBSP}: les caisses n’acceptent pas d’espèces${NNBSP}; il faut aussi poser la carte de la Mensa ou la carte étudiante sur le terminal pour avoir le prix étudiant`,
   },
-  'theatre-at-half-price': {
-    title: 'Va au théâtre à moitié prix',
-    body: `Les étudiants de moins de 30 ans paient moitié prix au Staatstheater${NNBSP}; les représentations U30 coûtent 10 € pour n’importe quelle place. Achète au guichet pour éviter les frais de 1,50 €.`,
-    source: `Staatstheater Regensburg, FAQ visiteurs${NNBSP}: 50 % de réduction sur le prix normal jusqu’au 30e anniversaire${NNBSP}; représentations U30 à 10 € pour n’importe quelle place${NNBSP}; 1,50 € de frais par billet en ligne ou par téléphone, aucun au guichet`,
-  },
   'historisches-museum-free': {
     title: 'Visite gratuitement le Historisches Museum',
     body: 'Les étudiants de moins de 30 ans entrent gratuitement au Historisches Museum de la ville (les adultes paient 5 €). Prends ta carte étudiante.',
@@ -37,11 +32,6 @@ export const tips: Record<string, TipWords> = {
     title: 'Visite gratuitement le musée d’histoire bavaroise',
     body: 'Les étudiants de moins de 30 ans entrent gratuitement à la Haus der Bayerischen Geschichte (les adultes paient 7 €), y compris dans la Bayernausstellung 2026/27.',
     source: `Haus der Bayerischen Geschichte, tarifs valables du 8 juillet 2026 au 7 août 2027${NNBSP}: adultes 7 €, étudiants de moins de 30 ans gratuit`,
-  },
-  'cinema-student-price': {
-    title: 'Réserve tes places de cinéma gratuitement',
-    body: 'Aux Kinos im Andreasstadel, les étudiants paient 8 € au lieu de 9 €. Réserve gratuitement plutôt que d’acheter en ligne, ce qui ajoute 10 %.',
-    source: `Kinos im Andreasstadel, tarifs${NNBSP}: 9 € plein tarif, 8 € réduit pour les étudiants avec justificatif${NNBSP}; la prévente en ligne ajoute 10 %${NNBSP}; les réservations sont gratuites`,
   },
   'register-in-person': {
     title: 'Inscris-toi en personne pour des bons gratuits',

@@ -130,7 +130,7 @@ test('setup: the Overdrawn box makes an opening balance negative, ticked after t
     ['Local bank', -25000],
   ]);
   // Home reads the total as it is: €250 below zero and €50 in the wallet.
-  await expect(page.getByText('Across all accounts: -€200', { exact: true })).toBeVisible();
+  await expect(page.getByText('Across all accounts: −€200', { exact: true })).toBeVisible();
 });
 
 test('setup: a typed minus sign is an overdrawn balance too, and the box follows the field', async ({ page }) => {
@@ -149,7 +149,7 @@ test('setup: a typed minus sign is an overdrawn balance too, and the box follows
 
   const [local] = (await readStore<Account>(page, 'accounts')).filter((a) => a.name === 'Local bank');
   expect(local.openingMinor).toBe(-25000);
-  await expect(page.getByText('Across all accounts: -€250', { exact: true })).toBeVisible();
+  await expect(page.getByText('Across all accounts: −€250', { exact: true })).toBeVisible();
 });
 
 test('setup: text that is not an amount stops the Accounts step, a lone minus sign included', async ({ page }) => {
@@ -196,7 +196,7 @@ test('Settings: an account can start overdrawn, with the box or a typed minus, a
   await opening.fill('250');
   await expect(opening).toHaveValue('-250');
   await page.getByRole('button', { name: 'Save account' }).click();
-  await expect(row('Overdraft').getByText('-€250.00')).toBeVisible();
+  await expect(row('Overdraft').getByText('−€250.00')).toBeVisible();
 
   // The form opens with the minus sign and the box ticked; clearing the box makes the balance positive.
   await page.getByRole('button', { name: 'Edit: Overdraft', exact: true }).click();
@@ -206,7 +206,7 @@ test('Settings: an account can start overdrawn, with the box or a typed minus, a
   await expect(opening).toHaveValue('250');
   await page.getByRole('button', { name: 'Save account' }).click();
   await expect(row('Overdraft').getByText('€250.00')).toBeVisible();
-  await expect(row('Overdraft').getByText('-€250.00')).toHaveCount(0);
+  await expect(row('Overdraft').getByText('−€250.00')).toHaveCount(0);
 
   // A typed minus sign works without the box, and the box shows it.
   await page.getByRole('button', { name: 'Add account' }).click();
@@ -214,7 +214,7 @@ test('Settings: an account can start overdrawn, with the box or a typed minus, a
   await opening.fill('-75,50');
   await expect(box).toBeChecked();
   await page.getByRole('button', { name: 'Save account' }).click();
-  await expect(row('Typed').getByText('-€75.50')).toBeVisible();
+  await expect(row('Typed').getByText('−€75.50')).toBeVisible();
 
   const accounts = await readStore<Account>(page, 'accounts');
   expect(accounts.map((a) => [a.name, a.openingMinor]).sort()).toEqual([
@@ -264,7 +264,7 @@ test('Settings: two accounts, the default mark and the Overdrawn box fit a phone
   }
 
   // Both rows with their buttons, and the default mark in the meta line of the first.
-  await expect(page.getByText('-€250.00', { exact: true })).toBeVisible();
+  await expect(page.getByText('−€250.00', { exact: true })).toBeVisible();
   await expect(page.getByText('Default for new entries', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Make default: Wallet', exact: true })).toBeVisible();
   expect(await overflow(page)).toBeLessThanOrEqual(0);

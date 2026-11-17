@@ -1,17 +1,19 @@
 'use client';
 
+import { ListChecksIcon } from 'lucide-react';
 import { useId } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { Label } from '@/components/ui/label';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { draftAccountOf, isRepaired, type AccountOption, type DraftSchedule } from '@/features/setup/draft';
 import { useStepProblems } from '@/features/setup/step-problems';
 import { AmountField } from '@/features/setup/steps/amount-field';
 import { useT } from '@/i18n/use-t';
-import type { IsoDate } from '@/lib/dates';
+import { formatDate, type IsoDate } from '@/lib/dates';
 import { formatMoney, type Minor } from '@/lib/money';
 import { firstAddedLine } from './lines';
 import { RepeatFields } from './repeat-fields';
-import { firstAddedOn, perOccurrence, type LineType } from './schedule';
+import { firstAddedOn, passedThisPeriod, perOccurrence, type LineType } from './schedule';
 import { useLineEntries } from './use-line-entries';
 
 /**
@@ -51,8 +53,14 @@ export function DraftScheduleFields({
   // The entries only move the day later, never make it appear, so an empty line holds its place while they load.
   const repaired = isRepaired(schedule, accounts);
   const expectsFirst = account !== undefined && firstAddedOn(schedule, schedule.saved, today, repaired) !== null;
-  const firstOn =
-    expectsFirst && lineEntries ? firstAddedOn(schedule, schedule.saved, today, repaired, lineEntries) : null;
+  // "Add this month too" (review P1): a new income line whose day this period is behind it. Ticked unless unticked.
+  const passed = type === 'income' && !schedule.saved ? passedThisPeriod(schedule, today) : null;
+  const addsThisPeriod = passed !== null && schedule.thisPeriodToo !== false;
+  const firstOn = addsThisPeriod
+    ? passed
+    : expectsFirst && lineEntries
+      ? firstAddedOn(schedule, schedule.saved, today, repaired, lineEntries)
+      : null;
   // The amount in another currency is missing: the step's problems say so (`scheduleProblems`), and the field points
   // at them once they show.
   const problems = useStepProblems();
@@ -77,8 +85,33 @@ export function DraftScheduleFields({
           {schedule.on && (
             <>
               <p className="text-sm text-muted-foreground">{text.autoHint}</p>
-              {schedule.saved?.paused && <p className="text-sm text-muted-foreground">{text.pausedForNow}</p>}
+              {schedule.saved?.paused && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">{text.pausedForNow}</p>
+                  {/* The page the sentence names (review U3). */}
+                  <LinkButton href="/settings/plan" icon={ListChecksIcon}>
+                    {t.shell.headings.plan}
+                  </LinkButton>
+                </div>
+              )}
               <RepeatFields timing={schedule} onChange={(timing) => onChange({ ...schedule, ...timing })} />
+              {passed !== null && (
+                <div className="flex flex-col gap-1">
+                  <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      className="size-5 shrink-0 accent-primary"
+                      checked={addsThisPeriod}
+                      aria-describedby={`${id}-this-period`}
+                      onChange={(event) => onChange({ ...schedule, thisPeriodToo: event.target.checked })}
+                    />
+                    {schedule.frequency === 'weekly' ? text.thisWeekToo : text.thisMonthToo}
+                  </label>
+                  <p id={`${id}-this-period`} className="text-sm text-muted-foreground">
+                    {text.thisPeriodHint(formatDate(passed))}
+                  </p>
+                </div>
+              )}
               {expectsFirst && (
                 <p className="min-h-5 text-sm text-muted-foreground">
                   {firstOn ? firstAddedLine(firstOn, lang) : null}

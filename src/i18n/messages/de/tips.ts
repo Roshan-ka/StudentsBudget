@@ -11,12 +11,15 @@ export const tips: Messages['tips'] = {
   tipsIntro: 'Wie Studierende vor Ort weniger zahlen. Jeder Tipp sagt, woher er stammt.',
   tipsFor: 'Tipps zeigen für',
   sourceLead: 'Quelle:',
-  discountsIntro:
-    'Rabatte für Studierende in Regensburg. Jeder nennt seine Quelle. Sag der App, ob einer noch gilt: Deine Stimmen ' +
-    'werden auf diesem Handy gespeichert und in deinem Konto, sobald das Handy verknüpft ist. Bestätigte rücken nach ' +
-    'oben; solche, die du als veraltet markierst oder die 8 Wochen lang nicht bestätigt wurden, rücken nach unten.',
+  discountsIntro: 'Rabatte für Studierende in Regensburg, jeder mit seiner Quelle.',
+  votesHow: 'So funktionieren die Stimmen',
+  votesBody:
+    'Sag der App, ob ein Rabatt noch gilt: Deine Stimmen werden auf diesem Handy gespeichert und in deinem Konto, ' +
+    'sobald das Handy verknüpft ist. Bestätigte rücken nach oben; solche, die du als veraltet markierst oder die 8 ' +
+    'Wochen lang nicht bestätigt wurden, rücken nach unten.',
   discountsFor: 'Rabatte zeigen für',
-  loadFailed: 'Die Rabatte ließen sich nicht laden. Versuch es später noch einmal.',
+  loadFailed: 'Die Rabatte ließen sich nicht laden.',
+  tryAgain: 'Noch einmal versuchen',
   votes: { works: 'Gilt noch', outdated: 'Veraltet' },
   voteGroup: (place) => `${place}: Gilt das noch?`,
   markedOutdated: (date) => `Du hast das am ${date} als veraltet markiert.`,
@@ -237,7 +240,7 @@ export const tips: Messages['tips'] = {
       toggle: (count) => (count === 0 ? 'Kommentare' : `Kommentare (${count})`),
       list: 'Kommentare',
       loading: 'Kommentare werden geladen …',
-      loadFailed: 'Die Kommentare konnten nicht geladen werden. Versuch es später noch einmal.',
+      loadFailed: 'Die Kommentare konnten nicht geladen werden.',
       none: 'Noch keine Kommentare.',
       body: 'Dein Kommentar',
       bodyHint: '3 bis 300 Zeichen. Alle Studierenden mit Konto können ihn lesen.',

@@ -13,10 +13,10 @@ test.use({ viewport: { width: 375, height: 812 } });
 // iPhone that does not always fit in the default 30 s.
 test.describe.configure({ timeout: 90_000 });
 
-async function quickAdd(page: Page, text: string, category: string, saved: string) {
+/** A line quick add files by itself ("döner", "rewe": its word list), then the Saved line. */
+async function quickAdd(page: Page, text: string, saved: string) {
   await page.getByRole('textbox', { name: 'Quick add' }).fill(text);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await page.getByRole('button', { name: category }).click();
   // Waiting for the line also waits for the entry to be in the database.
   await expect(page.getByRole('status')).toHaveText(saved);
 }
@@ -263,8 +263,8 @@ test('shows each category spent against its plan as bars, and a tapped bar opens
   page,
 }) => {
   await seedSetup(page);
-  await quickAdd(page, 'döner 6', 'Eating out', 'Saved €6.00 · döner · Eating out');
-  await quickAdd(page, 'rewe 20', 'Food & groceries', 'Saved €20.00 · rewe · Food & groceries');
+  await quickAdd(page, 'döner 6', 'Saved €6.00 · döner · Eating out');
+  await quickAdd(page, 'rewe 20', 'Saved €20.00 · rewe · Food & groceries');
 
   await openCharts(page);
   const spending = spendingSection(page);
@@ -543,7 +543,7 @@ test('a period of 12 months fits a phone: twelve columns, and no label wider tha
 
 test('a keyboard reaches every bar through the table, which shows itself while a link has focus', async ({ page }) => {
   await seedSetup(page);
-  await quickAdd(page, 'döner 6', 'Eating out', 'Saved €6.00 · döner · Eating out');
+  await quickAdd(page, 'döner 6', 'Saved €6.00 · döner · Eating out');
   await openCharts(page);
   const spending = spendingSection(page);
   await pickStyle(spending, 'Spending chart style', 'Bars');
@@ -579,7 +579,7 @@ test('the month switcher moves between months, and a month with nothing in it sa
   page,
 }) => {
   await seedSetup(page);
-  await quickAdd(page, 'döner 6', 'Eating out', 'Saved €6.00 · döner · Eating out');
+  await quickAdd(page, 'döner 6', 'Saved €6.00 · döner · Eating out');
   await openCharts(page);
   await expect(spendingSection(page)).toBeVisible();
 
@@ -620,7 +620,7 @@ test('the month switcher moves between months, and a month with nothing in it sa
 // Roshan, 2026-11-06: spending typed in for a day before setup is real spending of that month.
 test('the setup month plans the whole envelope and counts its whole month, before the setup day too', async ({ page }) => {
   await seedSetup(page);
-  await quickAdd(page, 'rewe 20', 'Food & groceries', 'Saved €20.00 · rewe · Food & groceries');
+  await quickAdd(page, 'rewe 20', 'Saved €20.00 · rewe · Food & groceries');
   await seedEntries(page, [
     // Backdated to before the setup day: counted against food's envelope like any other day of October.
     { type: 'expense', categoryId: 'food', date: '2026-10-03', eurMinor: 18000 },
@@ -663,7 +663,7 @@ test('coming back from another page shows what was added there', async ({ page }
   // The router keeps the charts page mounted but hidden while Entries is open.
   await nav.getByRole('link', { name: 'Entries' }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Entries' })).toBeVisible();
-  await quickAdd(page, 'döner 6', 'Eating out', 'Saved €6.00 · döner · Eating out');
+  await quickAdd(page, 'döner 6', 'Saved €6.00 · döner · Eating out');
 
   await nav.getByRole('link', { name: 'Charts' }).click();
   await expect(spendingSection(page).getByRole('listitem')).toHaveText(['Eating out€6100%']);

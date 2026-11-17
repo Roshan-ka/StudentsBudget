@@ -1,8 +1,9 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
+import { LogInIcon, ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { FoldSummary, LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card';
 import type { Discount } from '@/data/discounts';
@@ -113,6 +114,8 @@ export function DiscountsView({
   const items = useRef(new Map<string, HTMLLIElement>());
   /** A discount just voted on: it moves in the list, and focus goes with it. */
   const follow = useRef<string | null>(null);
+  // Try again after the list couldn't load (review U5): a new read of the source.
+  const [listAttempt, setListAttempt] = useState(0);
 
   useEffect(() => {
     let current = true;
@@ -130,7 +133,7 @@ export function DiscountsView({
     return () => {
       current = false;
     };
-  }, [source]);
+  }, [source, listAttempt]);
 
   // Other students' totals, read once per visit while signed in. Without them (signed out, offline, refused) the list
   // goes by this phone's votes alone.
@@ -178,7 +181,16 @@ export function DiscountsView({
   }, [votes]);
 
   if (failed && discounts === null) {
-    return <p className="text-sm text-muted-foreground">{text.loadFailed}</p>;
+    return (
+      <div className="flex flex-col gap-2">
+        <p role="alert" className="text-sm">
+          {text.loadFailed}
+        </p>
+        <Button type="button" variant="outline" className="self-start px-4" onClick={() => setListAttempt((n) => n + 1)}>
+          {text.tryAgain}
+        </Button>
+      </div>
+    );
   }
   if (today === null || discounts === null || votes === undefined) return null;
 
@@ -349,8 +361,20 @@ export function DiscountsView({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* One line, and how votes work folded under it, so the first discount shows on a phone (review P6). */}
       <p className="text-sm text-muted-foreground">{text.discountsIntro}</p>
-      {auth.status === 'signed-out' && <p className="text-sm text-muted-foreground">{text.othersSignIn}</p>}
+      <details className="text-sm">
+        <FoldSummary>{text.votesHow}</FoldSummary>
+        <p className="pt-2 pb-1 text-muted-foreground">{text.votesBody}</p>
+      </details>
+      {auth.status === 'signed-out' && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">{text.othersSignIn}</p>
+          <LinkButton href="/settings/account" icon={LogInIcon}>
+            {t.common.toAccount}
+          </LinkButton>
+        </div>
+      )}
       {userId !== null &&
         (adding ? (
           <DiscountForm userId={userId} onAdded={onAdded} onCancel={closeForm} />
@@ -447,7 +471,10 @@ export function DiscountsView({
                   ) : (
                     <>
                       {f.mayBeOutdated && <p className="font-medium">{text.mayBeOutdated}</p>}
-                      <p className="text-muted-foreground">{text.lastConfirmed(formatDate(f.lastConfirmed))}</p>
+                      {/* The source line already says the checked date: the same date twice says nothing (P6). */}
+                      {(own === null || f.lastConfirmed !== own.checked) && (
+                        <p className="text-muted-foreground">{text.lastConfirmed(formatDate(f.lastConfirmed))}</p>
+                      )}
                     </>
                   )}
                   {others !== undefined && others.works > 0 && (

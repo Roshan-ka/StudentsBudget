@@ -1,13 +1,16 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import { LandmarkIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
+import { LinkButton } from '@/components/link-button';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
 import { refreshRates } from '@/db/rates';
 import { SetupAccountLink } from '@/features/account/setup-account-link';
 import { syncAfterSetup } from '@/features/account/sync-status';
 import { useAuth } from '@/features/account/use-auth';
+import { postDueRecurring } from '@/features/recurring/post-due';
 import type { Plan } from '@/db/types';
 import { sortAccounts } from '@/features/accounts/balances';
 import { aiSetupChatInBuild, useAiSwitch } from '@/features/ai/switch';
@@ -153,6 +156,13 @@ function Wizard({
       router.replace('/');
       return;
     }
+    // "Add this month too" (review P1): an income whose day this period has passed is added now, before Home opens,
+    // so the first month's charts start with it. Posting is idempotent; a failure leaves it to the next start.
+    try {
+      await postDueRecurring(todayIso());
+    } catch (error) {
+      console.error('StudentsBudget: could not add the income that is due', error);
+    }
     if (!edit) {
       // The accounts only exist now, so this is the first moment the INR rate can be fetched. Not awaited:
       // the plan is saved, and the rate shows up through the live queries once it arrives.
@@ -218,7 +228,12 @@ function Wizard({
         <div className={cn('flex flex-col gap-4', chatting && 'hidden')}>
           {step === 'accounts' && <AccountsStep draft={draft} update={update} />}
           {step === 'income' && !edit && accountsExist && (
-            <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">{text.accountsInSettings}</p>
+              <LinkButton href="/settings/accounts" icon={LandmarkIcon}>
+                {t.shell.headings.accounts}
+              </LinkButton>
+            </div>
           )}
           {step === 'income' && (
             <IncomeStep draft={draft} update={update} accounts={accounts} today={today} edit={edit} />

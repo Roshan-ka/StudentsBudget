@@ -6,8 +6,8 @@ import { deleteEntry, saveEntry } from '@/db/repo';
 import { applyLink, linkPhone, linkWithChoice, planLink, unlinkPhone } from './link';
 import { push } from './push';
 import type { UserDataStore } from './store';
-import { expense, fakeStore, liveIds, snapshot } from './test-helpers';
-import { applyUpload, planUpload } from './upload';
+import { applyUpload, expense, fakeStore, liveIds, snapshot } from './test-helpers';
+import { planUpload } from './upload';
 
 // Linking over fake-indexeddb (with the real tracking middleware) and the fake store.
 

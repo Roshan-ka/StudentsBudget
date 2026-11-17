@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { PencilIcon } from 'lucide-react';
+import { ClipboardListIcon, PencilIcon } from 'lucide-react';
 import { LinkButton } from '@/components/link-button';
 import { cardVariants } from '@/components/ui/card';
 import { db } from '@/db/db';
@@ -15,14 +15,23 @@ import { cn } from '@/lib/utils';
  * The top of Settings → Plan, in the accent card (group 4 redesign, Roshan's mockups, 17-11-2026): what comes in and
  * what goes on fixed costs each month, as the plan has them (`planSummary`: paused lines left out), then the way into
  * editing the plan. A part the plan has nothing for is left out, and with neither only the words and Edit plan stay.
- * Shown only once a plan exists: before that there is nothing to edit.
+ * Before a plan exists the page says so, with the way to setup, as every other page does (review U2, 17-11-2026).
  */
 export function EditPlanSection() {
   const { t, locale } = useT();
   const text = t.setup.editPlan;
-  // 'loading' (no answer yet) and null (no plan) both render nothing.
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
-  if (plan === 'loading' || plan === null) return null;
+  if (plan === 'loading') return null;
+  if (plan === null) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-muted-foreground">{text.noPlan}</p>
+        <LinkButton href="/setup" icon={ClipboardListIcon}>
+          {t.common.toSetup}
+        </LinkButton>
+      </div>
+    );
+  }
 
   // Rendered on the phone only (the plan comes from Dexie), so today's month is the phone's.
   const { incomeMinor, fixedMinor } = planSummary(plan, monthOf(todayIso()));

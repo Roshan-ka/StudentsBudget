@@ -123,12 +123,23 @@ export type SetupOptions = {
   accountsExist?: boolean;
   /**
    * Leaves "Add it automatically" on for rent and the incomes (monthly on the 1st, from the first account). Off by
-   * default, so a spec that moves its clock past the 1st finds no entries it did not make.
+   * default, so a spec that moves its clock past the 1st finds no entries it did not make. The incomes' "Add this month
+   * too" (review P1) is unticked, so they start tomorrow as before; `thisMonthToo` leaves it ticked.
    */
   schedules?: boolean;
+  /** With `schedules`: leaves the incomes' "Add this month too" ticked, as a student finds it. */
+  thisMonthToo?: boolean;
 };
 
 const isPositive = (amount: string): boolean => Number(amount.trim().replace(',', '.')) > 0;
+
+/** Unticks "Add this month too" for a new income line, where its day this month is behind (review P1). */
+async function notThisMonth(page: Page, name: string) {
+  const box = page
+    .getByRole('group', { name: `${name} schedule`, exact: true })
+    .getByRole('checkbox', { name: 'Add this month too', exact: true });
+  await box.uncheck();
+}
 
 /** Turns "Add it automatically" off for a line the wizard shows with an amount. */
 async function addByHand(page: Page, name: string) {
@@ -190,6 +201,9 @@ export async function fillSetup(page: Page, overrides: Partial<SetupFixture> = {
   if (!options.schedules) {
     if (isPositive(f.incomes.parents)) await addByHand(page, 'Parents');
     if (isPositive(f.incomes.job)) await addByHand(page, 'Job');
+  } else if (!options.thisMonthToo) {
+    if (isPositive(f.incomes.parents)) await notThisMonth(page, 'Parents');
+    if (isPositive(f.incomes.job)) await notThisMonth(page, 'Job');
   }
   await nextStep(page, 'Fixed costs');
 

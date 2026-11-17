@@ -95,17 +95,6 @@ export function savingText(minor: Minor, locale?: string): string {
   return minor < 100 ? amountText(minor, locale) : amountText(Math.floor(minor / 100) * 100, locale);
 }
 
-/**
- * "Try this: Eat at the Mensa instead of a restaurant · save about €10 per meal", in `lang`; the swap's title and
- * what it is per are city content, in `lang` where translated (`swapIn`). A saving that rests on an assumption says
- * "(estimate)" on the line itself, where the number is shown, not only once the swap is opened.
- */
-export function swapLineText(suggestion: Suggestion, lang: Language = 'en'): string {
-  return swapLineParts(suggestion, lang)
-    .map((part) => part.text)
-    .join('');
-}
-
 /** A piece of a swap line: the app's words, or the swap's title or unit with the language they are in. */
 export type LinePart = { text: string; lang: 'en' | undefined };
 

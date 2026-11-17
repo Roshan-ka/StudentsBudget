@@ -123,6 +123,8 @@ export const auth = {
     /** The last sync left changes in the outbox. */
     unsynced: (count: number) =>
       count === 1 ? '1 change isn’t in your account yet.' : `${count} changes aren’t in your account yet.`,
+    /** The outbox couldn’t be counted (review B3): changes may still be waiting. */
+    unsyncedUnknown: 'Some changes may not be in your account yet.',
     unsyncedOffline: 'You’re offline. Stay signed in and sync later, or sign out and lose these changes.',
     unsyncedFailed: 'They couldn’t be sent. Stay signed in and sync later, or sign out and lose these changes.',
     stay: 'Stay signed in',

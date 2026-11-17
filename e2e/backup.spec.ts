@@ -273,7 +273,6 @@ test.describe('on a desktop browser', () => {
     // An entry, and a manual INR rate next to the ECB one.
     await page.getByRole('textbox', { name: 'Quick add' }).fill('döner 6');
     await page.getByRole('button', { name: 'Add', exact: true }).click();
-    await page.getByRole('button', { name: 'Eating out' }).click();
     await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
     // Rows in the version-3 tables, written before Settings opens: its snapshot is read when the page mounts.
     await putRows(page, 'weekResults', [WEEK_RESULT]);
@@ -375,7 +374,6 @@ test.describe('on a desktop browser', () => {
     await seedSetup(page);
     await page.getByRole('textbox', { name: 'Quick add' }).fill('döner 6');
     await page.getByRole('button', { name: 'Add', exact: true }).click();
-    await page.getByRole('button', { name: 'Eating out' }).click();
     await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
     await openSettings(page);
     const before = await everything(page);

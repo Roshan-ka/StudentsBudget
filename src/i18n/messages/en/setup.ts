@@ -149,6 +149,8 @@ export const setup = {
       'Change your envelopes, add one-off costs such as the semester fee, or add the income and fixed costs setup ' +
       'skipped.',
     link: 'Edit plan',
+    /** /settings/plan before a plan exists (review U2). */
+    noPlan: 'Set up your plan first, then change it here.',
     /** The accent card on /settings/plan (group 4 redesign): what comes in and what goes on fixed costs each month. */
     eachMonth: 'Each month',
     comesIn: (amount: string) => `${amount} in`,

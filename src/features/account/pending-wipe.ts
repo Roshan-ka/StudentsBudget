@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { deleteEverything } from '@/db/bulk';
+import { db } from '@/db/db';
 import { readPref, writePref } from '@/lib/phone-pref';
 import { withSyncLock } from '@/sync/lock';
 
@@ -39,7 +40,7 @@ export function useWipeOwedAtLoad(): boolean {
   return useSyncExternalStore(noChanges, readOwedAtLoad, () => false);
 }
 
-/** Forgets the owed wipe: done, or a new sign-in has taken the phone over (its link asks what to keep). */
+/** Forgets the owed wipe: done, or a new sign-in by the account the phone is linked to (or by anyone on an unlinked phone). */
 export function forgetPendingWipe(): void {
   writePref(WIPE_PENDING_KEY, '');
 }
@@ -69,4 +70,44 @@ export async function finishPendingWipe(): Promise<'none' | 'done' | 'failed'> {
     console.error('StudentsBudget: could not clear this phone after signing out', error);
     return 'failed';
   }
+}
+
+/** What a sign-in's wipe check settled to (`settleWipeOnSignIn`). */
+export type WipeOnSignIn = 'none' | 'kept' | 'done' | 'failed';
+
+/** The check in flight, so the session listener and linking share one and never wipe twice. */
+let settling: { userId: string; result: Promise<WipeOnSignIn> } | undefined;
+
+/**
+ * A sign-in while a sign-out still owes the phone its wipe (review B1, 17-11-2026). The account the phone is linked to
+ * signing in again, or anyone on a phone with no link, takes the phone over: the mark goes, and linking asks what to
+ * keep. Anyone else first gets the wipe finished: the data is another account's, and linking would only refuse
+ * (`planLink`'s `other-account`) while it showed on Home. `failed` keeps the mark, for the account page to say.
+ * Called by the session listener on `SIGNED_IN` and by linking before it plans; both share one check per user.
+ */
+export function settleWipeOnSignIn(userId: string): Promise<WipeOnSignIn> {
+  if (settling?.userId === userId) return settling.result;
+  const result = settleNow(userId);
+  settling = { userId, result };
+  void result.finally(() => {
+    if (settling?.result === result) settling = undefined;
+  });
+  return result;
+}
+
+async function settleNow(userId: string): Promise<WipeOnSignIn> {
+  if (!wipePending()) return 'none';
+  let linkedTo: string | null | undefined;
+  try {
+    linkedTo = (await db.syncState.get('current'))?.userId;
+  } catch (error) {
+    // Unreadable: the data may be another account's, so the wipe is finished.
+    console.error('StudentsBudget: could not read the link before a sign-in took the phone over', error);
+    return finishPendingWipe();
+  }
+  if (!linkedTo || linkedTo === userId) {
+    forgetPendingWipe();
+    return 'kept';
+  }
+  return finishPendingWipe();
 }

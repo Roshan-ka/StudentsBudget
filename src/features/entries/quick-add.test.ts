@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '@/db/types';
-import { keywordsOf, parseQuickAdd, suggestCategory } from './quick-add';
+import { keywordsOf, lineAfterQuestion, readQuickAdd, suggestCategory } from './quick-add';
+
+/** The amount or choice `readQuickAdd` reads from a line, or null (review D4: only the tests read it on its own). */
+const parseQuickAdd = (text: string) => readQuickAdd(text)?.reading ?? null;
 
 describe('parseQuickAdd', () => {
   const cases: [string, number, string][] = [
@@ -699,5 +702,24 @@ describe('suggestCategory', () => {
 
       expect(suggestCategory('big rewe shop', history)).toBe('eating-out');
     });
+  });
+});
+
+describe('lineAfterQuestion (review P3, 17-11-2026)', () => {
+  it('starts the next line when a letter follows the asked line', () => {
+    expect(lineAfterQuestion('döner 6,50', 'döner 6,50B')).toBe('B');
+    expect(lineAfterQuestion('döner 6,50', 'döner 6,50Bücher')).toBe('Bücher');
+  });
+
+  it('keeps a space, a digit or a mark after the line: the note goes on, or the amount is fixed', () => {
+    expect(lineAfterQuestion('döner 6', 'döner 6 ')).toBe('döner 6 ');
+    expect(lineAfterQuestion('döner 6', 'döner 6,')).toBe('döner 6,');
+    expect(lineAfterQuestion('döner 6', 'döner 65')).toBe('döner 65');
+  });
+
+  it('keeps an edit inside the line, a deletion and a pasted line as typed', () => {
+    expect(lineAfterQuestion('döner 6', 'dönerx 6')).toBe('dönerx 6');
+    expect(lineAfterQuestion('döner 6', 'döner ')).toBe('döner ');
+    expect(lineAfterQuestion('', 'bus 3')).toBe('bus 3');
   });
 });

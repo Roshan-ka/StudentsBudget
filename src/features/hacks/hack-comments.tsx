@@ -162,7 +162,15 @@ export function HackComments({
       {children}
       <div id={listId} hidden={!open} className="flex flex-col gap-3">
         {open && comments === null && <p className="text-sm text-muted-foreground">{text.loading}</p>}
-        {open && comments === 'failed' && <p className="text-sm text-muted-foreground">{text.loadFailed}</p>}
+        {open && comments === 'failed' && (
+          // As the feed does (review U5): what went wrong, then a way to try again.
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">{text.loadFailed}</p>
+            <Button type="button" variant="outline" className="self-start px-4" onClick={() => void load()}>
+              {t.tips.tryAgain}
+            </Button>
+          </div>
+        )}
         {open && Array.isArray(comments) && comments.length === 0 && (
           <p className="text-sm text-muted-foreground">{text.none}</p>
         )}

@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { onNavPage } from '@/components/bottom-nav';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/db';
+import { useAuth } from '@/features/account/use-auth';
 import { aiInBuild } from '@/features/ai/switch';
 import { useT } from '@/i18n/use-t';
 import { AskView } from './ask-view';
@@ -15,8 +16,9 @@ import { AskView } from './ask-view';
 /**
  * Ask as a chat bubble (Roshan, from the mockups, 13-11-2026: "like the McDonald's chatbot"): a round button at the
  * bottom corner, above the navigation, on the navigation's pages and the check-in, that opens Ask as a sheet over the
- * page instead of a page of its own. Only in a build with the AI features, and once there is a plan (the navigation's
- * own rule). `AskView` says what a guest, an account owing its code or a phone with the AI switched off needs.
+ * page instead of a page of its own. Only in a build with the AI features, once there is a plan (the navigation's own
+ * rule), and while someone is signed in (review P5, 17-11-2026: for a guest it was a floating sign-in prompt over every
+ * page). `AskView` says what an account owing its code or a phone with the AI switched off needs.
  *
  * The sheet stays mounted while closed (`keepMounted`), so a conversation is still there when it opens again, in memory
  * only, as before. It is open on the page it was opened on: a link in it (to Your account, say) leads away, and the
@@ -27,10 +29,16 @@ export function AskBubble() {
   const { t } = useT();
   const pathname = usePathname();
   const plan = useLiveQuery(() => db.plan.get('current').then((p) => p ?? null), [], 'loading' as const);
+  const auth = useAuth();
   const [openOn, setOpenOn] = useState<string | null>(null);
   const popup = useRef<HTMLDivElement>(null);
+  const account = auth.status === 'signed-in' || auth.status === 'second-step';
   const shown =
-    aiInBuild() && plan !== 'loading' && plan !== null && (onNavPage(pathname) || pathname === '/check-in');
+    aiInBuild() &&
+    account &&
+    plan !== 'loading' &&
+    plan !== null &&
+    (onNavPage(pathname) || pathname === '/check-in');
 
   useEffect(() => {
     if (!shown) return;

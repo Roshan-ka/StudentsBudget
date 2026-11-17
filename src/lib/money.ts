@@ -70,16 +70,21 @@ function currencyFormatter(currency: CurrencyCode, whole: boolean, locale: strin
   return formatter;
 }
 
+/** The minus sign every negative amount is written with (review U7, 17-11-2026): the charts' "−€40" and Settings alike. */
+export const MINUS_SIGN = '−';
+
 /**
- * "€6.50", or "€63" with `{ whole: true }`, in English; another `locale` formats its own way ("6,50 €"). A whole
- * figure that rounds to nothing is "€0", never "-€0": a few cents overdrawn would otherwise read as a minus sign in
- * front of zero. (`signDisplay` would do it, but an older Safari throws.)
+ * "€6.50", or "€63" with `{ whole: true }`, in English; another `locale` formats its own way ("6,50 €"). A negative
+ * amount takes the true minus sign ("−€250.00", "−250,00 €"), never Intl's hyphen. A whole figure that rounds to
+ * nothing is "€0", never "−€0": a few cents overdrawn would otherwise read as a minus sign in front of zero.
+ * (`signDisplay` would do it, but an older Safari throws.) For a field's text, use `amountInputText`.
  */
 export function formatMoney(m: Minor, c: CurrencyCode, o?: { whole?: boolean; locale?: string }): string {
   const whole = o?.whole ?? false;
   const major = m / 100;
   // Below half a unit either way rounds to nothing; ±0.50 rounds away from zero, as Intl does, so both signs match.
-  return currencyFormatter(c, whole, o?.locale ?? DEFAULT_LOCALE).format(whole && Math.abs(major) < 0.5 ? 0 : major);
+  const text = currencyFormatter(c, whole, o?.locale ?? DEFAULT_LOCALE).format(whole && Math.abs(major) < 0.5 ? 0 : major);
+  return text.replace('-', MINUS_SIGN);
 }
 
 const wholeNumberFormatters = new Map<string, Intl.NumberFormat>();

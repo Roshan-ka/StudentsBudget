@@ -11,12 +11,17 @@ export const tips = {
   tipsFor: 'Show tips for',
   /** Starts a tip's small source line: "Source: mensa.de · checked 04.11.2026". */
   sourceLead: 'Source:',
-  discountsIntro:
-    'Student discounts in Regensburg. Each one names its source. Tell the app whether one still works: your votes ' +
-    'are saved on this phone, and in your account once the phone is linked. Ones you confirm move up; ones you mark ' +
-    'as outdated, or that haven’t been confirmed for 8 weeks, move down.',
+  /** One line above the list (review P6, 17-11-2026); how votes work folds under `votesHow`. */
+  discountsIntro: 'Student discounts in Regensburg, each with its source.',
+  votesHow: 'How votes work',
+  votesBody:
+    'Tell the app whether a discount still works: your votes are saved on this phone, and in your account once the ' +
+    'phone is linked. Ones you confirm move up; ones you mark as outdated, or that haven’t been confirmed for 8 ' +
+    'weeks, move down.',
   discountsFor: 'Show discounts for',
-  loadFailed: 'The discounts couldn’t be loaded. Try again later.',
+  loadFailed: 'The discounts couldn’t be loaded.',
+  /** After a list that couldn’t load: the discounts, or a post’s comments (review U5). */
+  tryAgain: 'Try again',
   /** "Still works" names the icon-only thumbs-up; "Outdated" shows beside its thumbs-down. */
   votes: { works: 'Still works', outdated: 'Outdated' },
   voteGroup: (place: string) => `${place}: does it still work?`,
@@ -268,7 +273,7 @@ export const tips = {
       toggle: (count: number) => (count === 0 ? 'Comments' : `Comments (${count})`),
       list: 'Comments',
       loading: 'Loading the comments…',
-      loadFailed: 'The comments couldn’t be loaded. Try again later.',
+      loadFailed: 'The comments couldn’t be loaded.',
       none: 'No comments yet.',
       body: 'Your comment',
       bodyHint: '3 to 300 characters. Every student with an account can read it.',

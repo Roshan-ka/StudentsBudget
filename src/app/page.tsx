@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { db } from '@/db/db';
 import { useAuth } from '@/features/account/use-auth';
 import { HomeScreen } from '@/features/home/home';
-import { firstRunPath } from '@/features/start/first-run';
+import { firstRunPathSoon, sessionMayBeStored } from '@/features/start/first-run';
 
 export default function Home() {
   const router = useRouter();
@@ -25,10 +25,13 @@ export default function Home() {
   const plan = loaded === 'loading' ? 'loading' : loaded.plan;
   // Without a plan, where to go depends on who is signed in (firstRunPath): the start page, its code step, or setup.
   const auth = useAuth();
-  const path = firstRunPath(auth.status);
 
   useEffect(() => {
-    if (plan !== null || path === null) return;
+    if (plan !== null) return;
+    // With no session on the phone the start page needs no wait for supabase-js (review P4): read here, never while
+    // rendering, so the page stays static.
+    const path = firstRunPathSoon(auth.status, sessionMayBeStored());
+    if (path === null) return;
     // The router keeps a page it has left mounted but hidden, so `plan` can still be the null from before
     // setup when the person comes back. Ask the database again before sending them away.
     let cancelled = false;
@@ -41,7 +44,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [plan, path, router]);
+  }, [plan, auth.status, router]);
 
   if (loaded === 'loading' || loaded.plan === null) return null;
 

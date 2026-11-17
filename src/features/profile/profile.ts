@@ -144,7 +144,7 @@ type NextFee = { dueMonth: IsoMonth; fee: SemesterFee | undefined };
  * dates work as well, followed by the ones after it until one fits. Elsewhere the saved semester is followed by one
  * that starts the day after its end, and nothing is due when neither fits.
  */
-function nextFee(profile: Profile | null | undefined, today: IsoDate): NextFee | null {
+export function nextFee(profile: Profile | null | undefined, today: IsoDate): NextFee | null {
   if (!profile || semesterWeeksOf(profile) === null) return null;
   const thisMonth = monthOf(today);
   // 'YYYY-MM' strings sort chronologically.
@@ -158,11 +158,6 @@ function nextFee(profile: Profile | null | undefined, today: IsoDate): NextFee |
   }
   const start = [semesterStart, addDays(semesterEnd, 1)].find((s) => monthBefore(s) > thisMonth);
   return start === undefined ? null : { dueMonth: monthBefore(start), fee: undefined };
-}
-
-/** The month the next semester fee is due (see `nextFee`), or null without a semester in the profile. */
-export function semesterFeeDue(profile: Profile | null | undefined, today: IsoDate): IsoMonth | null {
-  return nextFee(profile, today)?.dueMonth ?? null;
 }
 
 export const SEMESTER_FEE_NAME = 'Semester fee';
@@ -183,7 +178,7 @@ export type SemesterFeeOffer = {
 };
 
 /**
- * The "Semester fee" row the one-off costs step offers, due as `semesterFeeDue` says. Its amount is the sum of the
+ * The "Semester fee" row the one-off costs step offers, due as `nextFee` says. Its amount is the sum of the
  * parts `SEMESTER_FEES` states for that university and semester (ruling R13), or empty (0) when no page states the
  * fee: it is never guessed. Null without a due month, or while a "Semester fee" row is still ahead (due after this
  * month), whatever its month: that row is the next fee already. One due this month or earlier has been paid. The row

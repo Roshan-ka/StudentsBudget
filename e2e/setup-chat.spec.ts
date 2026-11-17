@@ -16,6 +16,11 @@ import { mockSupabaseAuth, mockSupabaseData, skipUnlessAccountsShow } from './he
 
 test.use({ viewport: { width: 375, height: 812 } });
 
+// Parked (Roshan, 17-11-2026: "keep it but do not maintain it … do not perform tests on it"): the setup chat stays in
+// the code for a paid plan, off in every build, the e2e build included, and this spec doesn't run. To bring it back,
+// set NEXT_PUBLIC_AI_SETUP_CHAT in E2E_SUPABASE_ENV again and drop this skip and its allow-list entry.
+test.skip(true, 'Parked: the setup chat is not maintained');
+
 // Signing in links the phone to the account, which reads the account's tables: an empty account, as a new one is.
 test.beforeEach(async ({ page }) => {
   await mockSupabaseData(page);

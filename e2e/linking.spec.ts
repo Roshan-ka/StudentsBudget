@@ -231,7 +231,6 @@ test('Sync now carries an entry, and then its delete, to the other phone', async
   await expect(page.getByText('Oct 2026')).toBeVisible();
   await page.getByLabel('Quick add').fill('döner 6');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect.poll(() => entryIdsOf(page, 600)).toHaveLength(1);
   const [id] = await entryIdsOf(page, 600);
 

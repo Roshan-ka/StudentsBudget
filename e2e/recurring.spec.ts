@@ -161,6 +161,30 @@ test('rent is added on its day, a changed day posts once, and a deleted one stay
   ]);
 });
 
+test('a new income adds this month’s too, ticked by default, dated its day', async ({ page }) => {
+  // Review P1 (17-11-2026): set up on 17 November with Parents monthly on the 1st. Without this month's, the first
+  // month showed no income, and the charts called the month an overspend.
+  await page.clock.setFixedTime(on(2026, 11, 17));
+  await fillSetup(page, {}, { schedules: true, thisMonthToo: true });
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  const parents = page.getByRole('group', { name: 'Parents schedule', exact: true });
+  await expect(parents.getByRole('checkbox', { name: 'Add this month too', exact: true })).toBeChecked();
+  await expect(parents.getByText(`First added on ${formatDate('2026-11-01')}.`, { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Save plan' }).click();
+  await expect(page).toHaveURL('/');
+
+  // Saved at once, dated the 1st; rent, a fixed cost, still starts tomorrow and first comes in December.
+  await page.goto('/entries');
+  const list = page.getByRole('region', { name: 'Entries' });
+  await expect(list.getByRole('button', { name: /Parents/ })).toHaveCount(1); // proof: income-this-month-too
+  expect(await posted(page, 'income-parents')).toEqual([['2026-11-01', 50000]]);
+  expect(await posted(page, 'income-job')).toEqual([['2026-11-01', 40000]]);
+  expect(await posted(page, 'rent')).toEqual([]);
+});
+
 test('setup and the editor say when the first automatic entry comes', async ({ page }) => {
   // Set up on 1 November: a new line starts tomorrow, so rent on day 1 first comes in December.
   await page.clock.setFixedTime(on(2026, 11, 1));

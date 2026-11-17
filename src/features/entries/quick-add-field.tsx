@@ -20,6 +20,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { aiQuickAddProvider, type AiQuickAddHint } from './ai-quick-add';
 import { buildEntry } from './build-entry';
+import { lineAfterQuestion } from './quick-add';
 import { savedWhat } from './saved-line';
 import { FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_CATEGORIES } from './categories';
 import {
@@ -54,18 +55,31 @@ async function loadContext(): Promise<QuickAddContext> {
   return { today: todayIso(), accounts, history };
 }
 
+/** How long quick add waits for the session before it reads the line on the phone instead (review B4). */
+const SESSION_READ_MS = 3_000;
+
 /**
  * Whether this line goes to the AI (the AI phase, chunk 7): a build with it, this phone's switch on, and someone signed
- * in. Read from the session in localStorage, in the handler, so the page stays static.
+ * in. Read from the session in localStorage, in the handler, so the page stays static. A session read that hangs (a
+ * refresh over a bad connection) counts as no after `SESSION_READ_MS`, so the line is read locally rather than wait.
  */
 async function aiReady(): Promise<boolean> {
   if (!aiInBuild() || !aiOnHere()) return false;
   const supabase = getSupabase();
   if (supabase === null) return false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<false>((resolve) => {
+    timer = setTimeout(() => resolve(false), SESSION_READ_MS);
+  });
+  // A read that fails, now or after the wait, is a no too: never an unhandled rejection.
+  const signedIn = supabase.auth
+    .getSession()
+    .then(({ data }) => data.session !== null)
+    .catch(() => false);
   try {
-    return (await supabase.auth.getSession()).data.session !== null;
-  } catch {
-    return false;
+    return await Promise.race([signedIn, late]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -472,7 +486,9 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
             className="min-w-0 flex-1"
             value={text}
             onChange={(event) => {
-              setText(event.target.value);
+              // While the line is asked about, a letter typed after it starts the next line (review P3).
+              const asking = pending !== null || choice !== null;
+              setText(asking ? lineAfterQuestion(text, event.target.value) : event.target.value);
               // The amount buttons and the chips belong to the line that was typed; a changed line has to be added again.
               // So does a read in flight and the note waiting for it.
               setChoice(null);

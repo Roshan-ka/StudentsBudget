@@ -22,11 +22,6 @@ export const tips: Record<string, TipWords> = {
     body: 'Zahlst du mit Karte oder Handy? Leg zusätzlich deinen Studierendenausweis auf das Kassenterminal, sonst zahlst du den höheren Preis.',
     source: `${STWNO}, Seite der Mensa Uni Regensburg: Die Kassen nehmen kein Bargeld; zusätzlich die Mensakarte oder den Studierendenausweis auf das Terminal legen, um den Studierendenpreis zu bekommen`,
   },
-  'theatre-at-half-price': {
-    title: 'Geh zum halben Preis ins Theater',
-    body: 'Studierende unter 30 zahlen am Staatstheater den halben Preis; U30-Vorstellungen kosten 10 € auf jedem Platz. Kauf an der Theaterkasse, dann sparst du die Gebühr von 1,50 €.',
-    source: 'Staatstheater Regensburg, Besucher-FAQ: 50 % Ermäßigung auf den regulären Preis bis zum 30. Geburtstag; U30-Vorstellungen 10 € auf jedem Platz; 1,50 € Gebühr pro Karte online oder telefonisch, keine an der Theaterkasse',
-  },
   'historisches-museum-free': {
     title: 'Besuch das Historische Museum kostenlos',
     body: 'Studierende unter 30 kommen kostenlos ins Historische Museum der Stadt (Erwachsene zahlen 5 €). Bring deinen Studierendenausweis mit.',
@@ -36,11 +31,6 @@ export const tips: Record<string, TipWords> = {
     title: 'Besuch das Museum der Bayerischen Geschichte kostenlos',
     body: 'Studierende unter 30 kommen kostenlos ins Haus der Bayerischen Geschichte (Erwachsene zahlen 7 €), auch in die Bayernausstellung 2026/27.',
     source: 'Haus der Bayerischen Geschichte, Eintrittspreise gültig vom 8. Juli 2026 bis 7. August 2027: Erwachsene 7 €, Studierende unter 30 frei',
-  },
-  'cinema-student-price': {
-    title: 'Reservier Kinokarten kostenlos',
-    body: 'In den Kinos im Andreasstadel zahlen Studierende 8 € statt 9 €. Reservier kostenlos, statt online zu kaufen: Das kostet 10 % mehr.',
-    source: 'Kinos im Andreasstadel, Eintrittspreise: 9 € regulär, 8 € ermäßigt für Studierende mit Nachweis; der Online-Vorverkauf kostet 10 % mehr; Reservierungen sind kostenlos',
   },
   'register-in-person': {
     title: 'Melde dich persönlich an und hol dir Gutscheine',

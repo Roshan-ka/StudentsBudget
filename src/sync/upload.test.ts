@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { StoreError, type UserDataStore } from './store';
 import { SERVER_TABLES, serverRowsOf } from './tables';
-import { expense, fakeStore, liveIds, MANUAL, snapshot } from './test-helpers';
-import { applyUpload, planUpload, staleSummary } from './upload';
+import { applyUpload, expense, fakeStore, liveIds, MANUAL, snapshot } from './test-helpers';
+import { planUpload, staleSummary } from './upload';
 
 describe('serverRowsOf', () => {
   it('gives every table its rows, keyed the way Dexie keys them, with the row itself as data', () => {

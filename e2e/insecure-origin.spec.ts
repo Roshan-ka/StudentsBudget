@@ -19,10 +19,9 @@ test('setup, quick add and a new account work where crypto.randomUUID does not e
   await completeSetup(page, {}, { schedules: true });
   expect(await page.evaluate(() => 'randomUUID' in crypto)).toBe(false);
 
-  // Home: the first "döner" has no learned category, so quick add asks.
+  // Home: "döner" is on quick add's word list, so it saves under Eating out by itself.
   await page.getByRole('textbox', { name: 'Quick add' }).fill('döner 6');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
 
   // Settings: a new account.

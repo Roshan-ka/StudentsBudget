@@ -17,6 +17,10 @@ export const recurring = {
   lineKind: 'Fixed cost or income',
   automatic: 'Add it automatically',
   autoHint: 'It’s added on its day — don’t log it by hand.',
+  /** A new income line whose day this period has passed (review P1, 17-11-2026): add that one too, on Save. */
+  thisMonthToo: 'Add this month too',
+  thisWeekToo: 'Add this week too',
+  thisPeriodHint: (date: string) => `Dated ${date}. Untick it if you’ve logged it already.`,
   newFrequency: 'A new frequency starts with the next period.',
   account: 'Account',
   /** The empty choice of the account picker, and a line's summary while its account is gone (lines.ts). */

@@ -848,6 +848,28 @@ describe('adding lines automatically', () => {
     expect(accounts.every((a) => !('key' in a))).toBe(true);
   });
 
+  it('adds this month’s income too by default, dated its day; a fixed cost never does (review P1, 17-11-2026)', () => {
+    const { plan } = draftToRecords(withLines(fresh), TODAY);
+    // 16 October, monthly on the 1st: Save adds the 1 October income.
+    for (const line of plan.incomes) {
+      expect(line.schedule, line.categoryId).toMatchObject({ startOn: '2026-10-01', postedThrough: '2026-09-30' });
+    }
+    expect(plan.fixed[0].schedule).toMatchObject({ startOn: '2026-10-17', postedThrough: TODAY });
+  });
+
+  it('starts an income tomorrow, as before, with "Add this month too" unticked', () => {
+    const d = withLines(fresh);
+    const parents = d.incomes.find((l) => l.categoryId === 'income-parents')?.schedule;
+    if (parents === undefined) throw new Error('no schedule for Parents');
+    const incomes = setLineSchedule(d.incomes, 'income-parents', { ...parents, thisPeriodToo: false });
+    const { plan } = draftToRecords({ ...d, incomes }, TODAY);
+    expect(plan.incomes.find((l) => l.categoryId === 'income-parents')?.schedule).toMatchObject({
+      startOn: '2026-10-17',
+      postedThrough: TODAY,
+    });
+    expect(plan.incomes.find((l) => l.categoryId === 'income-job')?.schedule).toMatchObject({ startOn: '2026-10-01' });
+  });
+
   it('saves the picked account, day and weekday', () => {
     const d = withLines(fresh);
     const cash = d.accounts[2].key ?? '';

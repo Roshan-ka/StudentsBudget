@@ -50,6 +50,12 @@ function byHand(lines: DraftLine[], categoryId: string): DraftLine[] {
   return schedule ? setLineSchedule(lines, categoryId, { ...schedule, on: false }) : lines;
 }
 
+/** "Add this month too" unticked, as `fillSetup` leaves an income with `schedules` (review P1). */
+function notThisMonth(lines: DraftLine[], categoryId: string): DraftLine[] {
+  const schedule = lines.find((l) => l.categoryId === categoryId)?.schedule;
+  return schedule ? setLineSchedule(lines, categoryId, { ...schedule, thisPeriodToo: false }) : lines;
+}
+
 /**
  * The draft the wizard holds once `fillSetup` has typed `f` into it, built with the wizard's own functions, plus
  * `f.oneOff` as Edit plan would add it. `lang` is the page's language, which names the prefilled accounts; `stored` are
@@ -72,6 +78,7 @@ function draftOf(f: SetupFixture, options: SetupOptions, lang: Language, stored:
   let incomes = setLineAmount(d.incomes, 'income-parents', amount(f.incomes.parents));
   incomes = setLineAmount(incomes, 'income-job', amount(f.incomes.job));
   if (!options.schedules) incomes = byHand(byHand(incomes, 'income-parents'), 'income-job');
+  else if (!options.thisMonthToo) incomes = notThisMonth(notThisMonth(incomes, 'income-parents'), 'income-job');
 
   // A new setup asks no one-off cost; Edit plan's step adds this one on the setup day. A row without an amount is left
   // out when saving.

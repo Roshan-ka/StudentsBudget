@@ -57,9 +57,8 @@ async function openCheckInOnSunday(page: Page) {
 
 test('shows each envelope against this week and what was logged', async ({ page }) => {
   await seedSetup(page);
-  // The first "döner" has no learned category, so quick add asks.
+  // "döner" is on quick add's word list, so it saves under Eating out by itself.
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
 
   await openApp(page, '/check-in');
@@ -86,7 +85,6 @@ test('shows each envelope against this week and what was logged', async ({ page 
 test('the week card leads, and each envelope is its own card with a bar for its week', async ({ page }) => {
   await seedSetup(page);
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
 
   await openApp(page, '/check-in');
@@ -223,7 +221,6 @@ test('on Sunday a forgotten purchase is added from today or from an earlier day,
 
   // Quick add dates the entry today, and spending exactly the week's share (€103.33) reads "on plan".
   await quickAdd(page, 'rewe 103,33');
-  await page.getByRole('button', { name: 'Food & groceries' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €103.33 · rewe · Food & groceries');
   await expectWeekLine(page, 'Food & groceries', '€103 of €103 · on plan');
 
@@ -406,7 +403,6 @@ test('in a later week, an envelope that is used up is listed as used up and the 
 
   // €6 more on eating out comes off the week, and the line says it plainly. Home and the total follow together.
   await quickAdd(page, 'döner 6');
-  await page.getByRole('button', { name: 'Eating out' }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.00 · döner · Eating out');
   await expectWeekLine(page, 'Eating out', 'Nothing left this month · €6 spent · €6 over');
   await expect(page.getByText('€42 over this week', { exact: true })).toBeVisible();

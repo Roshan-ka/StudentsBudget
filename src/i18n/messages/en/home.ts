@@ -38,7 +38,7 @@ export const home = {
     nothingToGoOn: 'Nothing to go on yet',
     nothingAvailable:
       'Nothing is available to budget yet: your income leaves nothing after fixed costs and set-asides. ' +
-      'You can change your plan in Settings → Plan.',
+      'You can change your plan in Settings → Plan → Edit plan.',
     available,
     availableWithinBudget: (amount: string, budget: string) =>
       `${available(amount)} These amounts keep to your everyday budget of ${budget}.`,

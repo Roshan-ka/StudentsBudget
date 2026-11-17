@@ -126,7 +126,8 @@ describe('aiQuickAddProvider', () => {
     const reading = await aiQuickAddProvider({ lang: 'en', ask: asking(answer) }).read('coffee 7 40', CTX);
     const local = await localQuickAddProvider.read('coffee 7 40', CTX);
 
-    expect(reading).toEqual({ kind: 'choice', options: [740, 4000], note: 'coffee', categoryId: null });
+    // The model left the category open; "coffee" is on the word list (review P2).
+    expect(reading).toEqual({ kind: 'choice', options: [740, 4000], note: 'coffee', categoryId: 'eating-out' });
     expect(reading?.kind === 'choice' && local?.kind === 'choice' && reading.options).toEqual(
       local?.kind === 'choice' && local.options,
     );

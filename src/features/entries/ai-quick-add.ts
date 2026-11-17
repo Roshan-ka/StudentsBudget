@@ -6,7 +6,8 @@ import { categoryNameIn } from '@/i18n/category-name';
 import type { Language } from '@/i18n/languages';
 import { MESSAGES } from '@/i18n/messages';
 import { EXPENSE_CATEGORIES } from './categories';
-import { readQuickAdd, suggestCategory } from './quick-add';
+import { guessCategory } from './category-words';
+import { readQuickAdd } from './quick-add';
 import {
   euroAccountId,
   localQuickAddProvider,
@@ -15,7 +16,7 @@ import {
   type QuickAddReading,
 } from './quick-add-provider';
 
-// Quick add read by Claude Haiku (the AI phase, chunk 6, docs/superpowers/plans/2026-11-09-ai-phase-1.md): the line,
+// Quick add read by the AI (the AI phase, chunk 6; the model is the contract's, on Groq since 13-11-2026, docs/superpowers/plans/2026-11-09-ai-phase-1.md): the line,
 // today, the language, the categories and the accounts go to the `ai` function through `callAi`, and the answer comes
 // back as a `QuickAddReading`. The function has already held it to the request (chunk 4, `finishQuickAdd`: a listed
 // category and account, a day from today back to 60 days, money to the cent), and the field still runs `checkReading`.
@@ -84,7 +85,7 @@ export function readingFrom(
 ): QuickAddReading | null {
   if (answer.amount === null) return null;
   const note = answer.note.trim();
-  const categoryId = answer.categoryId ?? suggestCategory(note === '' ? text : note, ctx.history);
+  const categoryId = answer.categoryId ?? guessCategory(note === '' ? text : note, ctx.history);
   const named = answer.accountRef === null ? undefined : accountIds.get(answer.accountRef);
   const accountId = named ?? (readQuickAdd(text)?.euro === true ? euroAccountId(ctx.accounts) : undefined);
   const account = accountId === undefined ? {} : { accountId };
