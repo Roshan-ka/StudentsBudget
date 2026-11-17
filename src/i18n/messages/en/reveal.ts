@@ -6,7 +6,6 @@ export const reveal = {
   intro: 'How each month that is over went against your envelopes.',
   /** Before the setup month is over: "Your first recap comes once October is over." */
   notYet: (month: string) => `Your first recap comes once ${month} is over.`,
-  adjust: 'Edit envelopes',
   /** How one finished month went (recapResult), the big line under its name: "€15 left over → savings". */
   recap: {
     savings: (amount: string) => `${amount} left over → savings`,

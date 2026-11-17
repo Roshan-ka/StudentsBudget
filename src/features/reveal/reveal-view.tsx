@@ -134,7 +134,7 @@ function Recaps({
         <MonthRecap key={month} month={month} plan={planForMonth(plan, planMonths, month, today)} entries={entries} />
       ))}
       <LinkButton href="/setup?edit=1&step=envelopes" icon={PencilIcon}>
-        {t.reveal.adjust}
+        {t.setup.editPlan.link}
       </LinkButton>
     </div>
   );

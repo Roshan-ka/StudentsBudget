@@ -33,7 +33,7 @@ export const home: Messages['home'] = {
     nothingToGoOn: 'Noch keine Anhaltspunkte',
     nothingAvailable:
       'Noch ist nichts zu verteilen: Nach Fixkosten und Rücklagen bleibt von deinen Einnahmen nichts übrig. ' +
-      'Deinen Plan kannst du unter Einstellungen → Plan ändern.',
+      'Ändern kannst du deinen Plan unter Einstellungen → Plan → Plan bearbeiten.',
     available,
     availableWithinBudget: (amount, budget) =>
       `${available(amount)} Diese Beträge halten dein Alltagsbudget von ${budget} ein.`,

@@ -55,7 +55,7 @@ test('while the setup month runs, home has no recap line and the page says when 
   await expect(page.getByRole('heading', { level: 2, name: 'Month by month', exact: true })).toBeVisible();
   await expect(page.getByText('Your first recap comes once October is over.', { exact: true })).toBeVisible();
   await expect(months(page)).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Edit envelopes' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Edit plan', exact: true })).toHaveCount(0);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 });
 
@@ -81,7 +81,8 @@ test('once October is over, home leads to its recap, and the envelopes can be ch
   await expectRecaps(page, [['October 2026', '€274 left over → savings']]);
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
-  const adjust = page.getByRole('link', { name: 'Edit envelopes', exact: true });
+  // "Edit plan" everywhere (review U6), opening on the envelopes.
+  const adjust = page.getByRole('link', { name: 'Edit plan', exact: true });
   await expect(adjust).toHaveAttribute('href', '/setup?edit=1&step=envelopes');
   await adjust.click();
   await expect(page).toHaveURL('/setup?edit=1&step=envelopes');

@@ -11,7 +11,7 @@ export const badges = {
   },
   /** Where each badge stands. */
   progress: {
-    underBudgetCount: (count: number) => `${count} weeks under budget`,
+    underBudgetCount: (count: number) => `${weeks(count)} under budget`,
     underBudgetOf: (count: number, goal: number) => `${count} of ${goal} weeks`,
     streakStart: 'A streak starts with a week of envelope spending you log yourself',
     streakNew: 'A new streak starts with a week of envelope spending you log yourself',
