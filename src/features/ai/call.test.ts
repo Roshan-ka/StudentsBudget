@@ -171,6 +171,31 @@ describe('callAi', () => {
     expect(await result).toEqual({ ok: false, problem: 'timeout' });
   });
 
+  it('counts the session read in the time: a refresh that hangs still gives up after 8 seconds (review B4)', async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const result = callAi(LINE, quickAddAnswer, {}, deps({ fetch, token: () => new Promise<string | null>(() => {}) }));
+
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    expect(await result).toEqual({ ok: false, problem: 'timeout' });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('stops a session read that hangs when the caller aborts', async () => {
+    const controller = new AbortController();
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const waiting = callAi(
+      LINE,
+      quickAddAnswer,
+      { signal: controller.signal },
+      deps({ fetch, token: () => new Promise<string | null>(() => {}) }),
+    );
+    controller.abort();
+    expect(await waiting).toEqual({ ok: false, problem: 'aborted' });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('gives up after the time the caller sets', async () => {
     vi.useFakeTimers();
     const result = callAi(LINE, quickAddAnswer, { timeoutMs: 2_000 }, deps({ fetch: hanging }));

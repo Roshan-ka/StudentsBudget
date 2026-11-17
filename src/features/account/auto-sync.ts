@@ -47,8 +47,15 @@ export async function runOnce(deps: RunOnceDeps): Promise<RunDone> {
 
 let current: AutoRunner | null = null;
 
+/**
+ * Whether AppInit has started this tab's automatic sync yet (with or without the Supabase settings). Until then no
+ * visit can know whether the phone is linked (review B2, 17-11-2026).
+ */
+let started = false;
+
 /** Starts this tab's automatic sync; the returned function stops it. Nothing without the Supabase settings. */
 export function startAutoSync(): () => void {
+  started = true;
   current?.stop();
   const supabase = getSupabase();
   if (supabase === null) return () => {};
@@ -120,8 +127,14 @@ export function startAutoSync(): () => void {
   };
 }
 
-/** How this visit stands for the start order and the week gate (chunk 5); 'unlinked' with no automatic sync running. */
+/**
+ * How this visit stands for the start order and the week gate (chunk 5); 'unlinked' with no automatic sync running.
+ * A visit before the start (a tab shown or focused while AppInit still opens the database) is `not-synced`: it can't
+ * tell a linked phone from one with no link, so it may post what is due but never records a week, which is never
+ * rewritten (review B2). The opening visit, right after the start, records them.
+ */
 export function visitAutoSync(reason: VisitReason): Promise<VisitResult> {
+  if (!started) return Promise.resolve('not-synced');
   return current?.visit(reason) ?? Promise.resolve('unlinked');
 }
 

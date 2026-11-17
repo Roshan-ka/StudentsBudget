@@ -55,18 +55,31 @@ async function loadContext(): Promise<QuickAddContext> {
   return { today: todayIso(), accounts, history };
 }
 
+/** How long quick add waits for the session before it reads the line on the phone instead (review B4). */
+const SESSION_READ_MS = 3_000;
+
 /**
  * Whether this line goes to the AI (the AI phase, chunk 7): a build with it, this phone's switch on, and someone signed
- * in. Read from the session in localStorage, in the handler, so the page stays static.
+ * in. Read from the session in localStorage, in the handler, so the page stays static. A session read that hangs (a
+ * refresh over a bad connection) counts as no after `SESSION_READ_MS`, so the line is read locally rather than wait.
  */
 async function aiReady(): Promise<boolean> {
   if (!aiInBuild() || !aiOnHere()) return false;
   const supabase = getSupabase();
   if (supabase === null) return false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<false>((resolve) => {
+    timer = setTimeout(() => resolve(false), SESSION_READ_MS);
+  });
+  // A read that fails, now or after the wait, is a no too: never an unhandled rejection.
+  const signedIn = supabase.auth
+    .getSession()
+    .then(({ data }) => data.session !== null)
+    .catch(() => false);
   try {
-    return (await supabase.auth.getSession()).data.session !== null;
-  } catch {
-    return false;
+    return await Promise.race([signedIn, late]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 

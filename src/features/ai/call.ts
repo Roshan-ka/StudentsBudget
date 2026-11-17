@@ -71,10 +71,32 @@ function problemOfStatus(status: number): AiProblem {
 }
 
 /**
+ * `work`, or a rejection as soon as `signal` aborts: a step that takes no signal of its own (reading the session, which
+ * may refresh it over the network) still ends with the call's clock and the caller (review B4, 17-11-2026).
+ */
+function untilAborted<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(new Error('aborted'));
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new Error('aborted'));
+    signal.addEventListener('abort', onAbort, { once: true });
+    work.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
+}
+
+/**
  * Asks the `ai` function: the request, then its answer checked with `answer` (the feature's schema from the contract).
  * Sends nothing when the build or the switch says no (`off`), when the request breaks the contract (`bad-request`, or
  * `too-large`), offline, or with nobody signed in (`signed-out`). Gives up after `timeoutMs` (the feature's
- * `AI_TIMEOUT_MS`), and when `signal` aborts. Never throws.
+ * `AI_TIMEOUT_MS`), counted from before the session is read, and when `signal` aborts. Never throws.
  */
 export async function callAi<Answer>(
   request: AiRequest,
@@ -106,7 +128,7 @@ export async function callAi<Answer>(
   const stop = () => controller.abort();
   signal?.addEventListener('abort', stop, { once: true });
   try {
-    const token = await deps.token();
+    const token = await untilAborted(deps.token(), controller.signal);
     if (token === null) return { ok: false, problem: 'signed-out' };
     if (signal?.aborted) return { ok: false, problem: 'aborted' };
     const response = await deps.fetch(endpoint.url, {
