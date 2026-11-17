@@ -19,7 +19,7 @@ Each plan is in `docs/superpowers/plans/`, with an As built section that says wh
 | P2.3a, optional two-step sign-in | `2026-10-28-p2-3a-two-step-sign-in.md` | done | |
 | P2.3b, passkeys | `2026-10-29-p2-3b-passkeys-and-recovery-codes.md` | done | recovery codes parked |
 | Language switch, plan 1 (English and German) | `2026-11-02-language-switch.md` | done | native-speaker reads |
-| Redesign: a warm, outlined look in light and dark, and dates by region | `2026-11-04-redesign.md` | done; more pages follow from mockups | the phone try |
+| Redesign: a warm, outlined look in light and dark, and dates by region | `2026-11-04-redesign.md` | done; every page in the new look since 17-11-2026 (groups 1–4, from mockups) | the phone try |
 | Pain points: a calmer Home, Settings in pages, charts that always show | `2026-11-05-pain-points.md` | done | |
 | Hacks feed: usernames, students' posts, votes, reports and a moderator | `2026-11-05-hacks-feed.md` | done | |
 | Accessibility pass (WCAG 2.2 AA) | `2026-11-05-accessibility.md` | done | |
@@ -35,7 +35,7 @@ Each plan is in `docs/superpowers/plans/`, with an As built section that says wh
 | Plan history | `2026-11-10-plan-history.md` | built, chunks 1–6 | the real try on the phone |
 | Community: comments on hacks, and discounts students add | `2026-11-11-community.md` | built, chunks 1–7 | `db push` and the real try |
 | Discount map, shipped inside the app | `2026-11-11-discount-map.md` | built, chunks 1–8 | `db push`, the Vercel flag and the real try |
-| Legal pages and security headers | `2026-11-12-legal-pages.md` | built, chunks 1–4, on `feat/legal-pages-2` | Roshan's details in `src/data/legal.ts`: until then a Production build and `legal.test.ts` refuse the placeholders. Merged twice with them (#218, #224) and reverted both times (#220, #226) |
+| Legal pages and security headers | `2026-11-12-legal-pages.md` | done; live with Roshan's details in `src/data/legal.ts` (the Production build's `assertLegalReady` passes) | |
 | Data retention: the daily purge | `2026-11-13-data-retention.md` | done; on the hosted project since 13-11-2026 | |
 | AI on Groq's free plan | `2026-11-13-groq-free-plan.md` | live since 16-11-2026, chunks 1–6 | the setup chat stays off until a paid plan |
 | Receipt scan, read on the phone with Tesseract.js | `2026-11-13-receipt-scan.md` | built, chunks 1–5 | the real try with real receipts, then a tuning chunk |
