@@ -17,6 +17,7 @@ import {
 import { AmountField } from './amount-field';
 import { CategoryCard } from './category-card';
 import { StepMore } from './step-more';
+import { WhenSettled } from './when-settled';
 
 /**
  * Each income source as its own card (13-11-2026), and the tips on savings, BAföG and scholarships folded under the
@@ -60,20 +61,22 @@ export function IncomeStep({
                 />
               }
             >
-              {line?.schedule && line.monthlyMinor > 0 && (
-                <DraftScheduleFields
-                  name={name}
-                  categoryId={c.id}
-                  type="income"
-                  monthlyMinor={line.monthlyMinor}
-                  schedule={line.schedule}
-                  accounts={accounts}
-                  today={today}
-                  onChange={(schedule) =>
-                    update((d) => ({ ...d, incomes: setLineSchedule(d.incomes, c.id, schedule) }))
-                  }
-                />
-              )}
+              <WhenSettled show={line?.schedule !== undefined && (line?.monthlyMinor ?? 0) > 0}>
+                {line?.schedule && (
+                  <DraftScheduleFields
+                    name={name}
+                    categoryId={c.id}
+                    type="income"
+                    monthlyMinor={line.monthlyMinor}
+                    schedule={line.schedule}
+                    accounts={accounts}
+                    today={today}
+                    onChange={(schedule) =>
+                      update((d) => ({ ...d, incomes: setLineSchedule(d.incomes, c.id, schedule) }))
+                    }
+                  />
+                )}
+              </WhenSettled>
             </CategoryCard>
           );
         })}
