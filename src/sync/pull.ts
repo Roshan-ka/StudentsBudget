@@ -5,7 +5,7 @@ import { keepWatermarks } from '@/features/recurring/update-plan';
 import type { SyncProblem } from './problem';
 import { BadRow, ROW_CHECKS } from './rows';
 import type { PulledRow, UserDataStore } from './store';
-import { dexieHome, SERVER_TABLES } from './tables';
+import { dexieHome, SERVER_TABLES, type ServerTable } from './tables';
 import { untracked } from './untracked';
 
 /** Rows per pull request. */
@@ -72,9 +72,21 @@ function pulledTables() {
  * Puts checked rows from the account on this phone, in one untracked transaction, and saves `cursor` with them when
  * given; returns how many rows changed. A row still waiting in the outbox is left alone. A plan keeps each watermark
  * this phone has moved further, as the account's keep_watermarks trigger does: going back would post periods again.
+ * `dropFromOutbox` leaves the outbox first, in the same transaction, so a row it held is written too, and a failure
+ * keeps both as they were (review B5, 17-11-2026).
+ *
+ * Only on a linked phone: a sync the sign-out wipe stopped waiting for (10 s) may answer after the wipe, and its rows
+ * must not land on the cleared, unlinked phone (review B6). The link is read inside the transaction, so a wipe either
+ * comes before it (nothing is written) or after it (the wipe deletes what was).
  */
-export async function applyFromAccount(rows: Checked[], cursor?: number): Promise<number> {
+export async function applyFromAccount(
+  rows: Checked[],
+  cursor?: number,
+  dropFromOutbox: [ServerTable, string][] = [],
+): Promise<number> {
   return untracked(pulledTables(), async () => {
+    if (!(await db.syncState.get('current'))?.userId) return 0;
+    if (dropFromOutbox.length > 0) await db.outbox.bulkDelete(dropFromOutbox);
     let applied = 0;
     for (const { row, value } of rows) {
       if ((await db.outbox.get([row.table, row.id])) !== undefined) continue;

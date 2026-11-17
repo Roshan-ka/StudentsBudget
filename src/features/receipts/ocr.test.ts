@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { hasSimd, MAX_SIDE, ocrPaths, scaledSize } from './ocr';
+import { describe, expect, it, vi } from 'vitest';
+import { hasSimd, MAX_SIDE, ocrPaths, scaledSize, workerUnlessAborted } from './ocr';
 import { OCR_BASE } from './ocr-set';
 
 // The receipt scan's reading engine (chunk 1): what can be checked without a browser.
@@ -34,5 +34,43 @@ describe('the core build a browser runs', () => {
     expect(simd.corePath).toBe(`${OCR_BASE}/tesseract-core-simd-lstm.wasm.js`);
     expect(ocrPaths(false).corePath).toBe(`${OCR_BASE}/tesseract-core-lstm.wasm.js`);
     for (const path of Object.values(simd)) expect(path.startsWith(`${OCR_BASE}/`), path).toBe(true);
+  });
+});
+
+describe('workerUnlessAborted (review B7, 17-11-2026)', () => {
+  function starting() {
+    let ready: (worker: { terminate: () => Promise<void> }) => void = () => {};
+    const worker = { terminate: vi.fn(async () => {}) };
+    const creating = new Promise<typeof worker>((resolve) => {
+      ready = resolve;
+    });
+    return { worker, creating, start: () => ready(worker) };
+  }
+
+  it('hands on the worker once it has started', async () => {
+    const { worker, creating, start } = starting();
+    const result = workerUnlessAborted(creating, new AbortController().signal);
+    start();
+    expect(await result).toBe(worker);
+    expect(worker.terminate).not.toHaveBeenCalled();
+  });
+
+  it('stops at Cancel while the engine starts, and ends the worker when it comes', async () => {
+    const { worker, creating, start } = starting();
+    const controller = new AbortController();
+    const result = workerUnlessAborted(creating, controller.signal);
+    controller.abort(new Error('cancelled'));
+    await expect(result).rejects.toThrow('cancelled');
+    start();
+    await vi.waitFor(() => expect(worker.terminate).toHaveBeenCalledTimes(1));
+  });
+
+  it('ends a worker that starts after a scan already cancelled', async () => {
+    const { worker, creating, start } = starting();
+    const controller = new AbortController();
+    controller.abort(new Error('cancelled'));
+    await expect(workerUnlessAborted(creating, controller.signal)).rejects.toThrow('cancelled');
+    start();
+    await vi.waitFor(() => expect(worker.terminate).toHaveBeenCalledTimes(1));
   });
 });

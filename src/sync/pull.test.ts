@@ -1,9 +1,9 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
 import { saveEntry } from '@/db/repo';
 import type { Plan } from '@/db/types';
-import { pull } from './pull';
+import { applyFromAccount, checkRow, pull } from './pull';
 import { push } from './push';
 import { expense, fakeStore, MANUAL } from './test-helpers';
 import { untracked } from './untracked';
@@ -156,5 +156,40 @@ describe('an account still in use', () => {
     // One nothing uses goes, as the other phone meant.
     expect(await db.accounts.get('spare')).toBeUndefined();
     expect(await queued()).toEqual(['accounts:local']);
+  });
+});
+
+describe('applyFromAccount with outbox keys to drop (review B5, 17-11-2026)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const back = () => [checkRow({ table: 'accounts', id: 'local', data: LOCAL, rev: 0 })];
+
+  it('drops the outbox entry and writes the row together', async () => {
+    await db.outbox.put({ table: 'accounts', id: 'local', seq: 1 });
+    expect(await applyFromAccount(back(), undefined, [['accounts', 'local']])).toBe(1);
+    expect(await db.accounts.get('local')).toEqual(LOCAL);
+    expect(await queued()).toEqual([]);
+  });
+
+  it('keeps the outbox entry when the write fails, so nothing is half done', async () => {
+    await db.outbox.put({ table: 'accounts', id: 'local', seq: 1 });
+    vi.spyOn(db.accounts, 'put').mockRejectedValueOnce(new Error('quota exceeded'));
+    await expect(applyFromAccount(back(), undefined, [['accounts', 'local']])).rejects.toThrow('quota');
+    expect(await queued()).toEqual(['accounts:local']);
+    expect(await db.accounts.get('local')).toBeUndefined();
+  });
+});
+
+describe('a pull that answers after the sign-out wipe (review B6, 17-11-2026)', () => {
+  it('writes nothing on a phone that is no longer linked', async () => {
+    const { store } = fakeStore();
+    await store.upsert('accounts', [{ id: 'local', data: LOCAL }]);
+    // The wipe has cleared the phone: no link, no cursor.
+    await db.syncState.clear();
+    expect(await pull(store)).toMatchObject({ kind: 'done', applied: 0 });
+    expect(await db.accounts.get('local')).toBeUndefined();
+    expect(await db.syncState.get('current')).toBeUndefined();
   });
 });

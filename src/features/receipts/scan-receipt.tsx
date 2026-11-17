@@ -188,11 +188,18 @@ export function ScanReceipt({ engine = receiptEngine }: { engine?: ReceiptEngine
       // Only the student's own earlier categories are lost: the chain list still names the shop's.
       console.error('StudentsBudget: could not load the expenses for the receipt', loadError);
     }
+    // The accounts as they are now, after the read (review B7): the ones this tap saw may not have loaded yet.
+    let current = accounts ?? [];
+    try {
+      current = sortAccounts(await db.accounts.toArray());
+    } catch (loadError) {
+      console.error('StudentsBudget: could not load the accounts for the receipt', loadError);
+    }
     if (scan.current !== controller) return;
     scan.current = null;
     const today = todayIso();
     const reading = failed ? null : readReceipt(text, { today, history, categories: CATEGORIES });
-    const { draft, found } = draftOf(reading, accounts ?? [], today, locale);
+    const { draft, found } = draftOf(reading, current, today, locale);
     setPhase({ kind: 'check', photo: url, found, offline: failed && !navigator.onLine, draft });
   }
 
