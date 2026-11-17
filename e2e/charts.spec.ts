@@ -292,6 +292,33 @@ test('shows each category spent against its plan as bars, and a tapped bar opens
   await expect(list.getByText('rewe')).toHaveCount(0);
 });
 
+test('the bars’ key sits above the plot, and bigger text moves the plot down instead of covering a row', async ({
+  page,
+}) => {
+  // Review U7 (17-11-2026): the key was Recharts' legend in a fixed 28 px band of the chart, so text bigger than that
+  // band (a longer word, a reader's larger text) ran into the first row.
+  await seedSetup(page);
+  await quickAdd(page, 'rewe 20', 'Saved €20.00 · rewe · Food & groceries');
+  await openCharts(page);
+  const spending = spendingSection(page);
+  await pickStyle(spending, 'Spending chart style', 'Bars');
+
+  // The amount first, then the plan, as the table and the tooltip read.
+  const key = spending.locator('[data-slot="chart-key"]');
+  await expect(key).toHaveText('SpentPlanned');
+
+  // Text three times its size: the plot keeps one 44 px band per row (plus its 4 px margins) under the key.
+  await page.addStyleTag({ content: '[data-slot="chart-key"] { font-size: 36px; }' });
+  const rows = await marks(spending).count();
+  expect(rows).toBeGreaterThan(1);
+  await expect(spending.locator('svg.recharts-surface').first()).toHaveAttribute('height', String(rows * 44 + 8)); // proof: bars-key-own-space
+  const keyBox = await key.boundingBox();
+  const firstRow = await marks(spending).first().boundingBox();
+  if (!keyBox || !firstRow) throw new Error('the key or the first row is not on screen');
+  expect(keyBox.y + keyBox.height).toBeLessThanOrEqual(firstRow.y + 0.5);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+});
+
 test('the table style lists every category, most spent first, with what was planned', async ({ page }) => {
   await seedSetup(page);
   await seedEntries(page, OCTOBER);
