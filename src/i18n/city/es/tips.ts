@@ -22,11 +22,6 @@ export const tips: Record<string, TipWords> = {
     body: '¿Pagas con tarjeta o con el móvil? Pon también tu carné de estudiante en el terminal de la caja, o te cobran el precio más alto.',
     source: `${STWNO}, página de la Mensa Uni Regensburg: las cajas no aceptan efectivo; hay que poner también la tarjeta de la Mensa o el carné de estudiante en el terminal para obtener el precio de estudiante`,
   },
-  'theatre-at-half-price': {
-    title: 'Ve al teatro a mitad de precio',
-    body: 'Los estudiantes menores de 30 pagan la mitad en el Staatstheater; las funciones U30 cuestan 10 € en cualquier asiento. Compra en la taquilla para ahorrarte la comisión de 1,50 €.',
-    source: 'Staatstheater Regensburg, preguntas frecuentes: 50 % de descuento sobre el precio normal hasta cumplir 30 años; funciones U30 a 10 € en cualquier asiento; 1,50 € de comisión por entrada en línea o por teléfono, ninguna en la taquilla',
-  },
   'historisches-museum-free': {
     title: 'Visita gratis el Historisches Museum',
     body: 'Los estudiantes menores de 30 entran gratis en el Historisches Museum de la ciudad (los adultos pagan 5 €). Lleva tu carné de estudiante.',
@@ -36,11 +31,6 @@ export const tips: Record<string, TipWords> = {
     title: 'Visita gratis el museo de historia bávara',
     body: 'Los estudiantes menores de 30 entran gratis en la Haus der Bayerischen Geschichte (los adultos pagan 7 €), también en la Bayernausstellung 2026/27.',
     source: 'Haus der Bayerischen Geschichte, precios de entrada válidos del 8 de julio de 2026 al 7 de agosto de 2027: adultos 7 €, estudiantes menores de 30 gratis',
-  },
-  'cinema-student-price': {
-    title: 'Reserva entradas de cine gratis',
-    body: 'En los Kinos im Andreasstadel los estudiantes pagan 8 € en lugar de 9 €. Reserva gratis en vez de comprar en línea, que añade un 10 %.',
-    source: 'Kinos im Andreasstadel, precios: 9 € normal, 8 € reducido para estudiantes con justificante; la venta anticipada en línea añade un 10 %; las reservas son gratis',
   },
   'register-in-person': {
     title: 'Regístrate en persona y llévate vales gratis',

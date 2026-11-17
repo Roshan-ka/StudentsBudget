@@ -136,16 +136,6 @@ export const CITY_PACK: readonly PackItem[] = [
     "words": "abendess advic ahorrar ahorro almuerzo astuc auswart barato billig cafeteria caiss caja cante cantin card carn cart cena charged cheap cher comedor comer conseil consejo dehor dein dejeun diner dinn eat eating economi economis esse estudiant etudiant free fuera grati gratuit gunstig high kantin kass kostenlo leg lunch mang meal mensa mittagess paying phon pon pose pric put rat repa restaurant resto save saving spar student studierendenauswei takeaway tap terminal till tip tipp tips truco"
   },
   {
-    "id": "tip:theatre-at-half-price",
-    "kind": "tip",
-    "categoryId": "going-out",
-    "text": "Going out tip: See a play at half price. Students under 30 pay half price at the Staatstheater; U30 shows are €10 for any seat. Buy at the box office to skip the €1.50 fee.",
-    "source": "Staatstheater Regensburg, visitor FAQ: 50% off the regular price until the 30th birthday; U30 shows €10 for any seat; €1.50 fee per ticket online or by phone, none at the box office",
-    "checked": "2026-10-20",
-    "estimate": false,
-    "words": "advic ahorrar ahorro astuc ausgeh barato billig bouldering bowling box buy cheap cher cine cinema climbing club clubbing concert concierto conseil consejo cultur cultura economi economis escalad escalada fee feier fete fiesta film free freizeit fun geh going grati gratuit gunstig halb half kino kletter konzert kostenlo kultur leisur loisir mitad moiti movi muse museo museum ocio offic party pay piscin piscina play pool precio prei pric prix rat salir save saving schwimm schwimmbad seat see show skating skip soire sorti sortir spar staatstheat student swimming teatro theat theatr tip tipp tips truco u30 under weekend"
-  },
-  {
     "id": "tip:historisches-museum-free",
     "kind": "tip",
     "categoryId": "going-out",
@@ -164,16 +154,6 @@ export const CITY_PACK: readonly PackItem[] = [
     "checked": "2026-10-20",
     "estimate": false,
     "words": "adult advic ahorrar ahorro astuc ausgeh barato bavara bavaria bavarois bayerisch bayernausstellung besuch billig bouldering bowling cheap cher cine cinema climbing club clubbing concert concierto conseil consejo cultur cultura economi economis escalad escalada feier fete fiesta film free freizeit fun geschicht going grati gratuit gratuitement gunstig haus histoir historia history including kino kletter konzert kostenlo kultur leisur loisir movi muse museo museum ocio party pay piscin piscina pool rat salir save saving schwimm schwimmbad skating soire sorti sortir spar student swimming teatro theat theatr tip tipp tips truco under visit visita weekend"
-  },
-  {
-    "id": "tip:cinema-student-price",
-    "kind": "tip",
-    "categoryId": "going-out",
-    "text": "Going out tip: Reserve cinema tickets for free. At Kinos im Andreasstadel students pay €8 instead of €9. Reserve for free rather than buying online, which adds 10%.",
-    "source": "Kinos im Andreasstadel, ticket prices: €9 regular, €8 reduced for students with proof; online advance sale adds 10%; reservations are free",
-    "checked": "2026-10-20",
-    "estimate": false,
-    "words": "adds advic ahorrar ahorro andreasstadel astuc ausgeh barato billig bouldering bowling buying cheap cher cine cinema climbing club clubbing concert concierto conseil consejo cultur cultura economi economis entrada escalad escalada feier fete fiesta film free freizeit fun going grati gratuit gratuitement gunstig instead kino kinokart kletter konzert kostenlo kultur leisur loisir movi muse museo museum ocio onlin party pay piscin piscina plac pool rat rath reserv reserva reservi salir save saving schwimm schwimmbad skating soire sorti sortir spar student swimming teatro theat theatr ticket tip tipp tips truco weekend"
   },
   {
     "id": "tip:register-in-person",

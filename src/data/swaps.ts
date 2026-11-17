@@ -74,7 +74,7 @@ export const SWAPS: Swap[] = [
       'Kinos im Andreasstadel, ticket prices: regular €9, reduced €8 for students on showing proof at the cinema; special events can differ',
     url: 'https://www.kinos-im-andreasstadel.de/Eintrittspreise/unterseite_7311',
     checked: CHECKED,
-    tipId: 'cinema-student-price',
+    // No tip of its own since review F2 (17-11-2026): the cinema's deal lives in Discounts.
   },
   {
     id: 'deutschlandticket-for-travel-months',
