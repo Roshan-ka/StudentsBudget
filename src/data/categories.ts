@@ -49,6 +49,8 @@ export const CORE_FLEXIBLE_IDS: readonly string[] = [
 export const SETUP_INCOME_IDS: readonly string[] = [
   'income-job',
   'income-parents',
+  // The most common German student income, asked like the others (Roshan, 17-11-2026), not under the fold.
+  'income-bafoeg',
   'income-sperrkonto',
   'income-other',
 ];

@@ -33,6 +33,17 @@
           "long-label-wraps"
         ]
       }
+    },
+    {
+      "name": "BAföG goes back under the fold of a new setup",
+      "file": "src/data/categories.ts",
+      "find": "  'income-bafoeg',\n  'income-sperrkonto',",
+      "replace": "  'income-sperrkonto',",
+      "expect": {
+        "e2e/setup.spec.ts": [
+          "bafoeg-field"
+        ]
+      }
     }
   ]
 }

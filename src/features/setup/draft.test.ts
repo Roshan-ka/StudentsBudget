@@ -502,6 +502,7 @@ describe('askedCategories', () => {
     expect(ids(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, false, []))).toEqual([
       'income-job',
       'income-parents',
+      'income-bafoeg',
       'income-sperrkonto',
       'income-other',
     ]);
@@ -527,11 +528,11 @@ describe('askedCategories', () => {
   });
 
   it('asks a category that already has an amount, whatever the mode', () => {
-    const lines = [{ categoryId: 'income-bafoeg', monthlyMinor: 45000 }];
-    expect(ids(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, false, lines))).toContain('income-bafoeg');
+    const lines = [{ categoryId: 'income-scholarship', monthlyMinor: 45000 }];
+    expect(ids(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, false, lines))).toContain('income-scholarship');
     // A line at 0 is not an amount.
-    const zero = [{ categoryId: 'income-bafoeg', monthlyMinor: 0 }];
-    expect(ids(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, false, zero))).not.toContain('income-bafoeg');
+    const zero = [{ categoryId: 'income-scholarship', monthlyMinor: 0 }];
+    expect(ids(askedCategories(INCOME_CATEGORIES, SETUP_INCOME_IDS, false, zero))).not.toContain('income-scholarship');
   });
 
   it('names only categories that exist, and rent stays out of the fixed ones', () => {
