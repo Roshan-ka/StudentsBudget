@@ -356,12 +356,13 @@ Built 18-11-2026 on `fix/quick-add-breakpoints-2026-11-18` (#312), one commit pe
   - **A bare day counts only at the end of the line, with an ordinal mark ("17.", "17th") or before a number**, so "spent 20 on 2 beers" gets no date.
   - **The empty-month example names the year where the day alone would read as another month's.** On 18.11.2026, November 2025's "3.11" alone is 03.11.2026.
   - **Three saved mutations named code that had moved:** chunk 2's `changeText` and chunk 5's hint.
-  - **Minors deferred to Roshan:**
-    - `incomeLine` names Add entry, which only Entries has.
-    - The early-edit spec could add a `readStore` check.
-    - The `more-armed` proof depends on where the chip after More lands.
-    - `addLine`'s doc block now sits above `changeText`.
-    - `useEffectEvent` could replace the `onHeard` ref.
+  - **The review's minors**, fixed on Roshan's word ("Fix the minors first"):
+    - **The income message:** `incomeLine` now sends the student to "Entries → Add entry", since quick add also shows on Home and the check-in.
+    - **The early-edit spec:** it also reads the stored entries, which should be only the €6.50 one.
+    - **`chip-armed` and `more-armed`:** both now prove on the group taking a tap again (`data-armed="true"`), which a wrong save would have prevented. Before, they checked that the chips were still there right after the tap, and that check could pass before a mutated save landed.
+    - **`more-armed` and layout:** the spec now sends its second tap straight to the chip More gave way to (`dispatchEvent('click', { detail: 1 })`), so it no longer depends on which chip takes More's place.
+    - **The doc comment:** `addLine`'s is back above `addLine`.
+    - **Declined, `useEffectEvent` for `onHeard`:** React allows calling an effect event only from inside effects, and `onHeard` is called from the speech callback, so the ref stays.
 - **Still owed:**
   - CI's quick check and the e2e run above.
   - A guest walk on the live site that repeats each finding's line once merged.

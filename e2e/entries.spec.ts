@@ -228,11 +228,11 @@ test('a double tap on an amount never picks a category', async ({ page }) => {
 
   await quickAdd(page, 'qqq 7 40');
   await page.getByRole('group', { name: 'Amount', exact: true }).getByRole('button', { name: '€7.40', exact: true }).dblclick();
-  // The second tap lands on a chip that took the amount's place, and counts for nothing: the line still asks.
-  await expect(group.getByRole('button', { name: 'Other', exact: true })).toBeVisible(); // proof: chip-armed
+  // The second tap lands on a chip that took the amount's place, and counts for nothing: the line still asks once its
+  // chips take a tap. A save would have taken them away well before (final review, 18-11-2026).
+  await expect(group).toHaveAttribute('data-armed', 'true'); // proof: chip-armed
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
 
-  await expect(group).toHaveAttribute('data-armed', 'true');
   await group.getByRole('button', { name: 'Other', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €7.40 · qqq · Other');
 });
@@ -242,8 +242,11 @@ test('a double tap on More never picks the chip in its place', async ({ page }) 
   const group = page.getByRole('group', { name: 'Category' });
 
   await quickAdd(page, 'qqq 5');
-  await group.getByRole('button', { name: 'More', exact: true }).dblclick();
-  await expect(group.getByRole('button', { name: 'Health & pharmacy', exact: true })).toBeVisible(); // proof: more-armed
+  await group.getByRole('button', { name: 'More', exact: true }).click();
+  // A tap on a chip More just gave way to, as a double tap's second tap lands there, whichever chip sits in More's place
+  // on this screen: it counts for nothing yet. A save would have taken the chips away before they take a tap.
+  await group.getByRole('button', { name: 'Health & pharmacy', exact: true }).dispatchEvent('click', { detail: 1 });
+  await expect(group).toHaveAttribute('data-armed', 'true'); // proof: more-armed
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
 });
 
@@ -473,7 +476,7 @@ test('deleting an entry hands the focus to the next one shown', async ({ page })
 test('a line that starts with "+" says quick add is for spending', async ({ page }) => {
   await setupAndOpenEntries(page);
   await quickAdd(page, '+50 from mom');
-  await expect(inlineAlert(page)).toHaveText('Quick add is for spending. Add money that came in with Add entry.'); // proof: income-line
+  await expect(inlineAlert(page)).toHaveText('Quick add is for spending. Add money that came in under Entries → Add entry.'); // proof: income-line
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
 });
 

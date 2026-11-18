@@ -48,7 +48,7 @@ export const entries: Messages['entries'] = {
     hint: 'Was und wie viel, etwa „Döner 6 gestern“.',
     add: 'Hinzufügen',
     noAmount: 'Gib einen Betrag an, etwa „Döner 6“',
-    incomeLine: '„Schnell erfassen“ ist für Ausgaben. Geld, das reinkommt, trägst du mit „Eintrag hinzufügen“ ein.',
+    incomeLine: '„Schnell erfassen“ ist für Ausgaben. Geld, das reinkommt, trägst du unter Einträge → „Eintrag hinzufügen“ ein.',
     futureDate: 'Dieser Tag kommt erst noch. Schnell erfassen speichert, was du schon ausgegeben hast.',
     whichAmount: 'Welcher Betrag?',
     amountGroup: 'Betrag',

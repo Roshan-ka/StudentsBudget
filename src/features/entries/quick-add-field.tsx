@@ -456,10 +456,6 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
     setChoice({ ...readings, currency: accountFor(accounts, readings.accountId)?.currency ?? 'EUR' });
   }
 
-  /**
-   * Reads one line, typed or spoken, and saves it or asks what it needs. `noteAccepted`: the `ai` note was just
-   * accepted for this line (with blocked storage it would read as unseen again).
-   */
   /** The field's text changed to `next`, typed there or on a question's button (`typeAhead`). */
   function changeText(next: string) {
     // While the line is asked about, a letter typed after it starts the next line (review P3), and the
@@ -483,6 +479,10 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
     changeText(text + key);
   }
 
+  /**
+   * Reads one line, typed or spoken, and saves it or asks what it needs. `noteAccepted`: the `ai` note was just
+   * accepted for this line (with blocked storage it would read as unseen again).
+   */
   async function addLine(line: string, noteAccepted = false) {
     // Nothing to add: a tap on the empty field right after a save must not take the Saved line away.
     if (line.trim() === '') return;

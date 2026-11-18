@@ -48,7 +48,7 @@ export const entries: Messages['entries'] = {
     hint: 'Qué y cuánto, como “döner 6 ayer”.',
     add: 'Añadir',
     noAmount: 'Añade un importe, como “döner 6”',
-    incomeLine: 'Añadir rápido es para gastos. Añade el dinero que recibes con Añadir registro.',
+    incomeLine: 'Añadir rápido es para gastos. Añade el dinero que recibes en Registros → Añadir registro.',
     futureDate: 'Ese día aún no ha llegado. Añadir rápido guarda lo que ya has gastado.',
     whichAmount: '¿Qué importe?',
     amountGroup: 'Importe',

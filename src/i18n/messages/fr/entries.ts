@@ -50,7 +50,7 @@ export const entries: Messages['entries'] = {
     hint: `Quoi et combien, comme «${NNBSP}döner 6 hier${NNBSP}».`,
     add: 'Ajouter',
     noAmount: `Ajoute un montant, comme «${NNBSP}döner 6${NNBSP}»`,
-    incomeLine: `L’ajout rapide sert aux dépenses. Ajoute l’argent reçu avec «${NNBSP}Ajouter une saisie${NNBSP}».`,
+    incomeLine: `L’ajout rapide sert aux dépenses. Ajoute l’argent reçu dans Saisies → «${NNBSP}Ajouter une saisie${NNBSP}».`,
     futureDate: 'Ce jour n’est pas encore arrivé. L’ajout rapide enregistre ce que tu as déjà dépensé.',
     whichAmount: `Quel montant${NNBSP}?`,
     amountGroup: 'Montant',

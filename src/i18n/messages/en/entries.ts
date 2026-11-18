@@ -58,7 +58,7 @@ export const entries = {
     add: 'Add',
     noAmount: 'Add an amount, like “döner 6”.',
     /** A line that starts with "+" ("+50 from mom"): money that came in (breakpoints, 18-11-2026). */
-    incomeLine: 'Quick add is for spending. Add money that came in with Add entry.',
+    incomeLine: 'Quick add is for spending. Add money that came in under Entries → Add entry.',
     /** A date in the line, or from the AI, after today (quick add dates, 18-11-2026). */
     futureDate: 'That day is still to come. Quick add saves what you’ve already spent.',
     whichAmount: 'Which amount?',

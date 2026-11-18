@@ -167,6 +167,8 @@ test('a line edited while the session is checked saves nothing; the edited line 
   await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €6.50 · döner · Eating out'); // proof: early-edit-drops
+  // Only the edited line: the old one never saved (final review, 18-11-2026).
+  expect(await readStore<Entry>(page, 'entries')).toEqual([expect.objectContaining({ amountMinor: 650, note: 'döner' })]);
 });
 
 test('with today’s AI reads used up, the line is read on the phone and says so', async ({ page }) => {
