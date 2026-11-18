@@ -2,7 +2,7 @@
 
 import { parseISO } from 'date-fns';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowLeftRightIcon, ChevronLeftIcon, ChevronRightIcon, ReceiptTextIcon, XIcon } from 'lucide-react';
+import { ArrowLeftRightIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, ReceiptTextIcon, XIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState, type Ref } from 'react';
@@ -46,6 +46,15 @@ function listHref(month: IsoMonth, category: string | null): string {
   const query = new URLSearchParams({ month });
   if (category !== null) query.set('category', category);
   return `/entries?${query.toString()}`;
+}
+
+/** The list of `category` (or every category) in `month`, or in the current month with no month: as short as it goes. */
+function filterHref(month: IsoMonth | null, category: string | null): string {
+  const query = new URLSearchParams();
+  if (month !== null) query.set('month', month);
+  if (category !== null) query.set('category', category);
+  const search = query.toString();
+  return search === '' ? '/entries' : `/entries?${search}`;
 }
 
 /** Newest day first; within a day the entry saved last comes first. */
@@ -233,8 +242,7 @@ export function EntriesList() {
   if (accounts === undefined || !loaded) return null;
 
   const entries = loaded.entries.filter((e) => category === null || (e.type !== 'transfer' && e.categoryId === category));
-  // Clear goes back to the current month with no category, so it is only worth showing when that is a change.
-  const filtered = category !== null || loaded.month !== loaded.thisMonth;
+  const onThisMonth = loaded.month === loaded.thisMonth;
 
   // A deleted entry hands the focus to the one after it, else the one before, else the list itself.
   const neighbour = (id: string): string => {
@@ -262,14 +270,25 @@ export function EntriesList() {
           <span className="sr-only">{text.next}</span>
         </Link>
       </nav>
-      {/* The category kept, and Clear, once the list is anything but this month in full. */}
-      {filtered && (
-        <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          {category !== null && <span>{categoryNameIn(t, category)}</span>}
-          <LinkButton href="/entries" icon={XIcon}>
-            {text.clear}
-          </LinkButton>
-        </p>
+      {/* A category kept from Charts is a chip that takes it off in the same month, and another month has its way back
+          to this one, each on its own (18-11-2026: one "Clear" for both read as deleting the list). */}
+      {(category !== null || !onThisMonth) && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {category !== null && (
+            <LinkButton
+              href={filterHref(onThisMonth ? null : loaded.month, null)}
+              icon={XIcon}
+              aria-label={text.showAllCategories(categoryNameIn(t, category))}
+            >
+              {categoryNameIn(t, category)}
+            </LinkButton>
+          )}
+          {!onThisMonth && (
+            <LinkButton href={filterHref(null, category)} icon={CalendarIcon}>
+              {text.thisMonth}
+            </LinkButton>
+          )}
+        </div>
       )}
 
       {entries.length === 0 ? (

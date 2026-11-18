@@ -103,10 +103,9 @@ test('opens a cached page whatever its query string says', async ({ page, contex
   await expect(page.getByText('Oct 2026', { exact: true })).toBeVisible();
 
   await page.goto('/entries?category=eating-out&month=2026-10');
-  // Entries' new look (16-11-2026): the month between its arrows, the kept category on its own line with Clear.
+  // The month between its arrows, and the kept category as its chip (18-11-2026).
   await expect(page.getByText('Oct 2026', { exact: true })).toBeVisible();
-  const filter = page.locator('p').filter({ has: page.getByRole('link', { name: 'Clear', exact: true }) });
-  await expect(filter.getByText('Eating out', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Eating out: show all categories', exact: true })).toBeVisible();
 });
 
 test('every page the worker caches opens offline with its scripts', async ({ page, context }) => {

@@ -11,7 +11,8 @@ export const entries: Messages['entries'] = {
   list: {
     label: 'Saisies',
     unknownAccount: 'Compte inconnu',
-    clear: 'Effacer',
+    thisMonth: 'Ce mois-ci',
+    showAllCategories: (category) => `${category}${NNBSP}: afficher toutes les catégories`,
     monthNav: 'Mois',
     previous: 'Précédent',
     next: 'Suivant',
