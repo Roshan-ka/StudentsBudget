@@ -66,6 +66,17 @@
           "next-line-after-question"
         ]
       }
+    },
+    {
+      "name": "an asked line the next one replaces goes without a word again",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "              if (left !== null) setDropped(left);\n",
+      "replace": "",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "dropped-line-said"
+        ]
+      }
     }
   ]
 }

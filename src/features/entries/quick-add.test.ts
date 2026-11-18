@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '@/db/types';
-import { keywordsOf, lineAfterQuestion, readQuickAdd, suggestCategory } from './quick-add';
+import { droppedLine, keywordsOf, lineAfterQuestion, readQuickAdd, suggestCategory } from './quick-add';
 
 /** The amount or choice `readQuickAdd` reads from a line, or null (review D4: only the tests read it on its own). */
 const parseQuickAdd = (text: string) => readQuickAdd(text)?.reading ?? null;
@@ -721,5 +721,20 @@ describe('lineAfterQuestion (review P3, 17-11-2026)', () => {
     expect(lineAfterQuestion('döner 6', 'dönerx 6')).toBe('dönerx 6');
     expect(lineAfterQuestion('döner 6', 'döner ')).toBe('döner ');
     expect(lineAfterQuestion('', 'bus 3')).toBe('bus 3');
+  });
+});
+
+describe('droppedLine (18-11-2026, after review P3)', () => {
+  it('names the asked line when a letter starts the next one', () => {
+    expect(droppedLine('poster 6,50', 'poster 6,50B')).toBe('poster 6,50');
+    expect(droppedLine('poster 6,50 ', 'poster 6,50 b')).toBe('poster 6,50');
+  });
+
+  it('names nothing while the line goes on or is fixed, edited or cleared', () => {
+    expect(droppedLine('poster 6', 'poster 6 ')).toBe(null);
+    expect(droppedLine('poster 6', 'poster 6,')).toBe(null);
+    expect(droppedLine('poster 6', 'posterx 6')).toBe(null);
+    expect(droppedLine('poster 6', '')).toBe(null);
+    expect(droppedLine('', 'b')).toBe(null);
   });
 });
