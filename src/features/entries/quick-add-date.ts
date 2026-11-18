@@ -177,18 +177,20 @@ const two = (n: number) => String(n).padStart(2, '0');
 const FUTURE_DAYS = 31;
 
 /**
- * The day `day` with no year: in `month`, or with no month in this month or one next to it ("am 17."). The coming one
- * when it is at most `FUTURE_DAYS` ahead, so quick add refuses it ("am 5.12" in November is 5 December, still to
- * come), else the most recent one up to `today` ("27 Nov" in January is last November, "5. März" in November this
- * March). Null for a day no such month has. Before 18-11-2026 it was always the most recent, a year back unsaid.
+ * The day `day` with no year: in `month`, or with no month in this month or the last that has it ("am 17.", "am 31."
+ * in November is 31 October). The coming one when it is at most `FUTURE_DAYS` ahead, so quick add refuses it ("am
+ * 5.12" in November is 5 December, still to come; "am 25." on the 18th the 25th), else the most recent one up to
+ * `today` ("27 Nov" in January is last November, "5. März" in November this March). A bare day never reaches into next
+ * month: "am 17." on the 18th is yesterday. Null for a day no such month has. Before 18-11-2026 it was always the most
+ * recent, a year back unsaid.
  */
 function noYearDay(day: number, month: number | null, today: IsoDate): IsoDate | null {
   const inMonth = (m: IsoMonth): IsoDate | null => (day >= 1 && day <= daysInMonth(m) ? `${m}-${two(day)}` : null);
   const thisYear = Number(today.slice(0, 4));
-  // In order, earliest first: the months around today, or `month` last year, this year and next.
+  // In order, earliest first: this month and the two before it, or `month` last year, this year and next.
   const months: IsoMonth[] =
     month === null
-      ? [-2, -1, 0, 1].map((by) => shiftMonth(monthOf(today), by))
+      ? [-2, -1, 0].map((by) => shiftMonth(monthOf(today), by))
       : [thisYear - 1, thisYear, thisYear + 1].map((y) => `${y}-${two(month)}`);
   const days = months.map(inMonth).filter((d): d is IsoDate => d !== null);
   const coming = days.find((d) => d > today && daysBetween(today, d) <= FUTURE_DAYS);

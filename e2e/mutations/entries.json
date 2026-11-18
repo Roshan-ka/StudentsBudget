@@ -4,8 +4,8 @@
     {
       "name": "an empty month no longer says where to log",
       "file": "src/features/entries/entries-list.tsx",
-      "find": "{text.nothingYetHint}",
-      "replace": "{null}",
+      "find": ": text.nothingYetHint}",
+      "replace": ": null}",
       "expect": {
         "e2e/entries.spec.ts": [
           "empty-hint"
@@ -59,8 +59,8 @@
     {
       "name": "a letter typed after an asked line joins it",
       "file": "src/features/entries/quick-add-field.tsx",
-      "find": "lineAfterQuestion(text, event.target.value)",
-      "replace": "event.target.value",
+      "find": "lineAfterQuestion(text, next)",
+      "replace": "next",
       "expect": {
         "e2e/entries.spec.ts": [
           "next-line-after-question"
@@ -70,7 +70,7 @@
     {
       "name": "an asked line the next one replaces goes without a word again",
       "file": "src/features/entries/quick-add-field.tsx",
-      "find": "              if (left !== null) setDropped(left);\n",
+      "find": "    if (left !== null) setDropped(left);\n",
       "replace": "",
       "expect": {
         "e2e/entries.spec.ts": [
