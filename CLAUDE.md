@@ -40,8 +40,8 @@ Each plan is in `docs/superpowers/plans/`, with an As built section that says wh
 | AI on Groq's free plan | `2026-11-13-groq-free-plan.md` | live since 16-11-2026, chunks 1–6 | the setup chat stays off until a paid plan |
 | Receipt scan, read on the phone with Tesseract.js | `2026-11-13-receipt-scan.md` | built, chunks 1–5 | the real try with real receipts, then a tuning chunk |
 | Maskable app icon | `2026-11-16-maskable-icon.md` | done | the look on an Android phone |
-| Quick add: a date in the line, read on the phone | `2026-11-18-quick-add-dates.md` | built, chunks 1–3 | |
-| Quick add: number words in German, French and Spanish | `2026-11-18-number-words.md` | built, chunks 1–3 | a typed try in each language on the live site |
+| Quick add: a date in the line, read on the phone | `2026-11-18-quick-add-dates.md` | built, chunks 1–3; tried as a guest on the live site in all four languages (18-11-2026) | a dated line signed in with the AI on |
+| Quick add: number words in German, French and Spanish | `2026-11-18-number-words.md` | done; tried on the live site in each language (18-11-2026) | |
 
 ## Stack
 
