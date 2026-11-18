@@ -121,8 +121,8 @@ describe('aiQuickAddProvider', () => {
     expect(reading).toMatchObject({ amountMinor: 435 });
   });
 
-  it('offers both readings of "coffee 7 40", as the local reader orders them, and a choice names no day', async () => {
-    const answer = { ...ANSWER, amount: 7.4, otherAmount: 40, note: 'coffee', categoryId: null, accountRef: null };
+  it('offers both readings of "coffee 7 40", as the local reader orders them', async () => {
+    const answer = { ...ANSWER, amount: 7.4, otherAmount: 40, note: 'coffee', categoryId: null, accountRef: null, date: null };
     const reading = await aiQuickAddProvider({ lang: 'en', ask: asking(answer) }).read('coffee 7 40', CTX);
     const local = await localQuickAddProvider.read('coffee 7 40', CTX);
 
@@ -131,6 +131,33 @@ describe('aiQuickAddProvider', () => {
     expect(reading?.kind === 'choice' && local?.kind === 'choice' && reading.options).toEqual(
       local?.kind === 'choice' && local.options,
     );
+  });
+
+  // 18-11-2026: signed in, "haircut 10 on 27 november 2025" saved today. The function drops a day more than 60 days
+  // back, and the model may miss one, so the day a line names is read on the phone, as the local reader reads it.
+  it('dates the reading with the day the line names, read on the phone, even one the function dropped', async () => {
+    const answer = { ...ANSWER, amount: 10, note: 'haircut', categoryId: null, accountRef: null, date: null };
+    const reading = await aiQuickAddProvider({ lang: 'en', ask: asking(answer) }).read('haircut 10 on 27 november 2025', CTX);
+    expect(reading).toMatchObject({ kind: 'amount', amountMinor: 1000, date: '2025-11-27' });
+  });
+
+  it('takes the phone’s day over the model’s, and keeps the model’s when the phone reads none', async () => {
+    const wrong = await aiQuickAddProvider({ lang: 'en', ask: asking({ ...ANSWER, date: '2026-11-07' }) }).read(
+      'pizza 12 yesterday',
+      CTX,
+    );
+    expect(wrong).toMatchObject({ date: '2026-11-08' });
+    const theirs = await aiQuickAddProvider({ lang: 'en', ask: asking({ ...ANSWER, date: '2026-11-03' }) }).read(
+      'pizza 12 the 3rd',
+      CTX,
+    );
+    expect(theirs).toMatchObject({ date: '2026-11-03' });
+  });
+
+  it('dates a choice with the day the line names', async () => {
+    const answer = { ...ANSWER, amount: 7.4, otherAmount: 40, note: 'coffee', categoryId: null, accountRef: null, date: null };
+    const reading = await aiQuickAddProvider({ lang: 'en', ask: asking(answer) }).read('coffee 7 40 euros yesterday', CTX);
+    expect(reading).toMatchObject({ kind: 'choice', options: [740, 4000], date: '2026-11-08' });
   });
 
   it('fills a category the model left open from this phone’s history, which never leaves it', async () => {

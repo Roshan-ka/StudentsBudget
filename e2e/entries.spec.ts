@@ -1057,3 +1057,17 @@ test('each entry is its own card with its category and account; an empty month p
   await expect(list.locator('xpath=following::a[normalize-space()="Import a bank statement"]')).toBeVisible();
   expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
 });
+
+test.describe('in German', () => {
+  test.use({ locale: 'de-DE' });
+
+  test('quick add reads German number words', async ({ page }) => {
+    // Number words (18-11-2026): on a German phone, "sechs Euro fünfzig" is €6.50.
+    await seedSetup(page);
+    await page.goto('/entries');
+    await expect(page.getByText('Okt. 2026')).toBeVisible();
+    await page.getByRole('textbox', { name: 'Schnell erfassen', exact: true }).fill('Döner sechs Euro fünfzig');
+    await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
+    await expect(page.getByRole('status')).toHaveText(/^Gespeichert: 6,50\s€ · Döner · Essen auswärts$/); // proof: number-words
+  });
+});

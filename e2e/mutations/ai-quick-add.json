@@ -1,0 +1,16 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the AI path takes only the model's day again",
+      "file": "src/features/entries/ai-quick-add.ts",
+      "find": "  const day = readLineParts(text, ctx).date ?? answer.date;\n",
+      "replace": "  const day = answer.date;\n",
+      "expect": {
+        "e2e/ai-quick-add.spec.ts": [
+          "ai-line-date"
+        ]
+      }
+    }
+  ]
+}

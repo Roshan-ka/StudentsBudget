@@ -6,7 +6,8 @@ import type { IsoDate } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 import { EXPENSE_CATEGORIES } from './categories';
 import { guessCategory } from './category-words';
-import { readQuickAdd } from './quick-add';
+import { numberWordsToDigits } from './number-words';
+import { readQuickAdd, type QuickAddLine } from './quick-add';
 import { lineDates } from './quick-add-date';
 
 /**
@@ -55,25 +56,38 @@ export function euroAccountId(accounts: Account[]): string | undefined {
  * `readQuickAdd` for the amount and `guessCategory` for the category, once per line. A line with a euro sign, "eur"
  * or "euro" next to the amount names a euro account when the default account is not in euros. A date in the line
  * ("on 27 november 2025", "gestern"; `lineDates`) is taken out first and dates the reading: the first one that leaves
- * an amount, so "6 mai Döner" stays €6 with no date.
+ * an amount, so "6 mai Döner" stays €6 with no date. Before both, the phone language's number words become digits
+ * (`numberWordsToDigits`: "Döner sechs Euro fünfzig" reads as "Döner 6 Euro 50").
  */
 export const localQuickAddProvider: QuickAddProvider = {
   async read(text, ctx) {
-    const dated = lineDates(text, ctx.today, ctx.lang ?? 'en')
-      .map((found) => ({ date: found.date, line: readQuickAdd(found.rest) }))
-      .find((candidate) => candidate.line !== null);
-    const line = dated?.line ?? readQuickAdd(text);
+    const { line, date: day } = readLineParts(text, ctx);
     if (line === null) return null;
     const { reading: parsed, euro } = line;
     const categoryId = guessCategory(parsed.note, ctx.history);
     const accountId = euro ? euroAccountId(ctx.accounts) : undefined;
     const account = accountId === undefined ? {} : { accountId };
-    const date = dated === undefined ? {} : { date: dated.date };
+    const date = day === undefined ? {} : { date: day };
     return 'kind' in parsed
       ? { kind: 'choice', options: parsed.options, note: parsed.note, categoryId, ...account, ...date }
       : { kind: 'amount', amountMinor: parsed.amountMinor, note: parsed.note, categoryId, ...account, ...date };
   },
 };
+
+/**
+ * A line as the local reader reads it before its category: the phone language's number words as digits
+ * (`numberWordsToDigits`), then the first date that leaves an amount (`lineDates`), with the amount and note from the
+ * rest; with no such date, the whole line and no day. The AI reader takes its day from here too (18-11-2026), so a day
+ * the line names is read the same way whichever reader reads the amount.
+ */
+export function readLineParts(text: string, ctx: QuickAddContext): { line: QuickAddLine | null; date?: IsoDate } {
+  const lang = ctx.lang ?? 'en';
+  const typed = numberWordsToDigits(text, lang);
+  const dated = lineDates(typed, ctx.today, lang)
+    .map((found) => ({ date: found.date, line: readQuickAdd(found.rest) }))
+    .find((candidate) => candidate.line !== null);
+  return dated === undefined ? { line: readQuickAdd(typed) } : { line: dated.line, date: dated.date };
+}
 
 const EXPENSE_CATEGORY_IDS = new Set(EXPENSE_CATEGORIES.map((c) => c.id));
 
