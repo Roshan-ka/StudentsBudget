@@ -282,4 +282,4 @@ Every chunk of the shortlist and the next tier is merged, except the setup chat'
 - **German:** "Döner 6" saved as Essen auswärts; "Kino 8 gestern" as Ausgehen, dated 17.11.2026; "Poster" went straight to Persönliches, learned from the earlier pick; "Tasse 4" asked with the six chips and Mehr, which gave way to the other seven, focus on Gesundheit & Apotheke. Home and Grafiken read in German, Persönliches among them ("3 € über den geplanten 0 €").
 - **Noted, by design:** a fixed cost never asks "Add this month too", so in the first month the rent isn't posted and "saved" reads €400 higher until it is.
 
-Still owed from Verification: one CI run with the axe spec and `languages: all` for the UI chunks.
+Verification's last item, one CI run with the axe spec and `languages: all` for the UI chunks, was the Nightly on `0d128fe` (18-11-2026, every browser and language, passed).
