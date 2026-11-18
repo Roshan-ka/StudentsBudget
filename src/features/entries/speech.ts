@@ -53,7 +53,8 @@ export function speechProblem(code: string): SpeechProblem | null {
 
 /**
  * Listens once in `lang`'s locale and hands over the final text, trimmed: one alternative, no interim results. Returns
- * a stop function, or null where the browser has no recognizer. `onEnd` follows every session, with or without text.
+ * a stop function (with `true`, it discards what it was hearing), or null where the browser has no recognizer. `onEnd`
+ * follows every session, with or without text.
  */
 export function listen({
   win,
@@ -67,7 +68,7 @@ export function listen({
   onText: (text: string) => void;
   onProblem: (problem: SpeechProblem) => void;
   onEnd: () => void;
-}): (() => void) | null {
+}): ((discard?: boolean) => void) | null {
   const Recognition = recognizerFor(win);
   if (Recognition === null) return null;
   const recognizer = new Recognition();
@@ -86,5 +87,6 @@ export function listen({
   };
   recognizer.onend = onEnd;
   recognizer.start();
-  return () => recognizer.stop();
+  // A stop still hands over what was heard; `discard` aborts, so nothing comes (leaving the page, breakpoints).
+  return (discard = false) => (discard ? recognizer.abort() : recognizer.stop());
 }

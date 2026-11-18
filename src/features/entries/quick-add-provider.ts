@@ -8,7 +8,7 @@ import { EXPENSE_CATEGORIES } from './categories';
 import { guessCategory } from './category-words';
 import { numberWordsToDigits } from './number-words';
 import { readQuickAdd, type QuickAddLine } from './quick-add';
-import { lineDates } from './quick-add-date';
+import { dateNumberTokens, lineDates } from './quick-add-date';
 
 /**
  * What a provider reads a line against: today, the accounts, every expense so far (`history`), and the phone's
@@ -86,7 +86,11 @@ export function readLineParts(text: string, ctx: QuickAddContext): { line: Quick
   const dated = lineDates(typed, ctx.today, lang)
     .map((found) => ({ date: found.date, line: readQuickAdd(found.rest) }))
     .find((candidate) => candidate.line !== null);
-  return dated === undefined ? { line: readQuickAdd(typed) } : { line: dated.line, date: dated.date };
+  // Without a date, a year by a month name and the day of a date with a year are never the amount (quick add
+  // breakpoints, 18-11-2026): "Miete 400 November 2025" is €400, and "döner 10 november 2025" has no amount.
+  return dated === undefined
+    ? { line: readQuickAdd(typed, dateNumberTokens(typed, lang)) }
+    : { line: dated.line, date: dated.date };
 }
 
 const EXPENSE_CATEGORY_IDS = new Set(EXPENSE_CATEGORIES.map((c) => c.id));

@@ -221,6 +221,49 @@ test('a double tap on a category chip saves the entry once', async ({ page }) =>
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(1);
 });
 
+// Quick add breakpoints (18-11-2026): a double tap on "€7.40" filed the line under the chip that took its place.
+test('a double tap on an amount never picks a category', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const group = page.getByRole('group', { name: 'Category' });
+
+  await quickAdd(page, 'qqq 7 40');
+  await page.getByRole('group', { name: 'Amount', exact: true }).getByRole('button', { name: '€7.40', exact: true }).dblclick();
+  // The second tap lands on a chip that took the amount's place, and counts for nothing: the line still asks once its
+  // chips take a tap. A save would have taken them away well before (final review, 18-11-2026).
+  await expect(group).toHaveAttribute('data-armed', 'true'); // proof: chip-armed
+  expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
+
+  await group.getByRole('button', { name: 'Other', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €7.40 · qqq · Other');
+});
+
+test('a double tap on More never picks the chip in its place', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const group = page.getByRole('group', { name: 'Category' });
+
+  await quickAdd(page, 'qqq 5');
+  await group.getByRole('button', { name: 'More', exact: true }).click();
+  // A tap on a chip More just gave way to, as a double tap's second tap lands there, whichever chip sits in More's place
+  // on this screen: it counts for nothing yet. A save would have taken the chips away before they take a tap.
+  await group.getByRole('button', { name: 'Health & pharmacy', exact: true }).dispatchEvent('click', { detail: 1 });
+  await expect(group).toHaveAttribute('data-armed', 'true'); // proof: more-armed
+  expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
+});
+
+test('typing on after the question starts the next line in the field', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const field = page.getByRole('textbox', { name: 'Quick add' });
+
+  await quickAdd(page, 'poster 6,50');
+  // The first chip has the focus; the keys typed on it go to the field, as the next line.
+  await expect(page.getByRole('group', { name: 'Category' }).getByRole('button').first()).toBeFocused();
+  await page.keyboard.type('döner 3');
+  await expect(field).toHaveValue('döner 3'); // proof: chip-type-ahead
+  await field.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Saved €3.00 · döner · Eating out');
+  await expect(page.getByText('“poster 6,50” wasn’t saved.', { exact: true })).toBeVisible();
+});
+
 test('quick add saves to the default bank account, not to cash, dated today, with the amount in euro cents', async ({
   page,
 }) => {
@@ -408,6 +451,42 @@ test('delete asks first: Cancel keeps the entry, Yes removes it', async ({ page 
   await expect(list).toBeFocused();
   expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
   expect(dialogs).toBe(0);
+});
+
+// Quick add breakpoints (18-11-2026): after a delete, the focus went to the next entry in the database's order.
+test('deleting an entry hands the focus to the next one shown', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const list = entriesList(page);
+  const row = (amount: string) => list.getByRole('button', { name: new RegExp(`^döner .*${amount}$`) });
+  for (const amount of [3, 4, 5]) {
+    await quickAdd(page, `döner ${amount}`);
+    await expect(page.getByRole('status')).toHaveText(`Saved €${amount}.00 · döner · Eating out`);
+  }
+
+  // Newest first: €5, €4, €3. The middle one goes, and the one shown under it takes the focus.
+  await row('€4\\.00').click();
+  const panel = page.getByRole('region', { name: 'Edit entry' });
+  await panel.getByRole('button', { name: 'Delete', exact: true }).click();
+  await panel.getByRole('button', { name: 'Yes', exact: true }).click();
+  await expect(row('€4\\.00')).toHaveCount(0);
+  await expect(row('€3\\.00')).toBeFocused(); // proof: delete-focus-shown-order
+});
+
+// Quick add breakpoints (18-11-2026): "+50 from mom" was answered "Add an amount", though it has one.
+test('a line that starts with "+" says quick add is for spending', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await quickAdd(page, '+50 from mom');
+  await expect(inlineAlert(page)).toHaveText('Quick add is for spending. Add money that came in under Entries → Add entry.'); // proof: income-line
+  expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
+});
+
+// Quick add breakpoints (18-11-2026): an empty month gone by said "Log with quick add above", which saves today.
+test('an empty past month says how to log a day in it', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await page.goto('/entries?month=2026-08');
+  const list = entriesList(page);
+  await expect(list.getByText('Nothing logged here yet.', { exact: true })).toBeVisible();
+  await expect(list.getByText('Name the day in quick add, like “döner 6 on 3.8”.', { exact: true })).toBeVisible(); // proof: other-month-hint
 });
 
 test('the entry form saves an expense in a foreign currency, converted at save time', async ({ page }) => {
@@ -984,6 +1063,8 @@ test('quick add shows the original six categories first, tinted, and More gives 
   expect(await names()).toEqual([...original, ...more]);
   expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
 
+  // The chips More gave way to take a tap once they have been there a moment (quick add breakpoints, 18-11-2026).
+  await expect(group).toHaveAttribute('data-armed', 'true');
   await group.getByRole('button', { name: 'Health & pharmacy', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Saved €7.00 · pharmacy · Health & pharmacy');
   const [entry] = await readStore<Entry>(page, 'entries');

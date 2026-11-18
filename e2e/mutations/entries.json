@@ -4,8 +4,8 @@
     {
       "name": "an empty month no longer says where to log",
       "file": "src/features/entries/entries-list.tsx",
-      "find": "{text.nothingYetHint}",
-      "replace": "{null}",
+      "find": ": text.nothingYetHint}",
+      "replace": ": null}",
       "expect": {
         "e2e/entries.spec.ts": [
           "empty-hint"
@@ -59,8 +59,8 @@
     {
       "name": "a letter typed after an asked line joins it",
       "file": "src/features/entries/quick-add-field.tsx",
-      "find": "lineAfterQuestion(text, event.target.value)",
-      "replace": "event.target.value",
+      "find": "lineAfterQuestion(text, next)",
+      "replace": "next",
       "expect": {
         "e2e/entries.spec.ts": [
           "next-line-after-question"
@@ -70,7 +70,7 @@
     {
       "name": "an asked line the next one replaces goes without a word again",
       "file": "src/features/entries/quick-add-field.tsx",
-      "find": "              if (left !== null) setDropped(left);\n",
+      "find": "    if (left !== null) setDropped(left);\n",
       "replace": "",
       "expect": {
         "e2e/entries.spec.ts": [
@@ -152,6 +152,62 @@
       "expect": {
         "e2e/entries.spec.ts": [
           "chip-keeps-month"
+        ]
+      }
+    },
+    {
+      "name": "a tap counts at once on chips that took the place of the buttons just tapped",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "      if (armed) return;\n",
+      "replace": "      if (armed || event.detail > 0) return;\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "chip-armed",
+          "more-armed"
+        ]
+      }
+    },
+    {
+      "name": "keys typed on a question's button go nowhere",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "      if (event.key.length !== 1 || event.key === ' ' || event.ctrlKey || event.metaKey || event.altKey) return;\n",
+      "replace": "      if (event.key.length !== 99 || event.key === ' ' || event.ctrlKey || event.metaKey || event.altKey) return;\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "chip-type-ahead"
+        ]
+      }
+    },
+    {
+      "name": "after a delete, the focus goes to the entry shown before it first",
+      "file": "src/features/entries/list-order.ts",
+      "find": "  return shown[index + 1]?.id ?? shown[index - 1]?.id ?? null;\n",
+      "replace": "  return shown[index - 1]?.id ?? shown[index + 1]?.id ?? null;\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "delete-focus-shown-order"
+        ]
+      }
+    },
+    {
+      "name": "a line that starts with \"+\" is read like any other",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "    if (looksLikeIncome(line)) {\n",
+      "replace": "    if (looksLikeIncome(line) && line === \"\") {\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "income-line"
+        ]
+      }
+    },
+    {
+      "name": "an empty past month says \"Log with quick add above\" again",
+      "file": "src/features/entries/entries-list.tsx",
+      "find": "  const pastMonth = loaded.month < loaded.thisMonth;\n",
+      "replace": "  const pastMonth = loaded.month < loaded.thisMonth && false;\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "other-month-hint"
         ]
       }
     }

@@ -11,6 +11,17 @@
           "ai-line-date"
         ]
       }
+    },
+    {
+      "name": "the read is marked as in flight only once the session is read, as before",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "      readAbort.current = controller;\n",
+      "replace": "",
+      "expect": {
+        "e2e/ai-quick-add.spec.ts": [
+          "early-edit-drops"
+        ]
+      }
     }
   ]
 }

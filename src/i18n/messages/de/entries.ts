@@ -17,6 +17,7 @@ export const entries: Messages['entries'] = {
     next: 'Weiter',
     nothingYet: 'Hier ist noch nichts eingetragen.',
     nothingYetHint: 'Trag oben mit „Schnell erfassen“ etwas ein.',
+    otherMonthHint: (month, year) => `Nenne in „Schnell erfassen“ den Tag, etwa „Döner 6 am 3.${month}.${year ?? ''}“`,
   },
   edit: {
     heading: 'Eintrag bearbeiten',
@@ -47,6 +48,7 @@ export const entries: Messages['entries'] = {
     hint: 'Was und wie viel, etwa „Döner 6 gestern“.',
     add: 'Hinzufügen',
     noAmount: 'Gib einen Betrag an, etwa „Döner 6“',
+    incomeLine: '„Schnell erfassen“ ist für Ausgaben. Geld, das reinkommt, trägst du unter Einträge → „Eintrag hinzufügen“ ein.',
     futureDate: 'Dieser Tag kommt erst noch. Schnell erfassen speichert, was du schon ausgegeben hast.',
     whichAmount: 'Welcher Betrag?',
     amountGroup: 'Betrag',

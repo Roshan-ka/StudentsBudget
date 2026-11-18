@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '@/db/types';
-import { droppedLine, keywordsOf, lineAfterQuestion, readQuickAdd, suggestCategory } from './quick-add';
+import { droppedLine, keywordsOf, lineAfterQuestion, looksLikeIncome, readQuickAdd, suggestCategory } from './quick-add';
 
 /** The amount or choice `readQuickAdd` reads from a line, or null (review D4: only the tests read it on its own). */
 const parseQuickAdd = (text: string) => readQuickAdd(text)?.reading ?? null;
@@ -721,6 +721,44 @@ describe('lineAfterQuestion (review P3, 17-11-2026)', () => {
     expect(lineAfterQuestion('döner 6', 'dönerx 6')).toBe('dönerx 6');
     expect(lineAfterQuestion('döner 6', 'döner ')).toBe('döner ');
     expect(lineAfterQuestion('', 'bus 3')).toBe('bus 3');
+  });
+});
+
+// The pain-point check (18-11-2026): "coffee six euros and fifty" saved €6, and "Miete 400 November 2025" €2,025.
+describe('readQuickAdd: cents after "and", and numbers a date owns (quick add breakpoints)', () => {
+  it('reads the cents after "and" when they end the line', () => {
+    expect(readQuickAdd('coffee six euros and fifty')).toEqual({ reading: { amountMinor: 650, note: 'coffee' }, euro: true });
+    expect(readQuickAdd('coffee 6 euros and 50')).toEqual({ reading: { amountMinor: 650, note: 'coffee' }, euro: true });
+  });
+
+  it('reads the line as before when more words follow the "and"', () => {
+    expect(readQuickAdd('coffee 6 euros and 2 cookies')).toEqual({
+      reading: { amountMinor: 600, note: 'coffee and 2 cookies' },
+      euro: true,
+    });
+  });
+
+  it('never takes a token it is told a date owns as the amount, and keeps it in the note', () => {
+    expect(readQuickAdd('Miete 400 November 2025', new Set([3]))).toEqual({
+      reading: { amountMinor: 40000, note: 'Miete November 2025' },
+      euro: false,
+    });
+    expect(readQuickAdd('döner 10 november 2025', new Set([1, 3]))).toBeNull();
+  });
+});
+
+// Quick add breakpoints (18-11-2026): "+50 from mom" was answered "Add an amount", though it has one.
+describe('looksLikeIncome', () => {
+  it('is true for a line that starts with "+" and a number', () => {
+    expect(looksLikeIncome('+50 from mom')).toBe(true);
+    expect(looksLikeIncome(' + 50 Mama')).toBe(true);
+    expect(looksLikeIncome('+12,50 refund')).toBe(true);
+  });
+
+  it('is false for a spending line, and for a "+" later in it', () => {
+    expect(looksLikeIncome('döner 6')).toBe(false);
+    expect(looksLikeIncome('bus +2')).toBe(false);
+    expect(looksLikeIncome('+ cake')).toBe(false);
   });
 });
 

@@ -18,7 +18,7 @@ import { EmptyCard, RowTile, tintCardClass } from '@/features/home/row-card';
 import { categoryNameIn } from '@/i18n/category-name';
 import { dateFormat, dayLabel } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
-import { daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
+import { daysInMonth, firstOfMonth, monthOf, shiftMonth, type IsoMonth } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { useToday } from '@/lib/use-today';
 import { useFocusAfter, useFocusOnMount } from '@/lib/focus';
@@ -26,6 +26,8 @@ import { cn } from '@/lib/utils';
 import { CATEGORY_ICONS, OTHER_ICON } from './category-icons';
 import { EntryForm } from './entry-form';
 import { entryTitle } from './entry-title';
+import { groupByDate, neighbourOf } from './list-order';
+import { noYearDay } from './quick-add-date';
 import { RecurringTag, isRecurring } from './recurring-tag';
 
 const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
@@ -55,18 +57,6 @@ function filterHref(month: IsoMonth | null, category: string | null): string {
   if (category !== null) query.set('category', category);
   const search = query.toString();
   return search === '' ? '/entries' : `/entries?${search}`;
-}
-
-/** Newest day first; within a day the entry saved last comes first. */
-function groupByDate(entries: Entry[]): { date: IsoDate; entries: Entry[] }[] {
-  const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
-  const groups: { date: IsoDate; entries: Entry[] }[] = [];
-  for (const entry of sorted) {
-    const last = groups[groups.length - 1];
-    if (last?.date === entry.date) last.entries.push(entry);
-    else groups.push({ date: entry.date, entries: [entry] });
-  }
-  return groups;
 }
 
 function EntryRow({
@@ -244,11 +234,14 @@ export function EntriesList() {
   const entries = loaded.entries.filter((e) => category === null || (e.type !== 'transfer' && e.categoryId === category));
   const onThisMonth = loaded.month === loaded.thisMonth;
 
-  // A deleted entry hands the focus to the one after it, else the one before, else the list itself.
-  const neighbour = (id: string): string => {
-    const index = entries.findIndex((e) => e.id === id);
-    return entries[index + 1]?.id ?? entries[index - 1]?.id ?? LIST_KEY;
-  };
+  // A deleted entry hands the focus to the one shown after it, else the one before, else the list itself.
+  const neighbour = (id: string): string => neighbourOf(entries, id) ?? LIST_KEY;
+  // A month gone by says how to log a day in it: quick add saves today unless the line names the day (breakpoints).
+  const pastMonth = loaded.month < loaded.thisMonth;
+  // Its example is the 3rd, with the year where "3.<month>" alone would read as another month's (final review).
+  const exampleMonth = Number(loaded.month.slice(5, 7));
+  const exampleYear =
+    today !== null && noYearDay(3, exampleMonth, today) === `${loaded.month}-03` ? null : Number(loaded.month.slice(0, 4));
 
   return (
     <section
@@ -293,7 +286,7 @@ export function EntriesList() {
 
       {entries.length === 0 ? (
         <EmptyCard icon={ReceiptTextIcon} title={text.nothingYet}>
-          {text.nothingYetHint}
+          {pastMonth ? text.otherMonthHint(exampleMonth, exampleYear) : text.nothingYetHint}
         </EmptyCard>
       ) : (
         groupByDate(entries).map((group) => (

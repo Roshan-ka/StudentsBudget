@@ -1,0 +1,27 @@
+{
+  "format": 0,
+  "mutations": [
+    {
+      "name": "the chips stay on while the mic listens",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "          busy={busy || listening}\n          afterChoice={askedAfterChoice}\n",
+      "replace": "          busy={busy}\n          afterChoice={askedAfterChoice}\n",
+      "expect": {
+        "e2e/dictation.spec.ts": [
+          "chips-off-while-listening"
+        ]
+      }
+    },
+    {
+      "name": "leaving the page stops the mic, which still hands over what it heard",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "      stopListening.current?.(true);\n",
+      "replace": "      stopListening.current?.();\n",
+      "expect": {
+        "e2e/dictation.spec.ts": [
+          "mic-abort-on-leave"
+        ]
+      }
+    }
+  ]
+}

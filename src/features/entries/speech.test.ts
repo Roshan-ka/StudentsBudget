@@ -21,7 +21,10 @@ class FakeRecognizer implements Recognizer {
   stop() {
     this.stopped = true;
   }
-  abort() {}
+  aborted = false;
+  abort() {
+    this.aborted = true;
+  }
   /** Fires a result with one alternative per piece, as the browser hands over a final transcript. */
   say(...pieces: string[]) {
     this.onresult?.({ results: pieces.map((transcript) => [{ transcript }]) });
@@ -84,7 +87,16 @@ describe('listen', () => {
     stop?.();
     recognizer.onend?.();
     expect(recognizer.stopped).toBe(true);
+    expect(recognizer.aborted).toBe(false);
     expect(heard.ended).toBe(1);
+  });
+
+  // Quick add breakpoints (18-11-2026): a stop hands over what was heard, which then saved on a page already left.
+  it('discards what it was hearing when stopped with discard, by aborting instead', () => {
+    const { stop, recognizer } = setUp();
+    stop?.(true);
+    expect(recognizer.aborted).toBe(true);
+    expect(recognizer.stopped).toBe(false);
   });
 
   it('returns null and makes nothing where the browser has no recognizer', () => {

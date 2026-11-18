@@ -603,6 +603,97 @@ describe('number words in the phone’s language (18-11-2026)', () => {
   });
 });
 
+// The pain-point check (18-11-2026): each of these saved a wrong amount without asking.
+describe('no silent wrong amounts (quick add breakpoints)', () => {
+  const on = (lang: Language): QuickAddContext => ({ ...context([]), lang });
+
+  it('reads an article before the euro word as one, and the cents after und, y, et or and', async () => {
+    expect(await localQuickAddProvider.read('Kaffee ein Euro fünfzig', on('de'))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 150,
+      note: 'Kaffee',
+      categoryId: 'eating-out',
+    });
+    expect(await localQuickAddProvider.read('café dos euros y cincuenta', on('es'))).toMatchObject({ amountMinor: 250 });
+    expect(await localQuickAddProvider.read('Döner sechs Euro und fünfzig', on('de'))).toMatchObject({ amountMinor: 650 });
+    expect(await localQuickAddProvider.read('coffee six euros and fifty', context([]))).toMatchObject({ amountMinor: 650 });
+  });
+
+  it('reads a bare day after a cue word as the day, not the amount', async () => {
+    expect(await localQuickAddProvider.read('Döner 6 am 17.', on('de'))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 600,
+      note: 'Döner',
+      categoryId: 'eating-out',
+      date: '2026-10-17',
+    });
+  });
+
+  it('never takes a year next to a month name as the amount', async () => {
+    const rent = await localQuickAddProvider.read('Miete 400 November 2025', on('de'));
+    expect(rent).toMatchObject({ kind: 'amount', amountMinor: 40000, note: 'Miete November 2025' });
+    expect(rent).not.toHaveProperty('date');
+    // A date with a year leaves no amount here: refused, so the student adds one.
+    expect(await localQuickAddProvider.read('döner 10 november 2025', context([]))).toBeNull();
+  });
+
+  it('reads a month or weekday name after "with" or "mit" as a name, so the amount stays (chunk 3)', async () => {
+    const jan = await localQuickAddProvider.read('2 döner with Jan 7', context([]));
+    expect(jan).toMatchObject({ kind: 'amount', amountMinor: 700 });
+    expect(jan).not.toHaveProperty('date');
+    const kino = await localQuickAddProvider.read('Kino mit Jan 2 Tickets 18', on('de'));
+    expect(kino).toMatchObject({ kind: 'amount', amountMinor: 1800 });
+    expect(kino).not.toHaveProperty('date');
+  });
+
+  it('dates "next friday" and "morgen" ahead, for quick add to refuse as still to come (chunk 3)', async () => {
+    // 20.10.2026 is a Tuesday.
+    expect(await localQuickAddProvider.read('döner 6 next friday', context([]))).toMatchObject({
+      amountMinor: 600,
+      date: '2026-10-23',
+    });
+    expect(await localQuickAddProvider.read('Döner 6 morgen', on('de'))).toMatchObject({ amountMinor: 600, date: '2026-10-21' });
+  });
+
+  it('keeps what was pinned before', async () => {
+    expect(await localQuickAddProvider.read('10 haircut on 27 november 2025', context([]))).toMatchObject({
+      amountMinor: 1000,
+      date: '2025-11-27',
+    });
+    const mai = await localQuickAddProvider.read('6 mai Döner', on('de'));
+    expect(mai).toMatchObject({ amountMinor: 600 });
+    expect(mai).not.toHaveProperty('date');
+  });
+});
+
+// Quick add breakpoints (18-11-2026): an empty month gone by says how to log a day in it, with an example that works.
+describe('the empty past month’s example', () => {
+  // The last quoted part: German names „Schnell erfassen“ before its example.
+  const exampleOf = (hint: string) => {
+    const quoted = [...hint.matchAll(/[“„«"]\s*([^”“»"]+?)\s*[”“»"]/gu)];
+    return quoted[quoted.length - 1]?.[1] ?? '';
+  };
+
+  it.each(OFFERED)('saves €6 under Eating out on the 3rd of that month, in %s', async (lang) => {
+    const example = exampleOf(MESSAGES[lang].entries.list.otherMonthHint(8, null));
+    expect(await localQuickAddProvider.read(example, { ...context([]), lang })).toMatchObject({
+      kind: 'amount',
+      amountMinor: 600,
+      categoryId: 'eating-out',
+      date: '2026-08-03',
+    });
+  });
+
+  // Final review (18-11-2026): November 2025's "3.11" alone, on 20.10.2026, is the coming 3 November, so it has a year.
+  it.each(OFFERED)('names the year where the day alone would read as another one, in %s', async (lang) => {
+    const example = exampleOf(MESSAGES[lang].entries.list.otherMonthHint(11, 2025));
+    expect(await localQuickAddProvider.read(example, { ...context([]), lang })).toMatchObject({
+      amountMinor: 600,
+      date: '2025-11-03',
+    });
+  });
+});
+
 describe('the hint’s own example (18-11-2026)', () => {
   it.each(OFFERED)('saves €6 under Eating out, dated yesterday, in %s', async (lang) => {
     const example = /[“„«"]\s*([^”“»"]+?)\s*[”“»"]/u.exec(MESSAGES[lang].entries.quickAdd.hint)?.[1] ?? '';

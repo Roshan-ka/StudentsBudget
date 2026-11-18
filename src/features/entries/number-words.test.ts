@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Language } from '@/i18n/languages';
 import { numberWordsToDigits } from './number-words';
 
 const de = (text: string) => numberWordsToDigits(text, 'de');
@@ -117,5 +118,27 @@ describe('numberWordsToDigits, Spanish', () => {
   it('writes the scales the reader refuses as "million", and céntimos as "cents"', () => {
     expect(es('lotería dos millones')).toBe('lotería 2 million');
     expect(es('café cincuenta céntimos')).toBe('café 50 cents');
+  });
+});
+
+// The pain-point check (18-11-2026): "Kaffee ein Euro fünfzig" saved 50 € and "café dos euros y cincuenta" 2 €.
+describe('an article before the euro word, and a connector before the cents (quick add breakpoints)', () => {
+  it.each<[string, Language, string]>([
+    ['Kaffee ein Euro fünfzig', 'de', 'Kaffee 1 Euro 50'],
+    ['café un euro cinquante', 'fr', 'café 1 euro 50'],
+    ['café un euro con cincuenta', 'es', 'café 1 euro 50'],
+    ['café dos euros y cincuenta', 'es', 'café 2 euros 50'],
+    ['café dos euros con cincuenta céntimos', 'es', 'café 2 euros 50 cents'],
+    ['Döner sechs Euro und fünfzig', 'de', 'Döner 6 Euro 50'],
+    ['döner six euros et cinquante', 'fr', 'döner 6 euros 50'],
+  ])('reads "%s" (%s) as "%s"', (text, lang, digits) => {
+    expect(numberWordsToDigits(text, lang)).toBe(digits);
+  });
+
+  it('keeps an article that comes before no euro word, and a connector more words follow', () => {
+    expect(de('ein Döner fünf Euro')).toBe('ein Döner 5 Euro');
+    expect(numberWordsToDigits('un café trois', 'fr')).toBe('un café 3');
+    expect(de('Döner sechs Euro und zwei Cola')).toBe('Döner 6 Euro und 2 Cola');
+    expect(es('café seis euros con dos tostadas')).toBe('café 6 euros con 2 tostadas');
   });
 });
