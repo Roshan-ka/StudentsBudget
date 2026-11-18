@@ -603,6 +603,51 @@ describe('number words in the phone’s language (18-11-2026)', () => {
   });
 });
 
+// The pain-point check (18-11-2026): each of these saved a wrong amount without asking.
+describe('no silent wrong amounts (quick add breakpoints)', () => {
+  const on = (lang: Language): QuickAddContext => ({ ...context([]), lang });
+
+  it('reads an article before the euro word as one, and the cents after und, y, et or and', async () => {
+    expect(await localQuickAddProvider.read('Kaffee ein Euro fünfzig', on('de'))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 150,
+      note: 'Kaffee',
+      categoryId: 'eating-out',
+    });
+    expect(await localQuickAddProvider.read('café dos euros y cincuenta', on('es'))).toMatchObject({ amountMinor: 250 });
+    expect(await localQuickAddProvider.read('Döner sechs Euro und fünfzig', on('de'))).toMatchObject({ amountMinor: 650 });
+    expect(await localQuickAddProvider.read('coffee six euros and fifty', context([]))).toMatchObject({ amountMinor: 650 });
+  });
+
+  it('reads a bare day after a cue word as the day, not the amount', async () => {
+    expect(await localQuickAddProvider.read('Döner 6 am 17.', on('de'))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 600,
+      note: 'Döner',
+      categoryId: 'eating-out',
+      date: '2026-10-17',
+    });
+  });
+
+  it('never takes a year next to a month name as the amount', async () => {
+    const rent = await localQuickAddProvider.read('Miete 400 November 2025', on('de'));
+    expect(rent).toMatchObject({ kind: 'amount', amountMinor: 40000, note: 'Miete November 2025' });
+    expect(rent).not.toHaveProperty('date');
+    // A date with a year leaves no amount here: refused, so the student adds one.
+    expect(await localQuickAddProvider.read('döner 10 november 2025', context([]))).toBeNull();
+  });
+
+  it('keeps what was pinned before', async () => {
+    expect(await localQuickAddProvider.read('10 haircut on 27 november 2025', context([]))).toMatchObject({
+      amountMinor: 1000,
+      date: '2025-11-27',
+    });
+    const mai = await localQuickAddProvider.read('6 mai Döner', on('de'));
+    expect(mai).toMatchObject({ amountMinor: 600 });
+    expect(mai).not.toHaveProperty('date');
+  });
+});
+
 describe('the hint’s own example (18-11-2026)', () => {
   it.each(OFFERED)('saves €6 under Eating out, dated yesterday, in %s', async (lang) => {
     const example = /[“„«"]\s*([^”“»"]+?)\s*[”“»"]/u.exec(MESSAGES[lang].entries.quickAdd.hint)?.[1] ?? '';

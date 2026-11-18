@@ -5,7 +5,7 @@ import { getISODay, parseISO } from 'date-fns';
 import { readTypedDate } from '@/components/date-input';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { LANGUAGES, type Language } from '@/i18n/languages';
-import { addDays, daysInMonth, type IsoDate } from '@/lib/dates';
+import { addDays, daysInMonth, monthOf, shiftMonth, type IsoDate } from '@/lib/dates';
 
 /** A date found in a line, and the line without it (its cue word and connectors gone too). */
 export type LineDate = { date: IsoDate; rest: string };
@@ -146,6 +146,21 @@ function dayOf(day: number, month: number, year: number | null, today: IsoDate):
   return now !== null && now <= today ? now : tryYear(thisYear - 1);
 }
 
+/**
+ * The day `day` of this month when it has come, else of the latest month before that has it ("am 31." in November is
+ * 31 October). Null for a day no month has.
+ */
+function recentDayOfMonth(day: number, today: IsoDate): IsoDate | null {
+  if (day < 1 || day > 31) return null;
+  for (let back = 0; back <= 2; back += 1) {
+    const month = shiftMonth(monthOf(today), -back);
+    if (day > daysInMonth(month)) continue;
+    const iso = `${month}-${two(day)}`;
+    if (iso <= today) return iso;
+  }
+  return null;
+}
+
 /** A typed numeric date, with no year read as the most recent such day. */
 function numericDate(token: string, today: IsoDate): IsoDate | null {
   const read = readTypedDate(token, today);
@@ -228,7 +243,48 @@ function dateAt(folded: string[], i: number, today: IsoDate, langs: readonly Lan
     const date = dayOf(Number(monthFirst[1]), month, year, today);
     if (date !== null) return { start: i, end: year === null ? i + 1 : i + 2, date };
   }
+
+  // A bare day after a cue word: "am 17.", "on 17", "on the 17th", "le 17", "el 17" (quick add breakpoints,
+  // 18-11-2026: it was read as the amount). Never when a month name follows: that is the day-first form's, valid or not.
+  const bareDay = DAY.exec(at(i));
+  const cueBefore = cues.has(at(i - 1)) || (langs.includes('en') && at(i - 1) === 'the' && cues.has(at(i - 2)));
+  const monthAfter = monthOfToken(at(i + 1), langs) !== null || (isConnector(i + 1) && monthOfToken(at(i + 2), langs) !== null);
+  if (bareDay !== null && cueBefore && !monthAfter) {
+    const date = recentDayOfMonth(Number(bareDay[1]), today);
+    if (date !== null) return { start: i, end: i, date };
+  }
   return null;
+}
+
+/**
+ * The tokens of `text` (split at spaces) that a date owns and that are never the amount: a year (`YEAR`) after a month
+ * name, a connector between them allowed ("November 2025", "noviembre de 2025"), and that date's day number
+ * ("10 november 2025", "Nov 27, 2025"). Quick add passes them to `readQuickAdd` when it reads the line without a date
+ * (quick add breakpoints, 18-11-2026: "Miete 400 November 2025" saved €2,025).
+ */
+export function dateNumberTokens(text: string, lang: Language): Set<number> {
+  const folded = (text.trim() === '' ? [] : text.trim().split(/\s+/)).map(fold);
+  const langs = languagesFor(lang);
+  const connectors = new Set(langs.flatMap((l) => CONNECTORS[l]));
+  const at = (k: number) => folded[k] ?? '';
+  const owned = new Set<number>();
+  folded.forEach((token, i) => {
+    if (!YEAR.test(token)) return;
+    // Day first: "[day] [of|de] month [de] year".
+    const monthAt = connectors.has(at(i - 1)) ? i - 2 : i - 1;
+    if (monthOfToken(at(monthAt), langs) !== null) {
+      owned.add(i);
+      const dayAt = connectors.has(at(monthAt - 1)) ? monthAt - 2 : monthAt - 1;
+      if (DAY.test(at(dayAt))) owned.add(dayAt);
+      return;
+    }
+    // Month first: "Nov 27, 2025".
+    if (DAY.test(at(i - 1)) && monthOfToken(at(i - 2), langs) !== null) {
+      owned.add(i);
+      owned.add(i - 1);
+    }
+  });
+  return owned;
 }
 
 /**

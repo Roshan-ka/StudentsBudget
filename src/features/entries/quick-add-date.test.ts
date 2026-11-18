@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Language } from '@/i18n/languages';
-import { lineDates, readLineDate } from './quick-add-date';
+import { dateNumberTokens, lineDates, readLineDate } from './quick-add-date';
 
 const TODAY = '2026-11-18';
 const read = (text: string, lang: Language = 'en') => readLineDate(text, TODAY, lang);
@@ -111,5 +111,49 @@ describe('readLineDate (quick add dates, 18-11-2026)', () => {
 
   it('reads a whole date even where the line meant a month: quick add then keeps the amount', () => {
     expect(read('haircut 10 november 2025')).toEqual({ date: '2025-11-10', rest: 'haircut' });
+  });
+});
+
+// The pain-point check (18-11-2026): "Döner 6 am 17." saved 17 €, and "döner 10 november 2025" €2,025.
+describe('a cue word and a bare day (quick add breakpoints)', () => {
+  it.each<[string, Language, string, string]>([
+    ['Döner 6 am 17.', 'de', '2026-11-17', 'Döner 6'],
+    ['döner 6 on 17', 'en', '2026-11-17', 'döner 6'],
+    ['döner 6 on the 17th', 'en', '2026-11-17', 'döner 6'],
+    ['döner 6 le 17', 'fr', '2026-11-17', 'döner 6'],
+    ['döner 6 el 17', 'es', '2026-11-17', 'döner 6'],
+    // November has no 31st: the last month that has one.
+    ['Miete 400 am 31.', 'de', '2026-10-31', 'Miete 400'],
+  ])('reads "%s" (%s) as %s, leaving "%s"', (text, lang, date, rest) => {
+    expect(read(text, lang)).toEqual({ date, rest });
+  });
+
+  it.each<[string, Language]>([
+    ['lunch on campus 6', 'en'],
+    ['am Bahnhof 4', 'de'],
+    ['le pain 2', 'fr'],
+    ['el café 3', 'es'],
+  ])('finds no date in "%s" (%s)', (text, lang) => {
+    expect(read(text, lang)).toBeNull();
+  });
+
+  it('leaves a day with its month to the month name', () => {
+    expect(read('Friseur 10 am 27. November 2025', 'de')).toEqual({ date: '2025-11-27', rest: 'Friseur 10' });
+    expect(read('peluquería 10 el 27 de noviembre de 2025', 'es')).toEqual({ date: '2025-11-27', rest: 'peluquería 10' });
+  });
+});
+
+describe('dateNumberTokens (quick add breakpoints)', () => {
+  it('names a year next to a month name, and the day of a date with a year', () => {
+    expect(dateNumberTokens('Miete 400 November 2025', 'de')).toEqual(new Set([3]));
+    expect(dateNumberTokens('döner 10 november 2025', 'en')).toEqual(new Set([1, 3]));
+    expect(dateNumberTokens('peluquería 10 el 27 de noviembre de 2025', 'es')).toEqual(new Set([3, 7]));
+    expect(dateNumberTokens('haircut 10 Nov 27, 2025', 'en')).toEqual(new Set([3, 4]));
+  });
+
+  it('names nothing in a line with no year by a month', () => {
+    expect(dateNumberTokens('döner 6', 'en')).toEqual(new Set());
+    expect(dateNumberTokens('6 mai Döner', 'de')).toEqual(new Set());
+    expect(dateNumberTokens('laptop 2025', 'en')).toEqual(new Set());
   });
 });

@@ -724,6 +724,29 @@ describe('lineAfterQuestion (review P3, 17-11-2026)', () => {
   });
 });
 
+// The pain-point check (18-11-2026): "coffee six euros and fifty" saved €6, and "Miete 400 November 2025" €2,025.
+describe('readQuickAdd: cents after "and", and numbers a date owns (quick add breakpoints)', () => {
+  it('reads the cents after "and" when they end the line', () => {
+    expect(readQuickAdd('coffee six euros and fifty')).toEqual({ reading: { amountMinor: 650, note: 'coffee' }, euro: true });
+    expect(readQuickAdd('coffee 6 euros and 50')).toEqual({ reading: { amountMinor: 650, note: 'coffee' }, euro: true });
+  });
+
+  it('reads the line as before when more words follow the "and"', () => {
+    expect(readQuickAdd('coffee 6 euros and 2 cookies')).toEqual({
+      reading: { amountMinor: 600, note: 'coffee and 2 cookies' },
+      euro: true,
+    });
+  });
+
+  it('never takes a token it is told a date owns as the amount, and keeps it in the note', () => {
+    expect(readQuickAdd('Miete 400 November 2025', new Set([3]))).toEqual({
+      reading: { amountMinor: 40000, note: 'Miete November 2025' },
+      euro: false,
+    });
+    expect(readQuickAdd('döner 10 november 2025', new Set([1, 3]))).toBeNull();
+  });
+});
+
 describe('droppedLine (18-11-2026, after review P3)', () => {
   it('names the asked line when a letter starts the next one', () => {
     expect(droppedLine('poster 6,50', 'poster 6,50B')).toBe('poster 6,50');

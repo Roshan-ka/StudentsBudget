@@ -229,6 +229,13 @@ const CENT_WORDS: Record<Language, readonly string[]> = {
 const EURO_MARKERS = new Set(['€', 'eur', 'euro', 'euros']);
 
 /**
+ * Words that may join the euro word and the cents ("seis euros con cincuenta", "dos euros y cincuenta", "sechs Euro und
+ * fünfzig", "six euros et cinquante"): they go when the cents end the line, as the reader wants the cents straight after
+ * the euro word (quick add breakpoints, 18-11-2026; English "and" is the reader's own).
+ */
+const CENTS_CONNECTORS: Record<Language, readonly string[]> = { en: [], de: ['und'], fr: ['et'], es: ['con', 'y'] };
+
+/**
  * The line with the phone language's number words as digits: each run of number words, in whole tokens, becomes one
  * number ("sechs" → "6", "vingt-cinq" → "25", "treinta y cinco" → "35"), and the rest stays as typed. Cent words become
  * "cents" and unread scales "million", as the reader knows them in English; Spanish "con" between "euros" and the
@@ -255,6 +262,15 @@ export function numberWordsToDigits(text: string, lang: Language): string {
   while (w < words.length) {
     const t = tokenOf[w];
     const startsToken = w === 0 || tokenOf[w - 1] !== t;
+    // An article is one before the euro word ("ein Euro fünfzig", "einen Euro", "un euro cinquante": 1,50 €), and a word
+    // anywhere else ("ein Döner"). German reads "ein" as a number only inside a compound, so this comes first.
+    const wholeToken = startsToken && (w + 1 === words.length || tokenOf[w + 1] !== t);
+    if (wholeToken && ARTICLES[lang].includes(words[w]) && EURO_MARKERS.has(key(tokens[t + 1] ?? ''))) {
+      out.push('1');
+      changed = true;
+      w += 1;
+      continue;
+    }
     const run = startsToken ? read(words, w) : null;
     const endsToken = run !== null && (run.end === words.length || tokenOf[run.end] !== tokenOf[run.end - 1]);
     const lone = run !== null && run.end === w + 1 && ARTICLES[lang].includes(words[w]);
@@ -279,9 +295,15 @@ export function numberWordsToDigits(text: string, lang: Language): string {
     while (w < words.length && tokenOf[w] === t) w += 1;
   }
 
-  // "seis euros con cincuenta": the cents follow the euro word straight away, as the reader wants them.
+  // "seis euros con cincuenta": the cents follow the euro word straight away, as the reader wants them. Only when they
+  // end the line ("cents" may follow): "Döner sechs Euro und zwei Cola" keeps its "und".
   const joined = out.filter((token, i) => {
-    const drop = lang === 'es' && key(token) === 'con' && EURO_MARKERS.has(key(out[i - 1] ?? '')) && /^\d+$/.test(out[i + 1] ?? '');
+    const centsEndLine = out[i + 2] === undefined || (out[i + 2] === 'cents' && out[i + 3] === undefined);
+    const drop =
+      CENTS_CONNECTORS[lang].includes(key(token)) &&
+      EURO_MARKERS.has(key(out[i - 1] ?? '')) &&
+      /^\d+$/.test(out[i + 1] ?? '') &&
+      centsEndLine;
     if (drop) changed = true;
     return !drop;
   });

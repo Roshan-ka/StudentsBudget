@@ -246,13 +246,20 @@ function hasSplitDecimal(tokens: string[]): boolean {
   });
 }
 
-/** Every amount in the line, or null when something that looks like an amount cannot be read. */
-function findCandidates(tokens: string[]): Candidate[] | null {
+/**
+ * Every amount in the line, or null when something that looks like an amount cannot be read. A token in `notAmounts`
+ * (a date's year or day, quick add breakpoints) is never one.
+ */
+function findCandidates(tokens: string[], notAmounts: ReadonlySet<number>): Candidate[] | null {
   const words = toWords(tokens);
   const candidates: Candidate[] = [];
 
   let w = 0;
   while (w < words.length) {
+    if (notAmounts.has(words[w].token)) {
+      w += 1;
+      continue;
+    }
     const amount = readAmount(tokens, words, w);
     if (amount === 'invalid') return null;
     if (amount === null) {
@@ -265,7 +272,18 @@ function findCandidates(tokens: string[]): Candidate[] | null {
     // "6 Euro 50": euros, a marker of its own, then cents ("cent" or "cents" may follow) and the end of
     // the line. Any other number straight after the marker would be a second amount, and a word after
     // the cents would make them a quantity ("6 euros 2 coffees"), so either way the line has no clear amount.
-    const cents = isMarker(wordAt(words, end)) ? readAmount(tokens, words, end + 1) : null;
+    // "six euros and fifty" says the same, when the cents end the line; "6 euros and 2 cookies" reads as before.
+    const andCents =
+      isMarker(wordAt(words, end)) && wordAt(words, end + 1) === 'and' ? readAmount(tokens, words, end + 2) : null;
+    const andEndsLine =
+      andCents !== null &&
+      andCents !== 'invalid' &&
+      (CENT_WORDS.has(wordAt(words, andCents.end)) ? andCents.end + 1 : andCents.end) === words.length;
+    const cents = andEndsLine
+      ? andCents
+      : isMarker(wordAt(words, end))
+        ? readAmount(tokens, words, end + 1)
+        : null;
     if (cents === 'invalid') return null;
     if (cents !== null) {
       const afterCents = CENT_WORDS.has(wordAt(words, cents.end)) ? cents.end + 1 : cents.end;
@@ -310,14 +328,17 @@ function findCandidates(tokens: string[]): Candidate[] | null {
  *
  * `euro` says the amount (or, for a choice, the number the options end in) has a euro marker next to it: "Döner 6 €",
  * "€6", "6eur", "coffee 7 40 euros". Quick add uses it to save to a euro account when the default is not in euros.
+ *
+ * `notAmounts` names tokens (by index in the line split at spaces) that are never the amount and stay in the note: the
+ * year next to a month name and the day of a date with a year (`dateNumberTokens`, quick add breakpoints, 18-11-2026).
  */
-export function readQuickAdd(text: string): QuickAddLine | null {
+export function readQuickAdd(text: string, notAmounts: ReadonlySet<number> = new Set()): QuickAddLine | null {
   const trimmed = text.trim().replace(SENTENCE_END, '').trimEnd();
   // `tokens` is the line as typed, for the note; `read` has the same tokens without a word's separator.
   const tokens = trimmed === '' ? [] : trimmed.split(/\s+/);
   if (hasSplitDecimal(tokens)) return null;
   const read = tokens.map(withoutSeparator);
-  const candidates = findCandidates(read);
+  const candidates = findCandidates(read, notAmounts);
   if (candidates === null || candidates.length === 0) return null;
 
   const nextToMarker = (c: Candidate) => c.marked || isMarker(read[c.start - 1]) || isMarker(read[c.end + 1]);
