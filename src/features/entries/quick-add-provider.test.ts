@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Account, Entry } from '@/db/types';
+import type { Language } from '@/i18n/languages';
 import { guessCategory } from './category-words';
 import { readQuickAdd, suggestCategory } from './quick-add';
 import { readLineDate } from './quick-add-date';
@@ -546,5 +547,57 @@ describe('accountFor', () => {
     ];
 
     expect(accountFor(setup, undefined)?.id).toBe('local-bank');
+  });
+});
+
+describe('number words in the phone’s language (18-11-2026)', () => {
+  const on = (lang: Language): QuickAddContext => ({ ...context([]), lang });
+
+  it('reads German, French and Spanish number words as the amount', async () => {
+    expect(await localQuickAddProvider.read('Döner sechs Euro fünfzig', on('de'))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 650,
+      note: 'Döner',
+      categoryId: 'eating-out',
+    });
+    expect(await localQuickAddProvider.read('pizza vingt-cinq euros', on('fr'))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 2500,
+      note: 'pizza',
+      categoryId: 'eating-out',
+    });
+    expect(await localQuickAddProvider.read('café seis euros con cincuenta', on('es'))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 650,
+      note: 'café',
+      categoryId: 'eating-out',
+    });
+  });
+
+  it('gives two readings for "sieben vierzig", as for "seven forty"', async () => {
+    expect(await localQuickAddProvider.read('Kaffee sieben vierzig', on('de'))).toStrictEqual({
+      kind: 'choice',
+      options: [740, 4000],
+      note: 'Kaffee',
+      categoryId: 'eating-out',
+    });
+  });
+
+  it('reads a date written in number words, after the words become digits', async () => {
+    expect(await localQuickAddProvider.read('Friseur zehn am siebenundzwanzig November', on('de'))).toMatchObject({
+      amountMinor: 1000,
+      note: 'Friseur',
+      date: '2025-11-27',
+    });
+  });
+
+  it('keeps an article, English number words, and refuses a scale it cannot read', async () => {
+    expect(await localQuickAddProvider.read('ein Döner sechs', on('de'))).toMatchObject({ amountMinor: 600, note: 'ein Döner' });
+    expect(await localQuickAddProvider.read('döner six euros', on('de'))).toMatchObject({ amountMinor: 600, note: 'döner' });
+    expect(await localQuickAddProvider.read('Lotto zwei Millionen', on('de'))).toBeNull();
+  });
+
+  it('reads no German number words on an English phone', async () => {
+    expect(await localQuickAddProvider.read('Döner sechs Euro', context([]))).toBeNull();
   });
 });

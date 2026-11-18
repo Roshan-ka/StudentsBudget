@@ -132,6 +132,17 @@
           "line-weekday"
         ]
       }
+    },
+    {
+      "name": "quick add reads number words in English only again",
+      "file": "src/features/entries/quick-add-provider.ts",
+      "find": "    const typed = numberWordsToDigits(text, lang);\n",
+      "replace": "    const typed = numberWordsToDigits(text, 'en');\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "number-words"
+        ]
+      }
     }
   ]
 }

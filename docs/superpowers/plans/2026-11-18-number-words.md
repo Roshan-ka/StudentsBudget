@@ -42,4 +42,7 @@ A pure pre-pass per phone language turns that language's number words into digit
 
 ## As built
 
-(Filled in as the chunks land.)
+- **Chunk 1** (`bcc5032`): `numberWordsToDigits` in `src/features/entries/number-words.ts` with the shared run replacement (whole tokens, articles, `million`, `cents`) and German, one word per number; `number-words.test.ts`.
+- **Chunk 2** (`68c07cc`): French (parts by hyphens or spaces, "et", 70/80/90 in both the French and the Belgian and Swiss words, "cent(s)", "mille") and Spanish ("y", the 21–29 words, irregular hundreds, "cien" and "ciento", "mil", "con" dropped after "euros"), with `withThousands` shared; tests per language.
+- **Chunk 3**: `localQuickAddProvider` runs the pre-pass on `ctx.lang` before `lineDates` and `readQuickAdd`. Provider tests: an amount in each language, the "sieben vierzig" choice, a date in number words, an article, English on a German phone, a refused scale, German on an English phone. `entries.spec.ts`: "in German", "Döner sechs Euro fünfzig" saves €6.50 (`number-words`, with a saved mutation that reads English only). CLAUDE.md's Quick add.
+- **Still owed:** a typed try on the live site in German, French and Spanish.

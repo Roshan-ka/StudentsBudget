@@ -6,6 +6,7 @@ import type { IsoDate } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 import { EXPENSE_CATEGORIES } from './categories';
 import { guessCategory } from './category-words';
+import { numberWordsToDigits } from './number-words';
 import { readQuickAdd } from './quick-add';
 import { lineDates } from './quick-add-date';
 
@@ -55,14 +56,17 @@ export function euroAccountId(accounts: Account[]): string | undefined {
  * `readQuickAdd` for the amount and `guessCategory` for the category, once per line. A line with a euro sign, "eur"
  * or "euro" next to the amount names a euro account when the default account is not in euros. A date in the line
  * ("on 27 november 2025", "gestern"; `lineDates`) is taken out first and dates the reading: the first one that leaves
- * an amount, so "6 mai Döner" stays €6 with no date.
+ * an amount, so "6 mai Döner" stays €6 with no date. Before both, the phone language's number words become digits
+ * (`numberWordsToDigits`: "Döner sechs Euro fünfzig" reads as "Döner 6 Euro 50").
  */
 export const localQuickAddProvider: QuickAddProvider = {
   async read(text, ctx) {
-    const dated = lineDates(text, ctx.today, ctx.lang ?? 'en')
+    const lang = ctx.lang ?? 'en';
+    const typed = numberWordsToDigits(text, lang);
+    const dated = lineDates(typed, ctx.today, lang)
       .map((found) => ({ date: found.date, line: readQuickAdd(found.rest) }))
       .find((candidate) => candidate.line !== null);
-    const line = dated?.line ?? readQuickAdd(text);
+    const line = dated?.line ?? readQuickAdd(typed);
     if (line === null) return null;
     const { reading: parsed, euro } = line;
     const categoryId = guessCategory(parsed.note, ctx.history);
