@@ -3,7 +3,7 @@ import type { IsoDate } from '@/lib/dates';
 import type { LegalSection } from './content';
 
 /** When the privacy notice last changed. */
-export const PRIVACY_UPDATED: IsoDate = '2026-11-13';
+export const PRIVACY_UPDATED: IsoDate = '2026-11-18';
 
 /**
  * The privacy notice (legal pages): who is responsible, from `OPERATOR` (chunk 1), then what the app keeps and sends,
@@ -13,7 +13,10 @@ export const PRIVACY_UPDATED: IsoDate = '2026-11-13';
  * Insights' privacy page; the FAQ on frankfurter.dev; Supabase's terms, DPA (01-08-2026), region and logging docs and
  * pricing (Free plan: logs kept a day); the Data Privacy Framework list; and lda.bayern.de. Groq's (the AI features
  * since the Groq switch) as read on 13-11-2026: its Services Agreement (22-06-2026), DPA (15-10-2025), privacy policy
- * (12-11-2025) and the "Your data" page of its docs. A section that names one of them changes with it.
+ * (12-11-2025) and the "Your data" page of its docs. Brevo's (the code emails' sender since 18-11-2026) as read on
+ * 18-11-2026: its privacy policy, and its Terms of Service with their Appendix 3, the DPA (Brevo GmbH, Berlin, for
+ * customers in Germany; hosting at OVH in France and Google Cloud in Belgium; group companies in India and the USA for
+ * support and maintenance, under SCCs). A section that names one of them changes with it.
  */
 export function privacySections(o: Operator): LegalSection[] {
   const contact = [o.name, o.street, `${o.postcode} ${o.city}`, o.country];
@@ -371,7 +374,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'Um ein neues Konto zu bestätigen oder ein neues Passwort zu setzen, schickt dir Supabase eine E-Mail mit einem sechsstelligen Code, der 60 Minuten gilt, in der Sprache deines Handys. Anmeldungen und Änderungen daran (etwa ein neues Passwort oder ein neuer Passkey) hält Supabase in seinen Protokollen fest, die es nach 24 Stunden löscht.',
+            text: 'Um ein neues Konto zu bestätigen oder ein neues Passwort zu setzen, schickt dir Supabase eine E-Mail mit einem sechsstelligen Code, der 60 Minuten gilt, in der Sprache deines Handys. Versendet wird sie über Brevo (Brevo GmbH, Köpenicker Str. 126, 10179 Berlin) in meinem Auftrag (Auftragsverarbeitung, Art. 28 DSGVO), mit Servern in Frankreich und Belgien: Brevo erhält dafür deine E-Mail-Adresse und den Text der E-Mail mit dem Code. Anmeldungen und Änderungen daran (etwa ein neues Passwort oder ein neuer Passkey) hält Supabase in seinen Protokollen fest, die es nach 24 Stunden löscht.',
           },
           {
             kind: 'p',
@@ -388,7 +391,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'To confirm a new account or set a new password, Supabase sends you an email with a six-digit code that works for 60 minutes, in your phone’s language. Sign-ins and changes to them (such as a new password or passkey) are recorded in Supabase’s logs, which it deletes after 24 hours.',
+            text: 'To confirm a new account or set a new password, Supabase sends you an email with a six-digit code that works for 60 minutes, in your phone’s language. It goes out through Brevo (Brevo GmbH, Köpenicker Str. 126, 10179 Berlin, Germany) on my behalf (as a processor, Art. 28 GDPR), with servers in France and Belgium: Brevo receives your email address and the email’s text with the code. Sign-ins and changes to them (such as a new password or passkey) are recorded in Supabase’s logs, which it deletes after 24 hours.',
           },
           {
             kind: 'p',
@@ -570,7 +573,8 @@ export function privacySections(o: Operator): LegalSection[] {
       },
     },
     // Transfers: the DPF list read on 12-11-2026 (Vercel Inc. and Cloudflare, Inc. active; Supabase not listed) and
-    // 13-11-2026 (Groq not listed), so Supabase's and Groq's DPAs' SCCs (Groq's: modules 2 and 3).
+    // 13-11-2026 (Groq not listed), so Supabase's and Groq's DPAs' SCCs (Groq's: modules 2 and 3). Brevo's DPA, read on
+    // 18-11-2026: its group companies in India and the USA reach the data for support and maintenance, under SCCs.
     {
       id: 'transfers',
       when: 'always',
@@ -583,7 +587,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'Wo die App ein Konto oder KI-Funktionen hat, gilt für Supabase (Singapur, mit der Datenbank in Frankfurt) und Groq (Vereinigtes Königreich, mit Verarbeitung in den USA), die nicht so zertifiziert sind: Die Übermittlung stützt sich auf die Standardvertragsklauseln der EU-Kommission (Art. 46 Abs. 2 lit. c DSGVO) in ihren Verträgen zur Auftragsverarbeitung. Eine Kopie bekommst du auf Anfrage von mir.',
+            text: 'Wo die App ein Konto oder KI-Funktionen hat, gilt für Supabase (Singapur, mit der Datenbank in Frankfurt) und Groq (Vereinigtes Königreich, mit Verarbeitung in den USA), die nicht so zertifiziert sind: Die Übermittlung stützt sich auf die Standardvertragsklauseln der EU-Kommission (Art. 46 Abs. 2 lit. c DSGVO) in ihren Verträgen zur Auftragsverarbeitung. Das gilt auch für Brevo, das die E-Mails mit den Codes aus der EU versendet: Seine Konzerngesellschaften in Indien und den USA können für Support und Wartung auf die Daten zugreifen. Eine Kopie bekommst du auf Anfrage von mir.',
           },
         ],
       },
@@ -596,7 +600,7 @@ export function privacySections(o: Operator): LegalSection[] {
           },
           {
             kind: 'p',
-            text: 'Where the app has an account or AI features, Supabase (Singapore, with the database in Frankfurt) and Groq (United Kingdom, with processing in the USA) are not certified in this way: transfers to them rest on the European Commission’s standard contractual clauses (Art. 46 (2) (c) GDPR) in their data processing agreements. You can ask me for a copy.',
+            text: 'Where the app has an account or AI features, Supabase (Singapore, with the database in Frankfurt) and Groq (United Kingdom, with processing in the USA) are not certified in this way: transfers to them rest on the European Commission’s standard contractual clauses (Art. 46 (2) (c) GDPR) in their data processing agreements. So does Brevo, which sends the code emails from the EU: its group companies in India and the USA may access the data for support and maintenance. You can ask me for a copy.',
           },
         ],
       },
