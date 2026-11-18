@@ -30,7 +30,7 @@
 
 ## Review focus
 
-1. "haircut 10 november 27": day first wins ("10 november", €27). Rare; the Saved line shows the day, and Undo is there. Pinned by a unit test so it stays deliberate.
+1. "haircut 10 november 27": a day number after the month, with no year, is that month's day, so the number before stays the amount (€10 on 27 November; "10 Nov 27, 2025" likewise). Pinned by a unit test so it stays deliberate.
 2. A note word that is a month cut short ("Jan", "mai", "mars") next to a number: read as a date only when an amount is left. Unit tests: "lunch with jan 12" stays €12, "Mars 2" stays €2.
 3. A date that doesn't exist ("31 february", "29.02.2027") is no date: the line is read as before.
 4. A future date from the AI reader is refused the same way as from the local one (the check sits in the field, after `checkReading`).
@@ -44,7 +44,7 @@
 - Create: `src/features/entries/quick-add-date.ts`, `src/features/entries/quick-add-date.test.ts`
 
 **Interfaces:**
-- Produces: `readLineDate(text: string, today: IsoDate, lang: Language): { date: IsoDate; rest: string } | null`: the first date found from the start of the line, with its cue word ("on", "am", "le", "el") and connectors ("of", "de", a comma) taken out of `rest`; null when the line holds none.
+- Produces: `lineDates(text: string, today: IsoDate, lang: Language): LineDate[]` (`LineDate = { date: IsoDate; rest: string }`): every date in the line, in the order it starts, each with its cue word ("on", "am", "le", "el"; "on the") and connectors ("of", "de") out of `rest`; `readLineDate` gives the first or null.
 
 - [ ] **Step 1: unit tests** (today `2026-11-18`): every form under Decisions in its language, each with its `rest`; English on a German phone ("gestern" and "yesterday"); no date for "haircut 27.11", "lunch on campus 6", "döner hier 6" on a German phone, "31 february", "november 2025" (no day); "haircut 10 november 27" gives 10 November; "27 Nov" with no year gives `2025-11-27`, "3 nov" gives `2026-11-03`; "on 27 december 2026" gives `2026-12-27` (the field refuses it).
 - [ ] **Step 2: `readLineDate`.** Tokens split on spaces, matched case-folded with accents and a trailing `.,;:` dropped. Month names from `Intl.DateTimeFormat(locale, { month: 'long' })` for the phone's language and English; a token of three letters or more matches a month when it starts that month's name, and only one month's.
@@ -67,4 +67,6 @@
 
 ## As built
 
-(Filled in as the chunks land.)
+- **Chunk 1** (`a94a811`): `lineDates` and `readLineDate` in `src/features/entries/quick-add-date.ts`, month names from `Intl.DateTimeFormat` per language (cached), `readTypedDate` for the numbers; unit tests in `quick-add-date.test.ts` for every form in each language, the no-date lines, the most recent day, and the order rule. "haircut 10 november 2025" reads as 10 November 2025 with "haircut" left, which quick add then passes over for want of an amount.
+- **Chunk 2**: `localQuickAddProvider` takes the first date that leaves an amount and puts it on both reading kinds; `checkReading` and `chosenAmount` keep a choice's date; `QuickAddContext.lang` (the field's `loadContext(lang)`). The field refuses a reading dated after today with `quickAdd.futureDate`, in all four languages, for the AI's readings too. Provider tests: the dated lines, English on a German phone, the amount kept ("6 mai Döner", "lunch with jan 12"), a dated choice; the whole-list test now covers the parser lines with no date (two of its lines hold "today"). `entries.spec.ts`: "döner 6 yesterday" saves on 15.10.2026 (`line-date`, with a saved mutation that drops the date) and "döner 4 on 3 december 2026" is refused. The hint is unchanged.
+- **Left for later:** weekday names ("last friday"); a two-digit year after a month name.

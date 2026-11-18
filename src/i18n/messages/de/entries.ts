@@ -46,6 +46,7 @@ export const entries: Messages['entries'] = {
     hint: 'Was und wie viel, etwa „Döner 6“.',
     add: 'Hinzufügen',
     noAmount: 'Gib einen Betrag an, etwa „Döner 6“',
+    futureDate: 'Dieser Tag kommt erst noch. Schnell erfassen speichert, was du schon ausgegeben hast.',
     whichAmount: 'Welcher Betrag?',
     amountGroup: 'Betrag',
     whichCategory: 'Welche Kategorie?',

@@ -49,6 +49,8 @@ export const entries = {
     hint: 'What and how much, like “döner 6”.',
     add: 'Add',
     noAmount: 'Add an amount, like “döner 6”.',
+    /** A date in the line, or from the AI, after today (quick add dates, 18-11-2026). */
+    futureDate: 'That day is still to come. Quick add saves what you’ve already spent.',
     whichAmount: 'Which amount?',
     amountGroup: 'Amount',
     whichCategory: 'Which category?',

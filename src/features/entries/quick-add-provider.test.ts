@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Account, Entry } from '@/db/types';
 import { guessCategory } from './category-words';
 import { readQuickAdd, suggestCategory } from './quick-add';
+import { readLineDate } from './quick-add-date';
 import {
   accountFor,
   checkReading,
@@ -104,6 +105,12 @@ const LINES = [
   '  Döner   mit   Tom \t 6  ', '6 Straße  Café', 'phone charger 12',
 ];
 
+/** The lines with no date in them ("today" is one: quick add dates, 18-11-2026), which read as the parser reads them. */
+const UNDATED = LINES.filter((text) => readLineDate(text, '2026-10-20', 'en') === null);
+
+/** Lines with a date in them, for the readings the field keeps as they are. */
+const DATED = ['10 haircut on 27 november 2025', 'coffee 7 40 euros yesterday', 'döner 6 on 3.10', 'döner 6 2026-10-01'];
+
 /** Histories that give a suggestion for some lines and none for others. */
 const HISTORIES: [string, Entry[]][] = [
   ['no history', []],
@@ -138,16 +145,17 @@ function readBefore(text: string, history: Entry[]): QuickAddReading | null {
 }
 
 describe('localQuickAddProvider', () => {
-  it.each(HISTORIES)('reads every parser line as parseQuickAdd plus guessCategory (%s)', async (_, history) => {
+  it.each(HISTORIES)('reads every parser line with no date as parseQuickAdd plus guessCategory (%s)', async (_, history) => {
     const ctx = context(history);
-    for (const text of LINES) {
+    expect(LINES.length - UNDATED.length).toBe(2);
+    for (const text of UNDATED) {
       expect(await localQuickAddProvider.read(text, ctx), text).toStrictEqual(readBefore(text, history));
     }
   });
 
   it.each(HISTORIES)('gives readings the field keeps as they are (%s)', async (_, history) => {
     const ctx = context(history);
-    for (const text of LINES) {
+    for (const text of [...LINES, ...DATED]) {
       const reading = await localQuickAddProvider.read(text, ctx);
       expect(checkReading(reading, ctx), text).toStrictEqual(reading);
     }
@@ -393,6 +401,72 @@ describe('checkReading', () => {
       expect(reading, text).not.toBeNull();
       expect(checkReading(reading, ctx), text).toBeNull();
     }
+  });
+});
+
+describe('a date in the line (quick add dates, 18-11-2026)', () => {
+  const de = (history: Entry[] = []): QuickAddContext => ({ ...context(history), lang: 'de' });
+
+  it('takes the date out and dates the reading', async () => {
+    expect(await localQuickAddProvider.read('10 haircut on 27 november 2025', context([]))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 1000,
+      note: 'haircut',
+      categoryId: null,
+      date: '2025-11-27',
+    });
+    expect(await localQuickAddProvider.read('Döner 6 gestern', de())).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 600,
+      note: 'Döner',
+      categoryId: 'eating-out',
+      date: '2026-10-19',
+    });
+  });
+
+  it('reads date words in the phone’s language and English only', async () => {
+    expect(await localQuickAddProvider.read('döner 6 gestern', context([]))).toMatchObject({ note: 'döner gestern' });
+    expect(await localQuickAddProvider.read('döner 6 gestern', context([]))).not.toHaveProperty('date');
+    expect(await localQuickAddProvider.read('Döner 6 yesterday', de())).toMatchObject({ date: '2026-10-19' });
+  });
+
+  it('keeps the amount when taking a date out would leave none', async () => {
+    expect(await localQuickAddProvider.read('6 mai Döner', de())).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 600,
+      note: 'mai Döner',
+      categoryId: 'eating-out',
+    });
+    expect(await localQuickAddProvider.read('6 mai Döner gestern', de())).toMatchObject({
+      amountMinor: 600,
+      note: 'mai Döner',
+      date: '2026-10-19',
+    });
+    expect(await localQuickAddProvider.read('lunch with jan 12', context([]))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 1200,
+      note: 'lunch with jan',
+      categoryId: null,
+    });
+  });
+
+  it('dates a choice, and the amount tapped keeps the day', async () => {
+    const reading = await localQuickAddProvider.read('coffee 7 40 euros yesterday', context([]));
+    expect(reading).toStrictEqual({
+      kind: 'choice',
+      options: [740, 4000],
+      note: 'coffee',
+      categoryId: 'eating-out',
+      date: '2026-10-19',
+    });
+    if (reading?.kind !== 'choice') throw new Error('expected a choice');
+    expect(chosenAmount(reading, 740)).toMatchObject({ amountMinor: 740, date: '2026-10-19' });
+  });
+
+  it('leaves a day after today on the reading: the field refuses it', async () => {
+    expect(await localQuickAddProvider.read('döner 6 on 3 december 2026', context([]))).toMatchObject({
+      date: '2026-12-03',
+    });
   });
 });
 

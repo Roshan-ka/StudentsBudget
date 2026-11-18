@@ -46,6 +46,7 @@ export const entries: Messages['entries'] = {
     hint: 'Qué y cuánto, como “döner 6”.',
     add: 'Añadir',
     noAmount: 'Añade un importe, como “döner 6”',
+    futureDate: 'Ese día aún no ha llegado. Añadir rápido guarda lo que ya has gastado.',
     whichAmount: '¿Qué importe?',
     amountGroup: 'Importe',
     whichCategory: '¿Qué categoría?',

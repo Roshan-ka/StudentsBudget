@@ -129,6 +129,19 @@ test('a letter typed after a line quick add asks about starts the next line', as
   await expect(field).toHaveValue('Bücher 12'); // proof: next-line-after-question
 });
 
+test('a date in the line saves the entry on that day, and a day still to come is refused', async ({ page }) => {
+  // Quick add dates (18-11-2026): read on the phone, no AI. The clock is the setup day, 16.10.2026.
+  await setupAndOpenEntries(page);
+
+  await quickAdd(page, 'döner 6 yesterday');
+  await expect(page.getByRole('status')).toHaveText(`Saved €6.00 · döner · Eating out · ${formatDate('2026-10-15')}`); // proof: line-date
+
+  await quickAdd(page, 'döner 4 on 3 december 2026');
+  await expect(inlineAlert(page)).toHaveText('That day is still to come. Quick add saves what you’ve already spent.');
+  const entries = await readStore<Entry>(page, 'entries');
+  expect(entries.map((e) => [e.note, e.date, e.amountMinor])).toEqual([['döner', '2026-10-15', 600]]);
+});
+
 test('an asked line the next one replaces says it wasn’t saved, and one tap brings it back', async ({ page }) => {
   await setupAndOpenEntries(page);
   const field = page.getByRole('textbox', { name: 'Quick add' });
