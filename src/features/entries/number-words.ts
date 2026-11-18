@@ -78,8 +78,129 @@ const readGerman: ReadNumber = (words, i) => {
   return value === null ? null : { value, end: i + 1 };
 };
 
+// French: parts joined by hyphens or spaces ("vingt-cinq", "vingt et un", "quatre-vingt-dix-neuf", "deux cents").
+const FR_UNITS: Record<string, number> = {
+  un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9,
+};
+const FR_TEENS: Record<string, number> = {
+  zero: 0, dix: 10, onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16,
+};
+const FR_TENS: Record<string, number> = {
+  vingt: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60, septante: 70, huitante: 80, octante: 80, nonante: 90,
+};
+
+/** 0–19 from word `i`: "sept", "seize", "dix-sept". */
+function frBelowTwenty(words: readonly string[], i: number): Run | null {
+  const word = words[i] ?? '';
+  if (word === 'dix') {
+    const unit = lookup(FR_UNITS, words[i + 1] ?? '');
+    if (unit !== null && unit >= 7) return { value: 10 + unit, end: i + 2 };
+  }
+  const value = lookup(FR_TEENS, word) ?? lookup(FR_UNITS, word);
+  return value === null ? null : { value, end: i + 1 };
+}
+
+/** 0–99 from word `i`: "vingt-cinq", "vingt et un", "soixante et onze", "soixante-dix-sept", "quatre-vingt-dix". */
+function frBelowHundred(words: readonly string[], i: number): Run | null {
+  const word = words[i] ?? '';
+  if (word === 'quatre' && (words[i + 1] === 'vingt' || words[i + 1] === 'vingts')) {
+    const tail = frBelowTwenty(words, i + 2);
+    return tail !== null && tail.value > 0 ? { value: 80 + tail.value, end: tail.end } : { value: 80, end: i + 2 };
+  }
+  const tens = lookup(FR_TENS, word);
+  if (tens === null) return frBelowTwenty(words, i);
+  // Soixante takes 1–19 ("soixante-dix-sept" is 77); the others 1–9.
+  const max = tens === 60 ? 19 : 9;
+  if (words[i + 1] === 'et') {
+    const after = lookup({ un: 1, une: 1, onze: 11 }, words[i + 2] ?? '');
+    return after !== null && after <= max ? { value: tens + after, end: i + 3 } : { value: tens, end: i + 1 };
+  }
+  const tail = frBelowTwenty(words, i + 1);
+  return tail !== null && tail.value >= 1 && tail.value <= max
+    ? { value: tens + tail.value, end: tail.end }
+    : { value: tens, end: i + 1 };
+}
+
+/** 0–999 from word `i`: "cent", "cent deux", "deux cents", "trois cent vingt". */
+function frBelowThousand(words: readonly string[], i: number): Run | null {
+  const word = words[i] ?? '';
+  const unit = lookup(FR_UNITS, word);
+  const isCent = (w: string | undefined) => w === 'cent' || w === 'cents';
+  let hundreds: Run | null = null;
+  if (isCent(word)) hundreds = { value: 100, end: i + 1 };
+  else if (unit !== null && unit >= 2 && isCent(words[i + 1])) hundreds = { value: unit * 100, end: i + 2 };
+  if (hundreds === null) return frBelowHundred(words, i);
+  const rest = frBelowHundred(words, hundreds.end);
+  return rest !== null && rest.value > 0 ? { value: hundreds.value + rest.value, end: rest.end } : hundreds;
+}
+
+/**
+ * A thousands number from word `i`: "mille", "mille cinq cents", "deux mille", or below a thousand, read by `below`
+ * with `thousand` as the word ("mille", "mil").
+ */
+function withThousands(
+  words: readonly string[],
+  i: number,
+  thousand: string,
+  below: (words: readonly string[], i: number) => Run | null,
+): Run | null {
+  const left = words[i] === thousand ? { value: 1, end: i } : below(words, i);
+  if (left === null) return null;
+  if (words[left.end] !== thousand || left.value < 1) return left;
+  const rest = below(words, left.end + 1);
+  const thousands = left.value * 1000;
+  return rest !== null && rest.value > 0
+    ? { value: thousands + rest.value, end: rest.end }
+    : { value: thousands, end: left.end + 1 };
+}
+
+const readFrench: ReadNumber = (words, i) => withThousands(words, i, 'mille', frBelowThousand);
+
+// Spanish: "veinticinco", "treinta y cinco", "quinientos", "ciento veinte", "dos mil".
+const ES_UNITS: Record<string, number> = {
+  uno: 1, un: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9,
+};
+const ES_BELOW_THIRTY: Record<string, number> = {
+  cero: 0, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17,
+  dieciocho: 18, diecinueve: 19, veinte: 20, veintiuno: 21, veintiun: 21, veintiuna: 21, veintidos: 22,
+  veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28,
+  veintinueve: 29,
+};
+const ES_TENS: Record<string, number> = {
+  treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90,
+};
+const ES_HUNDREDS: Record<string, number> = {
+  ciento: 100, doscientos: 200, doscientas: 200, trescientos: 300, trescientas: 300, cuatrocientos: 400,
+  cuatrocientas: 400, quinientos: 500, quinientas: 500, seiscientos: 600, seiscientas: 600, setecientos: 700,
+  setecientas: 700, ochocientos: 800, ochocientas: 800, novecientos: 900, novecientas: 900,
+};
+
+/** 0–99 from word `i`: "cinco", "dieciseis", "veinticinco", "treinta y cinco". */
+function esBelowHundred(words: readonly string[], i: number): Run | null {
+  const word = words[i] ?? '';
+  const tens = lookup(ES_TENS, word);
+  if (tens !== null) {
+    const unit = words[i + 1] === 'y' ? lookup(ES_UNITS, words[i + 2] ?? '') : null;
+    return unit !== null ? { value: tens + unit, end: i + 3 } : { value: tens, end: i + 1 };
+  }
+  const value = lookup(ES_BELOW_THIRTY, word) ?? lookup(ES_UNITS, word);
+  return value === null ? null : { value, end: i + 1 };
+}
+
+/** 0–999 from word `i`: "cien", "ciento veinte", "quinientos", "doscientas cincuenta". */
+function esBelowThousand(words: readonly string[], i: number): Run | null {
+  const word = words[i] ?? '';
+  if (word === 'cien') return { value: 100, end: i + 1 };
+  const hundreds = lookup(ES_HUNDREDS, word);
+  if (hundreds === null) return esBelowHundred(words, i);
+  const rest = esBelowHundred(words, i + 1);
+  return rest !== null && rest.value > 0 ? { value: hundreds + rest.value, end: rest.end } : { value: hundreds, end: i + 1 };
+}
+
+const readSpanish: ReadNumber = (words, i) => withThousands(words, i, 'mil', esBelowThousand);
+
 /** Each language's reader; English has none here, since quick add's reader knows English number words itself. */
-const READERS: Partial<Record<Language, ReadNumber>> = { de: readGerman };
+const READERS: Partial<Record<Language, ReadNumber>> = { de: readGerman, fr: readFrench, es: readSpanish };
 
 /** Words that are never a number on their own: the articles ("ein Döner", "un café", "una cerveza"). */
 const ARTICLES: Record<Language, readonly string[]> = {
