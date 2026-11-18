@@ -436,3 +436,11 @@ export function lineAfterQuestion(asked: string, next: string): string {
   const added = next.slice(asked.length);
   return /^\p{L}/u.test(added) ? added : next;
 }
+
+/**
+ * The asked line a keystroke leaves unsaved, when `lineAfterQuestion` starts the next line; else null (18-11-2026,
+ * after review P3). Quick add says so, with a way back, instead of letting the line go without a word.
+ */
+export function droppedLine(asked: string, next: string): string | null {
+  return lineAfterQuestion(asked, next) === next ? null : asked.trim();
+}

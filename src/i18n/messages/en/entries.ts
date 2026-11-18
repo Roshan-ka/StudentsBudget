@@ -58,6 +58,11 @@ export const entries = {
     saved: (what: string) => `Saved ${what}`,
     undo: 'Undo',
     undoFailed: 'Couldn’t undo.',
+    /** A line quick add was asking about when a new one replaced it (18-11-2026, after review P3). */
+    notSaved: (line: string) => `“${line}” wasn’t saved.`,
+    /** Puts that line back in the field, and its question with it; named after the line. */
+    bringBack: 'Bring it back',
+    bringBackNamed: (line: string) => `Bring it back: ${line}`,
     /** The mic button (P2): its two labels, and the status while it listens. */
     mic: 'Speak an entry',
     stopMic: 'Stop listening',

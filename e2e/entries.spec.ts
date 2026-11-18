@@ -129,6 +129,34 @@ test('a letter typed after a line quick add asks about starts the next line', as
   await expect(field).toHaveValue('Bücher 12'); // proof: next-line-after-question
 });
 
+test('an asked line the next one replaces says it wasn’t saved, and one tap brings it back', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const field = page.getByRole('textbox', { name: 'Quick add' });
+  const note = page.getByText('“poster 6,50” wasn’t saved.', { exact: true });
+
+  await quickAdd(page, 'poster 6,50');
+  await expect(page.getByRole('group', { name: 'Category' })).toBeVisible();
+  // 18-11-2026, after review P3: the next line starts and saves, and the asked one is named, never gone without a word.
+  await field.press('End');
+  await field.pressSequentially('döner 3');
+  await field.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Saved €3.00 · döner · Eating out');
+  await expect(note).toBeVisible(); // proof: dropped-line-said
+  await expect(entriesList(page).getByText('poster')).toHaveCount(0);
+
+  // The line comes back with its question, and a chip saves it; the note goes.
+  await page.getByRole('button', { name: 'Bring it back: poster 6,50', exact: true }).click();
+  await expect(field).toHaveValue('poster 6,50');
+  await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: 'Shopping', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €6.50 · poster · Shopping');
+  await expect(note).toHaveCount(0);
+  const entries = await readStore<Entry>(page, 'entries');
+  expect(entries.map((e) => [e.note, e.amountMinor]).sort()).toEqual([
+    ['döner', 300],
+    ['poster', 650],
+  ]);
+});
+
 test('a double tap on Add saves the entry once and leaves the Saved line alone', async ({ page }) => {
   await setupAndOpenEntries(page);
   const status = page.getByRole('status');

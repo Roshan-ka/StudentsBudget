@@ -20,7 +20,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { aiQuickAddProvider, type AiQuickAddHint } from './ai-quick-add';
 import { buildEntry } from './build-entry';
-import { lineAfterQuestion } from './quick-add';
+import { droppedLine, lineAfterQuestion } from './quick-add';
 import { savedWhat } from './saved-line';
 import { FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_CATEGORIES } from './categories';
 import {
@@ -92,6 +92,9 @@ const SAVED_LINE_MS = 10_000;
  * finger, so a double tap's second tap could open it; this way it lands where the buttons were. As the receipt scan's.
  */
 const KEEP_SPACE_MS = 600;
+
+/** The look of quick add's lines under the field: the Saved line, and the line a new one replaced. */
+const LINE_BOX = 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 ps-4 pe-1';
 
 /** The flexible categories added after the original six: they sit behind the More chip. */
 const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !CORE_FLEXIBLE_CATEGORIES.some((g) => g.id === c.id));
@@ -208,6 +211,9 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
   const [pending, setPending] = useState<QuickAddAmountReading | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: string; message: string } | null>(null);
+  // The line quick add was asking about when a new one replaced it, typed or spoken (18-11-2026, after review P3): said
+  // under the field until it is brought back, typed again or the page is left, so it never goes without a word.
+  const [dropped, setDropped] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // True from the first tap until the save is over. A ref, because a second tap can arrive before React has
   // rendered the disabled button, and `busy` would still read false in the handler it calls.
@@ -267,7 +273,13 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
 
   // The router keeps a page it has left mounted but hidden and runs its effect cleanups, so this clears the
   // line when the person leaves. Back on the page, an Undo that deletes an entry edited since would be a trap.
-  useEffect(() => () => setSaved(null), []);
+  useEffect(
+    () => () => {
+      setSaved(null);
+      setDropped(null);
+    },
+    [],
+  );
 
   /** Runs `task` unless one is running already. The flag is set before the first await. */
   async function runOnce(task: () => Promise<void>) {
@@ -366,6 +378,8 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
   async function addLine(line: string, noteAccepted = false) {
     // Nothing to add: a tap on the empty field right after a save must not take the Saved line away.
     if (line.trim() === '') return;
+    // The line that went unsaved, typed again by hand: the note about it has done its job.
+    if (line.trim() === dropped) setDropped(null);
 
     await runOnce(async () => {
       setSaved(null);
@@ -431,6 +445,8 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
       win: window,
       lang,
       onText: (heard) => {
+        // A spoken line replaces a typed one quick add was asking about, as a typed one would.
+        if ((pending !== null || choice !== null) && text.trim() !== '') setDropped(text.trim());
         setText(heard);
         void addLine(heard);
       },
@@ -456,6 +472,16 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
       return;
     }
     startListening();
+  }
+
+  /** Puts the line that went unsaved back in the field and reads it again, so its question comes back. */
+  function bringBack() {
+    if (dropped === null) return;
+    const line = dropped;
+    setDropped(null);
+    setText(line);
+    fieldRef.current?.focus();
+    void addLine(line);
   }
 
   async function undo() {
@@ -486,8 +512,11 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
             className="min-w-0 flex-1"
             value={text}
             onChange={(event) => {
-              // While the line is asked about, a letter typed after it starts the next line (review P3).
+              // While the line is asked about, a letter typed after it starts the next line (review P3), and the
+              // asked line is named under the field as not saved.
               const asking = pending !== null || choice !== null;
+              const left = asking ? droppedLine(text, event.target.value) : null;
+              if (left !== null) setDropped(left);
               setText(asking ? lineAfterQuestion(text, event.target.value) : event.target.value);
               // The amount buttons and the chips belong to the line that was typed; a changed line has to be added again.
               // So does a read in flight and the note waiting for it.
@@ -590,12 +619,30 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
         </p>
       )}
 
+      {/* A polite region rather than a second status line, so the field keeps its one `role="status"`. Always there,
+          so it is heard when the note comes; while empty it takes back the gap it would add. Its button waits for an
+          empty field: bringing the line back never takes a half-typed one away. */}
+      <div aria-live="polite" className="empty:-mt-3">
+        {dropped !== null && (
+          <div className={LINE_BOX}>
+            <p className="min-w-0 py-2.5 text-sm break-words">{words.notSaved(dropped)}</p>
+            {text.trim() === '' && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="shrink-0"
+                aria-label={words.bringBackNamed(dropped)}
+                onClick={bringBack}
+              >
+                {words.bringBack}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
       <div
-        className={
-          saved || listening || reading
-            ? 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 ps-4 pe-1'
-            : undefined
-        }
+        className={saved || listening || reading ? LINE_BOX : undefined}
         onFocus={() => setHolding(true)}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setHolding(false);
