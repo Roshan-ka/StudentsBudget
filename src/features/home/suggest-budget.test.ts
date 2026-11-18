@@ -60,7 +60,7 @@ describe('suggestBudget', () => {
   it('gives one row per flexible category, in category order', () => {
     const { rows } = suggestBudget(planWithAvailable(100000), city, [], '2026-11');
     expect(rows.map((r) => r.categoryId)).toEqual(FLEXIBLE_CATEGORIES.map((c) => c.id));
-    expect(rows).toHaveLength(12);
+    expect(rows).toHaveLength(13);
   });
 
   it('starts every ranged category at the middle of its range when the plan fits', () => {

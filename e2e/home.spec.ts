@@ -568,6 +568,7 @@ test('opened in the first week of the month, the suggested budget changes only t
       { categoryId: 'shopping', monthlyMinor: 4000 },
       { categoryId: 'health', monthlyMinor: 1000 },
       { categoryId: 'personal-care', monthlyMinor: 0 },
+      { categoryId: 'personal', monthlyMinor: 0 },
       { categoryId: 'study', monthlyMinor: 0 },
       { categoryId: 'household', monthlyMinor: 0 },
       { categoryId: 'travel', monthlyMinor: 0 },

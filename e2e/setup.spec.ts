@@ -301,7 +301,7 @@ test('the first setup asks only the basic questions, with the budget at the top 
   for (const name of ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other']) {
     await expect(box(page, name)).toBeVisible();
   }
-  for (const name of ['Health & pharmacy', 'Personal care', 'Study materials', 'Household', 'Travel', 'Gifts']) {
+  for (const name of ['Health & pharmacy', 'Personal care', 'Personal', 'Study materials', 'Household', 'Travel', 'Gifts']) {
     await expect(box(page, name)).toHaveCount(0);
   }
   await expect(incomeMath(page)).toHaveCount(0);
@@ -642,7 +642,7 @@ test('editing the plan skips accounts and keeps what setup stored', async ({ pag
 
   // 900 income - 410 rent - 60 set aside for the fee (still spread from October) = 430. Every envelope is asked, and
   // the income line is shown with the budget line, in one live region, but being over it never stops Save.
-  for (const name of ['Health & pharmacy', 'Personal care', 'Study materials', 'Household', 'Travel', 'Gifts']) {
+  for (const name of ['Health & pharmacy', 'Personal care', 'Personal', 'Study materials', 'Household', 'Travel', 'Gifts']) {
     await expect(box(page, name)).toBeVisible();
   }
   await expect(page.getByText('Available €430 · Planned €434 · Over by €4', { exact: true })).toBeVisible();

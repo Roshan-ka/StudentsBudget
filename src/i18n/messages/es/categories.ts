@@ -10,6 +10,7 @@ export const categories: Messages['categories'] = {
   shopping: 'Compras',
   health: 'Salud y farmacia',
   'personal-care': 'Cuidado personal',
+  personal: 'Gastos personales',
   study: 'Estudios',
   household: 'Hogar',
   travel: 'Viajes',

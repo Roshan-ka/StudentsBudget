@@ -21,6 +21,7 @@ const FLEXIBLE_IDS = [
   'shopping',
   'health',
   'personal-care',
+  'personal',
   'study',
   'household',
   'travel',
@@ -28,7 +29,7 @@ const FLEXIBLE_IDS = [
   'other',
 ];
 
-const NEW_IDS = ['health', 'personal-care', 'study', 'household', 'travel', 'gifts', 'gym', 'utilities'];
+const NEW_IDS = ['health', 'personal-care', 'personal', 'study', 'household', 'travel', 'gifts', 'gym', 'utilities'];
 
 /** The 18 built-in rows a database held before the new categories: their ids, kinds and positions in the old list. */
 function oldRows() {

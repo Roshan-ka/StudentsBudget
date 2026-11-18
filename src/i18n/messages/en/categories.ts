@@ -8,6 +8,7 @@ export const categories = {
   shopping: 'Shopping',
   health: 'Health & pharmacy',
   'personal-care': 'Personal care',
+  personal: 'Personal',
   study: 'Study materials',
   household: 'Household',
   travel: 'Travel',

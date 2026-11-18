@@ -8,6 +8,8 @@ const ROWS: Omit<Category, 'order'>[] = [
   { id: 'shopping', name: 'Shopping', kind: 'flexible' },
   { id: 'health', name: 'Health & pharmacy', kind: 'flexible' },
   { id: 'personal-care', name: 'Personal care', kind: 'flexible' },
+  // Personal spending, apart from care: hobbies, treats, things just for you (Roshan, 18-11-2026).
+  { id: 'personal', name: 'Personal', kind: 'flexible' },
   { id: 'study', name: 'Study materials', kind: 'flexible' },
   { id: 'household', name: 'Household', kind: 'flexible' },
   { id: 'travel', name: 'Travel', kind: 'flexible' },
@@ -29,7 +31,7 @@ const ROWS: Omit<Category, 'order'>[] = [
   { id: 'income-other', name: 'Other income', kind: 'income' },
 ];
 
-/** The 26 built-in categories. `order` is the position in this list, starting at 0. */
+/** The 27 built-in categories. `order` is the position in this list, starting at 0. */
 export const CATEGORIES: Category[] = ROWS.map((row, order) => ({ ...row, order }));
 
 /**

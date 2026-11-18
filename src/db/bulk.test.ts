@@ -193,7 +193,7 @@ describe('replaceAll', () => {
     }
   });
 
-  it('puts all 26 built-in categories on the device when the file lists only some of them', async () => {
+  it('puts all 27 built-in categories on the device when the file lists only some of them', async () => {
     await fillWithOldData();
     const text = serializeBackup(backup({ categories: CATEGORIES.slice(0, 5) }), new Date('2026-10-16T10:00:00.000Z'));
     const parsed = parseBackup(text);
