@@ -45,7 +45,7 @@ export const entries: Messages['entries'] = {
   },
   quickAdd: {
     label: 'Ajout rapide',
-    hint: `Quoi et combien, comme «${NNBSP}döner 6${NNBSP}».`,
+    hint: `Quoi et combien, comme «${NNBSP}döner 6 hier${NNBSP}».`,
     add: 'Ajouter',
     noAmount: `Ajoute un montant, comme «${NNBSP}döner 6${NNBSP}»`,
     futureDate: 'Ce jour n’est pas encore arrivé. L’ajout rapide enregistre ce que tu as déjà dépensé.',

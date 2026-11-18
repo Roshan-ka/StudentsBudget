@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Account, Entry } from '@/db/types';
-import type { Language } from '@/i18n/languages';
+import { OFFERED, type Language } from '@/i18n/languages';
+import { MESSAGES } from '@/i18n/messages';
 import { guessCategory } from './category-words';
 import { readQuickAdd, suggestCategory } from './quick-add';
 import { readLineDate } from './quick-add-date';
@@ -599,5 +600,17 @@ describe('number words in the phone’s language (18-11-2026)', () => {
 
   it('reads no German number words on an English phone', async () => {
     expect(await localQuickAddProvider.read('Döner sechs Euro', context([]))).toBeNull();
+  });
+});
+
+describe('the hint’s own example (18-11-2026)', () => {
+  it.each(OFFERED)('saves €6 under Eating out, dated yesterday, in %s', async (lang) => {
+    const example = /[“„«"]\s*([^”“»"]+?)\s*[”“»"]/u.exec(MESSAGES[lang].entries.quickAdd.hint)?.[1] ?? '';
+    expect(await localQuickAddProvider.read(example, { ...context([]), lang })).toMatchObject({
+      kind: 'amount',
+      amountMinor: 600,
+      categoryId: 'eating-out',
+      date: '2026-10-19',
+    });
   });
 });

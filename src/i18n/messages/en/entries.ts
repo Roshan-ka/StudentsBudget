@@ -49,7 +49,8 @@ export const entries = {
   quickAdd: {
     label: 'Quick add',
     /** Under the field, and read with it: an example of a line. */
-    hint: 'What and how much, like “döner 6”.',
+    /** Its example shows a day too, so quick add's dates are found (18-11-2026). */
+    hint: 'What and how much, like “döner 6 yesterday”.',
     add: 'Add',
     noAmount: 'Add an amount, like “döner 6”.',
     /** A date in the line, or from the AI, after today (quick add dates, 18-11-2026). */
