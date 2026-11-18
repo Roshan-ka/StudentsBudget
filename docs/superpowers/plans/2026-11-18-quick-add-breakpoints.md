@@ -351,6 +351,17 @@ Built 18-11-2026 on `fix/quick-add-breakpoints-2026-11-18` (#312), one commit pe
   - **`list-order.ts`:** holds `groupByDate`, moved, and `neighbourOf` in the order shown.
   - **`looksLikeIncome`:** checked before either reader, so the AI never reads "+50 from mom" as an expense.
   - **`list.otherMonthHint(month)`:** only for a month gone by. The current month keeps "Log with quick add above", and a future month too, since quick add can't log there either.
+- **After CI and the final review** (18-11-2026):
+  - **A bare day no longer reaches into next month** (`4136285`). Its 17th was always within 31 days, so "am 17." on the 18th read as 17 December.
+  - **A bare day counts only at the end of the line, with an ordinal mark ("17.", "17th") or before a number**, so "spent 20 on 2 beers" gets no date.
+  - **The empty-month example names the year where the day alone would read as another month's.** On 18.11.2026, November 2025's "3.11" alone is 03.11.2026.
+  - **Three saved mutations named code that had moved:** chunk 2's `changeText` and chunk 5's hint.
+  - **Minors deferred to Roshan:**
+    - `incomeLine` names Add entry, which only Entries has.
+    - The early-edit spec could add a `readStore` check.
+    - The `more-armed` proof depends on where the chip after More lands.
+    - `addLine`'s doc block now sits above `changeText`.
+    - `useEffectEvent` could replace the `onHeard` ref.
 - **Still owed:**
   - CI's quick check and the e2e run above.
   - A guest walk on the live site that repeats each finding's line once merged.

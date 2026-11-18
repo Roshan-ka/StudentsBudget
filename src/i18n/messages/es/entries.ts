@@ -17,7 +17,7 @@ export const entries: Messages['entries'] = {
     next: 'Siguiente',
     nothingYet: 'Aquí aún no hay nada registrado.',
     nothingYetHint: 'Añade algo arriba con Añadir rápido.',
-    otherMonthHint: (month) => `Indica el día en Añadir rápido, como “döner 6 el 3/${month}”.`,
+    otherMonthHint: (month, year) => `Indica el día en Añadir rápido, como “döner 6 el 3/${month}${year === null ? '' : `/${year}`}”.`,
   },
   edit: {
     heading: 'Editar registro',

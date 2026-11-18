@@ -17,7 +17,7 @@ export const entries: Messages['entries'] = {
     next: 'Weiter',
     nothingYet: 'Hier ist noch nichts eingetragen.',
     nothingYetHint: 'Trag oben mit „Schnell erfassen“ etwas ein.',
-    otherMonthHint: (month) => `Nenne in „Schnell erfassen“ den Tag, etwa „Döner 6 am 3.${month}.“`,
+    otherMonthHint: (month, year) => `Nenne in „Schnell erfassen“ den Tag, etwa „Döner 6 am 3.${month}.${year ?? ''}“`,
   },
   edit: {
     heading: 'Eintrag bearbeiten',

@@ -668,16 +668,28 @@ describe('no silent wrong amounts (quick add breakpoints)', () => {
 
 // Quick add breakpoints (18-11-2026): an empty month gone by says how to log a day in it, with an example that works.
 describe('the empty past month’s example', () => {
-  it.each(OFFERED)('saves €6 under Eating out on the 3rd of that month, in %s', async (lang) => {
-    const hint = MESSAGES[lang].entries.list.otherMonthHint(8);
-    // The last quoted part: German names „Schnell erfassen“ before its example.
+  // The last quoted part: German names „Schnell erfassen“ before its example.
+  const exampleOf = (hint: string) => {
     const quoted = [...hint.matchAll(/[“„«"]\s*([^”“»"]+?)\s*[”“»"]/gu)];
-    const example = quoted[quoted.length - 1]?.[1] ?? '';
+    return quoted[quoted.length - 1]?.[1] ?? '';
+  };
+
+  it.each(OFFERED)('saves €6 under Eating out on the 3rd of that month, in %s', async (lang) => {
+    const example = exampleOf(MESSAGES[lang].entries.list.otherMonthHint(8, null));
     expect(await localQuickAddProvider.read(example, { ...context([]), lang })).toMatchObject({
       kind: 'amount',
       amountMinor: 600,
       categoryId: 'eating-out',
       date: '2026-08-03',
+    });
+  });
+
+  // Final review (18-11-2026): November 2025's "3.11" alone, on 20.10.2026, is the coming 3 November, so it has a year.
+  it.each(OFFERED)('names the year where the day alone would read as another one, in %s', async (lang) => {
+    const example = exampleOf(MESSAGES[lang].entries.list.otherMonthHint(11, 2025));
+    expect(await localQuickAddProvider.read(example, { ...context([]), lang })).toMatchObject({
+      amountMinor: 600,
+      date: '2025-11-03',
     });
   });
 });

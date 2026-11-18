@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Language } from '@/i18n/languages';
-import { dateNumberTokens, lineDates, readLineDate } from './quick-add-date';
+import { dateNumberTokens, lineDates, noYearDay, readLineDate } from './quick-add-date';
 
 const TODAY = '2026-11-18';
 const read = (text: string, lang: Language = 'en') => readLineDate(text, TODAY, lang);
@@ -138,6 +138,21 @@ describe('a cue word and a bare day (quick add breakpoints)', () => {
     ['el café 3', 'es'],
   ])('finds no date in "%s" (%s)', (text, lang) => {
     expect(read(text, lang)).toBeNull();
+  });
+
+  // Final review (18-11-2026): "on 2 beers" is a count, not the 2nd.
+  it('reads a bare day only at the end of the line, with an ordinal mark, or before a number', () => {
+    expect(read('spent 20 on 2 beers')).toBeNull();
+    expect(read('am 17. Döner 6', 'de')).toEqual({ date: '2026-11-17', rest: 'Döner 6' });
+    expect(read('döner on 17 6')).toEqual({ date: '2026-11-17', rest: 'döner 6' });
+  });
+
+  it('reads a bare day in this month or the ones before, never the next: the 1st on the 18th is this month’s', () => {
+    expect(read('döner 6 on 1')?.date).toBe('2026-11-01');
+    expect(noYearDay(17, null, '2026-11-18')).toBe('2026-11-17');
+    expect(noYearDay(3, 11, '2026-11-18')).toBe('2026-11-03');
+    // So an empty December 2025 needs its year in the example: "3.12" alone is the coming one.
+    expect(noYearDay(3, 12, '2026-11-18')).toBe('2026-12-03');
   });
 
   it('leaves a day with its month to the month name', () => {

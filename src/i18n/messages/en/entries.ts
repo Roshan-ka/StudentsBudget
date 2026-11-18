@@ -21,7 +21,9 @@ export const entries = {
     /** Under it, on the empty month's card. */
     nothingYetHint: 'Log with quick add above.',
     /** An empty month gone by: quick add saves today unless the line names the day (breakpoints, 18-11-2026). */
-    otherMonthHint: (month: number) => `Name the day in quick add, like “döner 6 on 3.${month}”.`,
+    /** `year` only where the day alone would read as another month's (final review, 18-11-2026). */
+    otherMonthHint: (month: number, year: number | null) =>
+      `Name the day in quick add, like “döner 6 on 3.${month}${year === null ? '' : `.${year}`}”.`,
   },
   edit: {
     heading: 'Edit entry',

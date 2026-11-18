@@ -18,7 +18,8 @@ export const entries: Messages['entries'] = {
     next: 'Suivant',
     nothingYet: 'Rien de saisi ici pour l’instant.',
     nothingYetHint: 'Utilise l’ajout rapide ci-dessus.',
-    otherMonthHint: (month) => `Indique le jour dans l’ajout rapide, comme «${NNBSP}döner 6 le 3/${month}${NNBSP}».`,
+    otherMonthHint: (month, year) =>
+      `Indique le jour dans l’ajout rapide, comme «${NNBSP}döner 6 le 3/${month}${year === null ? '' : `/${year}`}${NNBSP}».`,
   },
   edit: {
     heading: 'Modifier la saisie',

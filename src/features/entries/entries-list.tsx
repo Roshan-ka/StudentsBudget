@@ -27,6 +27,7 @@ import { CATEGORY_ICONS, OTHER_ICON } from './category-icons';
 import { EntryForm } from './entry-form';
 import { entryTitle } from './entry-title';
 import { groupByDate, neighbourOf } from './list-order';
+import { noYearDay } from './quick-add-date';
 import { RecurringTag, isRecurring } from './recurring-tag';
 
 const MONTH_PARAM = /^\d{4}-(?:0[1-9]|1[0-2])$/;
@@ -237,6 +238,10 @@ export function EntriesList() {
   const neighbour = (id: string): string => neighbourOf(entries, id) ?? LIST_KEY;
   // A month gone by says how to log a day in it: quick add saves today unless the line names the day (breakpoints).
   const pastMonth = loaded.month < loaded.thisMonth;
+  // Its example is the 3rd, with the year where "3.<month>" alone would read as another month's (final review).
+  const exampleMonth = Number(loaded.month.slice(5, 7));
+  const exampleYear =
+    today !== null && noYearDay(3, exampleMonth, today) === `${loaded.month}-03` ? null : Number(loaded.month.slice(0, 4));
 
   return (
     <section
@@ -281,7 +286,7 @@ export function EntriesList() {
 
       {entries.length === 0 ? (
         <EmptyCard icon={ReceiptTextIcon} title={text.nothingYet}>
-          {pastMonth ? text.otherMonthHint(Number(loaded.month.slice(5, 7))) : text.nothingYetHint}
+          {pastMonth ? text.otherMonthHint(exampleMonth, exampleYear) : text.nothingYetHint}
         </EmptyCard>
       ) : (
         groupByDate(entries).map((group) => (

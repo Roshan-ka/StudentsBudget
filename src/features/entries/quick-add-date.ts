@@ -184,7 +184,7 @@ const FUTURE_DAYS = 31;
  * month: "am 17." on the 18th is yesterday. Null for a day no such month has. Before 18-11-2026 it was always the most
  * recent, a year back unsaid.
  */
-function noYearDay(day: number, month: number | null, today: IsoDate): IsoDate | null {
+export function noYearDay(day: number, month: number | null, today: IsoDate): IsoDate | null {
   const inMonth = (m: IsoMonth): IsoDate | null => (day >= 1 && day <= daysInMonth(m) ? `${m}-${two(day)}` : null);
   const thisYear = Number(today.slice(0, 4));
   // In order, earliest first: this month and the two before it, or `month` last year, this year and next.
@@ -218,7 +218,13 @@ function numericDate(token: string, today: IsoDate): IsoDate | null {
 /** One date at `i`: its first and last token and the day. */
 type Found = { start: number; end: number; date: IsoDate };
 
-function dateAt(folded: string[], i: number, today: IsoDate, langs: readonly Language[]): Found | null {
+function dateAt(
+  folded: string[],
+  i: number,
+  today: IsoDate,
+  langs: readonly Language[],
+  raw: readonly string[],
+): Found | null {
   const at = (k: number) => folded[k] ?? '';
   const connectors = new Set(langs.flatMap((lang) => CONNECTORS[lang]));
   const isConnector = (k: number) => connectors.has(at(k));
@@ -305,7 +311,11 @@ function dateAt(folded: string[], i: number, today: IsoDate, langs: readonly Lan
   const bareDay = DAY.exec(at(i));
   const cueBefore = cues.has(at(i - 1)) || (langs.includes('en') && at(i - 1) === 'the' && cues.has(at(i - 2)));
   const monthAfter = monthOfToken(at(i + 1), langs) !== null || (isConnector(i + 1) && monthOfToken(at(i + 2), langs) !== null);
-  if (bareDay !== null && cueBefore && !monthAfter) {
+  // Only at the end of the line, with an ordinal mark ("17.", "17th") or before a number: "on 2 beers" is a count
+  // (final review, 18-11-2026).
+  const dayOnly =
+    i + 1 >= folded.length || /\.$/.test(raw[i] ?? '') || /\d(?:st|nd|rd|th|er|e)$/.test(at(i)) || /^\d/.test(at(i + 1));
+  if (bareDay !== null && cueBefore && !monthAfter && dayOnly) {
     const date = noYearDay(Number(bareDay[1]), null, today);
     if (date !== null) return { start: i, end: i, date };
   }
@@ -355,7 +365,7 @@ export function lineDates(text: string, today: IsoDate, lang: Language): LineDat
   const cues = new Set(langs.map((l) => CUES[l]));
   const found: LineDate[] = [];
   for (let i = 0; i < tokens.length; i += 1) {
-    const hit = dateAt(folded, i, today, langs);
+    const hit = dateAt(folded, i, today, langs, tokens);
     if (hit === null) continue;
     let start = hit.start;
     if (langs.includes('en') && folded[start - 1] === 'the' && cues.has(folded[start - 2] ?? '')) start -= 2;
