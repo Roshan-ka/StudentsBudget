@@ -32,7 +32,7 @@ export const charts: Messages['charts'] = {
   ofPlanned: (amount, planned) => `${amount} sur ${planned}`,
   bucket: 'Tout le reste',
   // 16 caractères au plus (colors.test.ts) ; le tableau et l'infobulle montrent le nom complet.
-  shortNames: { utilities: 'Charges', 'transport-pass': 'Pass transport', health: 'Santé' },
+  shortNames: { utilities: 'Charges', 'transport-pass': 'Pass transport', health: 'Santé', personal: 'Dépenses perso' },
   styles: { donut: 'Anneau', bars: 'Barres', table: 'Tableau', columns: 'Colonnes', line: 'Ligne' },
   spending: {
     title: 'Dépenses par catégorie',

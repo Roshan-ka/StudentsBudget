@@ -764,6 +764,11 @@ export const APP_CATEGORIES: readonly PackCategory[] = [
     "kind": "flexible"
   },
   {
+    "id": "personal",
+    "name": "Personal",
+    "kind": "flexible"
+  },
+  {
     "id": "study",
     "name": "Study materials",
     "kind": "flexible"

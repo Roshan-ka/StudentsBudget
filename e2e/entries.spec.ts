@@ -930,7 +930,7 @@ test('quick add shows the original six categories first, and More shows the othe
   const moreChip = group.getByRole('button', { name: 'More', exact: true });
   const names = () => group.getByRole('button').allTextContents();
   const original = ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other'];
-  const more = ['Health & pharmacy', 'Personal care', 'Study materials', 'Household', 'Travel', 'Gifts'];
+  const more = ['Health & pharmacy', 'Personal care', 'Personal', 'Study materials', 'Household', 'Travel', 'Gifts'];
 
   await expect(moreChip).toHaveAttribute('aria-expanded', 'false');
   expect(await names()).toEqual([...original, 'More']);

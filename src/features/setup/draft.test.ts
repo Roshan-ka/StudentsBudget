@@ -54,6 +54,7 @@ const draft: SetupDraft = {
     { categoryId: 'shopping', monthlyMinor: 0 },
     { categoryId: 'health', monthlyMinor: 0 },
     { categoryId: 'personal-care', monthlyMinor: 0 },
+    { categoryId: 'personal', monthlyMinor: 0 },
     { categoryId: 'study', monthlyMinor: 0 },
     { categoryId: 'household', monthlyMinor: 0 },
     { categoryId: 'travel', monthlyMinor: 0 },
@@ -303,7 +304,7 @@ describe('draftFromPlan', () => {
     expect(d.fixed[0].schedule?.on).toBe(false);
     expect(d.rentSchedule?.on).toBe(false);
     expect(d.accounts).toEqual([]);
-    expect(d.envelopes).toHaveLength(12);
+    expect(d.envelopes).toHaveLength(13);
     expect(d.envelopes[0]).toEqual({ categoryId: 'food', monthlyMinor: 31000 });
     expect(d.envelopes[1]).toEqual({ categoryId: 'eating-out', monthlyMinor: 0 });
     // A plan saved before the new categories has no row for them: they start at €0.

@@ -33,7 +33,7 @@ export const charts = {
   /** What the slice of everything that didn't fit in the top 6 is called. */
   bucket: 'Everything else',
   /** Category names too long beside a slice or a bar; the table and the tooltip keep the full name. */
-  shortNames: { utilities: 'Utilities', 'transport-pass': 'Transport pass', health: 'Health' },
+  shortNames: { utilities: 'Utilities', 'transport-pass': 'Transport pass', health: 'Health', personal: 'Personal' },
   styles: { donut: 'Donut', bars: 'Bars', table: 'Table', columns: 'Columns', line: 'Line' },
   spending: {
     title: 'Spending by category',
