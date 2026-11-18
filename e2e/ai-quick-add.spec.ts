@@ -98,6 +98,21 @@ test('signed in, the example line asks first, then saves €12 · Eating out · 
   expect(ai).toHaveLength(2);
 });
 
+test('signed in, the day a line names is read on the phone, even one the function drops', async ({ page }) => {
+  // 18-11-2026: "haircut 10 on 27 november 2025" saved today. The function drops a day more than 60 days back, as
+  // `readLine` does here for any line without "pizza", so the phone's own date reader dates the reading.
+  await acceptPrivacyNotes(page, ['ai']);
+  const ai = await mockAiFunction(page, { answers: { 'quick-add': readLine } });
+  await signedInHome(page);
+
+  await add(page, 'döner 6 on 27 november 2025');
+  await expect(page.getByRole('status')).toHaveText(`Saved €6.00 · döner · Eating out · ${formatDate('2025-11-27')}`); // proof: ai-line-date
+  expect(ai).toHaveLength(1);
+  expect(await readStore<Entry>(page, 'entries')).toEqual([
+    expect.objectContaining({ amountMinor: 600, note: 'döner', date: '2025-11-27' }),
+  ]);
+});
+
 test('a line edited while the AI reads it saves nothing; the next line saves', async ({ page }) => {
   await acceptPrivacyNotes(page, ['ai']);
   let release = () => {};

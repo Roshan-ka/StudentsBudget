@@ -114,7 +114,7 @@
     {
       "name": "quick add reads the date out of the line but saves it today",
       "file": "src/features/entries/quick-add-provider.ts",
-      "find": "    const date = dated === undefined ? {} : { date: dated.date };\n",
+      "find": "    const date = day === undefined ? {} : { date: day };\n",
       "replace": "    const date = {};\n",
       "expect": {
         "e2e/entries.spec.ts": [
@@ -136,8 +136,8 @@
     {
       "name": "quick add reads number words in English only again",
       "file": "src/features/entries/quick-add-provider.ts",
-      "find": "    const typed = numberWordsToDigits(text, lang);\n",
-      "replace": "    const typed = numberWordsToDigits(text, 'en');\n",
+      "find": "  const typed = numberWordsToDigits(text, lang);\n",
+      "replace": "  const typed = numberWordsToDigits(text, 'en');\n",
       "expect": {
         "e2e/entries.spec.ts": [
           "number-words"

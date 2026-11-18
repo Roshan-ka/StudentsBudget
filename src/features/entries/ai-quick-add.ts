@@ -11,6 +11,7 @@ import { readQuickAdd } from './quick-add';
 import {
   euroAccountId,
   localQuickAddProvider,
+  readLineParts,
   type QuickAddContext,
   type QuickAddProvider,
   type QuickAddReading,
@@ -74,8 +75,10 @@ export function quickAddRequestFor(
  * The model's answer as a reading, or null when it found no amount. Amounts are in the account's currency, to the cent.
  * A category the model left open is the local suggestion (the history never leaves the phone). An account it didn't
  * name is, for a line written in euros on a phone whose default account isn't in euros, the euro account, as the local
- * reader does. Two readings ("coffee 7 40") become a choice, ordered as the local reader orders them; a choice has no
- * day.
+ * reader does. Two readings ("coffee 7 40") become a choice, ordered as the local reader orders them. The day is the one
+ * the line names as the phone reads it (`readLineParts`: "on 27 november 2025", "gestern", "last friday"), else the
+ * model's: the function drops a day more than 60 days back and the model may miss one, which saved such lines today
+ * (18-11-2026).
  */
 export function readingFrom(
   answer: QuickAddAnswer,
@@ -90,10 +93,13 @@ export function readingFrom(
   const accountId = named ?? (readQuickAdd(text)?.euro === true ? euroAccountId(ctx.accounts) : undefined);
   const account = accountId === undefined ? {} : { accountId };
   const amountMinor = Math.round(answer.amount * 100);
+  const day = readLineParts(text, ctx).date ?? answer.date;
+  const date = day === null ? {} : { date: day };
   if (answer.otherAmount !== null) {
-    return { kind: 'choice', options: [amountMinor, Math.round(answer.otherAmount * 100)], note, categoryId, ...account };
+    const options: [number, number] = [amountMinor, Math.round(answer.otherAmount * 100)];
+    return { kind: 'choice', options, note, categoryId, ...account, ...date };
   }
-  return { kind: 'amount', amountMinor, note, categoryId, ...account, ...(answer.date !== null && { date: answer.date }) };
+  return { kind: 'amount', amountMinor, note, categoryId, ...account, ...date };
 }
 
 /** How the provider asks the function: `callAi` with quick add's answer, passed in so the tests can play it. */
@@ -124,7 +130,7 @@ export function aiQuickAddProvider(options: {
       if (built !== null) {
         const result = await ask(built.request, { signal });
         if (result.ok) {
-          const reading = readingFrom(result.answer, text, ctx, built.accountIds);
+          const reading = readingFrom(result.answer, text, { ...ctx, lang: ctx.lang ?? options.lang }, built.accountIds);
           if (reading !== null) return reading;
         } else if (result.problem === 'daily-limit' || result.problem === 'second-step') {
           options.onHint?.(result.problem);

@@ -334,6 +334,7 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
     - "Reading…" shows in the field's one status line while the AI reads.
     - Typing, leaving the page (cleanup) or a new line aborts the read in flight, and a line counter (`lineCount`) drops an answer whose line is gone, so a stale answer never saves.
     - The Saved line names the account and the day when they aren't the default and today.
+    - The day is read on the phone for an AI reading too (`readLineParts`, the local reader's number words and `lineDates`), else the model's: the function drops a day more than 60 days back and the model may miss one, which saved such lines today (18-11-2026). A choice keeps its day.
     - e2e: `ai-quick-add.spec.ts`, with `mockAiFunction` (`hold` keeps an answer back until the spec settles it). The e2e build has the AI, so a spec about something else that signs in and uses quick add turns it off first (`aiSwitchedOff`, `e2e/helpers/ai.ts`), or its line stops at the `ai` note (`linking.spec.ts`, 09-11-2026).
   - The mic button (P2, `docs/superpowers/plans/2026-11-04-mic-button.md`) shows only where the browser has speech recognition (`recognizerFor`, `speech.ts`). It listens once in the language's locale and hands what it heard to the same `addLine` as a typed line, so speech goes through the provider and `checkReading` too, and saves straight away with the Saved line and Undo.
   - The first tap on a phone shows where the speech goes: its data-protection note (below), under its older key `studentsbudget-mic-note`.
