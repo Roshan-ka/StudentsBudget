@@ -19,7 +19,8 @@
 - **No year:** the most recent such day, today included ("27 Nov" in January is last November).
 - **A day after today** is not saved: quick add says so under the field ("That day is still to come…").
 - **The amount comes first:** when taking the date out leaves no amount ("6 mai döner"), the line is read as before, with no date.
-- **Later, not now:** weekday names ("last friday"), two-digit years after a month name ("27 nov 25" reads 25 as the amount).
+- **Weekday names** (chunk 3, Roshan's "start next chunk", 18-11-2026): full names only, in the phone's language and English ("sun", "sat", "wed" are words too). A name alone is the most recent such day, today included; "last" or "letzten" in front, "dernier" or "pasado" after, make it the one before today.
+- **Later, not now:** a two-digit year after a month name ("27 nov 25" reads 25 as the amount).
 
 ## Global constraints
 
@@ -65,8 +66,20 @@
 - [ ] **Step 3: e2e** (`SETUP_DAY`, 16.10.2026): "döner 6 yesterday" → "Saved €6.00 · döner · Eating out · 15.10.2026" (`// proof: line-date`), and "döner 6 on 3 december 2026" → the futureDate alert and nothing saved. Saved mutation: the provider leaves the date out.
 - [ ] **Step 4: CLAUDE.md** (Quick add, Plans table) and this plan's As built; commit `feat(quick-add): save on the day the line names`.
 
+### Chunk 3: weekday names
+
+**Files:**
+- Modify: `src/features/entries/quick-add-date.ts` (`LAST_BEFORE`, `LAST_AFTER`, `weekdayOfToken`, `lastWeekday`)
+- Test: `quick-add-date.test.ts`, `quick-add-provider.test.ts`, `e2e/entries.spec.ts`, `e2e/mutations/entries.json`
+
+- [ ] **Step 1: unit tests** (18.11.2026, a Wednesday): "friday", "on Monday", "wednesday" (today), "last wednesday" (a week back), "am Freitag", "Sonntag", "letzten Mittwoch", "vendredi", "mercredi dernier", "el viernes", "sábado", "el miércoles pasado", English on a German phone; no weekday in "sun cream 5", "coffee 3 sat", or a German name on an English phone.
+- [ ] **Step 2: the reader.** Weekday names from `Intl.DateTimeFormat(locale, { weekday: 'long' })`, folded, whole tokens only.
+- [ ] **Step 3: e2e:** on the setup day, a Friday, "döner 3 last friday" saves on 09.10.2026 (`line-weekday`, with a saved mutation that stops reading "last").
+- [ ] **Step 4: commit** `feat(quick-add): read a weekday from a line`.
+
 ## As built
 
 - **Chunk 1** (`a94a811`): `lineDates` and `readLineDate` in `src/features/entries/quick-add-date.ts`, month names from `Intl.DateTimeFormat` per language (cached), `readTypedDate` for the numbers; unit tests in `quick-add-date.test.ts` for every form in each language, the no-date lines, the most recent day, and the order rule. "haircut 10 november 2025" reads as 10 November 2025 with "haircut" left, which quick add then passes over for want of an amount.
 - **Chunk 2**: `localQuickAddProvider` takes the first date that leaves an amount and puts it on both reading kinds; `checkReading` and `chosenAmount` keep a choice's date; `QuickAddContext.lang` (the field's `loadContext(lang)`). The field refuses a reading dated after today with `quickAdd.futureDate`, in all four languages, for the AI's readings too. Provider tests: the dated lines, English on a German phone, the amount kept ("6 mai Döner", "lunch with jan 12"), a dated choice; the whole-list test now covers the parser lines with no date (two of its lines hold "today"). `entries.spec.ts`: "döner 6 yesterday" saves on 15.10.2026 (`line-date`, with a saved mutation that drops the date) and "döner 4 on 3 december 2026" is refused. The hint is unchanged.
-- **Left for later:** weekday names ("last friday"); a two-digit year after a month name.
+- **Chunk 3**: weekday names in `quick-add-date.ts`, from the platform's calendar, whole words only; "last", "letzten", "letzter", "vergangenen", "vergangener" in front and "dernier", "pasado" after make the one before today. Unit tests in the four languages and for short forms; a provider test ("coffee 3 last friday"); `entries.spec.ts` adds "döner 3 last friday" on the setup day (`line-weekday`, with a saved mutation).
+- **Left for later:** a two-digit year after a month name.

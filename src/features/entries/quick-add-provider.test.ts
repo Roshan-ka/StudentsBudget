@@ -463,6 +463,16 @@ describe('a date in the line (quick add dates, 18-11-2026)', () => {
     expect(chosenAmount(reading, 740)).toMatchObject({ amountMinor: 740, date: '2026-10-19' });
   });
 
+  it('dates a weekday: "last friday" on Tuesday 20.10.2026 is 16.10.2026', async () => {
+    expect(await localQuickAddProvider.read('coffee 3 last friday', context([]))).toStrictEqual({
+      kind: 'amount',
+      amountMinor: 300,
+      note: 'coffee',
+      categoryId: 'eating-out',
+      date: '2026-10-16',
+    });
+  });
+
   it('leaves a day after today on the reading: the field refuses it', async () => {
     expect(await localQuickAddProvider.read('döner 6 on 3 december 2026', context([]))).toMatchObject({
       date: '2026-12-03',
