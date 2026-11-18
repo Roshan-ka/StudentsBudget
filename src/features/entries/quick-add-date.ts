@@ -5,7 +5,7 @@ import { getISODay, parseISO } from 'date-fns';
 import { readTypedDate } from '@/components/date-input';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { LANGUAGES, type Language } from '@/i18n/languages';
-import { addDays, daysInMonth, monthOf, shiftMonth, type IsoDate } from '@/lib/dates';
+import { addDays, daysBetween, daysInMonth, monthOf, shiftMonth, type IsoDate, type IsoMonth } from '@/lib/dates';
 
 /** A date found in a line, and the line without it (its cue word and connectors gone too). */
 export type LineDate = { date: IsoDate; rest: string };
@@ -53,6 +53,42 @@ const LAST_BEFORE: Record<Language, readonly string[]> = {
   es: [],
 };
 const LAST_AFTER: Record<Language, readonly string[]> = { en: [], de: [], fr: ['dernier'], es: ['pasado'] };
+
+/**
+ * The words that make a weekday the coming one, after today (quick add breakpoints, 18-11-2026): "next friday",
+ * "nächsten Freitag", "el próximo viernes" in front, "vendredi prochain" after. Quick add then refuses it as still to
+ * come; before, "next friday" saved last Friday.
+ */
+const NEXT_BEFORE: Record<Language, readonly string[]> = {
+  en: ['next'],
+  de: ['nachsten', 'nachster', 'kommenden', 'kommender'],
+  fr: [],
+  es: ['proximo'],
+};
+const NEXT_AFTER: Record<Language, readonly string[]> = { en: [], de: [], fr: ['prochain'], es: [] };
+
+/** Tomorrow, which quick add refuses as still to come (breakpoints): before, it saved today with the word in the note. */
+const TOMORROW: Record<Language, readonly string[]> = { en: ['tomorrow'], de: ['morgen'], fr: ['demain'], es: ['manana'] };
+
+/** The words before "morgen" or "mañana" that make it the morning: "am Morgen", "heute morgen", "esta mañana". */
+const MORNING_AFTER: Record<Language, readonly string[]> = {
+  en: [],
+  de: ['am', 'heute', 'gestern', 'vorgestern'],
+  fr: [],
+  es: ['esta', 'la', 'por'],
+};
+
+/**
+ * The words after which a month or weekday name is a person's name or a thing, not a date (breakpoints): "2 döner with
+ * Jan 7", "Kino mit Jan", "cena con Domingo", "chocolat avec Mars", "tickets for friday". Nothing that starts right
+ * after one of them is a date.
+ */
+const COMPANIONS: Record<Language, readonly string[]> = {
+  en: ['with', 'for'],
+  de: ['mit', 'fur'],
+  fr: ['avec', 'pour'],
+  es: ['con', 'para'],
+};
 
 const DAY = /^(\d{1,2})(?:st|nd|rd|th|er|e)?$/;
 const YEAR = /^20\d{2}$/;
@@ -117,6 +153,12 @@ function lastWeekday(weekday: number, today: IsoDate, before: boolean): IsoDate 
   return addDays(today, -(back === 0 && before ? 7 : back));
 }
 
+/** The coming `weekday` after `today` (a week ahead on that weekday). */
+function nextWeekday(weekday: number, today: IsoDate): IsoDate {
+  const ahead = (weekday - getISODay(parseISO(today)) + 7) % 7;
+  return addDays(today, ahead === 0 ? 7 : ahead);
+}
+
 /** The month (1–12) a token names: three letters or more that start one month's name, and only one month's. */
 function monthOfToken(token: string, langs: readonly Language[]): number | null {
   if (!/^\p{L}{3,}$/u.test(token)) return null;
@@ -131,44 +173,44 @@ function monthOfToken(token: string, langs: readonly Language[]): number | null 
 
 const two = (n: number) => String(n).padStart(2, '0');
 
+/** How far ahead a date with no year still means the coming one (quick add breakpoints, 18-11-2026). */
+const FUTURE_DAYS = 31;
+
 /**
- * The day `day`.`month` of `year`, or with no year the most recent one up to `today` (so "27 Nov" in January is last
- * November). Null for a day the month doesn't have.
+ * The day `day` with no year: in `month`, or with no month in this month or one next to it ("am 17."). The coming one
+ * when it is at most `FUTURE_DAYS` ahead, so quick add refuses it ("am 5.12" in November is 5 December, still to
+ * come), else the most recent one up to `today` ("27 Nov" in January is last November, "5. März" in November this
+ * March). Null for a day no such month has. Before 18-11-2026 it was always the most recent, a year back unsaid.
  */
-function dayOf(day: number, month: number, year: number | null, today: IsoDate): IsoDate | null {
+function noYearDay(day: number, month: number | null, today: IsoDate): IsoDate | null {
+  const inMonth = (m: IsoMonth): IsoDate | null => (day >= 1 && day <= daysInMonth(m) ? `${m}-${two(day)}` : null);
   const thisYear = Number(today.slice(0, 4));
-  const tryYear = (y: number) => {
-    const iso = `${y}-${two(month)}-${two(day)}`;
-    return day >= 1 && day <= daysInMonth(iso.slice(0, 7)) ? iso : null;
-  };
-  if (year !== null) return tryYear(year);
-  const now = tryYear(thisYear);
-  return now !== null && now <= today ? now : tryYear(thisYear - 1);
+  // In order, earliest first: the months around today, or `month` last year, this year and next.
+  const months: IsoMonth[] =
+    month === null
+      ? [-2, -1, 0, 1].map((by) => shiftMonth(monthOf(today), by))
+      : [thisYear - 1, thisYear, thisYear + 1].map((y) => `${y}-${two(month)}`);
+  const days = months.map(inMonth).filter((d): d is IsoDate => d !== null);
+  const coming = days.find((d) => d > today && daysBetween(today, d) <= FUTURE_DAYS);
+  if (coming !== undefined) return coming;
+  return days.filter((d) => d <= today).pop() ?? null;
 }
 
-/**
- * The day `day` of this month when it has come, else of the latest month before that has it ("am 31." in November is
- * 31 October). Null for a day no month has.
- */
-function recentDayOfMonth(day: number, today: IsoDate): IsoDate | null {
-  if (day < 1 || day > 31) return null;
-  for (let back = 0; back <= 2; back += 1) {
-    const month = shiftMonth(monthOf(today), -back);
-    if (day > daysInMonth(month)) continue;
-    const iso = `${month}-${two(day)}`;
-    if (iso <= today) return iso;
-  }
-  return null;
+/** The day `day`.`month` of `year`, or with no year as `noYearDay` reads it. Null for a day the month doesn't have. */
+function dayOf(day: number, month: number, year: number | null, today: IsoDate): IsoDate | null {
+  if (year === null) return noYearDay(day, month, today);
+  const iso = `${year}-${two(month)}-${two(day)}`;
+  return day >= 1 && day <= daysInMonth(iso.slice(0, 7)) ? iso : null;
 }
 
-/** A typed numeric date, with no year read as the most recent such day. */
+/** A typed numeric date, with no year read as `noYearDay` reads it. */
 function numericDate(token: string, today: IsoDate): IsoDate | null {
   const read = readTypedDate(token, today);
   if (read.kind !== 'date') return null;
   const hasYear = token.split(/[./-]/).length === 3;
-  if (hasYear || read.date <= today) return read.date;
+  if (hasYear) return read.date;
   const [, month, day] = read.date.split('-').map(Number);
-  return dayOf(day, month, Number(today.slice(0, 4)) - 1, today);
+  return noYearDay(day, month, today);
 }
 
 /** One date at `i`: its first and last token and the day. */
@@ -178,6 +220,13 @@ function dateAt(folded: string[], i: number, today: IsoDate, langs: readonly Lan
   const at = (k: number) => folded[k] ?? '';
   const connectors = new Set(langs.flatMap((lang) => CONNECTORS[lang]));
   const isConnector = (k: number) => connectors.has(at(k));
+  const among = (words: Record<Language, readonly string[]>, k: number) => langs.some((lang) => words[lang].includes(at(k)));
+
+  // "with Jan", "con Domingo": a name, not a date (quick add breakpoints, 18-11-2026).
+  if (among(COMPANIONS, i - 1)) return null;
+
+  // Tomorrow, unless it is the morning ("am Morgen", "esta mañana").
+  if (among(TOMORROW, i)) return among(MORNING_AFTER, i - 1) ? null : { start: i, end: i, date: addDays(today, 1) };
 
   // Today, yesterday, the day before.
   for (const lang of langs) {
@@ -195,8 +244,13 @@ function dateAt(folded: string[], i: number, today: IsoDate, langs: readonly Lan
     const weekday = weekdayOfToken(at(i + 1), langs);
     if (weekday !== null) return { start: i, end: i + 1, date: lastWeekday(weekday, today, true) };
   }
+  if (among(NEXT_BEFORE, i)) {
+    const weekday = weekdayOfToken(at(i + 1), langs);
+    if (weekday !== null) return { start: i, end: i + 1, date: nextWeekday(weekday, today) };
+  }
   const weekday = weekdayOfToken(at(i), langs);
   if (weekday !== null) {
+    if (among(NEXT_AFTER, i + 1)) return { start: i, end: i + 1, date: nextWeekday(weekday, today) };
     const before = lastAfter.has(at(i + 1));
     return { start: i, end: before ? i + 1 : i, date: lastWeekday(weekday, today, before) };
   }
@@ -250,7 +304,7 @@ function dateAt(folded: string[], i: number, today: IsoDate, langs: readonly Lan
   const cueBefore = cues.has(at(i - 1)) || (langs.includes('en') && at(i - 1) === 'the' && cues.has(at(i - 2)));
   const monthAfter = monthOfToken(at(i + 1), langs) !== null || (isConnector(i + 1) && monthOfToken(at(i + 2), langs) !== null);
   if (bareDay !== null && cueBefore && !monthAfter) {
-    const date = recentDayOfMonth(Number(bareDay[1]), today);
+    const date = noYearDay(Number(bareDay[1]), null, today);
     if (date !== null) return { start: i, end: i, date };
   }
   return null;

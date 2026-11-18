@@ -46,10 +46,12 @@ describe('readLineDate (quick add dates, 18-11-2026)', () => {
     expect(read(text, lang)).toEqual({ date, rest });
   });
 
-  it('takes a day with no year as the most recent one, today included', () => {
-    expect(read('haircut 10 27 nov')?.date).toBe('2025-11-27');
+  // Breakpoints (18-11-2026): a day at most a month ahead is that coming day, which quick add refuses, not a year back.
+  it('takes a day with no year as the coming one up to a month ahead, else the most recent, today included', () => {
+    expect(read('haircut 10 27 nov')?.date).toBe('2026-11-27');
     expect(read('haircut 10 18 nov')?.date).toBe('2026-11-18');
-    expect(read('haircut 10 on 27.11')?.date).toBe('2025-11-27');
+    expect(read('haircut 10 on 27.11')?.date).toBe('2026-11-27');
+    expect(read('haircut 10 27 oct')?.date).toBe('2026-10-27');
   });
 
   it('keeps a day after today when the year says so: quick add refuses it, not the reader', () => {
@@ -73,11 +75,12 @@ describe('readLineDate (quick add dates, 18-11-2026)', () => {
       { date: '2026-05-06', rest: 'Döner gestern' },
       { date: '2026-11-17', rest: '6 mai Döner' },
     ]);
-    expect(lineDates('lunch with jan 12', TODAY, 'en')).toEqual([{ date: '2026-01-12', rest: 'lunch with' }]);
+    // "with jan" is a name (breakpoints, 18-11-2026), so the line has no date at all.
+    expect(lineDates('lunch with jan 12', TODAY, 'en')).toEqual([]);
   });
 
   it('reads the number after a month as its day when both orders fit, so the one before stays the amount', () => {
-    expect(read('haircut 10 november 27')).toEqual({ date: '2025-11-27', rest: 'haircut 10' });
+    expect(read('haircut 10 november 27')).toEqual({ date: '2026-11-27', rest: 'haircut 10' });
     expect(read('haircut 10 27 nov 2025')).toEqual({ date: '2025-11-27', rest: 'haircut 10' });
   });
 
@@ -140,6 +143,64 @@ describe('a cue word and a bare day (quick add breakpoints)', () => {
   it('leaves a day with its month to the month name', () => {
     expect(read('Friseur 10 am 27. November 2025', 'de')).toEqual({ date: '2025-11-27', rest: 'Friseur 10' });
     expect(read('peluquería 10 el 27 de noviembre de 2025', 'es')).toEqual({ date: '2025-11-27', rest: 'peluquería 10' });
+  });
+});
+
+// Quick add breakpoints, chunk 3: a day still to come is read as that day, so quick add refuses it, never a year back.
+describe('a day with no year that is still to come (quick add breakpoints)', () => {
+  it.each<[string, Language, string, string]>([
+    ['Döner 30 am 5.12', 'de', '2026-11-18', '2026-12-05'],
+    ['Döner 6 am 25.', 'de', '2026-11-18', '2026-11-25'],
+    ['lunch 6 Nov 27', 'en', '2026-11-18', '2026-11-27'],
+    ['coffee 3 3 jan', 'en', '2026-12-20', '2027-01-03'],
+    // More than a month ahead is the most recent one, as before: a late entry, not a plan.
+    ['coffee 3 27 dec', 'en', '2027-01-05', '2026-12-27'],
+    ['coffee 3 15 aug', 'en', '2026-11-18', '2026-08-15'],
+    ['Friseur 10 am 5. März', 'de', '2026-11-18', '2026-03-05'],
+  ])('reads "%s" (%s) on %s as %s', (text, lang, today, date) => {
+    expect(readLineDate(text, today, lang)?.date).toBe(date);
+  });
+
+  it.each<[string, Language, string]>([
+    ['döner 6 next friday', 'en', 'döner 6'],
+    ['Döner 6 nächsten Freitag', 'de', 'Döner 6'],
+    ['döner 6 vendredi prochain', 'fr', 'döner 6'],
+    ['döner 6 el próximo viernes', 'es', 'döner 6'],
+  ])('reads "%s" (%s) as the coming Friday, leaving "%s"', (text, lang, rest) => {
+    expect(read(text, lang)).toEqual({ date: '2026-11-20', rest });
+  });
+
+  it.each<[string, Language]>([
+    ['döner 6 tomorrow', 'en'],
+    ['Döner 6 morgen', 'de'],
+    ['döner 6 demain', 'fr'],
+    ['döner 6 mañana', 'es'],
+  ])('reads "%s" (%s) as tomorrow', (text, lang) => {
+    expect(read(text, lang)?.date).toBe('2026-11-19');
+  });
+
+  it('reads "morgen" and "mañana" that mean the morning as no day', () => {
+    expect(read('Kaffee 2 am Morgen', 'de')).toBeNull();
+    expect(read('Bäcker 3 heute morgen', 'de')).toEqual({ date: '2026-11-18', rest: 'Bäcker 3 morgen' });
+    expect(read('café 2 esta mañana', 'es')).toBeNull();
+  });
+});
+
+describe('names that look like a weekday or a month (quick add breakpoints)', () => {
+  it.each<[string, Language]>([
+    ['2 döner with Jan 7', 'en'],
+    ['Kino mit Jan 2 Tickets 18', 'de'],
+    ['döner con Domingo 15', 'es'],
+    ['chocolat avec Mars 2', 'fr'],
+    ['tickets for friday 20', 'en'],
+  ])('reads a month or weekday name after "with", "mit", "con", "avec" or "for" in "%s" (%s) as a name', (text, lang) => {
+    expect(read(text, lang)).toBeNull();
+  });
+
+  it('still reads the same names as days anywhere else', () => {
+    expect(read('döner 6 el domingo', 'es')).toEqual({ date: '2026-11-15', rest: 'döner 6' });
+    expect(read('döner 6 sábado', 'es')).toEqual({ date: '2026-11-14', rest: 'döner 6' });
+    expect(read('coffee 3 jan 7')).toEqual({ date: '2026-01-07', rest: 'coffee 3' });
   });
 });
 

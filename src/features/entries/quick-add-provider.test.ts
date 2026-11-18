@@ -637,6 +637,24 @@ describe('no silent wrong amounts (quick add breakpoints)', () => {
     expect(await localQuickAddProvider.read('döner 10 november 2025', context([]))).toBeNull();
   });
 
+  it('reads a month or weekday name after "with" or "mit" as a name, so the amount stays (chunk 3)', async () => {
+    const jan = await localQuickAddProvider.read('2 döner with Jan 7', context([]));
+    expect(jan).toMatchObject({ kind: 'amount', amountMinor: 700 });
+    expect(jan).not.toHaveProperty('date');
+    const kino = await localQuickAddProvider.read('Kino mit Jan 2 Tickets 18', on('de'));
+    expect(kino).toMatchObject({ kind: 'amount', amountMinor: 1800 });
+    expect(kino).not.toHaveProperty('date');
+  });
+
+  it('dates "next friday" and "morgen" ahead, for quick add to refuse as still to come (chunk 3)', async () => {
+    // 20.10.2026 is a Tuesday.
+    expect(await localQuickAddProvider.read('döner 6 next friday', context([]))).toMatchObject({
+      amountMinor: 600,
+      date: '2026-10-23',
+    });
+    expect(await localQuickAddProvider.read('Döner 6 morgen', on('de'))).toMatchObject({ amountMinor: 600, date: '2026-10-21' });
+  });
+
   it('keeps what was pinned before', async () => {
     expect(await localQuickAddProvider.read('10 haircut on 27 november 2025', context([]))).toMatchObject({
       amountMinor: 1000,
