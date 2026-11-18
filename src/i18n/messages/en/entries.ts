@@ -20,6 +20,8 @@ export const entries = {
     nothingYet: 'Nothing logged here yet.',
     /** Under it, on the empty month's card. */
     nothingYetHint: 'Log with quick add above.',
+    /** An empty month gone by: quick add saves today unless the line names the day (breakpoints, 18-11-2026). */
+    otherMonthHint: (month: number) => `Name the day in quick add, like “döner 6 on 3.${month}”.`,
   },
   edit: {
     heading: 'Edit entry',
@@ -53,6 +55,8 @@ export const entries = {
     hint: 'What and how much, like “döner 6 yesterday”.',
     add: 'Add',
     noAmount: 'Add an amount, like “döner 6”.',
+    /** A line that starts with "+" ("+50 from mom"): money that came in (breakpoints, 18-11-2026). */
+    incomeLine: 'Quick add is for spending. Add money that came in with Add entry.',
     /** A date in the line, or from the AI, after today (quick add dates, 18-11-2026). */
     futureDate: 'That day is still to come. Quick add saves what you’ve already spent.',
     whichAmount: 'Which amount?',

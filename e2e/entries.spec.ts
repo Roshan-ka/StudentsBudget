@@ -450,6 +450,42 @@ test('delete asks first: Cancel keeps the entry, Yes removes it', async ({ page 
   expect(dialogs).toBe(0);
 });
 
+// Quick add breakpoints (18-11-2026): after a delete, the focus went to the next entry in the database's order.
+test('deleting an entry hands the focus to the next one shown', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  const list = entriesList(page);
+  const row = (amount: string) => list.getByRole('button', { name: new RegExp(`^döner .*${amount}$`) });
+  for (const amount of [3, 4, 5]) {
+    await quickAdd(page, `döner ${amount}`);
+    await expect(page.getByRole('status')).toHaveText(`Saved €${amount}.00 · döner · Eating out`);
+  }
+
+  // Newest first: €5, €4, €3. The middle one goes, and the one shown under it takes the focus.
+  await row('€4\\.00').click();
+  const panel = page.getByRole('region', { name: 'Edit entry' });
+  await panel.getByRole('button', { name: 'Delete', exact: true }).click();
+  await panel.getByRole('button', { name: 'Yes', exact: true }).click();
+  await expect(row('€4\\.00')).toHaveCount(0);
+  await expect(row('€3\\.00')).toBeFocused(); // proof: delete-focus-shown-order
+});
+
+// Quick add breakpoints (18-11-2026): "+50 from mom" was answered "Add an amount", though it has one.
+test('a line that starts with "+" says quick add is for spending', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await quickAdd(page, '+50 from mom');
+  await expect(inlineAlert(page)).toHaveText('Quick add is for spending. Add money that came in with Add entry.'); // proof: income-line
+  expect(await readStore<Entry>(page, 'entries')).toHaveLength(0);
+});
+
+// Quick add breakpoints (18-11-2026): an empty month gone by said "Log with quick add above", which saves today.
+test('an empty past month says how to log a day in it', async ({ page }) => {
+  await setupAndOpenEntries(page);
+  await page.goto('/entries?month=2026-08');
+  const list = entriesList(page);
+  await expect(list.getByText('Nothing logged here yet.', { exact: true })).toBeVisible();
+  await expect(list.getByText('Name the day in quick add, like “döner 6 on 3.8”.', { exact: true })).toBeVisible(); // proof: other-month-hint
+});
+
 test('the entry form saves an expense in a foreign currency, converted at save time', async ({ page }) => {
   await setupAndOpenEntries(page);
   // Setup refreshes the INR rate in the background; the form needs it, so wait until it is stored.

@@ -30,7 +30,7 @@ import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { getSupabase } from '@/lib/supabase/client';
 import { aiQuickAddProvider, type AiQuickAddHint } from './ai-quick-add';
 import { buildEntry } from './build-entry';
-import { droppedLine, lineAfterQuestion } from './quick-add';
+import { droppedLine, lineAfterQuestion, looksLikeIncome } from './quick-add';
 import { savedWhat } from './saved-line';
 import { FLEXIBLE_CATEGORIES, CORE_FLEXIBLE_CATEGORIES } from './categories';
 import {
@@ -488,6 +488,11 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
     if (line.trim() === '') return;
     // The line that went unsaved, typed again by hand: the note about it has done its job.
     if (line.trim() === dropped) setDropped(null);
+    // "+50 from mom" is money that came in: quick add is for spending, whichever reader would read it (breakpoints).
+    if (looksLikeIncome(line)) {
+      setError(words.incomeLine);
+      return;
+    }
 
     await runOnce(async () => {
       setSaved(null);

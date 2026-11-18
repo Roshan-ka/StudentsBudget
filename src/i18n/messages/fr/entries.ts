@@ -18,6 +18,7 @@ export const entries: Messages['entries'] = {
     next: 'Suivant',
     nothingYet: 'Rien de saisi ici pour l’instant.',
     nothingYetHint: 'Utilise l’ajout rapide ci-dessus.',
+    otherMonthHint: (month) => `Indique le jour dans l’ajout rapide, comme «${NNBSP}döner 6 le 3/${month}${NNBSP}».`,
   },
   edit: {
     heading: 'Modifier la saisie',
@@ -48,6 +49,7 @@ export const entries: Messages['entries'] = {
     hint: `Quoi et combien, comme «${NNBSP}döner 6 hier${NNBSP}».`,
     add: 'Ajouter',
     noAmount: `Ajoute un montant, comme «${NNBSP}döner 6${NNBSP}»`,
+    incomeLine: `L’ajout rapide sert aux dépenses. Ajoute l’argent reçu avec «${NNBSP}Ajouter une saisie${NNBSP}».`,
     futureDate: 'Ce jour n’est pas encore arrivé. L’ajout rapide enregistre ce que tu as déjà dépensé.',
     whichAmount: `Quel montant${NNBSP}?`,
     amountGroup: 'Montant',

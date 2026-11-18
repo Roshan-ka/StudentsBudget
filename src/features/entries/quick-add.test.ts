@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry } from '@/db/types';
-import { droppedLine, keywordsOf, lineAfterQuestion, readQuickAdd, suggestCategory } from './quick-add';
+import { droppedLine, keywordsOf, lineAfterQuestion, looksLikeIncome, readQuickAdd, suggestCategory } from './quick-add';
 
 /** The amount or choice `readQuickAdd` reads from a line, or null (review D4: only the tests read it on its own). */
 const parseQuickAdd = (text: string) => readQuickAdd(text)?.reading ?? null;
@@ -744,6 +744,21 @@ describe('readQuickAdd: cents after "and", and numbers a date owns (quick add br
       euro: false,
     });
     expect(readQuickAdd('döner 10 november 2025', new Set([1, 3]))).toBeNull();
+  });
+});
+
+// Quick add breakpoints (18-11-2026): "+50 from mom" was answered "Add an amount", though it has one.
+describe('looksLikeIncome', () => {
+  it('is true for a line that starts with "+" and a number', () => {
+    expect(looksLikeIncome('+50 from mom')).toBe(true);
+    expect(looksLikeIncome(' + 50 Mama')).toBe(true);
+    expect(looksLikeIncome('+12,50 refund')).toBe(true);
+  });
+
+  it('is false for a spending line, and for a "+" later in it', () => {
+    expect(looksLikeIncome('döner 6')).toBe(false);
+    expect(looksLikeIncome('bus +2')).toBe(false);
+    expect(looksLikeIncome('+ cake')).toBe(false);
   });
 });
 

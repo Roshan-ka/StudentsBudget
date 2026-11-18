@@ -666,6 +666,22 @@ describe('no silent wrong amounts (quick add breakpoints)', () => {
   });
 });
 
+// Quick add breakpoints (18-11-2026): an empty month gone by says how to log a day in it, with an example that works.
+describe('the empty past month’s example', () => {
+  it.each(OFFERED)('saves €6 under Eating out on the 3rd of that month, in %s', async (lang) => {
+    const hint = MESSAGES[lang].entries.list.otherMonthHint(8);
+    // The last quoted part: German names „Schnell erfassen“ before its example.
+    const quoted = [...hint.matchAll(/[“„«"]\s*([^”“»"]+?)\s*[”“»"]/gu)];
+    const example = quoted[quoted.length - 1]?.[1] ?? '';
+    expect(await localQuickAddProvider.read(example, { ...context([]), lang })).toMatchObject({
+      kind: 'amount',
+      amountMinor: 600,
+      categoryId: 'eating-out',
+      date: '2026-08-03',
+    });
+  });
+});
+
 describe('the hint’s own example (18-11-2026)', () => {
   it.each(OFFERED)('saves €6 under Eating out, dated yesterday, in %s', async (lang) => {
     const example = /[“„«"]\s*([^”“»"]+?)\s*[”“»"]/u.exec(MESSAGES[lang].entries.quickAdd.hint)?.[1] ?? '';

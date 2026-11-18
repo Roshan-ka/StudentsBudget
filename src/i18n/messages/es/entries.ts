@@ -17,6 +17,7 @@ export const entries: Messages['entries'] = {
     next: 'Siguiente',
     nothingYet: 'Aquí aún no hay nada registrado.',
     nothingYetHint: 'Añade algo arriba con Añadir rápido.',
+    otherMonthHint: (month) => `Indica el día en Añadir rápido, como “döner 6 el 3/${month}”.`,
   },
   edit: {
     heading: 'Editar registro',
@@ -47,6 +48,7 @@ export const entries: Messages['entries'] = {
     hint: 'Qué y cuánto, como “döner 6 ayer”.',
     add: 'Añadir',
     noAmount: 'Añade un importe, como “döner 6”',
+    incomeLine: 'Añadir rápido es para gastos. Añade el dinero que recibes con Añadir registro.',
     futureDate: 'Ese día aún no ha llegado. Añadir rápido guarda lo que ya has gastado.',
     whichAmount: '¿Qué importe?',
     amountGroup: 'Importe',

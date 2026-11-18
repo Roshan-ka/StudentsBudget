@@ -322,4 +322,36 @@ Checked and ruled out:
 
 ## As built
 
-(filled in per chunk)
+Built 18-11-2026 on `fix/quick-add-breakpoints-2026-11-18` (#312), one commit per chunk.
+- **Tests:** written before the code and traced by hand. Nothing ran locally (Roshan's rule); the quick check runs the unit tests.
+- **e2e:** needs a `specs:` run of `entries.spec.ts dictation.spec.ts ai-quick-add.spec.ts`.
+
+- **Chunk 1** (`7a89d7f`), F1–F4:
+  - **The article:** right before the euro word it is one ("ein Euro", "einen Euro", "un euro"), handled before the number reader, since German reads "ein" only inside a compound.
+  - **The connectors:** "und", "et", "y" and "con" between the euro word and cents that end the line go in `number-words.ts`, and "and" in the reader (`findCandidates`).
+  - **The cue day:** a bare day after "am", "on", "on the", "le" or "el" is a day, never when a month name follows.
+  - **`dateNumberTokens`:** never the amount when the line reads without a date (`readQuickAdd`'s `notAmounts`).
+- **Chunk 2** (`1d03fae`), F6 and F7: `useQuestionGuard` in `quick-add-field.tsx`.
+  - **Ruling, against "ignore taps for 500 ms after they appear":** the tap guard covers only chips that took the place of buttons just tapped (after an amount, after More). Keys (Enter or Space, a click with `detail` 0) wait 500 ms on every question.
+    - **Why:** chips shown after Enter must take a tap at once, or every spec that clicks them straight away fails.
+    - **The More spec** waits for the group's `data-armed="true"`.
+  - **Type-ahead:** goes through the field's own `changeText`.
+- **Chunk 3** (`a6a6a95`), F5 and F8–F10, in `quick-add-date.ts`.
+  - **D1 as built (`noYearDay`):** the coming day when it is at most 31 days ahead (refused), else the most recent. Plain "nearest" would have refused "5. März" typed in November.
+  - **Next and tomorrow:** "next", "nächsten" or "kommenden" before a weekday, or "prochain" after it, give the coming one. "tomorrow", "morgen", "demain" and "mañana" are tomorrow, but not after "am", "heute" or "gestern", nor after "esta", "la" or "por".
+  - **D3 and F8, one ruling (`COMPANIONS`):** nothing right after "with", "for", "mit", "für", "avec", "pour", "con" or "para" is a date. A count rule couldn't tell "2 döner with Jan 7" from "10 haircut 3 nov", and a capital letter rule would have broken "döner 6 sábado". There is no `weak` flag on `LineDate`.
+  - **Changed on purpose:** "27 nov", "on 27.11" and "november 27" typed on 18.11. are 2026-11-27, which is refused. `lineDates("lunch with jan 12")` is empty; the line still saves €12.
+- **Chunk 4** (`e7a634f`), F11–F14:
+  - **The mic:** while it listens, Add and the question's buttons are off. A spoken line goes through `onHeard`, a ref set after each render, so it sees the state as it is when the line comes.
+  - **Leaving the page:** aborts the mic. `listen`'s stop takes `discard`; the plan had a stop/abort object.
+  - **The early edit:** `addLine` sets `readAbort` before its first wait.
+  - **The e2e speech stand-in:** it can wait for the spec (`holdSpeech`, `answerSpeech`), and its `abort()` sends nothing.
+  - **The early-edit spec:** lets the stored session run out and holds its refresh with a route.
+- **Chunk 5**, F15–F17:
+  - **`list-order.ts`:** holds `groupByDate`, moved, and `neighbourOf` in the order shown.
+  - **`looksLikeIncome`:** checked before either reader, so the AI never reads "+50 from mom" as an expense.
+  - **`list.otherMonthHint(month)`:** only for a month gone by. The current month keeps "Log with quick add above", and a future month too, since quick add can't log there either.
+- **Still owed:**
+  - CI's quick check and the e2e run above.
+  - A guest walk on the live site that repeats each finding's line once merged.
+  - A try with the mic on a phone (F11–F13) and signed in (F14).

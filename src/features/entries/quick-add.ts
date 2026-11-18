@@ -459,6 +459,14 @@ export function lineAfterQuestion(asked: string, next: string): string {
 }
 
 /**
+ * Whether a line reads as money that came in: it starts with "+" and a number ("+50 from mom"). Quick add is for
+ * spending, so it says where income goes instead of asking for an amount the line has (breakpoints, 18-11-2026).
+ */
+export function looksLikeIncome(text: string): boolean {
+  return /^\+\s*\d/.test(text.trim());
+}
+
+/**
  * The asked line a keystroke leaves unsaved, when `lineAfterQuestion` starts the next line; else null (18-11-2026,
  * after review P3). Quick add says so, with a way back, instead of letting the line go without a word.
  */
