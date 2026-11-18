@@ -273,4 +273,13 @@ Every chunk of the shortlist and the next tier is merged, except the setup chat'
 | Features | F2; F3 frozen; F4 | #293 (`adba59a`); #299 (`f0594c8`, `6359386`) |
 | P7 notes | Overdrawn fold, BAföG field, no jump while typing | #297 (`bcf8d12`, `a69d7fd`, `48c110b`); savings history and future months kept (Roshan) |
 
-Still owed from Verification: the guest walk on the live site in English and German (P1, P2), and one CI run with the axe spec and `languages: all` for the UI chunks.
+**Guest walk on the live site** (18-11-2026, https://students-budget.vercel.app at 375 px, signed out, after #302–#304 deployed):
+
+- **English:** start page → "Continue without an account" → setup with Local bank €500, Cash €40, Parents €800, rent €400 and the suggested envelopes.
+  - **P1:** the Parents line showed "Add this month too", ticked, dated 01.11.2026. After Save, Home read "Across all accounts: €1,340" (the €800 posted), and Charts opened on €800 income and "€783 saved", with no deficit.
+  - **P2:** "döner 6", quick add's own example, saved at once as Eating out, with no question.
+  - **Today's changes:** "poster 3" asked with the tinted chips and icons (#303); More went, and the focus moved to Health & pharmacy; Personal showed in teal (#302) and saved the line. "kino 8 yesterday" saved as Going out, dated 17.11.2026 (#304).
+- **German:** "Döner 6" saved as Essen auswärts; "Kino 8 gestern" as Ausgehen, dated 17.11.2026; "Poster" went straight to Persönliches, learned from the earlier pick; "Tasse 4" asked with the six chips and Mehr, which gave way to the other seven, focus on Gesundheit & Apotheke. Home and Grafiken read in German, Persönliches among them ("3 € über den geplanten 0 €").
+- **Noted, by design:** a fixed cost never asks "Add this month too", so in the first month the rent isn't posted and "saved" reads €400 higher until it is.
+
+Still owed from Verification: one CI run with the axe spec and `languages: all` for the UI chunks.
