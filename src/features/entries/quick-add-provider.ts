@@ -1,14 +1,19 @@
 import type { Account, Entry } from '@/db/types';
 import { defaultAccount, euroAccount, sortAccounts } from '@/features/accounts/balances';
 import { isIsoDate } from '@/features/recurring/schedule';
+import type { Language } from '@/i18n/languages';
 import type { IsoDate } from '@/lib/dates';
 import type { Minor } from '@/lib/money';
 import { EXPENSE_CATEGORIES } from './categories';
 import { guessCategory } from './category-words';
 import { readQuickAdd } from './quick-add';
+import { lineDates } from './quick-add-date';
 
-/** What a provider reads a line against: today, the accounts, and every expense so far (`history`). */
-export type QuickAddContext = { today: IsoDate; accounts: Account[]; history: Entry[] };
+/**
+ * What a provider reads a line against: today, the accounts, every expense so far (`history`), and the phone's
+ * language, whose date words the local reader knows besides English (none given: English only).
+ */
+export type QuickAddContext = { today: IsoDate; accounts: Account[]; history: Entry[]; lang?: Language };
 
 /**
  * What a provider made of one line: one amount, or two readings to choose from ("coffee 7 40": €7.40 or €40).
@@ -18,7 +23,7 @@ export type QuickAddContext = { today: IsoDate; accounts: Account[]; history: En
  */
 export type QuickAddReading =
   | { kind: 'amount'; amountMinor: Minor; note: string; categoryId: string | null; accountId?: string; date?: IsoDate }
-  | { kind: 'choice'; options: [Minor, Minor]; note: string; categoryId: string | null; accountId?: string };
+  | { kind: 'choice'; options: [Minor, Minor]; note: string; categoryId: string | null; accountId?: string; date?: IsoDate };
 
 export type QuickAddAmountReading = Extract<QuickAddReading, { kind: 'amount' }>;
 export type QuickAddChoiceReading = Extract<QuickAddReading, { kind: 'choice' }>;
@@ -48,19 +53,25 @@ export function euroAccountId(accounts: Account[]): string | undefined {
 
 /**
  * `readQuickAdd` for the amount and `guessCategory` for the category, once per line. A line with a euro sign, "eur"
- * or "euro" next to the amount names a euro account when the default account is not in euros.
+ * or "euro" next to the amount names a euro account when the default account is not in euros. A date in the line
+ * ("on 27 november 2025", "gestern"; `lineDates`) is taken out first and dates the reading: the first one that leaves
+ * an amount, so "6 mai Döner" stays €6 with no date.
  */
 export const localQuickAddProvider: QuickAddProvider = {
   async read(text, ctx) {
-    const line = readQuickAdd(text);
+    const dated = lineDates(text, ctx.today, ctx.lang ?? 'en')
+      .map((found) => ({ date: found.date, line: readQuickAdd(found.rest) }))
+      .find((candidate) => candidate.line !== null);
+    const line = dated?.line ?? readQuickAdd(text);
     if (line === null) return null;
     const { reading: parsed, euro } = line;
     const categoryId = guessCategory(parsed.note, ctx.history);
     const accountId = euro ? euroAccountId(ctx.accounts) : undefined;
     const account = accountId === undefined ? {} : { accountId };
+    const date = dated === undefined ? {} : { date: dated.date };
     return 'kind' in parsed
-      ? { kind: 'choice', options: parsed.options, note: parsed.note, categoryId, ...account }
-      : { kind: 'amount', amountMinor: parsed.amountMinor, note: parsed.note, categoryId, ...account };
+      ? { kind: 'choice', options: parsed.options, note: parsed.note, categoryId, ...account, ...date }
+      : { kind: 'amount', amountMinor: parsed.amountMinor, note: parsed.note, categoryId, ...account, ...date };
   },
 };
 
@@ -87,35 +98,37 @@ export function checkReading(reading: QuickAddReading | null, ctx: QuickAddConte
   const { accountId } = reading;
   const account = accountId !== undefined && ctx.accounts.some((a) => a.id === accountId) ? { accountId } : {};
 
+  const { date } = reading;
+  const day = date !== undefined && isIsoDate(date) ? { date } : {};
   if (reading.kind === 'choice') {
     if (!reading.options.every(isAmount)) return null;
-    return { kind: 'choice', options: reading.options, note: reading.note, categoryId, ...account };
+    return { kind: 'choice', options: reading.options, note: reading.note, categoryId, ...account, ...day };
   }
 
   if (!isAmount(reading.amountMinor)) return null;
-  const { date } = reading;
   return {
     kind: 'amount',
     amountMinor: reading.amountMinor,
     note: reading.note,
     categoryId,
     ...account,
-    ...(date !== undefined && isIsoDate(date) && { date }),
+    ...day,
   };
 }
 
 /**
- * The amount tapped on a choice, with the note, the category and the account the line was read with: nothing is read
- * again.
+ * The amount tapped on a choice, with the note, the category, the account and the day the line was read with: nothing
+ * is read again.
  */
 export function chosenAmount(choice: QuickAddChoiceReading, amountMinor: Minor): QuickAddAmountReading {
-  const { accountId } = choice;
+  const { accountId, date } = choice;
   return {
     kind: 'amount',
     amountMinor,
     note: choice.note,
     categoryId: choice.categoryId,
     ...(accountId !== undefined && { accountId }),
+    ...(date !== undefined && { date }),
   };
 }
 

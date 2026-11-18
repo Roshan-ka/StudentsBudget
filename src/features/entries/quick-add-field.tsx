@@ -14,6 +14,7 @@ import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
 import { CategoryPickChip } from '@/features/tips/category-chip';
 import { categoryNameIn } from '@/i18n/category-name';
+import type { Language } from '@/i18n/languages';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
@@ -46,13 +47,13 @@ const speechOnServer = () => false;
 /** The two readings of a line like "coffee 7 40 euros", shown in the currency quick add saves in. */
 type Choice = QuickAddChoiceReading & { currency: CurrencyCode };
 
-/** What the provider reads a line against: today, the accounts and every expense so far. */
-async function loadContext(): Promise<QuickAddContext> {
+/** What the provider reads a line against: today, the accounts, every expense so far, and the phone's language. */
+async function loadContext(lang: Language): Promise<QuickAddContext> {
   const [accounts, history] = await Promise.all([
     db.accounts.toArray(),
     db.entries.where('type').equals('expense').toArray(),
   ]);
-  return { today: todayIso(), accounts, history };
+  return { today: todayIso(), accounts, history, lang };
 }
 
 /** How long quick add waits for the session before it reads the line on the phone instead (review B4). */
@@ -400,7 +401,7 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
       let ctx: QuickAddContext;
       let reading: QuickAddReading | null;
       try {
-        ctx = await loadContext();
+        ctx = await loadContext(lang);
         const ai = provider === undefined && (await aiReady());
         if (ai && !noteAccepted && !noteSeen('ai')) {
           setAiNoteFor(line);
@@ -427,6 +428,11 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
       }
       if (reading === null) {
         setError(words.noAmount);
+        return;
+      }
+      // A day still to come, from a date in the line or the AI: quick add saves what was spent, so it says so instead.
+      if (reading.date !== undefined && reading.date > ctx.today) {
+        setError(words.futureDate);
         return;
       }
       if (reading.kind === 'choice') {

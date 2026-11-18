@@ -110,6 +110,17 @@
           "more-focus"
         ]
       }
+    },
+    {
+      "name": "quick add reads the date out of the line but saves it today",
+      "file": "src/features/entries/quick-add-provider.ts",
+      "find": "    const date = dated === undefined ? {} : { date: dated.date };\n",
+      "replace": "    const date = {};\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "line-date"
+        ]
+      }
     }
   ]
 }

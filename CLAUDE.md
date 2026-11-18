@@ -40,6 +40,7 @@ Each plan is in `docs/superpowers/plans/`, with an As built section that says wh
 | AI on Groq's free plan | `2026-11-13-groq-free-plan.md` | live since 16-11-2026, chunks 1–6 | the setup chat stays off until a paid plan |
 | Receipt scan, read on the phone with Tesseract.js | `2026-11-13-receipt-scan.md` | built, chunks 1–5 | the real try with real receipts, then a tuning chunk |
 | Maskable app icon | `2026-11-16-maskable-icon.md` | done | the look on an Android phone |
+| Quick add: a date in the line, read on the phone | `2026-11-18-quick-add-dates.md` | built, chunks 1–2 | weekday names, if wanted |
 
 ## Stack
 
@@ -324,7 +325,8 @@ CI (`.github/workflows/ci.yml`) starts on its own only for a pull request that i
   - Per phone, like the language: localStorage `studentsbudget-theme`, not synced, not backed up (`src/theme/`).
   - `themeHeadScript` puts the `dark` class, `color-scheme` and the theme-color meta on the page before the first paint. `ThemeAttributes` keeps them, and follows the phone under Same as phone.
   - Pages prerender light. A spec about dark chooses it in Settings (`theme.spec.ts`).
-- **Quick add:** `QuickAddField` reads every line through a `QuickAddProvider`, and every reading passes `checkReading` before it is saved. Don't call `readQuickAdd`, `suggestCategory` or `guessCategory` from the field. A line's category is the student's own earlier choice (`suggestCategory`), else the CSV import's chain list and a short food and drink word list (`guessCategory`, `category-words.ts`, review P2, 17-11-2026), else the chips ask; while they (or the two amounts) ask, a letter typed after the line starts the next one (`lineAfterQuestion`).
+- **Quick add:** `QuickAddField` reads every line through a `QuickAddProvider`, and every reading passes `checkReading` before it is saved. Don't call `readQuickAdd`, `suggestCategory` or `guessCategory` from the field. A line's category is the student's own earlier choice (`suggestCategory`), else the CSV import's chain list and a short food and drink word list (`guessCategory`, `category-words.ts`, review P2, 17-11-2026), else the chips ask; while they (or the two amounts) ask, a letter typed after the line starts the next one (`lineAfterQuestion`), and the asked line shows as not saved under the field with Bring it back (`droppedLine`, 18-11-2026).
+  - **A date in the line** (`docs/superpowers/plans/2026-11-18-quick-add-dates.md`, Roshan, 18-11-2026): the local reader takes it out before the amount (`lineDates`, `quick-add-date.ts`), in the phone's language and English (`QuickAddContext.lang`): month names cut to three letters or more, whole numeric dates, a day and month in numbers only after "on", "am", "le" or "el" (a bare "27.11" stays €27.11), and today, yesterday and the day before. No year is the most recent such day; the first date that leaves an amount wins, else the line reads with no date. A reading dated after today, from either reader, is refused (`quickAdd.futureDate`).
   - **The reader** (the AI phase, chunks 6 and 7): `aiQuickAddProvider` (`ai-quick-add.ts`, through `callAi`) in an AI build while someone is signed in with the switch on (`aiReady`, read from the session in the handler), else `localQuickAddProvider`. A `provider` prop overrides it.
     - The first AI read on a phone waits for the `ai` note. A problem, or an answer without an amount, reads the line locally; `daily-limit` and `second-step` say so under the field (`aiHint`).
     - "Reading…" shows in the field's one status line while the AI reads.
