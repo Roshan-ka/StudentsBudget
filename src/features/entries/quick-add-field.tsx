@@ -1,7 +1,16 @@
 'use client';
 
 import { ChevronDownIcon, Mic, Square } from 'lucide-react';
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,6 +103,50 @@ const SAVED_LINE_MS = 10_000;
  */
 const KEEP_SPACE_MS = 600;
 
+/**
+ * How long a question's buttons ignore a tap after they take the place of buttons just tapped, and a key that presses
+ * one after the question shows (quick add breakpoints, 18-11-2026): a double tap on "€7.40" filed the line under the
+ * chip that took its place, and a second Enter picked the first chip.
+ */
+const CHIP_ARM_MS = 500;
+
+/** True once `CHIP_ARM_MS` has passed since `key` last changed; a null key is armed at once. */
+function useArmed(key: string | null): boolean {
+  const [armedFor, setArmedFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (key === null) return;
+    const timer = setTimeout(() => setArmedFor(key), CHIP_ARM_MS);
+    return () => clearTimeout(timer);
+  }, [key]);
+  return key === null || armedFor === key;
+}
+
+/**
+ * The props that guard a question's buttons (quick add breakpoints, 18-11-2026). A tap counts at once, except for
+ * `CHIP_ARM_MS` after `tapKey` changes: buttons that took the place of the ones just tapped (the amount, More), where a
+ * double tap's second tap lands. A key that presses a button (Enter or Space: a click with no pointer) waits as long
+ * after the question shows. A printable key other than Space goes to the field (`onTypeAhead`), so typing on after the
+ * question starts the next line there. `data-armed` says when taps count, for the specs.
+ */
+function useQuestionGuard(tapKey: string | null, onTypeAhead: (key: string) => void) {
+  const tapsArmed = useArmed(tapKey);
+  const keysArmed = useArmed('shown');
+  return {
+    'data-armed': tapsArmed ? 'true' : 'false',
+    onClickCapture: (event: MouseEvent) => {
+      const armed = event.detail === 0 ? tapsArmed && keysArmed : tapsArmed;
+      if (armed) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    onKeyDown: (event: KeyboardEvent) => {
+      if (event.key.length !== 1 || event.key === ' ' || event.ctrlKey || event.metaKey || event.altKey) return;
+      event.preventDefault();
+      onTypeAhead(event.key);
+    },
+  };
+}
+
 /** The look of quick add's lines under the field: the Saved line, and the line a new one replaced. */
 const LINE_BOX = 'flex items-center justify-between gap-3 rounded-lg bg-muted py-1 ps-4 pe-1';
 
@@ -106,11 +159,23 @@ const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !CORE_FLEXIBLE_CATEGOR
  * moves to the first chip it showed, since the button that had it is gone. It is only on screen while the line waits
  * for a category, so every new line starts with the six again.
  */
-function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: string) => void }) {
+function CategoryChips({
+  busy,
+  afterChoice,
+  onPick,
+  onTypeAhead,
+}: {
+  busy: boolean;
+  /** The chips took the place of the amount buttons just tapped. */
+  afterChoice: boolean;
+  onPick: (categoryId: string) => void;
+  onTypeAhead: (key: string) => void;
+}) {
   const { t } = useT();
   const questionId = useId();
   const chipsRef = useRef<HTMLDivElement>(null);
   const [showMore, setShowMore] = useState(false);
+  const guard = useQuestionGuard(showMore ? 'more' : afterChoice ? 'after-choice' : null, onTypeAhead);
   useEffect(() => {
     if (!showMore) return;
     chipsRef.current?.querySelector<HTMLElement>(`[data-category="${MORE_CATEGORIES[0]?.id}"]`)?.focus();
@@ -132,6 +197,7 @@ function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: s
       aria-label={t.entries.quickAdd.categoryGroup}
       aria-describedby={questionId}
       className="flex flex-col gap-2"
+      {...guard}
     >
       <p id={questionId} className="text-sm text-muted-foreground">
         {t.entries.quickAdd.whichCategory}
@@ -156,13 +222,16 @@ function AmountChoice({
   choice,
   busy,
   onPick,
+  onTypeAhead,
 }: {
   choice: Choice;
   busy: boolean;
   onPick: (amountMinor: Minor) => void;
+  onTypeAhead: (key: string) => void;
 }) {
   const { t, locale } = useT();
   const questionId = useId();
+  const guard = useQuestionGuard(null, onTypeAhead);
   return (
     <div
       ref={focusFirstControl}
@@ -170,6 +239,7 @@ function AmountChoice({
       aria-label={t.entries.quickAdd.amountGroup}
       aria-describedby={questionId}
       className="flex flex-col gap-2"
+      {...guard}
     >
       <p id={questionId} className="text-sm text-muted-foreground">
         {t.entries.quickAdd.whichAmount}
@@ -218,6 +288,8 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
   const [choice, setChoice] = useState<Choice | null>(null);
   // Set while the chips are shown: what the typed line was read as, waiting for a category.
   const [pending, setPending] = useState<QuickAddAmountReading | null>(null);
+  // The chips asking took the place of the amount buttons just tapped, so they wait before a tap counts (breakpoints).
+  const [askedAfterChoice, setAskedAfterChoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ id: string; message: string } | null>(null);
   // The line quick add was asking about when a new one replaced it, typed or spoken (18-11-2026, after review P3): said
@@ -384,6 +456,29 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
    * Reads one line, typed or spoken, and saves it or asks what it needs. `noteAccepted`: the `ai` note was just
    * accepted for this line (with blocked storage it would read as unseen again).
    */
+  /** The field's text changed to `next`, typed there or on a question's button (`typeAhead`). */
+  function changeText(next: string) {
+    // While the line is asked about, a letter typed after it starts the next line (review P3), and the
+    // asked line is named under the field as not saved.
+    const asking = pending !== null || choice !== null;
+    const left = asking ? droppedLine(text, next) : null;
+    if (left !== null) setDropped(left);
+    setText(asking ? lineAfterQuestion(text, next) : next);
+    // The amount buttons and the chips belong to the line that was typed; a changed line has to be added again.
+    // So does a read in flight and the note waiting for it.
+    setChoice(null);
+    setPending(null);
+    setError(null);
+    setAiNoteFor(null);
+    if (readAbort.current !== null) dropRead();
+  }
+
+  /** A key typed on a question's button: back to the field, as if typed at the end of the line (breakpoints). */
+  function typeAhead(key: string) {
+    fieldRef.current?.focus();
+    changeText(text + key);
+  }
+
   async function addLine(line: string, noteAccepted = false) {
     // Nothing to add: a tap on the empty field right after a save must not take the Saved line away.
     if (line.trim() === '') return;
@@ -394,6 +489,7 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
       setSaved(null);
       setChoice(null);
       setPending(null);
+      setAskedAfterChoice(false);
       setAiHint(null);
       dropRead();
       const mine = lineCount.current;
@@ -525,21 +621,7 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
             id={`${id}-text`}
             className="min-w-0 flex-1"
             value={text}
-            onChange={(event) => {
-              // While the line is asked about, a letter typed after it starts the next line (review P3), and the
-              // asked line is named under the field as not saved.
-              const asking = pending !== null || choice !== null;
-              const left = asking ? droppedLine(text, event.target.value) : null;
-              if (left !== null) setDropped(left);
-              setText(asking ? lineAfterQuestion(text, event.target.value) : event.target.value);
-              // The amount buttons and the chips belong to the line that was typed; a changed line has to be added again.
-              // So does a read in flight and the note waiting for it.
-              setChoice(null);
-              setPending(null);
-              setError(null);
-              setAiNoteFor(null);
-              if (readAbort.current !== null) dropRead();
-            }}
+            onChange={(event) => changeText(event.target.value)}
             aria-describedby={aiHint === null ? `${id}-hint` : `${id}-hint ${id}-ai-hint`}
             autoComplete="off"
             enterKeyHint="done"
@@ -611,14 +693,18 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
           onPick={(amountMinor) => {
             keepSpace();
             fieldRef.current?.focus();
+            setAskedAfterChoice(true);
             void runOnce(() => saveOrAsk(chosenAmount(choice, amountMinor)));
           }}
+          onTypeAhead={typeAhead}
         />
       )}
 
       {pending !== null && (
         <CategoryChips
           busy={busy}
+          afterChoice={askedAfterChoice}
+          onTypeAhead={typeAhead}
           onPick={(categoryId) => {
             keepSpace();
             fieldRef.current?.focus();

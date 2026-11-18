@@ -154,6 +154,29 @@
           "chip-keeps-month"
         ]
       }
+    },
+    {
+      "name": "a tap counts at once on chips that took the place of the buttons just tapped",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "      if (armed) return;\n",
+      "replace": "      if (armed || event.detail > 0) return;\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "chip-armed",
+          "more-armed"
+        ]
+      }
+    },
+    {
+      "name": "keys typed on a question's button go nowhere",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "      if (event.key.length !== 1 || event.key === ' ' || event.ctrlKey || event.metaKey || event.altKey) return;\n",
+      "replace": "      if (event.key.length !== 99 || event.key === ' ' || event.ctrlKey || event.metaKey || event.altKey) return;\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "chip-type-ahead"
+        ]
+      }
     }
   ]
 }
