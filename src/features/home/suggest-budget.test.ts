@@ -187,9 +187,9 @@ describe('suggestBudget', () => {
       suggestBudget(planWithAvailable(availableMinor), CITIES.regensburg, entries, '2026-11').rows.map(
         (r) => r.amountMinor / 100,
       );
-    // In order: food, eating out, going out, transport, shopping, health, personal care, study, household, travel,
-    // gifts, other.
-    expect(at(40000)).toEqual([185, 35, 35, 10, 35, 0, 0, 0, 0, 0, 0, 100]);
+    // In order: food, eating out, going out, transport, shopping, health, personal care, personal, study, household,
+    // travel, gifts, other.
+    expect(at(40000)).toEqual([185, 35, 35, 10, 35, 0, 0, 0, 0, 0, 0, 0, 100]);
     expect(at(44000)).toEqual([200, 40, 40, 15, 40, 0, 0, 0, 0, 0, 0, 105]);
     // Last month's €12 on health is €10, and that stays: the ranged rows split the other €430.
     expect(at(44000, [expense('health', '2026-10-20', 1200)])).toEqual([195, 40, 40, 15, 40, 10, 0, 0, 0, 0, 0, 100]);

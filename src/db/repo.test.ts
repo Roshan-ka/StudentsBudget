@@ -74,17 +74,17 @@ beforeEach(async () => {
 });
 
 describe('ensureSeeded', () => {
-  it('seeds the 26 categories once', async () => {
+  it('seeds the 27 categories once', async () => {
     await ensureSeeded();
     await ensureSeeded();
 
-    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.count()).toBe(27);
   });
 
   it('seeds once even when called concurrently', async () => {
     await Promise.all([ensureSeeded(), ensureSeeded()]);
 
-    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.count()).toBe(27);
   });
 
   it('seeds the categories in the specified order', async () => {
@@ -109,7 +109,7 @@ describe('ensureSeeded', () => {
       'income-scholarship',
       'income-other',
     ]);
-    expect(categories.map((c) => c.order)).toEqual(Array.from({ length: 26 }, (_, i) => i));
+    expect(categories.map((c) => c.order)).toEqual(Array.from({ length: 27 }, (_, i) => i));
     expect(categories.filter((c) => c.kind === 'flexible').map((c) => c.id)).toEqual(FLEXIBLE_IDS);
     expect(categories.filter((c) => c.kind === 'fixed')).toHaveLength(7);
     expect(categories.filter((c) => c.kind === 'oneoff')).toHaveLength(1);
@@ -121,7 +121,7 @@ describe('ensureSeeded', () => {
 
     await ensureSeeded();
 
-    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.count()).toBe(27);
     // Every built-in row now equals the constant, so `other` and the rows after it moved up.
     expect((await db.categories.toArray()).sort((a, b) => a.order - b.order)).toEqual(CATEGORIES);
   });
@@ -132,7 +132,7 @@ describe('ensureSeeded', () => {
 
     await ensureSeeded();
 
-    expect(await db.categories.count()).toBe(27);
+    expect(await db.categories.count()).toBe(28);
     expect(await db.categories.get('my-own')).toEqual(mine);
   });
 
@@ -141,7 +141,7 @@ describe('ensureSeeded', () => {
 
     await ensureSeeded();
 
-    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.count()).toBe(27);
     expect(await db.categories.get('food')).toEqual(CATEGORIES[0]);
   });
 });

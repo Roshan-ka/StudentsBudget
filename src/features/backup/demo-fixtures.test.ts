@@ -69,7 +69,7 @@ describe('uploadable manual demo files', () => {
     const expected = c.expected!;
     expect(data.accounts).toHaveLength(expected.accounts);
     expect(data.entries).toHaveLength(expected.entries);
-    expect(data.categories).toHaveLength(26);
+    expect(data.categories).toHaveLength(27);
     for (const account of data.accounts) expect(accountBalance(account, data.entries)).toBe(expected.balances[account.id]);
     if (data.plan) {
       const left = monthStatus(data.plan, data.entries, manifest.month).reduce((n, e) => n + e.plannedMinor - e.spentMinor, 0);

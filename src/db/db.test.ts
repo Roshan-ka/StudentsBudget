@@ -31,7 +31,7 @@ describe('schema upgrade', () => {
 
     await db.open();
 
-    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.count()).toBe(27);
     expect(await db.fxRates.count()).toBe(0);
     expect(db.verno).toBe(7);
     // The version-1 table is gone from the real database, not only from the schema.
@@ -92,7 +92,7 @@ describe('schema upgrade', () => {
 
     expect(db.verno).toBe(7);
     expect(await db.accounts.toArray()).toEqual([account]);
-    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.count()).toBe(27);
     expect(await db.entries.toArray()).toEqual([entry]);
     expect(await db.plan.toArray()).toEqual([plan]);
     // Version 7 drops Guess vs. reality's table (review F4): its rows go with it.
@@ -153,7 +153,7 @@ describe('schema upgrade', () => {
     await db.open();
 
     expect(db.verno).toBe(7);
-    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.count()).toBe(27);
     expect(await db.discountVotes.toArray()).toEqual([vote]);
     expect(await db.table('outbox').toArray()).toEqual([queued]);
     expect(await db.table('syncState').toArray()).toEqual([link]);
@@ -208,6 +208,6 @@ describe('schema upgrade', () => {
     expect(db.backendDB().objectStoreNames.contains('guesses')).toBe(false);
     // The guess's change had nowhere left to go; every other change still waits.
     expect(await db.table('outbox').toArray()).toEqual([voteQueued]);
-    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.count()).toBe(27);
   });
 });

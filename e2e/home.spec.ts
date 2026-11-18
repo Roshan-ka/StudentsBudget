@@ -528,9 +528,9 @@ test('opened in the first week of the month, the suggested budget changes only t
   // Where each amount comes from. Six categories have a range, and each shows its source.
   await expect(panel.getByText('Students here: €180–335', { exact: true })).toBeVisible();
   await expect(panel.getByText('Students here: €30–135 (estimate)', { exact: true })).toBeVisible();
-  // Health and study materials both had spending in October; Gifts did not.
+  // Health and study materials both had spending in October; Gifts, Personal and three others did not.
   await expect(panel.getByText('Your spending in October', { exact: true })).toHaveCount(2);
-  await expect(panel.getByText('Nothing to go on yet', { exact: true })).toHaveCount(4);
+  await expect(panel.getByText('Nothing to go on yet', { exact: true })).toHaveCount(5);
   // Each source is Tips' one small line: the host as its link, then the checked date, with no fold-out to open.
   await expect(panel.getByText(/^Source: (Estimate · )?\S+ · checked \d{2}\.\d{2}\.\d{4}$/)).toHaveCount(6);
   await expect(panel.getByRole('link', { name: 'studierendenwerke.de, Food & groceries', exact: true })).toBeVisible();
