@@ -144,7 +144,7 @@ describe('exportAll', () => {
     const data = await exportAll();
 
     expect(data.accounts.map((a) => a.id)).toEqual(['a1']);
-    expect(data.categories).toHaveLength(26);
+    expect(data.categories).toHaveLength(27);
     expect(data.entries.map((e) => e.id)).toEqual(['e1']);
     expect(data.plan).toEqual(PLAN);
     expect(data.fxRates.map((r) => r.source).sort()).toEqual(['ecb', 'manual']);
@@ -178,7 +178,7 @@ describe('replaceAll', () => {
     expectSameData(restored, parsed.data);
     expect(restored.entries).toHaveLength(47);
     // The demo file is from before the new categories: it lists 18, and the restore adds the rest.
-    expect(restored.categories).toHaveLength(26);
+    expect(restored.categories).toHaveLength(27);
     // The demo file is from version 1: whatever the device held in the version-3 tables is gone, nothing replaces it.
     expect(restored.weekResults).toEqual([]);
     expect(restored.discountVotes).toEqual([]);
@@ -193,7 +193,7 @@ describe('replaceAll', () => {
     }
   });
 
-  it('puts all 26 built-in categories on the device when the file lists only some of them', async () => {
+  it('puts all 27 built-in categories on the device when the file lists only some of them', async () => {
     await fillWithOldData();
     const text = serializeBackup(backup({ categories: CATEGORIES.slice(0, 5) }), new Date('2026-10-16T10:00:00.000Z'));
     const parsed = parseBackup(text);
@@ -202,7 +202,7 @@ describe('replaceAll', () => {
     await replaceAll(parsed.data);
 
     const stored = await db.categories.toArray();
-    expect(stored).toHaveLength(26);
+    expect(stored).toHaveLength(27);
     expect(stored).toEqual(expect.arrayContaining<unknown>(CATEGORIES));
     expect(await db.categories.get('old-category')).toBeUndefined();
   });
@@ -214,7 +214,7 @@ describe('replaceAll', () => {
 
     const rows = await everyRow();
     expect(rows.accounts.map((a) => a.id).sort()).toEqual(['b1', 'b2']);
-    expect(rows.categories).toHaveLength(26);
+    expect(rows.categories).toHaveLength(27);
     expect(rows.entries.map((e) => e.id)).toEqual(['new']);
     expect(await db.entries.get('old')).toBeUndefined();
     expect(rows.plan).toEqual([PLAN]);
@@ -331,7 +331,7 @@ describe('replaceAll', () => {
 
     // The one category the device had, and the 25 built-in ones the file did not list.
     expectSameData(await exportAll(), parsed.data);
-    expect((await db.categories.toArray()).length).toBe(27);
+    expect((await db.categories.toArray()).length).toBe(28);
     expect((await db.fxRates.toArray()).map((r) => r.source).sort()).toEqual(['ecb', 'manual']);
     // The weekly results, votes and profile came through the file too.
     expect((await db.weekResults.toArray()).map((w) => w.weekStart).sort()).toEqual(['2026-09-07', '2026-09-14']);
@@ -454,7 +454,7 @@ describe('restoring and the saved weeks', () => {
 });
 
 describe('deleteEverything', () => {
-  it('leaves nothing but the 26 reseeded categories, in a database that is open', async () => {
+  it('leaves nothing but the 27 reseeded categories, in a database that is open', async () => {
     await fillWithOldData();
 
     await deleteEverything();
@@ -469,7 +469,7 @@ describe('deleteEverything', () => {
     expect(rows.discountVotes).toEqual([]);
     expect(rows.profile).toEqual([]);
     expect(rows.checklistTicks).toEqual([]);
-    expect(rows.categories).toHaveLength(26);
+    expect(rows.categories).toHaveLength(27);
     expect(await db.categories.get('old-category')).toBeUndefined();
     expect(await db.categories.get('food')).toBeDefined();
   });
@@ -478,6 +478,6 @@ describe('deleteEverything', () => {
     await deleteEverything();
 
     expect(db.isOpen()).toBe(true);
-    expect(await db.categories.count()).toBe(26);
+    expect(await db.categories.count()).toBe(27);
   });
 });

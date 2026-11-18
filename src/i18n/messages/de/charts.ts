@@ -31,7 +31,7 @@ export const charts: Messages['charts'] = {
   ofPlanned: (amount, planned) => `${amount} von ${planned}`,
   bucket: 'Alles andere',
   // Höchstens 16 Zeichen (colors.test.ts); Tabelle und Tooltip zeigen den vollen Namen.
-  shortNames: { utilities: 'Nebenkosten', 'transport-pass': 'ÖPNV-Ticket', health: 'Gesundheit' },
+  shortNames: { utilities: 'Nebenkosten', 'transport-pass': 'ÖPNV-Ticket', health: 'Gesundheit', personal: 'Persönliches' },
   styles: { donut: 'Ring', bars: 'Balken', table: 'Tabelle', columns: 'Säulen', line: 'Linie' },
   spending: {
     title: 'Ausgaben nach Kategorie',

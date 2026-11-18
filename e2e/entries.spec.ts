@@ -933,7 +933,7 @@ test('editing an entry shows its date as DD.MM.YYYY, with the chip that matches'
   expect(after[0]).toMatchObject({ id: 'e', date: '2026-10-16' });
 });
 
-test('quick add shows the original six categories first, and More shows the other six', async ({ page }) => {
+test('quick add shows the original six categories first, tinted, and More gives way to the other six', async ({ page }) => {
   await setupAndOpenEntries(page);
   // 375 px, the narrowest phone the app is made for.
   await page.setViewportSize({ width: 375, height: 812 });
@@ -943,15 +943,21 @@ test('quick add shows the original six categories first, and More shows the othe
   const moreChip = group.getByRole('button', { name: 'More', exact: true });
   const names = () => group.getByRole('button').allTextContents();
   const original = ['Food & groceries', 'Eating out', 'Going out', 'Transport', 'Shopping', 'Other'];
-  const more = ['Health & pharmacy', 'Personal care', 'Study materials', 'Household', 'Travel', 'Gifts'];
+  const more = ['Health & pharmacy', 'Personal care', 'Personal', 'Study materials', 'Household', 'Travel', 'Gifts'];
 
   await expect(moreChip).toHaveAttribute('aria-expanded', 'false');
   expect(await names()).toEqual([...original, 'More']);
   expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
+  // Each chip sits on its category's tint, with its icon, as on Tips, Discounts and Add entry (18-11-2026).
+  const eatingOut = group.getByRole('button', { name: 'Eating out', exact: true });
+  await expect(eatingOut).toHaveAttribute('style', /background-color/); // proof: chips-tinted
+  await expect(eatingOut.locator('svg')).toHaveCount(1);
 
+  // More gives way to the categories it held, and the focus moves to the first of them, since More is gone.
   await moreChip.click();
-  await expect(moreChip).toHaveAttribute('aria-expanded', 'true');
-  expect(await names()).toEqual([...original, 'More', ...more]);
+  await expect(moreChip).toHaveCount(0); // proof: more-goes
+  await expect(group.getByRole('button', { name: 'Health & pharmacy', exact: true })).toBeFocused(); // proof: more-focus
+  expect(await names()).toEqual([...original, ...more]);
   expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
 
   await group.getByRole('button', { name: 'Health & pharmacy', exact: true }).click();

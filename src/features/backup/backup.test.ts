@@ -688,7 +688,7 @@ describe('parseBackup checks what the rows say about each other', () => {
         expenseRow(data).categoryId = 'pets';
       });
 
-      expect(result.ok && result.data.categories).toHaveLength(27);
+      expect(result.ok && result.data.categories).toHaveLength(28);
     });
 
     it.each([
@@ -969,12 +969,12 @@ describe('the guesses of a file of version 5 or older (review F4, 17-11-2026)', 
 });
 
 describe('parseBackup fills in the built-in categories', () => {
-  it('adds every built-in category a file does not have, so all 26 rows are there at once', () => {
+  it('adds every built-in category a file does not have, so all 27 rows are there at once', () => {
     const result = parseChanged((data) => (data.categories = data.categories.filter((c) => c.kind !== 'income')));
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.data.categories).toHaveLength(26);
+    expect(result.data.categories).toHaveLength(27);
     expect(result.data.categories.map((c) => c.id).sort()).toEqual(CATEGORIES.map((c) => c.id).sort());
     expect(result.data.categories.find((c) => c.id === 'income-job')).toEqual(CATEGORIES.find((c) => c.id === 'income-job'));
   });
@@ -999,10 +999,10 @@ describe('parseBackup fills in the built-in categories', () => {
     expect(result.ok && result.data.categories.find((c) => c.id === 'food')?.name).toBe('Groceries');
   });
 
-  it('gives the demo backup, which lists 18 categories, all 26', () => {
+  it('gives the demo backup, which lists 18 categories, all 27', () => {
     const result = parseBackup(DEMO);
 
-    expect(result.ok && result.data.categories).toHaveLength(26);
+    expect(result.ok && result.data.categories).toHaveLength(27);
   });
 });
 

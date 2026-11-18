@@ -30,7 +30,7 @@ describe('CORE_FLEXIBLE_CATEGORIES', () => {
       'shopping',
       'other',
     ]);
-    expect(FLEXIBLE_CATEGORIES).toHaveLength(12);
+    expect(FLEXIBLE_CATEGORIES).toHaveLength(13);
     for (const c of CORE_FLEXIBLE_CATEGORIES) expect(FLEXIBLE_CATEGORIES).toContainEqual(c);
   });
 });

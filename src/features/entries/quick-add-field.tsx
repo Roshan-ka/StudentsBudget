@@ -12,13 +12,13 @@ import type { Account } from '@/db/types';
 import { aiInBuild, aiOnHere } from '@/features/ai/switch';
 import { noteSeen } from '@/features/privacy/notes';
 import { PrivacyNote } from '@/features/privacy/privacy-note';
+import { CategoryPickChip } from '@/features/tips/category-chip';
 import { categoryNameIn } from '@/i18n/category-name';
 import type { Language } from '@/i18n/languages';
 import { useT } from '@/i18n/use-t';
 import { todayIso } from '@/lib/dates';
 import { formatMoney, type CurrencyCode, type Minor } from '@/lib/money';
 import { getSupabase } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
 import { aiQuickAddProvider, type AiQuickAddHint } from './ai-quick-add';
 import { buildEntry } from './build-entry';
 import { droppedLine, lineAfterQuestion } from './quick-add';
@@ -101,23 +101,28 @@ const LINE_BOX = 'flex items-center justify-between gap-3 rounded-lg bg-muted py
 const MORE_CATEGORIES = FLEXIBLE_CATEGORIES.filter((c) => !CORE_FLEXIBLE_CATEGORIES.some((g) => g.id === c.id));
 
 /**
- * One chip per flexible category: the original six, then a More chip that shows the rest. It is only on screen
- * while the line waits for a category, so every new line starts with the six again.
+ * One chip per flexible category, each on its tint with its icon (`CategoryPickChip`): the original six, then a More
+ * chip that gives way to the rest (Roshan, 18-11-2026: More goes once tapped, it doesn't stay as a toggle). The focus
+ * moves to the first chip it showed, since the button that had it is gone. It is only on screen while the line waits
+ * for a category, so every new line starts with the six again.
  */
 function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: string) => void }) {
   const { t } = useT();
   const questionId = useId();
+  const chipsRef = useRef<HTMLDivElement>(null);
   const [showMore, setShowMore] = useState(false);
+  useEffect(() => {
+    if (!showMore) return;
+    chipsRef.current?.querySelector<HTMLElement>(`[data-category="${MORE_CATEGORIES[0]?.id}"]`)?.focus();
+  }, [showMore]);
   const chip = (category: { id: string }) => (
-    <Button
+    <CategoryPickChip
       key={category.id}
-      type="button"
-      variant="chip"
+      categoryId={category.id}
+      label={categoryNameIn(t, category.id)}
       disabled={busy}
-      onClick={() => onPick(category.id)}
-    >
-      {categoryNameIn(t, category.id)}
-    </Button>
+      onPick={() => onPick(category.id)}
+    />
   );
 
   return (
@@ -131,13 +136,16 @@ function CategoryChips({ busy, onPick }: { busy: boolean; onPick: (categoryId: s
       <p id={questionId} className="text-sm text-muted-foreground">
         {t.entries.quickAdd.whichCategory}
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div ref={chipsRef} className="flex flex-wrap gap-2">
         {CORE_FLEXIBLE_CATEGORIES.map(chip)}
-        <Button type="button" variant="chip" aria-expanded={showMore} onClick={() => setShowMore((open) => !open)}>
-          {t.entries.quickAdd.more}
-          <ChevronDownIcon aria-hidden="true" className={cn('transition-transform', showMore && 'rotate-180')} />
-        </Button>
-        {showMore && MORE_CATEGORIES.map(chip)}
+        {showMore ? (
+          MORE_CATEGORIES.map(chip)
+        ) : (
+          <Button type="button" variant="chip" aria-expanded={false} onClick={() => setShowMore(true)}>
+            {t.entries.quickAdd.more}
+            <ChevronDownIcon aria-hidden="true" />
+          </Button>
+        )}
       </div>
     </div>
   );

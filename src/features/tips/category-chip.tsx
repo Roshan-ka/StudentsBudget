@@ -39,6 +39,38 @@ export function CategoryChip({
 }
 
 /**
+ * The same chip as a one-tap pick: quick add's question when it can't tell a line's category (Roshan, 18-11-2026: the
+ * tinted chips of everywhere else, not plain outlines). A plain button: the tap saves the line, so there is no pressed
+ * state. `data-category` lets the question move the focus to a chip it has just shown.
+ */
+export function CategoryPickChip({
+  categoryId,
+  label,
+  disabled,
+  onPick,
+}: {
+  categoryId: string;
+  label: string;
+  disabled: boolean;
+  onPick: () => void;
+}) {
+  const Icon = CATEGORY_ICONS[categoryId] ?? OTHER_ICON;
+  return (
+    <Button
+      type="button"
+      variant="chip"
+      disabled={disabled}
+      onClick={onPick}
+      data-category={categoryId}
+      style={{ backgroundColor: categoryTint(categoryId) }}
+    >
+      <Icon aria-hidden="true" />
+      {label}
+    </Button>
+  );
+}
+
+/**
  * The same chip as one choice of a form's category (group 4 redesign, 17-11-2026, Add entry): a native radio laid over
  * the whole chip, transparent, so the chip is a label the browser groups by `name` (one tab stop, the arrow keys move
  * the choice, as the list it replaces did) and specs find it as a `radio` by its name. Chosen, it fills with the text

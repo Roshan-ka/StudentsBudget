@@ -4,9 +4,9 @@ import { CATEGORIES, CORE_FLEXIBLE_IDS } from './categories';
 const idsOf = (kind: string) => CATEGORIES.filter((c) => c.kind === kind).map((c) => c.id);
 
 describe('CATEGORIES', () => {
-  it('has 26 built-in categories with unique ids', () => {
-    expect(CATEGORIES).toHaveLength(26);
-    expect(new Set(CATEGORIES.map((c) => c.id)).size).toBe(26);
+  it('has 27 built-in categories with unique ids', () => {
+    expect(CATEGORIES).toHaveLength(27);
+    expect(new Set(CATEGORIES.map((c) => c.id)).size).toBe(27);
   });
 
   it('numbers each category by its position in the list', () => {
@@ -22,6 +22,7 @@ describe('CATEGORIES', () => {
       'shopping',
       'health',
       'personal-care',
+      'personal',
       'study',
       'household',
       'travel',
@@ -38,6 +39,7 @@ describe('CATEGORIES', () => {
     const name = (id: string) => CATEGORIES.find((c) => c.id === id)?.name;
     expect(name('health')).toBe('Health & pharmacy');
     expect(name('personal-care')).toBe('Personal care');
+    expect(name('personal')).toBe('Personal');
     expect(name('study')).toBe('Study materials');
     expect(name('household')).toBe('Household');
     expect(name('travel')).toBe('Travel');

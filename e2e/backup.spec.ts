@@ -351,7 +351,7 @@ test.describe('on a desktop browser', () => {
     expect(wiped.discountVotes).toEqual([]);
     expect(wiped.profile).toEqual([]);
     expect(wiped.planMonths).toEqual([]);
-    expect(wiped.categories).toHaveLength(26);
+    expect(wiped.categories).toHaveLength(27);
 
     // Restore from the file, without setting up first.
     await backupFileInput(page).setInputFiles(filePath);
