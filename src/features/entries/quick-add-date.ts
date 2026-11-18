@@ -1,6 +1,7 @@
 // A date written in a quick-add line, read on the phone (docs/superpowers/plans/2026-11-18-quick-add-dates.md,
-// Roshan's defaults, 18-11-2026): "10 haircut on 27 november 2025", "döner 6 gestern", "am 27.11.". Pure, so every
-// form is tested in each language; the local provider takes the date out before it reads the amount.
+// Roshan's defaults, 18-11-2026): "10 haircut on 27 november 2025", "döner 6 gestern", "am 27.11.", "last friday".
+// Pure, so every form is tested in each language; the local provider takes the date out before it reads the amount.
+import { getISODay, parseISO } from 'date-fns';
 import { readTypedDate } from '@/components/date-input';
 import { isIsoDate } from '@/features/recurring/schedule';
 import { LANGUAGES, type Language } from '@/i18n/languages';
@@ -41,6 +42,18 @@ const RELATIVE: Record<Language, readonly { words: readonly string[]; daysBack: 
   ],
 };
 
+/**
+ * The words that make a weekday the one before today (chunk 3): "last friday", "letzten Freitag" in front,
+ * "vendredi dernier", "el viernes pasado" after. Without one, a weekday is the most recent such day, today included.
+ */
+const LAST_BEFORE: Record<Language, readonly string[]> = {
+  en: ['last'],
+  de: ['letzten', 'letzter', 'vergangenen', 'vergangener'],
+  fr: [],
+  es: [],
+};
+const LAST_AFTER: Record<Language, readonly string[]> = { en: [], de: [], fr: ['dernier'], es: ['pasado'] };
+
 const DAY = /^(\d{1,2})(?:st|nd|rd|th|er|e)?$/;
 const YEAR = /^20\d{2}$/;
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -72,6 +85,36 @@ function monthNames(lang: Language): string[] {
   const names = Array.from({ length: 12 }, (_, month) => fold(format.format(Date.UTC(2026, month, 1))));
   monthNameCache.set(lang, names);
   return names;
+}
+
+const weekdayNameCache = new Map<Language, string[]>();
+
+/** The seven weekday names in `lang`, Monday first, folded ("miercoles", "samedi"), from the platform's calendar. */
+function weekdayNames(lang: Language): string[] {
+  const cached = weekdayNameCache.get(lang);
+  if (cached !== undefined) return cached;
+  const format = new Intl.DateTimeFormat(LANGUAGES[lang].locale, { weekday: 'long', timeZone: 'UTC' });
+  // 16 November 2026 is a Monday.
+  const names = Array.from({ length: 7 }, (_, day) => fold(format.format(Date.UTC(2026, 10, 16 + day))));
+  weekdayNameCache.set(lang, names);
+  return names;
+}
+
+/**
+ * The weekday (1 Monday to 7 Sunday) a token names in full: "sun", "sat" and "wed" are words too, so no short forms.
+ */
+function weekdayOfToken(token: string, langs: readonly Language[]): number | null {
+  for (const lang of langs) {
+    const index = weekdayNames(lang).indexOf(token);
+    if (index !== -1) return index + 1;
+  }
+  return null;
+}
+
+/** The most recent `weekday` up to `today`, or with `before` the one before today (a week back on that weekday). */
+function lastWeekday(weekday: number, today: IsoDate, before: boolean): IsoDate {
+  const back = (getISODay(parseISO(today)) - weekday + 7) % 7;
+  return addDays(today, -(back === 0 && before ? 7 : back));
 }
 
 /** The month (1–12) a token names: three letters or more that start one month's name, and only one month's. */
@@ -128,6 +171,19 @@ function dateAt(folded: string[], i: number, today: IsoDate, langs: readonly Lan
         return { start: i, end: i + words.length - 1, date: addDays(today, -daysBack) };
       }
     }
+  }
+
+  // Weekdays: "friday", "on friday", "last friday", "letzten Freitag", "vendredi dernier", "el viernes pasado".
+  const lastBefore = new Set(langs.flatMap((lang) => LAST_BEFORE[lang]));
+  const lastAfter = new Set(langs.flatMap((lang) => LAST_AFTER[lang]));
+  if (lastBefore.has(at(i))) {
+    const weekday = weekdayOfToken(at(i + 1), langs);
+    if (weekday !== null) return { start: i, end: i + 1, date: lastWeekday(weekday, today, true) };
+  }
+  const weekday = weekdayOfToken(at(i), langs);
+  if (weekday !== null) {
+    const before = lastAfter.has(at(i + 1));
+    return { start: i, end: before ? i + 1 : i, date: lastWeekday(weekday, today, before) };
   }
 
   // Numbers: "2025-11-27", "27.11.2025", and "on 27.11" (a cue word first, or it is an amount).

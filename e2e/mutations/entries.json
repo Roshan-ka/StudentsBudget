@@ -121,6 +121,17 @@
           "line-date"
         ]
       }
+    },
+    {
+      "name": "\"last\" before a weekday is not read, so last friday is today",
+      "file": "src/features/entries/quick-add-date.ts",
+      "find": "  en: ['last'],\n",
+      "replace": "  en: [],\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "line-weekday"
+        ]
+      }
     }
   ]
 }

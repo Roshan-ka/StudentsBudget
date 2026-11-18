@@ -138,8 +138,15 @@ test('a date in the line saves the entry on that day, and a day still to come is
 
   await quickAdd(page, 'döner 4 on 3 december 2026');
   await expect(inlineAlert(page)).toHaveText('That day is still to come. Quick add saves what you’ve already spent.');
+
+  // A weekday (chunk 3): the setup day is a Friday, so "last friday" is the one a week before.
+  await quickAdd(page, 'döner 3 last friday');
+  await expect(page.getByRole('status')).toHaveText(`Saved €3.00 · döner · Eating out · ${formatDate('2026-10-09')}`); // proof: line-weekday
   const entries = await readStore<Entry>(page, 'entries');
-  expect(entries.map((e) => [e.note, e.date, e.amountMinor])).toEqual([['döner', '2026-10-15', 600]]);
+  expect(entries.map((e) => [e.note, e.date, e.amountMinor]).sort()).toEqual([
+    ['döner', '2026-10-09', 300],
+    ['döner', '2026-10-15', 600],
+  ]);
 });
 
 test('an asked line the next one replaces says it wasn’t saved, and one tap brings it back', async ({ page }) => {

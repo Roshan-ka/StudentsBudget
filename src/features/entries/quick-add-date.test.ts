@@ -81,6 +81,34 @@ describe('readLineDate (quick add dates, 18-11-2026)', () => {
     expect(read('haircut 10 27 nov 2025')).toEqual({ date: '2025-11-27', rest: 'haircut 10' });
   });
 
+  // 18.11.2026 is a Wednesday.
+  it.each<[string, Language, string, string]>([
+    ['döner 6 friday', 'en', '2026-11-13', 'döner 6'],
+    ['döner 6 on Monday', 'en', '2026-11-16', 'döner 6'],
+    ['döner 6 wednesday', 'en', '2026-11-18', 'döner 6'],
+    ['döner 6 last wednesday', 'en', '2026-11-11', 'döner 6'],
+    ['döner 6 last friday', 'en', '2026-11-13', 'döner 6'],
+    ['Döner 6 am Freitag', 'de', '2026-11-13', 'Döner 6'],
+    ['Döner 6 Sonntag', 'de', '2026-11-15', 'Döner 6'],
+    ['Döner 6 letzten Mittwoch', 'de', '2026-11-11', 'Döner 6'],
+    ['döner 6 vendredi', 'fr', '2026-11-13', 'döner 6'],
+    ['döner 6 mercredi dernier', 'fr', '2026-11-11', 'döner 6'],
+    ['döner 6 el viernes', 'es', '2026-11-13', 'döner 6'],
+    ['döner 6 sábado', 'es', '2026-11-14', 'döner 6'],
+    ['döner 6 el miércoles pasado', 'es', '2026-11-11', 'döner 6'],
+    ['Döner 6 last friday', 'de', '2026-11-13', 'Döner 6'],
+  ])('reads the weekday in "%s" (%s) as %s, leaving "%s"', (text, lang, date, rest) => {
+    expect(read(text, lang)).toEqual({ date, rest });
+  });
+
+  it.each<[string, Language]>([
+    ['sun cream 5', 'en'],
+    ['coffee 3 sat', 'en'],
+    ['döner 6 freitag', 'en'],
+  ])('reads no weekday from a short form or another language in "%s" (%s)', (text, lang) => {
+    expect(read(text, lang)).toBeNull();
+  });
+
   it('reads a whole date even where the line meant a month: quick add then keeps the amount', () => {
     expect(read('haircut 10 november 2025')).toEqual({ date: '2025-11-10', rest: 'haircut' });
   });
