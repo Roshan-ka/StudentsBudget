@@ -10,7 +10,8 @@ export const entries: Messages['entries'] = {
   list: {
     label: 'Registros',
     unknownAccount: 'Cuenta desconocida',
-    clear: 'Quitar',
+    thisMonth: 'Este mes',
+    showAllCategories: (category) => `${category}: mostrar todas las categorías`,
     monthNav: 'Mes',
     previous: 'Anterior',
     next: 'Siguiente',

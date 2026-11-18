@@ -143,6 +143,17 @@
           "number-words"
         ]
       }
+    },
+    {
+      "name": "the category chip drops the month it is in, as Clear did",
+      "file": "src/features/entries/entries-list.tsx",
+      "find": "              href={filterHref(onThisMonth ? null : loaded.month, null)}\n",
+      "replace": "              href=\"/entries\"\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "chip-keeps-month"
+        ]
+      }
     }
   ]
 }

@@ -10,7 +10,10 @@ export const entries = {
   list: {
     label: 'Entries',
     unknownAccount: 'Unknown account',
-    clear: 'Clear',
+    /** Back to the current month, keeping a category (18-11-2026: it was "Clear", which read as deleting). */
+    thisMonth: 'This month',
+    /** The name of the chip that takes a category off: its visible word, the category, first. */
+    showAllCategories: (category: string) => `${category}: show all categories`,
     monthNav: 'Month',
     previous: 'Previous',
     next: 'Next',

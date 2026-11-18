@@ -19,11 +19,14 @@ function monthNav(page: Page) {
   return page.getByRole('navigation', { name: 'Month', exact: true });
 }
 
-/** The line under the month with the kept category and Clear, shown once the list isn't this month in full. */
-function filterLine(page: Page) {
-  return entriesList(page)
-    .locator('p')
-    .filter({ has: page.getByRole('link', { name: 'Clear', exact: true }) });
+/** The chip of the category kept from Charts, which takes it off in the same month (18-11-2026). */
+function categoryChip(page: Page, category: string) {
+  return page.getByRole('link', { name: `${category}: show all categories`, exact: true });
+}
+
+/** The way back to the current month from another one, keeping the category. */
+function thisMonthLink(page: Page) {
+  return page.getByRole('link', { name: 'This month', exact: true });
 }
 
 /**
@@ -668,26 +671,40 @@ test('the list groups by day, newest first, and filters by category and month', 
   await expect(list.getByRole('heading', { level: 3 })).toHaveText(['Friday, 16 October', 'Wednesday, 14 October']);
   await expect(list.getByText('Aldi')).toHaveCount(0);
 
+  // The category kept from Charts is a chip that takes it off; in the current month there is no way back to show.
   await page.goto('/entries?category=food&month=2026-10');
   await expect(monthNav(page).getByText('Oct 2026', { exact: true })).toBeVisible();
-  await expect(filterLine(page).getByText('Food & groceries', { exact: true })).toBeVisible();
+  await expect(categoryChip(page, 'Food & groceries')).toBeVisible();
+  await expect(thisMonthLink(page)).toHaveCount(0);
   await expect(list.getByText('Rewe')).toBeVisible();
   await expect(list.getByText('döner')).toHaveCount(0);
 
-  await page.getByRole('link', { name: 'Clear' }).click();
+  await categoryChip(page, 'Food & groceries').click();
   await expect(page).toHaveURL('/entries');
   await expect(list.getByText('döner')).toBeVisible();
 
   await page.goto('/entries?month=2026-08');
   await expect(monthNav(page).getByText('Aug 2026', { exact: true })).toBeVisible();
-  await expect(filterLine(page)).toHaveText('Clear');
+  await expect(thisMonthLink(page)).toBeVisible();
   await expect(list.getByText('Aldi')).toBeVisible();
   await expect(list.getByText('Rewe')).toHaveCount(0);
 
   await page.goto('/entries?month=2026-11');
   await expect(monthNav(page).getByText('Nov 2026', { exact: true })).toBeVisible();
-  await expect(filterLine(page)).toHaveText('Clear');
+  await expect(thisMonthLink(page)).toBeVisible();
   await expect(list.getByText('Nothing logged here yet.')).toBeVisible();
+
+  // 18-11-2026: one "Clear" for both read as deleting the list. Now the chip keeps the month it is in, and This month
+  // keeps the category.
+  await page.goto('/entries?category=food&month=2026-08');
+  await categoryChip(page, 'Food & groceries').click();
+  await expect(page).toHaveURL('/entries?month=2026-08'); // proof: chip-keeps-month
+  await expect(list.getByText('Aldi')).toBeVisible();
+  await page.goto('/entries?category=food&month=2026-08');
+  await thisMonthLink(page).click();
+  await expect(page).toHaveURL('/entries?category=food');
+  await expect(list.getByText('Rewe')).toBeVisible();
+  await expect(list.getByText('döner')).toHaveCount(0);
 });
 
 test('the entries pages fit a phone without sideways scrolling', async ({ page }) => {
@@ -738,12 +755,12 @@ test('the month links keep the category and roll over the year', async ({ page }
 
   await page.goto('/entries?category=food&month=2026-12');
   await expect(monthNav(page).getByText('Dec 2026', { exact: true })).toBeVisible();
-  await expect(filterLine(page).getByText('Food & groceries', { exact: true })).toBeVisible();
+  await expect(categoryChip(page, 'Food & groceries')).toBeVisible();
   await page.getByRole('link', { name: 'Next', exact: true }).click();
   await expect(page).toHaveURL(/month=2027-01/);
   await expect(page).toHaveURL(/category=food/);
   await expect(monthNav(page).getByText('Jan 2027', { exact: true })).toBeVisible();
-  await expect(filterLine(page).getByText('Food & groceries', { exact: true })).toBeVisible();
+  await expect(categoryChip(page, 'Food & groceries')).toBeVisible();
 
   // Wait for each page before the next tap, or both taps hit the link of the page that was showing.
   await page.getByRole('link', { name: 'Previous', exact: true }).click();
@@ -752,17 +769,17 @@ test('the month links keep the category and roll over the year', async ({ page }
   await expect(page).toHaveURL(/month=2026-11/);
   await expect(page).toHaveURL(/category=food/);
 
-  // Without a month in the address the links start from the current month, and Clear is not needed.
+  // Without a month in the address the links start from the current month, and This month is not needed.
   await page.goto('/entries');
   await expect(page.getByText('Oct 2026')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);
+  await expect(thisMonthLink(page)).toHaveCount(0);
   await page.getByRole('link', { name: 'Previous', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-09');
-  await expect(page.getByRole('link', { name: 'Clear' })).toBeVisible();
+  await expect(thisMonthLink(page)).toBeVisible();
   await page.getByRole('link', { name: 'Next', exact: true }).click();
   await expect(page).toHaveURL('/entries?month=2026-10');
-  // Back in the current month there is nothing left to clear.
-  await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);
+  // Back in the current month there is no way back to show.
+  await expect(thisMonthLink(page)).toHaveCount(0);
 });
 
 test('the list moves on to the new month when the app is opened again after a month end', async ({ page }) => {
@@ -774,8 +791,8 @@ test('the list moves on to the new month when the app is opened again after a mo
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect(page.getByText('Nov 2026')).toBeVisible();
   await expect(page.getByText('Oct 2026')).toHaveCount(0);
-  // November is the current month again, so there is nothing to clear.
-  await expect(page.getByRole('link', { name: 'Clear' })).toHaveCount(0);
+  // November is the current month again, so there is no way back to show.
+  await expect(thisMonthLink(page)).toHaveCount(0);
 });
 
 async function pageOverflow(page: Page) {
