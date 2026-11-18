@@ -37,8 +37,8 @@
     {
       "name": "the entry form's category chips show no icon",
       "file": "src/features/tips/category-chip.tsx",
-      "find": "      <Icon aria-hidden=\"true\" />\n",
-      "replace": "",
+      "find": "      <Icon aria-hidden=\"true\" />\n      <span className=\"min-w-0",
+      "replace": "      <span className=\"min-w-0",
       "expect": {
         "e2e/entries.spec.ts": [
           "category-chip-icon"
@@ -75,6 +75,39 @@
       "expect": {
         "e2e/entries.spec.ts": [
           "dropped-line-said"
+        ]
+      }
+    },
+    {
+      "name": "quick add's category chips lose their tint",
+      "file": "src/features/tips/category-chip.tsx",
+      "find": "      data-category={categoryId}\n      style={{ backgroundColor: categoryTint(categoryId) }}\n",
+      "replace": "      data-category={categoryId}\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "chips-tinted"
+        ]
+      }
+    },
+    {
+      "name": "More stays on screen after it's tapped",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "        {showMore ? (\n          MORE_CATEGORIES.map(chip)\n        ) : (",
+      "replace": "        {showMore && MORE_CATEGORIES.map(chip)}\n        {(",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "more-goes"
+        ]
+      }
+    },
+    {
+      "name": "the focus stays where More was",
+      "file": "src/features/entries/quick-add-field.tsx",
+      "find": "    if (!showMore) return;\n",
+      "replace": "    if (showMore || !showMore) return;\n",
+      "expect": {
+        "e2e/entries.spec.ts": [
+          "more-focus"
         ]
       }
     }
