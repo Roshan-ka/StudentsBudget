@@ -42,6 +42,7 @@ Each plan is in `docs/superpowers/plans/`, with an As built section that says wh
 | Maskable app icon | `2026-11-16-maskable-icon.md` | done | the look on an Android phone |
 | Quick add: a date in the line, read on the phone | `2026-11-18-quick-add-dates.md` | built, chunks 1–3; tried as a guest on the live site in all four languages (18-11-2026) | a dated line signed in with the AI on |
 | Quick add: number words in German, French and Spanish | `2026-11-18-number-words.md` | done; tried on the live site in each language (18-11-2026) | |
+| Quick add breakpoints: no silent wrong amounts, days or categories | `2026-11-18-quick-add-breakpoints.md` | planned, 5 chunks; decisions D1–D5 wait for Roshan | all five chunks |
 
 ## Stack
 
