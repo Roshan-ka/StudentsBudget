@@ -44,7 +44,7 @@ export const entries: Messages['entries'] = {
   },
   quickAdd: {
     label: 'Schnell erfassen',
-    hint: 'Was und wie viel, etwa „Döner 6“.',
+    hint: 'Was und wie viel, etwa „Döner 6 gestern“.',
     add: 'Hinzufügen',
     noAmount: 'Gib einen Betrag an, etwa „Döner 6“',
     futureDate: 'Dieser Tag kommt erst noch. Schnell erfassen speichert, was du schon ausgegeben hast.',
