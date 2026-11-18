@@ -300,8 +300,11 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
   // rendered the disabled button, and `busy` would still read false in the handler it calls.
   const inFlight = useRef(false);
   const canSpeak = useSyncExternalStore(subscribeNever, speechOnClient, speechOnServer);
-  // Set while the mic listens: what stops it.
-  const stopListening = useRef<(() => void) | null>(null);
+  // Set while the mic listens: what stops it (`true` discards what it was hearing).
+  const stopListening = useRef<((discard?: boolean) => void) | null>(null);
+  // What a spoken line does. Set after each render, so it sees the state as it is when the line comes: one read at the
+  // tap knew no question asked since, and saved a line twice (breakpoints, 18-11-2026).
+  const onHeard = useRef<(heard: string) => void>(() => {});
   const [listening, setListening] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   // The AI (chunk 7): whether it is reading, the line waiting for the `ai` note, and the hint a refusal leaves.
@@ -322,10 +325,11 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
   // A hidden page stays mounted: leaving it stops the read, as it stops the mic.
   useEffect(() => () => dropRead(), []);
 
-  // A page the router leaves stays mounted but hidden, so the mic is stopped here rather than left listening.
+  // A page the router leaves stays mounted but hidden, so the mic is stopped here rather than left listening. Aborted,
+  // not stopped: a stop still hands over what was heard, which then saved on the hidden page (breakpoints, 18-11-2026).
   useEffect(
     () => () => {
-      stopListening.current?.();
+      stopListening.current?.(true);
       stopListening.current = null;
     },
     [],
@@ -493,12 +497,17 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
       setAiHint(null);
       dropRead();
       const mine = lineCount.current;
+      // Set before the first wait, so an edit or leaving the page while the context or the session is read already
+      // drops this line (breakpoints, 18-11-2026: an edit then saved the old line and wiped the new one).
       const controller = new AbortController();
+      readAbort.current = controller;
       let ctx: QuickAddContext;
       let reading: QuickAddReading | null;
       try {
         ctx = await loadContext(lang);
+        if (controller.signal.aborted) return;
         const ai = provider === undefined && (await aiReady());
+        if (controller.signal.aborted) return;
         if (ai && !noteAccepted && !noteSeen('ai')) {
           setAiNoteFor(line);
           return;
@@ -508,7 +517,6 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
           (ai
             ? aiQuickAddProvider({ lang, onHint: (hint) => mine === lineCount.current && setAiHint(hint) })
             : localQuickAddProvider);
-        readAbort.current = controller;
         setReading(ai);
         const read = await reader.read(line, ctx, { signal: controller.signal });
         // The line changed, or the page went, while it was read: nothing of it saves.
@@ -554,12 +562,8 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
     const stop = listen({
       win: window,
       lang,
-      onText: (heard) => {
-        // A spoken line replaces a typed one quick add was asking about, as a typed one would.
-        if ((pending !== null || choice !== null) && text.trim() !== '') setDropped(text.trim());
-        setText(heard);
-        void addLine(heard);
-      },
+      // The state as it is when the line comes, not as it was at the tap (`onHeard`).
+      onText: (heard) => onHeard.current(heard),
       onProblem: (problem) => setError(words.micErrors[problem]),
       onEnd: () => {
         stopListening.current = null;
@@ -583,6 +587,15 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
     }
     startListening();
   }
+
+  useEffect(() => {
+    onHeard.current = (heard) => {
+      // A spoken line replaces a typed one quick add was asking about, as a typed one would.
+      if ((pending !== null || choice !== null) && text.trim() !== '') setDropped(text.trim());
+      setText(heard);
+      void addLine(heard);
+    };
+  });
 
   /** Puts the line that went unsaved back in the field and reads it again, so its question comes back. */
   function bringBack() {
@@ -640,7 +653,8 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
               {listening ? <Square aria-hidden="true" /> : <Mic aria-hidden="true" />}
             </Button>
           )}
-          <Button type="submit" size="lg" disabled={busy}>
+          {/* Off while the mic listens: the spoken line is the one that comes next (breakpoints, 18-11-2026). */}
+          <Button type="submit" size="lg" disabled={busy || listening}>
             {words.add}
           </Button>
         </div>
@@ -689,7 +703,7 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
       {choice !== null && (
         <AmountChoice
           choice={choice}
-          busy={busy}
+          busy={busy || listening}
           onPick={(amountMinor) => {
             keepSpace();
             fieldRef.current?.focus();
@@ -702,7 +716,7 @@ export function QuickAddField({ provider }: { provider?: QuickAddProvider }) {
 
       {pending !== null && (
         <CategoryChips
-          busy={busy}
+          busy={busy || listening}
           afterChoice={askedAfterChoice}
           onTypeAhead={typeAhead}
           onPick={(categoryId) => {

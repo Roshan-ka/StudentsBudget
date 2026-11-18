@@ -135,6 +135,40 @@ test('a line edited while the AI reads it saves nothing; the next line saves', a
   expect(await readStore<Entry>(page, 'entries')).toEqual([expect.objectContaining({ amountMinor: 600, note: 'döner' })]);
 });
 
+// Quick add breakpoints (18-11-2026): an edit while the session was still being read saved the old line and wiped the new.
+test('a line edited while the session is checked saves nothing; the edited line saves', async ({ page }) => {
+  await acceptPrivacyNotes(page, ['ai']);
+  await mockAiFunction(page, {
+    answers: { 'quick-add': (request) => ({ ...readLine(request), amount: request.line.includes('6,50') ? 6.5 : 6 }) },
+  });
+  await signedInHome(page);
+  // The session has run out, so the next read of it waits for a refresh, held here until the line is edited.
+  let release = () => {};
+  const refreshed = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(
+    (url) => url.pathname.endsWith('/auth/v1/token') && url.searchParams.get('grant_type') === 'refresh_token',
+    async (route) => {
+      await refreshed;
+      await route.fallback();
+    },
+  );
+  await page.evaluate(() => {
+    const key = Object.keys(localStorage).find((name) => name.endsWith('-auth-token'));
+    if (key === undefined) throw new Error('no session in storage');
+    const session = JSON.parse(localStorage.getItem(key) ?? '{}') as { expires_at?: number };
+    localStorage.setItem(key, JSON.stringify({ ...session, expires_at: Math.floor(Date.now() / 1000) - 60 }));
+  });
+
+  await add(page, 'döner 6');
+  await field(page).fill('döner 6,50');
+  release();
+  await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved €6.50 · döner · Eating out'); // proof: early-edit-drops
+});
+
 test('with today’s AI reads used up, the line is read on the phone and says so', async ({ page }) => {
   await acceptPrivacyNotes(page, ['ai']);
   const ai = await mockAiFunction(page, { dailyLimit: true });
