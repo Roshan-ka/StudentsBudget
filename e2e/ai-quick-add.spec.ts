@@ -154,12 +154,12 @@ test('a line edited while the session is checked saves nothing; the edited line 
       await route.fallback();
     },
   );
-  await page.evaluate(() => {
-    const key = Object.keys(localStorage).find((name) => name.endsWith('-auth-token'));
-    if (key === undefined) throw new Error('no session in storage');
+  // The app keeps its session under AUTH_STORAGE_KEY (src/lib/supabase/client.ts), not supabase-js's default key.
+  await page.evaluate((key) => {
+    if (localStorage.getItem(key) === null) throw new Error('no session in storage');
     const session = JSON.parse(localStorage.getItem(key) ?? '{}') as { expires_at?: number };
     localStorage.setItem(key, JSON.stringify({ ...session, expires_at: Math.floor(Date.now() / 1000) - 60 }));
-  });
+  }, 'studentsbudget-auth');
 
   await add(page, 'döner 6');
   await field(page).fill('döner 6,50');

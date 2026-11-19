@@ -459,6 +459,9 @@ test('deleting an entry hands the focus to the next one shown', async ({ page })
   const list = entriesList(page);
   const row = (amount: string) => list.getByRole('button', { name: new RegExp(`^döner .*${amount}$`) });
   for (const amount of [3, 4, 5]) {
+    // A second apart: under the spec's fixed clock all three were made at the same moment, so their order on screen
+    // was left to chance and the saved mutation could stay green (nightly, 19-11-2026).
+    await page.clock.setFixedTime(new Date(2026, 9, 16, 12, 0, amount));
     await quickAdd(page, `döner ${amount}`);
     await expect(page.getByRole('status')).toHaveText(`Saved €${amount}.00 · döner · Eating out`);
   }
@@ -1160,8 +1163,9 @@ test.describe('in German', () => {
   test.use({ locale: 'de-DE' });
 
   test('quick add reads German number words', async ({ page }) => {
-    // Number words (18-11-2026): on a German phone, "sechs Euro fünfzig" is €6.50.
-    await seedSetup(page);
+    // Number words (18-11-2026): on a German phone, "sechs Euro fünfzig" is €6.50. The seed doesn't open Home, whose
+    // wait looks for the English "Quick add" (nightly, 19-11-2026).
+    await seedSetup(page, {}, { open: false });
     await page.goto('/entries');
     await expect(page.getByText('Okt. 2026')).toBeVisible();
     await page.getByRole('textbox', { name: 'Schnell erfassen', exact: true }).fill('Döner sechs Euro fünfzig');
